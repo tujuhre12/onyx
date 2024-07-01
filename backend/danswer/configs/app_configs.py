@@ -112,6 +112,13 @@ VESPA_TENANT_PORT = os.environ.get("VESPA_TENANT_PORT") or "19071"
 VESPA_DEPLOYMENT_ZIP = (
     os.environ.get("VESPA_DEPLOYMENT_ZIP") or "/app/danswer/vespa-app.zip"
 )
+
+# Opensearch
+OPENSEARCH_HOST = os.environ.get("OPENSEARCH_HOST") or "localhost"
+OPENSEARCH_PORT = os.environ.get("OPENSEARCH_PORT") or "9200"
+OPENSEARCH_USER = os.environ.get("OPENSEARCH_USER") or "admin"
+OPENSEARCH_PASSWORD = os.environ.get("OPENSEARCH_PASSWORD") or "D@nswer_1ndex"
+
 # Number of documents in a batch during indexing (further batching done by chunks before passing to bi-encoder)
 try:
     INDEX_BATCH_SIZE = int(os.environ.get("INDEX_BATCH_SIZE", 16))
