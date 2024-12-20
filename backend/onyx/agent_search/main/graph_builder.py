@@ -23,7 +23,7 @@ from onyx.agent_search.main.states import MainInput
 from onyx.agent_search.main.states import MainState
 
 
-def main_graph_builder() -> StateGraph:
+def main_graph_builder(test_mode: bool = False) -> StateGraph:
     graph = StateGraph(
         state_schema=MainState,
         input=MainInput,
@@ -57,10 +57,11 @@ def main_graph_builder() -> StateGraph:
         node="generate_initial_answer",
         action=generate_initial_answer,
     )
-    graph.add_node(
-        node="generate_initial_base_answer",
-        action=generate_initial_base_answer,
-    )
+    if test_mode:
+        graph.add_node(
+            node="generate_initial_base_answer",
+            action=generate_initial_base_answer,
+        )
 
     ### Add edges ###
 
@@ -92,14 +93,20 @@ def main_graph_builder() -> StateGraph:
         start_key=["ingest_answers", "ingest_initial_retrieval"],
         end_key="generate_initial_answer",
     )
-    graph.add_edge(
-        start_key=["ingest_answers", "ingest_initial_retrieval"],
-        end_key="generate_initial_base_answer",
-    )
-    graph.add_edge(
-        start_key=["generate_initial_answer", "generate_initial_base_answer"],
-        end_key=END,
-    )
+    if test_mode:
+        graph.add_edge(
+            start_key=["ingest_answers", "ingest_initial_retrieval"],
+            end_key="generate_initial_base_answer",
+        )
+        graph.add_edge(
+            start_key=["generate_initial_answer", "generate_initial_base_answer"],
+            end_key=END,
+        )
+    else:
+        graph.add_edge(
+            start_key="generate_initial_answer",
+            end_key=END,
+        )
 
     return graph
 

@@ -403,9 +403,9 @@ INITIAL_RAG_BASE_PROMPT = """ \n
 
     And here is the question and the provided information:
     \n
-    \nQuestion:\n {question} \n
+    \nQuestion:\n {question}\n
 
-    \nContext:\n {context} \n\n
+    \nContext:\n {context}\n\n
     \n\n
 
     Answer:"""

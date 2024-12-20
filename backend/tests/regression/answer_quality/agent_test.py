@@ -19,7 +19,7 @@ INPUT_DIR = CONFIG["agent_test_input_folder"]
 OUTPUT_DIR = CONFIG["agent_test_output_folder"]
 
 
-graph = main_graph_builder()
+graph = main_graph_builder(test_mode=True)
 compiled_graph = graph.compile()
 primary_llm, fast_llm = get_default_llms()
 
