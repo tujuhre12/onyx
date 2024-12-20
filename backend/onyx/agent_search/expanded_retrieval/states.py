@@ -16,13 +16,13 @@ from onyx.context.search.models import InferenceSection
 class QueryResult(BaseModel):
     query: str
     documents_for_query: list[InferenceSection]
-    chunk_ids: list[str]
     stats: dict[str, Any]
 
 
 class ExpandedRetrievalResult(BaseModel):
     expanded_queries_results: list[QueryResult]
     all_documents: list[InferenceSection]
+    sub_question_retrieval_stats: dict
 
 
 ### States ###
@@ -35,6 +35,7 @@ class DocVerificationUpdate(TypedDict):
 
 class DocRerankingUpdate(TypedDict):
     reranked_documents: Annotated[list[InferenceSection], dedup_inference_sections]
+    sub_question_retrieval_stats: Annotated[list[dict[str, float | int]], add]
 
 
 class QueryExpansionUpdate(TypedDict):

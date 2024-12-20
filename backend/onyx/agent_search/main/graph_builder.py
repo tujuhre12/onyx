@@ -12,6 +12,9 @@ from onyx.agent_search.main.nodes.base_decomp import main_decomp_base
 from onyx.agent_search.main.nodes.generate_initial_answer import (
     generate_initial_answer,
 )
+from onyx.agent_search.main.nodes.generate_initial_BASE_answer import (
+    generate_initial_base_answer,
+)
 from onyx.agent_search.main.nodes.ingest_answers import ingest_answers
 from onyx.agent_search.main.nodes.ingest_initial_retrieval import (
     ingest_initial_retrieval,
@@ -54,6 +57,10 @@ def main_graph_builder() -> StateGraph:
         node="generate_initial_answer",
         action=generate_initial_answer,
     )
+    graph.add_node(
+        node="generate_initial_base_answer",
+        action=generate_initial_base_answer,
+    )
 
     ### Add edges ###
 
@@ -86,7 +93,11 @@ def main_graph_builder() -> StateGraph:
         end_key="generate_initial_answer",
     )
     graph.add_edge(
-        start_key="generate_initial_answer",
+        start_key=["ingest_answers", "ingest_initial_retrieval"],
+        end_key="generate_initial_base_answer",
+    )
+    graph.add_edge(
+        start_key=["generate_initial_answer", "generate_initial_base_answer"],
         end_key=END,
     )
 
@@ -94,6 +105,8 @@ def main_graph_builder() -> StateGraph:
 
 
 if __name__ == "__main__":
+    pass
+
     from onyx.db.engine import get_session_context_manager
     from onyx.llm.factory import get_default_llms
     from onyx.context.search.models import SearchRequest
@@ -101,16 +114,21 @@ if __name__ == "__main__":
     graph = main_graph_builder()
     compiled_graph = graph.compile()
     primary_llm, fast_llm = get_default_llms()
-    search_request = SearchRequest(
-        query="what can you do with onyx or danswer?",
-    )
+
     with get_session_context_manager() as db_session:
+        durations = []
+        chunk_expansion_ratios = []
+        support_effectiveness_ratios = []
+
+        search_request = SearchRequest(query="Who created Excel?")
+
         inputs = MainInput(
             search_request=search_request,
             primary_llm=primary_llm,
             fast_llm=fast_llm,
             db_session=db_session,
         )
+
         for thing in compiled_graph.stream(
             input=inputs,
             # stream_mode="debug",

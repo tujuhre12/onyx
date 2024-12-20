@@ -10,4 +10,7 @@ def ingest_initial_retrieval(state: ExpandedRetrievalOutput) -> ExpandedRetrieva
         all_original_question_documents=state[
             "expanded_retrieval_result"
         ].all_documents,
+        sub_question_retrieval_stats=state[
+            "expanded_retrieval_result"
+        ].sub_question_retrieval_stats,
     )

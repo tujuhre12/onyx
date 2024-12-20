@@ -8,4 +8,7 @@ def ingest_retrieval(state: ExpandedRetrievalOutput) -> RetrievalIngestionUpdate
             "expanded_retrieval_result"
         ].expanded_queries_results,
         documents=state["expanded_retrieval_result"].all_documents,
+        sub_question_retrieval_stats=state[
+            "expanded_retrieval_result"
+        ].sub_question_retrieval_stats,
     )

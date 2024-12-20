@@ -13,12 +13,17 @@ from onyx.context.search.models import InferenceSection
 ### Models ###
 
 
+class AnswerRetrievalStats(BaseModel):
+    answer_retrieval_stats: dict[str, float | int]
+
+
 class QuestionAnswerResults(BaseModel):
     question: str
     answer: str
     quality: str
     expanded_retrieval_results: list[QueryResult]
     documents: list[InferenceSection]
+    sub_question_retrieval_stats: dict
 
 
 ### States ###
@@ -32,11 +37,13 @@ class QACheckUpdate(TypedDict):
 
 class QAGenerationUpdate(TypedDict):
     answer: str
+    # answer_stat: AnswerStats
 
 
 class RetrievalIngestionUpdate(TypedDict):
     expanded_retrieval_results: list[QueryResult]
     documents: Annotated[list[InferenceSection], dedup_inference_sections]
+    sub_question_retrieval_stats: dict
 
 
 ## Graph Input State

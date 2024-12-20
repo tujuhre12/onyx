@@ -15,7 +15,11 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
 
     msg = [
         HumanMessage(
-            content=BASE_RAG_PROMPT.format(question=question, context=format_docs(docs))
+            content=BASE_RAG_PROMPT.format(
+                question=question,
+                context=format_docs(docs),
+                original_question=state["search_request"].query,
+            )
         )
     ]
 

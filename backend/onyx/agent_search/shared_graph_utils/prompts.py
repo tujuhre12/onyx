@@ -20,22 +20,31 @@ REWRITE_PROMPT_MULTI = """ \n
 
 BASE_RAG_PROMPT = """ \n
     You are an assistant for question-answering tasks. Use the context provided below - and only the
-    provided context - to answer the question. If you don't know the answer or if the provided context is
-    empty, just say "I don't know". Do not use your internal knowledge!
+    provided context - to answer the given question. (Note that the answer is in service of anserwing a broader
+    question, given below as 'motivation'.)
 
     Again, only use the provided context and do not use your internal knowledge! If you cannot answer the
     question based on the context, say "I don't know". It is a matter of life and death that you do NOT
     use your internal knowledge, just the provided information!
 
-    Use three sentences maximum and keep the answer concise.
-    answer concise.\nQuestion:\n {question} \nContext:\n {context} \n\n
+    Make sure that you keep all relevant information, specifically as it concerns to the ultimate goal.
+    (But keep other details as well.)
+
+    If you don't know the answer or if the provided context is
+    empty, just say "I don't know". Do not use your internal knowledge!
+
+    \nQuestion:\n {question} \n
+
+    \nContext:\n {context} \n
+
+    Motivation:\n {original_question} \n\n
     \n\n
     Answer:"""
 
-SUB_CHECK_PROMPT = """ \n
+SUB_CHECK_PROMPT = """
     Your task is to see whether a given answer addresses a given question.
     Please do not use any internal knowledge you may have - just focus on whether the answer
-    as given seems to address the question as given.
+    as given seems to largely address the question as given.
     Here is the question:
     \n ------- \n
     {question}
@@ -378,6 +387,30 @@ INITIAL_DECOMPOSITION_PROMPT = """ \n
     Answer:
     """
 
+INITIAL_RAG_BASE_PROMPT = """ \n
+    You are an assistant for question-answering tasks. Use the information provided below - and only the
+    provided information - to answer the provided question.
+
+    The information provided below consists of a number of documents that were also deemed relevant for the question.
+
+    If you don't know the answer or if the provided information is empty or insufficient, just say
+    "I don't know". Do not use your internal knowledge!
+
+    Again, only use the provided information and do not use your internal knowledge! It is a matter of life
+    and death that you do NOT use your internal knowledge, just the provided information!
+
+    Try to keep your answer concise.
+
+    And here is the question and the provided information:
+    \n
+    \nQuestion:\n {question} \n
+
+    \nContext:\n {context} \n\n
+    \n\n
+
+    Answer:"""
+
+
 INITIAL_RAG_PROMPT = """ \n
     You are an assistant for question-answering tasks. Use the information provided below - and only the
     provided information - to answer the provided question.
@@ -390,20 +423,19 @@ INITIAL_RAG_PROMPT = """ \n
     If you don't know the answer or if the provided information is empty or insufficient, just say
     "I don't know". Do not use your internal knowledge!
 
-    Again, only use the provided informationand do not use your internal knowledge! It is a matter of life
+    Again, only use the provided information and do not use your internal knowledge! It is a matter of life
     and death that you do NOT use your internal knowledge, just the provided information!
 
     Try to keep your answer concise.
 
     And here is the question and the provided information:
     \n
-    \nQuestion:\n {question}
+    \nQuestion:\n {question}\n\n
+    Answered Sub-questions:\n {answered_sub_questions}\n\n
+    Documents supporting the sub-questions answers:\n {sub_question_docs_context}\n\n
 
-    \nAnswered Sub-questions:\n {answered_sub_questions}
-
-    \nContext:\n {context} \n\n
-    \n\n
-
+    And here are additional relevant documents:\n\n
+    {additional_relevant_docs} \n\n\n
     Answer:"""
 
 ENTITY_TERM_PROMPT = """ \n
