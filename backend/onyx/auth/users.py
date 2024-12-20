@@ -2,8 +2,6 @@ import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime
 from datetime import timezone
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from typing import cast
 from typing import Dict
 from typing import List
