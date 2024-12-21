@@ -29,7 +29,6 @@ import { useRef, useState } from "react";
 import remarkGfm from "remark-gfm";
 import { EditIcon } from "@/components/icons/icons";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 
 export function SectionHeader({
   children,
@@ -144,7 +143,6 @@ export function TextFormField({
   small,
   removeLabel,
   min,
-  includeForgotPassword,
   onChange,
   width,
   vertical,
@@ -171,7 +169,6 @@ export function TextFormField({
   explanationLink?: string;
   small?: boolean;
   min?: number;
-  includeForgotPassword?: boolean;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   width?: string;
   vertical?: boolean;
@@ -241,7 +238,7 @@ export function TextFormField({
         )}
       </div>
       {subtext && <SubLabel>{subtext}</SubLabel>}
-      <div className={`w-full flex ${includeRevert && "gap-x-2"} relative`}>
+      <div className={`w-full flex ${includeRevert && "gap-x-2"}`}>
         <Field
           onChange={handleChange}
           min={min}
@@ -272,14 +269,6 @@ export function TextFormField({
           placeholder={placeholder}
           autoComplete={autoCompleteDisabled ? "off" : undefined}
         />
-        {includeForgotPassword && (
-          <Link
-            href="/auth/forgot-password"
-            className="absolute right-3 top-1/2 mt-[3px] transform -translate-y-1/2 text-xs text-blue-500 cursor-pointer"
-          >
-            Forgot password?
-          </Link>
-        )}
       </div>
 
       {explanationText && (

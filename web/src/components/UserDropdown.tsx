@@ -59,11 +59,9 @@ const DropdownOption: React.FC<DropdownOptionProps> = ({
 export function UserDropdown({
   page,
   toggleUserSettings,
-  hideUserDropdown,
 }: {
   page?: pageType;
   toggleUserSettings?: () => void;
-  hideUserDropdown?: boolean;
 }) {
   const { user, isCurator } = useUser();
   const [userInfoVisible, setUserInfoVisible] = useState(false);
@@ -116,7 +114,6 @@ export function UserDropdown({
   };
 
   const showAdminPanel = !user || user.role === UserRole.ADMIN;
-
   const showCuratorPanel = user && isCurator;
   const showLogout =
     user && !checkUserIsNoAuthUser(user.id) && !LOGOUT_DISABLED;
@@ -186,12 +183,6 @@ export function UserDropdown({
                 notifications={notifications || []}
                 refreshNotifications={refreshNotifications}
               />
-            ) : hideUserDropdown ? (
-              <DropdownOption
-                onClick={() => router.push("/auth/login")}
-                icon={<UserIcon className="h-5 w-5 my-auto mr-2" />}
-                label="Log In"
-              />
             ) : (
               <>
                 {customNavItems.map((item, i) => (
@@ -260,7 +251,6 @@ export function UserDropdown({
                     label="User Settings"
                   />
                 )}
-
                 <DropdownOption
                   onClick={() => {
                     setUserInfoVisible(true);
