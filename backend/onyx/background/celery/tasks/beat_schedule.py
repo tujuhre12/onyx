@@ -4,7 +4,7 @@ from typing import Any
 from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import OnyxCeleryTask
 
-BEAT_EXPIRES_DEFAULT = 30 * 60  # 30 minutes
+BEAT_EXPIRES_DEFAULT = 10 * 60  # 30 minutes
 
 # we set expires because it isn't necessary to queue up these tasks
 # it's only important that they run relatively regularly
