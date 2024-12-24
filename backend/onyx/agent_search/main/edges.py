@@ -3,6 +3,7 @@ from collections.abc import Hashable
 from langgraph.types import Send
 
 from onyx.agent_search.answer_question.states import AnswerQuestionInput
+from onyx.agent_search.answer_question.states import AnswerQuestionOutput
 from onyx.agent_search.core_state import extract_core_fields
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalInput
 from onyx.agent_search.main.states import MainInput
@@ -10,16 +11,25 @@ from onyx.agent_search.main.states import MainState
 
 
 def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hashable]:
-    return [
-        Send(
-            "answer_query",
-            AnswerQuestionInput(
-                **extract_core_fields(state),
-                question=question,
-            ),
-        )
-        for question in state["initial_decomp_questions"]
-    ]
+    if len(state["initial_decomp_questions"]) > 0:
+        return [
+            Send(
+                "answer_query",
+                AnswerQuestionInput(
+                    **extract_core_fields(state),
+                    question=question,
+                ),
+            )
+            for question in state["initial_decomp_questions"]
+        ]
+
+    else:
+        return [
+            Send(
+                "ingest_answers",
+                AnswerQuestionOutput(),
+            )
+        ]
 
 
 def send_to_initial_retrieval(state: MainInput) -> list[Send | Hashable]:

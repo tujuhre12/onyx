@@ -27,5 +27,7 @@ def generate_initial_base_answer(state: MainState) -> InitialAnswerBASEUpdate:
     answer = response.pretty_repr()
 
     print()
-    print(f"---INITIAL BASE ANSWER START---  {answer}  ---INITIAL BASE ANSWER  END---")
+    print(
+        f"\n\n---INITIAL BASE ANSWER START---\n\nBase:  {answer}\n\n  ---INITIAL BASE ANSWER  END---\n\n"
+    )
     return InitialAnswerBASEUpdate(initial_base_answer=answer)

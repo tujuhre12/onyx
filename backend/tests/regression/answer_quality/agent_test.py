@@ -33,13 +33,17 @@ output_file = f"{OUTPUT_DIR}/agent_test_output.csv"
 
 
 test_data = json.load(input_file_object)
-examples = test_data["examples"]
+example_data = test_data["examples"]
+example_ids = test_data["example_ids"]
 
 with get_session_context_manager() as db_session:
     output_data = []
 
-    for example in examples:
+    for example in example_data:
         example_id = example["id"]
+        if len(example_ids) > 0 and example_id not in example_ids:
+            continue
+
         example_question = example["question"]
         target_sub_questions = example.get("target_sub_questions", [])
         num_target_sub_questions = len(target_sub_questions)
@@ -58,16 +62,21 @@ with get_session_context_manager() as db_session:
         end_time = datetime.datetime.now()
 
         duration = end_time - start_time
-        chunk_expansion_ratio = (
-            question_result["initial_agent_stats"]
-            .get("agent_effectiveness", {})
-            .get("utilized_chunk_ratio", None)
-        )
-        support_effectiveness_ratio = (
-            question_result["initial_agent_stats"]
-            .get("agent_effectiveness", {})
-            .get("support_ratio", None)
-        )
+        if num_target_sub_questions > 0:
+            chunk_expansion_ratio = (
+                question_result["initial_agent_stats"]
+                .get("agent_effectiveness", {})
+                .get("utilized_chunk_ratio", None)
+            )
+            support_effectiveness_ratio = (
+                question_result["initial_agent_stats"]
+                .get("agent_effectiveness", {})
+                .get("support_ratio", None)
+            )
+        else:
+            chunk_expansion_ratio = None
+            support_effectiveness_ratio = None
+
         generated_sub_questions = question_result.get("generated_sub_questions", [])
         num_generated_sub_questions = len(generated_sub_questions)
         base_answer = question_result["initial_base_answer"].split("==")[-1]

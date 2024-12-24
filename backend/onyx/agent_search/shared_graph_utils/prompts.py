@@ -30,21 +30,18 @@ BASE_RAG_PROMPT = """ \n
     Make sure that you keep all relevant information, specifically as it concerns to the ultimate goal.
     (But keep other details as well.)
 
-    If you don't know the answer or if the provided context is
-    empty, just say "I don't know". Do not use your internal knowledge!
-
-    \nQuestion:\n {question} \n
-
     \nContext:\n {context} \n
 
     Motivation:\n {original_question} \n\n
     \n\n
-    Answer:"""
+    And here is the question I want you to answer based on the context above (with the motivation in mind):
+    \n--\n {question} \n--\n
+    """
 
 SUB_CHECK_PROMPT = """
     Your task is to see whether a given answer addresses a given question.
     Please do not use any internal knowledge you may have - just focus on whether the answer
-    as given seems to largely address the question as given.
+    as given seems to largely address the question as given, or at least addresses part of the question.
     Here is the question:
     \n ------- \n
     {question}
@@ -53,7 +50,7 @@ SUB_CHECK_PROMPT = """
     \n ------- \n
     {base_answer}
     \n ------- \n
-    Please answer with yes or no:"""
+    Does the suggested answer address the question? Please answer with yes or no:"""
 
 
 BASE_CHECK_PROMPT = """ \n
@@ -73,37 +70,50 @@ BASE_CHECK_PROMPT = """ \n
     \n ------- \n
     Please answer with yes or no:"""
 
-VERIFIER_PROMPT = """ \n
-    Please check whether the document provided below seems to be relevant
-    to get an answer to the provided question. Please
-    only answer with 'yes' or 'no' \n
-    Here is the initial question:
-    \n ------- \n
-    {question}
-    \n ------- \n
-    Here is the document text:
-    \n ------- \n
-    {document_content}
-    \n ------- \n
-    Please answer with yes or no:"""
+VERIFIER_PROMPT = """
+You are supposed to judge whether a document text contains data or information that is potentially relevant for a question.
+
+Here is a document text that you can take as a fact:
+--
+DOCUMENT INFORMATION:
+{document_content}
+--
+
+Do you think that this information is useful and relevant to answer the following question?
+(Other documents may supply additional information, so do not worry if the provided information
+is not enough to answer the question, but it needs to be relevant to the question.)
+--
+QUESTION:
+{question}
+--
+
+Please answer with 'yes' or 'no' and format your answer as a json object with the following format:
+{{"decision": <answer (yes or no)>}}
+
+AANSWER:
+
+"""
 
 INITIAL_DECOMPOSITION_PROMPT_BASIC = """ \n
-    Please decompose an initial user question into not more than 4 appropriate sub-questions that help to
-    answer the original question. The purpose for this decomposition is to isolate individulal entities
-    (i.e., 'compare sales of company A and company B' -> 'what are sales for company A' + 'what are sales
-    for company B'), split ambiguous terms (i.e., 'what is our success with company A' -> 'what are our
-    sales with company A' + 'what is our market share with company A' + 'is company A a reference customer
-    for us'), etc. Each sub-question should be realistically be answerable by a good RAG system. \n
+If you think it is helpful, please decompose an initial user question into not more
+than 4 appropriate sub-questions that help to answer the original question.
+The purpose for this decomposition is to isolate individulal entities
+(i.e., 'compare sales of company A and company B' -> 'what are sales for company A' + 'what are sales
+for company B'), split ambiguous terms (i.e., 'what is our success with company A' -> 'what are our
+sales with company A' + 'what is our market share with company A' + 'is company A a reference customer
+ for us'), etc. Each sub-question should be realistically be answerable by a good RAG system.
 
-    Here is the initial question:
-    \n ------- \n
-    {question}
-    \n ------- \n
+Importantly, if you think it is not needed or helpful, please just return an empty list. That is ok too.
 
-    Please formulate your answer as a list of subquestions:
+Here is the initial question:
+\n ------- \n
+{question}
+\n ------- \n
 
-    Answer:
-    """
+Please formulate your answer as a list of subquestions:
+
+Answer:
+"""
 
 REWRITE_PROMPT_SINGLE = """ \n
     Please convert an initial user question into a more appropriate search query for retrievel from a
@@ -364,6 +374,29 @@ SUB_QUESTION_EXPLANATION_RANKER_PROMPT = """-------
     """
 
 
+INITIAL_DECOMPOSITION_PROMPT_QUESTIONS = """
+If you think it is helpful, please decompose an initial user question into 2 or 4 appropriate sub-questions that help to
+answer the original question. The purpose for this decomposition is to
+  1) isolate individual entities (i.e., 'compare sales of company A and company B' -> ['what are sales for company A',
+     'what are sales for company B')]
+  2) clarify or disambiguate ambiguous terms (i.e., 'what is our success with company A' -> ['what are our sales with company A',
+      'what is our market share with company A', 'is company A a reference customer for us', etc.])
+  3) if a term or a metric is essentially clear, but it could relate to various components of an entity and you are generally
+    familiar with the entity, then you can decompose the question into sub-questions that are more specific to components
+     (i.e., 'what do we do to improve scalability of product X', 'what do we to to improve scalability of product X',
+     'what do we do to improve stability of product X', ...])
+
+If you think that a decomposition is not needed or helpful, please just return an empty list. That is ok too.
+
+Here is the initial question:
+-------
+{question}
+-------
+Please formulate your answer as a list of json objects with the following format:
+[{{"sub_question": <sub-question>}}, ...]
+
+Answer:"""
+
 INITIAL_DECOMPOSITION_PROMPT = """ \n
     Please decompose an initial user question into 2 or 3 appropriate sub-questions that help to
     answer the original question. The purpose for this decomposition is to isolate individulal entities
@@ -388,55 +421,91 @@ INITIAL_DECOMPOSITION_PROMPT = """ \n
     """
 
 INITIAL_RAG_BASE_PROMPT = """ \n
-    You are an assistant for question-answering tasks. Use the information provided below - and only the
-    provided information - to answer the provided question.
+You are an assistant for question-answering tasks. Use the information provided below - and only the
+provided information - to answer the provided question.
 
-    The information provided below consists of a number of documents that were also deemed relevant for the question.
+The information provided below consists ofa number of documents that were deemed relevant for the question.
 
-    If you don't know the answer or if the provided information is empty or insufficient, just say
-    "I don't know". Do not use your internal knowledge!
+IMPORTANT RULES:
+- If you cannot reliably answer the question solely using the provided information, say that you cannot reliably answer.
+You may give some additional facts you learned, but do not try to invent an answer.
+- If the information is empty or irrelevant, just say "I don't know".
+- If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
 
-    Again, only use the provided information and do not use your internal knowledge! It is a matter of life
-    and death that you do NOT use your internal knowledge, just the provided information!
+Try to keep your answer concise.
 
-    Try to keep your answer concise.
-
-    And here is the question and the provided information:
-    \n
-    \nQuestion:\n {question}\n
-
-    \nContext:\n {context}\n\n
-    \n\n
-
-    Answer:"""
+Here is the contextual information from the document store:
+\n ------- \n
+{context} \n\n\n
+\n ------- \n
+And here is the question I want you to answer based on the context above (with the motivation in mind):
+\n--\n {question} \n--\n
+Answer:"""
 
 
 INITIAL_RAG_PROMPT = """ \n
-    You are an assistant for question-answering tasks. Use the information provided below - and only the
-    provided information - to answer the provided question.
+You are an assistant for question-answering tasks. Use the information provided below - and only the
+provided information - to answer the provided question.
 
-    The information provided below consists of:
-     1) a number of answered sub-questions - these are very important(!) and definitely should be
-     considered to answer the question.
-     2) a number of documents that were also deemed relevant for the question.
+The information provided below consists of:
+    1) a number of answered sub-questions - these are very important(!) and definitely should be
+    considered to answer the question.
+    2) a number of documents that were also deemed relevant for the question.
 
-    If you don't know the answer or if the provided information is empty or insufficient, just say
-    "I don't know". Do not use your internal knowledge!
+IMPORTANT RULES:
+ - If you cannot reliably answer the question solely using the provided information, say that you cannot reliably answer.
+ You may give some additional facts you learned, but do not try to invent an answer.
+ - If the information is empty or irrelevant, just say "I don't know".
+ - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
 
-    Again, only use the provided information and do not use your internal knowledge! It is a matter of life
-    and death that you do NOT use your internal knowledge, just the provided information!
+Again, you should be sure that the answer is supported by the information provided!
 
-    Try to keep your answer concise.
+Try to keep your answer concise. But also highlight uncertainties you may have should there be substantial ones,
+or assumptions you made.
 
-    And here is the question and the provided information:
-    \n
-    \nQuestion:\n {question}\n\n
-    Answered Sub-questions:\n {answered_sub_questions}\n\n
-    Documents supporting the sub-questions answers:\n {sub_question_docs_context}\n\n
+Here is the contextual information:
+\n-------\n
+*Answered Sub-questions (these should really matter!):
+{answered_sub_questions}
 
-    And here are additional relevant documents:\n\n
-    {additional_relevant_docs} \n\n\n
-    Answer:"""
+And here are relevant document information that support the sub-question answers, or that are relevant for the actual question:\n
+
+{relevant_docs}
+
+\n-------\n
+\n
+And here is the question I want you to answer based on the information above:
+\n--\n
+{question}
+\n--\n\n
+Answer:"""
+
+INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS = """
+You are an assistant for question-answering tasks. Use the information provided below
+- and only the provided information - to answer the provided question.
+The information provided below consists of a number of documents that were deemed relevant for the question.
+
+IMPORTANT RULES:
+ - If you cannot reliably answer the question solely using the provided information, say that you cannot reliably answer.
+ You may give some  additional facts you learned, but do not try to invent an answer.
+ - If the information is irrelevant, just say "I don't know".
+ - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
+
+Again, you should be sure that the answer is supported by the information provided!
+
+Try to keep your answer concise.
+
+Here are is the relevant context information:
+\n-------\n
+{relevant_docs}
+\n-------\n
+
+And here is the question I want you to answer based on the context above
+\n--\n
+{question}
+\n--\n
+
+Answer:"""
 
 ENTITY_TERM_PROMPT = """ \n
     Based on the original question and the context retieved from a dataset, please generate a list of

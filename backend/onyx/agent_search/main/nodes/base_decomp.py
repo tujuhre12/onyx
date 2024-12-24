@@ -2,7 +2,9 @@ from langchain_core.messages import HumanMessage
 
 from onyx.agent_search.main.states import BaseDecompUpdate
 from onyx.agent_search.main.states import MainState
-from onyx.agent_search.shared_graph_utils.prompts import INITIAL_DECOMPOSITION_PROMPT
+from onyx.agent_search.shared_graph_utils.prompts import (
+    INITIAL_DECOMPOSITION_PROMPT_QUESTIONS,
+)
 from onyx.agent_search.shared_graph_utils.utils import clean_and_parse_list_string
 
 
@@ -11,7 +13,7 @@ def main_decomp_base(state: MainState) -> BaseDecompUpdate:
 
     msg = [
         HumanMessage(
-            content=INITIAL_DECOMPOSITION_PROMPT.format(question=question),
+            content=INITIAL_DECOMPOSITION_PROMPT_QUESTIONS.format(question=question),
         )
     ]
 

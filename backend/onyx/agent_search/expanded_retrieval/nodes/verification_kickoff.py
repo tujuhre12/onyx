@@ -23,6 +23,7 @@ def verification_kickoff(
                 node="doc_verification",
                 arg=DocVerificationInput(
                     doc_to_verify=doc,
+                    question=state["question"],
                     **extract_core_fields(state),
                 ),
             )

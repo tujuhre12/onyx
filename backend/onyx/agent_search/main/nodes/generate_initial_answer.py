@@ -1,10 +1,16 @@
+import json
+
 from backend.onyx.agent_search.answer_question.states import QuestionAnswerResults
 from langchain_core.messages import HumanMessage
 
 from onyx.agent_search.main.states import AgentStats
 from onyx.agent_search.main.states import InitialAnswerUpdate
 from onyx.agent_search.main.states import MainState
+from onyx.agent_search.shared_graph_utils.operators import dedup_inference_sections
 from onyx.agent_search.shared_graph_utils.prompts import INITIAL_RAG_PROMPT
+from onyx.agent_search.shared_graph_utils.prompts import (
+    INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS,
+)
 from onyx.agent_search.shared_graph_utils.utils import format_docs
 
 
@@ -16,6 +22,9 @@ def _calculate_initial_agent_stats(
         "original_question": {},
         "agent_effectiveness": {},
     }
+
+    orig_verified = original_question_stats["verified_count"]
+    orig_support_score = original_question_stats["verified_avg_scores"]
 
     verified_document_chunk_ids = []
     support_scores = 0
@@ -52,7 +61,6 @@ def _calculate_initial_agent_stats(
 
     # Calculate chunk utilization ratio
     sub_verified = initial_agent_dict["sub_questions"]["num_verified_documents"]
-    orig_verified = initial_agent_dict["original_question"]["num_verified_documents"]
 
     chunk_ratio = None
     if orig_verified > 0:
@@ -63,18 +71,18 @@ def _calculate_initial_agent_stats(
     initial_agent_dict["agent_effectiveness"]["utilized_chunk_ratio"] = chunk_ratio
 
     if (
-        initial_agent_dict["original_question"]["verified_avg_score"] is None
+        orig_support_score is None
         and initial_agent_dict["sub_questions"]["verified_avg_score"] is None
     ):
         initial_agent_dict["agent_effectiveness"]["support_ratio"] = None
-    elif initial_agent_dict["original_question"]["verified_avg_score"] is None:
+    elif orig_support_score is None:
         initial_agent_dict["agent_effectiveness"]["support_ratio"] = 10
     elif initial_agent_dict["sub_questions"]["verified_avg_score"] is None:
         initial_agent_dict["agent_effectiveness"]["support_ratio"] = 0
     else:
         initial_agent_dict["agent_effectiveness"]["support_ratio"] = (
             initial_agent_dict["sub_questions"]["verified_avg_score"]
-            / initial_agent_dict["original_question"]["verified_avg_score"]
+            / orig_support_score
         )
 
     return initial_agent_dict
@@ -86,7 +94,9 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     question = state["search_request"].query
     sub_question_docs = state["documents"]
     all_original_question_documents = state["all_original_question_documents"]
-    # combined_docs = dedup_inference_sections(docs + all_original_question_documents)
+    relevant_docs = dedup_inference_sections(
+        sub_question_docs, all_original_question_documents
+    )
 
     net_new_original_question_docs = []
     for all_original_question_doc in all_original_question_documents:
@@ -104,7 +114,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     for decomp_answer_result in decomp_answer_results:
         decomp_questions.append(decomp_answer_result.question)
         if (
-            decomp_answer_result.quality.lower() == "yes"
+            decomp_answer_result.quality.lower().startswith("yes")
             and len(decomp_answer_result.answer) > 0
             and decomp_answer_result.answer != "I don't know"
         ):
@@ -117,16 +127,25 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
 
     sub_question_answer_str = "\n\n------\n\n".join(good_qa_list)
 
-    msg = [
-        HumanMessage(
-            content=INITIAL_RAG_PROMPT.format(
-                question=question,
-                answered_sub_questions=sub_question_answer_str,
-                sub_question_docs_context=format_docs(sub_question_docs),
-                additional_relevant_docs=format_docs(net_new_original_question_docs),
+    if len(good_qa_list) > 0:
+        msg = [
+            HumanMessage(
+                content=INITIAL_RAG_PROMPT.format(
+                    question=question,
+                    answered_sub_questions=sub_question_answer_str,
+                    relevant_docs=format_docs(relevant_docs),
+                )
             )
-        )
-    ]
+        ]
+    else:
+        msg = [
+            HumanMessage(
+                content=INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS.format(
+                    question=question,
+                    relevant_docs=format_docs(relevant_docs),
+                )
+            )
+        ]
 
     # Grader
     model = state["fast_llm"]
@@ -137,10 +156,13 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
         state["decomp_answer_results"], state["sub_question_retrieval_stats"]
     )
 
-    print("")
-    print(
-        f"---INITIAL AGENT ANSWER START---  {answer}  ---INITIAL AGENT ANSWER  END---"
-    )
+    print(f"\n\n---INITIAL AGENT ANSWER START---\n\n Answer:\n Agent: {answer}")
+
+    print(f"\n\nSub-Questions:\n\n{sub_question_answer_str}\n\nStas:\n\n")
+
+    print(json.dumps(initial_agent_stats, indent=4))
+
+    print("\n\n ---INITIAL AGENT ANSWER  END---\n\n")
 
     return InitialAnswerUpdate(
         initial_answer=answer,

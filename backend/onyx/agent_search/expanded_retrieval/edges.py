@@ -8,6 +8,9 @@ from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalState
 
 
 def parallel_retrieval_edge(state: ExpandedRetrievalState) -> list[Send | Hashable]:
+    question = state.get("question", state["search_request"].query)
+
+    query_expansions = state.get("expanded_queries", []) + [question]
     return [
         Send(
             "doc_retrieval",
@@ -16,5 +19,5 @@ def parallel_retrieval_edge(state: ExpandedRetrievalState) -> list[Send | Hashab
                 **extract_core_fields(state),
             ),
         )
-        for query in state["expanded_queries"]
+        for query in query_expansions
     ]

@@ -1,5 +1,6 @@
+import json
+
 from langchain_core.messages import HumanMessage
-from langchain_core.messages import merge_message_runs
 
 from onyx.agent_search.expanded_retrieval.states import DocVerificationInput
 from onyx.agent_search.expanded_retrieval.states import DocVerificationUpdate
@@ -18,32 +19,30 @@ def doc_verification(state: DocVerificationInput) -> DocVerificationUpdate:
         verified_documents: list[InferenceSection]
     """
 
-    original_query = state["search_request"].query
+    state["search_request"].query
+    question = state["question"]
     doc_to_verify = state["doc_to_verify"]
     document_content = doc_to_verify.combined_content
 
     msg = [
         HumanMessage(
             content=VERIFIER_PROMPT.format(
-                question=original_query, document_content=document_content
+                question=question, document_content=document_content
             )
         )
     ]
 
     fast_llm = state["fast_llm"]
-    response = list(
-        fast_llm.stream(
-            prompt=msg,
-        )
+    response = json.loads(
+        fast_llm.invoke(msg, structured_response_format=BinaryDecision).content
     )
 
-    response_string = merge_message_runs(response, chunk_separator="")[0].content
+    # response_string = response.content.get("decision", "no").lower()
     # Convert string response to proper dictionary format
-    decision_dict = {"decision": response_string.lower()}
-    formatted_response = BinaryDecision.model_validate(decision_dict)
+    # decision_dict = {"decision": response.content.lower()}
 
     verified_documents = []
-    if formatted_response.decision == "yes":
+    if response["decision"] == "yes":
         verified_documents.append(doc_to_verify)
 
     return DocVerificationUpdate(

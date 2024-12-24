@@ -82,7 +82,7 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
     graph.add_conditional_edges(
         source="base_decomp",
         path=parallelize_decompozed_answer_queries,
-        path_map=["answer_query"],
+        path_map=["answer_query", "ingest_answers"],
     )
     graph.add_edge(
         start_key="answer_query",

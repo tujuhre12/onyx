@@ -15,7 +15,7 @@ def _calculate_sub_question_retrieval_stats(
 ) -> dict[str, float | int]:
     chunk_scores = defaultdict(lambda: defaultdict(list))
     for expanded_retrieval_result in expanded_retrieval_results:
-        for doc in expanded_retrieval_result.documents_for_query:
+        for doc in expanded_retrieval_result.search_results:
             doc_chunk_id = f"{doc.center_chunk.document_id}_{doc.center_chunk.chunk_id}"
             chunk_scores[doc_chunk_id]["score"].append(doc.center_chunk.score)
 
@@ -42,12 +42,17 @@ def _calculate_sub_question_retrieval_stats(
             raw_chunk_stats["verified_scores"] / raw_chunk_stats["verified_count"]
         )
 
+    rejected_scores = raw_chunk_stats.get("rejected_scores", None)
+    if rejected_scores is not None:
+        rejected_avg_scores = rejected_scores / raw_chunk_stats["rejected_count"]
+    else:
+        rejected_avg_scores = None
+
     chunk_stats = {
         "verified_count": raw_chunk_stats["verified_count"],
         "verified_avg_scores": verified_avg_scores,
         "rejected_count": raw_chunk_stats["rejected_count"],
-        "rejected_avg_scores": raw_chunk_stats["rejected_scores"]
-        / raw_chunk_stats["rejected_count"],
+        "rejected_avg_scores": rejected_avg_scores,
         "verified_doc_chunk_ids": verified_doc_chunk_ids,
         "dismissed_doc_chunk_ids": dismissed_doc_chunk_ids,
     }
