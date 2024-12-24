@@ -105,7 +105,7 @@ TRACK_EXTERNAL_IDP_EXPIRY = (
 
 
 #####
-# DB Configs
+# DB/Index/Task Configs
 #####
 DOCUMENT_INDEX_NAME = "danswer_index"
 # Vespa is now the default document index store for both keyword and vector
@@ -129,6 +129,14 @@ VESPA_DEPLOYMENT_ZIP = (
 )
 VESPA_CLOUD_CERT_PATH = os.environ.get("VESPA_CLOUD_CERT_PATH")
 VESPA_CLOUD_KEY_PATH = os.environ.get("VESPA_CLOUD_KEY_PATH")
+
+
+# Opensearch
+OPENSEARCH_HOST = os.environ.get("OPENSEARCH_HOST") or "localhost"
+OPENSEARCH_PORT = os.environ.get("OPENSEARCH_PORT") or "9200"
+OPENSEARCH_USER = os.environ.get("OPENSEARCH_USER") or "admin"
+OPENSEARCH_PASSWORD = os.environ.get("OPENSEARCH_PASSWORD") or "0n^x_1ndex"
+
 
 # Number of documents in a batch during indexing (further batching done by chunks before passing to bi-encoder)
 try:
