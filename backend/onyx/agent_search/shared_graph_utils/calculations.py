@@ -1,7 +1,7 @@
 import numpy as np
 
-from onyx.agent_search.shared_graph_utils.models import FitScoreMetrics
-from onyx.agent_search.shared_graph_utils.models import FitScores
+from onyx.agent_search.shared_graph_utils.models import RetrievalFitScoreMetrics
+from onyx.agent_search.shared_graph_utils.models import RetrievalFitStats
 from onyx.context.search.models import InferenceSection
 from onyx.utils.logger import setup_logger
 
@@ -28,7 +28,7 @@ def calculate_rank_shift(list1: list, list2: list, top_n: int = 20) -> float:
 def get_fit_scores(
     pre_reranked_results: list[InferenceSection],
     post_reranked_results: list[InferenceSection],
-) -> dict | None:
+) -> RetrievalFitStats | None:
     """
     Calculate retrieval metrics for search purposes
     """
@@ -41,25 +41,28 @@ def get_fit_scores(
         "reranked": post_reranked_results,
     }
 
-    fit_eval = {}
-
-    fit_eval: FitScores = FitScores(
+    fit_eval: RetrievalFitStats = RetrievalFitStats(
         fit_score_lift=0,
         rerank_effect=0,
         fit_scores={
-            "initial": FitScoreMetrics(scores={}, chunk_ids=[]),
-            "reranked": FitScoreMetrics(scores={}, chunk_ids=[]),
+            "initial": RetrievalFitScoreMetrics(scores={}, chunk_ids=[]),
+            "reranked": RetrievalFitScoreMetrics(scores={}, chunk_ids=[]),
         },
     )
-
-    # logger.error("wwwww")
 
     for rank_type, docs in ranked_sections.items():
         print(f"rank_type: {rank_type}")
 
         for i in [1, 5, 10]:
             fit_eval.fit_scores[rank_type].scores[str(i)] = (
-                sum([doc.center_chunk.score for doc in docs[:i]]) / i
+                sum(
+                    [
+                        float(doc.center_chunk.score)
+                        for doc in docs[:i]
+                        if doc.center_chunk.score is not None
+                    ]
+                )
+                / i
             )
 
         fit_eval.fit_scores[rank_type].scores["fit_score"] = (

@@ -34,7 +34,7 @@ def doc_verification(state: DocVerificationInput) -> DocVerificationUpdate:
 
     fast_llm = state["fast_llm"]
     response = json.loads(
-        fast_llm.invoke(msg, structured_response_format=BinaryDecision).content
+        str(fast_llm.invoke(msg, structured_response_format=BinaryDecision).content)
     )
 
     # response_string = response.content.get("decision", "no").lower()

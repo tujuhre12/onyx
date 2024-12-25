@@ -123,10 +123,6 @@ if __name__ == "__main__":
     primary_llm, fast_llm = get_default_llms()
 
     with get_session_context_manager() as db_session:
-        durations = []
-        chunk_expansion_ratios = []
-        support_effectiveness_ratios = []
-
         search_request = SearchRequest(query="Who created Excel?")
 
         inputs = MainInput(
