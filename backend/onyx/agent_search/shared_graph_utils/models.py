@@ -39,3 +39,9 @@ class AgentChunkStats(BaseModel):
     rejected_avg_scores: float | None
     verified_doc_chunk_ids: list[str]
     dismissed_doc_chunk_ids: list[str]
+
+
+class InitialAgentResultStats(BaseModel):
+    sub_questions: dict[str, float | int | None]
+    original_question: dict[str, float | int | None]
+    agent_effectiveness: dict[str, float | int | None]

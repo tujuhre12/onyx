@@ -1,15 +1,15 @@
 from onyx.agent_search.expanded_retrieval.states import DocRerankingUpdate
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalState
 from onyx.agent_search.shared_graph_utils.calculations import get_fit_scores
+from onyx.configs.dev_configs import AGENT_RERANKING_MAX_QUERY_RETRIEVAL_RESULTS
+from onyx.configs.dev_configs import AGENT_RERANKING_STATS
+from onyx.context.search.pipeline import InferenceSection
 from onyx.context.search.pipeline import retrieval_preprocessing
 from onyx.context.search.pipeline import search_postprocessing
 from onyx.context.search.pipeline import SearchRequest
 
 
 def doc_reranking(state: ExpandedRetrievalState) -> DocRerankingUpdate:
-    AGENT_TEST = True
-    AGENT_TEST_MAX_QUERY_RETRIEVAL_RESULTS = 10
-
     verified_documents = state["verified_documents"]
 
     # Rerank post retrieval and verification. First, create a search query
@@ -32,12 +32,14 @@ def doc_reranking(state: ExpandedRetrievalState) -> DocRerankingUpdate:
         0
     ]  # only get the reranked szections, not the SectionRelevancePiece
 
-    if AGENT_TEST:
+    if AGENT_RERANKING_STATS:
         fit_scores = get_fit_scores(verified_documents, reranked_documents)
     else:
         fit_scores = None
 
     return DocRerankingUpdate(
-        reranked_documents=reranked_documents[:AGENT_TEST_MAX_QUERY_RETRIEVAL_RESULTS],
-        fit_scores=fit_scores,
+        reranked_documents=[
+            doc for doc in reranked_documents if type(doc) == InferenceSection
+        ][:AGENT_RERANKING_MAX_QUERY_RETRIEVAL_RESULTS],
+        sub_question_retrieval_stats=fit_scores,
     )

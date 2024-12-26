@@ -1,10 +1,7 @@
-import json
-
 from langchain_core.messages import HumanMessage
 
 from onyx.agent_search.expanded_retrieval.states import DocVerificationInput
 from onyx.agent_search.expanded_retrieval.states import DocVerificationUpdate
-from onyx.agent_search.shared_graph_utils.models import BinaryDecision
 from onyx.agent_search.shared_graph_utils.prompts import VERIFIER_PROMPT
 
 
@@ -33,16 +30,11 @@ def doc_verification(state: DocVerificationInput) -> DocVerificationUpdate:
     ]
 
     fast_llm = state["fast_llm"]
-    response = json.loads(
-        str(fast_llm.invoke(msg, structured_response_format=BinaryDecision).content)
-    )
 
-    # response_string = response.content.get("decision", "no").lower()
-    # Convert string response to proper dictionary format
-    # decision_dict = {"decision": response.content.lower()}
+    response = fast_llm.invoke(msg)
 
     verified_documents = []
-    if response["decision"] == "yes":
+    if "yes" in response.content.lower():
         verified_documents.append(doc_to_verify)
 
     return DocVerificationUpdate(

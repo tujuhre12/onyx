@@ -2,6 +2,7 @@ import numpy as np
 
 from onyx.agent_search.shared_graph_utils.models import RetrievalFitScoreMetrics
 from onyx.agent_search.shared_graph_utils.models import RetrievalFitStats
+from onyx.chat.models import SectionRelevancePiece
 from onyx.context.search.models import InferenceSection
 from onyx.utils.logger import setup_logger
 
@@ -27,7 +28,7 @@ def calculate_rank_shift(list1: list, list2: list, top_n: int = 20) -> float:
 
 def get_fit_scores(
     pre_reranked_results: list[InferenceSection],
-    post_reranked_results: list[InferenceSection],
+    post_reranked_results: list[InferenceSection] | list[SectionRelevancePiece],
 ) -> RetrievalFitStats | None:
     """
     Calculate retrieval metrics for search purposes
@@ -59,7 +60,8 @@ def get_fit_scores(
                     [
                         float(doc.center_chunk.score)
                         for doc in docs[:i]
-                        if doc.center_chunk.score is not None
+                        if type(doc) == InferenceSection
+                        and doc.center_chunk.score is not None
                     ]
                 )
                 / i
@@ -80,7 +82,7 @@ def get_fit_scores(
         ].scores["1"]
 
         fit_eval.fit_scores[rank_type].chunk_ids = [
-            unique_chunk_id(doc) for doc in docs
+            unique_chunk_id(doc) for doc in docs if type(doc) == InferenceSection
         ]
 
     fit_eval.fit_score_lift = (

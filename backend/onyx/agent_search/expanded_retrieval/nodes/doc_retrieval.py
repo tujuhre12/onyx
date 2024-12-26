@@ -2,8 +2,8 @@ from onyx.agent_search.expanded_retrieval.states import DocRetrievalUpdate
 from onyx.agent_search.expanded_retrieval.states import QueryResult
 from onyx.agent_search.expanded_retrieval.states import RetrievalInput
 from onyx.agent_search.shared_graph_utils.calculations import get_fit_scores
-from onyx.configs.dev_configs import AGENT_TEST
-from onyx.configs.dev_configs import AGENT_TEST_MAX_QUERY_RETRIEVAL_RESULTS
+from onyx.configs.dev_configs import AGENT_MAX_QUERY_RETRIEVAL_RESULTS
+from onyx.configs.dev_configs import AGENT_RETRIEVAL_STATS
 from onyx.context.search.models import SearchRequest
 from onyx.context.search.pipeline import SearchPipeline
 
@@ -34,14 +34,12 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
         db_session=state["db_session"],
     )
 
-    retrieved_docs = search_results._get_sections()[
-        :AGENT_TEST_MAX_QUERY_RETRIEVAL_RESULTS
-    ]
+    retrieved_docs = search_results._get_sections()[:AGENT_MAX_QUERY_RETRIEVAL_RESULTS]
 
-    if AGENT_TEST:
+    if AGENT_RETRIEVAL_STATS:
         fit_scores = get_fit_scores(
             retrieved_docs,
-            search_results.reranked_sections[:AGENT_TEST_MAX_QUERY_RETRIEVAL_RESULTS],
+            search_results.reranked_sections[:AGENT_MAX_QUERY_RETRIEVAL_RESULTS],
         )
     else:
         fit_scores = None

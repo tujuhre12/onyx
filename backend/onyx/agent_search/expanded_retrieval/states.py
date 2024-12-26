@@ -35,7 +35,7 @@ class DocVerificationUpdate(TypedDict):
 
 class DocRerankingUpdate(TypedDict):
     reranked_documents: Annotated[list[InferenceSection], dedup_inference_sections]
-    sub_question_retrieval_stats: Annotated[list[dict[str, float | int]], add]
+    sub_question_retrieval_stats: RetrievalFitStats | None
 
 
 class QueryExpansionUpdate(TypedDict):

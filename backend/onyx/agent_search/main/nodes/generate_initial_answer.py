@@ -1,11 +1,10 @@
-import json
-
-from backend.onyx.agent_search.answer_question.states import QuestionAnswerResults
 from langchain_core.messages import HumanMessage
 
-from onyx.agent_search.main.states import AgentStats
+from onyx.agent_search.answer_question.states import QuestionAnswerResults
 from onyx.agent_search.main.states import InitialAnswerUpdate
 from onyx.agent_search.main.states import MainState
+from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
+from onyx.agent_search.shared_graph_utils.models import InitialAgentResultStats
 from onyx.agent_search.shared_graph_utils.operators import dedup_inference_sections
 from onyx.agent_search.shared_graph_utils.prompts import INITIAL_RAG_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import (
@@ -15,77 +14,85 @@ from onyx.agent_search.shared_graph_utils.utils import format_docs
 
 
 def _calculate_initial_agent_stats(
-    decomp_answer_results: list[QuestionAnswerResults], original_question_stats: dict
-) -> AgentStats:
-    initial_agent_dict = {
-        "sub_questions": {},
-        "original_question": {},
-        "agent_effectiveness": {},
-    }
+    decomp_answer_results: list[QuestionAnswerResults],
+    original_question_stats: AgentChunkStats,
+) -> InitialAgentResultStats:
+    initial_agent_result_stats: InitialAgentResultStats = InitialAgentResultStats(
+        sub_questions={},
+        original_question={},
+        agent_effectiveness={},
+    )
 
-    orig_verified = original_question_stats["verified_count"]
-    orig_support_score = original_question_stats["verified_avg_scores"]
+    orig_verified = original_question_stats.verified_count
+    orig_support_score = original_question_stats.verified_avg_scores
 
     verified_document_chunk_ids = []
-    support_scores = 0
+    support_scores = 0.0
 
     for decomp_answer_result in decomp_answer_results:
         verified_document_chunk_ids += (
-            decomp_answer_result.sub_question_retrieval_stats["verified_doc_chunk_ids"]
+            decomp_answer_result.sub_question_retrieval_stats.verified_doc_chunk_ids
         )
-        support_scores += decomp_answer_result.sub_question_retrieval_stats[
-            "verified_avg_scores"
-        ]
+        if (
+            decomp_answer_result.sub_question_retrieval_stats.verified_avg_scores
+            is not None
+        ):
+            support_scores += (
+                decomp_answer_result.sub_question_retrieval_stats.verified_avg_scores
+            )
 
     verified_document_chunk_ids = list(set(verified_document_chunk_ids))
 
     # Calculate sub-question stats
-    if verified_document_chunk_ids:
-        sub_question_stats = {
+    if (
+        verified_document_chunk_ids
+        and len(verified_document_chunk_ids) > 0
+        and support_scores is not None
+    ):
+        sub_question_stats: dict[str, float | int | None] = {
             "num_verified_documents": len(verified_document_chunk_ids),
-            "verified_avg_score": support_scores / len(decomp_answer_results),
+            "verified_avg_score": float(support_scores / len(decomp_answer_results)),
         }
     else:
         sub_question_stats = {"num_verified_documents": 0, "verified_avg_score": None}
-    initial_agent_dict["sub_questions"].update(sub_question_stats)
+
+    initial_agent_result_stats.sub_questions.update(sub_question_stats)
 
     # Get original question stats
-    initial_agent_dict["original_question"].update(
+    initial_agent_result_stats.original_question.update(
         {
-            "num_verified_documents": original_question_stats.get("verified_count", 0),
-            "verified_avg_score": original_question_stats.get(
-                "verified_avg_scores", None
-            ),
+            "num_verified_documents": original_question_stats.verified_count,
+            "verified_avg_score": original_question_stats.verified_avg_scores,
         }
     )
 
     # Calculate chunk utilization ratio
-    sub_verified = initial_agent_dict["sub_questions"]["num_verified_documents"]
+    sub_verified = initial_agent_result_stats.sub_questions["num_verified_documents"]
 
-    chunk_ratio = None
-    if orig_verified > 0:
-        chunk_ratio = sub_verified / orig_verified if sub_verified > 0 else 0
-    elif sub_verified > 0:
-        chunk_ratio = 10
+    chunk_ratio: float | None = None
+    if sub_verified is not None and orig_verified is not None and orig_verified > 0:
+        chunk_ratio = (float(sub_verified) / orig_verified) if sub_verified > 0 else 0.0
+    elif sub_verified is not None and sub_verified > 0:
+        chunk_ratio = 10.0
 
-    initial_agent_dict["agent_effectiveness"]["utilized_chunk_ratio"] = chunk_ratio
+    initial_agent_result_stats.agent_effectiveness["utilized_chunk_ratio"] = chunk_ratio
 
     if (
         orig_support_score is None
-        and initial_agent_dict["sub_questions"]["verified_avg_score"] is None
+        and initial_agent_result_stats.sub_questions["verified_avg_score"] is None
     ):
-        initial_agent_dict["agent_effectiveness"]["support_ratio"] = None
+        initial_agent_result_stats.agent_effectiveness["support_ratio"] = None
     elif orig_support_score is None:
-        initial_agent_dict["agent_effectiveness"]["support_ratio"] = 10
-    elif initial_agent_dict["sub_questions"]["verified_avg_score"] is None:
-        initial_agent_dict["agent_effectiveness"]["support_ratio"] = 0
+        initial_agent_result_stats.agent_effectiveness["support_ratio"] = 10
+    elif initial_agent_result_stats.sub_questions["verified_avg_score"] is None:
+        initial_agent_result_stats.agent_effectiveness["support_ratio"] = 0
     else:
-        initial_agent_dict["agent_effectiveness"]["support_ratio"] = (
-            initial_agent_dict["sub_questions"]["verified_avg_score"]
+        initial_agent_result_stats.agent_effectiveness["support_ratio"] = (
+            initial_agent_result_stats.sub_questions["verified_avg_score"]
             / orig_support_score
         )
 
-    return initial_agent_dict
+    return initial_agent_result_stats
 
 
 def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
@@ -160,8 +167,9 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
 
     print(f"\n\nSub-Questions:\n\n{sub_question_answer_str}\n\nStas:\n\n")
 
-    print(json.dumps(initial_agent_stats, indent=4))
-
+    print(initial_agent_stats.original_question)
+    print(initial_agent_stats.sub_questions)
+    print(initial_agent_stats.agent_effectiveness)
     print("\n\n ---INITIAL AGENT ANSWER  END---\n\n")
 
     return InitialAnswerUpdate(

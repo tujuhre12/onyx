@@ -6,9 +6,9 @@ from pydantic import BaseModel
 
 from onyx.agent_search.core_state import CoreState
 from onyx.agent_search.expanded_retrieval.states import QueryResult
+from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.operators import dedup_inference_sections
 from onyx.context.search.models import InferenceSection
-
 
 ### Models ###
 
@@ -23,7 +23,7 @@ class QuestionAnswerResults(BaseModel):
     quality: str
     expanded_retrieval_results: list[QueryResult]
     documents: list[InferenceSection]
-    sub_question_retrieval_stats: dict
+    sub_question_retrieval_stats: AgentChunkStats
 
 
 ### States ###
@@ -43,7 +43,7 @@ class QAGenerationUpdate(TypedDict):
 class RetrievalIngestionUpdate(TypedDict):
     expanded_retrieval_results: list[QueryResult]
     documents: Annotated[list[InferenceSection], dedup_inference_sections]
-    sub_question_retrieval_stats: dict
+    sub_question_retrieval_stats: AgentChunkStats
 
 
 ## Graph Input State

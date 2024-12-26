@@ -87,10 +87,9 @@ QUESTION:
 {question}
 --
 
-Please answer with 'yes' or 'no' and format your answer as a json object with the following format:
-{{"decision": <answer (yes or no)>}}
+Please answer with 'yes' or 'no':
 
-AANSWER:
+Answer:
 
 """
 
