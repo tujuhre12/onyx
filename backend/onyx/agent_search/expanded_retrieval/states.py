@@ -2,27 +2,12 @@ from operator import add
 from typing import Annotated
 from typing import TypedDict
 
-from pydantic import BaseModel
-
 from onyx.agent_search.core_state import CoreState
-from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
+from onyx.agent_search.expanded_retrieval.models import ExpandedRetrievalResult
+from onyx.agent_search.expanded_retrieval.models import QueryResult
 from onyx.agent_search.shared_graph_utils.models import RetrievalFitStats
 from onyx.agent_search.shared_graph_utils.operators import dedup_inference_sections
 from onyx.context.search.models import InferenceSection
-
-### Models ###
-
-
-class QueryResult(BaseModel):
-    query: str
-    search_results: list[InferenceSection]
-    stats: RetrievalFitStats | None
-
-
-class ExpandedRetrievalResult(BaseModel):
-    expanded_queries_results: list[QueryResult]
-    all_documents: list[InferenceSection]
-    sub_question_retrieval_stats: AgentChunkStats
 
 
 ### States ###
@@ -40,7 +25,6 @@ class DocRerankingUpdate(TypedDict):
 
 class QueryExpansionUpdate(TypedDict):
     expanded_queries: list[str]
-    question: str
 
 
 class DocRetrievalUpdate(TypedDict):
@@ -81,8 +65,6 @@ class ExpandedRetrievalOutput(TypedDict):
 
 class DocVerificationInput(ExpandedRetrievalInput):
     doc_to_verify: InferenceSection
-    query_to_retrieve: str
-    question: str
 
 
 class RetrievalInput(ExpandedRetrievalInput):

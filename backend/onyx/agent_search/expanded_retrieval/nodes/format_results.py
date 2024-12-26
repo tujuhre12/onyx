@@ -2,11 +2,11 @@ from collections import defaultdict
 
 import numpy as np
 
+from onyx.agent_search.expanded_retrieval.models import ExpandedRetrievalResult
+from onyx.agent_search.expanded_retrieval.models import QueryResult
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalOutput
-from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalResult
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalState
 from onyx.agent_search.expanded_retrieval.states import InferenceSection
-from onyx.agent_search.expanded_retrieval.states import QueryResult
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 
 

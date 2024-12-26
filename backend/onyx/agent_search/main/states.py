@@ -4,7 +4,7 @@ from typing import TypedDict
 
 from onyx.agent_search.answer_question.states import QuestionAnswerResults
 from onyx.agent_search.core_state import CoreState
-from onyx.agent_search.expanded_retrieval.states import QueryResult
+from onyx.agent_search.expanded_retrieval.models import QueryResult
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.models import InitialAgentResultStats
 from onyx.agent_search.shared_graph_utils.operators import dedup_inference_sections

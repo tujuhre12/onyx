@@ -1,5 +1,5 @@
+from onyx.agent_search.expanded_retrieval.models import QueryResult
 from onyx.agent_search.expanded_retrieval.states import DocRetrievalUpdate
-from onyx.agent_search.expanded_retrieval.states import QueryResult
 from onyx.agent_search.expanded_retrieval.states import RetrievalInput
 from onyx.agent_search.shared_graph_utils.calculations import get_fit_scores
 from onyx.configs.dev_configs import AGENT_MAX_QUERY_RETRIEVAL_RESULTS

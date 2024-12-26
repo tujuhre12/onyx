@@ -37,8 +37,8 @@ def send_to_initial_retrieval(state: MainInput) -> list[Send | Hashable]:
         Send(
             "initial_retrieval",
             ExpandedRetrievalInput(
-                **extract_core_fields(state),
                 question=state["search_request"].query,
+                **extract_core_fields(state),
             ),
         )
     ]
