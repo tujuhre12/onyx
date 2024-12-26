@@ -11,26 +11,6 @@ from onyx.context.search.models import InferenceSection
 
 
 ### States ###
-## Update States
-
-
-class DocVerificationUpdate(TypedDict):
-    verified_documents: Annotated[list[InferenceSection], dedup_inference_sections]
-
-
-class DocRerankingUpdate(TypedDict):
-    reranked_documents: Annotated[list[InferenceSection], dedup_inference_sections]
-    sub_question_retrieval_stats: RetrievalFitStats | None
-
-
-class QueryExpansionUpdate(TypedDict):
-    expanded_queries: list[str]
-
-
-class DocRetrievalUpdate(TypedDict):
-    expanded_retrieval_results: Annotated[list[QueryResult], add]
-    retrieved_documents: Annotated[list[InferenceSection], dedup_inference_sections]
-
 
 ## Graph Input State
 
@@ -39,16 +19,37 @@ class ExpandedRetrievalInput(CoreState):
     question: str
 
 
+## Update/Return States
+
+
+class QueryExpansionUpdate(TypedDict):
+    expanded_queries: list[str]
+
+
+class DocVerificationUpdate(TypedDict):
+    verified_documents: Annotated[list[InferenceSection], dedup_inference_sections]
+
+
+class DocRetrievalUpdate(TypedDict):
+    expanded_retrieval_results: Annotated[list[QueryResult], add]
+    retrieved_documents: Annotated[list[InferenceSection], dedup_inference_sections]
+
+
+class DocRerankingUpdate(TypedDict):
+    reranked_documents: Annotated[list[InferenceSection], dedup_inference_sections]
+    sub_question_retrieval_stats: RetrievalFitStats | None
+
+
 ## Graph State
 
 
 class ExpandedRetrievalState(
     # This includes the core state
     ExpandedRetrievalInput,
+    QueryExpansionUpdate,
     DocRetrievalUpdate,
     DocVerificationUpdate,
     DocRerankingUpdate,
-    QueryExpansionUpdate,
 ):
     pass
 

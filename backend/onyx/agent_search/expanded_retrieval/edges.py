@@ -16,6 +16,7 @@ def parallel_retrieval_edge(state: ExpandedRetrievalState) -> list[Send | Hashab
             "doc_retrieval",
             RetrievalInput(
                 query_to_retrieve=query,
+                question=question,
                 **extract_core_fields(state),
             ),
         )
