@@ -286,10 +286,8 @@ def _does_doc_exist_in_vespa(
             raise
 
     elif resp.status_code == 404:
-        # If totally not found, doc doesn't exist
         return False
     else:
-        # Some error or unusual response
         logger.warning(
             f"Unexpected HTTP {resp.status_code} checking doc existence for doc_id={doc_id}"
         )
