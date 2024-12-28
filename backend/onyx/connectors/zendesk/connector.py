@@ -39,13 +39,7 @@ class ZendeskClient:
         self.base_url = f"https://{subdomain}.zendesk.com/api/v2"
         self.auth = (f"{email}/token", token)
 
-    # Looser handling for specific issues that may take longer to resolve
-    @retry_builder(
-        tries=30,
-        max_delay=60,
-        exceptions=(requests.exceptions.ConnectionError, RateLimitError),
-    )
-    @retry_builder()  # Default handling of other exceptions
+    @retry_builder()
     def make_request(self, endpoint: str, params: dict[str, Any]) -> dict[str, Any]:
         response = requests.get(
             f"{self.base_url}/{endpoint}", auth=self.auth, params=params

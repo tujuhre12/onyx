@@ -15,9 +15,9 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 
 def retry_builder(
-    tries: int = 10,
+    tries: int = 20,
     delay: float = 0.1,
-    max_delay: float | None = None,
+    max_delay: float | None = 60,
     backoff: float = 2,
     jitter: tuple[float, float] | float = 1,
     exceptions: type[Exception] | tuple[type[Exception], ...] = (Exception,),
