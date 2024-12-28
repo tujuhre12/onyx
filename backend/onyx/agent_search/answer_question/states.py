@@ -2,35 +2,15 @@ from operator import add
 from typing import Annotated
 from typing import TypedDict
 
-from pydantic import BaseModel
-
+from onyx.agent_search.answer_question.models import QuestionAnswerResults
 from onyx.agent_search.core_state import CoreState
 from onyx.agent_search.expanded_retrieval.models import QueryResult
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.operators import dedup_inference_sections
 from onyx.context.search.models import InferenceSection
 
-### Models ###
-
-
-class AnswerRetrievalStats(BaseModel):
-    answer_retrieval_stats: dict[str, float | int]
-
-
-class QuestionAnswerResults(BaseModel):
-    question: str
-    answer: str
-    quality: str
-    expanded_retrieval_results: list[QueryResult]
-    documents: list[InferenceSection]
-    sub_question_retrieval_stats: AgentChunkStats
-
-
-### States ###
 
 ## Update States
-
-
 class QACheckUpdate(TypedDict):
     answer_quality: str
 
