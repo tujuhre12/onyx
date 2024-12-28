@@ -6,9 +6,39 @@ from onyx.configs.app_configs import OPENSEARCH_HOST
 from onyx.configs.app_configs import OPENSEARCH_PASSWORD
 from onyx.configs.app_configs import OPENSEARCH_PORT
 from onyx.configs.app_configs import OPENSEARCH_USER
+from onyx.document_index.opensearch.constants import ACCESS_CONTROL_LIST_FIELD
+from onyx.document_index.opensearch.constants import CHUNK_EMBEDDING_FIELD
+from onyx.document_index.opensearch.constants import CHUNK_ID_FIELD
+from onyx.document_index.opensearch.constants import CHUNKS_ABOVE_FIELD
+from onyx.document_index.opensearch.constants import CHUNKS_BELOW_FIELD
+from onyx.document_index.opensearch.constants import CONTENT_FIELD
+from onyx.document_index.opensearch.constants import DOC_UPDATED_AT_FIELD
+from onyx.document_index.opensearch.constants import DOCUMENT_ID_FIELD
+from onyx.document_index.opensearch.constants import DOCUMENT_SETS_FIELD
+from onyx.document_index.opensearch.constants import EF_CONSTRUCTION
+from onyx.document_index.opensearch.constants import HIDDEN_FIELD
+from onyx.document_index.opensearch.constants import KEY_SUBFIELD
+from onyx.document_index.opensearch.constants import LARGE_CHUNK_END_ID_FIELD
+from onyx.document_index.opensearch.constants import LARGE_CHUNK_START_ID_FIELD
+from onyx.document_index.opensearch.constants import LINK_FIELD
+from onyx.document_index.opensearch.constants import M
+from onyx.document_index.opensearch.constants import METADATA_FIELD
+from onyx.document_index.opensearch.constants import METADATA_SUFFIX_FIELD
+from onyx.document_index.opensearch.constants import PRIMARY_OWNERS_FIELD
+from onyx.document_index.opensearch.constants import SECONDARY_OWNERS_FIELD
+from onyx.document_index.opensearch.constants import SEMANTIC_IDENTIFIER_FIELD
+from onyx.document_index.opensearch.constants import SHARDS
+from onyx.document_index.opensearch.constants import SOURCE_TYPE_FIELD
+from onyx.document_index.opensearch.constants import TITLE_EMBEDDING_FIELD
+from onyx.document_index.opensearch.constants import TITLE_FIELD
+from onyx.document_index.opensearch.constants import VALUE_SUBFIELD
+from onyx.document_index.opensearch.constants import VECTOR_SUBFIELD
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
-def get_opensearch_client(
+def create_opensearch_client(
     host: str = OPENSEARCH_HOST,
     port: str = OPENSEARCH_PORT,
     user: str = OPENSEARCH_USER,
@@ -27,62 +57,25 @@ def get_opensearch_client(
 #####
 # Schema Utils
 #####
-def get_schema_settings(shards: int = 1) -> dict[str, Any]:
+def get_schema_settings(shards: int = SHARDS) -> dict[str, Any]:
     schema_settings = {"index": {"number_of_shards": shards, "knn": True}}
     return schema_settings
 
 
-def get_knn_settings(
-    embedding_dim: int, ef_construction: int = 200, m: int = 48
+def get_hnsw_config(
+    embedding_dim: int, ef_construction: int = EF_CONSTRUCTION, m: int = M
 ) -> dict[str, Any]:
-    # TODO explore hyperparameters
-    knn_settings = {
+    hnsw_config = {
         "type": "knn_vector",
         "dimension": embedding_dim,
         "method": {
             "name": "hnsw",
             "space_type": "cosinesimil",
-            "engine": "nmslib",
+            "engine": "lucene",
             "parameters": {"ef_construction": ef_construction, "m": m},
         },
     }
-    return knn_settings
-
-
-def get_chunk_properties(embedding_dim: int) -> dict[str, Any]:
-    chunk_properties = {
-        "type": "nested",
-        "properties": {
-            # In Opensearch/Elasticsearch, fields are nullable by default
-            "link": {"type": "text", "index": False},
-            # Max number of tokens in the chunk, set as a limit for which level of granularity this chunk represents
-            "max_num_tokens": {"type": "integer", "index": False},
-            # Actual number of tokens in the chunk as determined by the tokenizer
-            # This is to prevent repeat counting
-            "num_tokens": {"type": "integer", "index": False},
-            # Index of the chunk in the document at the given granularity
-            # For each granularity (that exists for this doc), there will be an index 0 chunk
-            "chunk_index": {"type": "integer", "index": False},
-            "content": {"type": "text"},
-            "embedding": get_knn_settings(embedding_dim=embedding_dim),
-        },
-    }
-    return chunk_properties
-
-
-def get_flat_dict_properties() -> dict[str, Any]:
-    flat_dict_properties = {
-        "type": "nested",
-        "properties": {
-            # Keywords are used for exact match, it can be a single term or an "array"
-            # it's not actually an array but it acts the same
-            "key": {"type": "keyword"},
-            # To have a list of values, it simply needs to be added to the index multiple times
-            # with the same key and different values
-            "value": {"type": "keyword"},
-        },
-    }
-    return flat_dict_properties
+    return hnsw_config
 
 
 def get_danswer_opensearch_schema(embedding_dim: int) -> dict[str, Any]:
@@ -90,34 +83,86 @@ def get_danswer_opensearch_schema(embedding_dim: int) -> dict[str, Any]:
         "settings": get_schema_settings(),
         "mappings": {
             "properties": {
-                "document_id": {"type": "keyword"},
-                "semantic_identifier": {"type": "text", "index": False},
-                "title": {"type": "text"},
-                # This is not used for search, all search keywords are stored at the chunk level
-                "content": {"type": "text", "index": False},
-                "title_vector": get_knn_settings(embedding_dim=embedding_dim),
-                "chunks": get_chunk_properties(embedding_dim=embedding_dim),
-                "source_type": {"type": "keyword"},
-                "document_sets": {"type": "keyword"},
-                "access_control_list": {"type": "keyword"},
-                "metadata": get_flat_dict_properties(),
-                "primary_owners": {"type": "keyword"},
-                "secondary_owners": {"type": "keyword"},
-                "last_updated": {"type": "date"},
-                "boost_count": {"type": "integer", "null_value": 0},
-                # Inverted for efficient filtering
-                "not_hidden": {"type": "boolean", "null_value": True},
+                # Identification Fields
+                DOCUMENT_ID_FIELD: {"type": "text"},
+                CHUNK_ID_FIELD: {"type": "integer"},
+                LARGE_CHUNK_START_ID_FIELD: {"type": "integer"},
+                LARGE_CHUNK_END_ID_FIELD: {"type": "integer"},
+                # Search Fields
+                TITLE_FIELD: {"type": "text"},
+                CONTENT_FIELD: {"type": "text"},
+                METADATA_SUFFIX_FIELD: {"type": "text"},
+                TITLE_EMBEDDING_FIELD: get_hnsw_config(embedding_dim=embedding_dim),
+                CHUNK_EMBEDDING_FIELD: {
+                    # Only will have multiple for mini chunks, otherwise it will be a list of 1
+                    "type": "nested",
+                    "properties": {
+                        VECTOR_SUBFIELD: get_hnsw_config(embedding_dim=embedding_dim)
+                    },
+                },
+                # Filter Fields
+                HIDDEN_FIELD: {"type": "boolean", "null_value": False},
+                SOURCE_TYPE_FIELD: {"type": "keyword"},
+                DOCUMENT_SETS_FIELD: {"type": "keyword"},
+                METADATA_FIELD: {
+                    "type": "nested",
+                    "properties": {
+                        KEY_SUBFIELD: {"type": "keyword"},
+                        VALUE_SUBFIELD: {"type": "keyword"},
+                    },
+                },
+                DOC_UPDATED_AT_FIELD: {"type": "date"},
+                # ACL
+                ACCESS_CONTROL_LIST_FIELD: {"type": "keyword"},
+                # Not indexed, for use post-retrieval
+                # chunks above/below are stored as extra info on disk so that we can retrieve them for
+                # context without running a second query to fetch the context around the current chunk
+                # TODO include these actually
+                CHUNKS_ABOVE_FIELD: {
+                    "type": "text",
+                    "index": False,
+                    "doc_values": False,
+                },
+                CHUNKS_BELOW_FIELD: {
+                    "type": "text",
+                    "index": False,
+                    "doc_values": False,
+                },
+                SEMANTIC_IDENTIFIER_FIELD: {
+                    "type": "text",
+                    "index": False,
+                    "doc_values": False,
+                },
+                LINK_FIELD: {"type": "text", "index": False, "doc_values": False},
+                # All fields are array fields by default
+                PRIMARY_OWNERS_FIELD: {
+                    "type": "keyword",
+                    "index": False,
+                    "doc_values": False,
+                },
+                SECONDARY_OWNERS_FIELD: {
+                    "type": "keyword",
+                    "index": False,
+                    "doc_values": False,
+                },
             }
         },
     }
     return full_schema
 
 
+def create_index(index_name: str, embedding_dim: int) -> None:
+    logger.info(f"Creating index {index_name} with embedding dimension {embedding_dim}")
+    opensearch_client = create_opensearch_client()
+    opensearch_client.indices.create(
+        index=index_name,
+        body=get_danswer_opensearch_schema(embedding_dim=embedding_dim),
+    )
+
+
 #####
 # Query Utils
 #####
-
-
 def get_normalization_search_pipeline_settings(
     keyword_weighting: float = 0.4,
     title_vector_boost_weighting: float = 0.1,
