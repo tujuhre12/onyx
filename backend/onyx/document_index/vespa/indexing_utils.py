@@ -1,8 +1,11 @@
 import concurrent.futures
 import json
+import urllib.parse
 from datetime import datetime
 from datetime import timezone
 from http import HTTPStatus
+from typing import List
+from typing import Set
 
 import httpx
 from retry import retry
@@ -248,3 +251,89 @@ def clean_chunk_id_copy(
         }
     )
     return clean_chunk
+
+
+def _does_doc_exist_in_vespa(
+    doc_id: str,
+    index_name: str,
+    http_client: httpx.Client,
+) -> bool:
+    """
+    Returns True if Vespa contains at least one chunk/doc matching the given doc_id,
+    False otherwise.
+    """
+    # URL encode the doc_id to handle special characters
+    encoded_doc_id = urllib.parse.quote(doc_id)
+    # We limit hits=0 for minimal overhead—just need the totalCount
+    url = (
+        f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}"
+        f"/?selection=document_id='{encoded_doc_id}'&hits=0"
+    )
+    # Example: GET /document/v1/my_index/my_doc_type/?selection=document_id='X'&hits=0
+    logger.debug(f"Checking existence for doc_id={doc_id} with URL={url}")
+
+    resp = http_client.get(url)
+    # A 200 does not necessarily mean a doc is found, so parse JSON:
+    if resp.status_code == 200:
+        data = resp.json()
+        # Vespa responses typically have data["root"]["fields"]["totalCount"]
+        # but the structure can differ slightly by version/setup
+        try:
+            total_count = data["root"]["fields"]["totalCount"]
+            return total_count > 0
+        except (KeyError, TypeError):
+            # If we cannot parse count properly, default to no
+            logger.exception(f"Unexpected JSON structure from {url}: {data}")
+            return False
+    elif resp.status_code == 404:
+        # If totally not found, doc doesn't exist
+        return False
+    else:
+        # Some error or unusual response
+        logger.warning(
+            f"Unexpected HTTP {resp.status_code} checking doc existence for doc_id={doc_id}"
+        )
+        return False
+
+
+def find_existing_docs_in_vespa_by_doc_id(
+    doc_ids: List[str],
+    index_name: str,
+    http_client: httpx.Client,
+    executor: concurrent.futures.ThreadPoolExecutor | None = None,
+) -> Set[str]:
+    """
+    For each doc_id in doc_ids, returns whether it already exists in Vespa.
+    We do this concurrently for performance if doc_ids is large.
+    """
+    if not doc_ids:
+        return set()
+
+    external_executor = True
+    if executor is None:
+        # Create our own if not given
+        external_executor = False
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=NUM_THREADS)
+
+    existing_doc_ids = set()
+
+    try:
+        future_map = {
+            executor.submit(
+                _does_doc_exist_in_vespa, doc_id, index_name, http_client
+            ): doc_id
+            for doc_id in doc_ids
+        }
+        for future in concurrent.futures.as_completed(future_map):
+            doc_id = future_map[future]
+            try:
+                if future.result():
+                    existing_doc_ids.add(doc_id)
+            except Exception:
+                logger.exception(f"Error checking doc existence for doc_id={doc_id}")
+                # optional: re-raise or swallow
+    finally:
+        if not external_executor:
+            executor.shutdown(wait=True)
+
+    return existing_doc_ids

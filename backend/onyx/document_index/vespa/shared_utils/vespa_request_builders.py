@@ -1,6 +1,7 @@
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
+from urllib.parse import urlencode
 
 from onyx.configs.constants import INDEX_SEPARATOR
 from onyx.context.search.models import IndexFilters
@@ -106,3 +107,31 @@ def build_vespa_id_based_retrieval_yql(
 
     id_based_retrieval_yql_section += ")"
     return id_based_retrieval_yql_section
+
+
+def build_deletion_selection(doc_id: str, version_cutoff: int, doc_type: str) -> str:
+    """
+    Build a Vespa selection expression that includes:
+      - {doc_type}.document_id == <doc_id>
+      - {doc_type}.doc_updated_at < version_cutoff
+
+    The doc_type should match your schema name.
+    For a schema named "danswer_chunk_nomic_ai_nomic_embed_text_v1",
+    the resulting selection might look like:
+      (danswer_chunk_nomic_ai_nomic_embed_text_v1.document_id=='https://...')
+       and (danswer_chunk_nomic_ai_nomic_embed_text_v1.doc_updated_at < 1234567890)
+    """
+    # Escape single quotes by doubling them for Vespa selection expressions
+    escaped_doc_id = doc_id.replace("'", "''")
+
+    return (
+        f"({doc_type}.document_id=='{escaped_doc_id}') and "
+        f"({doc_type}.doc_updated_at < {version_cutoff})"
+    )
+
+
+def build_selection_query_param(filter_str: str) -> str:
+    """
+    Utility to urlencode the given filter_str as ?selection=<encoded>.
+    """
+    return urlencode({"selection": filter_str})
