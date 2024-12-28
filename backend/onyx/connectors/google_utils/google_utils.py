@@ -114,10 +114,7 @@ def execute_paginated_retrieval(
                     lambda: retrieval_function(**request_kwargs).execute()
                 )
             elif e.resp.status == 401:
-                if not continue_on_404_or_403:
-                    raise e
-
-                # Optionally skip only error code 4 (invalid session) but still raise for other 401s
+                # Skip only error code 4 (invalid session) but still raise for other 401s
                 error_content = e.content.decode("utf-8", errors="ignore")
                 if "Active session is invalid. Error code: 4" in error_content:
                     logger.warning(
