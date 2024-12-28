@@ -3,7 +3,6 @@ from logging import Logger
 from typing import Any
 from typing import cast
 from typing import TypeVar
-from typing import Union
 
 from retry import retry
 
@@ -21,7 +20,7 @@ def retry_builder(
     max_delay: float | None = None,
     backoff: float = 2,
     jitter: tuple[float, float] | float = 1,
-    exceptions: Union[type[Exception], tuple[type[Exception], ...]] = (Exception,),
+    exceptions: type[Exception] | tuple[type[Exception], ...] = (Exception,),
 ) -> Callable[[F], F]:
     """Builds a generic wrapper/decorator for calls to external APIs that
     may fail due to rate limiting, flakes, or other reasons. Applies exponential
