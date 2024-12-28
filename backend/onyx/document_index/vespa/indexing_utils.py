@@ -35,6 +35,7 @@ from onyx.document_index.vespa_constants import METADATA_LIST
 from onyx.document_index.vespa_constants import METADATA_SUFFIX
 from onyx.document_index.vespa_constants import NUM_THREADS
 from onyx.document_index.vespa_constants import PRIMARY_OWNERS
+from onyx.document_index.vespa_constants import SEARCH_ENDPOINT
 from onyx.document_index.vespa_constants import SECONDARY_OWNERS
 from onyx.document_index.vespa_constants import SECTION_CONTINUATION
 from onyx.document_index.vespa_constants import SEMANTIC_IDENTIFIER
@@ -259,25 +260,22 @@ def _does_doc_exist_in_vespa(
     http_client: httpx.Client,
 ) -> bool:
     """
-    Returns True if Vespa contains at least one chunk/doc matching the given doc_id,
-    False otherwise.
+    Checks whether there's a chunk/doc matching doc_id in Vespa using YQL.
     """
-    # URL encode the doc_id to handle special characters
     encoded_doc_id = urllib.parse.quote(doc_id)
-    # We limit hits=0 for minimal overhead—just need the totalCount
+
+    # Construct the URL with YQL query
     url = (
-        f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}"
-        f"/?selection=document_id='{encoded_doc_id}'&hits=0"
+        f"{SEARCH_ENDPOINT}"
+        f'?yql=select+*+from+sources+{index_name}+where+document_id+contains+"{encoded_doc_id}"'
+        "&hits=0"
     )
 
     logger.debug(f"Checking existence for doc_id={doc_id} with URL={url}")
-
     resp = http_client.get(url)
 
-    # A 200 does not necessarily mean a doc is found, so parse JSON:
     if resp.status_code == 200:
         data = resp.json()
-        # Vespa responses have data["root"]["fields"]["totalCount"]
         try:
             total_count = data["root"]["fields"]["totalCount"]
             return total_count > 0
@@ -334,5 +332,4 @@ def find_existing_docs_in_vespa_by_doc_id(
     finally:
         if not external_executor:
             executor.shutdown(wait=True)
-
     return existing_doc_ids

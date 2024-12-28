@@ -325,8 +325,8 @@ class VespaIndex(DocumentIndex):
         doc_to_doc_updated_at = {}
         for chunk in chunks:
             doc_id = chunk.source_document.id
-            chunk_val = chunk.source_document.doc_updated_at
 
+            chunk_val = chunk.source_document.doc_updated_at
             if doc_id not in doc_to_doc_updated_at:
                 # If we haven't encountered this doc_id yet, store or fill its doc_updated_at
                 if chunk_val is None:
@@ -385,13 +385,13 @@ class VespaIndex(DocumentIndex):
                 filter_str = build_deletion_selection(
                     doc_id=doc_id,
                     version_cutoff=version_cutoff,
-                    doc_type=self.index_name,  # e.g. "danswer_chunk"
+                    doc_type=self.index_name,
                 )
                 query_str = build_selection_query_param(filter_str)
 
                 delete_url = (
                     f"{DOCUMENT_ID_ENDPOINT.format(index_name=self.index_name)}/"
-                    f"?{query_str}&cluster=danswer_index"
+                    f"?{query_str}&cluster={DOCUMENT_INDEX_NAME}"
                 )
                 try:
                     resp = http_client.delete(delete_url)
