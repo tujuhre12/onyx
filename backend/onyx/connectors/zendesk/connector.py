@@ -23,10 +23,6 @@ from onyx.utils.retry_wrapper import retry_builder
 MAX_PAGE_SIZE = 30  # Zendesk API maximum
 
 
-class RateLimitError(Exception):
-    """We need this custom exception to catch the 429 error specifically."""
-
-
 class ZendeskCredentialsNotSetUpError(PermissionError):
     def __init__(self) -> None:
         super().__init__(
@@ -50,7 +46,6 @@ class ZendeskClient:
             if retry_after is not None:
                 # Sleep for the duration indicated by the Retry-After header
                 time.sleep(int(retry_after))
-            raise RateLimitError("Encountered 429 Too Many Requests")
 
         response.raise_for_status()
         return response.json()
