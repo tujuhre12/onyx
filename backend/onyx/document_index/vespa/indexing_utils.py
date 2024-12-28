@@ -269,22 +269,22 @@ def _does_doc_exist_in_vespa(
         f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}"
         f"/?selection=document_id='{encoded_doc_id}'&hits=0"
     )
-    # Example: GET /document/v1/my_index/my_doc_type/?selection=document_id='X'&hits=0
+
     logger.debug(f"Checking existence for doc_id={doc_id} with URL={url}")
 
     resp = http_client.get(url)
+
     # A 200 does not necessarily mean a doc is found, so parse JSON:
     if resp.status_code == 200:
         data = resp.json()
-        # Vespa responses typically have data["root"]["fields"]["totalCount"]
-        # but the structure can differ slightly by version/setup
+        # Vespa responses have data["root"]["fields"]["totalCount"]
         try:
             total_count = data["root"]["fields"]["totalCount"]
             return total_count > 0
         except (KeyError, TypeError):
-            # If we cannot parse count properly, default to no
             logger.exception(f"Unexpected JSON structure from {url}: {data}")
-            return False
+            raise
+
     elif resp.status_code == 404:
         # If totally not found, doc doesn't exist
         return False
@@ -331,7 +331,8 @@ def find_existing_docs_in_vespa_by_doc_id(
                     existing_doc_ids.add(doc_id)
             except Exception:
                 logger.exception(f"Error checking doc existence for doc_id={doc_id}")
-                # optional: re-raise or swallow
+                raise
+
     finally:
         if not external_executor:
             executor.shutdown(wait=True)

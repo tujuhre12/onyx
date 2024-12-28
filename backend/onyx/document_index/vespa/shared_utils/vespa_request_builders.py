@@ -115,7 +115,6 @@ def build_deletion_selection(doc_id: str, version_cutoff: int, doc_type: str) ->
       - {doc_type}.document_id == <doc_id>
       - {doc_type}.doc_updated_at < version_cutoff
 
-    The doc_type should match your schema name.
     For a schema named "danswer_chunk_nomic_ai_nomic_embed_text_v1",
     the resulting selection might look like:
       (danswer_chunk_nomic_ai_nomic_embed_text_v1.document_id=='https://...')
