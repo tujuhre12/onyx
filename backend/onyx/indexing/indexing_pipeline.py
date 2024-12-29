@@ -66,6 +66,13 @@ def _upsert_documents_in_db(
     index_attempt_metadata: IndexAttemptMetadata,
     db_session: Session,
 ) -> None:
+    # Error handling for NUL, the ORM layer will remove it but logging it for tracking
+    # Check for and log any documents containing NUL characters in their IDs
+    nul_docs = [doc for doc in documents if "\x00" in doc.id]
+    if nul_docs:
+        for doc in nul_docs:
+            logger.warning(f"NUL characters found in document ID: {doc.id}")
+
     # Metadata here refers to basic document info, not metadata about the actual content
     document_metadata_list: list[DocumentMetadata] = []
     for doc in documents:
