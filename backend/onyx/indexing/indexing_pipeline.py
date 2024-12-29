@@ -403,7 +403,7 @@ def index_doc_batch(
                 ),
                 tenant_id=tenant_id,
                 # Use a timezone-aware datetime, here we set to current UTC time
-                last_indexed_at=datetime.now(tz=timezone.utc),
+                current_index_time=datetime.now(tz=timezone.utc),
             )
             for chunk in chunks_with_embeddings
         ]

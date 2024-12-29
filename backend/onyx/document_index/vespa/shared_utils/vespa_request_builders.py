@@ -8,11 +8,11 @@ from onyx.context.search.models import IndexFilters
 from onyx.document_index.interfaces import VespaChunkRequest
 from onyx.document_index.vespa_constants import ACCESS_CONTROL_LIST
 from onyx.document_index.vespa_constants import CHUNK_ID
+from onyx.document_index.vespa_constants import CURRENT_INDEX_TIME
 from onyx.document_index.vespa_constants import DOC_UPDATED_AT
 from onyx.document_index.vespa_constants import DOCUMENT_ID
 from onyx.document_index.vespa_constants import DOCUMENT_SETS
 from onyx.document_index.vespa_constants import HIDDEN
-from onyx.document_index.vespa_constants import LAST_INDEXED_AT
 from onyx.document_index.vespa_constants import METADATA_LIST
 from onyx.document_index.vespa_constants import SOURCE_TYPE
 from onyx.document_index.vespa_constants import TENANT_ID
@@ -116,7 +116,7 @@ def build_deletion_selection_query(
     """
     Build a Vespa selection expression that includes:
       - {doc_type}.document_id == <doc_id>
-      - {doc_type}.last_indexed_at < version_cutoff
+      - {doc_type}.current_index_time < version_cutoff
 
     Returns the URL-encoded selection query parameter.
     """
@@ -125,7 +125,7 @@ def build_deletion_selection_query(
 
     filter_str = (
         f"({doc_type}.document_id=='{escaped_doc_id}') and "
-        f"({doc_type}.{LAST_INDEXED_AT} < {version_cutoff})"
+        f"({doc_type}.{CURRENT_INDEX_TIME} < {version_cutoff})"
     )
 
     return urlencode({"selection": filter_str})

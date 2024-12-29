@@ -312,17 +312,18 @@ class VespaIndex(DocumentIndex):
         chunks: list[DocMetadataAwareIndexChunk],
     ) -> set[DocumentInsertionRecord]:
         """
-        Index a list of chunks into Vespa. We rely on 'last_indexed_at'
+        Index a list of chunks into Vespa. We rely on 'current_index_time'
         to keep track of when each chunk was added/updated in the index. We also raise a ValueError
-        if any chunk is missing a 'last_indexed_at' timestamp.
+        if any chunk is missing a 'current_index_time' timestamp.
         """
 
         # Clean chunks if needed (remove invalid chars, etc.)
         cleaned_chunks = [clean_chunk_id_copy(chunk) for chunk in chunks]
 
         #  We will store the set of doc_ids that previously existed in Vespa
-        doc_ids_to_last_indexed_at = {
-            chunk.source_document.id: chunk.last_indexed_at for chunk in cleaned_chunks
+        doc_ids_to_current_index_time = {
+            chunk.source_document.id: chunk.current_index_time
+            for chunk in cleaned_chunks
         }
         existing_doc_ids = set()
 
@@ -331,7 +332,7 @@ class VespaIndex(DocumentIndex):
         ) as executor:
             # a) Find which docs already exist in Vespa
             existing_doc_ids = find_existing_docs_in_vespa_by_doc_id(
-                doc_ids=list(doc_ids_to_last_indexed_at.keys()),
+                doc_ids=list(doc_ids_to_current_index_time.keys()),
                 index_name=self.index_name,
                 http_client=http_client,
                 executor=executor,
@@ -347,9 +348,9 @@ class VespaIndex(DocumentIndex):
                     executor=executor,
                 )
 
-            # c) Remove chunks with using versioning scheme 'last_indexed_at'
+            # c) Remove chunks with using versioning scheme 'current_index_time'
             for doc_id in existing_doc_ids:
-                version_cutoff = int(doc_ids_to_last_indexed_at[doc_id].timestamp())
+                version_cutoff = int(doc_ids_to_current_index_time[doc_id].timestamp())
                 query_str = build_deletion_selection_query(
                     doc_id=doc_id,
                     version_cutoff=version_cutoff,
@@ -374,7 +375,7 @@ class VespaIndex(DocumentIndex):
                 document_id=doc_id,
                 already_existed=(doc_id in existing_doc_ids),
             )
-            for doc_id in doc_ids_to_last_indexed_at
+            for doc_id in doc_ids_to_current_index_time
         }
 
     @staticmethod

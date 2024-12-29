@@ -97,7 +97,7 @@ def generate_dummy_chunk(
         document_sets={document_set for document_set in document_set_names},
         boost=random.randint(-1, 1),
         tenant_id=POSTGRES_DEFAULT_SCHEMA,
-        last_indexed_at=datetime.now(tz=timezone.utc),
+        current_index_time=datetime.now(tz=timezone.utc),
     )
 
 

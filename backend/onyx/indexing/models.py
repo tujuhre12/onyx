@@ -74,14 +74,14 @@ class DocMetadataAwareIndexChunk(IndexChunk):
                    of. This is used for filtering / personas.
     boost: influences the ranking of this chunk at query time. Positive -> ranked higher,
            negative -> ranked lower.
-    last_indexed_at: the timestamp of when this chunk is being indexed.
+    current_index_time: the timestamp of when this chunk is being indexed.
     """
 
     tenant_id: str | None = None
     access: "DocumentAccess"
     document_sets: set[str]
     boost: int
-    last_indexed_at: datetime.datetime
+    current_index_time: datetime.datetime
 
     @classmethod
     def from_index_chunk(
@@ -91,7 +91,7 @@ class DocMetadataAwareIndexChunk(IndexChunk):
         document_sets: set[str],
         boost: int,
         tenant_id: str | None,
-        last_indexed_at: datetime.datetime,
+        current_index_time: datetime.datetime,
     ) -> "DocMetadataAwareIndexChunk":
         index_chunk_data = index_chunk.model_dump()
         return cls(
@@ -100,7 +100,7 @@ class DocMetadataAwareIndexChunk(IndexChunk):
             document_sets=document_sets,
             boost=boost,
             tenant_id=tenant_id,
-            last_indexed_at=last_indexed_at,
+            current_index_time=current_index_time,
         )
 
 
