@@ -306,7 +306,7 @@ class WebConnector(LoadConnector):
 
                     doc_batch.append(
                         Document(
-                            id=current_url + "\x00",
+                            id=current_url,
                             sections=[Section(link=current_url, text=page_text)],
                             source=DocumentSource.WEB,
                             semantic_identifier=current_url.split("/")[-1],

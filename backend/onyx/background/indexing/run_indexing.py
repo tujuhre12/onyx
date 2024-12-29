@@ -15,6 +15,7 @@ from onyx.configs.constants import MilestoneRecordType
 from onyx.connectors.connector_runner import ConnectorRunner
 from onyx.connectors.factory import instantiate_connector
 from onyx.connectors.models import IndexAttemptMetadata
+from onyx.connectors.models import Section
 from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
 from onyx.db.connector_credential_pair import get_last_successful_attempt_time
 from onyx.db.connector_credential_pair import update_connector_credential_pair
@@ -239,6 +240,34 @@ def _run_indexing(
 
                 batch_description = []
                 for doc in doc_batch:
+                    if "\x00" in doc.id:
+                        logger.warning(f"NUL characters found in document ID: {doc.id}")
+                        doc.id = doc.id.replace("\x00", "")
+                    if "\x00" in doc.semantic_identifier:
+                        logger.warning(
+                            f"NUL characters found in document semantic identifier: {doc.semantic_identifier}"
+                        )
+                        doc.semantic_identifier = doc.semantic_identifier.replace(
+                            "\x00", ""
+                        )
+                    if any(
+                        "\x00" in section.link
+                        for section in doc.sections
+                        if section.link
+                    ):
+                        logger.warning(
+                            f"NUL characters found in document link for document: {doc.id}"
+                        )
+                        doc.sections = [
+                            Section(
+                                link=section.link.replace("\x00", "")
+                                if section.link
+                                else None,
+                                text=section.text,
+                            )
+                            for section in doc.sections
+                        ]
+
                     batch_description.append(doc.to_short_descriptor())
 
                     doc_size = 0
