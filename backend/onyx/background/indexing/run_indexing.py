@@ -1,6 +1,5 @@
 import time
 import traceback
-from copy import deepcopy
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
@@ -95,7 +94,7 @@ def _get_connector_runner(
 def strip_null_characters(doc_batch: list[Document]) -> list[Document]:
     cleaned_batch = []
     for doc in doc_batch:
-        cleaned_doc = deepcopy(doc)
+        cleaned_doc = doc.model_copy()
 
         if "\x00" in cleaned_doc.id:
             logger.warning(f"NUL characters found in document ID: {cleaned_doc.id}")
