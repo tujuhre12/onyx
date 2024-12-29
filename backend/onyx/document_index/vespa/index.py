@@ -317,19 +317,13 @@ class VespaIndex(DocumentIndex):
         if any chunk is missing a 'last_indexed_at' timestamp.
         """
 
-        # Ensure every chunk has a non-null 'last_indexed_at'
-        for chunk in chunks:
-            if chunk.last_indexed_at is None:
-                raise ValueError(
-                    f"Chunk with doc_id='{chunk.source_document.id}' "
-                    "is missing last_indexed_at, cannot proceed with indexing."
-                )
-
         # Clean chunks if needed (remove invalid chars, etc.)
         cleaned_chunks = [clean_chunk_id_copy(chunk) for chunk in chunks]
 
         #  We will store the set of doc_ids that previously existed in Vespa
-        all_doc_ids = {chunk.source_document.id for chunk in cleaned_chunks}
+        all_doc_ids = {
+            chunk.source_document.id: chunk.last_indexed_at for chunk in cleaned_chunks
+        }
         existing_doc_ids = set()
 
         with get_vespa_http_client() as http_client, concurrent.futures.ThreadPoolExecutor(
@@ -337,7 +331,7 @@ class VespaIndex(DocumentIndex):
         ) as executor:
             # a) Find which docs already exist in Vespa
             existing_doc_ids = find_existing_docs_in_vespa_by_doc_id(
-                doc_ids=list(all_doc_ids),
+                doc_ids=list(all_doc_ids.keys()),
                 index_name=self.index_name,
                 http_client=http_client,
                 executor=executor,
@@ -354,8 +348,8 @@ class VespaIndex(DocumentIndex):
                 )
 
             # c) Remove chunks with using versioning scheme 'last_indexed_at'
-            for doc_id in existing_doc_ids:
-                version_cutoff = int(cast(datetime, chunk.last_indexed_at).timestamp())
+            for doc_id, last_indexed_at in existing_doc_ids.items():
+                version_cutoff = int(last_indexed_at.timestamp())
                 query_str = build_deletion_selection_query(
                     doc_id=doc_id,
                     version_cutoff=version_cutoff,
@@ -370,7 +364,7 @@ class VespaIndex(DocumentIndex):
                     resp.raise_for_status()
                 except httpx.HTTPStatusError:
                     logger.exception(
-                        f"Selection-based delete failed for doc_id='{chunk.source_document.id}'"
+                        f"Selection-based delete failed for doc_id='{doc_id}'"
                     )
                     raise
 
