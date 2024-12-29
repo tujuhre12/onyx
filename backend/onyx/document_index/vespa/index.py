@@ -342,11 +342,12 @@ class VespaIndex(DocumentIndex):
                     chunk.source_document.doc_updated_at = doc_to_doc_updated_at[doc_id]
                 else:
                     # Raise if doc_updated_at conflicts with what we've already stored for this doc_id
-                    assert chunk_val == doc_to_doc_updated_at[doc_id], (
-                        f"Inconsistent doc_updated_at for doc_id={doc_id}: "
-                        f"{chunk_val.isoformat()} != "
-                        f"{doc_to_doc_updated_at[doc_id].isoformat()}"
-                    )
+                    if chunk_val != doc_to_doc_updated_at[doc_id]:
+                        raise ValueError(
+                            f"Inconsistent doc_updated_at for doc_id={doc_id}: "
+                            f"{chunk_val.isoformat()} != "
+                            f"{doc_to_doc_updated_at[doc_id].isoformat()}"
+                        )
 
         # IMPORTANT: This must be done one index at a time, do not use secondary index here
         cleaned_chunks = [clean_chunk_id_copy(chunk) for chunk in chunks]
