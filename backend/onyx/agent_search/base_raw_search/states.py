@@ -27,7 +27,7 @@ class BaseRawSearchOutput(TypedDict):
 
     # base_search_documents: Annotated[list[InferenceSection], dedup_inference_sections]
     # base_retrieval_results: Annotated[list[ExpandedRetrievalResult], add]
-    expanded_retrieval_result: ExpandedRetrievalResult
+    base_expanded_retrieval_result: ExpandedRetrievalResult
 
 
 ## Graph State

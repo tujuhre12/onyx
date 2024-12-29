@@ -18,6 +18,7 @@ from onyx.context.search.models import InferenceSection
 class ExpandedRetrievalInput(SubgraphCoreState):
     question: str
     dummy: str
+    base_search: bool = False
 
 
 ## Update/Return States
@@ -46,6 +47,7 @@ class DocRerankingUpdate(TypedDict):
 
 class ExpandedRetrievalOutput(TypedDict):
     expanded_retrieval_result: ExpandedRetrievalResult
+    base_expanded_retrieval_result: ExpandedRetrievalResult
 
 
 ## Graph State
