@@ -54,6 +54,7 @@ from onyx.db.enums import IndexingStatus
 from onyx.db.enums import IndexModelStatus
 from onyx.db.enums import TaskStatus
 from onyx.db.pydantic_type import PydanticType
+from onyx.utils.logger import setup_logger
 from onyx.utils.special_types import JSON_ro
 from onyx.file_store.models import FileDescriptor
 from onyx.llm.override_models import LLMOverride
@@ -65,6 +66,8 @@ from onyx.utils.headers import HeaderItemDict
 from shared_configs.enums import EmbeddingProvider
 from shared_configs.enums import RerankerProvider
 
+logger = setup_logger()
+
 
 class Base(DeclarativeBase):
     __abstract__ = True
@@ -72,6 +75,8 @@ class Base(DeclarativeBase):
 
 class EncryptedString(TypeDecorator):
     impl = LargeBinary
+    # This type's behavior is fully deterministic and doesn't depend on any external factors.
+    cache_ok = True
 
     def process_bind_param(self, value: str | None, dialect: Dialect) -> bytes | None:
         if value is not None:
@@ -86,6 +91,8 @@ class EncryptedString(TypeDecorator):
 
 class EncryptedJson(TypeDecorator):
     impl = LargeBinary
+    # This type's behavior is fully deterministic and doesn't depend on any external factors.
+    cache_ok = True
 
     def process_bind_param(self, value: dict | None, dialect: Dialect) -> bytes | None:
         if value is not None:
@@ -104,9 +111,12 @@ class EncryptedJson(TypeDecorator):
 
 class NullFilteredString(TypeDecorator):
     impl = String
+    # This type's behavior is fully deterministic and doesn't depend on any external factors.
+    cache_ok = True
 
     def process_bind_param(self, value: str | None, dialect: Dialect) -> str | None:
-        if value is not None:
+        if value is not None and "\x00" in value:
+            logger.warning(f"NUL characters found in value: {value}")
             return value.replace("\x00", "")
         return value
 
