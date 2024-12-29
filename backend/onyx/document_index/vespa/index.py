@@ -355,9 +355,7 @@ class VespaIndex(DocumentIndex):
 
             # c) Remove chunks with using versioning scheme 'last_indexed_at'
             for doc_id in existing_doc_ids:
-                version_cutoff = int(
-                    cast(datetime.datetime, chunk.last_indexed_at).timestamp()
-                )
+                version_cutoff = int(cast(datetime, chunk.last_indexed_at).timestamp())
                 query_str = build_deletion_selection_query(
                     doc_id=doc_id,
                     version_cutoff=version_cutoff,
