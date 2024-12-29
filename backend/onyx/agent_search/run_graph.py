@@ -24,8 +24,22 @@ def _parse_agent_event(
     Parse the event into a typed object.
     Return None if we are not interested in the event.
     """
-    if event["name"] == "LangGraph":
-        return None
+    # if event["name"] == "LangGraph":
+    #    return None
+
+    event_type = event["event"]
+    langgraph_node = event["metadata"].get("langgraph_node", "_graph_")
+    if "input" in event["data"] and isinstance(event["data"]["input"], str):
+        input_data = f'\nINPUT: {langgraph_node} -- {str(event["data"]["input"])}'
+    else:
+        input_data = ""
+    if "output" in event["data"] and isinstance(event["data"]["output"], str):
+        output_data = f'\nOUTPUT: {langgraph_node} -- {str(event["data"]["output"])}'
+    else:
+        output_data = ""
+    if len(input_data) > 0 or len(output_data) > 0:
+        return input_data + output_data
+
     event_type = event["event"]
     if event_type == "tool_call_kickoff":
         return ToolCallKickoff(**event["data"])
@@ -102,4 +116,5 @@ if __name__ == "__main__":
         query="what can you do with onyx or danswer?",
     )
     for output in run_graph(compiled_graph, search_request, primary_llm, fast_llm):
-        print(output)
+        print("a")
+        # print(output)

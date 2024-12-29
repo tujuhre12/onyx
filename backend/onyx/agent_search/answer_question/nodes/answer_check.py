@@ -16,7 +16,7 @@ def answer_check(state: AnswerQuestionState) -> QACheckUpdate:
         )
     ]
 
-    fast_llm = state["fast_llm"]
+    fast_llm = state["subgraph_fast_llm"]
     response = list(
         fast_llm.stream(
             prompt=msg,

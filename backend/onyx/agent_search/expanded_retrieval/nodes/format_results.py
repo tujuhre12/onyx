@@ -84,6 +84,12 @@ def format_results(state: ExpandedRetrievalState) -> ExpandedRetrievalOutput:
         verified_documents=state["verified_documents"],
         expanded_retrieval_results=state["expanded_retrieval_results"],
     )
+
+    if sub_question_retrieval_stats is None:
+        sub_question_retrieval_stats = []
+    else:
+        sub_question_retrieval_stats = [sub_question_retrieval_stats]
+
     return ExpandedRetrievalOutput(
         expanded_retrieval_result=ExpandedRetrievalResult(
             expanded_queries_results=state["expanded_retrieval_results"],

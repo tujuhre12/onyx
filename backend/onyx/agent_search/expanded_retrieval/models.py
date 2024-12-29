@@ -1,3 +1,6 @@
+from operator import add
+from typing import Annotated
+
 from pydantic import BaseModel
 
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
@@ -16,4 +19,4 @@ class QueryResult(BaseModel):
 class ExpandedRetrievalResult(BaseModel):
     expanded_queries_results: list[QueryResult]
     all_documents: list[InferenceSection]
-    sub_question_retrieval_stats: AgentChunkStats
+    sub_question_retrieval_stats: Annotated[list[AgentChunkStats], add]

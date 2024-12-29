@@ -16,7 +16,6 @@ def doc_verification(state: DocVerificationInput) -> DocVerificationUpdate:
         verified_documents: list[InferenceSection]
     """
 
-    state["search_request"].query
     question = state["question"]
     doc_to_verify = state["doc_to_verify"]
     document_content = doc_to_verify.combined_content
@@ -29,7 +28,7 @@ def doc_verification(state: DocVerificationInput) -> DocVerificationUpdate:
         )
     ]
 
-    fast_llm = state["fast_llm"]
+    fast_llm = state["subgraph_fast_llm"]
 
     response = fast_llm.invoke(msg)
 

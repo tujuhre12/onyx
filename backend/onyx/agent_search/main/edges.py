@@ -4,7 +4,7 @@ from langgraph.types import Send
 
 from onyx.agent_search.answer_question.states import AnswerQuestionInput
 from onyx.agent_search.answer_question.states import AnswerQuestionOutput
-from onyx.agent_search.core_state import extract_core_fields
+from onyx.agent_search.core_state import extract_core_fields_for_subgraph
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalInput
 from onyx.agent_search.main.states import MainInput
 from onyx.agent_search.main.states import MainState
@@ -16,7 +16,7 @@ def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hasha
             Send(
                 "answer_query",
                 AnswerQuestionInput(
-                    **extract_core_fields(state),
+                    **extract_core_fields_for_subgraph(state),
                     question=question,
                 ),
             )
@@ -33,12 +33,13 @@ def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hasha
 
 
 def send_to_initial_retrieval(state: MainInput) -> list[Send | Hashable]:
+    print("sending to initial retrieval via edge")
     return [
         Send(
             "initial_retrieval",
             ExpandedRetrievalInput(
                 question=state["search_request"].query,
-                **extract_core_fields(state),
+                **extract_core_fields_for_subgraph(state),
             ),
         )
     ]

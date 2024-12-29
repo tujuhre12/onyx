@@ -18,12 +18,12 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
             content=BASE_RAG_PROMPT.format(
                 question=question,
                 context=format_docs(docs),
-                original_question=state["search_request"].query,
+                original_question=state["subgraph_search_request"].query,
             )
         )
     ]
 
-    fast_llm = state["fast_llm"]
+    fast_llm = state["subgraph_fast_llm"]
     response = list(
         fast_llm.stream(
             prompt=msg,

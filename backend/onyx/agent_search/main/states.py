@@ -4,6 +4,7 @@ from typing import TypedDict
 
 from onyx.agent_search.answer_question.states import QuestionAnswerResults
 from onyx.agent_search.core_state import CoreState
+from onyx.agent_search.expanded_retrieval.models import ExpandedRetrievalResult
 from onyx.agent_search.expanded_retrieval.models import QueryResult
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.models import InitialAgentResultStats
@@ -40,7 +41,7 @@ class ExpandedRetrievalUpdate(TypedDict):
         list[InferenceSection], dedup_inference_sections
     ]
     original_question_retrieval_results: list[QueryResult]
-    sub_question_retrieval_stats: AgentChunkStats
+    sub_question_retrieval_stats: Annotated[list[AgentChunkStats], add]
 
 
 ## Graph Input State
@@ -62,7 +63,8 @@ class MainState(
     DecompAnswersUpdate,
     ExpandedRetrievalUpdate,
 ):
-    pass
+    # expanded_retrieval_result: Annotated[list[ExpandedRetrievalResult], add]
+    base_raw_search_result: Annotated[list[ExpandedRetrievalResult], add]
 
 
 ## Graph Output State

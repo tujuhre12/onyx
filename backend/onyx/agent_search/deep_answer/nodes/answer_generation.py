@@ -70,7 +70,7 @@ def final_stuff(state: MainState) -> dict[str, Any]:
     time_ordered_messages.sort()
 
     print("Message Log:")
-    print("\n".join(time_ordered_messages))
+    # print("\n".join(time_ordered_messages))
 
     initial_sub_qas = state["initial_sub_qas"]
     initial_sub_qa_list = []

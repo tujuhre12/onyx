@@ -20,8 +20,8 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
         retrieved_documents: list[InferenceSection]
     """
 
-    llm = state["primary_llm"]
-    fast_llm = state["fast_llm"]
+    llm = state["subgraph_primary_llm"]
+    fast_llm = state["subgraph_fast_llm"]
     query_to_retrieve = state["query_to_retrieve"]
 
     search_results = SearchPipeline(
@@ -31,7 +31,7 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
         user=None,
         llm=llm,
         fast_llm=fast_llm,
-        db_session=state["db_session"],
+        db_session=state["subgraph_db_session"],
     )
 
     retrieved_docs = search_results._get_sections()[:AGENT_MAX_QUERY_RETRIEVAL_RESULTS]

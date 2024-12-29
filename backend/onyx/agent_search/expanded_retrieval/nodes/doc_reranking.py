@@ -15,27 +15,28 @@ def doc_reranking(state: ExpandedRetrievalState) -> DocRerankingUpdate:
     # Rerank post retrieval and verification. First, create a search query
     # then create the list of reranked sections
 
+    question = state.get("question", state["subgraph_search_request"].query)
     _search_query = retrieval_preprocessing(
-        search_request=SearchRequest(query=state["question"]),
+        search_request=SearchRequest(query=question),
         user=None,
-        llm=state["fast_llm"],
-        db_session=state["db_session"],
+        llm=state["subgraph_fast_llm"],
+        db_session=state["subgraph_db_session"],
     )
 
     reranked_documents = list(
         search_postprocessing(
             search_query=_search_query,
             retrieved_sections=verified_documents,
-            llm=state["fast_llm"],
+            llm=state["subgraph_fast_llm"],
         )
     )[
         0
     ]  # only get the reranked szections, not the SectionRelevancePiece
 
     if AGENT_RERANKING_STATS:
-        fit_scores = get_fit_scores(verified_documents, reranked_documents)
+        fit_scores = [get_fit_scores(verified_documents, reranked_documents)]
     else:
-        fit_scores = None
+        fit_scores = []
 
     return DocRerankingUpdate(
         reranked_documents=[

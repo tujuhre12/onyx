@@ -9,7 +9,7 @@ from onyx.llm.interfaces import LLM
 
 def expand_queries(state: ExpandedRetrievalInput) -> QueryExpansionUpdate:
     question = state.get("question")
-    llm: LLM = state["fast_llm"]
+    llm: LLM = state["subgraph_fast_llm"]
 
     msg = [
         HumanMessage(

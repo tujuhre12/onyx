@@ -2,10 +2,10 @@ from operator import add
 from typing import Annotated
 from typing import TypedDict
 
-from onyx.agent_search.core_state import CoreState
+from onyx.agent_search.core_state import SubgraphCoreState
 from onyx.agent_search.expanded_retrieval.models import ExpandedRetrievalResult
 from onyx.agent_search.expanded_retrieval.models import QueryResult
-from onyx.agent_search.shared_graph_utils.models import RetrievalFitStats
+from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.operators import dedup_inference_sections
 from onyx.context.search.models import InferenceSection
 
@@ -15,8 +15,9 @@ from onyx.context.search.models import InferenceSection
 ## Graph Input State
 
 
-class ExpandedRetrievalInput(CoreState):
+class ExpandedRetrievalInput(SubgraphCoreState):
     question: str
+    dummy: str
 
 
 ## Update/Return States
@@ -37,7 +38,14 @@ class DocRetrievalUpdate(TypedDict):
 
 class DocRerankingUpdate(TypedDict):
     reranked_documents: Annotated[list[InferenceSection], dedup_inference_sections]
-    sub_question_retrieval_stats: RetrievalFitStats | None
+    sub_question_retrieval_stats: Annotated[list[AgentChunkStats | None], add]
+
+
+## Graph Output State
+
+
+class ExpandedRetrievalOutput(TypedDict):
+    expanded_retrieval_result: ExpandedRetrievalResult
 
 
 ## Graph State
@@ -50,15 +58,9 @@ class ExpandedRetrievalState(
     DocRetrievalUpdate,
     DocVerificationUpdate,
     DocRerankingUpdate,
+    ExpandedRetrievalOutput,
 ):
     pass
-
-
-## Graph Output State
-
-
-class ExpandedRetrievalOutput(TypedDict):
-    expanded_retrieval_result: ExpandedRetrievalResult
 
 
 ## Conditional Input States
