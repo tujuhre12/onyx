@@ -321,7 +321,7 @@ class VespaIndex(DocumentIndex):
         cleaned_chunks = [clean_chunk_id_copy(chunk) for chunk in chunks]
 
         #  We will store the set of doc_ids that previously existed in Vespa
-        all_doc_ids = {
+        doc_ids_to_last_indexed_at = {
             chunk.source_document.id: chunk.last_indexed_at for chunk in cleaned_chunks
         }
         existing_doc_ids = set()
@@ -331,7 +331,7 @@ class VespaIndex(DocumentIndex):
         ) as executor:
             # a) Find which docs already exist in Vespa
             existing_doc_ids = find_existing_docs_in_vespa_by_doc_id(
-                doc_ids=list(all_doc_ids.keys()),
+                doc_ids=list(doc_ids_to_last_indexed_at.keys()),
                 index_name=self.index_name,
                 http_client=http_client,
                 executor=executor,
@@ -348,8 +348,8 @@ class VespaIndex(DocumentIndex):
                 )
 
             # c) Remove chunks with using versioning scheme 'last_indexed_at'
-            for doc_id, last_indexed_at in existing_doc_ids.items():
-                version_cutoff = int(last_indexed_at.timestamp())
+            for doc_id in existing_doc_ids:
+                version_cutoff = int(doc_ids_to_last_indexed_at[doc_id].timestamp())
                 query_str = build_deletion_selection_query(
                     doc_id=doc_id,
                     version_cutoff=version_cutoff,
@@ -374,7 +374,7 @@ class VespaIndex(DocumentIndex):
                 document_id=doc_id,
                 already_existed=(doc_id in existing_doc_ids),
             )
-            for doc_id in all_doc_ids
+            for doc_id in doc_ids_to_last_indexed_at
         }
 
     @staticmethod
