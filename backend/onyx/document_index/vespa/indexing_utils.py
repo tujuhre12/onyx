@@ -30,6 +30,7 @@ from onyx.document_index.vespa_constants import DOCUMENT_ID_ENDPOINT
 from onyx.document_index.vespa_constants import DOCUMENT_SETS
 from onyx.document_index.vespa_constants import EMBEDDINGS
 from onyx.document_index.vespa_constants import LARGE_CHUNK_REFERENCE_IDS
+from onyx.document_index.vespa_constants import LAST_INDEXED_AT
 from onyx.document_index.vespa_constants import METADATA
 from onyx.document_index.vespa_constants import METADATA_LIST
 from onyx.document_index.vespa_constants import METADATA_SUFFIX
@@ -172,6 +173,7 @@ def _index_vespa_chunk(
         METADATA_SUFFIX: chunk.metadata_suffix_keyword,
         EMBEDDINGS: embeddings_name_vector_map,
         TITLE_EMBEDDING: chunk.title_embedding,
+        LAST_INDEXED_AT: _vespa_get_updated_at_attribute(chunk.last_indexed_at),
         DOC_UPDATED_AT: _vespa_get_updated_at_attribute(document.doc_updated_at),
         PRIMARY_OWNERS: get_experts_stores_representations(document.primary_owners),
         SECONDARY_OWNERS: get_experts_stores_representations(document.secondary_owners),

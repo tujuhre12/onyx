@@ -10,7 +10,6 @@ import zipfile
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timedelta
-from datetime import timezone
 from typing import BinaryIO
 from typing import cast
 from typing import List
@@ -50,10 +49,7 @@ from onyx.document_index.vespa.shared_utils.utils import (
     replace_invalid_doc_id_characters,
 )
 from onyx.document_index.vespa.shared_utils.vespa_request_builders import (
-    build_deletion_selection,
-)
-from onyx.document_index.vespa.shared_utils.vespa_request_builders import (
-    build_selection_query_param,
+    build_deletion_selection_query,
 )
 from onyx.document_index.vespa.shared_utils.vespa_request_builders import (
     build_vespa_filters,
@@ -316,52 +312,30 @@ class VespaIndex(DocumentIndex):
         chunks: list[DocMetadataAwareIndexChunk],
     ) -> set[DocumentInsertionRecord]:
         """
-        Index a list of chunks into Vespa, optionally removing older chunk versions.
-        Raises an AssertionError if multiple chunks for the same doc_id have conflicting doc_updated_at values.
+        Index a list of chunks into Vespa. We rely on 'last_indexed_at'
+        to keep track of when each chunk was added/updated in the index. We also raise a ValueError
+        if any chunk is missing a 'last_indexed_at' timestamp.
         """
-        current_timestamp = int(datetime.utcnow().timestamp())
 
-        # Step 1: Enforce a single doc_updated_at for each doc_id across all chunks.
-        doc_to_doc_updated_at = {}
+        # Ensure every chunk has a non-null 'last_indexed_at'
         for chunk in chunks:
-            doc_id = chunk.source_document.id
+            if chunk.last_indexed_at is None:
+                raise ValueError(
+                    f"Chunk with doc_id='{chunk.source_document.id}' "
+                    "is missing last_indexed_at, cannot proceed with indexing."
+                )
 
-            chunk_val = chunk.source_document.doc_updated_at
-            if doc_id not in doc_to_doc_updated_at:
-                # If we haven't encountered this doc_id yet, store or fill its doc_updated_at
-                if chunk_val is None:
-                    # If missing, default to "now"
-                    chunk_val = datetime.fromtimestamp(
-                        current_timestamp, tz=timezone.utc
-                    )
-                    chunk.source_document.doc_updated_at = chunk_val
-                doc_to_doc_updated_at[doc_id] = chunk_val
-            else:
-                # If the chunk's doc_updated_at is missing, fill it from the stored value
-                if chunk_val is None:
-                    chunk.source_document.doc_updated_at = doc_to_doc_updated_at[doc_id]
-                else:
-                    # Raise if doc_updated_at conflicts with what we've already stored for this doc_id
-                    if chunk_val != doc_to_doc_updated_at[doc_id]:
-                        raise ValueError(
-                            f"Inconsistent doc_updated_at for doc_id={doc_id}: "
-                            f"{chunk_val.isoformat()} != "
-                            f"{doc_to_doc_updated_at[doc_id].isoformat()}"
-                        )
-
-        # IMPORTANT: This must be done one index at a time, do not use secondary index here
+        # Clean chunks if needed (remove invalid chars, etc.)
         cleaned_chunks = [clean_chunk_id_copy(chunk) for chunk in chunks]
 
-        # 3) Determine pre-existing docs in Vespa
-        #    Then we can feed them and know whether 'already_existed' is True or False.
+        #  We will store the set of doc_ids that previously existed in Vespa
         all_doc_ids = {chunk.source_document.id for chunk in cleaned_chunks}
         existing_doc_ids = set()
 
         with get_vespa_http_client() as http_client, concurrent.futures.ThreadPoolExecutor(
             max_workers=NUM_THREADS
         ) as executor:
-            # This is necessary as an additional step since we bulk delete previous versions of the
-            # document ID (ie. we never get this informatioon from Vespa).
+            # a) Find which docs already exist in Vespa
             existing_doc_ids = find_existing_docs_in_vespa_by_doc_id(
                 doc_ids=list(all_doc_ids),
                 index_name=self.index_name,
@@ -369,7 +343,7 @@ class VespaIndex(DocumentIndex):
                 executor=executor,
             )
 
-            # 4) Feed new/updated chunks in batches
+            # b) Feed new/updated chunks in batches
             for chunk_batch in batch_generator(cleaned_chunks, BATCH_SIZE):
                 batch_index_vespa_chunks(
                     chunks=chunk_batch,
@@ -379,17 +353,16 @@ class VespaIndex(DocumentIndex):
                     executor=executor,
                 )
 
-            # 5) Remove older chunk versions using a single selection-based delete for each doc_id
-            for doc_id, dt_value in doc_to_doc_updated_at.items():
-                version_cutoff = int(dt_value.timestamp())
-
-                filter_str = build_deletion_selection(
+            # c) Remove chunks with using versioning scheme 'last_indexed_at'
+            for doc_id in existing_doc_ids:
+                version_cutoff = int(
+                    cast(datetime.datetime, chunk.last_indexed_at).timestamp()
+                )
+                query_str = build_deletion_selection_query(
                     doc_id=doc_id,
                     version_cutoff=version_cutoff,
                     doc_type=self.index_name,
                 )
-                query_str = build_selection_query_param(filter_str)
-
                 delete_url = (
                     f"{DOCUMENT_ID_ENDPOINT.format(index_name=self.index_name)}/"
                     f"?{query_str}&cluster={DOCUMENT_INDEX_NAME}"
@@ -399,12 +372,11 @@ class VespaIndex(DocumentIndex):
                     resp.raise_for_status()
                 except httpx.HTTPStatusError:
                     logger.exception(
-                        f"Selection-based delete failed for doc_id='{doc_id}' - "
-                        f"HTTP {resp.status_code}: {resp.text}"
+                        f"Selection-based delete failed for doc_id='{chunk.source_document.id}'"
                     )
                     raise
 
-        # 6) Produce insertion records
+        # Produce insertion records specifying which documents existed prior
         return {
             DocumentInsertionRecord(
                 document_id=doc_id,

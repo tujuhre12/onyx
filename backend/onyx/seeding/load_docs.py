@@ -86,6 +86,7 @@ def _create_indexable_chunks(
             access=default_public_access,
             document_sets=set(),
             boost=DEFAULT_BOOST,
+            last_indexed_at=datetime.datetime.now(datetime.timezone.utc),
         )
         chunks.append(chunk)
 

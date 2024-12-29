@@ -12,6 +12,7 @@ from onyx.document_index.vespa_constants import DOC_UPDATED_AT
 from onyx.document_index.vespa_constants import DOCUMENT_ID
 from onyx.document_index.vespa_constants import DOCUMENT_SETS
 from onyx.document_index.vespa_constants import HIDDEN
+from onyx.document_index.vespa_constants import LAST_INDEXED_AT
 from onyx.document_index.vespa_constants import METADATA_LIST
 from onyx.document_index.vespa_constants import SOURCE_TYPE
 from onyx.document_index.vespa_constants import TENANT_ID
@@ -109,23 +110,22 @@ def build_vespa_id_based_retrieval_yql(
     return id_based_retrieval_yql_section
 
 
-def build_deletion_selection(doc_id: str, version_cutoff: int, doc_type: str) -> str:
+def build_deletion_selection_query(
+    doc_id: str, version_cutoff: int, doc_type: str
+) -> str:
     """
     Build a Vespa selection expression that includes:
       - {doc_type}.document_id == <doc_id>
-      - {doc_type}.doc_updated_at < version_cutoff
+      - {doc_type}.last_indexed_at < version_cutoff
+
+    Returns the URL-encoded selection query parameter.
     """
     # Escape single quotes by doubling them for Vespa selection expressions
     escaped_doc_id = doc_id.replace("'", "''")
 
-    return (
+    filter_str = (
         f"({doc_type}.document_id=='{escaped_doc_id}') and "
-        f"({doc_type}.doc_updated_at < {version_cutoff})"
+        f"({doc_type}.{LAST_INDEXED_AT} < {version_cutoff})"
     )
 
-
-def build_selection_query_param(filter_str: str) -> str:
-    """
-    Utility to urlencode the given filter_str as ?selection=<encoded>.
-    """
     return urlencode({"selection": filter_str})

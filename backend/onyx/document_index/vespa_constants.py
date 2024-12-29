@@ -52,6 +52,7 @@ BATCH_SIZE = 128  # Specific to Vespa
 
 TENANT_ID = "tenant_id"
 DOCUMENT_ID = "document_id"
+LAST_INDEXED_AT = "last_indexed_at"
 CHUNK_ID = "chunk_id"
 BLURB = "blurb"
 CONTENT = "content"
