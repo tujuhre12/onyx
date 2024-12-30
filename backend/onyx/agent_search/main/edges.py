@@ -42,7 +42,6 @@ def send_to_initial_retrieval(state: MainInput) -> list[Send | Hashable]:
             ExpandedRetrievalInput(
                 question=state["search_request"].query,
                 **extract_core_fields_for_subgraph(state),
-                dummy="retrieval",
                 base_search=False,
             ),
         )

@@ -18,7 +18,6 @@ def parallel_retrieval_edge(state: ExpandedRetrievalState) -> list[Send | Hashab
                 query_to_retrieve=query,
                 question=question,
                 **in_subgraph_extract_core_fields(state),
-                dummy="1",
                 base_search=False,
             ),
         )

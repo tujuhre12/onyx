@@ -94,7 +94,6 @@ if __name__ == "__main__":
     with get_session_context_manager() as db_session:
         inputs = ExpandedRetrievalInput(
             question="what can you do with onyx?",
-            dummy="1",
             base_search=False,
         )
         for thing in compiled_graph.stream(

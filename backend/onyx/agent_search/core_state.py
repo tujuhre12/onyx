@@ -21,7 +21,6 @@ class CoreState(TypedDict, total=False):
     # is fine if we are only reading
     db_session: Session
     log_messages: Annotated[list[str], add]
-    dummy: str
 
 
 class SubgraphCoreState(TypedDict, total=False):
