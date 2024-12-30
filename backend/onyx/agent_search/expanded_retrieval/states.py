@@ -5,7 +5,7 @@ from typing import TypedDict
 from onyx.agent_search.core_state import SubgraphCoreState
 from onyx.agent_search.expanded_retrieval.models import ExpandedRetrievalResult
 from onyx.agent_search.expanded_retrieval.models import QueryResult
-from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
+from onyx.agent_search.shared_graph_utils.models import RetrievalFitStats
 from onyx.agent_search.shared_graph_utils.operators import dedup_inference_sections
 from onyx.context.search.models import InferenceSection
 
@@ -39,7 +39,7 @@ class DocRetrievalUpdate(TypedDict):
 
 class DocRerankingUpdate(TypedDict):
     reranked_documents: Annotated[list[InferenceSection], dedup_inference_sections]
-    sub_question_retrieval_stats: Annotated[list[AgentChunkStats | None], add]
+    sub_question_retrieval_stats: RetrievalFitStats | None
 
 
 ## Graph Output State

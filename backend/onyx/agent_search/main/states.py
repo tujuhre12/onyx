@@ -41,7 +41,7 @@ class ExpandedRetrievalUpdate(TypedDict):
         list[InferenceSection], dedup_inference_sections
     ]
     original_question_retrieval_results: list[QueryResult]
-    sub_question_retrieval_stats: Annotated[list[AgentChunkStats], add]
+    original_question_retrieval_stats: AgentChunkStats
 
 
 ## Graph Input State
