@@ -23,7 +23,7 @@ class QAGenerationUpdate(TypedDict):
 class RetrievalIngestionUpdate(TypedDict):
     expanded_retrieval_results: list[QueryResult]
     documents: Annotated[list[InferenceSection], dedup_inference_sections]
-    sub_question_retrieval_stats: AgentChunkStats
+    sub_question_retrieval_stats: list[AgentChunkStats]
 
 
 ## Graph Input State

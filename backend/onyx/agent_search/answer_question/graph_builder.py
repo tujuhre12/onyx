@@ -90,10 +90,6 @@ if __name__ == "__main__":
     )
     with get_session_context_manager() as db_session:
         inputs = AnswerQuestionInput(
-            search_request=search_request,
-            primary_llm=primary_llm,
-            fast_llm=fast_llm,
-            db_session=db_session,
             question="what can you do with onyx?",
         )
         for thing in compiled_graph.stream(

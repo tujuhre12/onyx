@@ -7,14 +7,10 @@ from onyx.agent_search.base_raw_search.graph_builder import (
     base_raw_search_graph_builder,
 )
 from onyx.agent_search.main.edges import parallelize_decompozed_answer_queries
-from onyx.agent_search.main.nodes.base_decomp import main_decomp_base
-from onyx.agent_search.main.nodes.generate_initial_answer import (
-    generate_initial_answer,
-)
-from onyx.agent_search.main.nodes.ingest_answers import ingest_answers
-from onyx.agent_search.main.nodes.ingest_initial_retrieval import (
-    ingest_initial_retrieval,
-)
+from onyx.agent_search.main.nodes import generate_initial_answer
+from onyx.agent_search.main.nodes import ingest_answers
+from onyx.agent_search.main.nodes import ingest_initial_retrieval
+from onyx.agent_search.main.nodes import main_decomp_base
 from onyx.agent_search.main.states import MainInput
 from onyx.agent_search.main.states import MainState
 

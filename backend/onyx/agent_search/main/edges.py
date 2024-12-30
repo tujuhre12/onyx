@@ -27,7 +27,9 @@ def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hasha
         return [
             Send(
                 "ingest_answers",
-                AnswerQuestionOutput(),
+                AnswerQuestionOutput(
+                    answer_results=[],
+                ),
             )
         ]
 
@@ -40,6 +42,8 @@ def send_to_initial_retrieval(state: MainInput) -> list[Send | Hashable]:
             ExpandedRetrievalInput(
                 question=state["search_request"].query,
                 **extract_core_fields_for_subgraph(state),
+                dummy="retrieval",
+                base_search=False,
             ),
         )
     ]

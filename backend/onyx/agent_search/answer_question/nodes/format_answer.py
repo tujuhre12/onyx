@@ -5,14 +5,15 @@ from onyx.agent_search.answer_question.states import QuestionAnswerResults
 
 def format_answer(state: AnswerQuestionState) -> AnswerQuestionOutput:
     sub_question_retrieval_stats = state["sub_question_retrieval_stats"]
-    if sub_question_retrieval_stats is None:
-        sub_question_retrieval_stats = []
-    elif isinstance(sub_question_retrieval_stats, list):
-        sub_question_retrieval_stats = sub_question_retrieval_stats
-        if isinstance(sub_question_retrieval_stats[0], list):
-            sub_question_retrieval_stats = sub_question_retrieval_stats[0]
-    else:
-        sub_question_retrieval_stats = [sub_question_retrieval_stats]
+
+    # if sub_question_retrieval_stats_raw is None:
+    #     sub_question_retrieval_stats = []
+    # elif isinstance(sub_question_retrieval_stats_raw, list):
+    #     sub_question_retrieval_stats = sub_question_retrieval_stats_raw
+    #     if isinstance(sub_question_retrieval_stats[0], list):
+    #         sub_question_retrieval_stats = sub_question_retrieval_stats[0]
+    # else:
+    #     sub_question_retrieval_stats = [sub_question_retrieval_stats_raw]
 
     return AnswerQuestionOutput(
         answer_results=[

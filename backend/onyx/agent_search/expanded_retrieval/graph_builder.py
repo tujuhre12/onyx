@@ -3,16 +3,12 @@ from langgraph.graph import START
 from langgraph.graph import StateGraph
 
 from onyx.agent_search.expanded_retrieval.edges import parallel_retrieval_edge
-from onyx.agent_search.expanded_retrieval.nodes.doc_reranking import doc_reranking
-from onyx.agent_search.expanded_retrieval.nodes.doc_retrieval import doc_retrieval
-from onyx.agent_search.expanded_retrieval.nodes.doc_verification import (
-    doc_verification,
-)
-from onyx.agent_search.expanded_retrieval.nodes.expand_queries import expand_queries
-from onyx.agent_search.expanded_retrieval.nodes.format_results import format_results
-from onyx.agent_search.expanded_retrieval.nodes.verification_kickoff import (
-    verification_kickoff,
-)
+from onyx.agent_search.expanded_retrieval.nodes import doc_reranking
+from onyx.agent_search.expanded_retrieval.nodes import doc_retrieval
+from onyx.agent_search.expanded_retrieval.nodes import doc_verification
+from onyx.agent_search.expanded_retrieval.nodes import expand_queries
+from onyx.agent_search.expanded_retrieval.nodes import format_results
+from onyx.agent_search.expanded_retrieval.nodes import verification_kickoff
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalInput
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalOutput
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalState
@@ -97,11 +93,9 @@ if __name__ == "__main__":
     )
     with get_session_context_manager() as db_session:
         inputs = ExpandedRetrievalInput(
-            search_request=search_request,
-            primary_llm=primary_llm,
-            fast_llm=fast_llm,
-            db_session=db_session,
             question="what can you do with onyx?",
+            dummy="1",
+            base_search=False,
         )
         for thing in compiled_graph.stream(
             input=inputs,

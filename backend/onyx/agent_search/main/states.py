@@ -27,7 +27,7 @@ class InitialAnswerBASEUpdate(TypedDict):
 
 class InitialAnswerUpdate(TypedDict):
     initial_answer: str
-    initial_agent_stats: InitialAgentResultStats
+    initial_agent_stats: InitialAgentResultStats | None
     generated_sub_questions: list[str]
 
 
