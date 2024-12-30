@@ -168,9 +168,10 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
 
     print(f"\n\nSub-Questions:\n\n{sub_question_answer_str}\n\nStas:\n\n")
 
-    print(initial_agent_stats.original_question)
-    print(initial_agent_stats.sub_questions)
-    print(initial_agent_stats.agent_effectiveness)
+    if initial_agent_stats:
+        print(initial_agent_stats.original_question)
+        print(initial_agent_stats.sub_questions)
+        print(initial_agent_stats.agent_effectiveness)
     print("\n\n ---INITIAL AGENT ANSWER  END---\n\n")
 
     return InitialAnswerUpdate(
