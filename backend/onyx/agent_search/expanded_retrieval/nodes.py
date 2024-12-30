@@ -15,8 +15,8 @@ from onyx.agent_search.expanded_retrieval.states import DocRetrievalUpdate
 from onyx.agent_search.expanded_retrieval.states import DocVerificationInput
 from onyx.agent_search.expanded_retrieval.states import DocVerificationUpdate
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalInput
-from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalOutput
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalState
+from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalUpdate
 from onyx.agent_search.expanded_retrieval.states import InferenceSection
 from onyx.agent_search.expanded_retrieval.states import QueryExpansionUpdate
 from onyx.agent_search.expanded_retrieval.states import RetrievalInput
@@ -248,7 +248,7 @@ def _calculate_sub_question_retrieval_stats(
     return chunk_stats
 
 
-def format_results(state: ExpandedRetrievalState) -> ExpandedRetrievalOutput:
+def format_results(state: ExpandedRetrievalState) -> ExpandedRetrievalUpdate:
     sub_question_retrieval_stats = _calculate_sub_question_retrieval_stats(
         verified_documents=state["verified_documents"],
         expanded_retrieval_results=state["expanded_retrieval_results"],
@@ -259,7 +259,7 @@ def format_results(state: ExpandedRetrievalState) -> ExpandedRetrievalOutput:
     # else:
     #    sub_question_retrieval_stats = [sub_question_retrieval_stats]
 
-    return ExpandedRetrievalOutput(
+    return ExpandedRetrievalUpdate(
         expanded_retrieval_result=ExpandedRetrievalResult(
             expanded_queries_results=state["expanded_retrieval_results"],
             all_documents=state["reranked_documents"],
@@ -283,6 +283,7 @@ def verification_kickoff(
                 arg=DocVerificationInput(
                     doc_to_verify=doc,
                     question=verification_question,
+                    base_search=False,
                     **in_subgraph_extract_core_fields(state),
                 ),
             )

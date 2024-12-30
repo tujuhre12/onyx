@@ -57,4 +57,4 @@ def in_subgraph_extract_core_fields(state: T_SUBGRAPH) -> SubgraphCoreState:
     filtered_dict = {
         k: v for k, v in state.items() if k in SubgraphCoreState.__annotations__
     }
-    return SubgraphCoreState(**dict(filtered_dict))
+    return SubgraphCoreState(**dict(filtered_dict))  # type: ignore

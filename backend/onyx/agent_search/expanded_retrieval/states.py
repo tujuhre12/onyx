@@ -41,6 +41,10 @@ class DocRerankingUpdate(TypedDict):
     sub_question_retrieval_stats: RetrievalFitStats | None
 
 
+class ExpandedRetrievalUpdate(TypedDict):
+    expanded_retrieval_result: ExpandedRetrievalResult
+
+
 ## Graph Output State
 
 
