@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 
-from onyx.agent_search.expanded_retrieval.models import QueryResult
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.context.search.models import InferenceSection
 
@@ -15,6 +14,6 @@ class QuestionAnswerResults(BaseModel):
     question: str
     answer: str
     quality: str
-    expanded_retrieval_results: list[QueryResult]
+    # expanded_retrieval_results: list[QueryResult]
     documents: list[InferenceSection]
-    sub_question_retrieval_stats: list[AgentChunkStats]
+    sub_question_retrieval_stats: AgentChunkStats

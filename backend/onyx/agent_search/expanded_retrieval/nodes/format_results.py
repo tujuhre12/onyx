@@ -86,9 +86,9 @@ def format_results(state: ExpandedRetrievalState) -> ExpandedRetrievalOutput:
     )
 
     if sub_question_retrieval_stats is None:
-        sub_question_retrieval_stats = []
-    else:
-        sub_question_retrieval_stats = [sub_question_retrieval_stats]
+        sub_question_retrieval_stats = AgentChunkStats()
+    # else:
+    #    sub_question_retrieval_stats = [sub_question_retrieval_stats]
 
     return ExpandedRetrievalOutput(
         expanded_retrieval_result=ExpandedRetrievalResult(

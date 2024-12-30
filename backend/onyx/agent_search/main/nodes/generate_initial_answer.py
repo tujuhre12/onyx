@@ -159,10 +159,9 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     response = model.invoke(msg)
     answer = response.pretty_repr()
 
-    # initial_agent_stats = _calculate_initial_agent_stats(
-    #     state["decomp_answer_results"], state["sub_question_retrieval_stats"]
-    # )
-    initial_agent_stats = None
+    initial_agent_stats = _calculate_initial_agent_stats(
+        state["decomp_answer_results"], state["original_question_retrieval_stats"]
+    )
 
     print(f"\n\n---INITIAL AGENT ANSWER START---\n\n Answer:\n Agent: {answer}")
 

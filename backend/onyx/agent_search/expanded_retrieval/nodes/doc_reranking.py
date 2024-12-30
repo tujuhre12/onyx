@@ -1,6 +1,7 @@
 from onyx.agent_search.expanded_retrieval.states import DocRerankingUpdate
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalState
 from onyx.agent_search.shared_graph_utils.calculations import get_fit_scores
+from onyx.agent_search.shared_graph_utils.models import RetrievalFitStats
 from onyx.configs.dev_configs import AGENT_RERANKING_MAX_QUERY_RETRIEVAL_RESULTS
 from onyx.configs.dev_configs import AGENT_RERANKING_STATS
 from onyx.context.search.pipeline import InferenceSection
@@ -34,9 +35,9 @@ def doc_reranking(state: ExpandedRetrievalState) -> DocRerankingUpdate:
     ]  # only get the reranked szections, not the SectionRelevancePiece
 
     if AGENT_RERANKING_STATS:
-        fit_scores = [get_fit_scores(verified_documents, reranked_documents)]
+        fit_scores = get_fit_scores(verified_documents, reranked_documents)
     else:
-        fit_scores = []
+        fit_scores = RetrievalFitStats(fit_score_lift=0, rerank_effect=0, fit_scores={})
 
     return DocRerankingUpdate(
         reranked_documents=[
