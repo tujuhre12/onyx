@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from onyx.background.celery.apps.app_base import task_logger
 from onyx.background.celery.celery_redis import celery_find_task
 from onyx.background.celery.celery_redis import celery_get_unacked_task_ids
+from onyx.background.indexing.job_client import SimpleJob
 from onyx.background.indexing.job_client import SimpleJobClient
 from onyx.background.indexing.run_indexing import run_indexing_entrypoint
 from onyx.configs.app_configs import DISABLE_INDEX_UPDATE_ON_SWAP
@@ -728,64 +729,21 @@ def try_creating_indexing_task(
     return index_attempt_id
 
 
-@shared_task(
-    name=OnyxCeleryTask.CONNECTOR_INDEXING_PROXY_TASK,
-    bind=True,
-    acks_late=False,
-    track_started=True,
-)
-def connector_indexing_proxy_task(
+def connector_indexing_wait_for_spawned_task(
     self: Task,
     index_attempt_id: int,
     cc_pair_id: int,
     search_settings_id: int,
     tenant_id: str | None,
+    job: SimpleJob,
+    redis_connector_index: RedisConnectorIndex,
 ) -> None:
-    """celery tasks are forked, but forking is unstable.  This proxies work to a spawned task."""
-    task_logger.info(
-        f"Indexing watchdog - starting: attempt={index_attempt_id} "
-        f"cc_pair={cc_pair_id} "
-        f"search_settings={search_settings_id}"
-    )
-
-    if not self.request.id:
-        task_logger.error("self.request.id is None!")
-
-    client = SimpleJobClient()
-
-    job = client.submit(
-        connector_indexing_task_wrapper,
-        index_attempt_id,
-        cc_pair_id,
-        search_settings_id,
-        tenant_id,
-        global_version.is_ee_version(),
-        pure=False,
-    )
-
-    if not job:
-        task_logger.info(
-            f"Indexing watchdog - spawn failed: attempt={index_attempt_id} "
-            f"cc_pair={cc_pair_id} "
-            f"search_settings={search_settings_id}"
-        )
-        return
-
-    task_logger.info(
-        f"Indexing proxy - spawn succeeded: attempt={index_attempt_id} "
-        f"Indexing watchdog - spawn succeeded: attempt={index_attempt_id} "
-        f"cc_pair={cc_pair_id} "
-        f"search_settings={search_settings_id}"
-    )
-
-    redis_connector = RedisConnector(tenant_id, cc_pair_id)
-    redis_connector_index = redis_connector.new_index(search_settings_id)
-
     while True:
         sleep(5)
 
         # renew active signal
         redis_connector_index.set_active()
+        redis_connector_index.refresh_semaphore()
 
         # if the job is done, clean up and break
         if job.done():
@@ -884,8 +842,100 @@ def connector_indexing_proxy_task(
             )
             continue
 
+
+@shared_task(
+    name=OnyxCeleryTask.CONNECTOR_INDEXING_PROXY_TASK,
+    bind=True,
+    acks_late=False,
+    track_started=True,
+    max_retries=128,  # an arbitrarily large but finite number of retries
+)
+def connector_indexing_proxy_task(
+    self: Task,
+    index_attempt_id: int,
+    cc_pair_id: int,
+    search_settings_id: int,
+    tenant_id: str | None,
+) -> None:
+    """celery tasks are forked, but forking is unstable.  This proxies work to a spawned task."""
+    TASK_RETRY_DELAY = 1800  # in seconds
+
     task_logger.info(
-        f"Indexing watchdog - finished: attempt={index_attempt_id} "
+        f"Indexing watchdog - starting: attempt={index_attempt_id} "
+        f"cc_pair={cc_pair_id} "
+        f"search_settings={search_settings_id}"
+    )
+
+    client = SimpleJobClient()
+
+    while True:
+        redis_connector = RedisConnector(tenant_id, cc_pair_id)
+        redis_connector_index = redis_connector.new_index(search_settings_id)
+
+        celery_task_id = self.request.id
+        if not celery_task_id:
+            task_logger.error(
+                f"Indexing watchdog - task does not have an id: "
+                f"attempt={index_attempt_id} "
+                f"cc_pair={cc_pair_id} "
+                f"search_settings={search_settings_id}"
+            )
+            break
+
+        if MULTI_TENANT:
+            if not redis_connector_index.acquire_semaphore(celery_task_id):
+                task_logger.warning(
+                    f"Indexing watchdog - could not acquire semaphore, delaying execution: "
+                    f"attempt={index_attempt_id} "
+                    f"cc_pair={cc_pair_id} "
+                    f"search_settings={search_settings_id} "
+                    f"semaphore_limit={redis_connector_index.SEMAPHORE_LIMIT}"
+                    f"task_delay={TASK_RETRY_DELAY}"
+                )
+
+                # this will delay the task for 30 minutes if the semaphore can't be acquired
+                raise self.retry(countdown=TASK_RETRY_DELAY)
+
+        job = client.submit(
+            connector_indexing_task_wrapper,
+            index_attempt_id,
+            cc_pair_id,
+            search_settings_id,
+            tenant_id,
+            global_version.is_ee_version(),
+            pure=False,
+        )
+
+        if not job:
+            task_logger.info(
+                f"Indexing watchdog - spawn failed: attempt={index_attempt_id} "
+                f"cc_pair={cc_pair_id} "
+                f"search_settings={search_settings_id}"
+            )
+            break
+
+        task_logger.info(
+            f"Indexing watchdog - spawn succeeded: attempt={index_attempt_id} "
+            f"cc_pair={cc_pair_id} "
+            f"search_settings={search_settings_id}"
+        )
+
+        # This polls the spawned task and other conditions until we are finished
+        connector_indexing_wait_for_spawned_task(
+            self,
+            index_attempt_id,
+            cc_pair_id,
+            search_settings_id,
+            tenant_id,
+            job,
+            redis_connector_index,
+        )
+        redis_connector_index.release_semaphore()
+        break
+
+    task_logger.info(
+        "Indexing watchdog - finished: "
+        f"attempt={index_attempt_id} "
         f"cc_pair={cc_pair_id} "
         f"search_settings={search_settings_id}"
     )
