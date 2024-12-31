@@ -124,6 +124,10 @@ class CreateChatMessageRequest(ChunkContext):
     # https://platform.openai.com/docs/guides/structured-outputs/introduction
     structured_response_format: dict | None = None
 
+    # If true, ignores most of the search options and uses pro search instead.
+    # TODO: decide how many of the above options we want to pass through to pro search
+    use_pro_search: bool = False
+
     @model_validator(mode="after")
     def check_search_doc_ids_or_retrieval_options(self) -> "CreateChatMessageRequest":
         if self.search_doc_ids is None and self.retrieval_options is None:

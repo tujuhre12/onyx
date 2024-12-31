@@ -6,6 +6,7 @@ from typing import cast
 
 from sqlalchemy.orm import Session
 
+from onyx.agent_search.run_graph import run_main_graph
 from onyx.chat.answer import Answer
 from onyx.chat.chat_utils import create_chat_chain
 from onyx.chat.chat_utils import create_temporary_persona
@@ -33,11 +34,13 @@ from onyx.configs.chat_configs import MAX_CHUNKS_FED_TO_CHAT
 from onyx.configs.constants import MessageType
 from onyx.configs.constants import MilestoneRecordType
 from onyx.configs.constants import NO_AUTH_USER_ID
+from onyx.context.search.enums import LLMEvaluationType
 from onyx.context.search.enums import OptionalSearchSetting
 from onyx.context.search.enums import QueryFlow
 from onyx.context.search.enums import SearchType
 from onyx.context.search.models import InferenceSection
 from onyx.context.search.models import RetrievalDetails
+from onyx.context.search.models import SearchRequest
 from onyx.context.search.retrieval.search_runner import inference_sections_from_ids
 from onyx.context.search.utils import chunks_or_sections_to_search_docs
 from onyx.context.search.utils import dedupe_documents
@@ -716,7 +719,39 @@ def stream_chat_message_objects(
         dropped_indices = None
         tool_result = None
 
-        for packet in answer.processed_streamed_output:
+        if not new_msg_req.use_pro_search:
+            answer_stream = answer.processed_streamed_output
+        else:
+            search_request = SearchRequest(
+                query=final_msg.message,
+                evaluation_type=(
+                    LLMEvaluationType.BASIC
+                    if persona.llm_relevance_filter
+                    else LLMEvaluationType.SKIP
+                ),
+                human_selected_filters=(
+                    retrieval_options.filters if retrieval_options else None
+                ),
+                persona=persona,
+                offset=(retrieval_options.offset if retrieval_options else None),
+                limit=retrieval_options.limit if retrieval_options else None,
+                rerank_settings=new_msg_req.rerank_settings,
+                chunks_above=new_msg_req.chunks_above,
+                chunks_below=new_msg_req.chunks_below,
+                full_doc=new_msg_req.full_doc,
+                enable_auto_detect_filters=(
+                    retrieval_options.enable_auto_detect_filters
+                    if retrieval_options
+                    else None
+                ),
+            )
+            answer_stream = run_main_graph(
+                search_request=search_request,
+                primary_llm=llm,
+                fast_llm=fast_llm,
+            )
+
+        for packet in answer_stream:
             if isinstance(packet, ToolResponse):
                 if packet.id == SEARCH_RESPONSE_SUMMARY_ID:
                     (

@@ -24,29 +24,16 @@ def _parse_agent_event(
     Parse the event into a typed object.
     Return None if we are not interested in the event.
     """
-    # if event["name"] == "LangGraph":
-    #    return None
 
     event_type = event["event"]
-    langgraph_node = event["metadata"].get("langgraph_node", "_graph_")
-    if "input" in event["data"] and isinstance(event["data"]["input"], str):
-        input_data = f'\nINPUT: {langgraph_node} -- {str(event["data"]["input"])}'
-    else:
-        input_data = ""
-    if "output" in event["data"] and isinstance(event["data"]["output"], str):
-        output_data = f'\nOUTPUT: {langgraph_node} -- {str(event["data"]["output"])}'
-    else:
-        output_data = ""
-    if len(input_data) > 0 or len(output_data) > 0:
-        return input_data + output_data
-
-    event_type = event["event"]
-    if event_type == "tool_call_kickoff":
-        return ToolCallKickoff(**event["data"])
-    elif event_type == "tool_response":
-        return ToolResponse(**event["data"])
-    elif event_type == "on_chat_model_stream":
+    if event_type == "on_chat_model_stream":
         return OnyxAnswerPiece(answer_piece=event["data"]["chunk"].content)
+    elif event_type == "search_result":
+        # TODO: clean this up (weirdness to make mypy happy)
+        return ToolResponse(
+            id=str(event["data"].get("id", "error")),
+            response=event["data"].get("response", "error"),
+        )
     return None
 
 
@@ -103,6 +90,16 @@ def run_graph(
         ):
             if parsed_object := _parse_agent_event(event):
                 yield parsed_object
+
+
+def run_main_graph(
+    search_request: SearchRequest,
+    primary_llm: LLM,
+    fast_llm: LLM,
+) -> AnswerStream:
+    graph = main_graph_builder()
+    compiled_graph = graph.compile()
+    return run_graph(compiled_graph, search_request, primary_llm, fast_llm)
 
 
 if __name__ == "__main__":
