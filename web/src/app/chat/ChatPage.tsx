@@ -179,6 +179,7 @@ export function ChatPage({
 
   const [documentSidebarToggled, setDocumentSidebarToggled] = useState(false);
   const [filtersToggled, setFiltersToggled] = useState(false);
+  const [langgraphEnabled, setLanggraphEnabled] = useState(false);
 
   const [userSettingsToggled, setUserSettingsToggled] = useState(false);
 
@@ -1253,6 +1254,7 @@ export function ChatPage({
         systemPromptOverride:
           searchParams.get(SEARCH_PARAM_NAMES.SYSTEM_PROMPT) || undefined,
         useExistingUserMessage: isSeededChat,
+        useLanggraph: langgraphEnabled,
       });
 
       const delay = (ms: number) => {
@@ -2210,6 +2212,17 @@ export function ChatPage({
                   llmOverrideManager={llmOverrideManager}
                 />
               )}
+              <div className="flex items-center justify-end px-4 py-2">
+                <label className="flex items-center cursor-pointer">
+                  <span className="mr-2 text-sm">Langgraph</span>
+                  <input
+                    type="checkbox"
+                    checked={langgraphEnabled}
+                    onChange={(e) => setLanggraphEnabled(e.target.checked)}
+                    className="form-checkbox h-4 w-4"
+                  />
+                </label>
+              </div>
 
               {documentSidebarInitialWidth !== undefined && isReady ? (
                 <Dropzone onDrop={handleImageUpload} noClick>
