@@ -143,7 +143,7 @@ class RedisConnectorIndex:
             # we're over the limit, acquiring the semaphore has failed.
             self.redis.zrem(RedisConnectorIndex.SEMAPHORE_KEY, self.semaphore_member)
 
-        # return the rank ... we failed to acquire the semaphore is rank >= SEMAPHORE_LIMIT
+        # return the rank ... we failed to acquire the semaphore if rank >= SEMAPHORE_LIMIT
         return rank
 
     def refresh_semaphore(self) -> bool:
