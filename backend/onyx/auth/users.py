@@ -585,7 +585,7 @@ def get_redis_strategy() -> RedisStrategy:
     return TenantAwareRedisStrategy(lifetime_seconds=3600)
 
 
-class TenantAwareRedisStrategy(Strategy[User, uuid.UUID]):
+class TenantAwareRedisStrategy(RedisStrategy[User, uuid.UUID]):
     """
     A custom strategy that fetches the actual async Redis connection inside each method.
     We do NOT pass a synchronous or "coroutine" redis object to the constructor.
