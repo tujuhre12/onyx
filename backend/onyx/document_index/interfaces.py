@@ -149,6 +149,7 @@ class Indexable(abc.ABC):
         self,
         chunks: list[DocMetadataAwareIndexChunk],
         fresh_index: bool = False,
+        tenant_id: str | None = None,
     ) -> set[DocumentInsertionRecord]:
         """
         Takes a list of document chunks and indexes them in the document index
@@ -174,6 +175,8 @@ class Indexable(abc.ABC):
         - chunks: Document chunks with all of the information needed for indexing to the document
                 index.
         - fresh_index: Boolean indicating whether this is a fresh index with no existing documents.
+        - tenant_id: The tenant id to index the chunks for. If not provided, the chunks will be
+                indexed for the default tenant.
 
         Returns:
             List of document ids which map to unique documents and are used for deduping chunks

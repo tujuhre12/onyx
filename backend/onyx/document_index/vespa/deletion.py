@@ -1,6 +1,7 @@
 import concurrent.futures
 
 import httpx
+from pydantic import BaseModel
 from retry import retry
 
 from onyx.document_index.vespa.chunk_retrieval import (
@@ -18,12 +19,16 @@ CONTENT_SUMMARY = "content_summary"
 
 @retry(tries=3, delay=1, backoff=2)
 def _delete_vespa_doc_chunks(
-    document_id: str, index_name: str, http_client: httpx.Client
+    document_id: str,
+    index_name: str,
+    http_client: httpx.Client,
+    tenant_id: str | None = None,
 ) -> None:
     doc_chunk_ids = get_all_vespa_ids_for_document_id(
         document_id=document_id,
         index_name=index_name,
         get_large_chunks=True,
+        tenant_id=tenant_id,
     )
 
     for chunk_id in doc_chunk_ids:
@@ -37,8 +42,13 @@ def _delete_vespa_doc_chunks(
             raise
 
 
+class VespaDeletionRequest(BaseModel):
+    document_id: str
+    tenant_id: str | None
+
+
 def delete_vespa_docs(
-    document_ids: list[str],
+    deletion_requests: list[VespaDeletionRequest],
     index_name: str,
     http_client: httpx.Client,
     executor: concurrent.futures.ThreadPoolExecutor | None = None,
@@ -52,9 +62,13 @@ def delete_vespa_docs(
     try:
         doc_deletion_future = {
             executor.submit(
-                _delete_vespa_doc_chunks, doc_id, index_name, http_client
-            ): doc_id
-            for doc_id in document_ids
+                _delete_vespa_doc_chunks,
+                deletion_request.document_id,
+                index_name,
+                http_client,
+                deletion_request.tenant_id,
+            ): deletion_request.document_id
+            for deletion_request in deletion_requests
         }
         for future in concurrent.futures.as_completed(doc_deletion_future):
             # Will raise exception if the deletion raised an exception

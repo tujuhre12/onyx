@@ -39,6 +39,7 @@ from onyx.document_index.vespa.chunk_retrieval import (
 )
 from onyx.document_index.vespa.chunk_retrieval import query_vespa
 from onyx.document_index.vespa.deletion import delete_vespa_docs
+from onyx.document_index.vespa.deletion import VespaDeletionRequest
 from onyx.document_index.vespa.indexing_utils import batch_index_vespa_chunks
 from onyx.document_index.vespa.indexing_utils import clean_chunk_id_copy
 from onyx.document_index.vespa.indexing_utils import (
@@ -316,17 +317,22 @@ class VespaIndex(DocumentIndex):
         # IMPORTANT: This must be done one index at a time, do not use secondary index here
         cleaned_chunks = [clean_chunk_id_copy(chunk) for chunk in chunks]
 
+        # Build a map from doc_id -> tenant_id (if tenant_id is not None).
+        # This allows us to create VespaDeletionRequest objects with tenant IDs below.
+        doc_id_to_tenant_id = {}
+        for chunk in cleaned_chunks:
+            doc_id_to_tenant_id[chunk.source_document.id] = chunk.tenant_id
+
         existing_docs: set[str] = set()
 
-        # NOTE: using `httpx` here since `requests` doesn't support HTTP2. This is beneficial for
-        # indexing / updates / deletes since we have to make a large volume of requests.
         with (
             concurrent.futures.ThreadPoolExecutor(max_workers=NUM_THREADS) as executor,
             get_vespa_http_client() as http_client,
         ):
             if not fresh_index:
-                # Check for existing documents, existing documents need to have all of their chunks deleted
-                # prior to indexing as the document size (num chunks) may have shrunk
+                print("Checking for existing documents")
+
+                # Determine which documents already exist in Vespa.
                 first_chunks = [
                     chunk for chunk in cleaned_chunks if chunk.chunk_id == 0
                 ]
@@ -340,14 +346,23 @@ class VespaIndex(DocumentIndex):
                         )
                     )
 
+                # Pass VespaDeletionRequest objects (document_id and tenant_id) instead of just doc_ids.
                 for doc_id_batch in batch_generator(existing_docs, BATCH_SIZE):
+                    deletion_requests = [
+                        VespaDeletionRequest(
+                            document_id=doc_id,
+                            tenant_id=doc_id_to_tenant_id.get(doc_id),  # Might be None
+                        )
+                        for doc_id in doc_id_batch
+                    ]
                     delete_vespa_docs(
-                        document_ids=doc_id_batch,
+                        deletion_requests=deletion_requests,
                         index_name=self.index_name,
                         http_client=http_client,
                         executor=executor,
                     )
 
+            # Index the cleaned chunks in batches.
             for chunk_batch in batch_generator(cleaned_chunks, BATCH_SIZE):
                 batch_index_vespa_chunks(
                     chunks=chunk_batch,
@@ -588,7 +603,7 @@ class VespaIndex(DocumentIndex):
 
         return total_chunks_updated
 
-    def delete(self, doc_ids: list[str]) -> None:
+    def delete(self, doc_ids: list[str], tenant_id: str | None = None) -> None:
         logger.info(f"Deleting {len(doc_ids)} documents from Vespa")
 
         doc_ids = [replace_invalid_doc_id_characters(doc_id) for doc_id in doc_ids]
@@ -602,7 +617,10 @@ class VespaIndex(DocumentIndex):
 
             for index_name in index_names:
                 delete_vespa_docs(
-                    document_ids=doc_ids, index_name=index_name, http_client=http_client
+                    document_ids=doc_ids,
+                    index_name=index_name,
+                    http_client=http_client,
+                    tenant_id=tenant_id,
                 )
         return
 

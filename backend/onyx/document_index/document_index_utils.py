@@ -57,4 +57,7 @@ def get_uuid_from_chunk(
                 for referenced_chunk_id in chunk.large_chunk_reference_ids
             ]
         )
+    # Add tenant_id if it exists
+    if hasattr(chunk, "tenant_id") and chunk.tenant_id:
+        unique_identifier_string += f"_tenant_{chunk.tenant_id}"
     return uuid.uuid5(uuid.NAMESPACE_X500, unique_identifier_string)

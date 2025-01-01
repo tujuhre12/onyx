@@ -180,6 +180,8 @@ def _get_chunks_via_visit_api(
         selection += f" and {index_name}.chunk_id<={chunk_request.max_chunk_ind}"
     if not get_large_chunks:
         selection += f" and {index_name}.large_chunk_reference_ids == null"
+    if filters.tenant_id:
+        selection += f" and {index_name}.tenant_id == '{filters.tenant_id}'"
 
     # Setting up the selection criteria in the query parameters
     params = {
@@ -237,6 +239,7 @@ def get_all_vespa_ids_for_document_id(
     index_name: str,
     filters: IndexFilters | None = None,
     get_large_chunks: bool = False,
+    tenant_id: str | None = None,
 ) -> list[str]:
     document_chunks = _get_chunks_via_visit_api(
         chunk_request=VespaChunkRequest(document_id=document_id),
