@@ -9,14 +9,12 @@ from fastapi import Request
 from fastapi import Response
 
 from onyx.auth.api_key import extract_tenant_from_api_key_header
+from onyx.configs.app_configs import REDIS_AUTH_KEY_PREFIX
 from onyx.db.engine import is_valid_schema_name
 from onyx.redis.redis_pool import get_async_redis_connection
 from shared_configs.configs import MULTI_TENANT
 from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA
 from shared_configs.contextvars import CURRENT_TENANT_ID_CONTEXTVAR
-
-# Import your Redis instance from wherever it is created
-# In your snippet, it's in onyx/auth/users.py as "redis"
 
 
 def add_tenant_id_middleware(app: FastAPI, logger: logging.LoggerAdapter) -> None:
@@ -25,7 +23,6 @@ def add_tenant_id_middleware(app: FastAPI, logger: logging.LoggerAdapter) -> Non
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         try:
-            # Instead of a single ternary expression, split the logic
             if MULTI_TENANT:
                 tenant_id = await _get_tenant_id_from_request(request, logger)
             else:
@@ -37,9 +34,6 @@ def add_tenant_id_middleware(app: FastAPI, logger: logging.LoggerAdapter) -> Non
         except Exception as e:
             logger.error(f"Error in tenant ID middleware: {str(e)}")
             raise
-
-
-KEY_PREFIX = "fastapi_users_token:"  # Matches default in RedisStrategy
 
 
 async def _get_tenant_id_from_request(
@@ -68,7 +62,7 @@ async def _get_tenant_id_from_request(
         # Look up token data in Redis
         redis = await get_async_redis_connection()
         # IMPORTANT: Use the same prefix as RedisStrategy
-        redis_key = KEY_PREFIX + token
+        redis_key = REDIS_AUTH_KEY_PREFIX + token
         token_data_str = await redis.get(redis_key)
         if not token_data_str:
             logger.debug(
