@@ -338,6 +338,7 @@ class VespaIndex(DocumentIndex):
                 executor=executor,
             )
 
+            print("LIST OF EXISTING DOCS", existing_doc_ids)
             # b) Feed new/updated chunks in batches
             for chunk_batch in batch_generator(cleaned_chunks, BATCH_SIZE):
                 batch_index_vespa_chunks(
