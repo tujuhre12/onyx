@@ -737,13 +737,23 @@ def connector_indexing_wait_for_spawned_task(
     tenant_id: str | None,
     job: SimpleJob,
     redis_connector_index: RedisConnectorIndex,
+    use_semaphore: bool,
 ) -> None:
     while True:
         sleep(5)
 
         # renew active signal
         redis_connector_index.set_active()
-        redis_connector_index.refresh_semaphore()
+        if use_semaphore:
+            refreshed = redis_connector_index.refresh_semaphore()
+            if not refreshed:
+                task_logger.warning(
+                    "Indexing watchdog - refresh semaphore failed: "
+                    f"attempt={index_attempt_id} "
+                    f"tenant={tenant_id} "
+                    f"cc_pair={cc_pair_id} "
+                    f"search_settings={search_settings_id} "
+                )
 
         # if the job is done, clean up and break
         if job.done():
@@ -848,7 +858,7 @@ def connector_indexing_wait_for_spawned_task(
     bind=True,
     acks_late=False,
     track_started=True,
-    max_retries=128,  # an arbitrarily large but finite number of retries
+    max_retries=64,  # an arbitrarily large but finite number of retries
 )
 def connector_indexing_proxy_task(
     self: Task,
@@ -859,6 +869,9 @@ def connector_indexing_proxy_task(
 ) -> None:
     """celery tasks are forked, but forking is unstable.  This proxies work to a spawned task."""
     TASK_RETRY_DELAY = 1800  # in seconds
+
+    # we only care about limiting concurrency in a multitenant scenario, not self hosted
+    use_semaphore = True if MULTI_TENANT else False
 
     task_logger.info(
         f"Indexing watchdog - starting: attempt={index_attempt_id} "
@@ -882,19 +895,64 @@ def connector_indexing_proxy_task(
             )
             break
 
-        if MULTI_TENANT:
-            if not redis_connector_index.acquire_semaphore(celery_task_id):
+        if use_semaphore:
+            rank = redis_connector_index.acquire_semaphore(celery_task_id)
+            if rank >= redis_connector_index.SEMAPHORE_LIMIT:
                 task_logger.warning(
                     f"Indexing watchdog - could not acquire semaphore, delaying execution: "
                     f"attempt={index_attempt_id} "
                     f"cc_pair={cc_pair_id} "
                     f"search_settings={search_settings_id} "
-                    f"semaphore_limit={redis_connector_index.SEMAPHORE_LIMIT}"
+                    f"semaphore_rank={rank} "
+                    f"semaphore_limit={redis_connector_index.SEMAPHORE_LIMIT} "
+                    f"task_retries={self.request.retries} "
                     f"task_delay={TASK_RETRY_DELAY}"
                 )
 
+                # max_retries = None will retry forever, which we don't want
+                # max_retries = 0 really means no retries
+                if self.max_retries is None or self.request.retries >= self.max_retries:
+                    task_logger.warning(
+                        f"Indexing watchdog - could not acquire semaphore within max_retries. "
+                        f"Canceling the attempt: "
+                        f"attempt={index_attempt_id} "
+                        f"cc_pair={cc_pair_id} "
+                        f"search_settings={search_settings_id} "
+                        f"task_retries={self.request.retries} "
+                        f"max_retries={self.max_retries} "
+                    )
+                    try:
+                        with get_session_with_tenant(tenant_id) as db_session:
+                            mark_attempt_canceled(
+                                index_attempt_id,
+                                db_session,
+                                f"Canceled the indexing attempt because an indexing slot could not be "
+                                f"acquired within the retry limit: max_retries={self.max_retries}",
+                            )
+                    except Exception:
+                        # if the DB exceptions, we'll just get an unfriendly failure message
+                        # in the UI instead of the cancellation message
+                        logger.error(
+                            "Indexing watchdog - transient exception marking index attempt as canceled: "
+                            f"attempt={index_attempt_id} "
+                            f"tenant={tenant_id} "
+                            f"cc_pair={cc_pair_id} "
+                            f"search_settings={search_settings_id}"
+                        )
+                    break
+
                 # this will delay the task for 30 minutes if the semaphore can't be acquired
+                # the max_retries annotation on the task will hard limit the number of times self.retry can succeed
                 raise self.retry(countdown=TASK_RETRY_DELAY)
+            else:
+                task_logger.info(
+                    f"Indexing watchdog - acquired semaphore: "
+                    f"attempt={index_attempt_id} "
+                    f"cc_pair={cc_pair_id} "
+                    f"search_settings={search_settings_id} "
+                    f"semaphore_rank={rank} "
+                    f"semaphore_limit={redis_connector_index.SEMAPHORE_LIMIT}"
+                )
 
         job = client.submit(
             connector_indexing_task_wrapper,
@@ -929,8 +987,12 @@ def connector_indexing_proxy_task(
             tenant_id,
             job,
             redis_connector_index,
+            use_semaphore,
         )
-        redis_connector_index.release_semaphore()
+
+        if use_semaphore:
+            redis_connector_index.release_semaphore()
+
         break
 
     task_logger.info(
