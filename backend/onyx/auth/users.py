@@ -11,7 +11,6 @@ from typing import Optional
 from typing import Tuple
 
 import jwt
-import redis
 from email_validator import EmailNotValidError
 from email_validator import EmailUndeliverableError
 from email_validator import validate_email
@@ -582,21 +581,32 @@ cookie_transport = CookieTransport(
 
 
 def get_redis_strategy() -> RedisStrategy:
-    return TenantAwareRedisStrategy(redis, lifetime_seconds=3600)
+    return TenantAwareRedisStrategy(lifetime_seconds=3600)
 
 
-class TenantAwareRedisStrategy(RedisStrategy):
+class TenantAwareRedisStrategy(Strategy[User, uuid.UUID]):
+    """
+    A custom strategy that fetches the actual async Redis connection inside each method.
+    We do NOT pass a synchronous or "coroutine" redis object to the constructor.
+    """
+
+    def __init__(
+        self,
+        lifetime_seconds: Optional[int] = None,
+        key_prefix: str = "fastapi_users_token:",
+    ):
+        self.lifetime_seconds = lifetime_seconds
+        self.key_prefix = key_prefix
+
     async def write_token(self, user: User) -> str:
         redis = await get_async_redis_connection()
 
-        # Fetch tenant information similarly to TenantAwareJWTStrategy
         tenant_id = await fetch_ee_implementation_or_noop(
             "onyx.server.tenants.provisioning",
             "get_or_provision_tenant",
             async_return_default_schema,
         )(email=user.email)
 
-        # Store both user and tenant in redis
         token_data = {
             "sub": str(user.id),
             "tenant_id": tenant_id,
@@ -612,13 +622,12 @@ class TenantAwareRedisStrategy(RedisStrategy):
     async def read_token(
         self, token: Optional[str], user_manager: BaseUserManager[User, uuid.UUID]
     ) -> Optional[User]:
-        redis = await get_async_redis_connection()
-
-        if token is None:
+        if not token:
             return None
 
+        redis = await get_async_redis_connection()
         token_data_str = await redis.get(f"{self.key_prefix}{token}")
-        if token_data_str is None:
+        if not token_data_str:
             return None
 
         try:
@@ -628,6 +637,11 @@ class TenantAwareRedisStrategy(RedisStrategy):
             return await user_manager.get(parsed_id)
         except (exceptions.UserNotExists, exceptions.InvalidID, KeyError):
             return None
+
+    async def destroy_token(self, token: str, user: User) -> None:
+        """Properly delete the token from async redis."""
+        redis = await get_async_redis_connection()
+        await redis.delete(f"{self.key_prefix}{token}")
 
 
 auth_backend = AuthenticationBackend(
