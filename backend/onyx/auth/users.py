@@ -585,7 +585,7 @@ def get_redis_strategy() -> RedisStrategy:
     return TenantAwareRedisStrategy(lifetime_seconds=3600)
 
 
-async def get_token_data_from_redis(request: Request):
+async def retrieve_auth_token_data_from_redis(request: Request) -> dict | None:
     token = request.cookies.get("fastapiusersauth")
     if not token:
         logger.debug("No auth token cookie found")
@@ -605,7 +605,9 @@ async def get_token_data_from_redis(request: Request):
         logger.error("Error decoding token data from Redis")
         return None
     except Exception as e:
-        logger.error(f"Unexpected error in get_token_data_from_redis: {str(e)}")
+        logger.error(
+            f"Unexpected error in retrieve_auth_token_data_from_redis: {str(e)}"
+        )
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

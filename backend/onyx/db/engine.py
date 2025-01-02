@@ -27,7 +27,6 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 
-from onyx.auth.users import get_token_data_from_redis
 from onyx.configs.app_configs import AWS_REGION_NAME
 from onyx.configs.app_configs import LOG_POSTGRES_CONN_COUNTS
 from onyx.configs.app_configs import LOG_POSTGRES_LATENCY
@@ -43,6 +42,7 @@ from onyx.configs.app_configs import POSTGRES_PORT
 from onyx.configs.app_configs import POSTGRES_USER
 from onyx.configs.constants import POSTGRES_UNKNOWN_APP_NAME
 from onyx.configs.constants import SSL_CERT_FILE
+from onyx.redis.redis_pool import retrieve_auth_token_data_from_redis
 from onyx.server.utils import BasicAuthenticationError
 from onyx.utils.logger import setup_logger
 from shared_configs.configs import MULTI_TENANT
@@ -328,20 +328,16 @@ async def get_current_tenant_id(request: Request) -> str:
         CURRENT_TENANT_ID_CONTEXTVAR.set(tenant_id)
         return tenant_id
 
-    token = request.cookies.get("fastapiusersauth")
-    if not token:
-        current_value = CURRENT_TENANT_ID_CONTEXTVAR.get()
-        return current_value
-
     try:
         # Look up token data in Redis
-        token_data = await get_token_data_from_redis(request)
+        token_data = await retrieve_auth_token_data_from_redis(request)
 
         if not token_data:
+            current_value = CURRENT_TENANT_ID_CONTEXTVAR.get()
             logger.debug(
-                "Token data not found or expired in Redis, defaulting to POSTGRES_DEFAULT_SCHEMA"
+                f"Token data not found or expired in Redis, defaulting to {current_value}"
             )
-            return POSTGRES_DEFAULT_SCHEMA
+            return current_value
 
         tenant_id = token_data.get("tenant_id", POSTGRES_DEFAULT_SCHEMA)
 
