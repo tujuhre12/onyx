@@ -11,4 +11,5 @@ def generate_raw_search_data(state: CoreState) -> ExpandedRetrievalInput:
         subgraph_db_session=state["db_session"],
         question=state["search_request"].query,
         base_search=True,
+        subgraph_search_tool=state["search_tool"],
     )

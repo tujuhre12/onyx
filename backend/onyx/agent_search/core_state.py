@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from onyx.context.search.models import SearchRequest
 from onyx.llm.interfaces import LLM
+from onyx.tools.tool_implementations.search.search_tool import SearchTool
 
 
 class CoreState(TypedDict, total=False):
@@ -21,6 +22,7 @@ class CoreState(TypedDict, total=False):
     # is fine if we are only reading
     db_session: Session
     log_messages: Annotated[list[str], add]
+    search_tool: SearchTool
 
 
 class SubgraphCoreState(TypedDict, total=False):
@@ -34,6 +36,8 @@ class SubgraphCoreState(TypedDict, total=False):
     # a single session for the entire agent search
     # is fine if we are only reading
     subgraph_db_session: Session
+
+    subgraph_search_tool: SearchTool
 
 
 # This ensures that the state passed in extends the CoreState

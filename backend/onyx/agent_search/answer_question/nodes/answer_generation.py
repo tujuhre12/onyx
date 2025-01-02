@@ -1,3 +1,6 @@
+from typing import Any
+
+from langchain_core.callbacks.manager import dispatch_custom_event
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_message_runs
 
@@ -24,11 +27,15 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
     ]
 
     fast_llm = state["subgraph_fast_llm"]
-    response = list(
-        fast_llm.stream(
-            prompt=msg,
+    response: list[str | list[str | dict[str, Any]]] = []
+    for message in fast_llm.stream(
+        prompt=msg,
+    ):
+        dispatch_custom_event(
+            "sub_answers",
+            message.content,
         )
-    )
+        response.append(message.content)
 
     answer_str = merge_message_runs(response, chunk_separator="")[0].content
     return QAGenerationUpdate(

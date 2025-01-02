@@ -1,13 +1,14 @@
 from collections.abc import Callable
-from collections.abc import Iterator
 from uuid import uuid4
 
 from langchain.schema.messages import BaseMessage
 from langchain_core.messages import AIMessageChunk
 from langchain_core.messages import ToolCall
 
+from onyx.agent_search.run_graph import run_main_graph
 from onyx.chat.llm_response_handler import LLMResponseHandlerManager
-from onyx.chat.models import AnswerQuestionPossibleReturn
+from onyx.chat.models import AnswerPacket
+from onyx.chat.models import AnswerStream
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationInfo
 from onyx.chat.models import OnyxAnswerPiece
@@ -24,23 +25,18 @@ from onyx.chat.stream_processing.answer_response_handler import (
 )
 from onyx.chat.stream_processing.utils import map_document_id_order
 from onyx.chat.tool_handling.tool_response_handler import ToolResponseHandler
+from onyx.context.search.models import SearchRequest
 from onyx.file_store.utils import InMemoryChatFile
 from onyx.llm.interfaces import LLM
 from onyx.llm.models import PreviousMessage
 from onyx.natural_language_processing.utils import get_tokenizer
 from onyx.tools.force import ForceUseTool
-from onyx.tools.models import ToolResponse
 from onyx.tools.tool import Tool
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
-from onyx.tools.tool_runner import ToolCallKickoff
 from onyx.tools.utils import explicit_tool_calling_supported
 from onyx.utils.logger import setup_logger
 
-
 logger = setup_logger()
-
-
-AnswerStream = Iterator[AnswerQuestionPossibleReturn | ToolCallKickoff | ToolResponse]
 
 
 class Answer:
@@ -49,6 +45,7 @@ class Answer:
         question: str,
         answer_style_config: AnswerStyleConfig,
         llm: LLM,
+        fast_llm: LLM,
         prompt_config: PromptConfig,
         force_use_tool: ForceUseTool,
         # must be the same length as `docs`. If None, all docs are considered "relevant"
@@ -67,6 +64,8 @@ class Answer:
         return_contexts: bool = False,
         skip_gen_ai_answer_generation: bool = False,
         is_connected: Callable[[], bool] | None = None,
+        use_pro_search: bool = False,
+        search_request: SearchRequest | None = None,
     ) -> None:
         if single_message_history and message_history:
             raise ValueError(
@@ -90,6 +89,7 @@ class Answer:
         self.prompt_config = prompt_config
 
         self.llm = llm
+        self.fast_llm = fast_llm
         self.llm_tokenizer = get_tokenizer(
             provider_type=llm.config.model_provider,
             model_name=llm.config.model_name,
@@ -98,9 +98,7 @@ class Answer:
         self._final_prompt: list[BaseMessage] | None = None
 
         self._streamed_output: list[str] | None = None
-        self._processed_stream: (
-            list[AnswerQuestionPossibleReturn | ToolResponse | ToolCallKickoff] | None
-        ) = None
+        self._processed_stream: (list[AnswerPacket] | None) = None
 
         self._return_contexts = return_contexts
         self.skip_gen_ai_answer_generation = skip_gen_ai_answer_generation
@@ -112,6 +110,9 @@ class Answer:
             )
             and not skip_explicit_tool_calling
         )
+
+        self.use_pro_search = use_pro_search
+        self.pro_search_request = search_request
 
     def _get_tools_list(self) -> list[Tool]:
         if not self.force_use_tool.force_use:
@@ -256,6 +257,25 @@ class Answer:
     def processed_streamed_output(self) -> AnswerStream:
         if self._processed_stream is not None:
             yield from self._processed_stream
+            return
+
+        if self.use_pro_search:
+            if self.pro_search_request is None:
+                raise ValueError("Search request must be provided for pro search")
+            search_tools = [tool for tool in self.tools if isinstance(tool, SearchTool)]
+            if len(search_tools) == 0:
+                raise ValueError("No search tool found")
+            elif len(search_tools) > 1:
+                # TODO: handle multiple search tools
+                raise ValueError("Multiple search tools found")
+
+            search_tool = search_tools[0]
+            yield from run_main_graph(
+                search_request=self.pro_search_request,
+                primary_llm=self.llm,
+                fast_llm=self.fast_llm,
+                search_tool=search_tool,
+            )
             return
 
         prompt_builder = AnswerPromptBuilder(

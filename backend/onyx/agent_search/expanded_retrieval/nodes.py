@@ -1,7 +1,10 @@
 from collections import defaultdict
+from typing import Any
+from typing import cast
 from typing import Literal
 
 import numpy as np
+from langchain_core.callbacks.manager import dispatch_custom_event
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_message_runs
 from langgraph.types import Command
@@ -32,44 +35,37 @@ from onyx.configs.dev_configs import AGENT_RETRIEVAL_STATS
 from onyx.context.search.models import SearchRequest
 from onyx.context.search.pipeline import retrieval_preprocessing
 from onyx.context.search.pipeline import search_postprocessing
-from onyx.context.search.pipeline import SearchPipeline
 from onyx.llm.interfaces import LLM
+from onyx.tools.tool_implementations.search.search_tool import (
+    SEARCH_RESPONSE_SUMMARY_ID,
+)
 
 
-def doc_reranking(state: ExpandedRetrievalState) -> DocRerankingUpdate:
-    verified_documents = state["verified_documents"]
+def expand_queries(state: ExpandedRetrievalInput) -> QueryExpansionUpdate:
+    question = state.get("question")
+    llm: LLM = state["subgraph_fast_llm"]
 
-    # Rerank post retrieval and verification. First, create a search query
-    # then create the list of reranked sections
-
-    question = state.get("question", state["subgraph_search_request"].query)
-    _search_query = retrieval_preprocessing(
-        search_request=SearchRequest(query=question),
-        user=None,
-        llm=state["subgraph_fast_llm"],
-        db_session=state["subgraph_db_session"],
-    )
-
-    reranked_documents = list(
-        search_postprocessing(
-            search_query=_search_query,
-            retrieved_sections=verified_documents,
-            llm=state["subgraph_fast_llm"],
+    msg = [
+        HumanMessage(
+            content=REWRITE_PROMPT_MULTI_ORIGINAL.format(question=question),
         )
-    )[
-        0
-    ]  # only get the reranked szections, not the SectionRelevancePiece
+    ]
+    llm_response_list: list[str | list[str | dict[str, Any]]] = []
+    for message in llm.stream(
+        prompt=msg,
+    ):
+        dispatch_custom_event(
+            "subqueries",
+            message.content,
+        )
+        llm_response_list.append(message.content)
 
-    if AGENT_RERANKING_STATS:
-        fit_scores = get_fit_scores(verified_documents, reranked_documents)
-    else:
-        fit_scores = RetrievalFitStats(fit_score_lift=0, rerank_effect=0, fit_scores={})
+    llm_response = merge_message_runs(llm_response_list, chunk_separator="")[0].content
 
-    return DocRerankingUpdate(
-        reranked_documents=[
-            doc for doc in reranked_documents if type(doc) == InferenceSection
-        ][:AGENT_RERANKING_MAX_QUERY_RETRIEVAL_RESULTS],
-        sub_question_retrieval_stats=fit_scores,
+    rewritten_queries = llm_response.split("--")
+
+    return QueryExpansionUpdate(
+        expanded_queries=rewritten_queries,
     )
 
 
@@ -84,27 +80,31 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
         expanded_retrieval_results: list[ExpandedRetrievalResult]
         retrieved_documents: list[InferenceSection]
     """
-
-    llm = state["subgraph_primary_llm"]
-    fast_llm = state["subgraph_fast_llm"]
     query_to_retrieve = state["query_to_retrieve"]
+    search_tool = state["subgraph_search_tool"]
 
-    search_results = SearchPipeline(
-        search_request=SearchRequest(
-            query=query_to_retrieve,
-        ),
-        user=None,
-        llm=llm,
-        fast_llm=fast_llm,
-        db_session=state["subgraph_db_session"],
-    )
+    retrieved_docs: list[InferenceSection] = []
+    for tool_response in search_tool.run(query=query_to_retrieve):
+        if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
+            retrieved_docs = cast(
+                list[InferenceSection], tool_response.response.top_sections
+            )
+        dispatch_custom_event(
+            "tool_response",
+            tool_response,
+        )
 
-    retrieved_docs = search_results._get_sections()[:AGENT_MAX_QUERY_RETRIEVAL_RESULTS]
+    retrieved_docs = retrieved_docs[:AGENT_MAX_QUERY_RETRIEVAL_RESULTS]
+    pre_rerank_docs = retrieved_docs
+    if search_tool.search_pipeline is not None:
+        pre_rerank_docs = (
+            search_tool.search_pipeline._retrieved_sections or retrieved_docs
+        )
 
     if AGENT_RETRIEVAL_STATS:
         fit_scores = get_fit_scores(
+            pre_rerank_docs,
             retrieved_docs,
-            search_results.reranked_sections[:AGENT_MAX_QUERY_RETRIEVAL_RESULTS],
         )
     else:
         fit_scores = None
@@ -117,6 +117,30 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
     return DocRetrievalUpdate(
         expanded_retrieval_results=[expanded_retrieval_result],
         retrieved_documents=retrieved_docs,
+    )
+
+
+def verification_kickoff(
+    state: ExpandedRetrievalState,
+) -> Command[Literal["doc_verification"]]:
+    documents = state["retrieved_documents"]
+    verification_question = state.get(
+        "question", state["subgraph_search_request"].query
+    )
+    return Command(
+        update={},
+        goto=[
+            Send(
+                node="doc_verification",
+                arg=DocVerificationInput(
+                    doc_to_verify=doc,
+                    question=verification_question,
+                    base_search=False,
+                    **in_subgraph_extract_core_fields(state),
+                ),
+            )
+            for doc in documents
+        ],
     )
 
 
@@ -156,26 +180,40 @@ def doc_verification(state: DocVerificationInput) -> DocVerificationUpdate:
     )
 
 
-def expand_queries(state: ExpandedRetrievalInput) -> QueryExpansionUpdate:
-    question = state.get("question")
-    llm: LLM = state["subgraph_fast_llm"]
+def doc_reranking(state: ExpandedRetrievalState) -> DocRerankingUpdate:
+    verified_documents = state["verified_documents"]
 
-    msg = [
-        HumanMessage(
-            content=REWRITE_PROMPT_MULTI_ORIGINAL.format(question=question),
-        )
-    ]
-    llm_response_list = list(
-        llm.stream(
-            prompt=msg,
-        )
+    # Rerank post retrieval and verification. First, create a search query
+    # then create the list of reranked sections
+
+    question = state.get("question", state["subgraph_search_request"].query)
+    _search_query = retrieval_preprocessing(
+        search_request=SearchRequest(query=question),
+        user=None,
+        llm=state["subgraph_fast_llm"],
+        db_session=state["subgraph_db_session"],
     )
-    llm_response = merge_message_runs(llm_response_list, chunk_separator="")[0].content
 
-    rewritten_queries = llm_response.split("--")
+    reranked_documents = list(
+        search_postprocessing(
+            search_query=_search_query,
+            retrieved_sections=verified_documents,
+            llm=state["subgraph_fast_llm"],
+        )
+    )[
+        0
+    ]  # only get the reranked szections, not the SectionRelevancePiece
 
-    return QueryExpansionUpdate(
-        expanded_queries=rewritten_queries,
+    if AGENT_RERANKING_STATS:
+        fit_scores = get_fit_scores(verified_documents, reranked_documents)
+    else:
+        fit_scores = RetrievalFitStats(fit_score_lift=0, rerank_effect=0, fit_scores={})
+
+    return DocRerankingUpdate(
+        reranked_documents=[
+            doc for doc in reranked_documents if type(doc) == InferenceSection
+        ][:AGENT_RERANKING_MAX_QUERY_RETRIEVAL_RESULTS],
+        sub_question_retrieval_stats=fit_scores,
     )
 
 
@@ -265,28 +303,4 @@ def format_results(state: ExpandedRetrievalState) -> ExpandedRetrievalUpdate:
             all_documents=state["reranked_documents"],
             sub_question_retrieval_stats=sub_question_retrieval_stats,
         ),
-    )
-
-
-def verification_kickoff(
-    state: ExpandedRetrievalState,
-) -> Command[Literal["doc_verification"]]:
-    documents = state["retrieved_documents"]
-    verification_question = state.get(
-        "question", state["subgraph_search_request"].query
-    )
-    return Command(
-        update={},
-        goto=[
-            Send(
-                node="doc_verification",
-                arg=DocVerificationInput(
-                    doc_to_verify=doc,
-                    question=verification_question,
-                    base_search=False,
-                    **in_subgraph_extract_core_fields(state),
-                ),
-            )
-            for doc in documents
-        ],
     )

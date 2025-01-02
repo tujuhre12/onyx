@@ -1,4 +1,9 @@
+from typing import Any
+from typing import cast
+
+from langchain_core.callbacks.manager import dispatch_custom_event
 from langchain_core.messages import HumanMessage
+from langchain_core.messages import merge_content
 
 from onyx.agent_search.answer_question.states import AnswerQuestionOutput
 from onyx.agent_search.answer_question.states import QuestionAnswerResults
@@ -35,10 +40,21 @@ def main_decomp_base(state: MainState) -> BaseDecompUpdate:
 
     # Get the rewritten queries in a defined format
     model = state["fast_llm"]
-    response = model.invoke(msg)
+    streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
+    for message in model.stream(msg):
+        dispatch_custom_event(
+            "decomp_qs",
+            message.content,
+        )
+        streamed_tokens.append(message.content)
 
-    content = response.pretty_repr()
-    list_of_subquestions = clean_and_parse_list_string(content)
+    response = merge_content(*streamed_tokens)
+
+    # this call should only return strings. Commenting out for efficiency
+    # assert [type(tok) == str for tok in streamed_tokens]
+
+    # use no-op cast() instead of str() which runs code
+    list_of_subquestions = clean_and_parse_list_string(cast(str, response))
 
     decomp_list: list[str] = [
         sub_question["sub_question"].strip() for sub_question in list_of_subquestions
@@ -192,8 +208,15 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
 
     # Grader
     model = state["fast_llm"]
-    response = model.invoke(msg)
-    answer = response.pretty_repr()
+    streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
+    for message in model.stream(msg):
+        dispatch_custom_event(
+            "main_answer",
+            message.content,
+        )
+        streamed_tokens.append(message.content)
+    response = merge_content(*streamed_tokens)
+    answer = cast(str, response)
 
     initial_agent_stats = _calculate_initial_agent_stats(
         state["decomp_answer_results"], state["original_question_retrieval_stats"]
@@ -201,7 +224,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
 
     print(f"\n\n---INITIAL AGENT ANSWER START---\n\n Answer:\n Agent: {answer}")
 
-    print(f"\n\nSub-Questions:\n\n{sub_question_answer_str}\n\nStas:\n\n")
+    print(f"\n\nSub-Questions:\n\n{sub_question_answer_str}\n\nStats:\n\n")
 
     if initial_agent_stats:
         print(initial_agent_stats.original_question)

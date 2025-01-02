@@ -117,6 +117,8 @@ class SearchTool(Tool):
         self.fast_llm = fast_llm
         self.evaluation_type = evaluation_type
 
+        self.search_pipeline: SearchPipeline | None = None
+
         self.selected_sections = selected_sections
 
         self.full_doc = full_doc
@@ -329,6 +331,8 @@ class SearchTool(Tool):
                 recency_bias_multiplier=search_pipeline.search_query.recency_bias_multiplier,
             ),
         )
+
+        self.search_pipeline = search_pipeline
 
         yield ToolResponse(
             id=SEARCH_DOC_CONTENT_ID,

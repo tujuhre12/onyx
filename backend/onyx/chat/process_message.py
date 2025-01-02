@@ -6,7 +6,6 @@ from typing import cast
 
 from sqlalchemy.orm import Session
 
-from onyx.agent_search.run_graph import run_main_graph
 from onyx.chat.answer import Answer
 from onyx.chat.chat_utils import create_chat_chain
 from onyx.chat.chat_utils import create_temporary_persona
@@ -686,42 +685,8 @@ def stream_chat_message_objects(
         for tool_list in tool_dict.values():
             tools.extend(tool_list)
 
-        # LLM prompt building, response capturing, etc.
-        answer = Answer(
-            is_connected=is_connected,
-            question=final_msg.message,
-            latest_query_files=latest_query_files,
-            answer_style_config=answer_style_config,
-            prompt_config=prompt_config,
-            llm=(
-                llm
-                or get_main_llm_from_tuple(
-                    get_llms_for_persona(
-                        persona=persona,
-                        llm_override=(
-                            new_msg_req.llm_override or chat_session.llm_override
-                        ),
-                        additional_headers=litellm_additional_headers,
-                    )
-                )
-            ),
-            message_history=[
-                PreviousMessage.from_chat_message(msg, files) for msg in history_msgs
-            ],
-            tools=tools,
-            force_use_tool=_get_force_search_settings(new_msg_req, tools),
-        )
-
-        reference_db_search_docs = None
-        qa_docs_response = None
-        # any files to associate with the AI message e.g. dall-e generated images
-        ai_message_files = []
-        dropped_indices = None
-        tool_result = None
-
-        if not new_msg_req.use_pro_search:
-            answer_stream = answer.processed_streamed_output
-        else:
+        search_request = None
+        if new_msg_req.use_pro_search:
             search_request = SearchRequest(
                 query=final_msg.message,
                 evaluation_type=(
@@ -745,13 +710,45 @@ def stream_chat_message_objects(
                     else None
                 ),
             )
-            answer_stream = run_main_graph(
-                search_request=search_request,
-                primary_llm=llm,
-                fast_llm=fast_llm,
-            )
+            # TODO: add previous messages, answer style config, tools, etc.
 
-        for packet in answer_stream:
+        # LLM prompt building, response capturing, etc.
+        answer = Answer(
+            is_connected=is_connected,
+            question=final_msg.message,
+            latest_query_files=latest_query_files,
+            answer_style_config=answer_style_config,
+            prompt_config=prompt_config,
+            llm=(
+                llm
+                or get_main_llm_from_tuple(
+                    get_llms_for_persona(
+                        persona=persona,
+                        llm_override=(
+                            new_msg_req.llm_override or chat_session.llm_override
+                        ),
+                        additional_headers=litellm_additional_headers,
+                    )
+                )
+            ),
+            fast_llm=fast_llm,
+            message_history=[
+                PreviousMessage.from_chat_message(msg, files) for msg in history_msgs
+            ],
+            tools=tools,
+            force_use_tool=_get_force_search_settings(new_msg_req, tools),
+            search_request=search_request,
+            use_pro_search=new_msg_req.use_pro_search,
+        )
+
+        reference_db_search_docs = None
+        qa_docs_response = None
+        # any files to associate with the AI message e.g. dall-e generated images
+        ai_message_files = []
+        dropped_indices = None
+        tool_result = None
+
+        for packet in answer.processed_streamed_output:
             if isinstance(packet, ToolResponse):
                 if packet.id == SEARCH_RESPONSE_SUMMARY_ID:
                     (

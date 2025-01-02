@@ -327,3 +327,23 @@ ResponsePart = (
     | ToolCallFinalResult
     | StreamStopInfo
 )
+
+
+class SubQuery(BaseModel):
+    sub_query: str
+
+
+class SubAnswer(BaseModel):
+    sub_answer: str
+
+
+class SubQuestion(BaseModel):
+    question_id: str
+    sub_question: str
+
+
+ProSearchPacket = SubQuestion | SubAnswer | SubQuery
+
+AnswerPacket = AnswerQuestionPossibleReturn | ToolCallKickoff | ToolResponse
+
+AnswerStream = Iterator[AnswerPacket]
