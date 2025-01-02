@@ -8,8 +8,8 @@ from fastapi import Request
 from fastapi import Response
 
 from onyx.auth.api_key import extract_tenant_from_api_key_header
-from onyx.auth.users import get_token_data_from_redis
 from onyx.db.engine import is_valid_schema_name
+from onyx.redis.redis_pool import retrieve_auth_token_data_from_redis
 from shared_configs.configs import MULTI_TENANT
 from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA
 from shared_configs.contextvars import CURRENT_TENANT_ID_CONTEXTVAR
@@ -48,17 +48,9 @@ async def _get_tenant_id_from_request(
     if tenant_id:
         return tenant_id
 
-    # Check for Redis-based token in cookie
-    token = request.cookies.get("fastapiusersauth")
-    if not token:
-        logger.debug(
-            "No auth token cookie found, defaulting to POSTGRES_DEFAULT_SCHEMA"
-        )
-        return POSTGRES_DEFAULT_SCHEMA
-
     try:
         # Look up token data in Redis
-        token_data = await get_token_data_from_redis(request)
+        token_data = await retrieve_auth_token_data_from_redis(request)
 
         if not token_data:
             logger.debug(

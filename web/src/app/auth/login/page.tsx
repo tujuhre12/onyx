@@ -107,15 +107,6 @@ const Page = async (props: {
               <EmailPasswordForm shouldVerify={true} nextUrl={nextUrl} />
 
               <div className="flex mt-4 justify-between">
-                <Link
-                  href={`/auth/signup${
-                    searchParams?.next ? `?next=${searchParams.next}` : ""
-                  }`}
-                  className="text-link font-medium"
-                >
-                  Create an account
-                </Link>
-
                 {NEXT_PUBLIC_FORGOT_PASSWORD_ENABLED && (
                   <Link
                     href="/auth/forgot-password"
