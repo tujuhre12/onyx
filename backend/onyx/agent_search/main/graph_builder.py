@@ -2,6 +2,9 @@ from langgraph.graph import END
 from langgraph.graph import START
 from langgraph.graph import StateGraph
 
+from onyx.agent_search.answer_follow_up_question.graph_builder import (
+    answer_follow_up_query_graph_builder,
+)
 from onyx.agent_search.answer_question.graph_builder import answer_query_graph_builder
 from onyx.agent_search.base_raw_search.graph_builder import (
     base_raw_search_graph_builder,
@@ -18,9 +21,9 @@ from onyx.agent_search.main.nodes import main_decomp_base
 from onyx.agent_search.main.nodes import refined_answer_decision
 from onyx.agent_search.main.states import MainInput
 from onyx.agent_search.main.states import MainState
-from onyx.agent_search.refined_answers.graph_builder import (
-    refined_answers_graph_builder,
-)
+from onyx.agent_search.refined_answers.edges import parallelize_follow_up_answer_queries
+from onyx.agent_search.refined_answers.nodes import follow_up_decompose
+from onyx.agent_search.refined_answers.nodes import ingest_follow_up_answers
 
 # from onyx.agent_search.main.nodes import check_refined_answer
 
@@ -321,10 +324,26 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
             action=base_raw_search_subgraph,
         )
 
-        refined_answer_subgraph = refined_answers_graph_builder().compile()
+        # refined_answer_subgraph = refined_answers_graph_builder().compile()
+        # graph.add_node(
+        #     node="refined_answer_subgraph",
+        #     action=refined_answer_subgraph,
+        # )
+
         graph.add_node(
-            node="refined_answer_subgraph",
-            action=refined_answer_subgraph,
+            node="follow_up_decompose",
+            action=follow_up_decompose,
+        )
+
+        answer_follow_up_question = answer_follow_up_query_graph_builder().compile()
+        graph.add_node(
+            node="answer_follow_up_question",
+            action=answer_follow_up_question,
+        )
+
+        graph.add_node(
+            node="ingest_follow_up_answers",
+            action=ingest_follow_up_answers,
         )
 
         graph.add_node(
@@ -415,13 +434,34 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
         graph.add_conditional_edges(
             source="refined_answer_decision",
             path=continue_to_refined_answer_or_end,
-            path_map=["refined_answer_subgraph", END],
+            path_map=["follow_up_decompose", END],
+        )
+
+        graph.add_conditional_edges(
+            source="follow_up_decompose",
+            path=parallelize_follow_up_answer_queries,
+            path_map=["answer_follow_up_question"],
+        )
+        graph.add_edge(
+            start_key="answer_follow_up_question",
+            end_key="ingest_follow_up_answers",
         )
 
         graph.add_edge(
-            start_key="refined_answer_subgraph",
+            start_key="ingest_follow_up_answers",
             end_key="generate_refined_answer",
         )
+
+        # graph.add_conditional_edges(
+        #     source="refined_answer_decision",
+        #     path=continue_to_refined_answer_or_end,
+        #     path_map=["refined_answer_subgraph", END],
+        # )
+
+        # graph.add_edge(
+        #     start_key="refined_answer_subgraph",
+        #     end_key="generate_refined_answer",
+        # )
         graph.add_edge(
             start_key="generate_refined_answer",
             end_key=END,

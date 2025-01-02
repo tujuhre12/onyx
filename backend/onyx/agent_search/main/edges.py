@@ -54,9 +54,9 @@ def send_to_initial_retrieval(state: MainInput) -> list[Send | Hashable]:
 # Define the function that determines whether to continue or not
 def continue_to_refined_answer_or_end(
     state: RequireRefinedAnswerUpdate,
-) -> Literal["refined_answer_subgraph", "END"]:
+) -> Literal["follow_up_decompose", "END"]:
     if state["require_refined_answer"]:
-        return "refined_answer_subgraph"
+        return "follow_up_decompose"
     else:
         return END
 
