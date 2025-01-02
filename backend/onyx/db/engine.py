@@ -1,4 +1,5 @@
 import contextlib
+import json
 import os
 import re
 import ssl
@@ -14,7 +15,6 @@ from typing import ContextManager
 
 import asyncpg  # type: ignore
 import boto3
-import jwt
 from fastapi import HTTPException
 from fastapi import Request
 from sqlalchemy import event
@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 
+from onyx.auth.users import get_token_data_from_redis
 from onyx.configs.app_configs import AWS_REGION_NAME
 from onyx.configs.app_configs import LOG_POSTGRES_CONN_COUNTS
 from onyx.configs.app_configs import LOG_POSTGRES_LATENCY
@@ -40,7 +41,6 @@ from onyx.configs.app_configs import POSTGRES_POOL_PRE_PING
 from onyx.configs.app_configs import POSTGRES_POOL_RECYCLE
 from onyx.configs.app_configs import POSTGRES_PORT
 from onyx.configs.app_configs import POSTGRES_USER
-from onyx.configs.app_configs import USER_AUTH_SECRET
 from onyx.configs.constants import POSTGRES_UNKNOWN_APP_NAME
 from onyx.configs.constants import SSL_CERT_FILE
 from onyx.server.utils import BasicAuthenticationError
@@ -322,7 +322,7 @@ def get_sqlalchemy_async_engine() -> AsyncEngine:
     return _ASYNC_ENGINE
 
 
-def get_current_tenant_id(request: Request) -> str:
+async def get_current_tenant_id(request: Request) -> str:
     if not MULTI_TENANT:
         tenant_id = POSTGRES_DEFAULT_SCHEMA
         CURRENT_TENANT_ID_CONTEXTVAR.set(tenant_id)
@@ -334,19 +334,25 @@ def get_current_tenant_id(request: Request) -> str:
         return current_value
 
     try:
-        payload = jwt.decode(
-            token,
-            USER_AUTH_SECRET,
-            audience=["fastapi-users:auth"],
-            algorithms=["HS256"],
-        )
-        tenant_id = payload.get("tenant_id", POSTGRES_DEFAULT_SCHEMA)
+        # Look up token data in Redis
+        token_data = await get_token_data_from_redis(request)
+
+        if not token_data:
+            logger.debug(
+                "Token data not found or expired in Redis, defaulting to POSTGRES_DEFAULT_SCHEMA"
+            )
+            return POSTGRES_DEFAULT_SCHEMA
+
+        tenant_id = token_data.get("tenant_id", POSTGRES_DEFAULT_SCHEMA)
+
         if not is_valid_schema_name(tenant_id):
             raise HTTPException(status_code=400, detail="Invalid tenant ID format")
+
         CURRENT_TENANT_ID_CONTEXTVAR.set(tenant_id)
         return tenant_id
-    except jwt.InvalidTokenError:
-        return CURRENT_TENANT_ID_CONTEXTVAR.get()
+    except json.JSONDecodeError:
+        logger.error("Error decoding token data from Redis")
+        return POSTGRES_DEFAULT_SCHEMA
     except Exception as e:
         logger.error(f"Unexpected error in get_current_tenant_id: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")

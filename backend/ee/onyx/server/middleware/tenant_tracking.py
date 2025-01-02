@@ -1,4 +1,3 @@
-import json
 import logging
 from collections.abc import Awaitable
 from collections.abc import Callable
@@ -9,9 +8,8 @@ from fastapi import Request
 from fastapi import Response
 
 from onyx.auth.api_key import extract_tenant_from_api_key_header
-from onyx.configs.app_configs import REDIS_AUTH_KEY_PREFIX
+from onyx.auth.users import get_token_data_from_redis
 from onyx.db.engine import is_valid_schema_name
-from onyx.redis.redis_pool import get_async_redis_connection
 from shared_configs.configs import MULTI_TENANT
 from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA
 from shared_configs.contextvars import CURRENT_TENANT_ID_CONTEXTVAR
@@ -60,17 +58,14 @@ async def _get_tenant_id_from_request(
 
     try:
         # Look up token data in Redis
-        redis = await get_async_redis_connection()
-        # IMPORTANT: Use the same prefix as RedisStrategy
-        redis_key = REDIS_AUTH_KEY_PREFIX + token
-        token_data_str = await redis.get(redis_key)
-        if not token_data_str:
+        token_data = await get_token_data_from_redis(request)
+
+        if not token_data:
             logger.debug(
-                f"Token key {redis_key} not found or expired in Redis, defaulting to POSTGRES_DEFAULT_SCHEMA"
+                "Token data not found or expired in Redis, defaulting to POSTGRES_DEFAULT_SCHEMA"
             )
             return POSTGRES_DEFAULT_SCHEMA
 
-        token_data = json.loads(token_data_str)
         tenant_id_from_payload = token_data.get("tenant_id", POSTGRES_DEFAULT_SCHEMA)
 
         # Since token_data.get() can return None, ensure we have a string
