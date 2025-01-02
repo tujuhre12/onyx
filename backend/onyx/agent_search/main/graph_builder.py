@@ -6,13 +6,23 @@ from onyx.agent_search.answer_question.graph_builder import answer_query_graph_b
 from onyx.agent_search.base_raw_search.graph_builder import (
     base_raw_search_graph_builder,
 )
+from onyx.agent_search.main.edges import continue_to_refined_answer_or_end
 from onyx.agent_search.main.edges import parallelize_decompozed_answer_queries
+from onyx.agent_search.main.nodes import entity_term_extraction
 from onyx.agent_search.main.nodes import generate_initial_answer
+from onyx.agent_search.main.nodes import generate_refined_answer
 from onyx.agent_search.main.nodes import ingest_answers
 from onyx.agent_search.main.nodes import ingest_initial_retrieval
+from onyx.agent_search.main.nodes import initial_answer_quality_check
 from onyx.agent_search.main.nodes import main_decomp_base
+from onyx.agent_search.main.nodes import refined_answer_decision
 from onyx.agent_search.main.states import MainInput
 from onyx.agent_search.main.states import MainState
+from onyx.agent_search.refined_answers.graph_builder import (
+    refined_answers_graph_builder,
+)
+
+# from onyx.agent_search.main.nodes import check_refined_answer
 
 
 test_mode = False
@@ -305,22 +315,28 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
             action=answer_query_subgraph,
         )
 
-        # graph.add_node(
-        #     node="prep_for_initial_retrieval",
-        #     action=prep_for_initial_retrieval,
-        # )
-
-        # expanded_retrieval_subgraph = expanded_retrieval_graph_builder().compile()
-        # graph.add_node(
-        #     node="initial_retrieval",
-        #     action=expanded_retrieval_subgraph,
-        # )
-
         base_raw_search_subgraph = base_raw_search_graph_builder().compile()
         graph.add_node(
             node="base_raw_search_data",
             action=base_raw_search_subgraph,
         )
+
+        refined_answer_subgraph = refined_answers_graph_builder().compile()
+        graph.add_node(
+            node="refined_answer_subgraph",
+            action=refined_answer_subgraph,
+        )
+
+        graph.add_node(
+            node="generate_refined_answer",
+            action=generate_refined_answer,
+        )
+
+        # graph.add_node(
+        #     node="check_refined_answer",
+        #     action=check_refined_answer,
+        # )
+
         graph.add_node(
             node="ingest_initial_retrieval",
             action=ingest_initial_retrieval,
@@ -333,6 +349,20 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
             node="generate_initial_answer",
             action=generate_initial_answer,
         )
+
+        graph.add_node(
+            node="initial_answer_quality_check",
+            action=initial_answer_quality_check,
+        )
+
+        graph.add_node(
+            node="entity_term_extraction",
+            action=entity_term_extraction,
+        )
+        graph.add_node(
+            node="refined_answer_decision",
+            action=refined_answer_decision,
+        )
         # if test_mode:
         #     graph.add_node(
         #         node="generate_initial_base_answer",
@@ -341,39 +371,13 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
 
         ### Add edges ###
 
-        # graph.add_conditional_edges(
-        #     source=START,
-        #     path=send_to_initial_retrieval,
-        #     path_map=["initial_retrieval"],
-        # )
-
-        # graph.add_edge(
-        #     start_key=START,
-        #     end_key="prep_for_initial_retrieval",
-        # )
-        # graph.add_edge(
-        #     start_key="prep_for_initial_retrieval",
-        #     end_key="initial_retrieval",
-        # )
-        # graph.add_edge(
-        #     start_key="initial_retrieval",
-        #     end_key="ingest_initial_retrieval",
-        # )
-
         graph.add_edge(start_key=START, end_key="base_raw_search_data")
 
-        # # graph.add_edge(
-        # #     start_key="base_raw_search_data",
-        # #     end_key=END
-        # # )
         graph.add_edge(
             start_key="base_raw_search_data",
             end_key="ingest_initial_retrieval",
         )
-        # graph.add_edge(
-        #     start_key="ingest_initial_retrieval",
-        #     end_key=END
-        # )
+
         graph.add_edge(
             start_key=START,
             end_key="base_decomp",
@@ -388,38 +392,50 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
             end_key="ingest_answers",
         )
 
-        # graph.add_edge(
-        #     start_key="ingest_answers",
-        #     end_key="generate_initial_answer",
-        # )
-
         graph.add_edge(
             start_key=["ingest_answers", "ingest_initial_retrieval"],
             end_key="generate_initial_answer",
         )
 
         graph.add_edge(
+            start_key=["ingest_answers", "ingest_initial_retrieval"],
+            end_key="entity_term_extraction",
+        )
+
+        graph.add_edge(
             start_key="generate_initial_answer",
+            end_key="initial_answer_quality_check",
+        )
+
+        graph.add_edge(
+            start_key=["initial_answer_quality_check", "entity_term_extraction"],
+            end_key="refined_answer_decision",
+        )
+
+        graph.add_conditional_edges(
+            source="refined_answer_decision",
+            path=continue_to_refined_answer_or_end,
+            path_map=["refined_answer_subgraph", END],
+        )
+
+        graph.add_edge(
+            start_key="refined_answer_subgraph",
+            end_key="generate_refined_answer",
+        )
+        graph.add_edge(
+            start_key="generate_refined_answer",
             end_key=END,
         )
+
         # graph.add_edge(
-        #     start_key="ingest_answers",
-        #     end_key="generate_initial_answer",
+        #     start_key="generate_refined_answer",
+        #     end_key="check_refined_answer",
         # )
-        # if test_mode:
-        #     graph.add_edge(
-        #         start_key=["ingest_answers", "ingest_initial_retrieval"],
-        #         end_key="generate_initial_base_answer",
-        #     )
-        #     graph.add_edge(
-        #         start_key=["generate_initial_answer", "generate_initial_base_answer"],
-        #         end_key=END,
-        #     )
-        # else:
-        #     graph.add_edge(
-        #         start_key="generate_initial_answer",
-        #         end_key=END,
-        #     )
+
+        # graph.add_edge(
+        #     start_key="check_refined_answer",
+        #     end_key=END,
+        # )
 
     return graph
 

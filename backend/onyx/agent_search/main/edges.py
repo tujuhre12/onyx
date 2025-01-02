@@ -1,5 +1,7 @@
 from collections.abc import Hashable
+from typing import Literal
 
+from langgraph.graph import END
 from langgraph.types import Send
 
 from onyx.agent_search.answer_question.states import AnswerQuestionInput
@@ -8,6 +10,7 @@ from onyx.agent_search.core_state import extract_core_fields_for_subgraph
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalInput
 from onyx.agent_search.main.states import MainInput
 from onyx.agent_search.main.states import MainState
+from onyx.agent_search.main.states import RequireRefinedAnswerUpdate
 
 
 def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hashable]:
@@ -46,6 +49,16 @@ def send_to_initial_retrieval(state: MainInput) -> list[Send | Hashable]:
             ),
         )
     ]
+
+
+# Define the function that determines whether to continue or not
+def continue_to_refined_answer_or_end(
+    state: RequireRefinedAnswerUpdate,
+) -> Literal["refined_answer_subgraph", "END"]:
+    if state["require_refined_answer"]:
+        return "refined_answer_subgraph"
+    else:
+        return END
 
 
 # def continue_to_answer_sub_questions(state: QAState) -> Union[Hashable, list[Hashable]]:

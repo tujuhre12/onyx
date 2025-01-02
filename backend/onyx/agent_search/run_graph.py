@@ -113,7 +113,7 @@ if __name__ == "__main__":
     compiled_graph = graph.compile()
     primary_llm, fast_llm = get_default_llms()
     search_request = SearchRequest(
-        query="what can you do with onyx or danswer?",
+        query="What are the guiding principles behind the development of cockroachDB?",
     )
     for output in run_graph(compiled_graph, search_request, primary_llm, fast_llm):
         print("a")

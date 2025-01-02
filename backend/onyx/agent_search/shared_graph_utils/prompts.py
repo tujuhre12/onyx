@@ -66,7 +66,7 @@ BASE_CHECK_PROMPT = """ \n
     \n ------- \n
     Here is the proposed answer:
     \n ------- \n
-    {base_answer}
+    {initial_answer}
     \n ------- \n
     Please answer with yes or no:"""
 
@@ -221,7 +221,7 @@ DEEP_DECOMPOSE_PROMPT = """ \n
     were not directly answerable. Also, some entities, relationships and terms are givenm to you so that
     you have an idea of how the avaiolable data looks like.
 
-    Your role is to generate 4-6 new sub-questions that would help to answer the initial question,
+    Your role is to generate 3-5 new sub-questions that would help to answer the initial question,
     considering:
 
     1) The initial question
@@ -249,6 +249,8 @@ DEEP_DECOMPOSE_PROMPT = """ \n
         - good sub-question: "What is the name of the river that flows through Paris?"
     - For each sub-question, please also provide a search term that can be used to retrieve relevant
     documents from a document store.
+    - Consider specifically the sub-questions that were suggested but not answered. This is a sign that they are not
+    answerable with the available context, and you should not ask similar questions.
     \n\n
     Here is the initial question:
     \n ------- \n
@@ -276,14 +278,19 @@ DEEP_DECOMPOSE_PROMPT = """ \n
     \n ------- \n
 
    Please generate the list of good, fully contextualized sub-questions that would help to address the
-   main question. Again, please find questions that are NOT overlapping too much with the already answered
+   main question.
+
+   Specifically pay attention also to the entities, relationships and terms extracted, as these indicate what type of
+   objects/relationships/terms you can ask about! Do not ask about entities, terms or relationships that are not
+   mentioned in the 'entities, relationships and terms' section.
+
+   Again, please find questions that are NOT overlapping too much with the already answered
    sub-questions or those that already were suggested and failed.
    In other words - what can we try in addition to what has been tried so far?
 
    Generate the list of json dictionaries with the following format:
 
-   {{"sub_questions": [{{"sub_question": <sub-question>,
-        "search_term": <rewrite the sub-question using as a search phrase for the document store>}},
+   {{"sub_questions": [{{"sub_question": <sub-question>}},
         ...]}} """
 
 DECOMPOSE_PROMPT = """ \n
@@ -310,8 +317,7 @@ DECOMPOSE_PROMPT = """ \n
         - good sub-question: "What is the name of the river that flows through Paris?"
     - For each sub-question, please provide a short explanation for why it is a good sub-question. So
     generate a list of dictionaries with the following format:
-      [{{"sub_question": <sub-question>, "explanation": <explanation>, "search_term": <rewrite the
-      sub-question using as a search phrase for the document store>}}, ...]
+      [{{"sub_question": <sub-question>, "explanation": <explanation>}}, ...]
 
     \n\n
     Here is the initial question:
@@ -479,6 +485,50 @@ And here is the question I want you to answer based on the information above:
 \n--\n\n
 Answer:"""
 
+REVISED_RAG_PROMPT = """ \n
+You are an assistant for question-answering tasks. Use the information provided below - and only the
+provided information - to answer the provided question.
+
+The information provided below consists of:
+    1) an initial answer that was given but found to be lacking in some way.
+    2) a number of answered sub-questions - these are very important(!) and definitely should be
+    considered to answer the question.
+    3) a number of documents that were also deemed relevant for the question.
+
+IMPORTANT RULES:
+ - If you cannot reliably answer the question solely using the provided information, say that you cannot reliably answer.
+ You may give some additional facts you learned, but do not try to invent an answer.
+ - If the information is empty or irrelevant, just say "I don't know".
+ - If the information is relevant but not fully conclusive, provide and answer to the extent you can but also
+ specify that the information is not conclusive and why.
+
+Again, you should be sure that the answer is supported by the information provided!
+
+Try to keep your answer concise. But also highlight uncertainties you may have should there be substantial ones,
+or assumptions you made.
+
+Here is the contextual information:
+\n-------\n
+
+*Initial Answer that was found to be lacking:
+{initial_answer}
+
+*Answered Sub-questions (these should really matter! They also contain questions/answers that were not available when the original
+answer was constructed):
+{answered_sub_questions}
+
+And here are relevant document information that support the sub-question answers, or that are relevant for the actual question:\n
+
+{relevant_docs}
+
+\n-------\n
+\n
+Lastly, here is the question I want you to answer based on the information above:
+\n--\n
+{question}
+\n--\n\n
+Answer:"""
+
 INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS = """
 You are an assistant for question-answering tasks. Use the information provided below
 - and only the provided information - to answer the provided question.
@@ -529,14 +579,14 @@ ENTITY_TERM_PROMPT = """ \n
             "entity_type": <specify a short type name for the entity, such as 'company', 'location',...>
         }}],
         "relationships": [{{
-            "name": <assign a name for the relationship>,
-            "type": <specify a short type name for the relationship, such as 'sales_to', 'is_location_of',...>,
-            "entities": [<related entity name 1>, <related entity name 2>]
+            "relationship_name": <assign a name for the relationship>,
+            "relationship_type": <specify a short type name for the relationship, such as 'sales_to', 'is_location_of',...>,
+            "relationship_entities": [<related entity name 1>, <related entity name 2>, ...]
         }}],
         "terms": [{{
             "term_name": <assign a name for the term>,
             "term_type": <specify a short type name for the term, such as 'revenue', 'market_share',...>,
-            "similar_to": <list terms that are similar to this term>
+            "term_similar_to": <list terms that are similar to this term>
         }}]
     }}
     }}
