@@ -7,6 +7,9 @@ from onyx.agent_search.shared_graph_utils.prompts import COMBINED_CONTEXT
 from onyx.agent_search.shared_graph_utils.prompts import MODIFIED_RAG_PROMPT
 from onyx.agent_search.shared_graph_utils.utils import format_docs
 from onyx.agent_search.shared_graph_utils.utils import normalize_whitespace
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
 # aggregate sub questions and answers
@@ -20,14 +23,14 @@ def deep_answer_generation(state: MainState) -> dict[str, Any]:
     Returns:
          dict: The updated state with re-phrased question
     """
-    print("---DEEP GENERATE---")
+    logger.info("---DEEP GENERATE---")
 
     question = state["original_question"]
     docs = state["deduped_retrieval_docs"]
 
     deep_answer_context = state["core_answer_dynamic_context"]
 
-    print(f"Number of verified retrieval docs - deep: {len(docs)}")
+    logger.info(f"Number of verified retrieval docs - deep: {len(docs)}")
 
     combined_context = normalize_whitespace(
         COMBINED_CONTEXT.format(

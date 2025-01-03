@@ -15,6 +15,9 @@ from onyx.db.engine import get_session_context_manager
 from onyx.llm.interfaces import LLM
 from onyx.tools.models import ToolResponse
 from onyx.tools.tool_runner import ToolCallKickoff
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
 def _parse_agent_event(
@@ -120,5 +123,4 @@ if __name__ == "__main__":
         query="What are the guiding principles behind the development of cockroachDB?",
     )
     for output in run_graph(compiled_graph, search_request, primary_llm, fast_llm):
-        print("a")
-        # print(output)
+        logger.debug(output)

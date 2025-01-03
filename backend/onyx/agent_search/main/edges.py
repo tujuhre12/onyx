@@ -21,9 +21,10 @@ def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hasha
                 AnswerQuestionInput(
                     **extract_core_fields_for_subgraph(state),
                     question=question,
+                    question_nr=question_nr,
                 ),
             )
-            for question in state["initial_decomp_questions"]
+            for question_nr, question in state["initial_decomp_questions"].items()
         ]
 
     else:
