@@ -7,7 +7,7 @@ from onyx.agent_search.core_state import CoreState
 from onyx.agent_search.expanded_retrieval.models import ExpandedRetrievalResult
 from onyx.agent_search.expanded_retrieval.models import QueryResult
 from onyx.agent_search.main.models import EntityRelationshipTermExtraction
-from onyx.agent_search.refined_answers.models import FollowUpSubQuestion
+from onyx.agent_search.main.models import FollowUpSubQuestion
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.models import InitialAgentResultStats
 from onyx.agent_search.shared_graph_utils.models import RefinedAgentStats
@@ -122,3 +122,15 @@ class MainOutput(TypedDict):
     initial_agent_stats: dict
     generated_sub_questions: list[str]
     require_refined_answer: bool
+
+
+class RefinedAnswerInput(MainState):
+    pass
+
+
+class RefinedAnswerOutput(TypedDict):
+    dummy_output: str
+
+
+class RefinedAnswerState(RefinedAnswerInput, RefinedAnswerOutput):
+    pass

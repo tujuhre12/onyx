@@ -25,3 +25,10 @@ class EntityRelationshipTermExtraction(BaseModel):
     entities: list[Entity]
     relationships: list[Relationship]
     terms: list[Term]
+
+
+class FollowUpSubQuestion(BaseModel):
+    sub_question: str
+    verified: bool
+    answered: bool
+    answer: str

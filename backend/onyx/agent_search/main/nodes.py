@@ -9,22 +9,28 @@ from onyx.agent_search.answer_question.states import QuestionAnswerResults
 from onyx.agent_search.base_raw_search.states import BaseRawSearchOutput
 from onyx.agent_search.main.models import Entity
 from onyx.agent_search.main.models import EntityRelationshipTermExtraction
+from onyx.agent_search.main.models import FollowUpSubQuestion
 from onyx.agent_search.main.models import Relationship
 from onyx.agent_search.main.models import Term
 from onyx.agent_search.main.states import BaseDecompUpdate
 from onyx.agent_search.main.states import DecompAnswersUpdate
 from onyx.agent_search.main.states import EntityTermExtractionUpdate
 from onyx.agent_search.main.states import ExpandedRetrievalUpdate
+from onyx.agent_search.main.states import FollowUpDecompAnswersUpdate
+from onyx.agent_search.main.states import FollowUpSubQuestionsUpdate
 from onyx.agent_search.main.states import InitialAnswerBASEUpdate
 from onyx.agent_search.main.states import InitialAnswerQualityUpdate
 from onyx.agent_search.main.states import InitialAnswerUpdate
 from onyx.agent_search.main.states import MainState
+from onyx.agent_search.main.states import RefinedAnswerInput
+from onyx.agent_search.main.states import RefinedAnswerOutput
 from onyx.agent_search.main.states import RefinedAnswerUpdate
 from onyx.agent_search.main.states import RequireRefinedAnswerUpdate
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.models import InitialAgentResultStats
 from onyx.agent_search.shared_graph_utils.models import RefinedAgentStats
 from onyx.agent_search.shared_graph_utils.operators import dedup_inference_sections
+from onyx.agent_search.shared_graph_utils.prompts import DEEP_DECOMPOSE_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import ENTITY_TERM_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import (
     INITIAL_DECOMPOSITION_PROMPT_QUESTIONS,
@@ -37,6 +43,7 @@ from onyx.agent_search.shared_graph_utils.prompts import (
 from onyx.agent_search.shared_graph_utils.prompts import REVISED_RAG_PROMPT
 from onyx.agent_search.shared_graph_utils.utils import clean_and_parse_list_string
 from onyx.agent_search.shared_graph_utils.utils import format_docs
+from onyx.agent_search.shared_graph_utils.utils import format_entity_term_extraction
 
 
 def main_decomp_base(state: MainState) -> BaseDecompUpdate:
@@ -548,7 +555,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
         initial_support_boost_factor = state[
             "initial_agent_stats"
         ].agent_effectiveness.get("support_ratio", "--")
-        initial_verified_docs = state["initial_agent_stats"].original_question.get(
+        num_initial_verified_docs = state["initial_agent_stats"].original_question.get(
             "num_verified_documents", "--"
         )
         initial_verified_docs_avg_score = state[
@@ -561,7 +568,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
         print("INITIAL AGENT STATS")
         print(f"Document Boost Factor: {initial_doc_boost_factor}")
         print(f"Support Boost Factor: {initial_support_boost_factor}")
-        print(f"Originally Verified Docs: {initial_verified_docs}")
+        print(f"Originally Verified Docs: {num_initial_verified_docs}")
         print(f"Originally Verified Docs Avg Score: {initial_verified_docs_avg_score}")
         print(f"Sub-Questions Verified Docs: {initial_sub_questions_verified_docs}")
     if refined_agent_stats:
@@ -579,6 +586,89 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
         refined_answer_quality=True,  # TODO: replace this with the actual check value
         refined_agent_stats=refined_agent_stats,
     )
+
+
+def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
+    """ """
+
+    question = state["search_request"].query
+    base_answer = state["initial_answer"]
+
+    # get the entity term extraction dict and properly format it
+    entity_retlation_term_extractions = state["entity_retlation_term_extractions"]
+
+    entity_term_extraction_str = format_entity_term_extraction(
+        entity_retlation_term_extractions
+    )
+
+    initial_question_answers = state["decomp_answer_results"]
+
+    addressed_question_list = [
+        x.question for x in initial_question_answers if "yes" in x.quality.lower()
+    ]
+
+    failed_question_list = [
+        x.question for x in initial_question_answers if "no" in x.quality.lower()
+    ]
+
+    msg = [
+        HumanMessage(
+            content=DEEP_DECOMPOSE_PROMPT.format(
+                question=question,
+                entity_term_extraction_str=entity_term_extraction_str,
+                base_answer=base_answer,
+                answered_sub_questions="\n - ".join(addressed_question_list),
+                failed_sub_questions="\n - ".join(failed_question_list),
+            ),
+        )
+    ]
+
+    # Grader
+    model = state["fast_llm"]
+    response = model.invoke(msg)
+
+    if isinstance(response.content, str):
+        cleaned_response = re.sub(r"```json\n|\n```", "", response.content)
+        parsed_response = json.loads(cleaned_response)
+    else:
+        raise ValueError("LLM response is not a string")
+
+    follow_up_sub_question_dict = {}
+    for sub_question_nr, sub_question_dict in enumerate(
+        parsed_response["sub_questions"]
+    ):
+        follow_up_sub_question = FollowUpSubQuestion(
+            sub_question=sub_question_dict["sub_question"],
+            verified=False,
+            answered=False,
+            answer="",
+        )
+
+        follow_up_sub_question_dict[sub_question_nr] = follow_up_sub_question
+
+    return FollowUpSubQuestionsUpdate(
+        follow_up_sub_questions=follow_up_sub_question_dict
+    )
+
+
+def ingest_follow_up_answers(
+    state: AnswerQuestionOutput,
+) -> FollowUpDecompAnswersUpdate:
+    documents = []
+    answer_results = state.get("answer_results", [])
+    for answer_result in answer_results:
+        documents.extend(answer_result.documents)
+    return FollowUpDecompAnswersUpdate(
+        # Deduping is done by the documents operator for the main graph
+        # so we might not need to dedup here
+        follow_up_documents=dedup_inference_sections(documents, []),
+        follow_up_decomp_answer_results=answer_results,
+    )
+
+
+def dummy_node(state: RefinedAnswerInput) -> RefinedAnswerOutput:
+    print("---DUMMY NODE---")
+    return {"dummy_output": "this is a dummy output"}
 
 
 # def check_refined_answer(state: MainState) -> RefinedAnswerUpdate:

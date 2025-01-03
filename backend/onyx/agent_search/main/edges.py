@@ -61,6 +61,31 @@ def continue_to_refined_answer_or_end(
         return END
 
 
+def parallelize_follow_up_answer_queries(state: MainState) -> list[Send | Hashable]:
+    if len(state["follow_up_sub_questions"]) > 0:
+        return [
+            Send(
+                "answer_follow_up_question",
+                AnswerQuestionInput(
+                    **extract_core_fields_for_subgraph(state),
+                    question=question_data.sub_question,
+                    question_nr=question_nr,
+                ),
+            )
+            for question_nr, question_data in state["follow_up_sub_questions"].items()
+        ]
+
+    else:
+        return [
+            Send(
+                "ingest_follow_up_answers",
+                AnswerQuestionOutput(
+                    answer_results=[],
+                ),
+            )
+        ]
+
+
 # def continue_to_answer_sub_questions(state: QAState) -> Union[Hashable, list[Hashable]]:
 #     # Routes re-written queries to the (parallel) retrieval steps
 #     # Notice the 'Send()' API that takes care of the parallelization

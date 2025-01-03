@@ -5,13 +5,13 @@ from langgraph.graph import StateGraph
 from onyx.agent_search.answer_follow_up_question.graph_builder import (
     answer_follow_up_query_graph_builder,
 )
-from onyx.agent_search.refined_answers.edges import parallelize_follow_up_answer_queries
-from onyx.agent_search.refined_answers.nodes import dummy_node
-from onyx.agent_search.refined_answers.nodes import follow_up_decompose
-from onyx.agent_search.refined_answers.nodes import ingest_follow_up_answers
-from onyx.agent_search.refined_answers.states import RefinedAnswerInput
-from onyx.agent_search.refined_answers.states import RefinedAnswerOutput
-from onyx.agent_search.refined_answers.states import RefinedAnswerState
+from onyx.agent_search.main.edges import parallelize_follow_up_answer_queries
+from onyx.agent_search.main.nodes import dummy_node
+from onyx.agent_search.main.nodes import follow_up_decompose
+from onyx.agent_search.main.nodes import ingest_follow_up_answers
+from onyx.agent_search.main.states import RefinedAnswerInput
+from onyx.agent_search.main.states import RefinedAnswerOutput
+from onyx.agent_search.main.states import RefinedAnswerState
 
 
 def refined_answers_graph_builder() -> StateGraph:
