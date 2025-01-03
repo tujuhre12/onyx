@@ -53,6 +53,8 @@ from onyx.db.engine import get_session_with_tenant
 from onyx.db.feedback import create_chat_message_feedback
 from onyx.db.feedback import create_doc_retrieval_feedback
 from onyx.db.models import User
+from onyx.db.my_documents import create_user_files
+from onyx.db.my_documents import RECENT_DOCUMENTS_FOLDER_ID
 from onyx.db.persona import get_persona_by_id
 from onyx.document_index.document_index_utils import get_both_index_names
 from onyx.document_index.factory import get_default_document_index
