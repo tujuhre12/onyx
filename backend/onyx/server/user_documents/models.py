@@ -3,8 +3,8 @@ from typing import List
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from danswer.db.models import UserFile
-from danswer.db.models import UserFolder
+from onyx.db.models import UserFile
+from onyx.db.models import UserFolder
 
 
 router = APIRouter()

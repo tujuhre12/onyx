@@ -1,5 +1,8 @@
 from typing import List
 
+from danswer.server.user_documents.models import FolderFullDetailResponse
+from danswer.server.user_documents.models import FolderResponse
+from danswer.server.user_documents.models import MessageResponse
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import File
@@ -9,19 +12,16 @@ from fastapi import UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from danswer.auth.users import current_user
-from danswer.db.engine import get_session
-from danswer.db.models import User
-from danswer.db.models import UserFile
-from danswer.db.models import UserFolder
-from danswer.db.my_documents import create_user_files
-from danswer.server.documents.models import FileUploadResponse
-from danswer.server.user_documents.models import FileResponse
-from danswer.server.user_documents.models import FileSystemResponse
-from danswer.server.user_documents.models import FolderDetailResponse
-from danswer.server.user_documents.models import FolderFullDetailResponse
-from danswer.server.user_documents.models import FolderResponse
-from danswer.server.user_documents.models import MessageResponse
+from onyx.auth.users import current_user
+from onyx.db.engine import get_session
+from onyx.db.models import User
+from onyx.db.models import UserFile
+from onyx.db.models import UserFolder
+from onyx.db.my_documents import create_user_files
+from onyx.server.documents.models import FileUploadResponse
+from onyx.server.user_documents.models import FileResponse
+from onyx.server.user_documents.models import FileSystemResponse
+from onyx.server.user_documents.models import FolderDetailResponse
 
 router = APIRouter()
 
