@@ -5,13 +5,16 @@ from onyx.agent_search.answer_question.states import AnswerQuestionState
 from onyx.agent_search.answer_question.states import QAGenerationUpdate
 from onyx.agent_search.shared_graph_utils.prompts import BASE_RAG_PROMPT
 from onyx.agent_search.shared_graph_utils.utils import format_docs
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
 def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
     question = state["question"]
     docs = state["documents"]
 
-    print(f"Number of verified retrieval docs: {len(docs)}")
+    logger.info(f"Number of verified retrieval docs: {len(docs)}")
 
     msg = [
         HumanMessage(

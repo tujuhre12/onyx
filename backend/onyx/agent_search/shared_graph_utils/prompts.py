@@ -20,8 +20,8 @@ REWRITE_PROMPT_MULTI = """ \n
 
 # The prompt is only used if there is no persona prompt, so the placeholder is ''
 BASE_RAG_PROMPT = """ \n
-    {persona_prompt}
-    You are an assistant for question-answering tasks. Use the context provided below - and only the
+    {persona_specification}
+    Use the context provided below - and only the
     provided context - to answer the given question. (Note that the answer is in service of anserwing a broader
     question, given below as 'motivation'.)
 

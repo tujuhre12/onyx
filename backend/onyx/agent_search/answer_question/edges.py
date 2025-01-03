@@ -5,10 +5,13 @@ from langgraph.types import Send
 from onyx.agent_search.answer_question.states import AnswerQuestionInput
 from onyx.agent_search.core_state import in_subgraph_extract_core_fields
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalInput
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
 def send_to_expanded_retrieval(state: AnswerQuestionInput) -> Send | Hashable:
-    print("sending to expanded retrieval via edge")
+    logger.info("sending to expanded retrieval via edge")
 
     return Send(
         "decomped_expanded_retrieval",

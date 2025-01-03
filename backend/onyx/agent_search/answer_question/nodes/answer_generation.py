@@ -8,6 +8,9 @@ from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import BASE_RAG_PROMPT
 from onyx.agent_search.shared_graph_utils.utils import format_docs
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
 def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
@@ -22,7 +25,7 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
             persona_prompt=persona_prompt
         )
 
-    print(f"Number of verified retrieval docs: {len(docs)}")
+    logger.info(f"Number of verified retrieval docs: {len(docs)}")
 
     msg = [
         HumanMessage(

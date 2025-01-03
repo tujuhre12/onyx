@@ -51,6 +51,9 @@ from onyx.agent_search.shared_graph_utils.utils import clean_and_parse_list_stri
 from onyx.agent_search.shared_graph_utils.utils import format_docs
 from onyx.agent_search.shared_graph_utils.utils import format_entity_term_extraction
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
 def main_decomp_base(state: MainState) -> BaseDecompUpdate:
@@ -163,7 +166,7 @@ def _calculate_initial_agent_stats(
 
 
 def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
-    print("---GENERATE INITIAL---")
+    logger.info("---GENERATE INITIAL---")
 
     question = state["search_request"].query
     persona_prompt = get_persona_prompt(state["search_request"].persona)
@@ -234,15 +237,15 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
         state["decomp_answer_results"], state["original_question_retrieval_stats"]
     )
 
-    print(f"\n\n---INITIAL AGENT ANSWER START---\n\n Answer:\n Agent: {answer}")
+    logger.info(f"\n\n---INITIAL AGENT ANSWER START---\n\n Answer:\n Agent: {answer}")
 
-    print(f"\n\nSub-Questions:\n\n{sub_question_answer_str}\n\nStas:\n\n")
+    logger.info(f"\n\nSub-Questions:\n\n{sub_question_answer_str}\n\nStas:\n\n")
 
     if initial_agent_stats:
-        print(initial_agent_stats.original_question)
-        print(initial_agent_stats.sub_questions)
-        print(initial_agent_stats.agent_effectiveness)
-    print("\n\n ---INITIAL AGENT ANSWER  END---\n\n")
+        logger.info(initial_agent_stats.original_question)
+        logger.info(initial_agent_stats.sub_questions)
+        logger.info(initial_agent_stats.agent_effectiveness)
+    logger.info("\n\n ---INITIAL AGENT ANSWER  END---\n\n")
 
     return InitialAnswerUpdate(
         initial_answer=answer,
@@ -262,28 +265,7 @@ def initial_answer_quality_check(state: MainState) -> InitialAnswerQualityUpdate
         InitialAnswerQualityUpdate
     """
 
-    # print("---CHECK INITIAL QUTPUT QUALITY---")
-
-    # question = state["search_request"].query
-    # initial_answer = state["initial_answer"]
-
-    # msg = [
-    #     HumanMessage(
-    #         content=BASE_CHECK_PROMPT.format(question=question, initial_answer=initial_answer)
-    #     )
-    # ]
-
-    # model = state["fast_llm"]
-    # response = model.invoke(msg)
-
-    # if 'yes' in response.content.lower():
-    #     verdict = True
-    # else:
-    #     verdict = False
-
-    # print(f"Verdict: {verdict}")
-
-    print("Checking for base answer validity - for not set True/False manually")
+    logger.info("Checking for base answer validity - for not set True/False manually")
 
     verdict = True
 
@@ -291,7 +273,7 @@ def initial_answer_quality_check(state: MainState) -> InitialAnswerQualityUpdate
 
 
 def entity_term_extraction(state: MainState) -> EntityTermExtractionUpdate:
-    print("---GENERATE ENTITIES & TERMS---")
+    logger.info("---GENERATE ENTITIES & TERMS---")
 
     # first four lines duplicates from generate_initial_answer
     question = state["search_request"].query
@@ -370,7 +352,7 @@ def entity_term_extraction(state: MainState) -> EntityTermExtractionUpdate:
 
 
 def generate_initial_base_answer(state: MainState) -> InitialAnswerBASEUpdate:
-    print("---GENERATE INITIAL BASE ANSWER---")
+    logger.info("---GENERATE INITIAL BASE ANSWER---")
 
     question = state["search_request"].query
     original_question_docs = state["all_original_question_documents"]
@@ -389,8 +371,7 @@ def generate_initial_base_answer(state: MainState) -> InitialAnswerBASEUpdate:
     response = model.invoke(msg)
     answer = response.pretty_repr()
 
-    print()
-    print(
+    logger.info(
         f"\n\n---INITIAL BASE ANSWER START---\n\nBase:  {answer}\n\n  ---INITIAL BASE ANSWER  END---\n\n"
     )
     return InitialAnswerBASEUpdate(initial_base_answer=answer)
@@ -430,7 +411,7 @@ def ingest_initial_retrieval(state: BaseRawSearchOutput) -> ExpandedRetrievalUpd
 
 
 def refined_answer_decision(state: MainState) -> RequireRefinedAnswerUpdate:
-    print("---REFINED ANSWER DECISION---")
+    logger.info("---REFINED ANSWER DECISION---")
 
     if False:
         return RequireRefinedAnswerUpdate(require_refined_answer=False)
@@ -440,7 +421,7 @@ def refined_answer_decision(state: MainState) -> RequireRefinedAnswerUpdate:
 
 
 def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
-    print("---GENERATE REFINED ANSWER---")
+    logger.info("---GENERATE REFINED ANSWER---")
 
     question = state["search_request"].query
     persona_prompt = get_persona_prompt(state["search_request"].persona)
@@ -546,22 +527,24 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
         revision_question_efficiency=revision_question_efficiency,
     )
 
-    print(f"\n\n---INITIAL ANSWER START---\n\n Answer:\n Agent: {initial_answer}")
-    print("-" * 10)
-    print(f"\n\n---REVISED AGENT ANSWER START---\n\n Answer:\n Agent: {answer}")
+    logger.info(f"\n\n---INITIAL ANSWER START---\n\n Answer:\n Agent: {initial_answer}")
+    logger.info("-" * 10)
+    logger.info(f"\n\n---REVISED AGENT ANSWER START---\n\n Answer:\n Agent: {answer}")
 
-    print("-" * 100)
-    print(f"\n\nINITAL Sub-Questions\n\n{initial_good_sub_questions_str}\n\n")
-    print("-" * 10)
-    print(f"\n\nNEW REVISED Sub-Questions\n\n{new_revised_good_sub_questions_str}\n\n")
+    logger.info("-" * 100)
+    logger.info(f"\n\nINITAL Sub-Questions\n\n{initial_good_sub_questions_str}\n\n")
+    logger.info("-" * 10)
+    logger.info(
+        f"\n\nNEW REVISED Sub-Questions\n\n{new_revised_good_sub_questions_str}\n\n"
+    )
 
-    print("-" * 100)
+    logger.info("-" * 100)
 
-    print(
+    logger.info(
         f"\n\nINITAL & REVISED Sub-Questions & Answers:\n\n{sub_question_answer_str}\n\nStas:\n\n"
     )
 
-    print("-" * 100)
+    logger.info("-" * 100)
 
     if state["initial_agent_stats"]:
         initial_doc_boost_factor = state["initial_agent_stats"].agent_effectiveness.get(
@@ -580,21 +563,27 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
             "initial_agent_stats"
         ].sub_questions.get("num_verified_documents", "--")
 
-        print("INITIAL AGENT STATS")
-        print(f"Document Boost Factor: {initial_doc_boost_factor}")
-        print(f"Support Boost Factor: {initial_support_boost_factor}")
-        print(f"Originally Verified Docs: {num_initial_verified_docs}")
-        print(f"Originally Verified Docs Avg Score: {initial_verified_docs_avg_score}")
-        print(f"Sub-Questions Verified Docs: {initial_sub_questions_verified_docs}")
+        logger.info("INITIAL AGENT STATS")
+        logger.info(f"Document Boost Factor: {initial_doc_boost_factor}")
+        logger.info(f"Support Boost Factor: {initial_support_boost_factor}")
+        logger.info(f"Originally Verified Docs: {num_initial_verified_docs}")
+        logger.info(
+            f"Originally Verified Docs Avg Score: {initial_verified_docs_avg_score}"
+        )
+        logger.info(
+            f"Sub-Questions Verified Docs: {initial_sub_questions_verified_docs}"
+        )
     if refined_agent_stats:
-        print("-" * 10)
-        print("REFINED AGENT STATS")
-        print(f"Revision Doc Factor: {refined_agent_stats.revision_doc_efficiency}")
-        print(
+        logger.info("-" * 10)
+        logger.info("REFINED AGENT STATS")
+        logger.info(
+            f"Revision Doc Factor: {refined_agent_stats.revision_doc_efficiency}"
+        )
+        logger.info(
             f"Revision Question Factor: {refined_agent_stats.revision_question_efficiency}"
         )
 
-    print("\n\n ---INITIAL AGENT ANSWER  END---\n\n")
+    logger.info("\n\n ---INITIAL AGENT ANSWER  END---\n\n")
 
     return RefinedAnswerUpdate(
         refined_answer=answer,
@@ -682,14 +671,5 @@ def ingest_follow_up_answers(
 
 
 def dummy_node(state: RefinedAnswerInput) -> RefinedAnswerOutput:
-    print("---DUMMY NODE---")
+    logger.info("---DUMMY NODE---")
     return {"dummy_output": "this is a dummy output"}
-
-
-# def check_refined_answer(state: MainState) -> RefinedAnswerUpdate:
-#     print("---CHECK REFINED ANSWER---")
-
-#     return RefinedAnswerUpdate(
-#         refined_answer="",
-#         refined_answer_quality=True
-#     )

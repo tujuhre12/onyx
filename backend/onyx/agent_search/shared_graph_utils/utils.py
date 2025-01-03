@@ -113,7 +113,5 @@ def generate_log_message(
 def get_persona_prompt(persona: Persona | None) -> str:
     if persona is None:
         return ""
-    if len(persona.prompts) > 0:
-        return persona.prompts[0].system_prompt
     else:
-        return ""
+        return "\n".join([x.system_prompt for x in persona.prompts])

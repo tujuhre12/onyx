@@ -12,6 +12,9 @@ from onyx.agent_search.expanded_retrieval.nodes import verification_kickoff
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalInput
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalOutput
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalState
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
 def expanded_retrieval_graph_builder() -> StateGraph:
@@ -101,4 +104,4 @@ if __name__ == "__main__":
             # debug=True,
             subgraphs=True,
         ):
-            print(thing)
+            logger.info(thing)

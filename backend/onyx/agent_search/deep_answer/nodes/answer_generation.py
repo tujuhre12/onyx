@@ -66,14 +66,13 @@ def final_stuff(state: MainState) -> dict[str, Any]:
     Returns:
         dict: The updated state with the agent response appended to messages
     """
-    print("---FINAL---")
+    logger.info("---FINAL---")
 
     messages = state["log_messages"]
     time_ordered_messages = [x.pretty_repr() for x in messages]
     time_ordered_messages.sort()
 
-    print("Message Log:")
-    # print("\n".join(time_ordered_messages))
+    logger.info("Message Log:")
 
     initial_sub_qas = state["initial_sub_qas"]
     initial_sub_qa_list = []
@@ -87,13 +86,13 @@ def final_stuff(state: MainState) -> dict[str, Any]:
 
     base_answer = state["base_answer"]
 
-    print(f"Final Base Answer:\n{base_answer}")
-    print("--------------------------------")
-    print(f"Initial Answered Sub Questions:\n{initial_sub_qa_context}")
-    print("--------------------------------")
+    logger.info(f"Final Base Answer:\n{base_answer}")
+    logger.info("--------------------------------")
+    logger.info(f"Initial Answered Sub Questions:\n{initial_sub_qa_context}")
+    logger.info("--------------------------------")
 
     if not state.get("deep_answer"):
-        print("No Deep Answer was required")
+        logger.info("No Deep Answer was required")
         return {}
 
     deep_answer = state["deep_answer"]
@@ -107,11 +106,11 @@ def final_stuff(state: MainState) -> dict[str, Any]:
 
     sub_qa_context = "\n".join(sub_qa_list)
 
-    print(f"Final Base Answer:\n{base_answer}")
-    print("--------------------------------")
-    print(f"Final Deep Answer:\n{deep_answer}")
-    print("--------------------------------")
-    print("Sub Questions and Answers:")
-    print(sub_qa_context)
+    logger.info(f"Final Base Answer:\n{base_answer}")
+    logger.info("--------------------------------")
+    logger.info(f"Final Deep Answer:\n{deep_answer}")
+    logger.info("--------------------------------")
+    logger.info("Sub Questions and Answers:")
+    logger.info(sub_qa_context)
 
     return {}

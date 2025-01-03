@@ -24,9 +24,9 @@ from onyx.agent_search.main.nodes import main_decomp_base
 from onyx.agent_search.main.nodes import refined_answer_decision
 from onyx.agent_search.main.states import MainInput
 from onyx.agent_search.main.states import MainState
+from onyx.utils.logger import setup_logger
 
-# from onyx.agent_search.main.nodes import check_refined_answer
-
+logger = setup_logger()
 
 test_mode = False
 
@@ -507,5 +507,4 @@ if __name__ == "__main__":
             # debug=True,
             subgraphs=True,
         ):
-            # print(thing)
-            print()
+            logger.info(thing)

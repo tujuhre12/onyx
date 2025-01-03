@@ -15,6 +15,9 @@ from onyx.agent_search.answer_question.states import AnswerQuestionState
 from onyx.agent_search.expanded_retrieval.graph_builder import (
     expanded_retrieval_graph_builder,
 )
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
 def answer_follow_up_query_graph_builder() -> StateGraph:
@@ -99,6 +102,6 @@ if __name__ == "__main__":
             # debug=True,
             # subgraphs=True,
         ):
-            print(thing)
+            logger.info(thing)
         # output = compiled_graph.invoke(inputs)
-        # print(output)
+        #  logger.info(output)

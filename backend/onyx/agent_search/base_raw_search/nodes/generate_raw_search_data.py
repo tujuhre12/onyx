@@ -1,9 +1,12 @@
 from onyx.agent_search.core_state import CoreState
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalInput
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
 def generate_raw_search_data(state: CoreState) -> ExpandedRetrievalInput:
-    print("generate_raw_search_data")
+    logger.info("generate_raw_search_data")
     return ExpandedRetrievalInput(
         subgraph_search_request=state["search_request"],
         subgraph_primary_llm=state["primary_llm"],
