@@ -10,11 +10,8 @@ import { FolderActions } from "./FolderActions";
 import { FolderBreadcrumb } from "./FolderBreadcrumb";
 import { FolderContents } from "./FolderContents";
 import TextView from "@/components/chat_search/TextView";
-import { MinimalDanswerDocument } from "@/lib/search/interfaces";
-import { FilePicker } from "./FilePicker";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { FolderTree } from "./FolderTree";
+import { MinimalOnyxDocument } from "@/lib/search/interfaces";
 
 interface FolderResponse {
   children: { name: string; id: number }[];
@@ -72,7 +69,7 @@ export default function MyDocuments() {
   const { popup, setPopup } = usePopup();
 
   const [presentingDocument, setPresentingDocument] =
-    useState<MinimalDanswerDocument | null>(null);
+    useState<MinimalOnyxDocument | null>(null);
   const [isFilePickerOpen, setIsFilePickerOpen] = useState(false);
   const [folderTree, setFolderTree] = useState<FolderTreeNode[]>([]);
 

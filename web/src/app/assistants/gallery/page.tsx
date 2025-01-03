@@ -20,7 +20,18 @@ export default async function GalleryPage(props: {
     redirect(data.redirect);
   }
 
-  const { user, chatSessions, toggleSidebar, shouldShowWelcomeModal } = data;
+  const {
+    user,
+    chatSessions,
+    toggleSidebar,
+    shouldShowWelcomeModal,
+    availableSources,
+    ccPairs,
+    documentSets,
+    tags,
+    llmProviders,
+    defaultAssistantId,
+  } = data;
 
   return (
     <ChatProvider
@@ -33,8 +44,6 @@ export default async function GalleryPage(props: {
         availableDocumentSets: documentSets,
         availableTags: tags,
         llmProviders,
-        folders,
-        openedFolders,
         shouldShowWelcomeModal,
         defaultAssistantId,
       }}
