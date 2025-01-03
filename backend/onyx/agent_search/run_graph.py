@@ -92,6 +92,10 @@ def run_graph(
     fast_llm: LLM,
 ) -> AnswerStream:
     with get_session_context_manager() as db_session:
+        from onyx.db.persona import get_persona_by_id
+
+        search_request.persona = get_persona_by_id(1, None, db_session)
+
         input = MainInput(
             search_request=search_request,
             primary_llm=primary_llm,

@@ -8,6 +8,7 @@ from typing import Any
 
 from onyx.agent_search.main.models import EntityRelationshipTermExtraction
 from onyx.context.search.models import InferenceSection
+from onyx.db.persona import Persona
 
 
 def normalize_whitespace(text: str) -> str:
@@ -107,3 +108,12 @@ def generate_log_message(
     node_time_str = _format_time_delta(current_time - node_start_time)
 
     return f"{graph_time_str} ({node_time_str} s): {message}"
+
+
+def get_persona_prompt(persona: Persona | None) -> str:
+    if persona is None:
+        return ""
+    if len(persona.prompts) > 0:
+        return persona.prompts[0].system_prompt
+    else:
+        return ""

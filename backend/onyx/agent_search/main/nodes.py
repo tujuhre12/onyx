@@ -30,6 +30,8 @@ from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.models import InitialAgentResultStats
 from onyx.agent_search.shared_graph_utils.models import RefinedAgentStats
 from onyx.agent_search.shared_graph_utils.operators import dedup_inference_sections
+from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_DEFAULT
+from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_PERSONA
 from onyx.agent_search.shared_graph_utils.prompts import DEEP_DECOMPOSE_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import ENTITY_TERM_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import (
@@ -41,13 +43,19 @@ from onyx.agent_search.shared_graph_utils.prompts import (
     INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS,
 )
 from onyx.agent_search.shared_graph_utils.prompts import REVISED_RAG_PROMPT
+from onyx.agent_search.shared_graph_utils.prompts import (
+    REVISED_RAG_PROMPT_NO_SUB_QUESTIONS,
+)
+from onyx.agent_search.shared_graph_utils.prompts import SUB_QUESTION_ANSWER_TEMPLATE
 from onyx.agent_search.shared_graph_utils.utils import clean_and_parse_list_string
 from onyx.agent_search.shared_graph_utils.utils import format_docs
 from onyx.agent_search.shared_graph_utils.utils import format_entity_term_extraction
+from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
 
 
 def main_decomp_base(state: MainState) -> BaseDecompUpdate:
     question = state["search_request"].query
+    get_persona_prompt(state["search_request"].persona)
 
     msg = [
         HumanMessage(
@@ -158,8 +166,10 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     print("---GENERATE INITIAL---")
 
     question = state["search_request"].query
+    persona_prompt = get_persona_prompt(state["search_request"].persona)
     sub_question_docs = state["documents"]
     all_original_question_documents = state["all_original_question_documents"]
+
     relevant_docs = dedup_inference_sections(
         sub_question_docs, all_original_question_documents
     )
@@ -174,9 +184,6 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     good_qa_list: list[str] = []
     decomp_questions = []
 
-    _SUB_QUESTION_ANSWER_TEMPLATE = """
-    Sub-Question:\n  - {sub_question}\n  --\nAnswer:\n  - {sub_answer}\n\n
-    """
     for decomp_answer_result in decomp_answer_results:
         decomp_questions.append(decomp_answer_result.question)
         if (
@@ -185,7 +192,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
             and decomp_answer_result.answer != "I don't know"
         ):
             good_qa_list.append(
-                _SUB_QUESTION_ANSWER_TEMPLATE.format(
+                SUB_QUESTION_ANSWER_TEMPLATE.format(
                     sub_question=decomp_answer_result.question,
                     sub_answer=decomp_answer_result.answer,
                 )
@@ -193,27 +200,32 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
 
     sub_question_answer_str = "\n\n------\n\n".join(good_qa_list)
 
-    if len(good_qa_list) > 0:
-        msg = [
-            HumanMessage(
-                content=INITIAL_RAG_PROMPT.format(
-                    question=question,
-                    answered_sub_questions=sub_question_answer_str,
-                    relevant_docs=format_docs(relevant_docs),
-                )
-            )
-        ]
-    else:
-        msg = [
-            HumanMessage(
-                content=INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS.format(
-                    question=question,
-                    relevant_docs=format_docs(relevant_docs),
-                )
-            )
-        ]
+    # Determine which persona-specification prompt to use
 
-    # Grader
+    if len(persona_prompt) > 0:
+        persona_specification = ASSISTANT_SYSTEM_PROMPT_DEFAULT
+    else:
+        persona_specification = ASSISTANT_SYSTEM_PROMPT_PERSONA.format(
+            persona_prompt=persona_prompt
+        )
+
+    # Determine which base prompt to use given the sub-question information
+    if len(good_qa_list) > 0:
+        base_prompt = INITIAL_RAG_PROMPT
+    else:
+        base_prompt = INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS
+
+    msg = [
+        HumanMessage(
+            content=base_prompt.format(
+                question=question,
+                answered_sub_questions=sub_question_answer_str,
+                relevant_docs=format_docs(relevant_docs),
+                persona_specification=persona_specification,
+            )
+        )
+    ]
+
     model = state["fast_llm"]
     response = model.invoke(msg)
     answer = response.pretty_repr()
@@ -430,6 +442,9 @@ def refined_answer_decision(state: MainState) -> RequireRefinedAnswerUpdate:
 def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     print("---GENERATE REFINED ANSWER---")
 
+    question = state["search_request"].query
+    persona_prompt = get_persona_prompt(state["search_request"].persona)
+
     initial_documents = state["documents"]
     revised_documents = state["follow_up_documents"]
 
@@ -442,17 +457,11 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     else:
         revision_doc_effectiveness = 10.0
 
-    question = state["search_request"].query
-
     decomp_answer_results = state["decomp_answer_results"]
     revised_answer_results = state["follow_up_decomp_answer_results"]
 
     good_qa_list: list[str] = []
     decomp_questions = []
-
-    _SUB_QUESTION_ANSWER_TEMPLATE = """
-    Sub-Question:\n  - {sub_question}\n  --\nAnswer:\n  - {sub_answer}\n\n
-    """
 
     initial_good_sub_questions: list[str] = []
     new_revised_good_sub_questions: list[str] = []
@@ -466,7 +475,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
                 and decomp_answer_result.answer != "I don't know"
             ):
                 good_qa_list.append(
-                    _SUB_QUESTION_ANSWER_TEMPLATE.format(
+                    SUB_QUESTION_ANSWER_TEMPLATE.format(
                         sub_question=decomp_answer_result.question,
                         sub_answer=decomp_answer_result.answer,
                     )
@@ -491,26 +500,32 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
 
     initial_answer = state["initial_answer"]
 
-    if len(good_qa_list) > 0:
-        msg = [
-            HumanMessage(
-                content=REVISED_RAG_PROMPT.format(
-                    question=question,
-                    answered_sub_questions=sub_question_answer_str,
-                    relevant_docs=format_docs(combined_documents),
-                    initial_answer=initial_answer,
-                )
-            )
-        ]
+    # Determine which persona-specification prompt to use
+
+    if len(persona_prompt) > 0:
+        persona_specification = ASSISTANT_SYSTEM_PROMPT_DEFAULT
     else:
-        msg = [
-            HumanMessage(
-                content=INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS.format(
-                    question=question,
-                    relevant_docs=format_docs(combined_documents),
-                )
+        persona_specification = ASSISTANT_SYSTEM_PROMPT_PERSONA.format(
+            persona_prompt=persona_prompt
+        )
+
+    # Determine which base prompt to use given the sub-question information
+    if len(good_qa_list) > 0:
+        base_prompt = REVISED_RAG_PROMPT
+    else:
+        base_prompt = REVISED_RAG_PROMPT_NO_SUB_QUESTIONS
+
+    msg = [
+        HumanMessage(
+            content=base_prompt.format(
+                question=question,
+                answered_sub_questions=sub_question_answer_str,
+                relevant_docs=format_docs(combined_documents),
+                initial_answer=initial_answer,
+                persona_specification=persona_specification,
             )
-        ]
+        )
+    ]
 
     # Grader
     model = state["fast_llm"]

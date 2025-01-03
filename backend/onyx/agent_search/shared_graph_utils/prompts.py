@@ -18,7 +18,9 @@ REWRITE_PROMPT_MULTI = """ \n
     \n ------- \n
     Formulate the sample documents separated by '--' (Do not say 'Document 1: ...', just write the text): """
 
+# The prompt is only used if there is no persona prompt, so the placeholder is ''
 BASE_RAG_PROMPT = """ \n
+    {persona_prompt}
     You are an assistant for question-answering tasks. Use the context provided below - and only the
     provided context - to answer the given question. (Note that the answer is in service of anserwing a broader
     question, given below as 'motivation'.)
@@ -448,8 +450,27 @@ And here is the question I want you to answer based on the context above (with t
 Answer:"""
 
 
+### ANSWER GENERATION PROMPTS
+
+# Persona specification
+ASSISTANT_SYSTEM_PROMPT_DEFAULT = """
+You are an assistant for question-answering tasks."""
+
+ASSISTANT_SYSTEM_PROMPT_PERSONA = """
+You are an assistant for question-answering tasks. Here is more information about you:
+\n ------- \n
+{persona_prompt}
+\n ------- \n
+"""
+
+SUB_QUESTION_ANSWER_TEMPLATE = """
+    Sub-Question:\n  - {sub_question}\n  --\nAnswer:\n  - {sub_answer}\n\n
+    """
+
 INITIAL_RAG_PROMPT = """ \n
-You are an assistant for question-answering tasks. Use the information provided below - and only the
+{persona_specification}
+
+Use the information provided below - and only the
 provided information - to answer the provided question.
 
 The information provided below consists of:
@@ -485,8 +506,38 @@ And here is the question I want you to answer based on the information above:
 \n--\n\n
 Answer:"""
 
-REVISED_RAG_PROMPT = """ \n
-You are an assistant for question-answering tasks. Use the information provided below - and only the
+# sub_question_answer_str is empty
+INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS = """{sub_question_answer_str}
+{persona_specification}
+Use the information provided below
+- and only the provided information - to answer the provided question.
+The information provided below consists of a number of documents that were deemed relevant for the question.
+
+IMPORTANT RULES:
+ - If you cannot reliably answer the question solely using the provided information, say that you cannot reliably answer.
+ You may give some  additional facts you learned, but do not try to invent an answer.
+ - If the information is irrelevant, just say "I don't know".
+ - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
+
+Again, you should be sure that the answer is supported by the information provided!
+
+Try to keep your answer concise.
+
+Here are is the relevant context information:
+\n-------\n
+{relevant_docs}
+\n-------\n
+
+And here is the question I want you to answer based on the context above
+\n--\n
+{question}
+\n--\n
+
+Answer:"""
+
+REVISED_RAG_PROMPT = """\n
+{persona_specification}
+Use the information provided below - and only the
 provided information - to answer the provided question.
 
 The information provided below consists of:
@@ -529,32 +580,46 @@ Lastly, here is the question I want you to answer based on the information above
 \n--\n\n
 Answer:"""
 
-INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS = """
-You are an assistant for question-answering tasks. Use the information provided below
-- and only the provided information - to answer the provided question.
-The information provided below consists of a number of documents that were deemed relevant for the question.
+# sub_question_answer_str is empty
+REVISED_RAG_PROMPT_NO_SUB_QUESTIONS = """{sub_question_answer_str}\n
+{persona_specification}
+Use the information provided below - and only the
+provided information - to answer the provided question.
+
+The information provided below consists of:
+    1) an initial answer that was given but found to be lacking in some way.
+    2) a number of documents that were also deemed relevant for the question.
 
 IMPORTANT RULES:
  - If you cannot reliably answer the question solely using the provided information, say that you cannot reliably answer.
- You may give some  additional facts you learned, but do not try to invent an answer.
- - If the information is irrelevant, just say "I don't know".
- - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
+ You may give some additional facts you learned, but do not try to invent an answer.
+ - If the information is empty or irrelevant, just say "I don't know".
+ - If the information is relevant but not fully conclusive, provide and answer to the extent you can but also
+ specify that the information is not conclusive and why.
 
 Again, you should be sure that the answer is supported by the information provided!
 
-Try to keep your answer concise.
+Try to keep your answer concise. But also highlight uncertainties you may have should there be substantial ones,
+or assumptions you made.
 
-Here are is the relevant context information:
+Here is the contextual information:
 \n-------\n
+
+*Initial Answer that was found to be lacking:
+{initial_answer}
+
+And here are relevant document information that support the sub-question answers, or that are relevant for the actual question:\n
+
 {relevant_docs}
-\n-------\n
 
-And here is the question I want you to answer based on the context above
+\n-------\n
+\n
+Lastly, here is the question I want you to answer based on the information above:
 \n--\n
 {question}
-\n--\n
-
+\n--\n\n
 Answer:"""
+
 
 ENTITY_TERM_PROMPT = """ \n
     Based on the original question and the context retieved from a dataset, please generate a list of
