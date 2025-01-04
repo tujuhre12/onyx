@@ -394,11 +394,9 @@ export default function MyDocuments() {
         />
       )}
       {popup}
-      <div className="flex flex-col lg:flex-row">
-        {/* <FolderTree treeData={folderTree} onFolderClick={handleFolderClick} /> */}
-        <div className="flex-grow lg:ml-4">
-          <div className="flex items-center mb-2 space-x-2">
-            {/* <Input
+      <div className="flex-grow">
+        <div className="flex items-center mb-2 space-x-2">
+          {/* <Input
               type="text"
               placeholder="Search..."
               value={searchQuery}
@@ -410,108 +408,105 @@ export default function MyDocuments() {
             >
               Search
             </Button> */}
-            <div className="flex items-center space-x-2 ml-auto">
-              <select
-                className="border border-gray-300 rounded p-1 text-sm"
-                value={sortBy}
-                onChange={(e) => {
-                  setSortBy(e.target.value as "name" | "date");
-                  fetchFolderContents(currentFolder, searchQuery);
-                }}
-              >
-                <option value="name">Sort by Name</option>
-                <option value="date">Sort by Date</option>
-              </select>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setPage((prev) => Math.max(prev - 1, 1));
-                  fetchFolderContents(currentFolder, searchQuery);
-                }}
-              >
-                Prev
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setPage((prev) => prev + 1);
-                  fetchFolderContents(currentFolder, searchQuery);
-                }}
-              >
-                Next
-              </Button>
-            </div>
+          <div className="flex items-center space-x-2 ml-auto">
+            <select
+              className="border border-gray-300 rounded p-1 text-sm"
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value as "name" | "date");
+                fetchFolderContents(currentFolder, searchQuery);
+              }}
+            >
+              <option value="name">Sort by Name</option>
+              <option value="date">Sort by Date</option>
+            </select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setPage((prev) => Math.max(prev - 1, 1));
+                fetchFolderContents(currentFolder, searchQuery);
+              }}
+            >
+              Prev
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setPage((prev) => prev + 1);
+                fetchFolderContents(currentFolder, searchQuery);
+              }}
+            >
+              Next
+            </Button>
           </div>
-
-          <FolderBreadcrumb
-            currentFolder={{
-              name: searchResults
-                ? "Search Results"
-                : folderContents
-                  ? folderContents.name
-                  : "",
-              id: searchResults ? -999 : currentFolder,
-            }}
-            parents={searchResults ? [] : folderContents?.parents || []}
-            onBreadcrumbClick={handleBreadcrumbClick}
-          />
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {searchResults ? "Search Results" : "Folder Contents"}
-              </CardTitle>
-              <FolderActions
-                onRefresh={() =>
-                  fetchFolderContents(currentFolder, searchQuery)
-                }
-                onCreateFolder={handleCreateFolder}
-                onUploadFiles={handleUploadFiles}
-              />
-            </CardHeader>
-            <CardContent>
-              {searchResults ? (
-                <FolderContents
-                  setPresentingDocument={(
-                    document_id: string,
-                    semantic_identifier: string
-                  ) =>
-                    setPresentingDocument({ document_id, semantic_identifier })
-                  }
-                  contents={searchResults}
-                  onFolderClick={handleFolderClick}
-                  currentFolder={currentFolder}
-                  onDeleteItem={handleDeleteItem}
-                  onDownloadItem={handleDownloadItem}
-                  onMoveItem={handleMoveItem}
-                  onRenameItem={onRenameItem}
-                />
-              ) : folderContents ? (
-                <FolderContents
-                  setPresentingDocument={(
-                    document_id: string,
-                    semantic_identifier: string
-                  ) =>
-                    setPresentingDocument({ document_id, semantic_identifier })
-                  }
-                  contents={folderContents}
-                  onFolderClick={handleFolderClick}
-                  currentFolder={currentFolder}
-                  onDeleteItem={handleDeleteItem}
-                  onDownloadItem={handleDownloadItem}
-                  onMoveItem={handleMoveItem}
-                  onRenameItem={onRenameItem}
-                />
-              ) : (
-                <p>Loading...</p>
-              )}
-            </CardContent>
-          </Card>
         </div>
+
+        <FolderBreadcrumb
+          currentFolder={{
+            name: searchResults
+              ? "Search Results"
+              : folderContents
+                ? folderContents.name
+                : "",
+            id: searchResults ? -999 : currentFolder,
+          }}
+          parents={searchResults ? [] : folderContents?.parents || []}
+          onBreadcrumbClick={handleBreadcrumbClick}
+        />
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {searchResults ? "Search Results" : "Folder Contents"}
+            </CardTitle>
+            <FolderActions
+              onRefresh={() => fetchFolderContents(currentFolder, searchQuery)}
+              onCreateFolder={handleCreateFolder}
+              onUploadFiles={handleUploadFiles}
+            />
+          </CardHeader>
+          <CardContent>
+            {searchResults ? (
+              <FolderContents
+                setPresentingDocument={(
+                  document_id: string,
+                  semantic_identifier: string
+                ) =>
+                  setPresentingDocument({ document_id, semantic_identifier })
+                }
+                contents={searchResults}
+                onFolderClick={handleFolderClick}
+                currentFolder={currentFolder}
+                onDeleteItem={handleDeleteItem}
+                onDownloadItem={handleDownloadItem}
+                onMoveItem={handleMoveItem}
+                onRenameItem={onRenameItem}
+              />
+            ) : folderContents ? (
+              <FolderContents
+                setPresentingDocument={(
+                  document_id: string,
+                  semantic_identifier: string
+                ) =>
+                  setPresentingDocument({ document_id, semantic_identifier })
+                }
+                contents={folderContents}
+                onFolderClick={handleFolderClick}
+                currentFolder={currentFolder}
+                onDeleteItem={handleDeleteItem}
+                onDownloadItem={handleDownloadItem}
+                onMoveItem={handleMoveItem}
+                onRenameItem={onRenameItem}
+              />
+            ) : (
+              <p>Loading...</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="text-error">{error}</div>}
 
       {isLoading ? (
         <div>Loading documents...</div>

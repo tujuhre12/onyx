@@ -1,8 +1,5 @@
 from typing import List
 
-from danswer.server.user_documents.models import FolderFullDetailResponse
-from danswer.server.user_documents.models import FolderResponse
-from danswer.server.user_documents.models import MessageResponse
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import File
@@ -22,6 +19,9 @@ from onyx.server.documents.models import FileUploadResponse
 from onyx.server.user_documents.models import FileResponse
 from onyx.server.user_documents.models import FileSystemResponse
 from onyx.server.user_documents.models import FolderDetailResponse
+from onyx.server.user_documents.models import FolderFullDetailResponse
+from onyx.server.user_documents.models import FolderResponse
+from onyx.server.user_documents.models import MessageResponse
 
 router = APIRouter()
 

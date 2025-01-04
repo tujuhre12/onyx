@@ -1,6 +1,7 @@
 import { fetchChatData } from "@/lib/chat/fetchChatData";
 import WrappedDocuments from "./WrappedDocuments";
 import { redirect } from "next/navigation";
+import { ChatProvider } from "@/components/context/ChatContext";
 
 export default async function GalleryPage(props: {
   searchParams: Promise<{ [key: string]: string }>;
@@ -12,7 +13,35 @@ export default async function GalleryPage(props: {
     redirect(data.redirect);
   }
 
-  const { toggleSidebar } = data;
+  const {
+    user,
+    chatSessions,
+    toggleSidebar,
+    shouldShowWelcomeModal,
+    availableSources,
+    ccPairs,
+    documentSets,
+    tags,
+    llmProviders,
+    defaultAssistantId,
+  } = data;
 
-  return <WrappedDocuments initiallyToggled={toggleSidebar} />;
+  return (
+    <ChatProvider
+      value={{
+        chatSessions,
+        availableSources,
+        ccPairs,
+        documentSets,
+        tags,
+        availableDocumentSets: documentSets,
+        availableTags: tags,
+        llmProviders,
+        shouldShowWelcomeModal,
+        defaultAssistantId,
+      }}
+    >
+      <WrappedDocuments initiallyToggled={toggleSidebar} />
+    </ChatProvider>
+  );
 }
