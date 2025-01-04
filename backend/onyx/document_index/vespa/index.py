@@ -325,11 +325,14 @@ class VespaIndex(DocumentIndex):
             get_vespa_http_client() as http_client,
         ):
             if not fresh_index:
+                print("NOT A FRESH INDEX")
                 # Check for existing documents, existing documents need to have all of their chunks deleted
                 # prior to indexing as the document size (num chunks) may have shrunk
                 first_chunks = [
                     chunk for chunk in cleaned_chunks if chunk.chunk_id == 0
                 ]
+
+                # Check if any of the chunks exist in the index
                 for chunk_batch in batch_generator(first_chunks, BATCH_SIZE):
                     existing_docs.update(
                         get_existing_documents_from_chunks(

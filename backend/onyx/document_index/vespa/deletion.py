@@ -44,6 +44,7 @@ def delete_vespa_docs(
     executor: concurrent.futures.ThreadPoolExecutor | None = None,
 ) -> None:
     external_executor = True
+    print("NOM NOM DELETE")
 
     if not executor:
         external_executor = False

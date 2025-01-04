@@ -245,6 +245,7 @@ def get_all_vespa_ids_for_document_id(
         field_names=[DOCUMENT_ID],
         get_large_chunks=get_large_chunks,
     )
+
     return [chunk["id"].split("::", 1)[-1] for chunk in document_chunks]
 
 

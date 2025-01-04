@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from onyx.context.search.models import InferenceChunk
 from onyx.db.search_settings import get_current_search_settings
 from onyx.db.search_settings import get_secondary_search_settings
-from onyx.indexing.models import IndexChunk
+from onyx.indexing.models import DocMetadataAwareIndexChunk
 
 
 DEFAULT_BATCH_SIZE = 30
@@ -37,7 +37,7 @@ def translate_boost_count_to_multiplier(boost: int) -> float:
 
 
 def get_uuid_from_chunk(
-    chunk: IndexChunk | InferenceChunk, mini_chunk_ind: int = 0
+    chunk: DocMetadataAwareIndexChunk, mini_chunk_ind: int = 0
 ) -> uuid.UUID:
     doc_str = (
         chunk.document_id
@@ -50,6 +50,8 @@ def get_uuid_from_chunk(
     unique_identifier_string = "_".join(
         [doc_str, str(chunk.chunk_id), str(mini_chunk_ind)]
     )
+    if chunk.tenant_id is not None:
+        unique_identifier_string += chunk.tenant_id
     if chunk.large_chunk_reference_ids:
         unique_identifier_string += "_large" + "_".join(
             [
@@ -57,4 +59,6 @@ def get_uuid_from_chunk(
                 for referenced_chunk_id in chunk.large_chunk_reference_ids
             ]
         )
-    return uuid.uuid5(uuid.NAMESPACE_X500, unique_identifier_string)
+
+    uid = uuid.uuid5(uuid.NAMESPACE_X500, unique_identifier_string)
+    return uid
