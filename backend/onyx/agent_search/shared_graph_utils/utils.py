@@ -9,6 +9,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from onyx.agent_search.main.models import EntityRelationshipTermExtraction
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationConfig
 from onyx.chat.models import DocumentPruningConfig
@@ -22,6 +23,7 @@ from onyx.context.search.models import InferenceSection
 from onyx.context.search.models import RetrievalDetails
 from onyx.context.search.models import SearchRequest
 from onyx.db.persona import get_persona_by_id
+from onyx.db.persona import Persona
 from onyx.llm.interfaces import LLM
 from onyx.tools.tool_constructor import SearchToolConfig
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
@@ -67,28 +69,35 @@ def clean_and_parse_json_string(json_string: str) -> dict[str, Any]:
     return json.loads(cleaned_string)
 
 
-def format_entity_term_extraction(entity_term_extraction_dict: dict[str, Any]) -> str:
-    entities = entity_term_extraction_dict["entities"]
-    terms = entity_term_extraction_dict["terms"]
-    relationships = entity_term_extraction_dict["relationships"]
+def format_entity_term_extraction(
+    entity_term_extraction_dict: EntityRelationshipTermExtraction,
+) -> str:
+    entities = entity_term_extraction_dict.entities
+    terms = entity_term_extraction_dict.terms
+    relationships = entity_term_extraction_dict.relationships
 
     entity_strs = ["\nEntities:\n"]
     for entity in entities:
-        entity_str = f"{entity['entity_name']} ({entity['entity_type']})"
+        entity_str = f"{entity.entity_name} ({entity.entity_type})"
         entity_strs.append(entity_str)
 
     entity_str = "\n - ".join(entity_strs)
 
     relationship_strs = ["\n\nRelationships:\n"]
     for relationship in relationships:
-        relationship_str = f"{relationship['name']} ({relationship['type']}): {relationship['entities']}"
+        relationship_name = relationship.relationship_name
+        relationship_type = relationship.relationship_type
+        relationship_entities = relationship.relationship_entities
+        relationship_str = (
+            f"""{relationship_name} ({relationship_type}): {relationship_entities}"""
+        )
         relationship_strs.append(relationship_str)
 
     relationship_str = "\n - ".join(relationship_strs)
 
     term_strs = ["\n\nTerms:\n"]
     for term in terms:
-        term_str = f"{term['term_name']} ({term['term_type']}): similar to {term['similar_to']}"
+        term_str = f"{term.term_name} ({term.term_type}): similar to {', '.join(term.term_similar_to)}"
         term_strs.append(term_str)
 
     term_str = "\n - ".join(term_strs)
@@ -184,3 +193,10 @@ def get_test_config(
     )
 
     return config, search_tool
+
+
+def get_persona_prompt(persona: Persona | None) -> str:
+    if persona is None:
+        return ""
+    else:
+        return "\n".join([x.system_prompt for x in persona.prompts])

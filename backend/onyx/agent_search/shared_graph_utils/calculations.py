@@ -52,7 +52,7 @@ def get_fit_scores(
     )
 
     for rank_type, docs in ranked_sections.items():
-        print(f"rank_type: {rank_type}")
+        logger.info(f"rank_type: {rank_type}")
 
         for i in [1, 5, 10]:
             fit_eval.fit_scores[rank_type].scores[str(i)] = (

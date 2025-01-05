@@ -45,3 +45,8 @@ class InitialAgentResultStats(BaseModel):
     sub_questions: dict[str, float | int | None]
     original_question: dict[str, float | int | None]
     agent_effectiveness: dict[str, float | int | None]
+
+
+class RefinedAgentStats(BaseModel):
+    revision_doc_efficiency: float | None
+    revision_question_efficiency: float | None

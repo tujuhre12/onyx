@@ -21,6 +21,9 @@ from onyx.llm.interfaces import LLM
 from onyx.tools.models import ToolResponse
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
 from onyx.tools.tool_runner import ToolCallKickoff
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 _COMPILED_GRAPH: CompiledStateGraph | None = None
 
@@ -142,6 +145,8 @@ if __name__ == "__main__":
     search_request = SearchRequest(
         query="what can you do with gitlab?",
     )
+    # Joachim custom persona
+    # search_request.persona = get_persona_by_id(1, None, db_session)
     with get_session_context_manager() as db_session:
         config, search_tool = get_test_config(
             db_session, primary_llm, fast_llm, search_request

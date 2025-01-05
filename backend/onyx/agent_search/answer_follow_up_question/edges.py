@@ -10,11 +10,11 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def send_to_expanded_retrieval(state: AnswerQuestionInput) -> Send | Hashable:
-    logger.info("sending to expanded retrieval via edge")
+def send_to_expanded_follow_up_retrieval(state: AnswerQuestionInput) -> Send | Hashable:
+    logger.info("sending to expanded retrieval for follow up question via edge")
 
     return Send(
-        "decomped_expanded_retrieval",
+        "decomposed_follow_up_retrieval",
         ExpandedRetrievalInput(
             **in_subgraph_extract_core_fields(state),
             question=state["question"],

@@ -6,6 +6,7 @@ from typing import TypeVar
 from sqlalchemy.orm import Session
 
 from onyx.chat.models import ProSearchConfig
+from onyx.db.models import User
 from onyx.llm.interfaces import LLM
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
 
@@ -21,6 +22,7 @@ class CoreState(TypedDict, total=False):
     # a single session for the entire agent search
     # is fine if we are only reading
     db_session: Session
+    user: User | None
     log_messages: Annotated[list[str], add]
     search_tool: SearchTool
 
