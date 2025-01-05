@@ -515,9 +515,9 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
             initial_good_sub_questions
         )
     elif len(new_revised_good_sub_questions) > 0:
-        revision_question_efficiency: float = 10.0
+        revision_question_efficiency = 10.0
     else:
-        revision_question_efficiency: float = 1.0
+        revision_question_efficiency = 1.0
 
     sub_question_answer_str = "\n\n------\n\n".join(list(set(good_qa_list)))
 
@@ -702,6 +702,7 @@ def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
     ):
         follow_up_sub_question = FollowUpSubQuestion(
             sub_question=sub_question_dict["sub_question"],
+            sub_question_nr="1_" + str(sub_question_nr),
             verified=False,
             answered=False,
             answer="",

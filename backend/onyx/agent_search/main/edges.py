@@ -23,7 +23,7 @@ def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hasha
                 AnswerQuestionInput(
                     **extract_core_fields_for_subgraph(state),
                     question=question,
-                    question_nr=question_nr,
+                    question_nr="0_" + str(question_nr),
                 ),
             )
             for question_nr, question in enumerate(state["initial_decomp_questions"])
@@ -72,7 +72,7 @@ def parallelize_follow_up_answer_queries(state: MainState) -> list[Send | Hashab
                 AnswerQuestionInput(
                     **extract_core_fields_for_subgraph(state),
                     question=question_data.sub_question,
-                    question_nr=question_nr,
+                    question_nr="1_" + str(question_nr),
                 ),
             )
             for question_nr, question_data in state["follow_up_sub_questions"].items()

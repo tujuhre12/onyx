@@ -31,7 +31,7 @@ class RetrievalIngestionUpdate(TypedDict):
 
 class AnswerQuestionInput(SubgraphCoreState):
     question: str
-    question_nr: int
+    question_nr: str
 
 
 ## Graph State

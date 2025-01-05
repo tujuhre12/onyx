@@ -29,6 +29,7 @@ class EntityRelationshipTermExtraction(BaseModel):
 
 class FollowUpSubQuestion(BaseModel):
     sub_question: str
+    sub_question_nr: str
     verified: bool
     answered: bool
     answer: str
