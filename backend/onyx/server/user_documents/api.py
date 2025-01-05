@@ -136,7 +136,7 @@ def upload_user_files(
     db_session: Session = Depends(get_session),
 ) -> FileUploadResponse:
     return FileUploadResponse(
-        file_paths=create_user_files(files, folder_id, user, db_session).file_paths
+        file_paths=create_user_files(files, folder_id, user, db_session).file_id
     )
 
 

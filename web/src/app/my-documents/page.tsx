@@ -14,7 +14,6 @@ export default async function GalleryPage(props: {
   }
 
   const {
-    user,
     chatSessions,
     toggleSidebar,
     shouldShowWelcomeModal,

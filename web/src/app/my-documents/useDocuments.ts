@@ -35,7 +35,7 @@ export const useDocuments = () => {
       const fetchedDocuments = await fetchDocuments();
       setDocuments(fetchedDocuments);
     } catch (err) {
-      setError("Failed to load documents");
+      setError("Failed to load documents err: " + err);
     } finally {
       setIsLoading(false);
     }

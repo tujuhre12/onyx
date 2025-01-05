@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from onyx.db.models import User
 from onyx.db.models import UserFile
 from onyx.server.documents.connector import upload_files
+from onyx.server.documents.models import FileUploadResponse
 
 CHAT_FOLDER_ID = -1
 RECENT_DOCUMENTS_FOLDER_ID = -2
@@ -16,7 +17,7 @@ def create_user_files(
     folder_id: int | None,
     user: User | None,
     db_session: Session,
-) -> UserFile:
+) -> FileUploadResponse:
     upload_response = upload_files(files, db_session)
     for file_path, file in zip(upload_response.file_paths, files):
         new_file = UserFile(

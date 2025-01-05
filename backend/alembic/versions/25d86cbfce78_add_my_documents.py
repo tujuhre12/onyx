@@ -32,22 +32,25 @@ def upgrade() -> None:
     )
 
     # Update chat_session table to reference user_folder instead of chat_folder
-    with op.batch_alter_table("chat_session") as batch_op:
-        batch_op.drop_constraint("chat_session_chat_folder_fk", type_="foreignkey")
-        batch_op.alter_column(
-            "folder_id",
-            existing_type=sa.Integer(),
-            nullable=True,
-            existing_nullable=True,
-            existing_server_default=None,
-        )
-        batch_op.create_foreign_key(
-            "fk_chat_session_folder_id_user_folder",
-            "user_folder",
-            ["folder_id"],
-            ["id"],
-            ondelete="SET NULL",
-        )
+    op.drop_constraint(
+        "chat_session_chat_folder_fk", "chat_session", type_="foreignkey"
+    )
+    op.alter_column(
+        "chat_session",
+        "folder_id",
+        existing_type=sa.Integer(),
+        nullable=True,
+        existing_nullable=True,
+        existing_server_default=None,
+    )
+    op.create_foreign_key(
+        "fk_chat_session_folder_id_user_folder",
+        "chat_session",
+        "user_folder",
+        ["folder_id"],
+        ["id"],
+        ondelete="SET NULL",
+    )
 
     # Drop the chat_folder table
     op.drop_table("chat_folder")
@@ -100,24 +103,25 @@ def downgrade() -> None:
     )
 
     # Update chat_session table to reference chat_folder again
-    with op.batch_alter_table("chat_session") as batch_op:
-        batch_op.drop_constraint(
-            "fk_chat_session_folder_id_user_folder", type_="foreignkey"
-        )
-        batch_op.alter_column(
-            "folder_id",
-            existing_type=sa.Integer(),
-            nullable=True,
-            existing_nullable=True,
-            existing_server_default=None,
-        )
-        batch_op.create_foreign_key(
-            "chat_session_chat_folder_fk",
-            "chat_folder",
-            ["folder_id"],
-            ["id"],
-            ondelete="SET NULL",
-        )
+    op.drop_constraint(
+        "fk_chat_session_folder_id_user_folder", "chat_session", type_="foreignkey"
+    )
+    op.alter_column(
+        "chat_session",
+        "folder_id",
+        existing_type=sa.Integer(),
+        nullable=True,
+        existing_nullable=True,
+        existing_server_default=None,
+    )
+    op.create_foreign_key(
+        "chat_session_chat_folder_fk",
+        "chat_session",
+        "chat_folder",
+        ["folder_id"],
+        ["id"],
+        ondelete="SET NULL",
+    )
 
     # Drop the user_file table
     op.drop_table("user_file")

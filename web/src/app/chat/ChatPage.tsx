@@ -110,7 +110,7 @@ import AssistantBanner from "../../components/assistants/AssistantBanner";
 import TextView from "@/components/chat_search/TextView";
 import AssistantSelector from "@/components/chat_search/AssistantSelector";
 import { Modal } from "@/components/Modal";
-import { FilePicker, UserFolder } from "../my-documents/FilePicker";
+import { FilePicker, UserFile, UserFolder } from "../my-documents/FilePicker";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -246,10 +246,10 @@ export function ChatPage({
           (assistant) => assistant.id === existingChatSessionAssistantId
         )
       : defaultAssistantId !== undefined
-      ? availableAssistants.find(
-          (assistant) => assistant.id === defaultAssistantId
-        )
-      : undefined
+        ? availableAssistants.find(
+            (assistant) => assistant.id === defaultAssistantId
+          )
+        : undefined
   );
   // Gather default temperature settings
   const search_param_temperature = searchParams.get(
@@ -259,12 +259,12 @@ export function ChatPage({
   const defaultTemperature = search_param_temperature
     ? parseFloat(search_param_temperature)
     : selectedAssistant?.tools.some(
-        (tool) =>
-          tool.in_code_tool_id === "SearchTool" ||
-          tool.in_code_tool_id === "InternetSearchTool"
-      )
-    ? 0
-    : 0.7;
+          (tool) =>
+            tool.in_code_tool_id === "SearchTool" ||
+            tool.in_code_tool_id === "InternetSearchTool"
+        )
+      ? 0
+      : 0.7;
 
   const setSelectedAssistantFromId = (assistantId: number) => {
     // NOTE: also intentionally look through available assistants here, so that
@@ -1180,8 +1180,8 @@ export function ChatPage({
     const currentAssistantId = alternativeAssistantOverride
       ? alternativeAssistantOverride.id
       : alternativeAssistant
-      ? alternativeAssistant.id
-      : liveAssistant.id;
+        ? alternativeAssistant.id
+        : liveAssistant.id;
 
     resetInputBar();
     let messageUpdates: Message[] | null = null;
@@ -1932,7 +1932,7 @@ export function ChatPage({
   };
 
   const [allFolders, setAllFolders] = useState<UserFolder[]>([]);
-
+  const [allFiles, setAllFiles] = useState<UserFile[]>([]);
   useEffect(() => {
     const loadFileSystem = async () => {
       const res = await fetch("/api/user/file-system");
@@ -1942,13 +1942,20 @@ export function ChatPage({
         name: f.name,
         parent_id: f.parent_id,
       }));
+      const files = data.files.map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        parent_id: f.parent_id,
+      }));
 
       setAllFolders(folders);
+      setAllFiles(files);
     };
     loadFileSystem();
   }, []);
 
   const [folders, setFolders] = useState<UserFolder[]>([]);
+  const [userFiles, setUserFiles] = useState<UserFile[]>([]);
 
   const removeFolder = (folderId: number) => {
     setFolders((prev) => prev.filter((f) => f.id !== folderId));
@@ -1999,6 +2006,12 @@ export function ChatPage({
         <FilePicker
           allFolders={allFolders}
           setSelectedFolders={(folders) => setFolders(folders)}
+          setUserFiles={(userFiles) => {
+            setUserFiles(userFiles);
+            console.log("userFiles");
+            console.log(userFiles);
+          }}
+          allFiles={allFiles}
           isOpen={myDocumentsToggled}
           onClose={() => setMyDocumentsToggled(false)}
           onSave={() => {}}
@@ -2794,9 +2807,17 @@ export function ChatPage({
                             )}
 
                             <ChatInputBar
+                              removeUserFile={(userFileId) => {
+                                setUserFiles(
+                                  userFiles.filter(
+                                    (file) => file.id !== userFileId
+                                  )
+                                );
+                              }}
                               removeFilters={() => {
                                 setFiltersToggled(false);
                               }}
+                              userFiles={userFiles}
                               folders={folders}
                               removeFolder={removeFolder}
                               toggleMyDocuments={toggleMyDocuments}
@@ -2895,6 +2916,7 @@ export function ChatPage({
               )}
             </div>
           </div>
+
           <FixedLogo backgroundToggled={toggledSidebar || showHistorySidebar} />
         </div>
         {/* Right Sidebar - DocumentSidebar */}

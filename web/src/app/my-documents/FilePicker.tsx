@@ -32,6 +32,8 @@ interface FilePickerProps {
   allFolders: UserFolder[];
   setSelectedFolders: (folders: UserFolder[]) => void;
   onSave: (selectedItems: { files: number[]; folders: number[] }) => void;
+  allFiles: UserFile[];
+  setUserFiles: (files: UserFile[]) => void;
 }
 
 function buildTree(folders: UserFolder[], files: UserFile[]): FolderNode[] {
@@ -86,6 +88,15 @@ const FolderTreeItem: React.FC<{
       }
     });
   };
+  const handleFileSelect = (fileId: number) => {
+    setSelectedItems((prev) => {
+      if (prev.files.includes(fileId)) {
+        return { ...prev, files: prev.files.filter((id) => id !== fileId) };
+      } else {
+        return { ...prev, files: [...prev.files, fileId] };
+      }
+    });
+  };
 
   return (
     <li className="my-1">
@@ -120,16 +131,7 @@ const FolderTreeItem: React.FC<{
                 <Checkbox
                   checked={selectedItems.files.includes(file.id)}
                   onCheckedChange={() => {
-                    setSelectedItems((prev) => {
-                      if (prev.files.includes(file.id)) {
-                        return {
-                          ...prev,
-                          files: prev.files.filter((id) => id !== file.id),
-                        };
-                      } else {
-                        return { ...prev, files: [...prev.files, file.id] };
-                      }
-                    });
+                    handleFileSelect(file.id);
                   }}
                 />
                 <FileIcon className="ml-2 mr-1 h-5 w-5 text-gray-600" />
@@ -146,7 +148,9 @@ const FolderTreeItem: React.FC<{
 export const FilePicker: React.FC<FilePickerProps> = ({
   isOpen,
   setSelectedFolders,
+  setUserFiles,
   allFolders,
+  allFiles,
   onClose,
   onSave,
 }) => {
@@ -158,17 +162,6 @@ export const FilePicker: React.FC<FilePickerProps> = ({
     files: [],
     folders: [],
   });
-  //   useEffect(() => {
-  //     console.log(selectedItems.folders);
-  //     console.log(allFolders);
-  //     setSelectedFolders(
-  //       allFolders.filter((folder) => selectedItems.folders.includes(folder.id))
-  //     );
-  //     console.log("SELECTED FOLDRS");
-  //     console.log(
-  //       allFolders.filter((folder) => selectedItems.folders.includes(folder.id))
-  //     );
-  //   }, [selectedItems.folders]);
 
   useEffect(() => {
     if (isOpen) {
@@ -186,6 +179,10 @@ export const FilePicker: React.FC<FilePickerProps> = ({
     setSelectedFolders(
       allFolders.filter((folder) => selectedItems.folders.includes(folder.id))
     );
+    const selectedFiles = selectedItems.files
+      .map((fileId) => allFiles.find((file) => file.id === fileId))
+      .filter((file): file is UserFile => file !== undefined);
+    setUserFiles(selectedFiles);
     onSave(selectedItems);
     onClose();
   };

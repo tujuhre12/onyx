@@ -44,7 +44,7 @@ import { IconType } from "react-icons";
 import { LlmTab } from "../modal/configuration/LlmTab";
 import { FolderIcon, XIcon } from "lucide-react";
 import FiltersDisplay from "./FilterDisplay";
-import { UserFolder } from "@/app/my-documents/FilePicker";
+import { UserFolder, UserFile } from "@/app/my-documents/FilePicker";
 
 const MAX_INPUT_HEIGHT = 200;
 
@@ -75,15 +75,19 @@ interface ChatInputBarProps {
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
   toggleFilters?: () => void;
   toggleMyDocuments: () => void;
+  userFiles: UserFile[];
+  removeUserFile: (fileId: number) => void;
 }
 
 export function ChatInputBar({
+  removeUserFile,
   removeFilters,
   removeDocs,
   removeFolder,
   folders,
   openModelSettings,
   showDocs,
+  userFiles,
   showConfigureAPIKey,
   selectedDocuments,
   message,
@@ -346,9 +350,28 @@ export function ChatInputBar({
 
             {(selectedDocuments.length > 0 ||
               files.length > 0 ||
-              folders.length > 0) && (
+              folders.length > 0 ||
+              userFiles.length > 0) && (
               <div className="flex gap-x-2 px-2 pt-2">
                 <div className="flex gap-x-1 px-2 overflow-visible overflow-x-scroll items-end miniscroll">
+                  {userFiles.map((file) => (
+                    <div className="flex-none" key={file.id}>
+                      <button className="flex-none relative overflow-visible flex items-center gap-x-2 h-10 px-3 rounded-lg bg-background-150 hover:bg-background-200 transition-colors duration-300 cursor-pointer max-w-[150px]">
+                        <FileIcon size={20} />
+                        <span className="text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+                          {file.name}
+                        </span>
+                        <XIcon
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeUserFile(file.id);
+                          }}
+                          size={16}
+                          className="flex-none text-text-400 hover:text-text-600 ml-auto"
+                        />
+                      </button>
+                    </div>
+                  ))}
                   {folders.map((folder) => (
                     <button
                       key={folder.id}
