@@ -1,7 +1,6 @@
 from collections.abc import Hashable
 from typing import Literal
 
-from langgraph.graph import END
 from langgraph.types import Send
 
 from onyx.agent_search.answer_question.states import AnswerQuestionInput
@@ -27,7 +26,7 @@ def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hasha
                     question_nr=question_nr,
                 ),
             )
-            for question_nr, question in state["initial_decomp_questions"].items()
+            for question_nr, question in enumerate(state["initial_decomp_questions"])
         ]
 
     else:
@@ -58,11 +57,11 @@ def send_to_initial_retrieval(state: MainInput) -> list[Send | Hashable]:
 # Define the function that determines whether to continue or not
 def continue_to_refined_answer_or_end(
     state: RequireRefinedAnswerUpdate,
-) -> Literal["follow_up_decompose", "END"]:
+) -> Literal["follow_up_decompose", "logging_node"]:
     if state["require_refined_answer"]:
         return "follow_up_decompose"
     else:
-        return END
+        return "logging_node"
 
 
 def parallelize_follow_up_answer_queries(state: MainState) -> list[Send | Hashable]:

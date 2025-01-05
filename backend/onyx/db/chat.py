@@ -15,6 +15,7 @@ from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import Session
 
+from onyx.agent_search.main.models import CombinedAgentMetrics
 from onyx.auth.schemas import UserRole
 from onyx.chat.models import DocumentRelevance
 from onyx.configs.chat_configs import HARD_DELETE_CHATS
@@ -22,6 +23,7 @@ from onyx.configs.constants import MessageType
 from onyx.context.search.models import RetrievalDocs
 from onyx.context.search.models import SavedSearchDoc
 from onyx.context.search.models import SearchDoc as ServerSearchDoc
+from onyx.db.models import AgentSearchMetrics
 from onyx.db.models import ChatMessage
 from onyx.db.models import ChatMessage__SearchDoc
 from onyx.db.models import ChatSession
@@ -863,3 +865,34 @@ def translate_db_message_to_chat_message_detail(
     )
 
     return chat_msg_detail
+
+
+def log_agent_metrics(
+    db_session: Session,
+    user_id: UUID | None,
+    persona_id: int | None,  # Can be none if temporary persona is used
+    agent_type: str,
+    start_time: datetime,
+    agent_metrics: CombinedAgentMetrics,
+) -> AgentSearchMetrics:
+    agent_timings = agent_metrics.timings
+    agent_base_metrics = agent_metrics.base_metrics
+    agent_refined_metrics = agent_metrics.refined_metrics
+    agent_additional_metrics = agent_metrics.additional_metrics
+
+    agent_metric_tracking = AgentSearchMetrics(
+        user_id=user_id,
+        persona_id=persona_id,
+        agent_type=agent_type,
+        start_time=start_time,
+        base_duration_s=agent_timings.base_duration_s,
+        full_duration_s=agent_timings.full_duration_s,
+        base_metrics=vars(agent_base_metrics),
+        refined_metrics=vars(agent_refined_metrics),
+        all_metrics=vars(agent_additional_metrics),
+    )
+
+    db_session.add(agent_metric_tracking)
+    db_session.commit()
+
+    return agent_metric_tracking

@@ -40,6 +40,31 @@ BASE_RAG_PROMPT = """ \n
     \n--\n {question} \n--\n
     """
 
+BASE_RAG_PROMPT_v2 = """ \n
+    Use the context provided below - and only the
+    provided context - to answer the given question. (Note that the answer is in service of anserwing a broader
+    question, given below as 'motivation'.)
+
+    Again, only use the provided context and do not use your internal knowledge! If you cannot answer the
+    question based on the context, say "I don't know". It is a matter of life and death that you do NOT
+    use your internal knowledge, just the provided information!
+
+    Make sure that you keep all relevant information, specifically as it concerns to the ultimate goal.
+    (But keep other details as well.)
+
+    Remember to provide inline citations in the format [1], [2], [3], etc.\n\n\n
+
+    For your general information, here is the ultimate motivation:
+    \n--\n {original_question} \n--\n
+    \n\n
+    And here is the actual question I want you to answer based on the context above (with the motivation in mind):
+    \n--\n {question} \n--\n
+
+    Here is the context:
+    \n\n\n--\n {context} \n--\n
+    """
+
+
 SUB_CHECK_PROMPT = """
     Your task is to see whether a given answer addresses a given question.
     Please do not use any internal knowledge you may have - just focus on whether the answer
@@ -507,7 +532,7 @@ And here is the question I want you to answer based on the information above:
 Answer:"""
 
 # sub_question_answer_str is empty
-INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS = """{sub_question_answer_str}
+INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS = """{answered_sub_questions}
 {persona_specification}
 Use the information provided below
 - and only the provided information - to answer the provided question.

@@ -1598,6 +1598,25 @@ class PGFileStore(Base):
     lobj_oid: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
+class AgentSearchMetrics(Base):
+    __tablename__ = "agent_search_metrics"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), nullable=True
+    )
+    persona_id: Mapped[int | None] = mapped_column(
+        ForeignKey("persona.id"), nullable=True
+    )
+    agent_type: Mapped[str] = mapped_column(String)
+    start_time: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
+    base_duration_s: Mapped[float] = mapped_column(Float)
+    full_duration_s: Mapped[float] = mapped_column(Float)
+    base_metrics: Mapped[JSON_ro] = mapped_column(postgresql.JSONB(), nullable=True)
+    refined_metrics: Mapped[JSON_ro] = mapped_column(postgresql.JSONB(), nullable=True)
+    all_metrics: Mapped[JSON_ro] = mapped_column(postgresql.JSONB(), nullable=True)
+
+
 """
 ************************************************************************
 Enterprise Edition Models

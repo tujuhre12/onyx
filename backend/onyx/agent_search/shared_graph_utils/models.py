@@ -48,5 +48,5 @@ class InitialAgentResultStats(BaseModel):
 
 
 class RefinedAgentStats(BaseModel):
-    revision_doc_efficiency: float | int | None
-    revision_question_efficiency: float | int | None
+    revision_doc_efficiency: float | None
+    revision_question_efficiency: float | None

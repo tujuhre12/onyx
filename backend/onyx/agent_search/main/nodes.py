@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import datetime
 
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_message_runs
@@ -7,6 +8,11 @@ from langchain_core.messages import merge_message_runs
 from onyx.agent_search.answer_question.states import AnswerQuestionOutput
 from onyx.agent_search.answer_question.states import QuestionAnswerResults
 from onyx.agent_search.base_raw_search.states import BaseRawSearchOutput
+from onyx.agent_search.main.models import AgentAdditionalMetrics
+from onyx.agent_search.main.models import AgentBaseMetrics
+from onyx.agent_search.main.models import AgentRefinedMetrics
+from onyx.agent_search.main.models import AgentTimings
+from onyx.agent_search.main.models import CombinedAgentMetrics
 from onyx.agent_search.main.models import Entity
 from onyx.agent_search.main.models import EntityRelationshipTermExtraction
 from onyx.agent_search.main.models import FollowUpSubQuestion
@@ -21,9 +27,8 @@ from onyx.agent_search.main.states import FollowUpSubQuestionsUpdate
 from onyx.agent_search.main.states import InitialAnswerBASEUpdate
 from onyx.agent_search.main.states import InitialAnswerQualityUpdate
 from onyx.agent_search.main.states import InitialAnswerUpdate
+from onyx.agent_search.main.states import MainOutput
 from onyx.agent_search.main.states import MainState
-from onyx.agent_search.main.states import RefinedAnswerInput
-from onyx.agent_search.main.states import RefinedAnswerOutput
 from onyx.agent_search.main.states import RefinedAnswerUpdate
 from onyx.agent_search.main.states import RequireRefinedAnswerUpdate
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
@@ -51,12 +56,15 @@ from onyx.agent_search.shared_graph_utils.utils import clean_and_parse_list_stri
 from onyx.agent_search.shared_graph_utils.utils import format_docs
 from onyx.agent_search.shared_graph_utils.utils import format_entity_term_extraction
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
+from onyx.db.chat import log_agent_metrics
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
 
 
 def main_decomp_base(state: MainState) -> BaseDecompUpdate:
+    agent_start_time = datetime.now()
+
     question = state["search_request"].query
     get_persona_prompt(state["search_request"].persona)
 
@@ -79,6 +87,7 @@ def main_decomp_base(state: MainState) -> BaseDecompUpdate:
 
     return BaseDecompUpdate(
         initial_decomp_questions=decomp_list,
+        agent_start_time=agent_start_time,
     )
 
 
@@ -201,7 +210,10 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
                 )
             )
 
-    sub_question_answer_str = "\n\n------\n\n".join(good_qa_list)
+    if len(good_qa_list) > 0:
+        sub_question_answer_str = "\n\n------\n\n".join(good_qa_list)
+    else:
+        sub_question_answer_str = ""
 
     # Determine which persona-specification prompt to use
 
@@ -247,10 +259,37 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
         logger.info(initial_agent_stats.agent_effectiveness)
     logger.info("\n\n ---INITIAL AGENT ANSWER  END---\n\n")
 
+    agent_base_end_time = datetime.now()
+
+    agent_base_metrics = AgentBaseMetrics(
+        num_verified_documents_total=len(relevant_docs),
+        num_verified_documents_core=state[
+            "original_question_retrieval_stats"
+        ].verified_count,
+        verified_avg_score_core=state[
+            "original_question_retrieval_stats"
+        ].verified_avg_scores,
+        num_verified_documents_base=initial_agent_stats.sub_questions.get(
+            "num_verified_documents", None
+        ),
+        verified_avg_score_base=initial_agent_stats.sub_questions.get(
+            "verified_avg_score", None
+        ),
+        base_doc_boost_factor=initial_agent_stats.agent_effectiveness.get(
+            "utilized_chunk_ratio", None
+        ),
+        support_boost_factor=initial_agent_stats.agent_effectiveness.get(
+            "support_ratio", None
+        ),
+        duration_s=(agent_base_end_time - state["agent_start_time"]).total_seconds(),
+    )
+
     return InitialAnswerUpdate(
         initial_answer=answer,
         initial_agent_stats=initial_agent_stats,
         generated_sub_questions=decomp_questions,
+        agent_base_end_time=agent_base_end_time,
+        agent_base_metrics=agent_base_metrics,
     )
 
 
@@ -471,9 +510,14 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     total_good_sub_questions = list(
         set(initial_good_sub_questions + new_revised_good_sub_questions)
     )
-    revision_question_efficiency = len(total_good_sub_questions) / len(
-        initial_good_sub_questions
-    )
+    if len(initial_good_sub_questions) > 0:
+        revision_question_efficiency: float = len(total_good_sub_questions) / len(
+            initial_good_sub_questions
+        )
+    elif len(new_revised_good_sub_questions) > 0:
+        revision_question_efficiency: float = 10.0
+    else:
+        revision_question_efficiency: float = 1.0
 
     sub_question_answer_str = "\n\n------\n\n".join(list(set(good_qa_list)))
 
@@ -585,15 +629,30 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
 
     logger.info("\n\n ---INITIAL AGENT ANSWER  END---\n\n")
 
+    agent_refined_end_time = datetime.now()
+    agent_refined_duration = (
+        agent_refined_end_time - state["agent_refined_start_time"]
+    ).total_seconds()
+
+    agent_refined_metrics = AgentRefinedMetrics(
+        refined_doc_boost_factor=refined_agent_stats.revision_doc_efficiency,
+        refined_question_boost_factor=refined_agent_stats.revision_question_efficiency,
+        duration_s=agent_refined_duration,
+    )
+
     return RefinedAnswerUpdate(
         refined_answer=answer,
         refined_answer_quality=True,  # TODO: replace this with the actual check value
         refined_agent_stats=refined_agent_stats,
+        agent_refined_end_time=agent_refined_end_time,
+        agent_refined_metrics=agent_refined_metrics,
     )
 
 
 def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
     """ """
+
+    agent_refined_start_time = datetime.now()
 
     question = state["search_request"].query
     base_answer = state["initial_answer"]
@@ -651,7 +710,8 @@ def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
         follow_up_sub_question_dict[sub_question_nr] = follow_up_sub_question
 
     return FollowUpSubQuestionsUpdate(
-        follow_up_sub_questions=follow_up_sub_question_dict
+        follow_up_sub_questions=follow_up_sub_question_dict,
+        agent_refined_start_time=agent_refined_start_time,
     )
 
 
@@ -670,6 +730,74 @@ def ingest_follow_up_answers(
     )
 
 
-def dummy_node(state: RefinedAnswerInput) -> RefinedAnswerOutput:
-    logger.info("---DUMMY NODE---")
-    return {"dummy_output": "this is a dummy output"}
+def logging_node(state: MainState) -> MainOutput:
+    logger.info("---LOGGING NODE---")
+
+    agent_start_time = state["agent_start_time"]
+    agent_base_end_time = state["agent_base_end_time"]
+    agent_refined_start_time = state["agent_refined_start_time"]
+    agent_refined_end_time = state["agent_refined_end_time"]
+    agent_end_time = max(agent_base_end_time, agent_refined_end_time)
+
+    if agent_base_end_time:
+        agent_base_duration = (agent_base_end_time - agent_start_time).total_seconds()
+    else:
+        agent_base_duration = None
+
+    if agent_refined_end_time:
+        agent_refined_duration = (
+            agent_refined_end_time - agent_refined_start_time
+        ).total_seconds()
+    else:
+        agent_refined_duration = None
+
+    if agent_end_time:
+        agent_full_duration = (agent_end_time - agent_start_time).total_seconds()
+    else:
+        agent_full_duration = None
+
+    if agent_refined_duration:
+        agent_type = "refined"
+    else:
+        agent_type = "base"
+
+    agent_base_metrics = state["agent_base_metrics"]
+    agent_refined_metrics = state["agent_refined_metrics"]
+
+    combined_agent_metrics = CombinedAgentMetrics(
+        timings=AgentTimings(
+            base_duration_s=agent_base_duration,
+            refined_duration_s=agent_refined_duration,
+            full_duration_s=agent_full_duration,
+        ),
+        base_metrics=agent_base_metrics,
+        refined_metrics=agent_refined_metrics,
+        additional_metrics=AgentAdditionalMetrics(),
+    )
+
+    if state["search_request"].persona:
+        persona_id = state["search_request"].persona.id
+    else:
+        persona_id = None
+
+    if "user" in state:
+        if state["user"]:
+            user_id = state["user"].id
+        else:
+            user_id = None
+    else:
+        user_id = None
+
+    # log the agent metrics
+    log_agent_metrics(
+        db_session=state["db_session"],
+        user_id=user_id,
+        persona_id=persona_id,
+        agent_type=agent_type,
+        start_time=agent_start_time,
+        agent_metrics=combined_agent_metrics,
+    )
+
+    main_output = MainOutput()
+
+    return main_output

@@ -121,6 +121,7 @@ if __name__ == "__main__":
     primary_llm, fast_llm = get_default_llms()
     search_request = SearchRequest(
         query="What are the guiding principles behind the development of cockroachDB?",
+        # query="What are the tempereatures in Munich and New York?",
     )
     for output in run_graph(compiled_graph, search_request, primary_llm, fast_llm):
         logger.debug(output)

@@ -20,6 +20,7 @@ from onyx.agent_search.main.nodes import ingest_answers
 from onyx.agent_search.main.nodes import ingest_follow_up_answers
 from onyx.agent_search.main.nodes import ingest_initial_retrieval
 from onyx.agent_search.main.nodes import initial_answer_quality_check
+from onyx.agent_search.main.nodes import logging_node
 from onyx.agent_search.main.nodes import main_decomp_base
 from onyx.agent_search.main.nodes import refined_answer_decision
 from onyx.agent_search.main.states import MainInput
@@ -382,6 +383,11 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
             node="refined_answer_decision",
             action=refined_answer_decision,
         )
+
+        graph.add_node(
+            node="logging_node",
+            action=logging_node,
+        )
         # if test_mode:
         #     graph.add_node(
         #         node="generate_initial_base_answer",
@@ -434,7 +440,7 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
         graph.add_conditional_edges(
             source="refined_answer_decision",
             path=continue_to_refined_answer_or_end,
-            path_map=["follow_up_decompose", END],
+            path_map=["follow_up_decompose", "logging_node"],
         )
 
         graph.add_conditional_edges(
@@ -462,8 +468,14 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
         #     start_key="refined_answer_subgraph",
         #     end_key="generate_refined_answer",
         # )
+
         graph.add_edge(
             start_key="generate_refined_answer",
+            end_key="logging_node",
+        )
+
+        graph.add_edge(
+            start_key="logging_node",
             end_key=END,
         )
 
