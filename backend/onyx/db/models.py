@@ -1151,7 +1151,8 @@ class SubQuestion(Base):
     time_created: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    answer: Mapped[str] = mapped_column(Text)
+    sub_answer: Mapped[str] = mapped_column(Text)
+    sub_question_doc_results: Mapped[JSON_ro] = mapped_column(postgresql.JSONB())
 
     # Relationships
     primary_message: Mapped["ChatMessage"] = relationship(

@@ -30,6 +30,7 @@ def upgrade() -> None:
         sa.Column(
             "time_created", sa.DateTime(timezone=True), server_default=sa.func.now()
         ),
+        sa.Column("sub_answer", sa.Text),
     )
 
     # Create sub_query table

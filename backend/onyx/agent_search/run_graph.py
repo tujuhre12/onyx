@@ -17,6 +17,7 @@ from onyx.chat.models import ProSearchConfig
 from onyx.chat.models import SubQuestion
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
+from onyx.db.persona import get_persona_by_id
 from onyx.llm.interfaces import LLM
 from onyx.tools.models import ToolResponse
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
@@ -143,14 +144,17 @@ if __name__ == "__main__":
     compiled_graph = graph.compile()
     primary_llm, fast_llm = get_default_llms()
     search_request = SearchRequest(
-        query="what can you do with gitlab?",
+        # query="what can you do with gitlab?",
+        query="What are the guiding principles behind the development of cockroachDB?",
     )
     # Joachim custom persona
-    # search_request.persona = get_persona_by_id(1, None, db_session)
+
     with get_session_context_manager() as db_session:
         config, search_tool = get_test_config(
             db_session, primary_llm, fast_llm, search_request
         )
+
+        search_request.persona = get_persona_by_id(1, None, db_session)
 
         with open("output.txt", "w") as f:
             tool_responses = []

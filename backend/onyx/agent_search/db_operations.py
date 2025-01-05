@@ -11,12 +11,14 @@ def create_sub_question(
     chat_session_id: UUID,
     primary_message_id: int,
     sub_question: str,
+    sub_answer: str,
 ) -> SubQuestion:
     """Create a new sub-question record in the database."""
     sub_q = SubQuestion(
         chat_session_id=chat_session_id,
         primary_question_id=primary_message_id,
         sub_question=sub_question,
+        sub_answer=sub_answer,
     )
     db_session.add(sub_q)
     db_session.flush()
