@@ -5,8 +5,26 @@ from collections.abc import Sequence
 from datetime import datetime
 from datetime import timedelta
 from typing import Any
+from uuid import UUID
 
+from sqlalchemy.orm import Session
+
+from onyx.chat.models import AnswerStyleConfig
+from onyx.chat.models import CitationConfig
+from onyx.chat.models import DocumentPruningConfig
+from onyx.chat.models import PromptConfig
+from onyx.chat.models import ProSearchConfig
+from onyx.configs.chat_configs import CHAT_TARGET_CHUNK_PERCENTAGE
+from onyx.configs.chat_configs import MAX_CHUNKS_FED_TO_CHAT
+from onyx.configs.constants import DEFAULT_PERSONA_ID
+from onyx.context.search.enums import LLMEvaluationType
 from onyx.context.search.models import InferenceSection
+from onyx.context.search.models import RetrievalDetails
+from onyx.context.search.models import SearchRequest
+from onyx.db.persona import get_persona_by_id
+from onyx.llm.interfaces import LLM
+from onyx.tools.tool_constructor import SearchToolConfig
+from onyx.tools.tool_implementations.search.search_tool import SearchTool
 
 
 def normalize_whitespace(text: str) -> str:
@@ -99,3 +117,70 @@ def generate_log_message(
     node_time_str = _format_time_delta(current_time - node_start_time)
 
     return f"{graph_time_str} ({node_time_str} s): {message}"
+
+
+def get_test_config(
+    db_session: Session, primary_llm: LLM, fast_llm: LLM, search_request: SearchRequest
+) -> tuple[ProSearchConfig, SearchTool]:
+    persona = get_persona_by_id(DEFAULT_PERSONA_ID, None, db_session)
+    document_pruning_config = DocumentPruningConfig(
+        max_chunks=int(
+            persona.num_chunks
+            if persona.num_chunks is not None
+            else MAX_CHUNKS_FED_TO_CHAT
+        ),
+        max_window_percentage=CHAT_TARGET_CHUNK_PERCENTAGE,
+    )
+
+    answer_style_config = AnswerStyleConfig(
+        citation_config=CitationConfig(
+            # The docs retrieved by this flow are already relevance-filtered
+            all_docs_useful=True
+        ),
+        document_pruning_config=document_pruning_config,
+        structured_response_format=None,
+    )
+
+    search_tool_config = SearchToolConfig(
+        answer_style_config=answer_style_config,
+        document_pruning_config=document_pruning_config,
+        retrieval_options=RetrievalDetails(),  # may want to set dedupe_docs=True
+        rerank_settings=None,  # Can use this to change reranking model
+        selected_sections=None,
+        latest_query_files=None,
+        bypass_acl=False,
+    )
+
+    prompt_config = PromptConfig.from_model(persona.prompts[0])
+
+    search_tool = SearchTool(
+        db_session=db_session,
+        user=None,
+        persona=persona,
+        retrieval_options=search_tool_config.retrieval_options,
+        prompt_config=prompt_config,
+        llm=primary_llm,
+        fast_llm=fast_llm,
+        pruning_config=search_tool_config.document_pruning_config,
+        answer_style_config=search_tool_config.answer_style_config,
+        selected_sections=search_tool_config.selected_sections,
+        chunks_above=search_tool_config.chunks_above,
+        chunks_below=search_tool_config.chunks_below,
+        full_doc=search_tool_config.full_doc,
+        evaluation_type=(
+            LLMEvaluationType.BASIC
+            if persona.llm_relevance_filter
+            else LLMEvaluationType.SKIP
+        ),
+        rerank_settings=search_tool_config.rerank_settings,
+        bypass_acl=search_tool_config.bypass_acl,
+    )
+
+    config = ProSearchConfig(
+        search_request=search_request,
+        chat_session_id=UUID("123e4567-e89b-12d3-a456-426614174000"),
+        message_id=1,
+        use_persistence=False,
+    )
+
+    return config, search_tool

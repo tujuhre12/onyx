@@ -12,6 +12,7 @@ from onyx.agent_search.expanded_retrieval.nodes import verification_kickoff
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalInput
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalOutput
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalState
+from onyx.agent_search.shared_graph_utils.utils import get_test_config
 
 
 def expanded_retrieval_graph_builder() -> StateGraph:
@@ -91,10 +92,19 @@ if __name__ == "__main__":
     search_request = SearchRequest(
         query="what can you do with onyx or danswer?",
     )
+
     with get_session_context_manager() as db_session:
+        pro_search_config, search_tool = get_test_config(
+            db_session, primary_llm, fast_llm, search_request
+        )
         inputs = ExpandedRetrievalInput(
             question="what can you do with onyx?",
             base_search=False,
+            subgraph_fast_llm=fast_llm,
+            subgraph_primary_llm=primary_llm,
+            subgraph_db_session=db_session,
+            subgraph_config=pro_search_config,
+            subgraph_search_tool=search_tool,
         )
         for thing in compiled_graph.stream(
             input=inputs,

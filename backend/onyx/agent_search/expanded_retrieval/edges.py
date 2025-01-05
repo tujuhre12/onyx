@@ -8,7 +8,7 @@ from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalState
 
 
 def parallel_retrieval_edge(state: ExpandedRetrievalState) -> list[Send | Hashable]:
-    question = state.get("question", state["subgraph_search_request"].query)
+    question = state.get("question", state["subgraph_config"].search_request.query)
 
     query_expansions = state.get("expanded_queries", []) + [question]
     return [

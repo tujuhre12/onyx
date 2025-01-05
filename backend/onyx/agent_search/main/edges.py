@@ -5,19 +5,28 @@ from langgraph.types import Send
 from onyx.agent_search.answer_question.states import AnswerQuestionInput
 from onyx.agent_search.answer_question.states import AnswerQuestionOutput
 from onyx.agent_search.core_state import extract_core_fields_for_subgraph
-from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalInput
-from onyx.agent_search.main.states import MainInput
 from onyx.agent_search.main.states import MainState
 
 
 def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hashable]:
     if len(state["initial_decomp_questions"]) > 0:
+        # sub_question_record_ids = [subq_record.id for subq_record in state["sub_question_records"]]
+        # if len(state["sub_question_records"]) == 0:
+        #     if state["config"].use_persistence:
+        #         raise ValueError("No sub-questions found for initial decompozed questions")
+        #     else:
+        #         # in this case, we are doing retrieval on the original question.
+        #         # to make all the logic consistent, we create a new sub-question
+        #         # with the same content as the original question
+        #         sub_question_record_ids = [1] * len(state["initial_decomp_questions"])
+
         return [
             Send(
                 "answer_query",
                 AnswerQuestionInput(
                     **extract_core_fields_for_subgraph(state),
                     question=question,
+                    # sub_question_id=sub_question_record_id,
                 ),
             )
             for question in state["initial_decomp_questions"]
@@ -32,20 +41,6 @@ def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hasha
                 ),
             )
         ]
-
-
-def send_to_initial_retrieval(state: MainInput) -> list[Send | Hashable]:
-    print("sending to initial retrieval via edge")
-    return [
-        Send(
-            "initial_retrieval",
-            ExpandedRetrievalInput(
-                question=state["search_request"].query,
-                **extract_core_fields_for_subgraph(state),
-                base_search=False,
-            ),
-        )
-    ]
 
 
 # def continue_to_answer_sub_questions(state: QAState) -> Union[Hashable, list[Hashable]]:

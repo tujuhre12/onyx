@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -16,6 +17,7 @@ from onyx.context.search.enums import QueryFlow
 from onyx.context.search.enums import RecencyBiasSetting
 from onyx.context.search.enums import SearchType
 from onyx.context.search.models import RetrievalDocs
+from onyx.context.search.models import SearchRequest
 from onyx.llm.override_models import PromptOverride
 from onyx.tools.models import ToolCallFinalResult
 from onyx.tools.models import ToolCallKickoff
@@ -204,6 +206,22 @@ class PersonaOverrideConfig(BaseModel):
     custom_tools_openapi: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class ProSearchConfig(BaseModel):
+    """
+    Configuration for the Pro Search feature.
+    """
+
+    # For persisting agent search data
+    chat_session_id: UUID | None = None
+    # The message ID of the user message that triggered the Pro Search
+    message_id: int | None = None
+    # The search request that was used to generate the Pro Search
+    search_request: SearchRequest
+
+    # Whether to persistence data for the Pro Search (turned off for testing)
+    use_persistence: bool = True
+
+
 AnswerQuestionPossibleReturn = (
     OnyxAnswerPiece
     | CitationInfo
@@ -331,19 +349,23 @@ ResponsePart = (
 
 class SubQuery(BaseModel):
     sub_query: str
+    sub_question_id: int
 
 
 class SubAnswer(BaseModel):
     sub_answer: str
+    sub_question_id: int
 
 
 class SubQuestion(BaseModel):
-    question_id: str
+    question_id: int
     sub_question: str
 
 
 ProSearchPacket = SubQuestion | SubAnswer | SubQuery
 
-AnswerPacket = AnswerQuestionPossibleReturn | ToolCallKickoff | ToolResponse
+AnswerPacket = (
+    AnswerQuestionPossibleReturn | ProSearchPacket | ToolCallKickoff | ToolResponse
+)
 
 AnswerStream = Iterator[AnswerPacket]

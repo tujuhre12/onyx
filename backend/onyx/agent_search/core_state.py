@@ -5,7 +5,7 @@ from typing import TypeVar
 
 from sqlalchemy.orm import Session
 
-from onyx.context.search.models import SearchRequest
+from onyx.chat.models import ProSearchConfig
 from onyx.llm.interfaces import LLM
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
 
@@ -15,7 +15,7 @@ class CoreState(TypedDict, total=False):
     This is the core state that is shared across all subgraphs.
     """
 
-    search_request: SearchRequest
+    config: ProSearchConfig
     primary_llm: LLM
     fast_llm: LLM
     # a single session for the entire agent search
@@ -30,7 +30,7 @@ class SubgraphCoreState(TypedDict, total=False):
     This is the core state that is shared across all subgraphs.
     """
 
-    subgraph_search_request: SearchRequest
+    subgraph_config: ProSearchConfig
     subgraph_primary_llm: LLM
     subgraph_fast_llm: LLM
     # a single session for the entire agent search

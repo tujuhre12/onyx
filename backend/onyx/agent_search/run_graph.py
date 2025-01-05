@@ -5,29 +5,24 @@ from typing import cast
 
 from langchain_core.runnables.schema import StreamEvent
 from langgraph.graph.state import CompiledStateGraph
+from sqlalchemy.orm import Session
 
 from onyx.agent_search.main.graph_builder import main_graph_builder
 from onyx.agent_search.main.states import MainInput
+from onyx.agent_search.shared_graph_utils.utils import get_test_config
 from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
-from onyx.chat.models import AnswerStyleConfig
-from onyx.chat.models import CitationConfig
-from onyx.chat.models import DocumentPruningConfig
 from onyx.chat.models import OnyxAnswerPiece
-from onyx.chat.models import PromptConfig
-from onyx.configs.chat_configs import CHAT_TARGET_CHUNK_PERCENTAGE
-from onyx.configs.chat_configs import MAX_CHUNKS_FED_TO_CHAT
-from onyx.configs.constants import DEFAULT_PERSONA_ID
-from onyx.context.search.enums import LLMEvaluationType
-from onyx.context.search.models import RetrievalDetails
+from onyx.chat.models import ProSearchConfig
+from onyx.chat.models import SubQuestion
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
-from onyx.db.persona import get_persona_by_id
 from onyx.llm.interfaces import LLM
 from onyx.tools.models import ToolResponse
-from onyx.tools.tool_constructor import SearchToolConfig
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
 from onyx.tools.tool_runner import ToolCallKickoff
+
+_COMPILED_GRAPH: CompiledStateGraph | None = None
 
 
 def _parse_agent_event(
@@ -43,11 +38,14 @@ def _parse_agent_event(
     if event_type == "on_custom_event":
         # TODO: different AnswerStream types for different events
         if event["name"] == "decomp_qs":
-            return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
+            # return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
+            return cast(SubQuestion, event["data"])
         elif event["name"] == "subqueries":
-            return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
+            # return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
+            return None
         elif event["name"] == "sub_answers":
-            return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
+            # return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
+            return None
         elif event["name"] == "main_answer":
             return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
         elif event["name"] == "tool_response":
@@ -92,40 +90,51 @@ def _manage_async_event_streaming(
 
 def run_graph(
     compiled_graph: CompiledStateGraph,
-    search_request: SearchRequest,
+    config: ProSearchConfig,
     search_tool: SearchTool,
     primary_llm: LLM,
     fast_llm: LLM,
+    db_session: Session,
 ) -> AnswerStream:
-    with get_session_context_manager() as db_session:
-        input = MainInput(
-            search_request=search_request,
-            primary_llm=primary_llm,
-            fast_llm=fast_llm,
-            db_session=db_session,
-            search_tool=search_tool,
-        )
-        for event in _manage_async_event_streaming(
-            compiled_graph=compiled_graph, graph_input=input
-        ):
-            if parsed_object := _parse_agent_event(event):
-                yield parsed_object
+    input = MainInput(
+        config=config,
+        primary_llm=primary_llm,
+        fast_llm=fast_llm,
+        db_session=db_session,
+        search_tool=search_tool,
+    )
+    for event in _manage_async_event_streaming(
+        compiled_graph=compiled_graph, graph_input=input
+    ):
+        if parsed_object := _parse_agent_event(event):
+            yield parsed_object
+
+
+# TODO: call this once on startup, TBD where and if it should be gated based
+# on dev mode or not
+def load_compiled_graph() -> CompiledStateGraph:
+    global _COMPILED_GRAPH
+    if _COMPILED_GRAPH is None:
+        graph = main_graph_builder()
+        _COMPILED_GRAPH = graph.compile()
+    return _COMPILED_GRAPH
 
 
 def run_main_graph(
-    search_request: SearchRequest,
+    config: ProSearchConfig,
     search_tool: SearchTool,
     primary_llm: LLM,
     fast_llm: LLM,
+    db_session: Session,
 ) -> AnswerStream:
-    graph = main_graph_builder()
-    compiled_graph = graph.compile()
-    return run_graph(compiled_graph, search_request, search_tool, primary_llm, fast_llm)
+    compiled_graph = load_compiled_graph()
+    return run_graph(
+        compiled_graph, config, search_tool, primary_llm, fast_llm, db_session
+    )
 
 
 if __name__ == "__main__":
     from onyx.llm.factory import get_default_llms
-    from onyx.context.search.models import SearchRequest
 
     graph = main_graph_builder()
     compiled_graph = graph.compile()
@@ -134,64 +143,14 @@ if __name__ == "__main__":
         query="what can you do with gitlab?",
     )
     with get_session_context_manager() as db_session:
-        persona = get_persona_by_id(DEFAULT_PERSONA_ID, None, db_session)
-        document_pruning_config = DocumentPruningConfig(
-            max_chunks=int(
-                persona.num_chunks
-                if persona.num_chunks is not None
-                else MAX_CHUNKS_FED_TO_CHAT
-            ),
-            max_window_percentage=CHAT_TARGET_CHUNK_PERCENTAGE,
-        )
-
-        answer_style_config = AnswerStyleConfig(
-            citation_config=CitationConfig(
-                # The docs retrieved by this flow are already relevance-filtered
-                all_docs_useful=True
-            ),
-            document_pruning_config=document_pruning_config,
-            structured_response_format=None,
-        )
-
-        search_tool_config = SearchToolConfig(
-            answer_style_config=answer_style_config,
-            document_pruning_config=document_pruning_config,
-            retrieval_options=RetrievalDetails(),  # may want to set dedupe_docs=True
-            rerank_settings=None,  # Can use this to change reranking model
-            selected_sections=None,
-            latest_query_files=None,
-            bypass_acl=False,
-        )
-
-        prompt_config = PromptConfig.from_model(persona.prompts[0])
-
-        search_tool = SearchTool(
-            db_session=db_session,
-            user=None,
-            persona=persona,
-            retrieval_options=search_tool_config.retrieval_options,
-            prompt_config=prompt_config,
-            llm=primary_llm,
-            fast_llm=fast_llm,
-            pruning_config=search_tool_config.document_pruning_config,
-            answer_style_config=search_tool_config.answer_style_config,
-            selected_sections=search_tool_config.selected_sections,
-            chunks_above=search_tool_config.chunks_above,
-            chunks_below=search_tool_config.chunks_below,
-            full_doc=search_tool_config.full_doc,
-            evaluation_type=(
-                LLMEvaluationType.BASIC
-                if persona.llm_relevance_filter
-                else LLMEvaluationType.SKIP
-            ),
-            rerank_settings=search_tool_config.rerank_settings,
-            bypass_acl=search_tool_config.bypass_acl,
+        config, search_tool = get_test_config(
+            db_session, primary_llm, fast_llm, search_request
         )
 
         with open("output.txt", "w") as f:
             tool_responses = []
             for output in run_graph(
-                compiled_graph, search_request, search_tool, primary_llm, fast_llm
+                compiled_graph, config, search_tool, primary_llm, fast_llm, db_session
             ):
                 if isinstance(output, OnyxAnswerPiece):
                     f.write(str(output.answer_piece) + "|")

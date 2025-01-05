@@ -25,12 +25,30 @@ from onyx.agent_search.shared_graph_utils.prompts import INITIAL_RAG_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import (
     INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS,
 )
-from onyx.agent_search.shared_graph_utils.utils import clean_and_parse_list_string
 from onyx.agent_search.shared_graph_utils.utils import format_docs
+from onyx.chat.models import SubQuestion
+
+
+def dispatch_subquestion(sub_question_part: str, subq_id: int) -> None:
+    dispatch_custom_event(
+        "decomp_qs",
+        SubQuestion(
+            sub_question=sub_question_part,
+            question_id=subq_id,
+        ),
+    )
 
 
 def main_decomp_base(state: MainState) -> BaseDecompUpdate:
-    question = state["search_request"].query
+    question = state["config"].search_request.query
+    state["db_session"]
+    chat_session_id = state["config"].chat_session_id
+    primary_message_id = state["config"].message_id
+
+    if not chat_session_id or not primary_message_id:
+        raise ValueError(
+            "chat_session_id and message_id must be provided for agent search"
+        )
 
     msg = [
         HumanMessage(
@@ -41,12 +59,18 @@ def main_decomp_base(state: MainState) -> BaseDecompUpdate:
     # Get the rewritten queries in a defined format
     model = state["fast_llm"]
     streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
+    subq_id = 1
     for message in model.stream(msg):
-        dispatch_custom_event(
-            "decomp_qs",
-            message.content,
-        )
-        streamed_tokens.append(message.content)
+        content = cast(str, message.content)
+        if "\n" in content:
+            for sub_question_part in content.split("\n"):
+                dispatch_subquestion(sub_question_part, subq_id)
+                subq_id += 1
+            subq_id -= 1  # fencepost; extra increment at end of loop
+        else:
+            dispatch_subquestion(content, subq_id)
+
+        streamed_tokens.append(content)
 
     response = merge_content(*streamed_tokens)
 
@@ -54,11 +78,27 @@ def main_decomp_base(state: MainState) -> BaseDecompUpdate:
     # assert [type(tok) == str for tok in streamed_tokens]
 
     # use no-op cast() instead of str() which runs code
-    list_of_subquestions = clean_and_parse_list_string(cast(str, response))
+    # list_of_subquestions = clean_and_parse_list_string(cast(str, response))
+    list_of_subquestions = cast(str, response).split("\n")
 
     decomp_list: list[str] = [
-        sub_question["sub_question"].strip() for sub_question in list_of_subquestions
+        sub_question.strip() for sub_question in list_of_subquestions
     ]
+
+    # Persist sub-questions to database
+    # from onyx.agent_search.db_operations import create_sub_question
+
+    if state["config"].use_persistence:
+        # for sub_q in decomp_list:
+        #     sub_questions.append(
+        #         create_sub_question(
+        #             db_session=db_session,
+        #             chat_session_id=chat_session_id,
+        #             primary_message_id=primary_message_id,
+        #             sub_question=sub_q,
+        #         )
+        #     )
+        pass
 
     return BaseDecompUpdate(
         initial_decomp_questions=decomp_list,
@@ -150,7 +190,7 @@ def _calculate_initial_agent_stats(
 def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     print("---GENERATE INITIAL---")
 
-    question = state["search_request"].query
+    question = state["config"].search_request.query
     sub_question_docs = state["documents"]
     all_original_question_documents = state["all_original_question_documents"]
     relevant_docs = dedup_inference_sections(
@@ -242,7 +282,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
 def generate_initial_base_answer(state: MainState) -> InitialAnswerBASEUpdate:
     print("---GENERATE INITIAL BASE ANSWER---")
 
-    question = state["search_request"].query
+    question = state["config"].search_request.query
     original_question_docs = state["all_original_question_documents"]
 
     msg = [

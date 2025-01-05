@@ -295,6 +295,17 @@ class ChatMessage__SearchDoc(Base):
     )
 
 
+class SubQuery__SearchDoc(Base):
+    __tablename__ = "sub_query__search_doc"
+
+    sub_query_id: Mapped[int] = mapped_column(
+        ForeignKey("sub_query.id"), primary_key=True
+    )
+    search_doc_id: Mapped[int] = mapped_column(
+        ForeignKey("search_doc.id"), primary_key=True
+    )
+
+
 class Document__Tag(Base):
     __tablename__ = "document__tag"
 
@@ -924,6 +935,11 @@ class SearchDoc(Base):
         secondary=ChatMessage__SearchDoc.__table__,
         back_populates="search_docs",
     )
+    sub_queries = relationship(
+        "SubQuery",
+        secondary=SubQuery__SearchDoc.__table__,
+        back_populates="search_docs",
+    )
 
 
 class ToolCall(Base):
@@ -1116,6 +1132,64 @@ class ChatFolder(Base):
             # Bigger ID (created later) show earlier
             return self.id > other.id
         return self.display_priority < other.display_priority
+
+
+class SubQuestion(Base):
+    """
+    A sub-question is a question that is asked of the LLM to gather supporting
+    information to answer a primary question.
+    """
+
+    __tablename__ = "sub_question"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    primary_question_id: Mapped[int] = mapped_column(ForeignKey("chat_message.id"))
+    chat_session_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("chat_session.id")
+    )
+    sub_question: Mapped[str] = mapped_column(Text)
+    time_created: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    answer: Mapped[str] = mapped_column(Text)
+
+    # Relationships
+    primary_message: Mapped["ChatMessage"] = relationship(
+        "ChatMessage", foreign_keys=[primary_question_id]
+    )
+    chat_session: Mapped["ChatSession"] = relationship("ChatSession")
+    sub_queries: Mapped[list["SubQuery"]] = relationship(
+        "SubQuery", back_populates="parent_question"
+    )
+
+
+class SubQuery(Base):
+    """
+    A sub-query is a vector DB query that gathers supporting information to answer a sub-question.
+    """
+
+    __tablename__ = "sub_query"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    parent_question_id: Mapped[int] = mapped_column(ForeignKey("sub_question.id"))
+    chat_session_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("chat_session.id")
+    )
+    sub_query: Mapped[str] = mapped_column(Text)
+    time_created: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Relationships
+    parent_question: Mapped["SubQuestion"] = relationship(
+        "SubQuestion", back_populates="sub_queries"
+    )
+    chat_session: Mapped["ChatSession"] = relationship("ChatSession")
+    search_docs: Mapped[list["SearchDoc"]] = relationship(
+        "SearchDoc",
+        secondary=SubQuery__SearchDoc.__table__,
+        back_populates="sub_queries",
+    )
 
 
 """

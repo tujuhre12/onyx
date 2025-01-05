@@ -13,6 +13,7 @@ from onyx.agent_search.answer_question.states import AnswerQuestionState
 from onyx.agent_search.expanded_retrieval.graph_builder import (
     expanded_retrieval_graph_builder,
 )
+from onyx.agent_search.shared_graph_utils.utils import get_test_config
 
 
 def answer_query_graph_builder() -> StateGraph:
@@ -89,8 +90,16 @@ if __name__ == "__main__":
         query="what can you do with onyx or danswer?",
     )
     with get_session_context_manager() as db_session:
+        pro_search_config, search_tool = get_test_config(
+            db_session, primary_llm, fast_llm, search_request
+        )
         inputs = AnswerQuestionInput(
             question="what can you do with onyx?",
+            subgraph_fast_llm=fast_llm,
+            subgraph_primary_llm=primary_llm,
+            subgraph_config=pro_search_config,
+            subgraph_search_tool=search_tool,
+            subgraph_db_session=db_session,
         )
         for thing in compiled_graph.stream(
             input=inputs,

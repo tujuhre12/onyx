@@ -13,7 +13,7 @@ from onyx.agent_search.main.nodes import ingest_initial_retrieval
 from onyx.agent_search.main.nodes import main_decomp_base
 from onyx.agent_search.main.states import MainInput
 from onyx.agent_search.main.states import MainState
-
+from onyx.agent_search.shared_graph_utils.utils import get_test_config
 
 test_mode = False
 
@@ -437,12 +437,16 @@ if __name__ == "__main__":
 
     with get_session_context_manager() as db_session:
         search_request = SearchRequest(query="Who created Excel?")
+        pro_search_config, search_tool = get_test_config(
+            db_session, primary_llm, fast_llm, search_request
+        )
 
         inputs = MainInput(
-            search_request=search_request,
             primary_llm=primary_llm,
             fast_llm=fast_llm,
             db_session=db_session,
+            config=pro_search_config,
+            search_tool=search_tool,
         )
 
         for thing in compiled_graph.stream(
@@ -451,5 +455,5 @@ if __name__ == "__main__":
             # debug=True,
             subgraphs=True,
         ):
-            # print(thing)
-            print()
+            print(thing)
+            # print()

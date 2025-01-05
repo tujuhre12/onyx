@@ -4,6 +4,7 @@ from uuid import uuid4
 from langchain.schema.messages import BaseMessage
 from langchain_core.messages import AIMessageChunk
 from langchain_core.messages import ToolCall
+from sqlalchemy.orm import Session
 
 from onyx.agent_search.run_graph import run_main_graph
 from onyx.chat.llm_response_handler import LLMResponseHandlerManager
@@ -13,6 +14,7 @@ from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationInfo
 from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import PromptConfig
+from onyx.chat.models import ProSearchConfig
 from onyx.chat.prompt_builder.build import AnswerPromptBuilder
 from onyx.chat.prompt_builder.build import default_build_system_message
 from onyx.chat.prompt_builder.build import default_build_user_message
@@ -25,7 +27,6 @@ from onyx.chat.stream_processing.answer_response_handler import (
 )
 from onyx.chat.stream_processing.utils import map_document_id_order
 from onyx.chat.tool_handling.tool_response_handler import ToolResponseHandler
-from onyx.context.search.models import SearchRequest
 from onyx.file_store.utils import InMemoryChatFile
 from onyx.llm.interfaces import LLM
 from onyx.llm.models import PreviousMessage
@@ -64,8 +65,8 @@ class Answer:
         return_contexts: bool = False,
         skip_gen_ai_answer_generation: bool = False,
         is_connected: Callable[[], bool] | None = None,
-        use_pro_search: bool = False,
-        search_request: SearchRequest | None = None,
+        pro_search_config: ProSearchConfig | None = None,
+        db_session: Session | None = None,
     ) -> None:
         if single_message_history and message_history:
             raise ValueError(
@@ -111,8 +112,10 @@ class Answer:
             and not skip_explicit_tool_calling
         )
 
-        self.use_pro_search = use_pro_search
-        self.pro_search_request = search_request
+        self.pro_search_config = pro_search_config
+        if db_session is None:
+            raise ValueError("db_session must be provided")
+        self.db_session = db_session
 
     def _get_tools_list(self) -> list[Tool]:
         if not self.force_use_tool.force_use:
@@ -259,8 +262,8 @@ class Answer:
             yield from self._processed_stream
             return
 
-        if self.use_pro_search:
-            if self.pro_search_request is None:
+        if self.pro_search_config:
+            if self.pro_search_config.search_request is None:
                 raise ValueError("Search request must be provided for pro search")
             search_tools = [tool for tool in self.tools if isinstance(tool, SearchTool)]
             if len(search_tools) == 0:
@@ -271,10 +274,11 @@ class Answer:
 
             search_tool = search_tools[0]
             yield from run_main_graph(
-                search_request=self.pro_search_request,
+                config=self.pro_search_config,
                 primary_llm=self.llm,
                 fast_llm=self.fast_llm,
                 search_tool=search_tool,
+                db_session=self.db_session,
             )
             return
 

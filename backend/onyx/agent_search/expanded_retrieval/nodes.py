@@ -42,8 +42,33 @@ from onyx.tools.tool_implementations.search.search_tool import (
 
 
 def expand_queries(state: ExpandedRetrievalInput) -> QueryExpansionUpdate:
-    question = state.get("question")
+    # Sometimes we want to expand the original question, sometimes we want to expand a sub-question.
+    # When we are running this node on the original question, no question is explictly passed in.
+    # Instead, we use the original question from the search request.
+    question = state.get("question", state["subgraph_config"].search_request.query)
     llm: LLM = state["subgraph_fast_llm"]
+    state["subgraph_db_session"]
+    chat_session_id = state["subgraph_config"].chat_session_id
+    sub_question_id = state.get("sub_question_id")
+
+    if chat_session_id is None:
+        raise ValueError("chat_session_id must be provided for agent search")
+
+    if sub_question_id is None:
+        if state["subgraph_config"].use_persistence:
+            # in this case, we are doing retrieval on the original question.
+            # to make all the logic consistent (i.e. all subqueries have a
+            # subquestion as a parent), we create a new sub-question
+            # with the same content as the original question.
+            # if state["subgraph_config"].message_id is None:
+            #     raise ValueError("message_id must be provided for agent search with persistence")
+            # sub_question_id = create_sub_question(db_session,
+            #                                       chat_session_id,
+            #                                       state["subgraph_config"].message_id,
+            #                                       question).id
+            pass
+        else:
+            sub_question_id = 1
 
     msg = [
         HumanMessage(
@@ -63,6 +88,20 @@ def expand_queries(state: ExpandedRetrievalInput) -> QueryExpansionUpdate:
     llm_response = merge_message_runs(llm_response_list, chunk_separator="")[0].content
 
     rewritten_queries = llm_response.split("--")
+
+    if state["subgraph_config"].use_persistence:
+        # Persist sub-queries to database
+
+        # for query in rewritten_queries:
+        #     sub_queries.append(
+        #         create_sub_query(
+        #             db_session=db_session,
+        #             chat_session_id=chat_session_id,
+        #             parent_question_id=sub_question_id,
+        #             sub_query=query.strip(),
+        #             )
+        #         )
+        pass
 
     return QueryExpansionUpdate(
         expanded_queries=rewritten_queries,
@@ -123,9 +162,10 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
 def verification_kickoff(
     state: ExpandedRetrievalState,
 ) -> Command[Literal["doc_verification"]]:
+    # TODO: stream deduped docs?
     documents = state["retrieved_documents"]
     verification_question = state.get(
-        "question", state["subgraph_search_request"].query
+        "question", state["subgraph_config"].search_request.query
     )
     return Command(
         update={},
@@ -186,7 +226,7 @@ def doc_reranking(state: ExpandedRetrievalState) -> DocRerankingUpdate:
     # Rerank post retrieval and verification. First, create a search query
     # then create the list of reranked sections
 
-    question = state.get("question", state["subgraph_search_request"].query)
+    question = state.get("question", state["subgraph_config"].search_request.query)
     _search_query = retrieval_preprocessing(
         search_request=SearchRequest(query=question),
         user=None,

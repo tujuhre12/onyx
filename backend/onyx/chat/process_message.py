@@ -24,6 +24,7 @@ from onyx.chat.models import MessageSpecificCitations
 from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import OnyxContexts
 from onyx.chat.models import PromptConfig
+from onyx.chat.models import ProSearchConfig
 from onyx.chat.models import QADocsResponse
 from onyx.chat.models import StreamingError
 from onyx.chat.models import StreamStopInfo
@@ -686,6 +687,7 @@ def stream_chat_message_objects(
             tools.extend(tool_list)
 
         search_request = None
+        pro_search_config = None
         if new_msg_req.use_pro_search:
             search_request = SearchRequest(
                 query=final_msg.message,
@@ -709,6 +711,15 @@ def stream_chat_message_objects(
                     if retrieval_options
                     else None
                 ),
+            )
+            pro_search_config = (
+                ProSearchConfig(
+                    search_request=search_request,
+                    chat_session_id=chat_session_id,
+                    message_id=user_message.id if user_message else None,
+                )
+                if new_msg_req.use_pro_search
+                else None
             )
             # TODO: add previous messages, answer style config, tools, etc.
 
@@ -737,8 +748,8 @@ def stream_chat_message_objects(
             ],
             tools=tools,
             force_use_tool=_get_force_search_settings(new_msg_req, tools),
-            search_request=search_request,
-            use_pro_search=new_msg_req.use_pro_search,
+            pro_search_config=pro_search_config,
+            db_session=db_session,
         )
 
         reference_db_search_docs = None

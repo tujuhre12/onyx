@@ -385,14 +385,16 @@ answer the original question. The purpose for this decomposition is to
      (i.e., 'what do we do to improve scalability of product X', 'what do we to to improve scalability of product X',
      'what do we do to improve stability of product X', ...])
 
-If you think that a decomposition is not needed or helpful, please just return an empty list. That is ok too.
+If you think that a decomposition is not needed or helpful, please just return an empty string. That is ok too.
 
 Here is the initial question:
 -------
 {question}
 -------
-Please formulate your answer as a list of json objects with the following format:
-[{{"sub_question": <sub-question>}}, ...]
+Please formulate your answer as a newline-separated list of questions like so:
+ <sub-question>
+ <sub-question>
+ <sub-question>
 
 Answer:"""
 
