@@ -34,6 +34,8 @@ interface FilePickerProps {
   onSave: (selectedItems: { files: number[]; folders: number[] }) => void;
   allFiles: UserFile[];
   setUserFiles: (files: UserFile[]) => void;
+  selectedFolders: UserFolder[];
+  userFiles: UserFile[];
 }
 
 function buildTree(folders: UserFolder[], files: UserFile[]): FolderNode[] {
@@ -67,7 +69,8 @@ const FolderTreeItem: React.FC<{
   setSelectedItems: React.Dispatch<
     React.SetStateAction<{ files: number[]; folders: number[] }>
   >;
-}> = ({ node, selectedItems, setSelectedItems }) => {
+  parentNode?: FolderNode;
+}> = ({ node, selectedItems, setSelectedItems, parentNode }) => {
   const [isOpen, setIsOpen] = useState(true);
 
   const toggleFolder = () => {
@@ -76,25 +79,98 @@ const FolderTreeItem: React.FC<{
 
   const isFolderSelected = selectedItems.folders.includes(node.id);
 
+  const getAllDescendantIds = (
+    folder: FolderNode
+  ): { folderIds: number[]; fileIds: number[] } => {
+    let folderIds: number[] = [];
+    let fileIds: number[] = [];
+
+    const traverse = (node: FolderNode) => {
+      folderIds.push(node.id);
+      fileIds.push(...node.files.map((file) => file.id));
+      node.children.forEach(traverse);
+    };
+
+    traverse(folder);
+    return { folderIds, fileIds };
+  };
+
+  const shouldFolderBeSelected = (
+    folder: FolderNode,
+    newlySelectedItem: number,
+    newlySelectedItemType: "file" | "folder"
+  ): boolean => {
+    const allFilesSelected = folder.files.every((file) => {
+      const isSelected =
+        selectedItems.files.includes(file.id) ||
+        (newlySelectedItemType === "file" && newlySelectedItem === file.id);
+      return isSelected;
+    });
+
+    const allChildrenSelected = folder.children.every((child) => {
+      const isSelected =
+        selectedItems.folders.includes(child.id) ||
+        (newlySelectedItemType === "folder" && newlySelectedItem === child.id);
+      return isSelected;
+    });
+
+    const shouldBeSelected = allFilesSelected && allChildrenSelected;
+    return shouldBeSelected;
+  };
+
+  const updateParentFolderSelection = (currentNode: FolderNode) => {
+    if (parentNode) {
+      // const shouldSelect = shouldFolderBeSelected(currentNode);
+      // setSelectedItems((prev) => {
+      //   const newFolders = shouldSelect
+      //     ? Array.from(new Set([...prev.folders, currentNode.id]))
+      //     : prev.folders.filter((id) => id !== currentNode.id);
+      //   return { ...prev, folders: newFolders };
+      // });
+    }
+  };
+
   const handleFolderSelect = () => {
     setSelectedItems((prev) => {
+      const { folderIds, fileIds } = getAllDescendantIds(node);
+
       if (isFolderSelected) {
-        return {
-          ...prev,
-          folders: prev.folders.filter((id) => id !== node.id),
+        const newState = {
+          folders: prev.folders.filter((id) => !folderIds.includes(id)),
+          files: prev.files.filter((id) => !fileIds.includes(id)),
         };
+        setTimeout(() => updateParentFolderSelection(node), 0);
+        return newState;
       } else {
-        return { ...prev, folders: [...prev.folders, node.id] };
+        const newState = {
+          folders: Array.from(new Set([...prev.folders, ...folderIds])),
+          files: Array.from(new Set([...prev.files, ...fileIds])),
+        };
+        setTimeout(() => updateParentFolderSelection(node), 0);
+        return newState;
       }
     });
   };
+
   const handleFileSelect = (fileId: number) => {
     setSelectedItems((prev) => {
-      if (prev.files.includes(fileId)) {
-        return { ...prev, files: prev.files.filter((id) => id !== fileId) };
-      } else {
-        return { ...prev, files: [...prev.files, fileId] };
-      }
+      const newFiles = prev.files.includes(fileId)
+        ? prev.files.filter((id) => id !== fileId)
+        : [...prev.files, fileId];
+
+      const newState = { ...prev, files: newFiles };
+      setTimeout(() => {
+        const shouldSelect = shouldFolderBeSelected(node, fileId, "file");
+
+        setSelectedItems((prevState) => {
+          const newFolders = shouldSelect
+            ? Array.from(new Set([...prevState.folders, node.id]))
+            : prevState.folders.filter((id) => id !== node.id);
+          updateParentFolderSelection(node);
+          return { ...prevState, folders: newFolders };
+        });
+      }, 100);
+      return newState;
     });
   };
 
@@ -112,8 +188,11 @@ const FolderTreeItem: React.FC<{
           checked={isFolderSelected}
           onCheckedChange={handleFolderSelect}
         />
-        <FolderIcon className="ml-2 mr-1 h-5 w-5 text-gray-600" />
-        <span className="ml-1">{node.name}</span>
+        <FolderIcon className="ml-2 mr-1 h-5 w-5 text-text-600" />
+        <span className="ml-1">
+          {node.name}
+          {node.id}
+        </span>
       </div>
       {isOpen && (
         <ul className="ml-6">
@@ -123,6 +202,7 @@ const FolderTreeItem: React.FC<{
               node={child}
               selectedItems={selectedItems}
               setSelectedItems={setSelectedItems}
+              parentNode={node}
             />
           ))}
           {node.files.map((file) => (
@@ -134,8 +214,11 @@ const FolderTreeItem: React.FC<{
                     handleFileSelect(file.id);
                   }}
                 />
-                <FileIcon className="ml-2 mr-1 h-5 w-5 text-gray-600" />
-                <span className="ml-1">{file.name}</span>
+                <FileIcon className="ml-2 mr-1 h-5 w-5 text-text-600" />
+                <span className="ml-1">
+                  {file.name}
+                  {file.id}
+                </span>
               </div>
             </li>
           ))}
@@ -151,6 +234,8 @@ export const FilePicker: React.FC<FilePickerProps> = ({
   setUserFiles,
   allFolders,
   allFiles,
+  selectedFolders,
+  userFiles,
   onClose,
   onSave,
 }) => {
@@ -159,8 +244,8 @@ export const FilePicker: React.FC<FilePickerProps> = ({
     files: number[];
     folders: number[];
   }>({
-    files: [],
-    folders: [],
+    files: userFiles.map((file) => file.id),
+    folders: selectedFolders.map((folder) => folder.id),
   });
 
   useEffect(() => {
@@ -175,25 +260,81 @@ export const FilePicker: React.FC<FilePickerProps> = ({
     }
   }, [isOpen]);
 
-  const handleSave = () => {
-    setSelectedFolders(
-      allFolders.filter((folder) => selectedItems.folders.includes(folder.id))
+  const getAllDescendantIds = (
+    folder: FolderNode
+  ): { folderIds: number[]; fileIds: number[] } => {
+    let folderIds: number[] = [];
+    let fileIds: number[] = [];
+
+    const traverse = (node: FolderNode) => {
+      folderIds.push(node.id);
+      fileIds.push(...node.files.map((file) => file.id));
+      node.children.forEach(traverse);
+    };
+
+    traverse(folder);
+    return { folderIds, fileIds };
+  };
+
+  const isFullySelected = (node: FolderNode): boolean => {
+    const allDescendants = getAllDescendantIds(node);
+    return (
+      allDescendants.folderIds.every((id: number) =>
+        selectedItems.folders.includes(id)
+      ) &&
+      allDescendants.fileIds.every((id: number) =>
+        selectedItems.files.includes(id)
+      )
     );
-    const selectedFiles = selectedItems.files
+  };
+
+  const getOptimizedSelection = (
+    nodes: FolderNode[]
+  ): { folders: number[]; files: number[] } => {
+    let optimizedFolders: number[] = [];
+    let optimizedFiles: number[] = [];
+
+    const processNode = (node: FolderNode) => {
+      if (isFullySelected(node)) {
+        optimizedFolders.push(node.id);
+      } else {
+        node.children.forEach(processNode);
+        node.files.forEach((file) => {
+          if (selectedItems.files.includes(file.id)) {
+            optimizedFiles.push(file.id);
+          }
+        });
+      }
+    };
+
+    nodes.forEach(processNode);
+    return { folders: optimizedFolders, files: optimizedFiles };
+  };
+
+  const handleSave = () => {
+    const optimizedSelection = getOptimizedSelection(fileSystem);
+
+    setSelectedFolders(
+      allFolders.filter((folder) =>
+        optimizedSelection.folders.includes(folder.id)
+      )
+    );
+
+    const selectedFiles = optimizedSelection.files
       .map((fileId) => allFiles.find((file) => file.id === fileId))
       .filter((file): file is UserFile => file !== undefined);
     setUserFiles(selectedFiles);
-    onSave(selectedItems);
+    onSave(optimizedSelection);
     onClose();
   };
 
   return (
     <Modal
       onOutsideClick={onClose}
-      className="max-w-md"
+      className="max-w-xl"
       title="Select Files and Folders"
     >
-      <div className="p-4 max-w-md mx-auto">
+      <div className="p-4  w-full  mx-auto">
         <div className="max-h-96 overflow-y-auto border rounded p-2">
           <ul className="list-none">
             {fileSystem.map((node) => (

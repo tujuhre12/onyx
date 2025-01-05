@@ -11,6 +11,7 @@ import { FolderContents } from "./FolderContents";
 import TextView from "@/components/chat_search/TextView";
 import { Button } from "@/components/ui/button";
 import { MinimalOnyxDocument } from "@/lib/search/interfaces";
+import { PageSelector } from "@/components/PageSelector";
 
 interface FolderResponse {
   children: { name: string; id: number }[];
@@ -27,9 +28,9 @@ export default function MyDocuments() {
     null
   );
 
-  const [sortBy, setSortBy] = useState<"name" | "date">("name");
   const [page, setPage] = useState<number>(1);
-  const [pageLimit] = useState<number>(20);
+
+  const pageLimit = 10;
   const searchParams = useSearchParams();
   const router = useRouter();
   const { popup, setPopup } = usePopup();
@@ -41,18 +42,12 @@ export default function MyDocuments() {
 
   const fetchFolderContents = useCallback(async (folderId: number) => {
     try {
-      const response = await fetch(
-        `/api/user/folder/${folderId}?page=${page}&limit=${pageLimit}&sort=${sortBy}`
-      );
+      const response = await fetch(`/api/user/folder/${folderId}?page=${page}`);
       if (!response.ok) {
         throw new Error("Failed to fetch folder contents");
       }
       const data = await response.json();
       setFolderContents(data);
-      setPopup({
-        message: "Folder contents fetched successfully",
-        type: "success",
-      });
     } catch (error) {
       console.error("Error fetching folder contents:", error);
       setPopup({
@@ -149,7 +144,7 @@ export default function MyDocuments() {
         body: formData,
       });
       if (response.ok) {
-        fetchFolderContents(currentFolder);
+        await fetchFolderContents(currentFolder);
         setPopup({
           message: "Files uploaded successfully",
           type: "success",
@@ -164,12 +159,14 @@ export default function MyDocuments() {
         type: "error",
       });
     }
-    refreshFolderContents();
+
+    await refreshFolderContents();
+    setPage(1);
   };
 
   const handleMoveItem = async (
     itemId: number,
-    destinationFolderId: number,
+    destinationFolderId: number | null,
     isFolder: boolean
   ) => {
     const endpoint = isFolder
@@ -278,38 +275,6 @@ export default function MyDocuments() {
       )}
       {popup}
       <div className="flex-grow">
-        <div className="flex items-center mb-2 space-x-2">
-          <div className="flex items-center space-x-2 ml-auto">
-            <select
-              className="border border-gray-300 rounded p-1 text-sm"
-              value={sortBy}
-              onChange={(e) => {
-                setSortBy(e.target.value as "name" | "date");
-              }}
-            >
-              <option value="name">Sort by Name</option>
-              <option value="date">Sort by Date</option>
-            </select>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setPage((prev) => Math.max(prev - 1, 1));
-              }}
-            >
-              Prev
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setPage((prev) => prev + 1);
-              }}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
         <FolderBreadcrumb
           currentFolder={{
             name: folderContents ? folderContents.name : "",
@@ -329,26 +294,53 @@ export default function MyDocuments() {
           </CardHeader>
           <CardContent>
             {folderContents ? (
-              <FolderContents
-                setPresentingDocument={(
-                  document_id: string,
-                  semantic_identifier: string
-                ) =>
-                  setPresentingDocument({ document_id, semantic_identifier })
-                }
-                contents={folderContents}
-                onFolderClick={handleFolderClick}
-                currentFolder={currentFolder}
-                onDeleteItem={handleDeleteItem}
-                onDownloadItem={handleDownloadItem}
-                onMoveItem={handleMoveItem}
-                onRenameItem={onRenameItem}
-              />
+              folderContents.files.length > 0 ||
+              folderContents.children.length > 0 ? (
+                <FolderContents
+                  currentPage={page}
+                  pageLimit={pageLimit}
+                  setPresentingDocument={(
+                    document_id: string,
+                    semantic_identifier: string
+                  ) =>
+                    setPresentingDocument({ document_id, semantic_identifier })
+                  }
+                  contents={folderContents}
+                  onFolderClick={handleFolderClick}
+                  currentFolder={currentFolder}
+                  onDeleteItem={handleDeleteItem}
+                  onDownloadItem={handleDownloadItem}
+                  onMoveItem={handleMoveItem}
+                  onRenameItem={onRenameItem}
+                />
+              ) : (
+                <p>No content in this folder</p>
+              )
             ) : (
               <p>Loading...</p>
             )}
           </CardContent>
         </Card>
+        <div className="mt-3 flex">
+          <div className="mx-auto">
+            <PageSelector
+              currentPage={page}
+              totalPages={Math.ceil(
+                ((folderContents?.files?.length || 0) +
+                  (folderContents?.children?.length || 0)) /
+                  pageLimit
+              )}
+              onPageChange={(newPage) => {
+                setPage(newPage);
+                window.scrollTo({
+                  top: 0,
+                  left: 0,
+                  behavior: "smooth",
+                });
+              }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

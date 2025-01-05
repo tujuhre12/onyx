@@ -79,9 +79,7 @@ export const ChatFilters = forwardRef<HTMLDivElement, ChatFiltersProps>(
 
     const currentDocuments = selectedMessage?.documents || null;
     const dedupedDocuments = removeDuplicateDocs(currentDocuments || []);
-
     const tokenLimitReached = selectedDocumentTokens > maxTokens - 75;
-    console.log("SELECTED MESSAGE is", selectedMessage);
 
     const hasSelectedDocuments = selectedDocumentIds.length > 0;
 

@@ -45,6 +45,7 @@ import { LlmTab } from "../modal/configuration/LlmTab";
 import { FolderIcon, XIcon } from "lucide-react";
 import FiltersDisplay from "./FilterDisplay";
 import { UserFolder, UserFile } from "@/app/my-documents/FilePicker";
+import { useRouter } from "next/navigation";
 
 const MAX_INPUT_HEIGHT = 200;
 
@@ -109,6 +110,7 @@ export function ChatInputBar({
   toggleFilters,
   toggleMyDocuments,
 }: ChatInputBarProps) {
+  const router = useRouter();
   useEffect(() => {
     const textarea = textAreaRef.current;
     if (textarea) {
@@ -376,7 +378,7 @@ export function ChatInputBar({
                     <button
                       key={folder.id}
                       onClick={() =>
-                        window.open(`/my-documents?path=${folder.id}`, "_blank")
+                        router.push(`/my-documents?path=${folder.id}`)
                       }
                       className="flex-none relative overflow-visible flex items-center gap-x-2 h-10 px-3 rounded-lg bg-background-150 hover:bg-background-200 transition-colors duration-300 cursor-pointer max-w-[150px]"
                     >

@@ -43,18 +43,18 @@ export function FolderActions({
         onClick={onRefresh}
         variant="outline"
         size="sm"
-        className="border-gray-300 hover:bg-gray-100"
+        className="border-background-300 hover:bg-background-100"
       >
-        <RefreshCw className="h-4 w-4 text-gray-600" />
+        <RefreshCw className="h-4 w-4 text-text-600" />
       </Button>
       <Popover open={isCreatingFolder} onOpenChange={setIsCreatingFolder}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             size="sm"
-            className="border-gray-300 hover:bg-gray-100"
+            className="border-background-300 hover:bg-background-100"
           >
-            <Plus className="h-4 w-4 text-gray-600" />
+            <Plus className="h-4 w-4 text-text-600" />
           </Button>
         </PopoverTrigger>
         {isCreatingFolder && (
@@ -65,13 +65,13 @@ export function FolderActions({
                 placeholder="New folder name"
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
-                className="w-full p-1 flex text-sm border border-gray-300 focus:border-gray-500 rounded"
+                className="!w-full p-1 flex text-sm border border-background-300 focus:border-background-500 rounded"
               />
               <div className="flex justify-between space-x-2">
                 <Button
                   onClick={handleCreateFolder}
                   size="sm"
-                  className="bg-gray-800 hover:bg-gray-900 text-white text-xs"
+                  className="bg-background-800 hover:bg-background-900 text-white text-xs"
                 >
                   Create
                 </Button>
@@ -79,7 +79,7 @@ export function FolderActions({
                   onClick={() => setIsCreatingFolder(false)}
                   variant="outline"
                   size="sm"
-                  className="border border-gray-300 hover:bg-gray-100 text-xs"
+                  className="border border-background-300 hover:bg-background-100 text-xs"
                 >
                   Cancel
                 </Button>
@@ -91,10 +91,10 @@ export function FolderActions({
       <Button
         variant="outline"
         size="sm"
-        className="border-gray-300 hover:bg-gray-100"
+        className="border-background-300 hover:bg-background-100"
         onClick={() => document.getElementById("file-upload")?.click()}
       >
-        <Upload className="h-4 w-4 text-gray-600" />
+        <Upload className="h-4 w-4 text-text-600" />
       </Button>
       <input
         id="file-upload"

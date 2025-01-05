@@ -22,10 +22,10 @@ function renderTree(
       {nodes.map((node) => (
         <li key={node.id} className="my-1">
           <div
-            className="flex items-center cursor-pointer hover:text-gray-700"
+            className="flex items-center cursor-pointer hover:text-text-700"
             onClick={() => onFolderClick(node.id)}
           >
-            <FolderIcon className="mr-1 h-4 w-4 text-gray-600" />
+            <FolderIcon className="mr-1 h-4 w-4 text-text-600" />
             <span>{node.name}</span>
           </div>
           {node.children &&
@@ -39,7 +39,7 @@ function renderTree(
 
 export function FolderTree({ treeData, onFolderClick }: FolderTreeProps) {
   return (
-    <div className="w-64 border-r border-gray-300 p-2 overflow-y-auto hidden lg:block">
+    <div className="w-64 border-r border-background-300 p-2 overflow-y-auto hidden lg:block">
       <h2 className="font-bold text-sm mb-2">Folders</h2>
       {renderTree(treeData, onFolderClick)}
     </div>

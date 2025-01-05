@@ -2,24 +2,24 @@ import React, { useState, useEffect } from "react";
 import { Folder } from "lucide-react";
 
 interface Folder {
-  id: number;
+  id: number | null;
   name: string;
 }
 
 interface MoveFileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onMove: (destinationFolderId: number) => void;
-  currentLocation: Folder;
+  onMove: (destinationFolderId: number | null) => void;
   fileName: string;
+  currentFolderId: number | null;
 }
 
 export function MoveFileModal({
   isOpen,
   onClose,
   onMove,
-  currentLocation,
   fileName,
+  currentFolderId,
 }: MoveFileModalProps) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
@@ -44,21 +44,22 @@ export function MoveFileModal({
           Move &quot;{fileName}&quot;
         </h2>
         <div className="mb-4">
-          <p className="text-sm text-gray-600">Current location:</p>
-          <p className="font-medium">{currentLocation.name}</p>
-        </div>
-        <div className="mb-4">
           <span className="font-medium">Choose a folder:</span>
           <div className="max-h-60 overflow-y-auto mt-2 border rounded">
             {folders.map((folder) => (
               <div
                 key={folder.id}
-                className="flex items-center justify-between py-2 px-3 hover:bg-gray-100 cursor-pointer"
+                className="flex items-center justify-between py-2 px-3 hover:bg-background-100 cursor-pointer"
                 onClick={() => setSelectedFolder(folder)}
               >
                 <div className="flex items-center">
                   <Folder className="mr-2 h-5 w-5" />
                   <span>{folder.name}</span>
+                  {folder.id === currentFolderId && (
+                    <span className="text-sm my-auto ml-2 text-text-500">
+                      (Current folder)
+                    </span>
+                  )}
                 </div>
                 <div
                   className={`w-4 h-4 rounded-full border ${
@@ -69,11 +70,27 @@ export function MoveFileModal({
                 />
               </div>
             ))}
+            <div
+              className="flex items-center justify-between py-2 px-3 hover:bg-background-100 cursor-pointer"
+              onClick={() => setSelectedFolder({ id: null, name: "Root" })}
+            >
+              <div className="flex items-center">
+                <Folder className="mr-2 h-5 w-5" />
+                <span>Root</span>
+              </div>
+              <div
+                className={`w-4 h-4 rounded-full border ${
+                  selectedFolder?.id === null
+                    ? "bg-blue-600 border-blue-600"
+                    : "border-blue-300 border-2"
+                }`}
+              />
+            </div>
           </div>
         </div>
         <div className="flex justify-end space-x-2">
           <button
-            className="px-4 py-2 cursor-pointer text-gray-600 hover:bg-gray-100 rounded"
+            className="px-4 py-2 cursor-pointer text-text-600 hover:bg-background-100 rounded"
             onClick={onClose}
           >
             Cancel

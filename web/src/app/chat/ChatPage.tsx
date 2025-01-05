@@ -2008,11 +2008,11 @@ export function ChatPage({
           setSelectedFolders={(folders) => setFolders(folders)}
           setUserFiles={(userFiles) => {
             setUserFiles(userFiles);
-            console.log("userFiles");
-            console.log(userFiles);
           }}
           allFiles={allFiles}
           isOpen={myDocumentsToggled}
+          userFiles={userFiles}
+          selectedFolders={folders}
           onClose={() => setMyDocumentsToggled(false)}
           onSave={() => {}}
         />
