@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from datetime import datetime
 from datetime import timedelta
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -15,11 +16,13 @@ from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import Session
 
+from onyx.agent_search.answer_question.models import QuestionAnswerResults
 from onyx.agent_search.main.models import CombinedAgentMetrics
 from onyx.auth.schemas import UserRole
 from onyx.chat.models import DocumentRelevance
 from onyx.configs.chat_configs import HARD_DELETE_CHATS
 from onyx.configs.constants import MessageType
+from onyx.context.search.models import InferenceSection
 from onyx.context.search.models import RetrievalDocs
 from onyx.context.search.models import SavedSearchDoc
 from onyx.context.search.models import SearchDoc as ServerSearchDoc
@@ -31,6 +34,8 @@ from onyx.db.models import ChatSessionSharedStatus
 from onyx.db.models import Prompt
 from onyx.db.models import SearchDoc
 from onyx.db.models import SearchDoc as DBSearchDoc
+from onyx.db.models import SubQuery
+from onyx.db.models import SubQuestion
 from onyx.db.models import ToolCall
 from onyx.db.models import User
 from onyx.db.persona import get_best_persona_id_for_user
@@ -893,6 +898,80 @@ def log_agent_metrics(
     )
 
     db_session.add(agent_metric_tracking)
-    db_session.commit()
+    db_session.flush()
 
     return agent_metric_tracking
+
+
+def log_agent_sub_question_results(
+    db_session: Session,
+    chat_session_id: UUID | None,
+    primary_message_id: int | None,
+    sub_question_answer_results: list[QuestionAnswerResults],
+) -> None:
+    def _create_citation_format_list(
+        document_citations: list[InferenceSection],
+    ) -> list[dict[str, Any]]:
+        citation_list: list[dict[str, Any]] = []
+        for document_citation in document_citations:
+            document_citation_dict = {
+                "link": "",
+                "blurb": document_citation.center_chunk.blurb,
+                "content": document_citation.center_chunk.content,
+                "metadata": document_citation.center_chunk.metadata,
+                "updated_at": str(document_citation.center_chunk.updated_at),
+                "document_id": document_citation.center_chunk.document_id,
+                "source_type": "file",
+                "source_links": document_citation.center_chunk.source_links,
+                "match_highlights": document_citation.center_chunk.match_highlights,
+                "semantic_identifier": document_citation.center_chunk.semantic_identifier,
+            }
+
+            citation_list.append(document_citation_dict)
+
+        return citation_list
+
+    now = datetime.now()
+
+    for sub_question_answer_result in sub_question_answer_results:
+        level, level_question_nr = [
+            int(x) for x in sub_question_answer_result.question_nr.split("_")
+        ]
+        sub_question = sub_question_answer_result.question
+        sub_answer = sub_question_answer_result.answer
+        sub_document_results = _create_citation_format_list(
+            sub_question_answer_result.documents
+        )
+        sub_queries = [
+            x.query for x in sub_question_answer_result.expanded_retrieval_results
+        ]
+
+        sub_question_object = SubQuestion(
+            chat_session_id=chat_session_id,
+            primary_question_id=primary_message_id,
+            level=level,
+            level_question_nr=level_question_nr,
+            sub_question=sub_question,
+            sub_answer=sub_answer,
+            sub_question_doc_results=sub_document_results,
+        )
+
+        db_session.add(sub_question_object)
+        db_session.commit()
+        # db_session.flush()
+
+        sub_question_id = sub_question_object.id
+
+        for sub_query in sub_queries:
+            sub_query_object = SubQuery(
+                parent_question_id=sub_question_id,
+                chat_session_id=chat_session_id,
+                sub_query=sub_query,
+                time_created=now,
+            )
+
+            db_session.add(sub_query_object)
+            db_session.commit()
+            # db_session.flush()
+
+    return None

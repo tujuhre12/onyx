@@ -61,6 +61,7 @@ from onyx.agent_search.shared_graph_utils.utils import format_entity_term_extrac
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
 from onyx.chat.models import SubQuestion
 from onyx.db.chat import log_agent_metrics
+from onyx.db.chat import log_agent_sub_question_results
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -857,6 +858,30 @@ def logging_node(state: MainState) -> MainOutput:
         start_time=agent_start_time,
         agent_metrics=combined_agent_metrics,
     )
+
+    if state["config"].use_persistence:
+        # Persist the sub-answer in the database
+        db_session = state["db_session"]
+        chat_session_id = state["config"].chat_session_id
+        primary_message_id = state["config"].message_id
+        sub_question_answer_results = state["follow_up_decomp_answer_results"]
+
+        log_agent_sub_question_results(
+            db_session=db_session,
+            chat_session_id=chat_session_id,
+            primary_message_id=primary_message_id,
+            sub_question_answer_results=sub_question_answer_results,
+        )
+
+        # if chat_session_id is not None and primary_message_id is not None and sub_question_id is not None:
+        #     create_sub_answer(
+        #         db_session=db_session,
+        #         chat_session_id=chat_session_id,
+        #         primary_message_id=primary_message_id,
+        #         sub_question_id=sub_question_id,
+        #         answer=answer_str,
+        # #     )
+        # pass
 
     main_output = MainOutput()
 

@@ -155,17 +155,18 @@ if __name__ == "__main__":
         )
 
         search_request.persona = get_persona_by_id(1, None, db_session)
+        config.use_persistence = True
 
-        with open("output.txt", "w") as f:
-            tool_responses = []
-            for output in run_graph(
-                compiled_graph, config, search_tool, primary_llm, fast_llm, db_session
-            ):
-                if isinstance(output, OnyxAnswerPiece):
-                    f.write(str(output.answer_piece) + "|")
-                elif isinstance(output, ToolCallKickoff):
-                    pass
-                elif isinstance(output, ToolResponse):
-                    tool_responses.append(output)
-            for tool_response in tool_responses:
-                f.write("tool response: " + str(tool_response.response) + "\n")
+        # with open("output.txt", "w") as f:
+        tool_responses = []
+        for output in run_graph(
+            compiled_graph, config, search_tool, primary_llm, fast_llm, db_session
+        ):
+            if isinstance(output, OnyxAnswerPiece):
+                tool_responses.append("|")
+            elif isinstance(output, ToolCallKickoff):
+                pass
+            elif isinstance(output, ToolResponse):
+                tool_responses.append(output.response)
+        for tool_response in tool_responses:
+            logger.info(tool_response)
