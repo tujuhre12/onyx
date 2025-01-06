@@ -23,7 +23,7 @@ def format_answer(state: AnswerQuestionState) -> AnswerQuestionOutput:
                 expanded_retrieval_results=state["expanded_retrieval_results"],
                 documents=state["documents"],
                 sub_question_retrieval_stats=state["sub_question_retrieval_stats"],
-                question_nr=state["question_nr"],
+                question_id=state["question_id"],
             )
         ],
     )

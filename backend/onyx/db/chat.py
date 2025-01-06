@@ -935,7 +935,7 @@ def log_agent_sub_question_results(
 
     for sub_question_answer_result in sub_question_answer_results:
         level, level_question_nr = [
-            int(x) for x in sub_question_answer_result.question_nr.split("_")
+            int(x) for x in sub_question_answer_result.question_id.split("_")
         ]
         sub_question = sub_question_answer_result.question
         sub_answer = sub_question_answer_result.answer

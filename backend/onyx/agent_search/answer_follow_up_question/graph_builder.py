@@ -96,7 +96,7 @@ if __name__ == "__main__":
     with get_session_context_manager() as db_session:
         inputs = AnswerQuestionInput(
             question="what can you do with onyx?",
-            question_nr="0",
+            question_id="0_0",
         )
         for thing in compiled_graph.stream(
             input=inputs,

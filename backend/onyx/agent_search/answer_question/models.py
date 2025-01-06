@@ -13,7 +13,7 @@ class AnswerRetrievalStats(BaseModel):
 
 class QuestionAnswerResults(BaseModel):
     question: str
-    question_nr: str
+    question_id: str
     answer: str
     quality: str
     expanded_retrieval_results: list[QueryResult]

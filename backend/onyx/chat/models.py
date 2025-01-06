@@ -349,20 +349,33 @@ ResponsePart = (
 
 class SubQuery(BaseModel):
     sub_query: str
-    sub_question_id: int
+    sub_question_id: str  # <level>_<question_nr>
+    query_id: int
+
+    @model_validator(mode="after")
+    def check_sub_question_id(self) -> "SubQuery":
+        if len(self.sub_question_id.split("_")) != 2:
+            raise ValueError(
+                "sub_question_id must be in the format <level>_<question_nr>"
+            )
+        return self
 
 
 class SubAnswer(BaseModel):
     sub_answer: str
-    sub_question_id: int
+    sub_question_id: str  # <level>_<question_nr>
 
 
 class SubQuestion(BaseModel):
-    question_id: int
+    question_id: str  # <level>_<question_nr>
     sub_question: str
 
 
-ProSearchPacket = SubQuestion | SubAnswer | SubQuery
+class ExtendedToolResponse(ToolResponse):
+    sub_question_id: str  # <level>_<question_nr>
+
+
+ProSearchPacket = SubQuestion | SubAnswer | SubQuery | ExtendedToolResponse
 
 AnswerPacket = (
     AnswerQuestionPossibleReturn | ProSearchPacket | ToolCallKickoff | ToolResponse

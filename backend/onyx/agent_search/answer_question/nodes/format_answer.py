@@ -18,7 +18,7 @@ def format_answer(state: AnswerQuestionState) -> AnswerQuestionOutput:
         answer_results=[
             QuestionAnswerResults(
                 question=state["question"],
-                question_nr=state["question_nr"],
+                question_id=state["question_id"],
                 quality=state.get("answer_quality", "No"),
                 answer=state["answer"],
                 expanded_retrieval_results=state["expanded_retrieval_results"],

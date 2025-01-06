@@ -1,12 +1,16 @@
 import ast
 import json
 import re
+from collections.abc import Callable
+from collections.abc import Iterator
 from collections.abc import Sequence
 from datetime import datetime
 from datetime import timedelta
 from typing import Any
+from typing import cast
 from uuid import UUID
 
+from langchain_core.messages import BaseMessage
 from sqlalchemy.orm import Session
 
 from onyx.agent_search.main.models import EntityRelationshipTermExtraction
@@ -201,3 +205,33 @@ def get_persona_prompt(persona: Persona | None) -> str:
         return ""
     else:
         return "\n".join([x.system_prompt for x in persona.prompts])
+
+
+def make_question_id(level: int, question_nr: int) -> str:
+    return f"{level}_{question_nr}"
+
+
+def parse_question_id(question_id: str) -> tuple[int, int]:
+    level, question_nr = question_id.split("_")
+    return int(level), int(question_nr)
+
+
+def dispatch_separated(
+    token_itr: Iterator[BaseMessage],
+    dispatch_event: Callable[[str, int], None],
+    sep: str = "\n",
+) -> list[str | list[str | dict[str, Any]]]:
+    num = 0
+    streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
+    for message in token_itr:
+        content = cast(str, message.content)
+        if sep in content:
+            for sub_question_part in content.split(sep):
+                dispatch_event(sub_question_part, num)
+                num += 1
+            num -= 1  # fencepost; extra increment at end of loop
+        else:
+            dispatch_event(content, num)
+        streamed_tokens.append(content)
+
+    return streamed_tokens

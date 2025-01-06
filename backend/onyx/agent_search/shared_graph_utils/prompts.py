@@ -7,7 +7,11 @@ REWRITE_PROMPT_MULTI_ORIGINAL = """ \n
     \n ------- \n
     {question}
     \n ------- \n
-    Formulate the queries separated by '--' (Do not say 'Query 1: ...', just write the querytext): """
+    Formulate the queries separated by newlines (Do not say 'Query 1: ...', just write the querytext) as follows:
+<query 1>
+<query 2>
+...
+    queries: """
 
 REWRITE_PROMPT_MULTI = """ \n
     Please create a list of 2-3 sample documents that could answer an original question. Each document
@@ -42,7 +46,7 @@ BASE_RAG_PROMPT = """ \n
 
 BASE_RAG_PROMPT_v2 = """ \n
     Use the context provided below - and only the
-    provided context - to answer the given question. (Note that the answer is in service of anserwing a broader
+    provided context - to answer the given question. (Note that the answer is in service of answering a broader
     question, given below as 'motivation'.)
 
     Again, only use the provided context and do not use your internal knowledge! If you cannot answer the
@@ -315,10 +319,13 @@ DEEP_DECOMPOSE_PROMPT = """ \n
    sub-questions or those that already were suggested and failed.
    In other words - what can we try in addition to what has been tried so far?
 
-   Generate the list of json dictionaries with the following format:
+   Generate the list of questions separated by new lines like this:
 
-   {{"sub_questions": [{{"sub_question": <sub-question>}},
-        ...]}} """
+<sub-question 1>
+<sub-question 2>
+<sub-question 3>
+   ...
+   """
 
 DECOMPOSE_PROMPT = """ \n
     For an initial user question, please generate at 5-10 individual sub-questions whose answers would help

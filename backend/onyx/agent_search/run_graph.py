@@ -14,12 +14,13 @@ from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
 from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import ProSearchConfig
+from onyx.chat.models import SubAnswer
+from onyx.chat.models import SubQuery
 from onyx.chat.models import SubQuestion
+from onyx.chat.models import ToolResponse
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
-from onyx.db.persona import get_persona_by_id
 from onyx.llm.interfaces import LLM
-from onyx.tools.models import ToolResponse
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
 from onyx.tools.tool_runner import ToolCallKickoff
 from onyx.utils.logger import setup_logger
@@ -42,14 +43,11 @@ def _parse_agent_event(
     if event_type == "on_custom_event":
         # TODO: different AnswerStream types for different events
         if event["name"] == "decomp_qs":
-            # return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
             return cast(SubQuestion, event["data"])
         elif event["name"] == "subqueries":
-            # return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
-            return None
+            return cast(SubQuery, event["data"])
         elif event["name"] == "sub_answers":
-            # return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
-            return None
+            return cast(SubAnswer, event["data"])
         elif event["name"] == "main_answer":
             return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
         elif event["name"] == "tool_response":
@@ -64,6 +62,7 @@ def _manage_async_event_streaming(
     async def _run_async_event_stream() -> AsyncIterable[StreamEvent]:
         async for event in compiled_graph.astream_events(
             input=graph_input,
+            # debug=True,
             # indicating v2 here deserves further scrutiny
             version="v2",
         ):
@@ -139,6 +138,7 @@ def run_main_graph(
 
 if __name__ == "__main__":
     from onyx.llm.factory import get_default_llms
+    from onyx.db.persona import get_persona_by_id
 
     graph = main_graph_builder()
     compiled_graph = graph.compile()
@@ -153,7 +153,6 @@ if __name__ == "__main__":
         config, search_tool = get_test_config(
             db_session, primary_llm, fast_llm, search_request
         )
-
         search_request.persona = get_persona_by_id(1, None, db_session)
         config.use_persistence = True
 

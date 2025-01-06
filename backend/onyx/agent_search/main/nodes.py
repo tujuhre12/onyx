@@ -1,5 +1,6 @@
 import json
 import re
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 from typing import cast
@@ -56,9 +57,11 @@ from onyx.agent_search.shared_graph_utils.prompts import (
     REVISED_RAG_PROMPT_NO_SUB_QUESTIONS,
 )
 from onyx.agent_search.shared_graph_utils.prompts import SUB_QUESTION_ANSWER_TEMPLATE
+from onyx.agent_search.shared_graph_utils.utils import dispatch_separated
 from onyx.agent_search.shared_graph_utils.utils import format_docs
 from onyx.agent_search.shared_graph_utils.utils import format_entity_term_extraction
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
+from onyx.agent_search.shared_graph_utils.utils import make_question_id
 from onyx.chat.models import SubQuestion
 from onyx.db.chat import log_agent_metrics
 from onyx.db.chat import log_agent_sub_question_results
@@ -67,14 +70,19 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def dispatch_subquestion(sub_question_part: str, subq_id: int) -> None:
-    dispatch_custom_event(
-        "decomp_qs",
-        SubQuestion(
-            sub_question=sub_question_part,
-            question_id=subq_id,
-        ),
-    )
+def dispatch_subquestion(level: int) -> Callable[[str, int], None]:
+    def helper(sub_question_part: str, num: int) -> None:
+        dispatch_custom_event(
+            "decomp_qs",
+            SubQuestion(
+                sub_question=sub_question_part,
+                question_id=make_question_id(
+                    level, num + 1
+                ),  # question 0 reserved for original question if used
+            ),
+        )
+
+    return helper
 
 
 def main_decomp_base(state: MainState) -> BaseDecompUpdate:
@@ -96,19 +104,9 @@ def main_decomp_base(state: MainState) -> BaseDecompUpdate:
 
     # Get the rewritten queries in a defined format
     model = state["fast_llm"]
-    streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
-    subq_id = 1
-    for message in model.stream(msg):
-        content = cast(str, message.content)
-        if "\n" in content:
-            for sub_question_part in content.split("\n"):
-                dispatch_subquestion(sub_question_part, subq_id)
-                subq_id += 1
-            subq_id -= 1  # fencepost; extra increment at end of loop
-        else:
-            dispatch_subquestion(content, subq_id)
 
-        streamed_tokens.append(content)
+    # dispatches custom events for subquestion tokens, adding in subquestion ids.
+    streamed_tokens = dispatch_separated(model.stream(msg), dispatch_subquestion(0))
 
     response = merge_content(*streamed_tokens)
 
@@ -748,21 +746,20 @@ def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
 
     # Grader
     model = state["fast_llm"]
-    response = model.invoke(msg)
 
-    if isinstance(response.content, str):
-        cleaned_response = re.sub(r"```json\n|\n```", "", response.content)
-        parsed_response = json.loads(cleaned_response)
+    streamed_tokens = dispatch_separated(model.stream(msg), dispatch_subquestion(1))
+    response = merge_content(*streamed_tokens)
+
+    if isinstance(response, str):
+        parsed_response = response.split("\n")
     else:
         raise ValueError("LLM response is not a string")
 
     follow_up_sub_question_dict = {}
-    for sub_question_nr, sub_question_dict in enumerate(
-        parsed_response["sub_questions"]
-    ):
+    for sub_question_nr, sub_question in enumerate(parsed_response):
         follow_up_sub_question = FollowUpSubQuestion(
-            sub_question=sub_question_dict["sub_question"],
-            sub_question_nr="1_" + str(sub_question_nr),
+            sub_question=sub_question,
+            sub_question_id=make_question_id(1, sub_question_nr),
             verified=False,
             answered=False,
             answer="",

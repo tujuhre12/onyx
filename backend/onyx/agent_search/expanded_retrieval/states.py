@@ -18,6 +18,7 @@ from onyx.context.search.models import InferenceSection
 class ExpandedRetrievalInput(SubgraphCoreState):
     question: str
     base_search: bool
+    sub_question_id: str | None
 
 
 ## Update/Return States

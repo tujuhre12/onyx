@@ -46,7 +46,6 @@ class Answer:
         question: str,
         answer_style_config: AnswerStyleConfig,
         llm: LLM,
-        fast_llm: LLM,
         prompt_config: PromptConfig,
         force_use_tool: ForceUseTool,
         # must be the same length as `docs`. If None, all docs are considered "relevant"
@@ -66,6 +65,7 @@ class Answer:
         skip_gen_ai_answer_generation: bool = False,
         is_connected: Callable[[], bool] | None = None,
         pro_search_config: ProSearchConfig | None = None,
+        fast_llm: LLM | None = None,
         db_session: Session | None = None,
     ) -> None:
         if single_message_history and message_history:
@@ -113,8 +113,6 @@ class Answer:
         )
 
         self.pro_search_config = pro_search_config
-        if db_session is None:
-            raise ValueError("db_session must be provided")
         self.db_session = db_session
 
     def _get_tools_list(self) -> list[Tool]:
@@ -273,13 +271,21 @@ class Answer:
                 raise ValueError("Multiple search tools found")
 
             search_tool = search_tools[0]
-            yield from run_main_graph(
+            processed_stream = []
+            if self.db_session is None:
+                raise ValueError("db_session must be provided for pro search")
+            if self.fast_llm is None:
+                raise ValueError("fast_llm must be provided for pro search")
+            for packet in run_main_graph(
                 config=self.pro_search_config,
                 primary_llm=self.llm,
                 fast_llm=self.fast_llm,
                 search_tool=search_tool,
                 db_session=self.db_session,
-            )
+            ):
+                processed_stream.append(packet)
+                yield packet
+            self._processed_stream = processed_stream
             return
 
         prompt_builder = AnswerPromptBuilder(
