@@ -838,9 +838,10 @@ def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool:
         timings["connector_ttl"] = r.ttl(OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK)
 
         phase_start = time.monotonic()
+        lock_beat.reacquire()
         for key_bytes in r.scan_iter(RedisConnectorDelete.FENCE_PREFIX + "*"):
-            lock_beat.reacquire()
             monitor_connector_deletion_taskset(tenant_id, key_bytes, r)
+            lock_beat.reacquire()
 
         timings["connector_deletion"] = time.monotonic() - phase_start
         timings["connector_deletion_ttl"] = r.ttl(
@@ -848,16 +849,17 @@ def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool:
         )
 
         phase_start = time.monotonic()
+        lock_beat.reacquire()
         for key_bytes in r.scan_iter(RedisDocumentSet.FENCE_PREFIX + "*"):
-            lock_beat.reacquire()
             with get_session_with_tenant(tenant_id) as db_session:
                 monitor_document_set_taskset(tenant_id, key_bytes, r, db_session)
+            lock_beat.reacquire()
         timings["documentset"] = time.monotonic() - phase_start
         timings["documentset_ttl"] = r.ttl(OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK)
 
         phase_start = time.monotonic()
+        lock_beat.reacquire()
         for key_bytes in r.scan_iter(RedisUserGroup.FENCE_PREFIX + "*"):
-            lock_beat.reacquire()
             monitor_usergroup_taskset = fetch_versioned_implementation_with_fallback(
                 "onyx.background.celery.tasks.vespa.tasks",
                 "monitor_usergroup_taskset",
@@ -865,30 +867,34 @@ def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool:
             )
             with get_session_with_tenant(tenant_id) as db_session:
                 monitor_usergroup_taskset(tenant_id, key_bytes, r, db_session)
+            lock_beat.reacquire()
         timings["usergroup"] = time.monotonic() - phase_start
         timings["usergroup_ttl"] = r.ttl(OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK)
 
         phase_start = time.monotonic()
+        lock_beat.reacquire()
         for key_bytes in r.scan_iter(RedisConnectorPrune.FENCE_PREFIX + "*"):
-            lock_beat.reacquire()
             with get_session_with_tenant(tenant_id) as db_session:
                 monitor_ccpair_pruning_taskset(tenant_id, key_bytes, r, db_session)
+            lock_beat.reacquire()
         timings["pruning"] = time.monotonic() - phase_start
         timings["pruning_ttl"] = r.ttl(OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK)
 
         phase_start = time.monotonic()
+        lock_beat.reacquire()
         for key_bytes in r.scan_iter(RedisConnectorIndex.FENCE_PREFIX + "*"):
-            lock_beat.reacquire()
             with get_session_with_tenant(tenant_id) as db_session:
                 monitor_ccpair_indexing_taskset(tenant_id, key_bytes, r, db_session)
+            lock_beat.reacquire()
         timings["indexing"] = time.monotonic() - phase_start
         timings["indexing_ttl"] = r.ttl(OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK)
 
         phase_start = time.monotonic()
+        lock_beat.reacquire()
         for key_bytes in r.scan_iter(RedisConnectorPermissionSync.FENCE_PREFIX + "*"):
-            lock_beat.reacquire()
             with get_session_with_tenant(tenant_id) as db_session:
                 monitor_ccpair_permissions_taskset(tenant_id, key_bytes, r, db_session)
+            lock_beat.reacquire()
 
         timings["permissions"] = time.monotonic() - phase_start
         timings["permissions_ttl"] = r.ttl(OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK)
