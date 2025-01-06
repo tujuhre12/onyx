@@ -11,6 +11,7 @@ from onyx.agent_search.shared_graph_utils.agent_prompt_ops import (
 from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_DEFAULT
 from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_PERSONA
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
+from onyx.chat.models import SubAnswer
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -53,11 +54,20 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
     for message in fast_llm.stream(
         prompt=msg,
     ):
+        # TODO: in principle, the answer here COULD contain images, but we don't support that yet
+        content = message.content
+        if not isinstance(content, str):
+            raise ValueError(
+                f"Expected content to be a string, but got {type(content)}"
+            )
         dispatch_custom_event(
             "sub_answers",
-            message.content,
+            SubAnswer(
+                sub_answer=content,
+                sub_question_id=state["question_id"],
+            ),
         )
-        response.append(message.content)
+        response.append(content)
 
     answer_str = merge_message_runs(response, chunk_separator="")[0].content
 

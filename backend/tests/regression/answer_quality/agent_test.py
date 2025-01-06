@@ -7,6 +7,7 @@ import yaml
 
 from onyx.agent_search.main.graph_builder import main_graph_builder
 from onyx.agent_search.main.states import MainInput
+from onyx.chat.models import ProSearchConfig
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
 from onyx.llm.factory import get_default_llms
@@ -49,8 +50,14 @@ with get_session_context_manager() as db_session:
         num_target_sub_questions = len(target_sub_questions)
         search_request = SearchRequest(query=example_question)
 
-        inputs = MainInput(
+        config = ProSearchConfig(
             search_request=search_request,
+            message_id=None,
+            chat_session_id=None,
+            use_persistence=False,
+        )
+        inputs = MainInput(
+            config=config,
             primary_llm=primary_llm,
             fast_llm=fast_llm,
             db_session=db_session,

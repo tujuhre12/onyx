@@ -103,7 +103,7 @@ if __name__ == "__main__":
             subgraph_config=pro_search_config,
             subgraph_search_tool=search_tool,
             subgraph_db_session=db_session,
-            question_nr="0",  # TODO does this make sense? doesn't matter too much
+            question_id="0_0",
         )
         for thing in compiled_graph.stream(
             input=inputs,

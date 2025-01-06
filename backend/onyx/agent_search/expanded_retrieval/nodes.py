@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any
+from collections.abc import Callable
 from typing import cast
 from typing import Literal
 
@@ -28,17 +28,34 @@ from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.models import RetrievalFitStats
 from onyx.agent_search.shared_graph_utils.prompts import REWRITE_PROMPT_MULTI_ORIGINAL
 from onyx.agent_search.shared_graph_utils.prompts import VERIFIER_PROMPT
+from onyx.agent_search.shared_graph_utils.utils import dispatch_separated
+from onyx.agent_search.shared_graph_utils.utils import make_question_id
+from onyx.chat.models import ExtendedToolResponse
+from onyx.chat.models import SubQuery
 from onyx.configs.dev_configs import AGENT_MAX_QUERY_RETRIEVAL_RESULTS
 from onyx.configs.dev_configs import AGENT_RERANKING_MAX_QUERY_RETRIEVAL_RESULTS
 from onyx.configs.dev_configs import AGENT_RERANKING_STATS
 from onyx.configs.dev_configs import AGENT_RETRIEVAL_STATS
 from onyx.context.search.models import SearchRequest
 from onyx.context.search.pipeline import retrieval_preprocessing
-from onyx.context.search.pipeline import search_postprocessing
+from onyx.context.search.postprocessing.postprocessing import rerank_sections
 from onyx.llm.interfaces import LLM
 from onyx.tools.tool_implementations.search.search_tool import (
     SEARCH_RESPONSE_SUMMARY_ID,
 )
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
+
+
+def dispatch_subquery(subquestion_id: str) -> Callable[[str, int], None]:
+    def helper(token: str, num: int) -> None:
+        dispatch_custom_event(
+            "subqueries",
+            SubQuery(sub_query=token, sub_question_id=subquestion_id, query_id=num),
+        )
+
+    return helper
 
 
 def expand_queries(state: ExpandedRetrievalInput) -> QueryExpansionUpdate:
@@ -50,44 +67,25 @@ def expand_queries(state: ExpandedRetrievalInput) -> QueryExpansionUpdate:
     state["subgraph_db_session"]
     chat_session_id = state["subgraph_config"].chat_session_id
     sub_question_id = state.get("sub_question_id")
+    if sub_question_id is None:
+        sub_question_id = make_question_id(0, 0)  # 0_0 for original question
 
     if chat_session_id is None:
         raise ValueError("chat_session_id must be provided for agent search")
-
-    if sub_question_id is None:
-        if state["subgraph_config"].use_persistence:
-            # in this case, we are doing retrieval on the original question.
-            # to make all the logic consistent (i.e. all subqueries have a
-            # subquestion as a parent), we create a new sub-question
-            # with the same content as the original question.
-            # if state["subgraph_config"].message_id is None:
-            #     raise ValueError("message_id must be provided for agent search with persistence")
-            # sub_question_id = create_sub_question(db_session,
-            #                                       chat_session_id,
-            #                                       state["subgraph_config"].message_id,
-            #                                       question).id
-            pass
-        else:
-            sub_question_id = 1
 
     msg = [
         HumanMessage(
             content=REWRITE_PROMPT_MULTI_ORIGINAL.format(question=question),
         )
     ]
-    llm_response_list: list[str | list[str | dict[str, Any]]] = []
-    for message in llm.stream(
-        prompt=msg,
-    ):
-        dispatch_custom_event(
-            "subqueries",
-            message.content,
-        )
-        llm_response_list.append(message.content)
+
+    llm_response_list = dispatch_separated(
+        llm.stream(prompt=msg), dispatch_subquery(sub_question_id)
+    )
 
     llm_response = merge_message_runs(llm_response_list, chunk_separator="")[0].content
 
-    rewritten_queries = llm_response.split("--")
+    rewritten_queries = llm_response.split("\n")
 
     if state["subgraph_config"].use_persistence:
         # Persist sub-queries to database
@@ -123,14 +121,26 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
     search_tool = state["subgraph_search_tool"]
 
     retrieved_docs: list[InferenceSection] = []
-    for tool_response in search_tool.run(query=query_to_retrieve):
+    if not query_to_retrieve.strip():
+        logger.warning("Empty query, skipping retrieval")
+        return DocRetrievalUpdate(
+            expanded_retrieval_results=[],
+            retrieved_documents=[],
+        )
+    for tool_response in search_tool.run(
+        query=query_to_retrieve, force_no_rerank="True"
+    ):
         if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
             retrieved_docs = cast(
                 list[InferenceSection], tool_response.response.top_sections
             )
         dispatch_custom_event(
             "tool_response",
-            tool_response,
+            ExtendedToolResponse(
+                id=tool_response.id,
+                sub_question_id=state["sub_question_id"] or make_question_id(0, 0),
+                response=tool_response.response,
+            ),
         )
 
     retrieved_docs = retrieved_docs[:AGENT_MAX_QUERY_RETRIEVAL_RESULTS]
@@ -167,6 +177,7 @@ def verification_kickoff(
     verification_question = state.get(
         "question", state["subgraph_config"].search_request.query
     )
+    sub_question_id = state.get("sub_question_id")
     return Command(
         update={},
         goto=[
@@ -176,6 +187,7 @@ def verification_kickoff(
                     doc_to_verify=doc,
                     question=verification_question,
                     base_search=False,
+                    sub_question_id=sub_question_id,
                     **in_subgraph_extract_core_fields(state),
                 ),
             )
@@ -229,20 +241,25 @@ def doc_reranking(state: ExpandedRetrievalState) -> DocRerankingUpdate:
     question = state.get("question", state["subgraph_config"].search_request.query)
     _search_query = retrieval_preprocessing(
         search_request=SearchRequest(query=question),
-        user=None,
+        user=state["subgraph_search_tool"].user,  # bit of a hack
         llm=state["subgraph_fast_llm"],
         db_session=state["subgraph_db_session"],
     )
 
-    reranked_documents = list(
-        search_postprocessing(
-            search_query=_search_query,
-            retrieved_sections=verified_documents,
-            llm=state["subgraph_fast_llm"],
+    # skip section filtering
+
+    if (
+        _search_query.rerank_settings
+        and _search_query.rerank_settings.rerank_model_name
+        and _search_query.rerank_settings.num_rerank > 0
+    ):
+        reranked_documents = rerank_sections(
+            _search_query,
+            verified_documents,
         )
-    )[
-        0
-    ]  # only get the reranked szections, not the SectionRelevancePiece
+    else:
+        logger.warning("No reranking settings found, using unranked documents")
+        reranked_documents = verified_documents
 
     if AGENT_RERANKING_STATS:
         fit_scores = get_fit_scores(verified_documents, reranked_documents)

@@ -31,7 +31,9 @@ class RetrievalIngestionUpdate(TypedDict):
 
 class AnswerQuestionInput(SubgraphCoreState):
     question: str
-    question_nr: str
+    question_id: str  # 0_0 is original question, everything else is <level>_<question_num>.
+    # level 0 is original question and first decomposition, level 1 is follow up, etc
+    # question_num is a unique number per original question per level.
 
 
 ## Graph State

@@ -8,6 +8,7 @@ from onyx.agent_search.answer_question.states import AnswerQuestionOutput
 from onyx.agent_search.core_state import extract_core_fields_for_subgraph
 from onyx.agent_search.main.states import MainState
 from onyx.agent_search.main.states import RequireRefinedAnswerUpdate
+from onyx.agent_search.shared_graph_utils.utils import make_question_id
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -31,7 +32,7 @@ def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hasha
                 AnswerQuestionInput(
                     **extract_core_fields_for_subgraph(state),
                     question=question,
-                    question_nr="0_" + str(question_nr),
+                    question_id=make_question_id(0, question_nr),
                 ),
             )
             for question_nr, question in enumerate(state["initial_decomp_questions"])
@@ -66,7 +67,7 @@ def parallelize_follow_up_answer_queries(state: MainState) -> list[Send | Hashab
                 AnswerQuestionInput(
                     **extract_core_fields_for_subgraph(state),
                     question=question_data.sub_question,
-                    question_nr="1_" + str(question_nr),
+                    question_id=make_question_id(1, question_nr),
                 ),
             )
             for question_nr, question_data in state["follow_up_sub_questions"].items()

@@ -108,6 +108,7 @@ if __name__ == "__main__":
             subgraph_db_session=db_session,
             subgraph_config=pro_search_config,
             subgraph_search_tool=search_tool,
+            sub_question_id=None,
         )
         for thing in compiled_graph.stream(
             input=inputs,

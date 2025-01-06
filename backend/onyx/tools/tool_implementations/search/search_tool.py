@@ -285,6 +285,8 @@ class SearchTool(Tool):
 
     def run(self, **kwargs: str) -> Generator[ToolResponse, None, None]:
         query = cast(str, kwargs["query"])
+        # kind of awkward to require this to be str, but it's "True" or "False"
+        force_no_rerank = kwargs.get("force_no_rerank", "False")
 
         if self.selected_sections:
             yield from self._build_response_for_specified_sections(query)
@@ -293,7 +295,9 @@ class SearchTool(Tool):
         search_pipeline = SearchPipeline(
             search_request=SearchRequest(
                 query=query,
-                evaluation_type=self.evaluation_type,
+                evaluation_type=LLMEvaluationType.SKIP
+                if force_no_rerank == "True"
+                else self.evaluation_type,
                 human_selected_filters=(
                     self.retrieval_options.filters if self.retrieval_options else None
                 ),
@@ -302,7 +306,9 @@ class SearchTool(Tool):
                     self.retrieval_options.offset if self.retrieval_options else None
                 ),
                 limit=self.retrieval_options.limit if self.retrieval_options else None,
-                rerank_settings=self.rerank_settings,
+                rerank_settings=None
+                if force_no_rerank == "True"
+                else self.rerank_settings,
                 chunks_above=self.chunks_above,
                 chunks_below=self.chunks_below,
                 full_doc=self.full_doc,
@@ -319,6 +325,7 @@ class SearchTool(Tool):
             db_session=self.db_session,
             prompt_config=self.prompt_config,
         )
+        self.search_pipeline = search_pipeline  # used for agent_search metrics
 
         yield ToolResponse(
             id=SEARCH_RESPONSE_SUMMARY_ID,
@@ -331,8 +338,6 @@ class SearchTool(Tool):
                 recency_bias_multiplier=search_pipeline.search_query.recency_bias_multiplier,
             ),
         )
-
-        self.search_pipeline = search_pipeline
 
         yield ToolResponse(
             id=SEARCH_DOC_CONTENT_ID,

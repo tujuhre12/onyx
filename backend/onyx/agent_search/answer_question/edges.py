@@ -18,6 +18,7 @@ def send_to_expanded_retrieval(state: AnswerQuestionInput) -> Send | Hashable:
         ExpandedRetrievalInput(
             **in_subgraph_extract_core_fields(state),
             question=state["question"],
-            base_search=False
+            base_search=False,
+            sub_question_id=state["question_id"],
         ),
     )

@@ -18,6 +18,7 @@ def send_to_expanded_follow_up_retrieval(state: AnswerQuestionInput) -> Send | H
         ExpandedRetrievalInput(
             **in_subgraph_extract_core_fields(state),
             question=state["question"],
+            sub_question_id=state["question_id"],
             base_search=False
         ),
     )

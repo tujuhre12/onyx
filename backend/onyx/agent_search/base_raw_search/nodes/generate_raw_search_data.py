@@ -15,4 +15,5 @@ def generate_raw_search_data(state: CoreState) -> ExpandedRetrievalInput:
         question=state["config"].search_request.query,
         base_search=True,
         subgraph_search_tool=state["search_tool"],
+        sub_question_id=None,  # This graph is always and only used for the original question
     )
