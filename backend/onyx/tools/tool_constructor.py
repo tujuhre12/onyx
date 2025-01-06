@@ -138,6 +138,7 @@ def construct_tools(
     user: User | None,
     llm: LLM,
     fast_llm: LLM,
+    tenant_id: str | None,
     search_tool_config: SearchToolConfig | None = None,
     internet_search_tool_config: InternetSearchToolConfig | None = None,
     image_generation_tool_config: ImageGenerationToolConfig | None = None,

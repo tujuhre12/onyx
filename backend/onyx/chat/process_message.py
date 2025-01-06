@@ -654,6 +654,7 @@ def stream_chat_message_objects(
             user=user,
             llm=llm,
             fast_llm=fast_llm,
+            tenant_id=tenant_id,
             search_tool_config=SearchToolConfig(
                 answer_style_config=answer_style_config,
                 document_pruning_config=document_pruning_config,

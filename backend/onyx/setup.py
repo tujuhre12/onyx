@@ -263,7 +263,7 @@ def setup_postgres(db_session: Session) -> None:
     logger.notice("Loading default Prompts and Personas")
     load_chat_yamls(db_session)
 
-    refresh_built_in_tools_cache(db_session)
+    refresh_built_in_tools_cache(db_session, tenant_id=None)
     auto_add_search_tool_to_personas(db_session)
 
     if GEN_AI_API_KEY and fetch_default_provider(db_session) is None:

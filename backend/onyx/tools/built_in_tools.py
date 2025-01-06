@@ -151,12 +151,12 @@ def auto_add_search_tool_to_personas(db_session: Session) -> None:
     logger.notice("Completed adding SearchTool to relevant Personas.")
 
 
-_built_in_tools_cache: dict[int, Type[Tool]] | None = None
+_built_in_tools_cache: dict[str | None, dict[int, Type[Tool]]] = {}
 
 
-def refresh_built_in_tools_cache(db_session: Session) -> None:
+def refresh_built_in_tools_cache(db_session: Session, tenant_id: str | None) -> None:
     global _built_in_tools_cache
-    _built_in_tools_cache = {}
+    _built_in_tools_cache[tenant_id] = {}
     all_tool_built_in_tools = (
         db_session.execute(
             select(ToolDBModel).where(not_(ToolDBModel.in_code_tool_id.is_(None)))
@@ -174,22 +174,27 @@ def refresh_built_in_tools_cache(db_session: Session) -> None:
             None,
         )
         if tool_info:
-            _built_in_tools_cache[tool.id] = tool_info["cls"]
+            _built_in_tools_cache[tenant_id][tool.id] = tool_info["cls"]
 
 
 def get_built_in_tool_by_id(
-    tool_id: int, db_session: Session, force_refresh: bool = False
+    tool_id: int,
+    db_session: Session,
+    tenant_id: str | None,
+    force_refresh: bool = False,
 ) -> Type[Tool]:
     global _built_in_tools_cache
-    if _built_in_tools_cache is None or force_refresh:
-        refresh_built_in_tools_cache(db_session)
+    if tenant_id not in _built_in_tools_cache or force_refresh:
+        refresh_built_in_tools_cache(db_session, tenant_id)
 
-    if _built_in_tools_cache is None:
+    if tenant_id not in _built_in_tools_cache:
         raise RuntimeError(
-            "Built-in tools cache is None despite being refreshed. Should never happen."
+            f"Built-in tools cache for tenant {tenant_id} is None despite being refreshed. Should never happen."
         )
 
-    if tool_id in _built_in_tools_cache:
-        return _built_in_tools_cache[tool_id]
+    if tool_id in _built_in_tools_cache[tenant_id]:
+        return _built_in_tools_cache[tenant_id][tool_id]
     else:
-        raise ValueError(f"No built-in tool found in the cache with ID {tool_id}")
+        raise ValueError(
+            f"No built-in tool found in the cache with ID {tool_id} for tenant {tenant_id}"
+        )
