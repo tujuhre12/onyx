@@ -50,7 +50,6 @@ const LoginPage = async (props: {
     if (authTypeMetadata?.requiresVerification && !currentUser.is_verified) {
       return redirect("/auth/waiting-on-verification");
     }
-
     return redirect("/chat");
   }
 
