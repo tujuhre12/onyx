@@ -295,11 +295,11 @@ class ChatMessage__SearchDoc(Base):
     )
 
 
-class SubQuery__SearchDoc(Base):
-    __tablename__ = "sub_query__search_doc"
+class AgentSubQuery__SearchDoc(Base):
+    __tablename__ = "agent__sub_query__search_doc"
 
     sub_query_id: Mapped[int] = mapped_column(
-        ForeignKey("sub_query.id"), primary_key=True
+        ForeignKey("agent__sub_query.id"), primary_key=True
     )
     search_doc_id: Mapped[int] = mapped_column(
         ForeignKey("search_doc.id"), primary_key=True
@@ -936,8 +936,8 @@ class SearchDoc(Base):
         back_populates="search_docs",
     )
     sub_queries = relationship(
-        "SubQuery",
-        secondary=SubQuery__SearchDoc.__table__,
+        "AgentSubQuery",
+        secondary=AgentSubQuery__SearchDoc.__table__,
         back_populates="search_docs",
     )
 
@@ -1134,13 +1134,13 @@ class ChatFolder(Base):
         return self.display_priority < other.display_priority
 
 
-class SubQuestion(Base):
+class AgentSubQuestion(Base):
     """
     A sub-question is a question that is asked of the LLM to gather supporting
     information to answer a primary question.
     """
 
-    __tablename__ = "sub_question"
+    __tablename__ = "agent__sub_question"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     primary_question_id: Mapped[int] = mapped_column(ForeignKey("chat_message.id"))
@@ -1161,20 +1161,22 @@ class SubQuestion(Base):
         "ChatMessage", foreign_keys=[primary_question_id]
     )
     chat_session: Mapped["ChatSession"] = relationship("ChatSession")
-    sub_queries: Mapped[list["SubQuery"]] = relationship(
-        "SubQuery", back_populates="parent_question"
+    sub_queries: Mapped[list["AgentSubQuery"]] = relationship(
+        "AgentSubQuery", back_populates="parent_question"
     )
 
 
-class SubQuery(Base):
+class AgentSubQuery(Base):
     """
     A sub-query is a vector DB query that gathers supporting information to answer a sub-question.
     """
 
-    __tablename__ = "sub_query"
+    __tablename__ = "agent__sub_query"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    parent_question_id: Mapped[int] = mapped_column(ForeignKey("sub_question.id"))
+    parent_question_id: Mapped[int] = mapped_column(
+        ForeignKey("agent__sub_question.id")
+    )
     chat_session_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("chat_session.id")
     )
@@ -1184,13 +1186,13 @@ class SubQuery(Base):
     )
 
     # Relationships
-    parent_question: Mapped["SubQuestion"] = relationship(
-        "SubQuestion", back_populates="sub_queries"
+    parent_question: Mapped["AgentSubQuestion"] = relationship(
+        "AgentSubQuestion", back_populates="sub_queries"
     )
     chat_session: Mapped["ChatSession"] = relationship("ChatSession")
     search_docs: Mapped[list["SearchDoc"]] = relationship(
         "SearchDoc",
-        secondary=SubQuery__SearchDoc.__table__,
+        secondary=AgentSubQuery__SearchDoc.__table__,
         back_populates="sub_queries",
     )
 
@@ -1676,7 +1678,7 @@ class PGFileStore(Base):
 
 
 class AgentSearchMetrics(Base):
-    __tablename__ = "agent_search_metrics"
+    __tablename__ = "agent__search_metrics"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[UUID | None] = mapped_column(

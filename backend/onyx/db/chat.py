@@ -27,6 +27,8 @@ from onyx.context.search.models import RetrievalDocs
 from onyx.context.search.models import SavedSearchDoc
 from onyx.context.search.models import SearchDoc as ServerSearchDoc
 from onyx.db.models import AgentSearchMetrics
+from onyx.db.models import AgentSubQuery
+from onyx.db.models import AgentSubQuestion
 from onyx.db.models import ChatMessage
 from onyx.db.models import ChatMessage__SearchDoc
 from onyx.db.models import ChatSession
@@ -34,8 +36,6 @@ from onyx.db.models import ChatSessionSharedStatus
 from onyx.db.models import Prompt
 from onyx.db.models import SearchDoc
 from onyx.db.models import SearchDoc as DBSearchDoc
-from onyx.db.models import SubQuery
-from onyx.db.models import SubQuestion
 from onyx.db.models import ToolCall
 from onyx.db.models import User
 from onyx.db.persona import get_best_persona_id_for_user
@@ -946,7 +946,7 @@ def log_agent_sub_question_results(
             x.query for x in sub_question_answer_result.expanded_retrieval_results
         ]
 
-        sub_question_object = SubQuestion(
+        sub_question_object = AgentSubQuestion(
             chat_session_id=chat_session_id,
             primary_question_id=primary_message_id,
             level=level,
@@ -963,7 +963,7 @@ def log_agent_sub_question_results(
         sub_question_id = sub_question_object.id
 
         for sub_query in sub_queries:
-            sub_query_object = SubQuery(
+            sub_query_object = AgentSubQuery(
                 parent_question_id=sub_question_id,
                 chat_session_id=chat_session_id,
                 sub_query=sub_query,
