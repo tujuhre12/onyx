@@ -36,9 +36,9 @@ class FollowUpSubQuestion(BaseModel):
 
 
 class AgentTimings(BaseModel):
-    base_duration_s: float | None
-    refined_duration_s: float | None
-    full_duration_s: float | None
+    base_duration__s: float | None
+    refined_duration__s: float | None
+    full_duration__s: float | None
 
 
 class AgentBaseMetrics(BaseModel):
@@ -49,13 +49,13 @@ class AgentBaseMetrics(BaseModel):
     verified_avg_score_base: float | None
     base_doc_boost_factor: float | None
     support_boost_factor: float | None
-    duration_s: float | None
+    duration__s: float | None
 
 
 class AgentRefinedMetrics(BaseModel):
     refined_doc_boost_factor: float | None
     refined_question_boost_factor: float | None
-    duration_s: float | None
+    duration__s: float | None
 
 
 class AgentAdditionalMetrics(BaseModel):

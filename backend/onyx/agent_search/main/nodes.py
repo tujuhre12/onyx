@@ -352,7 +352,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
         support_boost_factor=initial_agent_stats.agent_effectiveness.get(
             "support_ratio", None
         ),
-        duration_s=(agent_base_end_time - state["agent_start_time"]).total_seconds(),
+        duration__s=(agent_base_end_time - state["agent_start_time"]).total_seconds(),
     )
 
     return InitialAnswerUpdate(
@@ -765,7 +765,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     agent_refined_metrics = AgentRefinedMetrics(
         refined_doc_boost_factor=refined_agent_stats.revision_doc_efficiency,
         refined_question_boost_factor=refined_agent_stats.revision_question_efficiency,
-        duration_s=agent_refined_duration,
+        duration__s=agent_refined_duration,
     )
 
     now_end = datetime.now()
@@ -923,9 +923,9 @@ def logging_node(state: MainState) -> MainOutput:
 
     combined_agent_metrics = CombinedAgentMetrics(
         timings=AgentTimings(
-            base_duration_s=agent_base_duration,
-            refined_duration_s=agent_refined_duration,
-            full_duration_s=agent_full_duration,
+            base_duration__s=agent_base_duration,
+            refined_duration__s=agent_refined_duration,
+            full_duration__s=agent_full_duration,
         ),
         base_metrics=agent_base_metrics,
         refined_metrics=agent_refined_metrics,
