@@ -218,6 +218,8 @@ def try_generate_stale_document_sync_tasks(
     total_tasks_generated = 0
     cc_pairs = get_connector_credential_pairs(db_session)
     for cc_pair in cc_pairs:
+        lock_beat.reacquire()
+
         rc = RedisConnectorCredentialPair(tenant_id, cc_pair.id)
         rc.set_skip_docs(docs_to_skip)
         result = rc.generate_tasks(celery_app, db_session, r, lock_beat, tenant_id)
@@ -786,7 +788,7 @@ def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool:
         # print current queue lengths
         phase_start = time.monotonic()
         # we don't need every tenant polling redis for this info.
-        if not MULTI_TENANT or random.randint(1, 100) == 100:
+        if not MULTI_TENANT or random.randint(1, 10) == 10:
             r_celery = self.app.broker_connection().channel().client  # type: ignore
             n_celery = celery_get_queue_length("celery", r_celery)
             n_indexing = celery_get_queue_length(

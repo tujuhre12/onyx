@@ -257,6 +257,18 @@ def check_for_indexing(self: Task, *, tenant_id: str | None) -> int | None:
         for cc_pair_id in cc_pair_ids:
             lock_beat.reacquire()
 
+            # debugging logic - remove after we're done
+            if (
+                tenant_id == "tenant_i-043470d740845ec56"
+                or tenant_id == "tenant_82b497ce-88aa-4fbd-841a-92cae43529c8"
+            ):
+                logger.info(
+                    f"check_for_indexing lock: "
+                    f"tenant={tenant_id} "
+                    f"cc_pair={cc_pair_id} "
+                    f"ttl={redis_client.ttl(OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK)}"
+                )
+
             redis_connector = RedisConnector(tenant_id, cc_pair_id)
             with get_session_with_tenant(tenant_id) as db_session:
                 search_settings_list: list[SearchSettings] = get_active_search_settings(
