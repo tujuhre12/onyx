@@ -263,6 +263,8 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     good_qa_list: list[str] = []
     decomp_questions = []
 
+    sub_question_nr = 1
+
     for decomp_answer_result in decomp_answer_results:
         decomp_questions.append(decomp_answer_result.question)
         if (
@@ -274,8 +276,10 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
                 SUB_QUESTION_ANSWER_TEMPLATE.format(
                     sub_question=decomp_answer_result.question,
                     sub_answer=decomp_answer_result.answer,
+                    sub_question_nr=sub_question_nr,
                 )
             )
+            sub_question_nr += 1
 
     if len(good_qa_list) > 0:
         sub_question_answer_str = "\n\n------\n\n".join(good_qa_list)

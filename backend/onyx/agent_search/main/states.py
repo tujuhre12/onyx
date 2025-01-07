@@ -24,13 +24,24 @@ from onyx.context.search.models import InferenceSection
 ## Update States
 
 
-class BaseDecompUpdate(TypedDict):
-    agent_start_time: datetime
+class RefinedAgentStartStats(TypedDict):
     agent_refined_start_time: datetime | None
+
+
+class RefinedAgentEndStats(TypedDict):
     agent_refined_end_time: datetime | None
     agent_refined_metrics: AgentRefinedMetrics
 
+
+class BaseDecompUpdateBase(TypedDict):
+    agent_start_time: datetime
     initial_decomp_questions: list[str]
+
+
+class BaseDecompUpdate(
+    RefinedAgentStartStats, RefinedAgentEndStats, BaseDecompUpdateBase
+):
+    pass
 
 
 class InitialAnswerBASEUpdate(TypedDict):
@@ -45,12 +56,14 @@ class InitialAnswerUpdate(TypedDict):
     agent_base_metrics: AgentBaseMetrics
 
 
-class RefinedAnswerUpdate(TypedDict):
+class RefinedAnswerUpdateBase(TypedDict):
     refined_answer: str
     refined_agent_stats: RefinedAgentStats | None
     refined_answer_quality: bool
-    agent_refined_end_time: datetime
-    agent_refined_metrics: AgentRefinedMetrics
+
+
+class RefinedAnswerUpdate(RefinedAgentEndStats, RefinedAnswerUpdateBase):
+    pass
 
 
 class InitialAnswerQualityUpdate(TypedDict):
@@ -85,9 +98,14 @@ class EntityTermExtractionUpdate(TypedDict):
     entity_retlation_term_extractions: EntityRelationshipTermExtraction
 
 
-class FollowUpSubQuestionsUpdate(TypedDict):
+class FollowUpSubQuestionsUpdateBase(TypedDict):
     refined_sub_questions: dict[int, FollowUpSubQuestion]
-    agent_refined_start_time: datetime | None
+
+
+class FollowUpSubQuestionsUpdate(
+    RefinedAgentStartStats, FollowUpSubQuestionsUpdateBase
+):
+    pass
 
 
 ## Graph Input State
@@ -104,7 +122,7 @@ class MainInput(CoreState):
 class MainState(
     # This includes the core state
     MainInput,
-    BaseDecompUpdate,
+    BaseDecompUpdateBase,
     InitialAnswerUpdate,
     InitialAnswerBASEUpdate,
     DecompAnswersUpdate,
@@ -112,9 +130,11 @@ class MainState(
     EntityTermExtractionUpdate,
     InitialAnswerQualityUpdate,
     RequireRefinedAnswerUpdate,
-    FollowUpSubQuestionsUpdate,
+    FollowUpSubQuestionsUpdateBase,
     FollowUpDecompAnswersUpdate,
-    RefinedAnswerUpdate,
+    RefinedAnswerUpdateBase,
+    RefinedAgentStartStats,
+    RefinedAgentEndStats,
 ):
     # expanded_retrieval_result: Annotated[list[ExpandedRetrievalResult], add]
     base_raw_search_result: Annotated[list[ExpandedRetrievalResult], add]
