@@ -498,7 +498,7 @@ You are an assistant for question-answering tasks. Here is more information abou
 """
 
 SUB_QUESTION_ANSWER_TEMPLATE = """
-    Sub-Question:\n  - {sub_question}\n  --\nAnswer:\n  - {sub_answer}\n\n
+    Sub-Question: Q{sub_question_nr}\n  Sub-Question:\n  - \n{sub_question}\n  --\nAnswer:\n  -\n {sub_answer}\n\n
     """
 
 INITIAL_RAG_PROMPT = """ \n
@@ -517,6 +517,11 @@ IMPORTANT RULES:
  You may give some additional facts you learned, but do not try to invent an answer.
  - If the information is empty or irrelevant, just say "I don't know".
  - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
+
+Remember to provide inline citations of documentsin the format [D1], [D2], [D3], etc., and  [Q1], [Q2],... if
+you want to cite the answer to a sub-question. If you have multiple citations, please cite for example
+as [D1][Q3], or [D2][D4], etc. Feel free to cite documents in addition to the sub-questions!
+Proper citations are important for the final answer to be verifiable! \n\n\n
 
 Again, you should be sure that the answer is supported by the information provided!
 

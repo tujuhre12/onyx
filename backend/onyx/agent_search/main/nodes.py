@@ -10,8 +10,8 @@ from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.messages import merge_message_runs
 
-from onyx.agent_search.answer_question.states import AnswerQuestionOutput
-from onyx.agent_search.answer_question.states import QuestionAnswerResults
+from onyx.agent_search.answer_initial_sub_question.states import AnswerQuestionOutput
+from onyx.agent_search.answer_initial_sub_question.states import QuestionAnswerResults
 from onyx.agent_search.base_raw_search.states import BaseRawSearchOutput
 from onyx.agent_search.main.models import AgentAdditionalMetrics
 from onyx.agent_search.main.models import AgentBaseMetrics
@@ -70,8 +70,8 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def dispatch_subquestion(level: int) -> Callable[[str, int], None]:
-    def helper(sub_question_part: str, num: int) -> None:
+def _dispatch_subquestion(level: int) -> Callable[[str, int], None]:
+    def _helper(sub_question_part: str, num: int) -> None:
         dispatch_custom_event(
             "decomp_qs",
             SubQuestionPiece(
@@ -81,10 +81,10 @@ def dispatch_subquestion(level: int) -> Callable[[str, int], None]:
             ),
         )
 
-    return helper
+    return _helper
 
 
-def main_decomp_base(state: MainState) -> BaseDecompUpdate:
+def initial_sub_question_creation(state: MainState) -> BaseDecompUpdate:
     now_start = datetime.now()
 
     logger.info(f"--------{now_start}--------BASE DECOMP START---")
@@ -109,7 +109,7 @@ def main_decomp_base(state: MainState) -> BaseDecompUpdate:
     model = state["fast_llm"]
 
     # dispatches custom events for subquestion tokens, adding in subquestion ids.
-    streamed_tokens = dispatch_separated(model.stream(msg), dispatch_subquestion(0))
+    streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(0))
 
     response = merge_content(*streamed_tokens)
 
@@ -263,6 +263,8 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     good_qa_list: list[str] = []
     decomp_questions = []
 
+    sub_question_nr = 1
+
     for decomp_answer_result in decomp_answer_results:
         decomp_questions.append(decomp_answer_result.question)
         if (
@@ -274,8 +276,10 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
                 SUB_QUESTION_ANSWER_TEMPLATE.format(
                     sub_question=decomp_answer_result.question,
                     sub_answer=decomp_answer_result.answer,
+                    sub_question_nr=sub_question_nr,
                 )
             )
+            sub_question_nr += 1
 
     if len(good_qa_list) > 0:
         sub_question_answer_str = "\n\n------\n\n".join(good_qa_list)
@@ -398,7 +402,7 @@ def initial_answer_quality_check(state: MainState) -> InitialAnswerQualityUpdate
     return InitialAnswerQualityUpdate(initial_answer_quality=verdict)
 
 
-def entity_term_extraction(state: MainState) -> EntityTermExtractionUpdate:
+def entity_term_extraction_llm(state: MainState) -> EntityTermExtractionUpdate:
     now_start = datetime.now()
 
     logger.info(f"--------{now_start}--------GENERATE ENTITIES & TERMS---")
@@ -494,7 +498,9 @@ def entity_term_extraction(state: MainState) -> EntityTermExtractionUpdate:
     )
 
 
-def generate_initial_base_answer(state: MainState) -> InitialAnswerBASEUpdate:
+def generate_initial_base_search_only_answer(
+    state: MainState,
+) -> InitialAnswerBASEUpdate:
     now_start = datetime.now()
 
     logger.info(f"--------{now_start}--------GENERATE INITIAL BASE ANSWER---")
@@ -525,7 +531,9 @@ def generate_initial_base_answer(state: MainState) -> InitialAnswerBASEUpdate:
     return InitialAnswerBASEUpdate(initial_base_answer=answer)
 
 
-def ingest_answers(state: AnswerQuestionOutput) -> DecompAnswersUpdate:
+def ingest_initial_sub_question_answers(
+    state: AnswerQuestionOutput,
+) -> DecompAnswersUpdate:
     now_start = datetime.now()
 
     logger.info(f"--------{now_start}--------INGEST ANSWERS---")
@@ -548,7 +556,9 @@ def ingest_answers(state: AnswerQuestionOutput) -> DecompAnswersUpdate:
     )
 
 
-def ingest_initial_retrieval(state: BaseRawSearchOutput) -> ExpandedRetrievalUpdate:
+def ingest_initial_base_retrieval(
+    state: BaseRawSearchOutput,
+) -> ExpandedRetrievalUpdate:
     now_start = datetime.now()
 
     logger.info(f"--------{now_start}--------INGEST INITIAL RETRIEVAL---")
@@ -605,7 +615,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     persona_prompt = get_persona_prompt(state["config"].search_request.persona)
 
     initial_documents = state["documents"]
-    revised_documents = state["follow_up_documents"]
+    revised_documents = state["refined_documents"]
 
     combined_documents = dedup_inference_sections(initial_documents, revised_documents)
 
@@ -617,7 +627,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
         revision_doc_effectiveness = 10.0
 
     decomp_answer_results = state["decomp_answer_results"]
-    # revised_answer_results = state["follow_up_decomp_answer_results"]
+    # revised_answer_results = state["refined_decomp_answer_results"]
 
     good_qa_list: list[str] = []
     decomp_questions = []
@@ -803,7 +813,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     )
 
 
-def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
+def refined_sub_question_creation(state: MainState) -> FollowUpSubQuestionsUpdate:
     """ """
 
     now_start = datetime.now()
@@ -847,7 +857,7 @@ def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
     # Grader
     model = state["fast_llm"]
 
-    streamed_tokens = dispatch_separated(model.stream(msg), dispatch_subquestion(1))
+    streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(1))
     response = merge_content(*streamed_tokens)
 
     if isinstance(response, str):
@@ -855,9 +865,9 @@ def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
     else:
         raise ValueError("LLM response is not a string")
 
-    follow_up_sub_question_dict = {}
+    refined_sub_question_dict = {}
     for sub_question_nr, sub_question in enumerate(parsed_response):
-        follow_up_sub_question = FollowUpSubQuestion(
+        refined_sub_question = FollowUpSubQuestion(
             sub_question=sub_question,
             sub_question_id=make_question_id(1, sub_question_nr),
             verified=False,
@@ -865,7 +875,7 @@ def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
             answer="",
         )
 
-        follow_up_sub_question_dict[sub_question_nr] = follow_up_sub_question
+        refined_sub_question_dict[sub_question_nr] = refined_sub_question
 
     now_end = datetime.now()
 
@@ -874,12 +884,12 @@ def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
     )
 
     return FollowUpSubQuestionsUpdate(
-        follow_up_sub_questions=follow_up_sub_question_dict,
+        refined_sub_questions=refined_sub_question_dict,
         agent_refined_start_time=agent_refined_start_time,
     )
 
 
-def ingest_follow_up_answers(
+def ingest_refined_answers(
     state: AnswerQuestionOutput,
 ) -> DecompAnswersUpdate:
     now_start = datetime.now()
@@ -905,7 +915,7 @@ def ingest_follow_up_answers(
     )
 
 
-def logging_node(state: MainState) -> MainOutput:
+def agent_logging(state: MainState) -> MainOutput:
     now_start = datetime.now()
 
     logger.info(f"--------{now_start}--------LOGGING NODE---")

@@ -3,8 +3,8 @@ from typing import Literal
 
 from langgraph.types import Send
 
-from onyx.agent_search.answer_question.states import AnswerQuestionInput
-from onyx.agent_search.answer_question.states import AnswerQuestionOutput
+from onyx.agent_search.answer_initial_sub_question.states import AnswerQuestionInput
+from onyx.agent_search.answer_initial_sub_question.states import AnswerQuestionOutput
 from onyx.agent_search.core_state import extract_core_fields_for_subgraph
 from onyx.agent_search.main.states import MainState
 from onyx.agent_search.main.states import RequireRefinedAnswerUpdate
@@ -14,7 +14,9 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hashable]:
+def parallelize_initial_sub_question_answering(
+    state: MainState,
+) -> list[Send | Hashable]:
     if len(state["initial_decomp_questions"]) > 0:
         # sub_question_record_ids = [subq_record.id for subq_record in state["sub_question_records"]]
         # if len(state["sub_question_records"]) == 0:
@@ -28,7 +30,7 @@ def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hasha
 
         return [
             Send(
-                "answer_query",
+                "answer_query_subgraph",
                 AnswerQuestionInput(
                     **extract_core_fields_for_subgraph(state),
                     question=question,
@@ -52,31 +54,33 @@ def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hasha
 # Define the function that determines whether to continue or not
 def continue_to_refined_answer_or_end(
     state: RequireRefinedAnswerUpdate,
-) -> Literal["follow_up_decompose", "logging_node"]:
+) -> Literal["refined_decompose", "logging_node"]:
     if state["require_refined_answer"]:
-        return "follow_up_decompose"
+        return "refined_decompose"
     else:
         return "logging_node"
 
 
-def parallelize_follow_up_answer_queries(state: MainState) -> list[Send | Hashable]:
-    if len(state["follow_up_sub_questions"]) > 0:
+def parallelize_refined_sub_question_answering(
+    state: MainState,
+) -> list[Send | Hashable]:
+    if len(state["refined_sub_questions"]) > 0:
         return [
             Send(
-                "answer_follow_up_question",
+                "answer_refinement_sub_question",
                 AnswerQuestionInput(
                     **extract_core_fields_for_subgraph(state),
                     question=question_data.sub_question,
                     question_id=make_question_id(1, question_nr),
                 ),
             )
-            for question_nr, question_data in state["follow_up_sub_questions"].items()
+            for question_nr, question_data in state["refined_sub_questions"].items()
         ]
 
     else:
         return [
             Send(
-                "ingest_follow_up_answers",
+                "ingest_refined_sub_answers",
                 AnswerQuestionOutput(
                     answer_results=[],
                 ),

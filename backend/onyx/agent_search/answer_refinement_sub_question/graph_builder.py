@@ -2,24 +2,33 @@ from langgraph.graph import END
 from langgraph.graph import START
 from langgraph.graph import StateGraph
 
-from onyx.agent_search.answer_question.edges import send_to_expanded_retrieval
-from onyx.agent_search.answer_question.nodes.answer_check import answer_check
-from onyx.agent_search.answer_question.nodes.answer_generation import answer_generation
-from onyx.agent_search.answer_question.nodes.format_answer import format_answer
-from onyx.agent_search.answer_question.nodes.ingest_retrieval import ingest_retrieval
-from onyx.agent_search.answer_question.states import AnswerQuestionInput
-from onyx.agent_search.answer_question.states import AnswerQuestionOutput
-from onyx.agent_search.answer_question.states import AnswerQuestionState
+from onyx.agent_search.answer_initial_sub_question.nodes.answer_check import (
+    answer_check,
+)
+from onyx.agent_search.answer_initial_sub_question.nodes.answer_generation import (
+    answer_generation,
+)
+from onyx.agent_search.answer_initial_sub_question.nodes.format_answer import (
+    format_answer,
+)
+from onyx.agent_search.answer_initial_sub_question.nodes.ingest_retrieval import (
+    ingest_retrieval,
+)
+from onyx.agent_search.answer_initial_sub_question.states import AnswerQuestionInput
+from onyx.agent_search.answer_initial_sub_question.states import AnswerQuestionOutput
+from onyx.agent_search.answer_initial_sub_question.states import AnswerQuestionState
+from onyx.agent_search.answer_refinement_sub_question.edges import (
+    send_to_expanded_refined_retrieval,
+)
 from onyx.agent_search.expanded_retrieval.graph_builder import (
     expanded_retrieval_graph_builder,
 )
-from onyx.agent_search.shared_graph_utils.utils import get_test_config
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
 
 
-def answer_query_graph_builder() -> StateGraph:
+def answer_refined_query_graph_builder() -> StateGraph:
     graph = StateGraph(
         state_schema=AnswerQuestionState,
         input=AnswerQuestionInput,
@@ -30,23 +39,23 @@ def answer_query_graph_builder() -> StateGraph:
 
     expanded_retrieval = expanded_retrieval_graph_builder().compile()
     graph.add_node(
-        node="decomped_expanded_retrieval",
+        node="refined_sub_question_expanded_retrieval",
         action=expanded_retrieval,
     )
     graph.add_node(
-        node="answer_check",
+        node="refined_sub_answer_check",
         action=answer_check,
     )
     graph.add_node(
-        node="answer_generation",
+        node="refined_sub_answer_generation",
         action=answer_generation,
     )
     graph.add_node(
-        node="format_answer",
+        node="format_refined_sub_answer",
         action=format_answer,
     )
     graph.add_node(
-        node="ingest_retrieval",
+        node="ingest_refined_retrieval",
         action=ingest_retrieval,
     )
 
@@ -54,27 +63,27 @@ def answer_query_graph_builder() -> StateGraph:
 
     graph.add_conditional_edges(
         source=START,
-        path=send_to_expanded_retrieval,
-        path_map=["decomped_expanded_retrieval"],
+        path=send_to_expanded_refined_retrieval,
+        path_map=["refined_sub_question_expanded_retrieval"],
     )
     graph.add_edge(
-        start_key="decomped_expanded_retrieval",
-        end_key="ingest_retrieval",
+        start_key="refined_sub_question_expanded_retrieval",
+        end_key="ingest_refined_retrieval",
     )
     graph.add_edge(
-        start_key="ingest_retrieval",
-        end_key="answer_generation",
+        start_key="ingest_refined_retrieval",
+        end_key="refined_sub_answer_generation",
     )
     graph.add_edge(
-        start_key="answer_generation",
-        end_key="answer_check",
+        start_key="refined_sub_answer_generation",
+        end_key="refined_sub_answer_check",
     )
     graph.add_edge(
-        start_key="answer_check",
-        end_key="format_answer",
+        start_key="refined_sub_answer_check",
+        end_key="format_refined_sub_answer",
     )
     graph.add_edge(
-        start_key="format_answer",
+        start_key="format_refined_sub_answer",
         end_key=END,
     )
 
@@ -86,23 +95,15 @@ if __name__ == "__main__":
     from onyx.llm.factory import get_default_llms
     from onyx.context.search.models import SearchRequest
 
-    graph = answer_query_graph_builder()
+    graph = answer_refined_query_graph_builder()
     compiled_graph = graph.compile()
     primary_llm, fast_llm = get_default_llms()
     search_request = SearchRequest(
         query="what can you do with onyx or danswer?",
     )
     with get_session_context_manager() as db_session:
-        pro_search_config, search_tool = get_test_config(
-            db_session, primary_llm, fast_llm, search_request
-        )
         inputs = AnswerQuestionInput(
             question="what can you do with onyx?",
-            subgraph_fast_llm=fast_llm,
-            subgraph_primary_llm=primary_llm,
-            subgraph_config=pro_search_config,
-            subgraph_search_tool=search_tool,
-            subgraph_db_session=db_session,
             question_id="0_0",
         )
         for thing in compiled_graph.stream(
@@ -111,3 +112,5 @@ if __name__ == "__main__":
             # subgraphs=True,
         ):
             logger.info(thing)
+        # output = compiled_graph.invoke(inputs)
+        #  logger.info(output)

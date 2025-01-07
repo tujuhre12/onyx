@@ -42,7 +42,12 @@ def normalize_whitespace(text: str) -> str:
 
 # Post-processing
 def format_docs(docs: Sequence[InferenceSection]) -> str:
-    return "\n\n".join(doc.combined_content for doc in docs)
+    formatted_doc_list = []
+
+    for doc_nr, doc in enumerate(docs):
+        formatted_doc_list.append(f"Document D{doc_nr + 1}:\n{doc.combined_content}")
+
+    return "\n\n".join(formatted_doc_list)
 
 
 def clean_and_parse_list_string(json_string: str) -> list[dict]:
