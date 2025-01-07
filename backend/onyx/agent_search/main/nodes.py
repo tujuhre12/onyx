@@ -10,8 +10,8 @@ from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.messages import merge_message_runs
 
-from onyx.agent_search.answer_question.states import AnswerQuestionOutput
-from onyx.agent_search.answer_question.states import QuestionAnswerResults
+from onyx.agent_search.answer_initial_sub_question.states import AnswerQuestionOutput
+from onyx.agent_search.answer_initial_sub_question.states import QuestionAnswerResults
 from onyx.agent_search.base_raw_search.states import BaseRawSearchOutput
 from onyx.agent_search.main.models import AgentAdditionalMetrics
 from onyx.agent_search.main.models import AgentBaseMetrics
@@ -885,7 +885,7 @@ def refined_sub_question_creation(state: MainState) -> FollowUpSubQuestionsUpdat
     )
 
 
-def ingest_follow_up_answers(
+def ingest_refined_answers(
     state: AnswerQuestionOutput,
 ) -> DecompAnswersUpdate:
     now_start = datetime.now()

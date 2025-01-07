@@ -2,7 +2,7 @@ from operator import add
 from typing import Annotated
 from typing import TypedDict
 
-from onyx.agent_search.answer_question.models import QuestionAnswerResults
+from onyx.agent_search.answer_initial_sub_question.models import QuestionAnswerResults
 from onyx.agent_search.core_state import SubgraphCoreState
 from onyx.agent_search.expanded_retrieval.models import QueryResult
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats

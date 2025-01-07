@@ -1,4 +1,6 @@
-from onyx.agent_search.answer_question.states import RetrievalIngestionUpdate
+from onyx.agent_search.answer_initial_sub_question.states import (
+    RetrievalIngestionUpdate,
+)
 from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalOutput
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 

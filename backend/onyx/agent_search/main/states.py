@@ -3,7 +3,7 @@ from operator import add
 from typing import Annotated
 from typing import TypedDict
 
-from onyx.agent_search.answer_question.states import QuestionAnswerResults
+from onyx.agent_search.answer_initial_sub_question.states import QuestionAnswerResults
 from onyx.agent_search.core_state import CoreState
 from onyx.agent_search.expanded_retrieval.models import ExpandedRetrievalResult
 from onyx.agent_search.expanded_retrieval.models import QueryResult

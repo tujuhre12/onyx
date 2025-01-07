@@ -3,8 +3,8 @@ from typing import Literal
 
 from langgraph.types import Send
 
-from onyx.agent_search.answer_question.states import AnswerQuestionInput
-from onyx.agent_search.answer_question.states import AnswerQuestionOutput
+from onyx.agent_search.answer_initial_sub_question.states import AnswerQuestionInput
+from onyx.agent_search.answer_initial_sub_question.states import AnswerQuestionOutput
 from onyx.agent_search.core_state import extract_core_fields_for_subgraph
 from onyx.agent_search.main.states import MainState
 from onyx.agent_search.main.states import RequireRefinedAnswerUpdate
@@ -30,7 +30,7 @@ def parallelize_initial_sub_question_answering(
 
         return [
             Send(
-                "answer_query",
+                "answer_query_subgraph",
                 AnswerQuestionInput(
                     **extract_core_fields_for_subgraph(state),
                     question=question,
@@ -67,7 +67,7 @@ def parallelize_refined_sub_question_answering(
     if len(state["follow_up_sub_questions"]) > 0:
         return [
             Send(
-                "answer_follow_up_question",
+                "answer_refinement_sub_question",
                 AnswerQuestionInput(
                     **extract_core_fields_for_subgraph(state),
                     question=question_data.sub_question,

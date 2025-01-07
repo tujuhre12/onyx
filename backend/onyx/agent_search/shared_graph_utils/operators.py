@@ -1,4 +1,4 @@
-from onyx.agent_search.answer_question.models import QuestionAnswerResults
+from onyx.agent_search.answer_initial_sub_question.models import QuestionAnswerResults
 from onyx.chat.prune_and_merge import _merge_sections
 from onyx.context.search.models import InferenceSection
 
