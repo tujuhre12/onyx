@@ -393,11 +393,6 @@ export default function NRFPage({
           )}
         </Modal>
       )}
-
-      {shouldShowWelcomeModal && (
-        <WelcomeModal user={user} requestCookies={requestCookies} />
-      )}
-
       {popup}
     </div>
   );
