@@ -28,6 +28,8 @@ from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
 
+SCAN_ITER_COUNT_DEFAULT = 4096
+
 
 class TenantRedis(redis.Redis):
     def __init__(self, tenant_id: str, *args: Any, **kwargs: Any) -> None:

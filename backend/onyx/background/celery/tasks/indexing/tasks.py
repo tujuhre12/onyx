@@ -63,6 +63,7 @@ from onyx.redis.redis_connector_index import RedisConnectorIndex
 from onyx.redis.redis_connector_index import RedisConnectorIndexPayload
 from onyx.redis.redis_pool import get_redis_client
 from onyx.redis.redis_pool import redis_lock_dump
+from onyx.redis.redis_pool import SCAN_ITER_COUNT_DEFAULT
 from onyx.utils.logger import setup_logger
 from onyx.utils.variable_functionality import global_version
 from shared_configs.configs import INDEXING_MODEL_SERVER_HOST
@@ -262,7 +263,7 @@ def check_for_indexing(self: Task, *, tenant_id: str | None) -> int | None:
                 tenant_id == "tenant_i-043470d740845ec56"
                 or tenant_id == "tenant_82b497ce-88aa-4fbd-841a-92cae43529c8"
             ):
-                logger.info(
+                task_logger.info(
                     f"check_for_indexing lock: "
                     f"tenant={tenant_id} "
                     f"cc_pair={cc_pair_id} "
@@ -417,7 +418,9 @@ def validate_indexing_fences(
     )
 
     # validate all existing indexing jobs
-    for key_bytes in r.scan_iter(RedisConnectorIndex.FENCE_PREFIX + "*"):
+    for key_bytes in r.scan_iter(
+        RedisConnectorIndex.FENCE_PREFIX + "*", count=SCAN_ITER_COUNT_DEFAULT
+    ):
         lock_beat.reacquire()
         with get_session_with_tenant(tenant_id) as db_session:
             validate_indexing_fence(
