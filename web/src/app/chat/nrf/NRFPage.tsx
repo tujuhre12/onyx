@@ -33,7 +33,7 @@ import {
 } from "@/components/context/NRFPreferencesContext";
 import { SettingsPanel } from "../../components/nrf/SettingsPanel";
 import { ShortcutsDisplay } from "../../components/nrf/ShortcutsDisplay";
-import LoginPanel from "../../auth/login/LoginPage";
+import LoginPage from "../../auth/login/LoginPage";
 import { AuthType } from "@/lib/constants";
 import { sendSetDefaultNewTabMessage } from "@/lib/extension/utils";
 import { WelcomeModal } from "@/components/initialSetup/welcome/WelcomeModalWrapper";
@@ -360,7 +360,7 @@ export default function NRFPage({
           {fetchingAuth ? (
             <p className="p-4">Loading login info…</p>
           ) : authType == "basic" ? (
-            <LoginPanel
+            <LoginPage
               showPageRedirect
               authUrl={null}
               authTypeMetadata={{
