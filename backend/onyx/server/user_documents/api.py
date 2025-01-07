@@ -135,9 +135,11 @@ def upload_user_files(
     user: User = Depends(current_user),
     db_session: Session = Depends(get_session),
 ) -> FileUploadResponse:
-    return FileUploadResponse(
+    file_upload_response = FileUploadResponse(
         file_paths=create_user_files(files, folder_id, user, db_session).file_id
     )
+    # trigger_document_indexing(db_session, user.id)
+    return file_upload_response
 
 
 @router.put("/user/folder/{folder_id}")

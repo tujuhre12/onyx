@@ -31,3 +31,6 @@ def create_user_files(
 
     db_session.commit()
     return upload_response
+
+
+# def trigger_document_indexing(db_session: Session, user_id: int) -> None:

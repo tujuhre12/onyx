@@ -165,7 +165,6 @@ class UserFile(Base):
     parent_folder_id: Mapped[int | None] = mapped_column(
         ForeignKey("user_folder.id"), nullable=True
     )
-    # file_type: Mapped[UserDocument] = mapped_column(Enum(UserDocument), native_enum=False, nullable=False)
 
     file_id: Mapped[str] = mapped_column(nullable=False)
     document_id: Mapped[str] = mapped_column(nullable=False)
@@ -173,7 +172,9 @@ class UserFile(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(
         default=datetime.datetime.utcnow
     )
-
+    ccpair_id: Mapped[int | None] = mapped_column(
+        ForeignKey("connector_credential_pair.id"), nullable=False
+    )
     user: Mapped["User"] = relationship(back_populates="files")
     folder: Mapped["UserFolder"] = relationship(back_populates="files")
 
