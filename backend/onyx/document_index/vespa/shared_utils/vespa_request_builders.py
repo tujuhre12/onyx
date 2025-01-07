@@ -9,11 +9,13 @@ from onyx.document_index.vespa_constants import ACCESS_CONTROL_LIST
 from onyx.document_index.vespa_constants import CHUNK_ID
 from onyx.document_index.vespa_constants import DOC_UPDATED_AT
 from onyx.document_index.vespa_constants import DOCUMENT_ID
+from onyx.document_index.vespa_constants import DOCUMENT_IDS
 from onyx.document_index.vespa_constants import DOCUMENT_SETS
 from onyx.document_index.vespa_constants import HIDDEN
 from onyx.document_index.vespa_constants import METADATA_LIST
 from onyx.document_index.vespa_constants import SOURCE_TYPE
 from onyx.document_index.vespa_constants import TENANT_ID
+from onyx.document_index.vespa_constants import USER_FOLDERS
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -77,9 +79,14 @@ def build_vespa_filters(
     tags = filters.tags
     if tags:
         tag_attributes = [tag.tag_key + INDEX_SEPARATOR + tag.tag_value for tag in tags]
+
     filter_str += _build_or_filters(METADATA_LIST, tag_attributes)
 
     filter_str += _build_or_filters(DOCUMENT_SETS, filters.document_set)
+
+    filter_str += _build_or_filters(USER_FOLDERS, filters.user_folders)
+
+    filter_str += _build_or_filters(DOCUMENT_IDS, filters.document_ids)
 
     filter_str += _build_time_filter(filters.time_cutoff)
 

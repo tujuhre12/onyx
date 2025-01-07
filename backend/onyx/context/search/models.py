@@ -96,6 +96,8 @@ class Tag(BaseModel):
 class BaseFilters(BaseModel):
     source_type: list[DocumentSource] | None = None
     document_set: list[str] | None = None
+    user_folders: list[str] | None = None
+    document_ids: list[str] | None = None
     time_cutoff: datetime | None = None
     tags: list[Tag] | None = None
 
