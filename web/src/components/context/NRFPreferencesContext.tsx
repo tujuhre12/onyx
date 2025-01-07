@@ -1,22 +1,12 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { darkImages, lightImages, Shortcut } from "@/app/chat/nrf/interfaces";
-
-function notifyExtensionOfThemeChange(newTheme: string, newBgUrl: string) {
-  if (typeof window !== "undefined" && window.parent) {
-    window.parent.postMessage(
-      {
-        type: "PREFERENCES_UPDATED",
-        payload: {
-          theme: newTheme,
-          backgroundUrl: newBgUrl,
-        },
-      },
-      "*"
-    );
-  }
-}
+import { Shortcut } from "@/app/chat/nrf/interfaces";
+import { notifyExtensionOfThemeChange } from "@/lib/extension/utils";
+import {
+  darkExtensionImages,
+  lightExtensionImages,
+} from "@/lib/extension/constants";
 
 interface NRFPreferencesContextValue {
   theme: string;
@@ -66,9 +56,9 @@ export function NRFPreferencesProvider({
 }) {
   const [theme, setTheme] = useLocalStorageState<string>("onyxTheme", "dark");
   const [defaultLightBackgroundUrl, setDefaultLightBackgroundUrl] =
-    useLocalStorageState<string>("lightBgUrl", lightImages[0]);
+    useLocalStorageState<string>("lightBgUrl", lightExtensionImages[0]);
   const [defaultDarkBackgroundUrl, setDefaultDarkBackgroundUrl] =
-    useLocalStorageState<string>("darkBgUrl", darkImages[0]);
+    useLocalStorageState<string>("darkBgUrl", darkExtensionImages[0]);
   const [shortcuts, setShortcuts] = useLocalStorageState<Shortcut[]>(
     "shortCuts",
     []
