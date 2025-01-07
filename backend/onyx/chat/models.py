@@ -18,6 +18,7 @@ from onyx.context.search.enums import RecencyBiasSetting
 from onyx.context.search.enums import SearchType
 from onyx.context.search.models import RetrievalDocs
 from onyx.context.search.models import SearchRequest
+from onyx.llm.models import PreviousMessage
 from onyx.llm.override_models import PromptOverride
 from onyx.tools.models import ToolCallFinalResult
 from onyx.tools.models import ToolCallKickoff
@@ -223,6 +224,9 @@ class ProSearchConfig(BaseModel):
 
     # Whether to allow creation of refinement questions (and entity extraction, etc.)
     allow_refinement: bool = False
+
+    # Message history for the current chat session
+    message_history: list[PreviousMessage] | None = None
 
 
 AnswerQuestionPossibleReturn = (

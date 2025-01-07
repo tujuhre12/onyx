@@ -688,6 +688,10 @@ def stream_chat_message_objects(
         for tool_list in tool_dict.values():
             tools.extend(tool_list)
 
+        message_history = [
+            PreviousMessage.from_chat_message(msg, files) for msg in history_msgs
+        ]
+
         search_request = None
         pro_search_config = None
         if new_msg_req.use_pro_search:
@@ -714,11 +718,15 @@ def stream_chat_message_objects(
                     else None
                 ),
             )
+            # TODO: Since we're deleting the current main path in Answer,
+            # we should construct this unconditionally inside Answer instead
+            # Leaving it here for the time being to avoid breaking changes
             pro_search_config = (
                 ProSearchConfig(
                     search_request=search_request,
                     chat_session_id=chat_session_id,
                     message_id=user_message.id if user_message else None,
+                    message_history=message_history,
                 )
                 if new_msg_req.use_pro_search
                 else None
@@ -745,9 +753,7 @@ def stream_chat_message_objects(
                 )
             ),
             fast_llm=fast_llm,
-            message_history=[
-                PreviousMessage.from_chat_message(msg, files) for msg in history_msgs
-            ],
+            message_history=message_history,
             tools=tools,
             force_use_tool=_get_force_search_settings(new_msg_req, tools),
             pro_search_config=pro_search_config,
