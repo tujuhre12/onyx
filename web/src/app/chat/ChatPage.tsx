@@ -213,8 +213,6 @@ export function ChatPage({
   }, [user]);
   const submittingLogic = (searchParamsString: string) => {
     const newSearchParams = new URLSearchParams(searchParamsString);
-    console.log("newSearchParams", newSearchParams);
-    console.log("searchParamsString", searchParamsString);
     const message = newSearchParams.get("user-prompt");
     newSearchParams.delete(SEARCH_PARAM_NAMES.SEND_ON_LOAD);
 
@@ -826,7 +824,6 @@ export function ChatPage({
       currentSessionChatState === "loading" &&
       messageHistory.length == 0
     ) {
-      console.log("TRYING TO LOAD NEW CHAT PAGE", submittedMessage);
       window.parent.postMessage({ type: "LOAD_NEW_CHAT_PAGE" }, "*");
     }
   }, [submittedMessage, currentSessionChatState]);
@@ -1036,29 +1033,9 @@ export function ChatPage({
 
     window.addEventListener("message", (event) => {
       if (event.data.type === "LOAD_NEW_PAGE") {
-        console.log("Received LOAD_NEW_PAGE event:", event.data);
         const { href } = event.data;
         const url = new URL(href);
-        // const userPrompt = url.searchParams.get("user-prompt");
-
-        // {
-        //     "type": "LOAD_NEW_PAGE",
-        //     "href": "http://localhost:3000/chat?send-on-load=true&user-prompt=hi"
-        // }
-
-        console.log(event.data);
-        console.log("url.searchParams", url.searchParams);
-        // if (userPrompt) {
         submittingLogic(url.searchParams.toString());
-        // setSubmittedMessage(userPrompt);
-        // updateChatState("loading");
-        // }
-
-        // Handle the new page load
-        // This might involve updating the application's route or state
-        // console.log("Loading new page:", href);
-        // Implement your page loading logic here, e.g., updating the URL
-        // router.push(href, undefined, { shallow: true });
       }
     });
 
