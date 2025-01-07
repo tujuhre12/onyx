@@ -11,55 +11,54 @@ export default async function Page(props: {
   searchParams: Promise<{ [key: string]: string }>;
 }) {
   const searchParams = await props.searchParams;
-  noStore();
-  const requestCookies = await cookies();
-  const data = await fetchChatData(searchParams);
+  const firstMessage = searchParams.firstMessage;
+  // noStore();
+  // const requestCookies = await cookies();
+  // const data = await fetchChatData(searchParams);
+  // const defaultSidebarOff = searchParams.defaultSidebarOff === "true";
 
-  if ("redirect" in data) {
-    redirect(data.redirect);
-  }
+  // if ("redirect" in data) {
+  //   redirect(data.redirect);
+  // }
 
-  const {
-    user,
-    chatSessions,
-    availableSources,
-    documentSets,
-    tags,
-    llmProviders,
-    folders,
-    toggleSidebar,
-    openedFolders,
-    defaultAssistantId,
-    shouldShowWelcomeModal,
-    ccPairs,
-  } = data;
+  // const {
+  //   user,
+  //   chatSessions,
+  //   availableSources,
+  //   documentSets,
+  //   tags,
+  //   llmProviders,
+  //   folders,
+  //   toggleSidebar,
+  //   openedFolders,
+  //   defaultAssistantId,
+  //   shouldShowWelcomeModal,
+  //   ccPairs,
+  // } = data;
 
-  return (
-    <>
-      <InstantSSRAutoRefresh />
-      {shouldShowWelcomeModal && (
-        <WelcomeModal user={user} requestCookies={requestCookies} />
-      )}
-      <ChatProvider
-        value={{
-          chatSessions,
-          availableSources,
-          ccPairs,
-          documentSets,
-          tags,
-          availableDocumentSets: documentSets,
-          availableTags: tags,
-          llmProviders,
-          folders,
-          openedFolders,
-          shouldShowWelcomeModal,
-          defaultAssistantId,
-        }}
-      >
-        <WrappedChat
-          initiallyToggled={toggleSidebar && !user?.is_anonymous_user}
-        />
-      </ChatProvider>
-    </>
-  );
+  // return (
+  //   <>
+  //     <InstantSSRAutoRefresh />
+  //     {shouldShowWelcomeModal && (
+  //       <WelcomeModal user={user} requestCookies={requestCookies} />
+  //     )}
+  //     <ChatProvider
+  //       value={{
+  //         chatSessions,
+  //         availableSources,
+  //         ccPairs,
+  //         documentSets,
+  //         tags,
+  //         availableDocumentSets: documentSets,
+  //         availableTags: tags,
+  //         llmProviders,
+  //         folders,
+  //         openedFolders,
+  //         shouldShowWelcomeModal,
+  //         defaultAssistantId,
+  //       }}
+  return <WrappedChat firstMessage={firstMessage} initiallyToggled={false} />;
+  //   </ChatProvider>
+  // </>
+  // );
 }
