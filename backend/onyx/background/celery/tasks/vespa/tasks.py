@@ -27,6 +27,7 @@ from onyx.background.celery.tasks.shared.RetryDocumentIndex import RetryDocument
 from onyx.background.celery.tasks.shared.tasks import LIGHT_SOFT_TIME_LIMIT
 from onyx.background.celery.tasks.shared.tasks import LIGHT_TIME_LIMIT
 from onyx.configs.app_configs import JOB_TIMEOUT
+from onyx.configs.app_configs import VESPA_SYNC_MAX_TASKS
 from onyx.configs.constants import CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import OnyxCeleryQueues
 from onyx.configs.constants import OnyxCeleryTask
@@ -112,7 +113,7 @@ def check_for_vespa_sync_task(self: Task, *, tenant_id: str | None) -> bool | No
     try:
         with get_session_with_tenant(tenant_id) as db_session:
             try_generate_stale_document_sync_tasks(
-                self.app, db_session, r, lock_beat, tenant_id
+                self.app, VESPA_SYNC_MAX_TASKS, db_session, r, lock_beat, tenant_id
             )
 
         # region document set scan
@@ -187,6 +188,7 @@ def check_for_vespa_sync_task(self: Task, *, tenant_id: str | None) -> bool | No
 
 def try_generate_stale_document_sync_tasks(
     celery_app: Celery,
+    max_tasks: int,
     db_session: Session,
     r: Redis,
     lock_beat: RedisLock,
@@ -217,13 +219,16 @@ def try_generate_stale_document_sync_tasks(
     # rkuo: we could technically sync all stale docs in one big pass.
     # but I feel it's more understandable to group the docs by cc_pair
     total_tasks_generated = 0
+    tasks_remaining = max_tasks
     cc_pairs = get_connector_credential_pairs(db_session)
     for cc_pair in cc_pairs:
         lock_beat.reacquire()
 
         rc = RedisConnectorCredentialPair(tenant_id, cc_pair.id)
         rc.set_skip_docs(docs_to_skip)
-        result = rc.generate_tasks(celery_app, db_session, r, lock_beat, tenant_id)
+        result = rc.generate_tasks(
+            tasks_remaining, celery_app, db_session, r, lock_beat, tenant_id
+        )
 
         if result is None:
             continue
@@ -237,10 +242,19 @@ def try_generate_stale_document_sync_tasks(
         )
 
         total_tasks_generated += result[0]
+        tasks_remaining -= result[0]
+        if tasks_remaining <= 0:
+            break
 
-    task_logger.info(
-        f"RedisConnector.generate_tasks finished for all cc_pairs. total_tasks_generated={total_tasks_generated}"
-    )
+    if tasks_remaining <= 0:
+        task_logger.info(
+            f"RedisConnector.generate_tasks reached the task generation limit: "
+            f"total_tasks_generated={total_tasks_generated} max_tasks={max_tasks}"
+        )
+    else:
+        task_logger.info(
+            f"RedisConnector.generate_tasks finished for all cc_pairs. total_tasks_generated={total_tasks_generated}"
+        )
 
     r.set(RedisConnectorCredentialPair.get_fence_key(), total_tasks_generated)
     return total_tasks_generated
@@ -279,7 +293,9 @@ def try_generate_document_set_sync_tasks(
     )
 
     # Add all documents that need to be updated into the queue
-    result = rds.generate_tasks(celery_app, db_session, r, lock_beat, tenant_id)
+    result = rds.generate_tasks(
+        VESPA_SYNC_MAX_TASKS, celery_app, db_session, r, lock_beat, tenant_id
+    )
     if result is None:
         return None
 
@@ -334,7 +350,9 @@ def try_generate_user_group_sync_tasks(
     task_logger.info(
         f"RedisUserGroup.generate_tasks starting. usergroup_id={usergroup.id}"
     )
-    result = rug.generate_tasks(celery_app, db_session, r, lock_beat, tenant_id)
+    result = rug.generate_tasks(
+        VESPA_SYNC_MAX_TASKS, celery_app, db_session, r, lock_beat, tenant_id
+    )
     if result is None:
         return None
 
