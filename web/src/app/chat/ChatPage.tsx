@@ -458,7 +458,6 @@ export function ChatPage({
         }
         return;
       }
-      // setIsReady(true);
       const shouldScrollToBottom =
         visibleRange.get(existingChatSessionId) === undefined ||
         visibleRange.get(existingChatSessionId)?.end == 0;
@@ -2289,7 +2288,7 @@ export function ChatPage({
                 />
               )}
 
-              {true ? (
+              {documentSidebarInitialWidth !== undefined && isReady ? (
                 <Dropzone
                   key={currentSessionId()}
                   onDrop={handleImageUpload}
