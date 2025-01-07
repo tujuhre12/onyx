@@ -195,10 +195,9 @@ def get_built_in_tool_by_id(
             "Built-in tools cache is None despite being refreshed. Should never happen."
         )
 
-    # After refreshing, check if the tool is now in the cache
-    if in_code_tool_id in _built_in_tools_cache:
-        return _built_in_tools_cache[in_code_tool_id]
-    else:
+    if in_code_tool_id not in _built_in_tools_cache:
         raise ValueError(
             f"No built-in tool found in the cache with ID {in_code_tool_id}"
         )
+
+    return _built_in_tools_cache[in_code_tool_id]
