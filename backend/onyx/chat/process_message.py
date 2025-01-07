@@ -25,6 +25,7 @@ from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import OnyxContexts
 from onyx.chat.models import PromptConfig
 from onyx.chat.models import ProSearchConfig
+from onyx.chat.models import ProSearchPacket
 from onyx.chat.models import QADocsResponse
 from onyx.chat.models import StreamingError
 from onyx.chat.models import StreamStopInfo
@@ -284,6 +285,7 @@ ChatPacket = (
     | MessageSpecificCitations
     | MessageResponseIDInfo
     | StreamStopInfo
+    | ProSearchPacket
 )
 ChatPacketStream = Iterator[ChatPacket]
 
