@@ -314,6 +314,7 @@ export enum ValidSources {
   GoogleSites = "google_sites",
   Loopio = "loopio",
   Dropbox = "dropbox",
+  Discord = "discord",
   Salesforce = "salesforce",
   Sharepoint = "sharepoint",
   Teams = "teams",
@@ -342,6 +343,7 @@ export const validAutoSyncSources = [
   ValidSources.GoogleDrive,
   ValidSources.Gmail,
   ValidSources.Slack,
+  ValidSources.Salesforce,
 ] as const;
 
 // Create a type from the array elements
