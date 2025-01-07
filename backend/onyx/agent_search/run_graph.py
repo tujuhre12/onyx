@@ -167,14 +167,21 @@ if __name__ == "__main__":
             compiled_graph, config, search_tool, primary_llm, fast_llm, db_session
         ):
             # pass
-            if isinstance(output, OnyxAnswerPiece):
-                tool_responses.append("|")
-            elif isinstance(output, ToolCallKickoff):
+
+            if isinstance(output, ToolCallKickoff):
                 pass
             elif isinstance(output, ToolResponse):
                 tool_responses.append(output.response)
             elif isinstance(output, SubQuestionPiece):
-                logger.info(f"{output.sub_question} | ")
+                logger.info(
+                    f"SQ {output.level} - {output.level_question_nr} - {output.sub_question} | "
+                )
+            elif isinstance(output, SubAnswerPiece):
+                logger.info(
+                    f"   ---- SA {output.level} - {output.level_question_nr} {output.sub_answer} | "
+                )
+            elif isinstance(output, OnyxAnswerPiece):
+                logger.info(f"   ---------- FA {output.answer_piece} | ")
 
         # for tool_response in tool_responses:
         #    logger.info(tool_response)
