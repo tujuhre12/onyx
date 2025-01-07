@@ -11,7 +11,8 @@ from onyx.agent_search.shared_graph_utils.agent_prompt_ops import (
 from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_DEFAULT
 from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_PERSONA
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
-from onyx.chat.models import SubAnswer
+from onyx.agent_search.shared_graph_utils.utils import parse_question_id
+from onyx.chat.models import SubAnswerPiece
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -20,6 +21,7 @@ logger = setup_logger()
 def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
     question = state["question"]
     docs = state["documents"]
+    level, question_nr = parse_question_id(state["question_id"])
     persona_prompt = get_persona_prompt(state["subgraph_config"].search_request.persona)
 
     if len(persona_prompt) > 0:
@@ -51,9 +53,10 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
             )
         dispatch_custom_event(
             "sub_answers",
-            SubAnswer(
+            SubAnswerPiece(
                 sub_answer=content,
-                sub_question_id=state["question_id"],
+                level=level,
+                level_question_nr=question_nr,
             ),
         )
         response.append(content)

@@ -62,7 +62,7 @@ from onyx.agent_search.shared_graph_utils.utils import format_docs
 from onyx.agent_search.shared_graph_utils.utils import format_entity_term_extraction
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
 from onyx.agent_search.shared_graph_utils.utils import make_question_id
-from onyx.chat.models import SubQuestion
+from onyx.chat.models import SubQuestionPiece
 from onyx.db.chat import log_agent_metrics
 from onyx.db.chat import log_agent_sub_question_results
 from onyx.utils.logger import setup_logger
@@ -74,11 +74,10 @@ def dispatch_subquestion(level: int) -> Callable[[str, int], None]:
     def helper(sub_question_part: str, num: int) -> None:
         dispatch_custom_event(
             "decomp_qs",
-            SubQuestion(
+            SubQuestionPiece(
                 sub_question=sub_question_part,
-                question_id=make_question_id(
-                    level, num + 1
-                ),  # question 0 reserved for original question if used
+                level=level,
+                level_question_nr=num + 1,
             ),
         )
 

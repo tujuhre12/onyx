@@ -29,9 +29,9 @@ from onyx.agent_search.shared_graph_utils.models import RetrievalFitStats
 from onyx.agent_search.shared_graph_utils.prompts import REWRITE_PROMPT_MULTI_ORIGINAL
 from onyx.agent_search.shared_graph_utils.prompts import VERIFIER_PROMPT
 from onyx.agent_search.shared_graph_utils.utils import dispatch_separated
-from onyx.agent_search.shared_graph_utils.utils import make_question_id
+from onyx.agent_search.shared_graph_utils.utils import parse_question_id
 from onyx.chat.models import ExtendedToolResponse
-from onyx.chat.models import SubQuery
+from onyx.chat.models import SubQueryPiece
 from onyx.configs.dev_configs import AGENT_MAX_QUERY_RETRIEVAL_RESULTS
 from onyx.configs.dev_configs import AGENT_RERANKING_MAX_QUERY_RETRIEVAL_RESULTS
 from onyx.configs.dev_configs import AGENT_RERANKING_STATS
@@ -49,11 +49,16 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def dispatch_subquery(subquestion_id: str) -> Callable[[str, int], None]:
+def dispatch_subquery(level: int, question_nr: int) -> Callable[[str, int], None]:
     def helper(token: str, num: int) -> None:
         dispatch_custom_event(
             "subqueries",
-            SubQuery(sub_query=token, sub_question_id=subquestion_id, query_id=num),
+            SubQueryPiece(
+                sub_query=token,
+                level=level,
+                level_question_nr=question_nr,
+                query_id=num,
+            ),
         )
 
     return helper
@@ -69,7 +74,9 @@ def expand_queries(state: ExpandedRetrievalInput) -> QueryExpansionUpdate:
     chat_session_id = state["subgraph_config"].chat_session_id
     sub_question_id = state.get("sub_question_id")
     if sub_question_id is None:
-        sub_question_id = make_question_id(0, 0)  # 0_0 for original question
+        level, question_nr = 0, 0
+    else:
+        level, question_nr = parse_question_id(sub_question_id)
 
     if chat_session_id is None:
         raise ValueError("chat_session_id must be provided for agent search")
@@ -81,7 +88,7 @@ def expand_queries(state: ExpandedRetrievalInput) -> QueryExpansionUpdate:
     ]
 
     llm_response_list = dispatch_separated(
-        llm.stream(prompt=msg), dispatch_subquery(sub_question_id)
+        llm.stream(prompt=msg), dispatch_subquery(level, question_nr)
     )
 
     llm_response = merge_message_runs(llm_response_list, chunk_separator="")[0].content
@@ -125,12 +132,18 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
                 retrieved_docs = cast(
                     list[InferenceSection], tool_response.response.top_sections
                 )
+            level, question_nr = (
+                parse_question_id(state["sub_question_id"])
+                if state["sub_question_id"]
+                else (0, 0)
+            )
             dispatch_custom_event(
                 "tool_response",
                 ExtendedToolResponse(
                     id=tool_response.id,
-                    sub_question_id=state["sub_question_id"] or make_question_id(0, 0),
                     response=tool_response.response,
+                    level=level,
+                    level_question_nr=question_nr,
                 ),
             )
 

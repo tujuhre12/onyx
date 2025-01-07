@@ -14,9 +14,9 @@ from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
 from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import ProSearchConfig
-from onyx.chat.models import SubAnswer
-from onyx.chat.models import SubQuery
-from onyx.chat.models import SubQuestion
+from onyx.chat.models import SubAnswerPiece
+from onyx.chat.models import SubQueryPiece
+from onyx.chat.models import SubQuestionPiece
 from onyx.chat.models import ToolResponse
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
@@ -43,11 +43,11 @@ def _parse_agent_event(
     if event_type == "on_custom_event":
         # TODO: different AnswerStream types for different events
         if event["name"] == "decomp_qs":
-            return cast(SubQuestion, event["data"])
+            return cast(SubQuestionPiece, event["data"])
         elif event["name"] == "subqueries":
-            return cast(SubQuery, event["data"])
+            return cast(SubQueryPiece, event["data"])
         elif event["name"] == "sub_answers":
-            return cast(SubAnswer, event["data"])
+            return cast(SubAnswerPiece, event["data"])
         elif event["name"] == "main_answer":
             return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
         elif event["name"] == "tool_response":
