@@ -104,11 +104,11 @@ def check_for_vespa_sync_task(self: Task, *, tenant_id: str | None) -> bool | No
         timeout=CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT,
     )
 
-    try:
-        # these tasks should never overlap
-        if not lock_beat.acquire(blocking=False):
-            return None
+    # these tasks should never overlap
+    if not lock_beat.acquire(blocking=False):
+        return None
 
+    try:
         with get_session_with_tenant(tenant_id) as db_session:
             try_generate_stale_document_sync_tasks(
                 self.app, db_session, r, lock_beat, tenant_id
@@ -755,7 +755,7 @@ def monitor_ccpair_indexing_taskset(
 
 
 @shared_task(name=OnyxCeleryTask.MONITOR_VESPA_SYNC, soft_time_limit=300, bind=True)
-def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool:
+def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool | None:
     """This is a celery beat task that monitors and finalizes metadata sync tasksets.
     It scans for fence values and then gets the counts of any associated tasksets.
     If the count is 0, that means all tasks finished and we should clean up.
@@ -779,12 +779,11 @@ def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool:
         timeout=CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT,
     )
 
-    try:
-        # prevent overlapping tasks
-        if not lock_beat.acquire(blocking=False):
-            task_logger.info("monitor_vespa_sync exiting due to overlap")
-            return False
+    # prevent overlapping tasks
+    if not lock_beat.acquire(blocking=False):
+        return None
 
+    try:
         # print current queue lengths
         phase_start = time.monotonic()
         # we don't need every tenant polling redis for this info.

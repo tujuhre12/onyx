@@ -219,11 +219,11 @@ def check_for_indexing(self: Task, *, tenant_id: str | None) -> int | None:
         timeout=CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT,
     )
 
-    try:
-        # these tasks should never overlap
-        if not lock_beat.acquire(blocking=False):
-            return None
+    # these tasks should never overlap
+    if not lock_beat.acquire(blocking=False):
+        return None
 
+    try:
         locked = True
 
         # check for search settings swap
