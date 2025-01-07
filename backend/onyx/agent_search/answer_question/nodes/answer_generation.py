@@ -1,3 +1,4 @@
+import datetime
 from typing import Any
 
 from langchain_core.callbacks.manager import dispatch_custom_event
@@ -11,15 +12,20 @@ from onyx.agent_search.shared_graph_utils.agent_prompt_ops import (
 from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_DEFAULT
 from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_PERSONA
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
-from onyx.chat.models import SubAnswer
+from onyx.agent_search.shared_graph_utils.utils import parse_question_id
+from onyx.chat.models import SubAnswerPiece
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
 
 
 def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
+    now_start = datetime.datetime.now()
+    logger.info(f"--------{now_start}--------START ANSWER GENERATION---")
+
     question = state["question"]
     docs = state["documents"]
+    level, question_nr = parse_question_id(state["question_id"])
     persona_prompt = get_persona_prompt(state["subgraph_config"].search_request.persona)
 
     if len(persona_prompt) > 0:
@@ -38,17 +44,6 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
         persona_specification=persona_specification,
     )
 
-    # msg = [
-    #     HumanMessage(
-    #         content=BASE_RAG_PROMPT.format(
-    #             question=question,
-    #             context=format_docs(docs),
-    #             original_question=state["subgraph_search_request"].query,
-    #             persona_specification=persona_specification,
-    #         )
-    #     )
-    # ]
-
     fast_llm = state["subgraph_fast_llm"]
     response: list[str | list[str | dict[str, Any]]] = []
     for message in fast_llm.stream(
@@ -62,9 +57,10 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
             )
         dispatch_custom_event(
             "sub_answers",
-            SubAnswer(
+            SubAnswerPiece(
                 sub_answer=content,
-                sub_question_id=state["question_id"],
+                level=level,
+                level_question_nr=question_nr,
             ),
         )
         response.append(content)

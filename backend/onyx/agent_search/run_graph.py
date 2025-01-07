@@ -15,9 +15,9 @@ from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
 from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import ProSearchConfig
-from onyx.chat.models import SubAnswer
-from onyx.chat.models import SubQuery
-from onyx.chat.models import SubQuestion
+from onyx.chat.models import SubAnswerPiece
+from onyx.chat.models import SubQueryPiece
+from onyx.chat.models import SubQuestionPiece
 from onyx.chat.models import ToolResponse
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
@@ -44,11 +44,11 @@ def _parse_agent_event(
     if event_type == "on_custom_event":
         # TODO: different AnswerStream types for different events
         if event["name"] == "decomp_qs":
-            return cast(SubQuestion, event["data"])
+            return cast(SubQuestionPiece, event["data"])
         elif event["name"] == "subqueries":
-            return cast(SubQuery, event["data"])
+            return cast(SubQueryPiece, event["data"])
         elif event["name"] == "sub_answers":
-            return cast(SubAnswer, event["data"])
+            return cast(SubAnswerPiece, event["data"])
         elif event["name"] == "main_answer":
             return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
         elif event["name"] == "tool_response":
@@ -139,7 +139,6 @@ def run_main_graph(
 
 if __name__ == "__main__":
     from onyx.llm.factory import get_default_llms
-    from onyx.db.persona import get_persona_by_id
 
     now_start = datetime.now()
     logger.info(f"Start at {now_start}")
@@ -159,7 +158,7 @@ if __name__ == "__main__":
         config, search_tool = get_test_config(
             db_session, primary_llm, fast_llm, search_request
         )
-        search_request.persona = get_persona_by_id(1, None, db_session)
+        # search_request.persona = get_persona_by_id(1, None, db_session)
         config.use_persistence = True
 
         # with open("output.txt", "w") as f:
@@ -174,8 +173,8 @@ if __name__ == "__main__":
                 pass
             elif isinstance(output, ToolResponse):
                 tool_responses.append(output.response)
-            elif isinstance(output, SubQuestion):
-                logger.info(output.sub_question, end=" | ")
+            elif isinstance(output, SubQuestionPiece):
+                logger.info(f"{output.sub_question} | ")
 
         # for tool_response in tool_responses:
         #    logger.info(tool_response)

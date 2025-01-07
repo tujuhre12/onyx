@@ -62,7 +62,7 @@ from onyx.agent_search.shared_graph_utils.utils import format_entity_term_extrac
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
 from onyx.agent_search.shared_graph_utils.utils import make_question_id
 from onyx.agent_search.shared_graph_utils.utils import parse_question_id
-from onyx.chat.models import SubQuestion
+from onyx.chat.models import SubQuestionPiece
 from onyx.db.chat import log_agent_metrics
 from onyx.db.chat import log_agent_sub_question_results
 from onyx.utils.logger import setup_logger
@@ -74,11 +74,10 @@ def dispatch_subquestion(level: int) -> Callable[[str, int], None]:
     def helper(sub_question_part: str, num: int) -> None:
         dispatch_custom_event(
             "decomp_qs",
-            SubQuestion(
+            SubQuestionPiece(
                 sub_question=sub_question_part,
-                question_id=make_question_id(
-                    level, num + 1
-                ),  # question 0 reserved for original question if used
+                level=level,
+                level_question_nr=num + 1,
             ),
         )
 
@@ -88,7 +87,7 @@ def dispatch_subquestion(level: int) -> Callable[[str, int], None]:
 def main_decomp_base(state: MainState) -> BaseDecompUpdate:
     now_start = datetime.now()
 
-    logger.info(f"XXXXXX--{now_start}--XXX---BASE DECOMP START---")
+    logger.info(f"--------{now_start}--------BASE DECOMP START---")
 
     question = state["config"].search_request.query
     state["db_session"]
@@ -142,13 +141,18 @@ def main_decomp_base(state: MainState) -> BaseDecompUpdate:
 
     now_end = datetime.now()
 
-    logger.info(f"XXXXXX--{now_end}--{now_end - now_start}--XXX---BASE DECOMP END---")
+    logger.info(f"--------{now_end}--{now_end - now_start}--------BASE DECOMP END---")
 
     return BaseDecompUpdate(
         initial_decomp_questions=decomp_list,
         agent_start_time=agent_start_time,
         agent_refined_start_time=None,
         agent_refined_end_time=None,
+        agent_refined_metrics=AgentRefinedMetrics(
+            refined_doc_boost_factor=None,
+            refined_question_boost_factor=None,
+            duration__s=None,
+        ),
     )
 
 
@@ -238,7 +242,7 @@ def _calculate_initial_agent_stats(
 def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     now_start = datetime.now()
 
-    logger.info(f"XXXXXX--{now_start}--XXX---GENERATE INITIAL---")
+    logger.info(f"--------{now_start}--------GENERATE INITIAL---")
 
     question = state["config"].search_request.query
     persona_prompt = get_persona_prompt(state["config"].search_request.persona)
@@ -329,7 +333,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     now_end = datetime.now()
 
     logger.info(
-        f"XXXXXX--{now_end}--{now_end - now_start}--XXX---INITIAL AGENT ANSWER  END---\n\n"
+        f"--------{now_end}--{now_end - now_start}--------INITIAL AGENT ANSWER  END---\n\n"
     )
 
     agent_base_end_time = datetime.now()
@@ -380,7 +384,7 @@ def initial_answer_quality_check(state: MainState) -> InitialAnswerQualityUpdate
     now_start = datetime.now()
 
     logger.info(
-        f"XXXXXX--{now_start}--XXX---Checking for base answer validity - for not set True/False manually"
+        f"--------{now_start}--------Checking for base answer validity - for not set True/False manually"
     )
 
     verdict = True
@@ -388,7 +392,7 @@ def initial_answer_quality_check(state: MainState) -> InitialAnswerQualityUpdate
     now_end = datetime.now()
 
     logger.info(
-        f"XXXXXX--{now_end}--{now_end - now_start}--XXX---INITIAL ANSWER QUALITY CHECK END---"
+        f"--------{now_end}--{now_end - now_start}--------INITIAL ANSWER QUALITY CHECK END---"
     )
 
     return InitialAnswerQualityUpdate(initial_answer_quality=verdict)
@@ -397,7 +401,7 @@ def initial_answer_quality_check(state: MainState) -> InitialAnswerQualityUpdate
 def entity_term_extraction(state: MainState) -> EntityTermExtractionUpdate:
     now_start = datetime.now()
 
-    logger.info(f"XXXXXX--{now_start}--XXX---GENERATE ENTITIES & TERMS---")
+    logger.info(f"--------{now_start}--------GENERATE ENTITIES & TERMS---")
 
     if not state["config"].allow_refinement:
         return EntityTermExtractionUpdate(
@@ -478,7 +482,7 @@ def entity_term_extraction(state: MainState) -> EntityTermExtractionUpdate:
     now_end = datetime.now()
 
     logger.info(
-        f"XXXXXX--{now_end}--{now_end - now_start}--XXX---ENTITY TERM EXTRACTION END---"
+        f"--------{now_end}--{now_end - now_start}--------ENTITY TERM EXTRACTION END---"
     )
 
     return EntityTermExtractionUpdate(
@@ -493,7 +497,7 @@ def entity_term_extraction(state: MainState) -> EntityTermExtractionUpdate:
 def generate_initial_base_answer(state: MainState) -> InitialAnswerBASEUpdate:
     now_start = datetime.now()
 
-    logger.info(f"XXXXXX--{now_start}--XXX---GENERATE INITIAL BASE ANSWER---")
+    logger.info(f"--------{now_start}--------GENERATE INITIAL BASE ANSWER---")
 
     question = state["config"].search_request.query
     original_question_docs = state["all_original_question_documents"]
@@ -515,7 +519,7 @@ def generate_initial_base_answer(state: MainState) -> InitialAnswerBASEUpdate:
     now_end = datetime.now()
 
     logger.info(
-        f"XXXXXX--{now_end}--{now_end - now_start}--XXX---INITIAL BASE ANSWER END---\n\n"
+        f"--------{now_end}--{now_end - now_start}--------INITIAL BASE ANSWER END---\n\n"
     )
 
     return InitialAnswerBASEUpdate(initial_base_answer=answer)
@@ -524,7 +528,7 @@ def generate_initial_base_answer(state: MainState) -> InitialAnswerBASEUpdate:
 def ingest_answers(state: AnswerQuestionOutput) -> DecompAnswersUpdate:
     now_start = datetime.now()
 
-    logger.info(f"XXXXXX--{now_start}--XXX---INGEST ANSWERS---")
+    logger.info(f"--------{now_start}--------INGEST ANSWERS---")
     documents = []
     answer_results = state.get("answer_results", [])
     for answer_result in answer_results:
@@ -533,7 +537,7 @@ def ingest_answers(state: AnswerQuestionOutput) -> DecompAnswersUpdate:
     now_end = datetime.now()
 
     logger.info(
-        f"XXXXXX--{now_end}--{now_end - now_start}--XXX---INGEST ANSWERS END---"
+        f"--------{now_end}--{now_end - now_start}--------INGEST ANSWERS END---"
     )
 
     return DecompAnswersUpdate(
@@ -547,7 +551,7 @@ def ingest_answers(state: AnswerQuestionOutput) -> DecompAnswersUpdate:
 def ingest_initial_retrieval(state: BaseRawSearchOutput) -> ExpandedRetrievalUpdate:
     now_start = datetime.now()
 
-    logger.info(f"XXXXXX--{now_start}--XXX---INGEST INITIAL RETRIEVAL---")
+    logger.info(f"--------{now_start}--------INGEST INITIAL RETRIEVAL---")
 
     sub_question_retrieval_stats = state[
         "base_expanded_retrieval_result"
@@ -560,7 +564,7 @@ def ingest_initial_retrieval(state: BaseRawSearchOutput) -> ExpandedRetrievalUpd
     now_end = datetime.now()
 
     logger.info(
-        f"XXXXXX--{now_end}--{now_end - now_start}--XXX---INGEST INITIAL RETRIEVAL END---"
+        f"--------{now_end}--{now_end - now_start}--------INGEST INITIAL RETRIEVAL END---"
     )
 
     return ExpandedRetrievalUpdate(
@@ -577,12 +581,12 @@ def ingest_initial_retrieval(state: BaseRawSearchOutput) -> ExpandedRetrievalUpd
 def refined_answer_decision(state: MainState) -> RequireRefinedAnswerUpdate:
     now_start = datetime.now()
 
-    logger.info(f"XXXXXX--{now_start}--XXX---REFINED ANSWER DECISION---")
+    logger.info(f"--------{now_start}--------REFINED ANSWER DECISION---")
 
     now_end = datetime.now()
 
     logger.info(
-        f"XXXXXX--{now_end}--{now_end - now_start}--XXX---REFINED ANSWER DECISION END---"
+        f"--------{now_end}--{now_end - now_start}--------REFINED ANSWER DECISION END---"
     )
 
     if not state["config"].allow_refinement or True:
@@ -595,7 +599,7 @@ def refined_answer_decision(state: MainState) -> RequireRefinedAnswerUpdate:
 def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     now_start = datetime.now()
 
-    logger.info(f"XXXXXX--{now_start}--XXX---GENERATE REFINED ANSWER---")
+    logger.info(f"--------{now_start}--------GENERATE REFINED ANSWER---")
 
     question = state["config"].search_request.query
     persona_prompt = get_persona_prompt(state["config"].search_request.persona)
@@ -688,6 +692,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
         )
     ]
 
+    # TODO: stream refined answer
     # Grader
     model = state["fast_llm"]
     response = model.invoke(msg)
@@ -766,7 +771,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     now_end = datetime.now()
 
     logger.info(
-        f"XXXXXX--{now_end}--{now_end - now_start}--XXX---INITIAL AGENT ANSWER  END---\n\n"
+        f"--------{now_end}--{now_end - now_start}--------INITIAL AGENT ANSWER  END---\n\n"
     )
 
     agent_refined_end_time = datetime.now()
@@ -786,7 +791,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     now_end = datetime.now()
 
     logger.info(
-        f"XXXXXX--{now_end}--{now_end - now_start}--XXX---REFINED ANSWER UPDATE END---"
+        f"--------{now_end}--{now_end - now_start}--------REFINED ANSWER UPDATE END---"
     )
 
     return RefinedAnswerUpdate(
@@ -803,7 +808,7 @@ def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
 
     now_start = datetime.now()
 
-    logger.info(f"XXXXXX--{now_start}--XXX---FOLLOW UP DECOMPOSE---")
+    logger.info(f"--------{now_start}--------FOLLOW UP DECOMPOSE---")
 
     agent_refined_start_time = datetime.now()
 
@@ -865,7 +870,7 @@ def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
     now_end = datetime.now()
 
     logger.info(
-        f"XXXXXX--{now_end}--{now_end - now_start}--XXX---FOLLOW UP DECOMPOSE END---"
+        f"--------{now_end}--{now_end - now_start}--------FOLLOW UP DECOMPOSE END---"
     )
 
     return FollowUpSubQuestionsUpdate(
@@ -879,7 +884,7 @@ def ingest_follow_up_answers(
 ) -> DecompAnswersUpdate:
     now_start = datetime.now()
 
-    logger.info(f"XXXXXX--{now_start}--XXX---INGEST FOLLOW UP ANSWERS---")
+    logger.info(f"--------{now_start}--------INGEST FOLLOW UP ANSWERS---")
 
     documents = []
     answer_results = state.get("answer_results", [])
@@ -889,7 +894,7 @@ def ingest_follow_up_answers(
     now_end = datetime.now()
 
     logger.info(
-        f"XXXXXX--{now_end}--{now_end - now_start}--XXX---INGEST FOLLOW UP ANSWERS END---"
+        f"--------{now_end}--{now_end - now_start}--------INGEST FOLLOW UP ANSWERS END---"
     )
 
     return DecompAnswersUpdate(
@@ -903,7 +908,7 @@ def ingest_follow_up_answers(
 def logging_node(state: MainState) -> MainOutput:
     now_start = datetime.now()
 
-    logger.info(f"XXXXXX--{now_start}--XXX---LOGGING NODE---")
+    logger.info(f"--------{now_start}--------LOGGING NODE---")
 
     agent_start_time = state["agent_start_time"]
     agent_base_end_time = state["agent_base_end_time"]
@@ -1004,6 +1009,6 @@ def logging_node(state: MainState) -> MainOutput:
 
     now_end = datetime.now()
 
-    logger.info(f"XXXXXX--{now_end}--{now_end - now_start}--XXX---LOGGING NODE END---")
+    logger.info(f"--------{now_end}--{now_end - now_start}--------LOGGING NODE END---")
 
     return main_output

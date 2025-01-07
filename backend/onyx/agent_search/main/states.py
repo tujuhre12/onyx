@@ -28,6 +28,8 @@ class BaseDecompUpdate(TypedDict):
     agent_start_time: datetime
     agent_refined_start_time: datetime | None
     agent_refined_end_time: datetime | None
+    agent_refined_metrics: AgentRefinedMetrics
+
     initial_decomp_questions: list[str]
 
 
