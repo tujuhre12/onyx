@@ -181,17 +181,19 @@ def get_built_in_tool_by_id(
     in_code_tool_id: str, db_session: Session, force_refresh: bool = False
 ) -> Type[Tool]:
     global _built_in_tools_cache
-    if _built_in_tools_cache is None or force_refresh:
+
+    # If the tool is not in the cache, refresh it once
+    if (
+        _built_in_tools_cache is None
+        or force_refresh
+        or in_code_tool_id not in _built_in_tools_cache
+    ):
         refresh_built_in_tools_cache(db_session)
 
     if _built_in_tools_cache is None:
         raise RuntimeError(
             "Built-in tools cache is None despite being refreshed. Should never happen."
         )
-
-    # If the tool is not in the cache, refresh it once
-    if in_code_tool_id not in _built_in_tools_cache:
-        refresh_built_in_tools_cache(db_session)
 
     # After refreshing, check if the tool is now in the cache
     if in_code_tool_id in _built_in_tools_cache:
