@@ -52,13 +52,11 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  useMemo,
 } from "react";
 import { usePopup } from "@/components/admin/connectors/Popup";
 import { SEARCH_PARAM_NAMES, shouldSubmitOnLoad } from "./searchParams";
 import { useDocumentSelection } from "./useDocumentSelection";
 import { LlmOverride, useFilters, useLlmOverride } from "@/lib/hooks";
-import { computeAvailableFilters } from "@/lib/filters";
 import { ChatState, FeedbackType, RegenerationState } from "./types";
 import { ChatFilters } from "./documentSidebar/ChatFilters";
 import { OnyxInitializingLoader } from "@/components/OnyxInitializingLoader";
@@ -75,7 +73,6 @@ import {
   StreamStopInfo,
   StreamStopReason,
 } from "@/lib/search/interfaces";
-import { Filters } from "@/lib/search/interfaces";
 import { buildFilters } from "@/lib/search/utils";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import Dropzone from "react-dropzone";
