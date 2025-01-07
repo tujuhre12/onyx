@@ -138,7 +138,6 @@ def run_main_graph(
 
 if __name__ == "__main__":
     from onyx.llm.factory import get_default_llms
-    from onyx.db.persona import get_persona_by_id
 
     graph = main_graph_builder()
     compiled_graph = graph.compile()
@@ -153,7 +152,7 @@ if __name__ == "__main__":
         config, search_tool = get_test_config(
             db_session, primary_llm, fast_llm, search_request
         )
-        search_request.persona = get_persona_by_id(1, None, db_session)
+        # search_request.persona = get_persona_by_id(1, None, db_session)
         config.use_persistence = True
 
         # with open("output.txt", "w") as f:

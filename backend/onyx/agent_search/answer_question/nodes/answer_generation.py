@@ -38,17 +38,6 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
         persona_specification=persona_specification,
     )
 
-    # msg = [
-    #     HumanMessage(
-    #         content=BASE_RAG_PROMPT.format(
-    #             question=question,
-    #             context=format_docs(docs),
-    #             original_question=state["subgraph_search_request"].query,
-    #             persona_specification=persona_specification,
-    #         )
-    #     )
-    # ]
-
     fast_llm = state["subgraph_fast_llm"]
     response: list[str | list[str | dict[str, Any]]] = []
     for message in fast_llm.stream(

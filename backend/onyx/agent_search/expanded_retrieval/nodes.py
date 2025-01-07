@@ -39,6 +39,7 @@ from onyx.configs.dev_configs import AGENT_RETRIEVAL_STATS
 from onyx.context.search.models import SearchRequest
 from onyx.context.search.pipeline import retrieval_preprocessing
 from onyx.context.search.postprocessing.postprocessing import rerank_sections
+from onyx.db.engine import get_session_context_manager
 from onyx.llm.interfaces import LLM
 from onyx.tools.tool_implementations.search.search_tool import (
     SEARCH_RESPONSE_SUMMARY_ID,
@@ -87,20 +88,6 @@ def expand_queries(state: ExpandedRetrievalInput) -> QueryExpansionUpdate:
 
     rewritten_queries = llm_response.split("\n")
 
-    if state["subgraph_config"].use_persistence:
-        # Persist sub-queries to database
-
-        # for query in rewritten_queries:
-        #     sub_queries.append(
-        #         create_sub_query(
-        #             db_session=db_session,
-        #             chat_session_id=chat_session_id,
-        #             parent_question_id=sub_question_id,
-        #             sub_query=query.strip(),
-        #             )
-        #         )
-        pass
-
     return QueryExpansionUpdate(
         expanded_queries=rewritten_queries,
     )
@@ -127,21 +114,25 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
             expanded_retrieval_results=[],
             retrieved_documents=[],
         )
-    for tool_response in search_tool.run(
-        query=query_to_retrieve, force_no_rerank="True"
-    ):
-        if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
-            retrieved_docs = cast(
-                list[InferenceSection], tool_response.response.top_sections
+
+    with get_session_context_manager() as db_session:
+        for tool_response in search_tool.run(
+            query=query_to_retrieve,
+            force_no_rerank=True,
+            alternate_db_session=db_session,
+        ):
+            if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
+                retrieved_docs = cast(
+                    list[InferenceSection], tool_response.response.top_sections
+                )
+            dispatch_custom_event(
+                "tool_response",
+                ExtendedToolResponse(
+                    id=tool_response.id,
+                    sub_question_id=state["sub_question_id"] or make_question_id(0, 0),
+                    response=tool_response.response,
+                ),
             )
-        dispatch_custom_event(
-            "tool_response",
-            ExtendedToolResponse(
-                id=tool_response.id,
-                sub_question_id=state["sub_question_id"] or make_question_id(0, 0),
-                response=tool_response.response,
-            ),
-        )
 
     retrieved_docs = retrieved_docs[:AGENT_MAX_QUERY_RETRIEVAL_RESULTS]
     pre_rerank_docs = retrieved_docs
@@ -172,7 +163,6 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
 def verification_kickoff(
     state: ExpandedRetrievalState,
 ) -> Command[Literal["doc_verification"]]:
-    # TODO: stream deduped docs?
     documents = state["retrieved_documents"]
     verification_question = state.get(
         "question", state["subgraph_config"].search_request.query
@@ -239,12 +229,13 @@ def doc_reranking(state: ExpandedRetrievalState) -> DocRerankingUpdate:
     # then create the list of reranked sections
 
     question = state.get("question", state["subgraph_config"].search_request.query)
-    _search_query = retrieval_preprocessing(
-        search_request=SearchRequest(query=question),
-        user=state["subgraph_search_tool"].user,  # bit of a hack
-        llm=state["subgraph_fast_llm"],
-        db_session=state["subgraph_db_session"],
-    )
+    with get_session_context_manager() as db_session:
+        _search_query = retrieval_preprocessing(
+            search_request=SearchRequest(query=question),
+            user=state["subgraph_search_tool"].user,  # bit of a hack
+            llm=state["subgraph_fast_llm"],
+            db_session=db_session,
+        )
 
     # skip section filtering
 
@@ -265,6 +256,8 @@ def doc_reranking(state: ExpandedRetrievalState) -> DocRerankingUpdate:
         fit_scores = get_fit_scores(verified_documents, reranked_documents)
     else:
         fit_scores = RetrievalFitStats(fit_score_lift=0, rerank_effect=0, fit_scores={})
+
+    # TODO: stream deduped docs here, or decide to use search tool ranking/verification
 
     return DocRerankingUpdate(
         reranked_documents=[

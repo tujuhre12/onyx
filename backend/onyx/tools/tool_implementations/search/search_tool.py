@@ -283,10 +283,11 @@ class SearchTool(Tool):
 
         yield ToolResponse(id=FINAL_CONTEXT_DOCUMENTS_ID, response=llm_docs)
 
-    def run(self, **kwargs: str) -> Generator[ToolResponse, None, None]:
+    def run(self, **kwargs: Any) -> Generator[ToolResponse, None, None]:
         query = cast(str, kwargs["query"])
         # kind of awkward to require this to be str, but it's "True" or "False"
-        force_no_rerank = kwargs.get("force_no_rerank", "False")
+        force_no_rerank = cast(bool, kwargs.get("force_no_rerank", False))
+        alternate_db_session = cast(Session, kwargs.get("alternate_db_session", None))
 
         if self.selected_sections:
             yield from self._build_response_for_specified_sections(query)
@@ -306,8 +307,15 @@ class SearchTool(Tool):
                     self.retrieval_options.offset if self.retrieval_options else None
                 ),
                 limit=self.retrieval_options.limit if self.retrieval_options else None,
-                rerank_settings=None
-                if force_no_rerank == "True"
+                rerank_settings=RerankingDetails(
+                    rerank_model_name=None,
+                    rerank_api_url=None,
+                    rerank_provider_type=None,
+                    rerank_api_key=None,
+                    num_rerank=0,
+                    disable_rerank_for_streaming=True,
+                )
+                if force_no_rerank
                 else self.rerank_settings,
                 chunks_above=self.chunks_above,
                 chunks_below=self.chunks_below,
@@ -322,7 +330,7 @@ class SearchTool(Tool):
             llm=self.llm,
             fast_llm=self.fast_llm,
             bypass_acl=self.bypass_acl,
-            db_session=self.db_session,
+            db_session=alternate_db_session or self.db_session,
             prompt_config=self.prompt_config,
         )
         self.search_pipeline = search_pipeline  # used for agent_search metrics

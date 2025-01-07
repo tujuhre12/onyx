@@ -44,6 +44,8 @@ from onyx.file_store.models import FileDescriptor
 from onyx.llm.override_models import LLMOverride
 from onyx.llm.override_models import PromptOverride
 from onyx.server.query_and_chat.models import ChatMessageDetail
+from onyx.server.query_and_chat.models import SubQueryDetail
+from onyx.server.query_and_chat.models import SubQuestionDetail
 from onyx.tools.tool_runner import ToolCallFinalResult
 from onyx.utils.logger import setup_logger
 
@@ -486,6 +488,7 @@ def get_chat_messages_by_session(
     prefetch_tool_calls: bool = False,
 ) -> list[ChatMessage]:
     if not skip_permission_check:
+        # bug if we ever call this expecting the permission check to not be skipped
         get_chat_session_by_id(
             chat_session_id=chat_session_id, user_id=user_id, db_session=db_session
         )
@@ -497,7 +500,12 @@ def get_chat_messages_by_session(
     )
 
     if prefetch_tool_calls:
-        stmt = stmt.options(joinedload(ChatMessage.tool_call))
+        stmt = stmt.options(
+            joinedload(ChatMessage.tool_call),
+            joinedload(ChatMessage.sub_questions).joinedload(
+                AgentSubQuestion.sub_queries
+            ),
+        )
         result = db_session.scalars(stmt).unique().all()
     else:
         result = db_session.scalars(stmt).all()
@@ -827,14 +835,45 @@ def translate_db_search_doc_to_server_search_doc(
     )
 
 
-def get_retrieval_docs_from_chat_message(
-    chat_message: ChatMessage, remove_doc_content: bool = False
+def translate_db_sub_questions_to_server_objects(
+    db_sub_questions: list[AgentSubQuestion],
+) -> list[SubQuestionDetail]:
+    sub_questions = []
+    for sub_question in db_sub_questions:
+        sub_queries = []
+        docs: list[SearchDoc] = []
+        for sub_query in sub_question.sub_queries:
+            doc_ids = [doc.id for doc in sub_query.search_docs]
+            sub_queries.append(
+                SubQueryDetail(
+                    query=sub_query.sub_query,
+                    query_id=sub_query.id,
+                    doc_ids=doc_ids,
+                )
+            )
+            docs += sub_query.search_docs
+
+        sub_questions.append(
+            SubQuestionDetail(
+                level=sub_question.level,
+                level_question_nr=sub_question.level_question_nr,
+                question=sub_question.sub_question,
+                answer=sub_question.sub_answer,
+                sub_queries=sub_queries,
+                context_docs=get_retrieval_docs_from_search_docs(docs),
+            )
+        )
+    return sub_questions
+
+
+def get_retrieval_docs_from_search_docs(
+    search_docs: list[SearchDoc], remove_doc_content: bool = False
 ) -> RetrievalDocs:
     top_documents = [
         translate_db_search_doc_to_server_search_doc(
             db_doc, remove_doc_content=remove_doc_content
         )
-        for db_doc in chat_message.search_docs
+        for db_doc in search_docs
     ]
     top_documents = sorted(top_documents, key=lambda doc: doc.score, reverse=True)  # type: ignore
     return RetrievalDocs(top_documents=top_documents)
@@ -851,8 +890,8 @@ def translate_db_message_to_chat_message_detail(
         latest_child_message=chat_message.latest_child_message,
         message=chat_message.message,
         rephrased_query=chat_message.rephrased_query,
-        context_docs=get_retrieval_docs_from_chat_message(
-            chat_message, remove_doc_content=remove_doc_content
+        context_docs=get_retrieval_docs_from_search_docs(
+            chat_message.search_docs, remove_doc_content=remove_doc_content
         ),
         message_type=chat_message.message_type,
         time_sent=chat_message.time_sent,
@@ -867,6 +906,9 @@ def translate_db_message_to_chat_message_detail(
         else None,
         alternate_assistant_id=chat_message.alternate_assistant_id,
         overridden_model=chat_message.overridden_model,
+        sub_questions=translate_db_sub_questions_to_server_objects(
+            chat_message.sub_questions
+        ),
     )
 
     return chat_msg_detail

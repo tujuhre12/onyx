@@ -1100,6 +1100,11 @@ class ChatMessage(Base):
         uselist=False,
     )
 
+    sub_questions: Mapped[list["AgentSubQuestion"]] = relationship(
+        "AgentSubQuestion",
+        back_populates="primary_message",
+    )
+
     standard_answers: Mapped[list["StandardAnswer"]] = relationship(
         "StandardAnswer",
         secondary=ChatMessage__StandardAnswer.__table__,
@@ -1158,7 +1163,9 @@ class AgentSubQuestion(Base):
 
     # Relationships
     primary_message: Mapped["ChatMessage"] = relationship(
-        "ChatMessage", foreign_keys=[primary_question_id]
+        "ChatMessage",
+        foreign_keys=[primary_question_id],
+        back_populates="sub_questions",
     )
     chat_session: Mapped["ChatSession"] = relationship("ChatSession")
     sub_queries: Mapped[list["AgentSubQuery"]] = relationship(

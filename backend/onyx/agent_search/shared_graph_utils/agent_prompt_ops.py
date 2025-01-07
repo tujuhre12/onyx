@@ -31,14 +31,4 @@ def build_sub_question_answer_prompt(
         )
     )
 
-    # ai_message = AIMessage(content=''
-    # )
-
-    # tool_message = ToolMessage(
-    #     content=docs_str,
-    #     tool_call_id='agent_search_call',
-    #     name="search_results"
-    # )
-
     return [system_message, human_message]
-    # return [system_message, human_message, ai_message, tool_message]
