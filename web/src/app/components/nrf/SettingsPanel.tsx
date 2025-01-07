@@ -3,7 +3,10 @@ import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useNRFPreferences } from "../../../components/context/NRFPreferencesContext";
-import { darkImages, lightImages } from "../../chat/nrf/interfaces";
+import {
+  darkExtensionImages,
+  lightExtensionImages,
+} from "@/lib/extension/constants";
 
 const SidebarSwitch = ({
   checked,
@@ -145,7 +148,7 @@ export const SettingsPanel = ({
 
         <h3 className="text-sm font-semibold mt-6 mb-2">Background</h3>
         <div className="grid grid-cols-4 gap-2">
-          {(theme === "dark" ? darkImages : lightImages).map(
+          {(theme === "dark" ? darkExtensionImages : lightExtensionImages).map(
             (bg: string, index: number) => (
               <div
                 key={bg}
