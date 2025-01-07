@@ -1,6 +1,5 @@
-import { EmphasizedClickable } from "@/components/BasicClickable";
 import { CustomTooltip } from "@/components/tooltip/CustomTooltip";
-import { FiBook, FiSearch } from "react-icons/fi";
+import { FiBook } from "react-icons/fi";
 
 export function SkippedSearch({
   handleForceSearch,
@@ -15,9 +14,6 @@ export function SkippedSearch({
           <span className="mobile:hidden">
             The AI decided this query didn&apos;t need a search
           </span>
-          {/* <EmphasizedClickable onClick={handleForceSearch}>
-            Force search?
-          </EmphasizedClickable> */}
           <p className="text-xs desktop:hidden">No search performed</p>
           <CustomTooltip
             content="Perform a search for this query"

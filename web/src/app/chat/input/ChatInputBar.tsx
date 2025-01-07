@@ -98,7 +98,6 @@ const SentUrlChip = ({
 
 interface ChatInputBarProps {
   removeDocs: () => void;
-  openModelSettings: () => void;
   showDocs: () => void;
   showConfigureAPIKey: () => void;
   selectedDocuments: OnyxDocument[];
@@ -106,7 +105,6 @@ interface ChatInputBarProps {
   setMessage: (message: string) => void;
   stopGenerating: () => void;
   onSubmit: () => void;
-  filterManager: FilterManager;
   llmOverrideManager: LlmOverrideManager;
   chatState: ChatState;
   alternativeAssistant: Persona | null;
@@ -119,19 +117,10 @@ interface ChatInputBarProps {
   handleFileUpload: (files: File[]) => void;
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
   toggleFilters?: () => void;
-  chromSentUrls?: string[];
-  removeChromeSentUrls: (chromSentUrl: string) => void;
-  selectedChromeUrls?: string[];
-  removeSelectedChromeUrl: (selectedChromeUrl: string) => void;
-  selectChromeUrl: (chromeUrl: string) => void;
 }
 
 export function ChatInputBar({
-  chromSentUrls,
-  selectedChromeUrls,
-  removeSelectedChromeUrl,
   removeDocs,
-  openModelSettings,
   showDocs,
   showConfigureAPIKey,
   selectedDocuments,
@@ -139,8 +128,6 @@ export function ChatInputBar({
   setMessage,
   stopGenerating,
   onSubmit,
-  removeChromeSentUrls,
-  filterManager,
   chatState,
 
   // assistants
@@ -153,7 +140,6 @@ export function ChatInputBar({
   textAreaRef,
   alternativeAssistant,
   toggleFilters,
-  selectChromeUrl,
 }: ChatInputBarProps) {
   useEffect(() => {
     const textarea = textAreaRef.current;
@@ -289,26 +275,6 @@ export function ChatInputBar({
     }
   };
 
-  // We'll store dynamic titles in state, keyed by URL
-  const [fetchedTitles, setFetchedTitles] = useState<Record<string, string>>(
-    {}
-  );
-
-  useEffect(() => {
-    if (!chromSentUrls) return;
-
-    chromSentUrls.forEach((url) => {
-      // Already have it? Skip
-      if (fetchedTitles[url]) return;
-
-      fetchTitleFromUrl(url).then((title: string | null) => {
-        if (title) {
-          setFetchedTitles((prev) => ({ ...prev, [url]: title }));
-        }
-      });
-    });
-  }, [chromSentUrls, fetchedTitles]);
-
   return (
     <div id="onyx-chat-input">
       <div className="flex justify-center mx-auto">
@@ -320,35 +286,6 @@ export function ChatInputBar({
             mx-auto
           "
         >
-          {(chromSentUrls || selectedChromeUrls) && (
-            <div className="absolute inset-x-0 top-0 w-fit  flex gap-x-1 gap-y-1  flex-wrap   transform -translate-y-full">
-              {selectedChromeUrls &&
-                selectedChromeUrls.map((url, index) => (
-                  <SelectedUrlChip
-                    key={index}
-                    url={url}
-                    onRemove={removeSelectedChromeUrl}
-                  />
-                ))}
-              {chromSentUrls &&
-                chromSentUrls.map((url, index) => {
-                  const parsedUrl = new URL(url);
-                  const displayTitle = fetchedTitles[url] || parsedUrl.hostname;
-                  return (
-                    <SentUrlChip
-                      key={index}
-                      title={displayTitle}
-                      onClick={() => {
-                        selectChromeUrl(url);
-                      }}
-                      url={url}
-                      onRemove={removeChromeSentUrls}
-                    />
-                  );
-                })}
-            </div>
-          )}
-
           {showSuggestions && assistantTagOptions.length > 0 && (
             <div
               ref={suggestionsRef}

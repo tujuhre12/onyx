@@ -27,6 +27,7 @@ const nextConfig = {
     version,
   },
   images: {
+    // Used to fetch favicons
     remotePatterns: [
       {
         protocol: "https",

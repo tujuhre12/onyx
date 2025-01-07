@@ -17,13 +17,10 @@ interface ChatInputBarProps {
   message: string;
   setMessage: (message: string) => void;
   onSubmit: () => void;
-
   files: FileDescriptor[];
   setFiles: (files: FileDescriptor[]) => void;
   handleFileUpload: (files: File[]) => void;
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
-
-  // NEW (optional) - if we want to accept the FilterManager in this component:
   filterManager?: FilterManager;
   existingSources: string[];
   availableDocumentSets: { name: string }[];
@@ -34,12 +31,10 @@ export function SimplifiedChatInputBar({
   message,
   setMessage,
   onSubmit,
-
   files,
   setFiles,
   handleFileUpload,
   textAreaRef,
-  // NEW (optional) - if we want to accept the FilterManager in this component:
   filterManager,
   existingSources,
   availableDocumentSets,

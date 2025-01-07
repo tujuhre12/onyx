@@ -193,9 +193,6 @@ export function ChatPage({
   const { user, isAdmin } = useUser();
   const slackChatId = searchParams.get("slackChatId");
   const existingChatIdRaw = searchParams.get("chatId");
-  const [sendOnLoad, setSendOnLoad] = useState<string | null>(
-    searchParams.get(SEARCH_PARAM_NAMES.SEND_ON_LOAD)
-  );
 
   const modelVersionFromSearchParams = searchParams.get(
     SEARCH_PARAM_NAMES.STRUCTURED_MODEL
@@ -211,10 +208,10 @@ export function ChatPage({
       toggle(false);
     }
   }, [user]);
-  const submittingLogic = (searchParamsString: string) => {
+
+  const processSearchParamsAndSubmitMessage = (searchParamsString: string) => {
     const newSearchParams = new URLSearchParams(searchParamsString);
     const message = newSearchParams.get("user-prompt");
-    newSearchParams.delete(SEARCH_PARAM_NAMES.SEND_ON_LOAD);
 
     filterManager.buildFiltersFromQueryString(
       newSearchParams.toString(),
@@ -222,23 +219,15 @@ export function ChatPage({
       documentSets.map((ds) => ds.name),
       tags
     );
-    const fileDescriptorString = newSearchParams.get("files");
-    let overrideFileDescriptors: FileDescriptor[] = [];
-    if (fileDescriptorString) {
-      try {
-        overrideFileDescriptors = JSON.parse(
-          decodeURIComponent(fileDescriptorString)
-        );
-      } catch (error) {
-        console.error("Error parsing file descriptors:", error);
-      }
-    }
 
-    // Update the URL without the send-on-load parameter
+    const fileDescriptorString = newSearchParams.get(SEARCH_PARAM_NAMES.FILES);
+    const overrideFileDescriptors: FileDescriptor[] = fileDescriptorString
+      ? JSON.parse(decodeURIComponent(fileDescriptorString))
+      : [];
+
+    newSearchParams.delete(SEARCH_PARAM_NAMES.SEND_ON_LOAD);
+
     router.replace(`?${newSearchParams.toString()}`, { scroll: false });
-
-    // Update our local state to reflect the change
-    setSendOnLoad(null);
 
     // If there's a message, submit it
     if (message) {
@@ -246,13 +235,6 @@ export function ChatPage({
       onSubmit({ messageOverride: message, overrideFileDescriptors });
     }
   };
-
-  // Effect to handle sendOnLoad
-  useEffect(() => {
-    if (sendOnLoad) {
-      submittingLogic(sendOnLoad);
-    }
-  }, [sendOnLoad, searchParams, router]);
 
   const existingChatSessionId = existingChatIdRaw ? existingChatIdRaw : null;
 
@@ -1027,20 +1009,30 @@ export function ChatPage({
     }
   }, [chatSessionIdRef.current]);
 
-  useEffect(() => {
-    adjustDocumentSidebarWidth(); // Adjust the width on initial render
-    window.addEventListener("resize", adjustDocumentSidebarWidth); // Add resize event listener
+  const loadNewPageLogic = (event: MessageEvent) => {
+    try {
+      const url = new URL(event.data.href);
+      processSearchParamsAndSubmitMessage(url.searchParams.toString());
+    } catch (error) {
+      console.error("Error parsing URL:", error);
+    }
+  };
 
-    window.addEventListener("message", (event) => {
-      if (event.data.type === "LOAD_NEW_PAGE") {
-        const { href } = event.data;
-        const url = new URL(href);
-        submittingLogic(url.searchParams.toString());
-      }
-    });
+  // Equivalent to `loadNewPageLogic`
+  useEffect(() => {
+    if (searchParams.get(SEARCH_PARAM_NAMES.SEND_ON_LOAD)) {
+      processSearchParamsAndSubmitMessage(searchParams.toString());
+    }
+  }, [searchParams, router]);
+
+  useEffect(() => {
+    adjustDocumentSidebarWidth();
+    window.addEventListener("resize", adjustDocumentSidebarWidth);
+    window.addEventListener("message", loadNewPageLogic);
 
     return () => {
-      window.removeEventListener("resize", adjustDocumentSidebarWidth); // Cleanup the event listener
+      window.removeEventListener("message", loadNewPageLogic);
+      window.removeEventListener("resize", adjustDocumentSidebarWidth);
     };
   }, []);
 
@@ -2304,7 +2296,7 @@ export function ChatPage({
                   noClick
                 >
                   {({ getRootProps }) => (
-                    <div key={10} className="flex h-full w-full">
+                    <div className="flex h-full w-full">
                       {!settings?.isMobile && (
                         <div
                           style={{ transition: "width 0.30s ease-out" }}
@@ -2832,33 +2824,6 @@ export function ChatPage({
                             )}
                             <ChatInputBar
                               llmOverrideManager={llmOverrideManager}
-                              selectChromeUrl={(chromeUrl: string) => {
-                                setSelectedChromeUrls([
-                                  ...selectedChromeUrls,
-                                  chromeUrl,
-                                ]);
-                                setchromSentUrls((chromSentUrls: string[]) =>
-                                  chromSentUrls.filter(
-                                    (url) => url !== chromeUrl
-                                  )
-                                );
-                              }}
-                              selectedChromeUrls={selectedChromeUrls}
-                              removeSelectedChromeUrl={(chromeUrl: string) => {
-                                setSelectedChromeUrls(
-                                  selectedChromeUrls.filter(
-                                    (url) => url !== chromeUrl
-                                  )
-                                );
-                              }}
-                              chromSentUrls={chromSentUrls}
-                              removeChromeSentUrls={(chromSentUrl: string) => {
-                                setchromSentUrls(
-                                  chromSentUrls.filter(
-                                    (url) => url !== chromSentUrl
-                                  )
-                                );
-                              }}
                               removeDocs={() => {
                                 clearSelectedDocuments();
                               }}
@@ -2871,7 +2836,6 @@ export function ChatPage({
                               }
                               chatState={currentSessionChatState}
                               stopGenerating={stopGenerating}
-                              openModelSettings={() => setSettingsToggled(true)}
                               selectedDocuments={selectedDocuments}
                               // assistant stuff
                               selectedAssistant={liveAssistant}
@@ -2881,7 +2845,6 @@ export function ChatPage({
                               message={message}
                               setMessage={setMessage}
                               onSubmit={onSubmit}
-                              filterManager={filterManager}
                               files={currentMessageFiles}
                               setFiles={setCurrentMessageFiles}
                               toggleFilters={
