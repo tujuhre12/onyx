@@ -10,7 +10,7 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def send_to_expanded_follow_up_retrieval(state: AnswerQuestionInput) -> Send | Hashable:
+def send_to_expanded_refined_retrieval(state: AnswerQuestionInput) -> Send | Hashable:
     logger.info("sending to expanded retrieval for follow up question via edge")
 
     return Send(

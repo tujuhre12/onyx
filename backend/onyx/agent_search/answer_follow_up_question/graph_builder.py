@@ -3,7 +3,7 @@ from langgraph.graph import START
 from langgraph.graph import StateGraph
 
 from onyx.agent_search.answer_follow_up_question.edges import (
-    send_to_expanded_follow_up_retrieval,
+    send_to_expanded_refined_retrieval,
 )
 from onyx.agent_search.answer_question.nodes.answer_check import answer_check
 from onyx.agent_search.answer_question.nodes.answer_generation import answer_generation
@@ -20,7 +20,7 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def answer_follow_up_query_graph_builder() -> StateGraph:
+def answer_refined_query_graph_builder() -> StateGraph:
     graph = StateGraph(
         state_schema=AnswerQuestionState,
         input=AnswerQuestionInput,
@@ -55,7 +55,7 @@ def answer_follow_up_query_graph_builder() -> StateGraph:
 
     graph.add_conditional_edges(
         source=START,
-        path=send_to_expanded_follow_up_retrieval,
+        path=send_to_expanded_refined_retrieval,
         path_map=["decomposed_follow_up_retrieval"],
     )
     graph.add_edge(
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     from onyx.llm.factory import get_default_llms
     from onyx.context.search.models import SearchRequest
 
-    graph = answer_follow_up_query_graph_builder()
+    graph = answer_refined_query_graph_builder()
     compiled_graph = graph.compile()
     primary_llm, fast_llm = get_default_llms()
     search_request = SearchRequest(

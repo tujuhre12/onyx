@@ -3,26 +3,26 @@ from langgraph.graph import START
 from langgraph.graph import StateGraph
 
 from onyx.agent_search.answer_follow_up_question.graph_builder import (
-    answer_follow_up_query_graph_builder,
+    answer_refined_query_graph_builder,
 )
 from onyx.agent_search.answer_question.graph_builder import answer_query_graph_builder
 from onyx.agent_search.base_raw_search.graph_builder import (
     base_raw_search_graph_builder,
 )
 from onyx.agent_search.main.edges import continue_to_refined_answer_or_end
-from onyx.agent_search.main.edges import parallelize_decompozed_answer_queries
-from onyx.agent_search.main.edges import parallelize_follow_up_answer_queries
-from onyx.agent_search.main.nodes import entity_term_extraction
-from onyx.agent_search.main.nodes import follow_up_decompose
+from onyx.agent_search.main.edges import parallelize_initial_sub_question_answering
+from onyx.agent_search.main.edges import parallelize_refined_sub_question_answering
+from onyx.agent_search.main.nodes import agent_logging
+from onyx.agent_search.main.nodes import entity_term_extraction_llm
 from onyx.agent_search.main.nodes import generate_initial_answer
 from onyx.agent_search.main.nodes import generate_refined_answer
-from onyx.agent_search.main.nodes import ingest_answers
 from onyx.agent_search.main.nodes import ingest_follow_up_answers
-from onyx.agent_search.main.nodes import ingest_initial_retrieval
+from onyx.agent_search.main.nodes import ingest_initial_base_retrieval
+from onyx.agent_search.main.nodes import ingest_initial_sub_question_answers
 from onyx.agent_search.main.nodes import initial_answer_quality_check
-from onyx.agent_search.main.nodes import logging_node
-from onyx.agent_search.main.nodes import main_decomp_base
+from onyx.agent_search.main.nodes import initial_sub_question_creation
 from onyx.agent_search.main.nodes import refined_answer_decision
+from onyx.agent_search.main.nodes import refined_sub_question_creation
 from onyx.agent_search.main.states import MainInput
 from onyx.agent_search.main.states import MainState
 from onyx.agent_search.shared_graph_utils.utils import get_test_config
@@ -48,7 +48,7 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
 
         graph.add_node(
             node="base_decomp",
-            action=main_decomp_base,
+            action=initial_sub_question_creation,
         )
         answer_query_subgraph = answer_query_graph_builder().compile()
         graph.add_node(
@@ -78,7 +78,7 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
         # )
         graph.add_node(
             node="ingest_answers",
-            action=ingest_answers,
+            action=ingest_initial_sub_question_answers,
         )
         graph.add_node(
             node="generate_initial_answer",
@@ -134,7 +134,7 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
         )
         graph.add_conditional_edges(
             source="base_decomp",
-            path=parallelize_decompozed_answer_queries,
+            path=parallelize_initial_sub_question_answering,
             path_map=["answer_query"],
         )
         graph.add_edge(
@@ -206,7 +206,7 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
         )
         graph.add_node(
             node="ingest_initial_retrieval",
-            action=ingest_initial_retrieval,
+            action=ingest_initial_base_retrieval,
         )
         # graph.add_node(
         #     node="ingest_answers",
@@ -312,7 +312,7 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
     else:
         graph.add_node(
             node="base_decomp",
-            action=main_decomp_base,
+            action=initial_sub_question_creation,
         )
         answer_query_subgraph = answer_query_graph_builder().compile()
         graph.add_node(
@@ -334,10 +334,10 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
 
         graph.add_node(
             node="follow_up_decompose",
-            action=follow_up_decompose,
+            action=refined_sub_question_creation,
         )
 
-        answer_follow_up_question = answer_follow_up_query_graph_builder().compile()
+        answer_follow_up_question = answer_refined_query_graph_builder().compile()
         graph.add_node(
             node="answer_follow_up_question",
             action=answer_follow_up_question,
@@ -360,11 +360,11 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
 
         graph.add_node(
             node="ingest_initial_retrieval",
-            action=ingest_initial_retrieval,
+            action=ingest_initial_base_retrieval,
         )
         graph.add_node(
             node="ingest_answers",
-            action=ingest_answers,
+            action=ingest_initial_sub_question_answers,
         )
         graph.add_node(
             node="generate_initial_answer",
@@ -378,7 +378,7 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
 
         graph.add_node(
             node="entity_term_extraction",
-            action=entity_term_extraction,
+            action=entity_term_extraction_llm,
         )
         graph.add_node(
             node="refined_answer_decision",
@@ -387,7 +387,7 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
 
         graph.add_node(
             node="logging_node",
-            action=logging_node,
+            action=agent_logging,
         )
         # if test_mode:
         #     graph.add_node(
@@ -410,7 +410,7 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
         )
         graph.add_conditional_edges(
             source="base_decomp",
-            path=parallelize_decompozed_answer_queries,
+            path=parallelize_initial_sub_question_answering,
             path_map=["answer_query"],
         )
         graph.add_edge(
@@ -446,7 +446,7 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
 
         graph.add_conditional_edges(
             source="follow_up_decompose",
-            path=parallelize_follow_up_answer_queries,
+            path=parallelize_refined_sub_question_answering,
             path_map=["answer_follow_up_question"],
         )
         graph.add_edge(

@@ -70,8 +70,8 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def dispatch_subquestion(level: int) -> Callable[[str, int], None]:
-    def helper(sub_question_part: str, num: int) -> None:
+def _dispatch_subquestion(level: int) -> Callable[[str, int], None]:
+    def _helper(sub_question_part: str, num: int) -> None:
         dispatch_custom_event(
             "decomp_qs",
             SubQuestionPiece(
@@ -81,10 +81,10 @@ def dispatch_subquestion(level: int) -> Callable[[str, int], None]:
             ),
         )
 
-    return helper
+    return _helper
 
 
-def main_decomp_base(state: MainState) -> BaseDecompUpdate:
+def initial_sub_question_creation(state: MainState) -> BaseDecompUpdate:
     now_start = datetime.now()
 
     logger.info(f"--------{now_start}--------BASE DECOMP START---")
@@ -109,7 +109,7 @@ def main_decomp_base(state: MainState) -> BaseDecompUpdate:
     model = state["fast_llm"]
 
     # dispatches custom events for subquestion tokens, adding in subquestion ids.
-    streamed_tokens = dispatch_separated(model.stream(msg), dispatch_subquestion(0))
+    streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(0))
 
     response = merge_content(*streamed_tokens)
 
@@ -398,7 +398,7 @@ def initial_answer_quality_check(state: MainState) -> InitialAnswerQualityUpdate
     return InitialAnswerQualityUpdate(initial_answer_quality=verdict)
 
 
-def entity_term_extraction(state: MainState) -> EntityTermExtractionUpdate:
+def entity_term_extraction_llm(state: MainState) -> EntityTermExtractionUpdate:
     now_start = datetime.now()
 
     logger.info(f"--------{now_start}--------GENERATE ENTITIES & TERMS---")
@@ -494,7 +494,9 @@ def entity_term_extraction(state: MainState) -> EntityTermExtractionUpdate:
     )
 
 
-def generate_initial_base_answer(state: MainState) -> InitialAnswerBASEUpdate:
+def generate_initial_base_search_only_answer(
+    state: MainState,
+) -> InitialAnswerBASEUpdate:
     now_start = datetime.now()
 
     logger.info(f"--------{now_start}--------GENERATE INITIAL BASE ANSWER---")
@@ -525,7 +527,9 @@ def generate_initial_base_answer(state: MainState) -> InitialAnswerBASEUpdate:
     return InitialAnswerBASEUpdate(initial_base_answer=answer)
 
 
-def ingest_answers(state: AnswerQuestionOutput) -> DecompAnswersUpdate:
+def ingest_initial_sub_question_answers(
+    state: AnswerQuestionOutput,
+) -> DecompAnswersUpdate:
     now_start = datetime.now()
 
     logger.info(f"--------{now_start}--------INGEST ANSWERS---")
@@ -548,7 +552,9 @@ def ingest_answers(state: AnswerQuestionOutput) -> DecompAnswersUpdate:
     )
 
 
-def ingest_initial_retrieval(state: BaseRawSearchOutput) -> ExpandedRetrievalUpdate:
+def ingest_initial_base_retrieval(
+    state: BaseRawSearchOutput,
+) -> ExpandedRetrievalUpdate:
     now_start = datetime.now()
 
     logger.info(f"--------{now_start}--------INGEST INITIAL RETRIEVAL---")
@@ -803,7 +809,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     )
 
 
-def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
+def refined_sub_question_creation(state: MainState) -> FollowUpSubQuestionsUpdate:
     """ """
 
     now_start = datetime.now()
@@ -847,7 +853,7 @@ def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
     # Grader
     model = state["fast_llm"]
 
-    streamed_tokens = dispatch_separated(model.stream(msg), dispatch_subquestion(1))
+    streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(1))
     response = merge_content(*streamed_tokens)
 
     if isinstance(response, str):
@@ -905,7 +911,7 @@ def ingest_follow_up_answers(
     )
 
 
-def logging_node(state: MainState) -> MainOutput:
+def agent_logging(state: MainState) -> MainOutput:
     now_start = datetime.now()
 
     logger.info(f"--------{now_start}--------LOGGING NODE---")

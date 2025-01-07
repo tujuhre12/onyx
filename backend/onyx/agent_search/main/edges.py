@@ -14,7 +14,9 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def parallelize_decompozed_answer_queries(state: MainState) -> list[Send | Hashable]:
+def parallelize_initial_sub_question_answering(
+    state: MainState,
+) -> list[Send | Hashable]:
     if len(state["initial_decomp_questions"]) > 0:
         # sub_question_record_ids = [subq_record.id for subq_record in state["sub_question_records"]]
         # if len(state["sub_question_records"]) == 0:
@@ -59,7 +61,9 @@ def continue_to_refined_answer_or_end(
         return "logging_node"
 
 
-def parallelize_follow_up_answer_queries(state: MainState) -> list[Send | Hashable]:
+def parallelize_refined_sub_question_answering(
+    state: MainState,
+) -> list[Send | Hashable]:
     if len(state["follow_up_sub_questions"]) > 0:
         return [
             Send(
