@@ -9,9 +9,9 @@ import {
 import { redirect } from "next/navigation";
 import { getSecondsUntilExpiration } from "@/lib/time";
 import AuthFlowContainer from "@/components/auth/AuthFlowContainer";
-import LoginPanel from "./LoginPage";
+import LoginPage from "./LoginPage";
 
-const LoginPage = async (props: {
+const Page = async (props: {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) => {
   const searchParams = await props.searchParams;
@@ -74,7 +74,7 @@ const LoginPage = async (props: {
           <HealthCheckBanner />
         </div>
 
-        <LoginPanel
+        <LoginPage
           authUrl={authUrl}
           authTypeMetadata={authTypeMetadata}
           nextUrl={nextUrl!}
@@ -85,4 +85,4 @@ const LoginPage = async (props: {
   );
 };
 
-export default LoginPage;
+export default Page;

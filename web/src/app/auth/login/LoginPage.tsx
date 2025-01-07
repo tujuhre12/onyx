@@ -6,7 +6,7 @@ import { EmailPasswordForm } from "./EmailPasswordForm";
 import { NEXT_PUBLIC_FORGOT_PASSWORD_ENABLED } from "@/lib/constants";
 import Title from "@/components/ui/title";
 
-export default function LoginPanel({
+export default function LoginPage({
   authUrl,
   authTypeMetadata,
   nextUrl,
