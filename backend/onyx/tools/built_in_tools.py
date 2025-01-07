@@ -173,7 +173,7 @@ def refresh_built_in_tools_cache(db_session: Session) -> None:
             ),
             None,
         )
-        if tool_info:
+        if tool_info and tool.in_code_tool_id:
             _built_in_tools_cache[tool.in_code_tool_id] = tool_info["cls"]
 
 
