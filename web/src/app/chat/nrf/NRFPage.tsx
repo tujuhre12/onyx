@@ -27,16 +27,12 @@ import { ChatFileType, FileDescriptor } from "../interfaces";
 import { useChatContext } from "@/components/context/ChatContext";
 import Dropzone from "react-dropzone";
 import { useSendMessageToParent } from "@/lib/extension/utils";
-import {
-  useNRFPreferences,
-  NRFPreferencesProvider,
-} from "@/components/context/NRFPreferencesContext";
+import { useNRFPreferences } from "@/components/context/NRFPreferencesContext";
 import { SettingsPanel } from "../../components/nrf/SettingsPanel";
 import { ShortcutsDisplay } from "../../components/nrf/ShortcutsDisplay";
 import LoginPage from "../../auth/login/LoginPage";
 import { AuthType } from "@/lib/constants";
 import { sendSetDefaultNewTabMessage } from "@/lib/extension/utils";
-import { WelcomeModal } from "@/components/initialSetup/welcome/WelcomeModalWrapper";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 
 export default function NRFPage({

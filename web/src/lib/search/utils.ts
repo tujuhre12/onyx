@@ -1,11 +1,5 @@
-import { getSourceMetadata } from "../sources";
-import { DocumentSet, Tag, ValidSources } from "../types";
-import {
-  Filters,
-  LoadedOnyxDocument,
-  OnyxDocument,
-  SourceMetadata,
-} from "./interfaces";
+import { Tag, ValidSources } from "../types";
+import { Filters, OnyxDocument, SourceMetadata } from "./interfaces";
 import { DateRangePickerValue } from "@/app/ee/admin/performance/DateRangeSelector";
 
 export const buildFilters = (
