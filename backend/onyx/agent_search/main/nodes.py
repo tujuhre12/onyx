@@ -611,7 +611,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     persona_prompt = get_persona_prompt(state["config"].search_request.persona)
 
     initial_documents = state["documents"]
-    revised_documents = state["follow_up_documents"]
+    revised_documents = state["refined_documents"]
 
     combined_documents = dedup_inference_sections(initial_documents, revised_documents)
 
@@ -623,7 +623,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
         revision_doc_effectiveness = 10.0
 
     decomp_answer_results = state["decomp_answer_results"]
-    # revised_answer_results = state["follow_up_decomp_answer_results"]
+    # revised_answer_results = state["refined_decomp_answer_results"]
 
     good_qa_list: list[str] = []
     decomp_questions = []
@@ -861,9 +861,9 @@ def refined_sub_question_creation(state: MainState) -> FollowUpSubQuestionsUpdat
     else:
         raise ValueError("LLM response is not a string")
 
-    follow_up_sub_question_dict = {}
+    refined_sub_question_dict = {}
     for sub_question_nr, sub_question in enumerate(parsed_response):
-        follow_up_sub_question = FollowUpSubQuestion(
+        refined_sub_question = FollowUpSubQuestion(
             sub_question=sub_question,
             sub_question_id=make_question_id(1, sub_question_nr),
             verified=False,
@@ -871,7 +871,7 @@ def refined_sub_question_creation(state: MainState) -> FollowUpSubQuestionsUpdat
             answer="",
         )
 
-        follow_up_sub_question_dict[sub_question_nr] = follow_up_sub_question
+        refined_sub_question_dict[sub_question_nr] = refined_sub_question
 
     now_end = datetime.now()
 
@@ -880,7 +880,7 @@ def refined_sub_question_creation(state: MainState) -> FollowUpSubQuestionsUpdat
     )
 
     return FollowUpSubQuestionsUpdate(
-        follow_up_sub_questions=follow_up_sub_question_dict,
+        refined_sub_questions=refined_sub_question_dict,
         agent_refined_start_time=agent_refined_start_time,
     )
 

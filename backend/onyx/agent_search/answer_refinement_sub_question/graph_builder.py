@@ -39,23 +39,23 @@ def answer_refined_query_graph_builder() -> StateGraph:
 
     expanded_retrieval = expanded_retrieval_graph_builder().compile()
     graph.add_node(
-        node="decomposed_follow_up_retrieval",
+        node="refined_sub_question_expanded_retrieval",
         action=expanded_retrieval,
     )
     graph.add_node(
-        node="follow_up_answer_check",
+        node="refined_sub_answer_check",
         action=answer_check,
     )
     graph.add_node(
-        node="follow_up_answer_generation",
+        node="refined_sub_answer_generation",
         action=answer_generation,
     )
     graph.add_node(
-        node="format_follow_up_answer",
+        node="format_refined_sub_answer",
         action=format_answer,
     )
     graph.add_node(
-        node="ingest_follow_up_retrieval",
+        node="ingest_refined_retrieval",
         action=ingest_retrieval,
     )
 
@@ -64,26 +64,26 @@ def answer_refined_query_graph_builder() -> StateGraph:
     graph.add_conditional_edges(
         source=START,
         path=send_to_expanded_refined_retrieval,
-        path_map=["decomposed_follow_up_retrieval"],
+        path_map=["refined_sub_question_expanded_retrieval"],
     )
     graph.add_edge(
-        start_key="decomposed_follow_up_retrieval",
-        end_key="ingest_follow_up_retrieval",
+        start_key="refined_sub_question_expanded_retrieval",
+        end_key="ingest_refined_retrieval",
     )
     graph.add_edge(
-        start_key="ingest_follow_up_retrieval",
-        end_key="follow_up_answer_generation",
+        start_key="ingest_refined_retrieval",
+        end_key="refined_sub_answer_generation",
     )
     graph.add_edge(
-        start_key="follow_up_answer_generation",
-        end_key="follow_up_answer_check",
+        start_key="refined_sub_answer_generation",
+        end_key="refined_sub_answer_check",
     )
     graph.add_edge(
-        start_key="follow_up_answer_check",
-        end_key="format_follow_up_answer",
+        start_key="refined_sub_answer_check",
+        end_key="format_refined_sub_answer",
     )
     graph.add_edge(
-        start_key="format_follow_up_answer",
+        start_key="format_refined_sub_answer",
         end_key=END,
     )
 

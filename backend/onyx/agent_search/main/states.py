@@ -69,8 +69,8 @@ class DecompAnswersUpdate(TypedDict):
 
 
 class FollowUpDecompAnswersUpdate(TypedDict):
-    follow_up_documents: Annotated[list[InferenceSection], dedup_inference_sections]
-    follow_up_decomp_answer_results: Annotated[list[QuestionAnswerResults], add]
+    refined_documents: Annotated[list[InferenceSection], dedup_inference_sections]
+    refined_decomp_answer_results: Annotated[list[QuestionAnswerResults], add]
 
 
 class ExpandedRetrievalUpdate(TypedDict):
@@ -86,7 +86,7 @@ class EntityTermExtractionUpdate(TypedDict):
 
 
 class FollowUpSubQuestionsUpdate(TypedDict):
-    follow_up_sub_questions: dict[int, FollowUpSubQuestion]
+    refined_sub_questions: dict[int, FollowUpSubQuestion]
     agent_refined_start_time: datetime | None
 
 

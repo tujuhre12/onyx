@@ -54,9 +54,9 @@ def parallelize_initial_sub_question_answering(
 # Define the function that determines whether to continue or not
 def continue_to_refined_answer_or_end(
     state: RequireRefinedAnswerUpdate,
-) -> Literal["follow_up_decompose", "logging_node"]:
+) -> Literal["refined_decompose", "logging_node"]:
     if state["require_refined_answer"]:
-        return "follow_up_decompose"
+        return "refined_decompose"
     else:
         return "logging_node"
 
@@ -64,7 +64,7 @@ def continue_to_refined_answer_or_end(
 def parallelize_refined_sub_question_answering(
     state: MainState,
 ) -> list[Send | Hashable]:
-    if len(state["follow_up_sub_questions"]) > 0:
+    if len(state["refined_sub_questions"]) > 0:
         return [
             Send(
                 "answer_refinement_sub_question",
@@ -74,13 +74,13 @@ def parallelize_refined_sub_question_answering(
                     question_id=make_question_id(1, question_nr),
                 ),
             )
-            for question_nr, question_data in state["follow_up_sub_questions"].items()
+            for question_nr, question_data in state["refined_sub_questions"].items()
         ]
 
     else:
         return [
             Send(
-                "ingest_follow_up_answers",
+                "ingest_refined_sub_answers",
                 AnswerQuestionOutput(
                     answer_results=[],
                 ),

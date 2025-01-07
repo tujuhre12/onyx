@@ -14,7 +14,7 @@ def send_to_expanded_retrieval(state: AnswerQuestionInput) -> Send | Hashable:
     logger.info("sending to expanded retrieval via edge")
 
     return Send(
-        "decomped_expanded_retrieval",
+        "initial_sub_question_expanded_retrieval",
         ExpandedRetrievalInput(
             **in_subgraph_extract_core_fields(state),
             question=state["question"],

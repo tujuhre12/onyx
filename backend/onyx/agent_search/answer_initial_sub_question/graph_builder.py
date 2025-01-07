@@ -40,7 +40,7 @@ def answer_query_graph_builder() -> StateGraph:
 
     expanded_retrieval = expanded_retrieval_graph_builder().compile()
     graph.add_node(
-        node="decomped_expanded_retrieval",
+        node="initial_sub_question_expanded_retrieval",
         action=expanded_retrieval,
     )
     graph.add_node(
@@ -65,10 +65,10 @@ def answer_query_graph_builder() -> StateGraph:
     graph.add_conditional_edges(
         source=START,
         path=send_to_expanded_retrieval,
-        path_map=["decomped_expanded_retrieval"],
+        path_map=["initial_sub_question_expanded_retrieval"],
     )
     graph.add_edge(
-        start_key="decomped_expanded_retrieval",
+        start_key="initial_sub_question_expanded_retrieval",
         end_key="ingest_retrieval",
     )
     graph.add_edge(
