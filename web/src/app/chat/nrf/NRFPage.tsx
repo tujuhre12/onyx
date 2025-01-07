@@ -54,38 +54,36 @@ export default function NRFPage({
     showShortcuts,
   } = useNRFPreferences();
 
+  const filterManager = useFilters();
+  const { isNight } = useNightTime();
+  const { user } = useUser();
+  const { ccPairs, documentSets, tags } = useChatContext();
+
   const { popup, setPopup } = usePopup();
 
+  // State
   const [message, setMessage] = useState("");
-  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  // Show modal to confirm turning off Onyx as new tab
-  const [showTurnOffModal, setShowTurnOffModal] = useState<boolean>(false);
-
-  // Settings sidebar open/close go
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
-
   const [editingShortcut, setEditingShortcut] = useState<Shortcut | null>(null);
-
-  // Saved background in localStorage
   const [backgroundUrl, setBackgroundUrl] = useState<string>(
     theme === "light" ? defaultLightBackgroundUrl : defaultDarkBackgroundUrl
   );
+
+  // Modals
+  const [showTurnOffModal, setShowTurnOffModal] = useState<boolean>(false);
+  const [showShortCutModal, setShowShortCutModal] = useState(false);
+  const [showMaxShortcutsModal, setShowMaxShortcutsModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(!user);
+
+  // Refs
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setBackgroundUrl(
       theme === "light" ? defaultLightBackgroundUrl : defaultDarkBackgroundUrl
     );
   }, [theme, defaultLightBackgroundUrl, defaultDarkBackgroundUrl]);
-
-  const filterManager = useFilters();
-
-  const { isNight } = useNightTime();
-  const { user } = useUser();
-  const { ccPairs, documentSets, tags, llmProviders, shouldShowWelcomeModal } =
-    useChatContext();
-
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useSendMessageToParent();
   useEffect(() => {
@@ -148,22 +146,15 @@ export default function NRFPage({
     });
   };
 
-  // Confirm turning off Onyx
   const confirmTurnOff = () => {
     setUseOnyxAsNewTab(false);
     setShowTurnOffModal(false);
     sendSetDefaultNewTabMessage(false);
   };
 
-  const [showShortCutModal, setShowShortCutModal] = useState(false);
-
-  const [showMaxShortcutsModal, setShowMaxShortcutsModal] = useState(false);
-
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(!user);
-
+  // Auth related
   const [authType, setAuthType] = useState<string | null>(null);
   const [fetchingAuth, setFetchingAuth] = useState(false);
-
   useEffect(() => {
     // If user is already logged in, no need to fetch auth data
     if (user) return;
@@ -219,15 +210,9 @@ export default function NRFPage({
 
   return (
     <div
-      className="relative w-full h-full flex flex-col"
+      className="relative w-full h-full flex flex-col min-h-screen bg-cover bg-center bg-no-repeat overflow-hidden transition-[background-image] duration-300 ease-in-out"
       style={{
-        minHeight: "100vh",
         backgroundImage: `url(${backgroundUrl})`,
-        backgroundPosition: "center center",
-        backgroundSize: "cover",
-        backgroundRepeat: "no-repeat",
-        overflow: "hidden",
-        transition: "background-image 0.3s ease",
       }}
     >
       <div className="absolute top-0 right-0 p-4 z-10">
