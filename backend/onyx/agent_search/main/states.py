@@ -15,6 +15,7 @@ from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.models import InitialAgentResultStats
 from onyx.agent_search.shared_graph_utils.models import RefinedAgentStats
 from onyx.agent_search.shared_graph_utils.operators import dedup_inference_sections
+from onyx.agent_search.shared_graph_utils.operators import dedup_question_answer_results
 from onyx.context.search.models import InferenceSection
 
 
@@ -25,6 +26,8 @@ from onyx.context.search.models import InferenceSection
 
 class BaseDecompUpdate(TypedDict):
     agent_start_time: datetime
+    agent_refined_start_time: datetime | None
+    agent_refined_end_time: datetime | None
     initial_decomp_questions: list[str]
 
 
@@ -58,7 +61,9 @@ class RequireRefinedAnswerUpdate(TypedDict):
 
 class DecompAnswersUpdate(TypedDict):
     documents: Annotated[list[InferenceSection], dedup_inference_sections]
-    decomp_answer_results: Annotated[list[QuestionAnswerResults], add]
+    decomp_answer_results: Annotated[
+        list[QuestionAnswerResults], dedup_question_answer_results
+    ]
 
 
 class FollowUpDecompAnswersUpdate(TypedDict):
@@ -80,19 +85,10 @@ class EntityTermExtractionUpdate(TypedDict):
 
 class FollowUpSubQuestionsUpdate(TypedDict):
     follow_up_sub_questions: dict[int, FollowUpSubQuestion]
-    agent_refined_start_time: datetime
+    agent_refined_start_time: datetime | None
 
 
-class FollowUpAnswerQuestionOutput(TypedDict):
-    """
-    This is a list of results even though each call of this subgraph only returns one result.
-    This is because if we parallelize the answer query subgraph, there will be multiple
-      results in a list so the add operator is used to add them together.
-    """
-
-    follow_up_answer_results: Annotated[list[QuestionAnswerResults], add]
-
-
+## Graph Input State
 ## Graph Input State
 
 
@@ -115,7 +111,6 @@ class MainState(
     InitialAnswerQualityUpdate,
     RequireRefinedAnswerUpdate,
     FollowUpSubQuestionsUpdate,
-    FollowUpAnswerQuestionOutput,
     FollowUpDecompAnswersUpdate,
     RefinedAnswerUpdate,
 ):

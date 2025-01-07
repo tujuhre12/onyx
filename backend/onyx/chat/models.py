@@ -221,6 +221,9 @@ class ProSearchConfig(BaseModel):
     # Whether to persistence data for the Pro Search (turned off for testing)
     use_persistence: bool = True
 
+    # Whether to allow creation of refinement questions (and entity extraction, etc.)
+    allow_refinement: bool = False
+
 
 AnswerQuestionPossibleReturn = (
     OnyxAnswerPiece

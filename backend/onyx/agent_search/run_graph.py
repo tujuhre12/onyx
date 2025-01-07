@@ -1,6 +1,7 @@
 import asyncio
 from collections.abc import AsyncIterable
 from collections.abc import Iterable
+from datetime import datetime
 from typing import cast
 
 from langchain_core.runnables.schema import StreamEvent
@@ -140,8 +141,13 @@ if __name__ == "__main__":
     from onyx.llm.factory import get_default_llms
     from onyx.db.persona import get_persona_by_id
 
+    now_start = datetime.now()
+    logger.info(f"Start at {now_start}")
+
     graph = main_graph_builder()
     compiled_graph = graph.compile()
+    now_end = datetime.now()
+    logger.info(f"Graph compiled in {now_end - now_start} seconds")
     primary_llm, fast_llm = get_default_llms()
     search_request = SearchRequest(
         # query="what can you do with gitlab?",
@@ -157,15 +163,19 @@ if __name__ == "__main__":
         config.use_persistence = True
 
         # with open("output.txt", "w") as f:
-        tool_responses = []
+        tool_responses: list = []
         for output in run_graph(
             compiled_graph, config, search_tool, primary_llm, fast_llm, db_session
         ):
+            # pass
             if isinstance(output, OnyxAnswerPiece):
                 tool_responses.append("|")
             elif isinstance(output, ToolCallKickoff):
                 pass
             elif isinstance(output, ToolResponse):
                 tool_responses.append(output.response)
-        for tool_response in tool_responses:
-            logger.info(tool_response)
+            elif isinstance(output, SubQuestion):
+                logger.info(output.sub_question, end=" | ")
+
+        # for tool_response in tool_responses:
+        #    logger.info(tool_response)

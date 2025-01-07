@@ -27,7 +27,6 @@ from onyx.agent_search.main.states import BaseDecompUpdate
 from onyx.agent_search.main.states import DecompAnswersUpdate
 from onyx.agent_search.main.states import EntityTermExtractionUpdate
 from onyx.agent_search.main.states import ExpandedRetrievalUpdate
-from onyx.agent_search.main.states import FollowUpDecompAnswersUpdate
 from onyx.agent_search.main.states import FollowUpSubQuestionsUpdate
 from onyx.agent_search.main.states import InitialAnswerBASEUpdate
 from onyx.agent_search.main.states import InitialAnswerQualityUpdate
@@ -62,6 +61,7 @@ from onyx.agent_search.shared_graph_utils.utils import format_docs
 from onyx.agent_search.shared_graph_utils.utils import format_entity_term_extraction
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
 from onyx.agent_search.shared_graph_utils.utils import make_question_id
+from onyx.agent_search.shared_graph_utils.utils import parse_question_id
 from onyx.chat.models import SubQuestion
 from onyx.db.chat import log_agent_metrics
 from onyx.db.chat import log_agent_sub_question_results
@@ -147,6 +147,8 @@ def main_decomp_base(state: MainState) -> BaseDecompUpdate:
     return BaseDecompUpdate(
         initial_decomp_questions=decomp_list,
         agent_start_time=agent_start_time,
+        agent_refined_start_time=None,
+        agent_refined_end_time=None,
     )
 
 
@@ -397,6 +399,15 @@ def entity_term_extraction(state: MainState) -> EntityTermExtractionUpdate:
 
     logger.info(f"XXXXXX--{now_start}--XXX---GENERATE ENTITIES & TERMS---")
 
+    if not state["config"].allow_refinement:
+        return EntityTermExtractionUpdate(
+            entity_retlation_term_extractions=EntityRelationshipTermExtraction(
+                entities=[],
+                relationships=[],
+                terms=[],
+            )
+        )
+
     # first four lines duplicates from generate_initial_answer
     question = state["config"].search_request.query
     sub_question_docs = state["documents"]
@@ -574,7 +585,7 @@ def refined_answer_decision(state: MainState) -> RequireRefinedAnswerUpdate:
         f"XXXXXX--{now_end}--{now_end - now_start}--XXX---REFINED ANSWER DECISION END---"
     )
 
-    if False:
+    if not state["config"].allow_refinement or True:
         return RequireRefinedAnswerUpdate(require_refined_answer=False)
 
     else:
@@ -602,7 +613,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
         revision_doc_effectiveness = 10.0
 
     decomp_answer_results = state["decomp_answer_results"]
-    revised_answer_results = state["follow_up_decomp_answer_results"]
+    # revised_answer_results = state["follow_up_decomp_answer_results"]
 
     good_qa_list: list[str] = []
     decomp_questions = []
@@ -610,24 +621,25 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     initial_good_sub_questions: list[str] = []
     new_revised_good_sub_questions: list[str] = []
 
-    for answer_set in [decomp_answer_results, revised_answer_results]:
-        for decomp_answer_result in answer_set:
-            decomp_questions.append(decomp_answer_result.question)
-            if (
-                decomp_answer_result.quality.lower().startswith("yes")
-                and len(decomp_answer_result.answer) > 0
-                and decomp_answer_result.answer != "I don't know"
-            ):
-                good_qa_list.append(
-                    SUB_QUESTION_ANSWER_TEMPLATE.format(
-                        sub_question=decomp_answer_result.question,
-                        sub_answer=decomp_answer_result.answer,
-                    )
+    for decomp_answer_result in decomp_answer_results:
+        question_level, _ = parse_question_id(decomp_answer_result.question_id)
+
+        decomp_questions.append(decomp_answer_result.question)
+        if (
+            decomp_answer_result.quality.lower().startswith("yes")
+            and len(decomp_answer_result.answer) > 0
+            and decomp_answer_result.answer != "I don't know"
+        ):
+            good_qa_list.append(
+                SUB_QUESTION_ANSWER_TEMPLATE.format(
+                    sub_question=decomp_answer_result.question,
+                    sub_answer=decomp_answer_result.answer,
                 )
-                if answer_set == decomp_answer_results:
-                    initial_good_sub_questions.append(decomp_answer_result.question)
-                else:
-                    new_revised_good_sub_questions.append(decomp_answer_result.question)
+            )
+            if question_level == 0:
+                initial_good_sub_questions.append(decomp_answer_result.question)
+            else:
+                new_revised_good_sub_questions.append(decomp_answer_result.question)
 
     initial_good_sub_questions = list(set(initial_good_sub_questions))
     new_revised_good_sub_questions = list(set(new_revised_good_sub_questions))
@@ -758,9 +770,12 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     )
 
     agent_refined_end_time = datetime.now()
-    agent_refined_duration = (
-        agent_refined_end_time - state["agent_refined_start_time"]
-    ).total_seconds()
+    if state["agent_refined_start_time"]:
+        agent_refined_duration = (
+            agent_refined_end_time - state["agent_refined_start_time"]
+        ).total_seconds()
+    else:
+        agent_refined_duration = None
 
     agent_refined_metrics = AgentRefinedMetrics(
         refined_doc_boost_factor=refined_agent_stats.revision_doc_efficiency,
@@ -861,7 +876,7 @@ def follow_up_decompose(state: MainState) -> FollowUpSubQuestionsUpdate:
 
 def ingest_follow_up_answers(
     state: AnswerQuestionOutput,
-) -> FollowUpDecompAnswersUpdate:
+) -> DecompAnswersUpdate:
     now_start = datetime.now()
 
     logger.info(f"XXXXXX--{now_start}--XXX---INGEST FOLLOW UP ANSWERS---")
@@ -877,11 +892,11 @@ def ingest_follow_up_answers(
         f"XXXXXX--{now_end}--{now_end - now_start}--XXX---INGEST FOLLOW UP ANSWERS END---"
     )
 
-    return FollowUpDecompAnswersUpdate(
+    return DecompAnswersUpdate(
         # Deduping is done by the documents operator for the main graph
         # so we might not need to dedup here
-        follow_up_documents=dedup_inference_sections(documents, []),
-        follow_up_decomp_answer_results=answer_results,
+        documents=dedup_inference_sections(documents, []),
+        decomp_answer_results=answer_results,
     )
 
 
@@ -892,9 +907,12 @@ def logging_node(state: MainState) -> MainOutput:
 
     agent_start_time = state["agent_start_time"]
     agent_base_end_time = state["agent_base_end_time"]
-    agent_refined_start_time = state["agent_refined_start_time"]
-    agent_refined_end_time = state["agent_refined_end_time"]
-    agent_end_time = max(agent_base_end_time, agent_refined_end_time)
+    agent_refined_start_time = state["agent_refined_start_time"] or None
+    agent_refined_end_time = state["agent_refined_end_time"] or None
+    if agent_refined_end_time is not None:
+        agent_end_time = agent_refined_end_time
+    else:
+        agent_end_time = agent_base_end_time
 
     if agent_base_end_time:
         agent_base_duration = (agent_base_end_time - agent_start_time).total_seconds()
@@ -902,9 +920,12 @@ def logging_node(state: MainState) -> MainOutput:
         agent_base_duration = None
 
     if agent_refined_end_time:
-        agent_refined_duration = (
-            agent_refined_end_time - agent_refined_start_time
-        ).total_seconds()
+        if agent_refined_start_time and agent_refined_end_time:
+            agent_refined_duration = (
+                agent_refined_end_time - agent_refined_start_time
+            ).total_seconds()
+        else:
+            agent_refined_duration = None
     else:
         agent_refined_duration = None
 
@@ -960,7 +981,7 @@ def logging_node(state: MainState) -> MainOutput:
         db_session = state["db_session"]
         chat_session_id = state["config"].chat_session_id
         primary_message_id = state["config"].message_id
-        sub_question_answer_results = state["follow_up_decomp_answer_results"]
+        sub_question_answer_results = state["decomp_answer_results"]
 
         log_agent_sub_question_results(
             db_session=db_session,
