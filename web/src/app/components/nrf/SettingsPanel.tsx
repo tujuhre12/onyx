@@ -22,7 +22,7 @@ const SidebarSwitch = ({
     <Switch
       checked={checked}
       onCheckedChange={onCheckedChange}
-      className="data-[state=checked]:bg-white data-[state=unchecked]:bg-gray-600"
+      className="data-[state=checked]:bg-white data-[state=checked]:border-neutral-200 data-[state=unchecked]:bg-gray-600"
       circleClassName="data-[state=checked]:bg-neutral-200"
     />
   </div>

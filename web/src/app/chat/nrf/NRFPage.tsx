@@ -377,30 +377,7 @@ export default function NRFPage({
           )}
         </Modal>
       ) : (
-        llmProviders.length == 0 && (
-          <ApiKeyModal setPopup={setPopup} />
-
-          // <Modal width="max-w-md">
-          //   <div>
-          //     <p className="mb-6 text-center text-lg font-medium">
-          //       No LLM providers found
-          //     </p>
-          //     <Button
-          //       className="bg-accent hover:bg-accent-hover text-white w-full"
-          //       onClick={() => {
-          //         const url = "http://localhost:3000/admin/configuration/llm";
-          //         if (window.top) {
-          //           window.top.location.href = url;
-          //         } else {
-          //           window.location.href = url;
-          //         }
-          //       }}
-          //     >
-          //       Configure LLM Provider
-          //     </Button>
-          //   </div>
-          // </Modal>
-        )
+        llmProviders.length == 0 && <ApiKeyModal setPopup={setPopup} />
       )}
     </div>
   );

@@ -14,6 +14,7 @@ import LoginPage from "./LoginPage";
 const Page = async (props: {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) => {
+  console.log("login page");
   const searchParams = await props.searchParams;
   const autoRedirectDisabled = searchParams?.disableAutoRedirect === "true";
   const nextUrl = Array.isArray(searchParams?.next)
@@ -40,13 +41,7 @@ const Page = async (props: {
   }
 
   // if user is already logged in, take them to the main app page
-  const secondsTillExpiration = getSecondsUntilExpiration(currentUser);
-  if (
-    currentUser &&
-    currentUser.is_active &&
-    !currentUser.is_anonymous_user &&
-    (secondsTillExpiration === null || secondsTillExpiration > 0)
-  ) {
+  if (currentUser && currentUser.is_active && !currentUser.is_anonymous_user) {
     if (authTypeMetadata?.requiresVerification && !currentUser.is_verified) {
       return redirect("/auth/waiting-on-verification");
     }
