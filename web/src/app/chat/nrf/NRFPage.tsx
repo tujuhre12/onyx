@@ -57,7 +57,6 @@ export default function NRFPage({
   const { ccPairs, documentSets, tags } = useChatContext();
 
   const { popup, setPopup } = usePopup();
-  console.log("user", user);
 
   // State
   const [message, setMessage] = useState("");
