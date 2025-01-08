@@ -28,6 +28,7 @@ from onyx.chat.stream_processing.answer_response_handler import (
 from onyx.chat.stream_processing.utils import (
     map_document_id_order,
 )
+from onyx.chat.tool_handling.tool_response_handler import get_tool_by_name
 from onyx.chat.tool_handling.tool_response_handler import ToolResponseHandler
 from onyx.file_store.utils import InMemoryChatFile
 from onyx.llm.interfaces import LLM
@@ -56,7 +57,6 @@ class Answer:
         # newly passed in files to include as part of this question
         # TODO THIS NEEDS TO BE HANDLED
         latest_query_files: list[InMemoryChatFile] | None = None,
-        files: list[InMemoryChatFile] | None = None,
         tools: list[Tool] | None = None,
         # NOTE: for native tool-calling, this is only supported by OpenAI atm,
         #       but we only support them anyways
@@ -79,7 +79,6 @@ class Answer:
         self.is_connected: Callable[[], bool] | None = is_connected
 
         self.latest_query_files = latest_query_files or []
-        self.file_id_to_file = {file.file_id: file for file in (files or [])}
 
         self.tools = tools or []
         self.force_use_tool = force_use_tool
@@ -175,11 +174,7 @@ class Answer:
                 current_llm_call.force_use_tool.tool_name,
                 current_llm_call.force_use_tool.args,
             )
-            tool = next(
-                (t for t in current_llm_call.tools if t.name == tool_name), None
-            )
-            if not tool:
-                raise RuntimeError(f"Tool '{tool_name}' not found")
+            tool = get_tool_by_name(current_llm_call.tools, tool_name)
 
             yield from self._handle_specified_tool_call(llm_calls, tool, tool_args)
             return
@@ -213,6 +208,11 @@ class Answer:
         final_search_results, displayed_search_results = SearchTool.get_search_result(
             current_llm_call
         ) or ([], [])
+
+        # NEXT: we still want to handle the LLM response stream, but it is now:
+        # 1. handle the tool call requests
+        # 2. feed back the processed results
+        # 3. handle the citations
 
         # Quotes are no longer supported
         # answer_handler: AnswerResponseHandler

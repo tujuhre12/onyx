@@ -769,6 +769,7 @@ def stream_chat_message_objects(
 
         for packet in answer.processed_streamed_output:
             if isinstance(packet, ToolResponse):
+                # TODO: don't need to dedupe here when we do it in agent flow
                 if packet.id == SEARCH_RESPONSE_SUMMARY_ID:
                     (
                         qa_docs_response,
@@ -789,25 +790,30 @@ def stream_chat_message_objects(
                 elif packet.id == SECTION_RELEVANCE_LIST_ID:
                     relevance_sections = packet.response
 
-                    if reference_db_search_docs is not None:
-                        llm_indices = relevant_sections_to_indices(
-                            relevance_sections=relevance_sections,
-                            items=[
-                                translate_db_search_doc_to_server_search_doc(doc)
-                                for doc in reference_db_search_docs
-                            ],
+                    if reference_db_search_docs is None:
+                        logger.warning(
+                            "No reference docs found for relevance filtering"
+                        )
+                        continue
+
+                    llm_indices = relevant_sections_to_indices(
+                        relevance_sections=relevance_sections,
+                        items=[
+                            translate_db_search_doc_to_server_search_doc(doc)
+                            for doc in reference_db_search_docs
+                        ],
+                    )
+
+                    if dropped_indices:
+                        llm_indices = drop_llm_indices(
+                            llm_indices=llm_indices,
+                            search_docs=reference_db_search_docs,
+                            dropped_indices=dropped_indices,
                         )
 
-                        if dropped_indices:
-                            llm_indices = drop_llm_indices(
-                                llm_indices=llm_indices,
-                                search_docs=reference_db_search_docs,
-                                dropped_indices=dropped_indices,
-                            )
-
-                        yield LLMRelevanceFilterResponse(
-                            llm_selected_doc_indices=llm_indices
-                        )
+                    yield LLMRelevanceFilterResponse(
+                        llm_selected_doc_indices=llm_indices
+                    )
                 elif packet.id == FINAL_CONTEXT_DOCUMENTS_ID:
                     yield FinalUsedContextDocsResponse(
                         final_context_docs=packet.response
