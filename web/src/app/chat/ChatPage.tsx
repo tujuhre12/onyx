@@ -1014,12 +1014,9 @@ export function ChatPage({
   }, [chatSessionIdRef.current]);
 
   const loadNewPageLogic = (event: MessageEvent) => {
-    console.log("event data type", event.data.type);
-    console.log(SUBMIT_MESSAGE_TYPES.PAGE_CHANGE);
     if (event.data.type === SUBMIT_MESSAGE_TYPES.PAGE_CHANGE) {
       try {
         const url = new URL(event.data.href);
-        console.log("GOT MESSAGE");
         processSearchParamsAndSubmitMessage(url.searchParams.toString());
       } catch (error) {
         console.error("Error parsing URL:", error);
