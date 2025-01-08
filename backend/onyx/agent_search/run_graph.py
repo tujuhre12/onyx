@@ -1,4 +1,5 @@
 import asyncio
+from collections import defaultdict
 from collections.abc import AsyncIterable
 from collections.abc import Iterable
 from datetime import datetime
@@ -10,9 +11,11 @@ from sqlalchemy.orm import Session
 
 from onyx.agent_search.main.graph_builder import main_graph_builder
 from onyx.agent_search.main.states import MainInput
+from onyx.agent_search.models import AgentDocumentCitations
 from onyx.agent_search.shared_graph_utils.utils import get_test_config
 from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
+from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import ProSearchConfig
 from onyx.chat.models import SubAnswerPiece
@@ -29,6 +32,19 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 _COMPILED_GRAPH: CompiledStateGraph | None = None
+
+
+def _set_combined_token_value(
+    combined_token: str, parsed_object: SubAnswerPiece | OnyxAnswerPiece
+) -> SubAnswerPiece | OnyxAnswerPiece:
+    if isinstance(parsed_object, SubAnswerPiece):
+        parsed_object.sub_answer = combined_token
+    elif isinstance(parsed_object, OnyxAnswerPiece):
+        parsed_object.answer_piece = combined_token
+    else:
+        raise ValueError("Invalid parsed object type to update yielded token.")
+
+    return parsed_object
 
 
 def _parse_agent_event(
@@ -107,11 +123,147 @@ def run_graph(
         db_session=db_session,
         search_tool=search_tool,
     )
+
+    agent_document_citations: dict[int, dict[int, list[AgentDocumentCitations]]] = {}
+    agent_question_citations_used_docs: defaultdict[
+        int, defaultdict[int, list[str]]
+    ] = defaultdict(lambda: defaultdict(list))
+
+    # def _process_citation(current_yield_str: str) -> tuple[str, str]:
+    #                 """Process a citation string and return the formatted citation and remaining text."""
+    #                 section_split = current_yield_str.split(']', 1)
+    #                 citation_part = section_split[0] + ']'
+    #                 remaining_text = section_split[1] if len(section_split) > 1 else ''
+
+    #                 if 'D' in citation_part:
+    #                     citation_type = "Document"
+    #                     formatted_citation = citation_part.replace('[D', '[[').replace(']', ']]')
+    #                 else:  # Q case
+    #                     citation_type = "Question"
+    #                     formatted_citation = citation_part.replace('[Q', '{{').replace(']', '}}')
+
+    #                 return f" --- CITATION: {citation_type} - {formatted_citation}", remaining_text
+
+    citation_potential = False
+    # leading_space = False
+    current_yield_components = []
+    current_yield_str = ""
+
     for event in _manage_async_event_streaming(
         compiled_graph=compiled_graph, graph_input=input
     ):
-        if parsed_object := _parse_agent_event(event):
-            yield parsed_object
+        parsed_object = _parse_agent_event(event)
+
+        if parsed_object:
+            # if isinstance(parsed_object, SubAnswerPiece):
+            #     logger.info(f"SA {parsed_object.sub_answer}")
+
+            #     token = parsed_object.sub_answer
+
+            if isinstance(parsed_object, OnyxAnswerPiece) or isinstance(
+                parsed_object, SubAnswerPiece
+            ):
+                # logger.info(f"FA {parsed_object.answer_piece}")
+
+                if isinstance(parsed_object, SubAnswerPiece):
+                    token: str | None = parsed_object.sub_answer
+                elif isinstance(parsed_object, OnyxAnswerPiece):
+                    token = parsed_object.answer_piece
+                    if not token:
+                        return parsed_object
+                else:
+                    raise ValueError(
+                        f"Invalid parsed object type: {type(parsed_object)}"
+                    )
+
+                if not citation_potential and token:
+                    if token.startswith(" ["):
+                        citation_potential = True
+                        current_yield_components = [token]
+                    else:
+                        yield parsed_object
+                elif token and citation_potential:
+                    current_yield_components.append(token)
+                    current_yield_str = "".join(current_yield_components)
+
+                    if current_yield_str.strip().startswith(
+                        "[D"
+                    ) or current_yield_str.strip().startswith("[Q"):
+                        citation_potential = True
+
+                    else:
+                        citation_potential = False
+                        parsed_object = _set_combined_token_value(
+                            current_yield_str, parsed_object
+                        )
+                        yield parsed_object
+
+                    if len(current_yield_components) > 15:
+                        citation_potential = False
+                        parsed_object = _set_combined_token_value(
+                            current_yield_str, parsed_object
+                        )
+                        yield parsed_object
+                    elif "]" in current_yield_str:
+                        section_split = current_yield_str.split("]")
+                        section_split[0] + "]"
+                        start_of_next_section = "]".join(section_split[1:])
+                        citation_string = current_yield_str[
+                            : -len(start_of_next_section)
+                        ]
+                        if "[D" in citation_string:
+                            citation_string = citation_string.replace(
+                                "[D", "[["
+                            ).replace("]", "]]")
+                        elif "[Q" in citation_string:
+                            citation_string = citation_string.replace(
+                                "[Q", "{{"
+                            ).replace("]", "}}")
+                        else:
+                            pass
+
+                        parsed_object = _set_combined_token_value(
+                            citation_string, parsed_object
+                        )
+                        yield parsed_object
+
+                        current_yield_components = [start_of_next_section]
+                        if not start_of_next_section.strip().startswith("["):
+                            citation_potential = False
+
+            elif isinstance(parsed_object, ExtendedToolResponse):
+                if parsed_object.id == "search_response_summary":
+                    level = parsed_object.level
+                    level_question_nr = parsed_object.level_question_nr
+                    for inference_section in parsed_object.response.top_sections:
+                        doc_link = inference_section.center_chunk.source_links[0]
+                        doc_title = inference_section.center_chunk.title
+                        doc_id = inference_section.center_chunk.document_id
+
+                        if (
+                            doc_id
+                            not in agent_question_citations_used_docs[level][
+                                level_question_nr
+                            ]
+                        ):
+                            if level not in agent_document_citations:
+                                agent_document_citations[level] = {}
+                            if level_question_nr not in agent_document_citations[level]:
+                                agent_document_citations[level][level_question_nr] = []
+
+                            agent_document_citations[level][level_question_nr].append(
+                                AgentDocumentCitations(
+                                    document_id=doc_id,
+                                    document_title=doc_title,
+                                    link=doc_link,
+                                )
+                            )
+                            agent_question_citations_used_docs[level][
+                                level_question_nr
+                            ].append(doc_id)
+            else:
+                citation_potential = False
+                yield parsed_object
 
 
 # TODO: call this once on startup, TBD where and if it should be gated based

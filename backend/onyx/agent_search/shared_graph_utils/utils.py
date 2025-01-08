@@ -197,8 +197,8 @@ def get_test_config(
     config = ProSearchConfig(
         search_request=search_request,
         # chat_session_id=UUID("123e4567-e89b-12d3-a456-426614174000"),
-        # chat_session_id=UUID("edda10d5-6cef-45d8-acfb-39317552a1f4"),  # Joachim
-        chat_session_id=UUID("d1acd613-2692-4bc3-9d65-c6d3da62e58e"),  # Evan
+        chat_session_id=UUID("edda10d5-6cef-45d8-acfb-39317552a1f4"),  # Joachim
+        # chat_session_id=UUID("d1acd613-2692-4bc3-9d65-c6d3da62e58e"),  # Evan
         message_id=1,
         use_persistence=True,
     )
