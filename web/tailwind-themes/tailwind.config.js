@@ -49,7 +49,8 @@ module.exports = {
         desktop: "768px",
       },
       fontFamily: {
-        sans: ["var(--font-inter)"],
+        sans: ["Hanken Grotesk", "var(--font-inter)", "sans-serif"],
+        hanken: ["Hanken Grotesk", "sans-serif"],
       },
       width: {
         "message-xs": "450px",

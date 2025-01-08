@@ -7,14 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { IsPublicGroupSelector } from "@/components/IsPublicGroupSelector";
-import {
-  ArrayHelpers,
-  FieldArray,
-  Form,
-  Formik,
-  FormikProps,
-  useFormikContext,
-} from "formik";
+import { ArrayHelpers, FieldArray, Form, Formik, FormikProps } from "formik";
 
 import {
   BooleanFormField,
@@ -68,6 +61,7 @@ import { FullLLMProvider } from "../configuration/llm/interfaces";
 import StarterMessagesList from "./StarterMessageList";
 import { Input } from "@/components/ui/input";
 import { CategoryCard } from "./CategoryCard";
+import { Switch } from "@/components/ui/switch";
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
@@ -83,7 +77,10 @@ function findInternetSearchTool(tools: ToolSnapshot[]) {
 
 function SubLabel({ children }: { children: string | JSX.Element }) {
   return (
-    <div className="text-sm text-description font-description mb-2">
+    <div
+      className="text-sm text-description font-description mb-2"
+      style={{ color: "rgb(113, 114, 121)" }}
+    >
       {children}
     </div>
   );
@@ -509,150 +506,171 @@ export function AssistantEditor({
           return (
             <Form className="w-full text-text-950">
               {/* Refresh starter messages when name or description changes */}
-              <div className="w-full flex gap-x-2 justify-center">
-                <Popover
-                  open={isIconDropdownOpen}
-                  onOpenChange={setIsIconDropdownOpen}
-                  content={
-                    <div
-                      className="p-1 cursor-pointer border-dashed rounded-full flex border border-border border-2 border-dashed"
-                      style={{
-                        borderStyle: "dashed",
-                        borderWidth: "1.5px",
-                        borderSpacing: "4px",
-                      }}
-                      onClick={() => setIsIconDropdownOpen(!isIconDropdownOpen)}
-                    >
-                      {values.uploaded_image ? (
-                        <img
-                          src={URL.createObjectURL(values.uploaded_image)}
-                          alt="Uploaded assistant icon"
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : existingPersona?.uploaded_image_id &&
-                        !removePersonaImage ? (
-                        <img
-                          src={buildImgUrl(existingPersona?.uploaded_image_id)}
-                          alt="Uploaded assistant icon"
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        createSVG(
-                          {
-                            encodedGrid: values.icon_shape,
-                            filledSquares: 0,
-                          },
-                          values.icon_color,
-                          undefined,
-                          true
-                        )
-                      )}
-                    </div>
-                  }
-                  popover={
-                    <div className="bg-white text-text-800 flex flex-col gap-y-1 w-[300px] border border-border rounded-lg shadow-lg p-2">
-                      <label className="block w-full flex gap-x-2 text-left items-center px-4 py-2 hover:bg-background-100 rounded cursor-pointer">
-                        <CameraIcon />
-                        Upload {values.uploaded_image && " New "} Photo
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              setFieldValue("uploaded_image", file);
-                              setIsIconDropdownOpen(false);
-                            }
-                          }}
-                        />
-                      </label>
-
-                      {values.uploaded_image && (
-                        <button
-                          onClick={() => {
-                            setFieldValue("uploaded_image", null);
-                            setRemovePersonaImage(false);
-                          }}
-                          className="block w-full items-center flex gap-x-2 text-left px-4 py-2 hover:bg-background-100 rounded"
-                        >
-                          <TrashIcon />
-                          {removePersonaImage
-                            ? "Revert to Previous "
-                            : "Remove "}
-                          Image
-                        </button>
-                      )}
-
-                      {!values.uploaded_image &&
-                        (!existingPersona?.uploaded_image_id ||
-                          removePersonaImage) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const newShape = generateRandomIconShape();
-                              const randomColor =
-                                colorOptions[
-                                  Math.floor(
-                                    Math.random() * colorOptions.length
-                                  )
-                                ];
-                              setFieldValue("icon_shape", newShape.encodedGrid);
-                              setFieldValue("icon_color", randomColor);
-                            }}
-                            className="block w-full items-center flex gap-x-2 text-left px-4 py-2 hover:bg-background-100 rounded"
-                          >
-                            <NewChatIcon />
-                            Generate New Icon
-                          </button>
+              <p className="text-base font-normal !text-2xl">
+                Create an assistant
+              </p>
+              {/* <div className="max-w-4xl w-full">
+                <Separator />
+                <div className="flex gap-x-2 items-center">
+                  <div className="block font-medium text-sm">
+                    Assistant Icon
+                  </div>
+                </div>
+                <SubLabel>
+                  The icon that will visually represent your Assistant
+                </SubLabel>
+                <div className="flex gap-x-2 items-center">
+                  <Popover
+                    open={isIconDropdownOpen}
+                    onOpenChange={setIsIconDropdownOpen}
+                    content={
+                      <div
+                        className="p-1 cursor-pointer border-dashed rounded-full flex border border-border border-2 border-dashed"
+                        style={{
+                          borderStyle: "dashed",
+                          borderWidth: "1.5px",
+                          borderSpacing: "4px",
+                        }}
+                        onClick={() =>
+                          setIsIconDropdownOpen(!isIconDropdownOpen)
+                        }
+                      >
+                        {values.uploaded_image ? (
+                          <img
+                            src={URL.createObjectURL(values.uploaded_image)}
+                            alt="Uploaded assistant icon"
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : existingPersona?.uploaded_image_id &&
+                          !removePersonaImage ? (
+                          <img
+                            src={buildImgUrl(
+                              existingPersona?.uploaded_image_id
+                            )}
+                            alt="Uploaded assistant icon"
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          createSVG(
+                            {
+                              encodedGrid: values.icon_shape,
+                              filledSquares: 0,
+                            },
+                            values.icon_color,
+                            undefined,
+                            true
+                          )
                         )}
+                      </div>
+                    }
+                    popover={
+                      <div className="bg-white text-text-800 flex flex-col gap-y-1 w-[300px] border border-border rounded-lg shadow-lg p-2">
+                        <label className="block w-full flex gap-x-2 text-left items-center px-4 py-2 hover:bg-background-100 rounded cursor-pointer">
+                          <CameraIcon />
+                          Upload {values.uploaded_image && " New "} Photo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setFieldValue("uploaded_image", file);
+                                setIsIconDropdownOpen(false);
+                              }
+                            }}
+                          />
+                        </label>
 
-                      {existingPersona?.uploaded_image_id &&
-                        removePersonaImage &&
-                        !values.uploaded_image && (
+                        {values.uploaded_image && (
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRemovePersonaImage(false);
+                            onClick={() => {
                               setFieldValue("uploaded_image", null);
-                            }}
-                            className="block w-full items-center flex gap-x-2 text-left px-4 py-2 hover:bg-background-100 rounded"
-                          >
-                            <SwapIcon />
-                            Revert to Previous Image
-                          </button>
-                        )}
-
-                      {existingPersona?.uploaded_image_id &&
-                        !removePersonaImage &&
-                        !values.uploaded_image && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRemovePersonaImage(true);
+                              setRemovePersonaImage(false);
                             }}
                             className="block w-full items-center flex gap-x-2 text-left px-4 py-2 hover:bg-background-100 rounded"
                           >
                             <TrashIcon />
-                            Remove Image
+                            {removePersonaImage
+                              ? "Revert to Previous "
+                              : "Remove "}
+                            Image
                           </button>
                         )}
-                    </div>
-                  }
-                  align="start"
-                  side="bottom"
-                />
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <FiInfo size={12} />
-                    </TooltipTrigger>
-                    <TooltipContent side="top" align="center">
-                      This icon will visually represent your Assistant
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
+
+                        {!values.uploaded_image &&
+                          (!existingPersona?.uploaded_image_id ||
+                            removePersonaImage) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newShape = generateRandomIconShape();
+                                const randomColor =
+                                  colorOptions[
+                                    Math.floor(
+                                      Math.random() * colorOptions.length
+                                    )
+                                  ];
+                                setFieldValue(
+                                  "icon_shape",
+                                  newShape.encodedGrid
+                                );
+                                setFieldValue("icon_color", randomColor);
+                              }}
+                              className="block w-full items-center flex gap-x-2 text-left px-4 py-2 hover:bg-background-100 rounded"
+                            >
+                              <NewChatIcon />
+                              Generate New Icon
+                            </button>
+                          )}
+
+                        {existingPersona?.uploaded_image_id &&
+                          removePersonaImage &&
+                          !values.uploaded_image && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRemovePersonaImage(false);
+                                setFieldValue("uploaded_image", null);
+                              }}
+                              className="block w-full items-center flex gap-x-2 text-left px-4 py-2 hover:bg-background-100 rounded"
+                            >
+                              <SwapIcon />
+                              Revert to Previous Image
+                            </button>
+                          )}
+
+                        {existingPersona?.uploaded_image_id &&
+                          !removePersonaImage &&
+                          !values.uploaded_image && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRemovePersonaImage(true);
+                              }}
+                              className="block w-full items-center flex gap-x-2 text-left px-4 py-2 hover:bg-background-100 rounded"
+                            >
+                              <TrashIcon />
+                              Remove Image
+                            </button>
+                          )}
+                      </div>
+                    }
+                    align="start"
+                    side="bottom"
+                  />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <FiInfo size={12} />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="center">
+                        This icon will visually represent your Assistant
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </div> */}
 
               <TextFormField
                 name="name"
@@ -671,6 +689,7 @@ export function AssistantEditor({
               />
 
               <TextFormField
+                maxWidth="max-w-4xl"
                 tooltip="Gives your assistant a prime directive"
                 name="system_prompt"
                 label="Instructions"
@@ -679,172 +698,108 @@ export function AssistantEditor({
                 data-testid="assistant-instructions-input"
               />
 
-              <div>
-                <div className="flex gap-x-2 items-center">
-                  <div className="block  font-medium text-base">
-                    Default AI Model{" "}
+              {llmProviders.length > 0 && (
+                <>
+                  <TextFormField
+                    maxWidth="max-w-4xl"
+                    name="task_prompt"
+                    label="Reminders (Optional)"
+                    isTextArea={true}
+                    placeholder="e.g. 'Remember to reference all of the points mentioned in my message to you and focus on identifying action items that can move things forward'"
+                    onChange={(e) => {
+                      setFieldValue("task_prompt", e.target.value);
+                    }}
+                    explanationText="Learn about prompting in our docs!"
+                    explanationLink="https://docs.onyx.app/guides/assistants"
+                  />
+                </>
+              )}
+              <div className="w-full max-w-4xl">
+                <Separator className="w-full mt-0" />
+                <div className="flex gap-x-2 py-2 flex justify-between">
+                  <div>
+                    <p className="block font-medium text-sm">General Access</p>
+                    <p
+                      className="text-sm text-subtle"
+                      style={{ color: "rgb(113, 114, 121)" }}
+                    >
+                      Everyone in your workspace can access this assistant
+                    </p>
                   </div>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <FiInfo size={12} />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" align="center">
-                        Select a Large Language Model (Generative AI model) to
-                        power this Assistant
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <p className="my-1 font-description text-base text-text-400">
-                  Your assistant will use the user&apos;s set default unless
-                  otherwise specified below.
-                  {admin &&
-                    user?.preferences.default_model &&
-                    `  Your current (user-specific) default model is ${getDisplayNameForModel(
-                      destructureValue(user?.preferences?.default_model!)
-                        .modelName
-                    )}`}
-                </p>
-                {admin ? (
-                  <div className="mb-2 flex items-starts">
-                    <div className="w-96">
-                      <SelectorFormField
-                        defaultValue={`User default`}
-                        name="llm_model_provider_override"
-                        options={llmProviders.map((llmProvider) => ({
-                          name: llmProvider.name,
-                          value: llmProvider.name,
-                          icon: llmProvider.icon,
-                        }))}
-                        includeDefault={true}
-                        onSelect={(selected) => {
-                          if (selected !== values.llm_model_provider_override) {
-                            setFieldValue("llm_model_version_override", null);
-                          }
-                          setFieldValue(
-                            "llm_model_provider_override",
-                            selected
-                          );
-                        }}
-                      />
-                    </div>
-
-                    {values.llm_model_provider_override && (
-                      <div className="w-96 ml-4">
-                        <SelectorFormField
-                          name="llm_model_version_override"
-                          options={
-                            modelOptionsByProvider.get(
-                              values.llm_model_provider_override
-                            ) || []
-                          }
-                          maxHeight="max-h-72"
-                        />
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="max-w-sm">
-                    <LlmList
-                      scrollable
-                      userDefault={
-                        user?.preferences?.default_model!
-                          ? destructureValue(user?.preferences?.default_model!)
-                              .modelName
-                          : null
-                      }
-                      llmProviders={llmProviders}
-                      currentLlm={values.llm_model_version_override}
-                      onSelect={(value: string | null) => {
-                        if (value !== null) {
-                          const { modelName, provider, name } =
-                            destructureValue(value);
-                          setFieldValue(
-                            "llm_model_version_override",
-                            modelName
-                          );
-                          setFieldValue("llm_model_provider_override", name);
-                        } else {
-                          setFieldValue("llm_model_version_override", null);
-                          setFieldValue("llm_model_provider_override", null);
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-              <div>
-                <div className="flex gap-x-2 items-center">
-                  <div className="block font-medium text-base">
-                    Capabilities{" "}
-                  </div>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <FiInfo size={12} />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" align="center">
-                        You can give your assistant advanced capabilities like
-                        image generation
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <div className="block text-sm font-description text-subtle">
-                    Advanced
+                  <div className="my-auto">
+                    <Switch />
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-col gap-y-4  ml-1">
+                <div className="flex flex-col">
                   {imageGenerationTool && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div
-                            className={`w-fit ${
-                              !currentLLMSupportsImageOutput ||
-                              !isImageGenerationAvailable
-                                ? "opacity-70 cursor-not-allowed"
-                                : ""
-                            }`}
+                    <>
+                      <Separator />
+                      <div className="flex gap-x-2 py-2 flex justify-between">
+                        <div>
+                          <p className="block font-medium text-sm">
+                            Image Generation Tool
+                          </p>
+                          <p
+                            className="text-sm text-subtle"
+                            style={{ color: "rgb(113, 114, 121)" }}
                           >
-                            <BooleanFormField
-                              removeIndent
-                              name={`enabled_tools_map.${imageGenerationTool.id}`}
-                              label="Image Generation Tool"
-                              onChange={() => {
-                                toggleToolInValues(imageGenerationTool.id);
-                              }}
-                              disabled={
-                                !currentLLMSupportsImageOutput ||
-                                !isImageGenerationAvailable
-                              }
-                            />
-                          </div>
-                        </TooltipTrigger>
-                        {!currentLLMSupportsImageOutput ? (
-                          <TooltipContent side="top" align="center">
-                            <p className="bg-background-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
-                              To use Image Generation, select GPT-4o or another
-                              image compatible model as the default model for
-                              this Assistant.
-                            </p>
-                          </TooltipContent>
-                        ) : (
-                          !isImageGenerationAvailable && (
-                            <TooltipContent side="top" align="center">
-                              <p className="bg-background-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
-                                Image Generation requires an OpenAI or Azure
-                                Dalle configuration.
-                              </p>
-                            </TooltipContent>
-                          )
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
+                            Enable image generation capabilities for this
+                            assistant
+                          </p>
+                        </div>
+                        <div className="flex items-center">
+                          <TooltipProvider delayDuration={0}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className={`${
+                                    !currentLLMSupportsImageOutput ||
+                                    !isImageGenerationAvailable
+                                      ? "opacity-70 cursor-not-allowed"
+                                      : ""
+                                  }`}
+                                >
+                                  <Switch
+                                    name={`enabled_tools_map.${imageGenerationTool.id}`}
+                                    onChange={() => {
+                                      toggleToolInValues(
+                                        imageGenerationTool.id
+                                      );
+                                    }}
+                                    disabled={
+                                      !currentLLMSupportsImageOutput ||
+                                      !isImageGenerationAvailable
+                                    }
+                                  />
+                                </div>
+                              </TooltipTrigger>
+                              {!currentLLMSupportsImageOutput ? (
+                                <TooltipContent side="top" align="center">
+                                  <p className="bg-background-950 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
+                                    To use Image Generation, select GPT-4o or
+                                    another image compatible model as the
+                                    default model for this Assistant.
+                                  </p>
+                                </TooltipContent>
+                              ) : (
+                                !isImageGenerationAvailable && (
+                                  <TooltipContent side="top" align="center">
+                                    <p className="bg-background-950 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
+                                      Image Generation requires an OpenAI or
+                                      Azure Dalle configuration.
+                                    </p>
+                                  </TooltipContent>
+                                )
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
+                    </>
                   )}
-
-                  {searchTool && (
+                  <Separator />
+                  {/* {searchTool && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -1015,7 +970,7 @@ export function AssistantEditor({
                         </CollapsibleSection>
                       )}
                     </>
-                  )}
+                  )} */}
 
                   {internetSearchTool && (
                     <BooleanFormField
@@ -1047,10 +1002,96 @@ export function AssistantEditor({
                   )}
                 </div>
               </div>
-
-              <div className="mb-6 w-full flex flex-col">
+              <div className="-mt-2">
                 <div className="flex gap-x-2 items-center">
-                  <div className="block font-medium text-base">
+                  <div className="block  font-medium text-sm">
+                    Default AI Model{" "}
+                  </div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <FiInfo size={12} />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="center">
+                        Select a Large Language Model (Generative AI model) to
+                        power this Assistant
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+
+                {admin ? (
+                  <div className="mb-2 flex items-starts">
+                    <div className="w-96">
+                      <SelectorFormField
+                        defaultValue={`User default`}
+                        name="llm_model_provider_override"
+                        options={llmProviders.map((llmProvider) => ({
+                          name: llmProvider.name,
+                          value: llmProvider.name,
+                          icon: llmProvider.icon,
+                        }))}
+                        includeDefault={true}
+                        onSelect={(selected) => {
+                          if (selected !== values.llm_model_provider_override) {
+                            setFieldValue("llm_model_version_override", null);
+                          }
+                          setFieldValue(
+                            "llm_model_provider_override",
+                            selected
+                          );
+                        }}
+                      />
+                    </div>
+
+                    {values.llm_model_provider_override && (
+                      <div className="w-96 ml-4">
+                        <SelectorFormField
+                          name="llm_model_version_override"
+                          options={
+                            modelOptionsByProvider.get(
+                              values.llm_model_provider_override
+                            ) || []
+                          }
+                          maxHeight="max-h-72"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="max-w-sm">
+                    <LlmList
+                      scrollable
+                      userDefault={
+                        user?.preferences?.default_model!
+                          ? destructureValue(user?.preferences?.default_model!)
+                              .modelName
+                          : null
+                      }
+                      llmProviders={llmProviders}
+                      currentLlm={values.llm_model_version_override}
+                      onSelect={(value: string | null) => {
+                        if (value !== null) {
+                          const { modelName, provider, name } =
+                            destructureValue(value);
+                          setFieldValue(
+                            "llm_model_version_override",
+                            modelName
+                          );
+                          setFieldValue("llm_model_provider_override", name);
+                        } else {
+                          setFieldValue("llm_model_version_override", null);
+                          setFieldValue("llm_model_provider_override", null);
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+              <Separator className="max-w-4xl" />
+              <div className="w-full flex flex-col">
+                <div className="flex gap-x-2 items-center">
+                  <div className="block font-medium text-sm">
                     Starter Messages
                   </div>
                 </div>
@@ -1059,95 +1100,63 @@ export function AssistantEditor({
                   Pre-configured messages that help users understand what this
                   assistant can do and how to interact with it effectively.
                 </SubLabel>
-                <div className="relative w-fit">
-                  <TooltipProvider delayDuration={50}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() =>
-                              debouncedRefreshPrompts(values, setFieldValue)
-                            }
-                            disabled={
-                              !autoStarterMessageEnabled ||
-                              isRefreshing ||
-                              (Object.keys(errors).length > 0 &&
-                                Object.keys(errors).some(
-                                  (key) => !key.startsWith("starter_messages")
-                                ))
-                            }
-                            className={`
-                            px-3 py-2
-                            mr-auto
-                            my-2
-                            flex gap-x-2
-                            text-sm font-medium
-                            rounded-lg shadow-sm
-                            items-center gap-2
-                            transition-colors duration-200
-                            ${
-                              isRefreshing || !autoStarterMessageEnabled
-                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                : "bg-blue-50 text-blue-600 hover:bg-blue-100 active:bg-blue-200"
-                            }
-                          `}
-                          >
-                            <div className="flex items-center gap-x-2">
-                              {isRefreshing ? (
-                                <FiRefreshCcw className="w-4 h-4 animate-spin text-gray-400" />
-                              ) : (
-                                <SwapIcon className="w-4 h-4 text-blue-600" />
-                              )}
-                              Generate
-                            </div>
-                          </Button>
-                        </div>
-                      </TooltipTrigger>
-                      {!autoStarterMessageEnabled && (
-                        <TooltipContent side="top" align="center">
-                          <p className="bg-background-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
-                            No LLM providers configured. Generation is not
-                            available.
-                          </p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
+
                 <div className="w-full">
                   <FieldArray
                     name="starter_messages"
                     render={(arrayHelpers: ArrayHelpers) => (
                       <StarterMessagesList
+                        debouncedRefreshPrompts={debouncedRefreshPrompts}
+                        autoStarterMessageEnabled={autoStarterMessageEnabled}
+                        errors={errors}
                         isRefreshing={isRefreshing}
                         values={values.starter_messages}
                         arrayHelpers={arrayHelpers}
                         touchStarterMessages={() => {
                           setHasEditedStarterMessage(true);
                         }}
+                        setFieldValue={setFieldValue}
                       />
                     )}
                   />
                 </div>
               </div>
 
-              {admin && (
-                <AdvancedOptionsToggle
-                  title="Categories"
-                  showAdvancedOptions={showPersonaCategory}
-                  setShowAdvancedOptions={setShowPersonaCategory}
-                />
-              )}
+              <>
+                {categories && categories.length > 0 && (
+                  <div className="my-2">
+                    <div className="flex gap-x-2 items-center">
+                      <div className="block font-medium text-base">
+                        Category
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <FiInfo size={12} />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" align="center">
+                            Group similar assistants together by category
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <SelectorFormField
+                      includeReset
+                      name="category_id"
+                      options={categories.map((category) => ({
+                        name: category.name,
+                        value: category.id,
+                      }))}
+                    />
+                  </div>
+                )}
 
-              {showPersonaCategory && (
-                <>
-                  {categories && categories.length > 0 && (
+                {admin && (
+                  <>
                     <div className="my-2">
-                      <div className="flex gap-x-2 items-center">
+                      <div className="flex gap-x-2 items-center mb-2">
                         <div className="block font-medium text-base">
-                          Category
+                          Create New Category
                         </div>
                         <TooltipProvider>
                           <Tooltip>
@@ -1155,28 +1164,71 @@ export function AssistantEditor({
                               <FiInfo size={12} />
                             </TooltipTrigger>
                             <TooltipContent side="top" align="center">
-                              Group similar assistants together by category
+                              Create a new category to group similar assistants
+                              together
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       </div>
-                      <SelectorFormField
-                        includeReset
-                        name="category_id"
-                        options={categories.map((category) => ({
-                          name: category.name,
-                          value: category.id,
-                        }))}
-                      />
-                    </div>
-                  )}
 
-                  {admin && (
-                    <>
-                      <div className="my-2">
+                      <div className="grid grid-cols-[1fr,3fr,auto] gap-4">
+                        <TextFormField
+                          fontSize="sm"
+                          name="newCategoryName"
+                          label="Category Name"
+                          placeholder="e.g. Development"
+                        />
+                        <TextFormField
+                          fontSize="sm"
+                          name="newCategoryDescription"
+                          label="Category Description"
+                          placeholder="e.g. Assistants for software development"
+                        />
+                        <div className="flex items-end">
+                          <Button
+                            type="button"
+                            onClick={async () => {
+                              const name = values.newCategoryName;
+                              const description = values.newCategoryDescription;
+                              if (!name || !description) return;
+
+                              try {
+                                const response = await createPersonaCategory(
+                                  name,
+                                  description
+                                );
+                                if (response.ok) {
+                                  setPopup({
+                                    message: `Category "${name}" created successfully`,
+                                    type: "success",
+                                  });
+                                } else {
+                                  throw new Error(await response.text());
+                                }
+                              } catch (error) {
+                                setPopup({
+                                  message: `Failed to create category - ${error}`,
+                                  type: "error",
+                                });
+                              }
+
+                              await refreshCategories();
+
+                              setFieldValue("newCategoryName", "");
+                              setFieldValue("newCategoryDescription", "");
+                            }}
+                          >
+                            Create
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {categories && categories.length > 0 && (
+                      <div className="my-2 w-full">
                         <div className="flex gap-x-2 items-center mb-2">
                           <div className="block font-medium text-base">
-                            Create New Category
+                            Manage categories
                           </div>
                           <TooltipProvider>
                             <Tooltip>
@@ -1184,183 +1236,84 @@ export function AssistantEditor({
                                 <FiInfo size={12} />
                               </TooltipTrigger>
                               <TooltipContent side="top" align="center">
-                                Create a new category to group similar
-                                assistants together
+                                Manage existing categories or create new ones to
+                                group similar assistants
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
                         </div>
-
-                        <div className="grid grid-cols-[1fr,3fr,auto] gap-4">
-                          <TextFormField
-                            fontSize="sm"
-                            name="newCategoryName"
-                            label="Category Name"
-                            placeholder="e.g. Development"
-                          />
-                          <TextFormField
-                            fontSize="sm"
-                            name="newCategoryDescription"
-                            label="Category Description"
-                            placeholder="e.g. Assistants for software development"
-                          />
-                          <div className="flex items-end">
-                            <Button
-                              type="button"
-                              onClick={async () => {
-                                const name = values.newCategoryName;
-                                const description =
-                                  values.newCategoryDescription;
-                                if (!name || !description) return;
-
-                                try {
-                                  const response = await createPersonaCategory(
+                        <div className="gap-4 w-full flex-wrap flex">
+                          {categories &&
+                            categories.map((category: PersonaCategory) => (
+                              <CategoryCard
+                                setPopup={setPopup}
+                                key={category.id}
+                                category={category}
+                                onUpdate={async (id, name, description) => {
+                                  const response = await updatePersonaCategory(
+                                    id,
                                     name,
                                     description
                                   );
-                                  if (response.ok) {
+                                  if (response?.ok) {
                                     setPopup({
-                                      message: `Category "${name}" created successfully`,
+                                      message: `Category "${name}" updated successfully`,
                                       type: "success",
                                     });
                                   } else {
-                                    throw new Error(await response.text());
+                                    setPopup({
+                                      message: `Failed to update category - ${await response.text()}`,
+                                      type: "error",
+                                    });
                                   }
-                                } catch (error) {
-                                  setPopup({
-                                    message: `Failed to create category - ${error}`,
-                                    type: "error",
-                                  });
-                                }
-
-                                await refreshCategories();
-
-                                setFieldValue("newCategoryName", "");
-                                setFieldValue("newCategoryDescription", "");
-                              }}
-                            >
-                              Create
-                            </Button>
-                          </div>
+                                }}
+                                onDelete={async (id) => {
+                                  const response =
+                                    await deletePersonaCategory(id);
+                                  if (response?.ok) {
+                                    setPopup({
+                                      message: `Category deleted successfully`,
+                                      type: "success",
+                                    });
+                                  } else {
+                                    setPopup({
+                                      message: `Failed to delete category - ${await response.text()}`,
+                                      type: "error",
+                                    });
+                                  }
+                                }}
+                                refreshCategories={refreshCategories}
+                              />
+                            ))}
                         </div>
                       </div>
+                    )}
+                  </>
+                )}
+              </>
 
-                      {categories && categories.length > 0 && (
-                        <div className="my-2 w-full">
-                          <div className="flex gap-x-2 items-center mb-2">
-                            <div className="block font-medium text-base">
-                              Manage categories
-                            </div>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <FiInfo size={12} />
-                                </TooltipTrigger>
-                                <TooltipContent side="top" align="center">
-                                  Manage existing categories or create new ones
-                                  to group similar assistants
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                          <div className="gap-4 w-full flex-wrap flex">
-                            {categories &&
-                              categories.map((category: PersonaCategory) => (
-                                <CategoryCard
-                                  setPopup={setPopup}
-                                  key={category.id}
-                                  category={category}
-                                  onUpdate={async (id, name, description) => {
-                                    const response =
-                                      await updatePersonaCategory(
-                                        id,
-                                        name,
-                                        description
-                                      );
-                                    if (response?.ok) {
-                                      setPopup({
-                                        message: `Category "${name}" updated successfully`,
-                                        type: "success",
-                                      });
-                                    } else {
-                                      setPopup({
-                                        message: `Failed to update category - ${await response.text()}`,
-                                        type: "error",
-                                      });
-                                    }
-                                  }}
-                                  onDelete={async (id) => {
-                                    const response =
-                                      await deletePersonaCategory(id);
-                                    if (response?.ok) {
-                                      setPopup({
-                                        message: `Category deleted successfully`,
-                                        type: "success",
-                                      });
-                                    } else {
-                                      setPopup({
-                                        message: `Failed to delete category - ${await response.text()}`,
-                                        type: "error",
-                                      });
-                                    }
-                                  }}
-                                  refreshCategories={refreshCategories}
-                                />
-                              ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </>
-              )}
+              <div className="max-w-4xl w-full">
+                <IsPublicGroupSelector
+                  formikProps={{
+                    values,
+                    isSubmitting,
+                    setFieldValue,
+                    errors,
+                    ...formikProps,
+                  }}
+                  objectName="assistant"
+                  enforceGroupSelection={false}
+                />
 
-              <Separator />
-              <AdvancedOptionsToggle
-                showAdvancedOptions={showAdvancedOptions}
-                setShowAdvancedOptions={setShowAdvancedOptions}
-              />
-
-              {showAdvancedOptions && (
-                <>
-                  {llmProviders.length > 0 && (
-                    <>
-                      <TextFormField
-                        name="task_prompt"
-                        label="Reminders (Optional)"
-                        isTextArea={true}
-                        placeholder="e.g. 'Remember to reference all of the points mentioned in my message to you and focus on identifying action items that can move things forward'"
-                        onChange={(e) => {
-                          setFieldValue("task_prompt", e.target.value);
-                        }}
-                        explanationText="Learn about prompting in our docs!"
-                        explanationLink="https://docs.onyx.app/guides/assistants"
-                      />
-                    </>
-                  )}
-
-                  <IsPublicGroupSelector
-                    formikProps={{
-                      values,
-                      isSubmitting,
-                      setFieldValue,
-                      errors,
-                      ...formikProps,
-                    }}
-                    objectName="assistant"
-                    enforceGroupSelection={false}
-                  />
-                </>
-              )}
-
-              <div className="flex">
-                <Button
-                  variant="submit"
-                  type="submit"
-                  disabled={isSubmitting || isRequestSuccessful}
-                >
-                  {isUpdate ? "Update!" : "Create!"}
-                </Button>
+                <div className="mt-12 flex">
+                  <Button
+                    variant="submit"
+                    type="submit"
+                    disabled={isSubmitting || isRequestSuccessful}
+                  >
+                    {isUpdate ? "Update!" : "Create!"}
+                  </Button>
+                </div>
               </div>
             </Form>
           );

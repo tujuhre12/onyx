@@ -142,6 +142,7 @@ export function TextFormField({
   explanationText,
   explanationLink,
   small,
+  maxWidth = "max-w-lg",
   removeLabel,
   min,
   includeForgotPassword,
@@ -165,6 +166,7 @@ export function TextFormField({
   defaultHeight?: string;
   isCode?: boolean;
   fontSize?: "sm" | "md" | "lg";
+  maxWidth?: string;
   hideError?: boolean;
   tooltip?: string;
   explanationText?: string;
@@ -210,10 +212,10 @@ export function TextFormField({
     },
   };
 
-  const sizeClass = textSizeClasses[fontSize || "md"];
+  const sizeClass = textSizeClasses[fontSize || "sm"];
 
   return (
-    <div className={`w-full ${width}`}>
+    <div className={`w-full ${maxWidth} ${width}`}>
       <div
         className={`flex ${
           vertical ? "flex-col" : "flex-row"
@@ -262,10 +264,11 @@ export function TextFormField({
             mt-1
             placeholder:font-description 
             placeholder:${sizeClass.placeholder}
+            caret-accent
             placeholder:text-text-400
             ${heightString}
             ${sizeClass.input}
-            ${disabled ? " bg-background-strong" : " bg-white"}
+            ${disabled ? " bg-background-strong" : " bg-white/80"}
             ${isCode ? " font-mono" : ""}
           `}
           disabled={disabled}
