@@ -35,6 +35,7 @@ import { AuthType, NEXT_PUBLIC_WEB_DOMAIN } from "@/lib/constants";
 import { sendSetDefaultNewTabMessage } from "@/lib/extension/utils";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { CHROME_MESSAGE } from "@/lib/extension/constants";
+import { ApiKeyModal } from "@/components/llm/ApiKeyModal";
 
 export default function NRFPage({
   requestCookies,
@@ -54,7 +55,7 @@ export default function NRFPage({
   const filterManager = useFilters();
   const { isNight } = useNightTime();
   const { user } = useUser();
-  const { ccPairs, documentSets, tags } = useChatContext();
+  const { ccPairs, documentSets, tags, llmProviders } = useChatContext();
 
   const { popup, setPopup } = usePopup();
 
@@ -338,7 +339,7 @@ export default function NRFPage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {!user && authType !== "disabled" && showLoginModal && (
+      {!user && authType !== "disabled" && showLoginModal ? (
         <Modal className="max-w-md mx-auto">
           {fetchingAuth ? (
             <p className="p-4">Loading login info…</p>
@@ -375,8 +376,32 @@ export default function NRFPage({
             </div>
           )}
         </Modal>
+      ) : (
+        llmProviders.length == 0 && (
+          <ApiKeyModal setPopup={setPopup} />
+
+          // <Modal width="max-w-md">
+          //   <div>
+          //     <p className="mb-6 text-center text-lg font-medium">
+          //       No LLM providers found
+          //     </p>
+          //     <Button
+          //       className="bg-accent hover:bg-accent-hover text-white w-full"
+          //       onClick={() => {
+          //         const url = "http://localhost:3000/admin/configuration/llm";
+          //         if (window.top) {
+          //           window.top.location.href = url;
+          //         } else {
+          //           window.location.href = url;
+          //         }
+          //       }}
+          //     >
+          //       Configure LLM Provider
+          //     </Button>
+          //   </div>
+          // </Modal>
+        )
       )}
-      {popup}
     </div>
   );
 }
