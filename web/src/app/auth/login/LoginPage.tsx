@@ -1,3 +1,5 @@
+"use client";
+
 import { AuthTypeMetadata } from "@/lib/userSS";
 import { LoginText } from "./LoginText";
 import Link from "next/link";
@@ -5,6 +7,7 @@ import { SignInButton } from "./SignInButton";
 import { EmailPasswordForm } from "./EmailPasswordForm";
 import { NEXT_PUBLIC_FORGOT_PASSWORD_ENABLED } from "@/lib/constants";
 import Title from "@/components/ui/title";
+import { useSendAuthRequiredMessage } from "@/lib/extension/utils";
 
 export default function LoginPage({
   authUrl,
@@ -23,6 +26,7 @@ export default function LoginPage({
     | undefined;
   showPageRedirect?: boolean;
 }) {
+  useSendAuthRequiredMessage();
   return (
     <div className="flex flex-col w-full justify-center">
       {authUrl && authTypeMetadata && (
@@ -86,9 +90,9 @@ export default function LoginPage({
           <span
             onClick={() => {
               if (typeof window !== "undefined" && window.top) {
-                window.top.location.href = "/auth/register";
+                window.top.location.href = "/auth/signup";
               } else {
-                window.location.href = "/auth/register";
+                window.location.href = "/auth/signup";
               }
             }}
             className="text-link font-medium cursor-pointer"

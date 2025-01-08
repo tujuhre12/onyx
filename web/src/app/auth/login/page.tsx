@@ -7,7 +7,6 @@ import {
   AuthTypeMetadata,
 } from "@/lib/userSS";
 import { redirect } from "next/navigation";
-import { getSecondsUntilExpiration } from "@/lib/time";
 import AuthFlowContainer from "@/components/auth/AuthFlowContainer";
 import LoginPage from "./LoginPage";
 
