@@ -109,7 +109,10 @@ import TextView from "@/components/chat_search/TextView";
 import AssistantSelector from "@/components/chat_search/AssistantSelector";
 import { Modal } from "@/components/Modal";
 import { useSendMessageToParent } from "@/lib/extension/utils";
-import { CHROME_MESSAGE } from "@/lib/extension/constants";
+import {
+  CHROME_MESSAGE,
+  SUBMIT_MESSAGE_TYPES,
+} from "@/lib/extension/constants";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -232,6 +235,7 @@ export function ChatPage({
 
     // If there's a message, submit it
     if (message) {
+      console.log("SUBMITTING MESSAGE");
       setSubmittedMessage(message);
       onSubmit({ messageOverride: message, overrideFileDescriptors });
     }
@@ -398,11 +402,6 @@ export function ChatPage({
     Prism.highlightAll();
     setIsReady(true);
   }, []);
-
-  // this is triggered every time the user switches which chat
-  // session they are using
-  const [chromSentUrls, setchromSentUrls] = useState<string[]>([]);
-  const [selectedChromeUrls, setSelectedChromeUrls] = useState<string[]>([]);
 
   useEffect(() => {
     const priorChatSessionId = chatSessionIdRef.current;
@@ -806,6 +805,8 @@ export function ChatPage({
       currentSessionChatState === "loading" &&
       messageHistory.length == 0
     ) {
+      console.log("sending message");
+      console.log(CHROME_MESSAGE.LOAD_NEW_CHAT_PAGE);
       window.parent.postMessage(
         { type: CHROME_MESSAGE.LOAD_NEW_CHAT_PAGE },
         "*"
@@ -1013,9 +1014,12 @@ export function ChatPage({
   }, [chatSessionIdRef.current]);
 
   const loadNewPageLogic = (event: MessageEvent) => {
-    if (event.data.type === CHROME_MESSAGE.LOAD_NEW_PAGE) {
+    console.log("event data type", event.data.type);
+    console.log(SUBMIT_MESSAGE_TYPES.PAGE_CHANGE);
+    if (event.data.type === SUBMIT_MESSAGE_TYPES.PAGE_CHANGE) {
       try {
         const url = new URL(event.data.href);
+        console.log("GOT MESSAGE");
         processSearchParamsAndSubmitMessage(url.searchParams.toString());
       } catch (error) {
         console.error("Error parsing URL:", error);
