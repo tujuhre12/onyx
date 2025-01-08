@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from onyx.background.celery.apps.app_base import task_logger
 from onyx.background.celery.celery_utils import extract_ids_from_runnable_connector
-from onyx.background.celery.tasks.indexing.tasks import IndexingCallback
+from onyx.background.celery.tasks.indexing.utils import IndexingCallback
 from onyx.configs.app_configs import ALLOW_SIMULTANEOUS_PRUNING
 from onyx.configs.app_configs import JOB_TIMEOUT
 from onyx.configs.constants import CELERY_PRUNING_LOCK_TIMEOUT
