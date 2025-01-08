@@ -81,10 +81,10 @@ def _is_pruning_due(cc_pair: ConnectorCredentialPair) -> bool:
     soft_time_limit=JOB_TIMEOUT,
     bind=True,
 )
-def check_for_pruning(self: Task, *, tenant_id: str | None) -> None:
+def check_for_pruning(self: Task, *, tenant_id: str | None) -> bool | None:
     r = get_redis_client(tenant_id=tenant_id)
 
-    lock_beat = r.lock(
+    lock_beat: RedisLock = r.lock(
         OnyxRedisLocks.CHECK_PRUNE_BEAT_LOCK,
         timeout=CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT,
     )
@@ -92,7 +92,7 @@ def check_for_pruning(self: Task, *, tenant_id: str | None) -> None:
     try:
         # these tasks should never overlap
         if not lock_beat.acquire(blocking=False):
-            return
+            return None
 
         cc_pair_ids: list[int] = []
         with get_session_with_tenant(tenant_id) as db_session:
@@ -122,10 +122,12 @@ def check_for_pruning(self: Task, *, tenant_id: str | None) -> None:
             "Soft time limit exceeded, task is being terminated gracefully."
         )
     except Exception:
-        task_logger.exception(f"Unexpected exception: tenant={tenant_id}")
+        task_logger.exception("Unexpected exception during pruning check")
     finally:
         if lock_beat.owned():
             lock_beat.release()
+
+    return True
 
 
 def try_creating_prune_generator_task(
@@ -283,6 +285,7 @@ def connector_pruning_generator_task(
             )
 
             callback = IndexingCallback(
+                0,
                 redis_connector.stop.fence_key,
                 redis_connector.prune.generator_progress_key,
                 lock,
@@ -308,7 +311,7 @@ def connector_pruning_generator_task(
             doc_ids_to_remove = list(all_indexed_document_ids - all_connector_doc_ids)
 
             task_logger.info(
-                f"Pruning set collected: "
+                "Pruning set collected: "
                 f"cc_pair={cc_pair_id} "
                 f"connector_source={cc_pair.connector.source} "
                 f"docs_to_remove={len(doc_ids_to_remove)}"
@@ -324,7 +327,7 @@ def connector_pruning_generator_task(
                 return None
 
             task_logger.info(
-                f"RedisConnector.prune.generate_tasks finished. "
+                "RedisConnector.prune.generate_tasks finished. "
                 f"cc_pair={cc_pair_id} tasks_generated={tasks_generated}"
             )
 

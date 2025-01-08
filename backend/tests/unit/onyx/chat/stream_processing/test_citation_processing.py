@@ -68,11 +68,12 @@ def process_text(
     tokens: list[str], mock_data: tuple[list[LlmDoc], dict[str, int]]
 ) -> tuple[str, list[CitationInfo]]:
     mock_docs, mock_doc_id_to_rank_map = mock_data
-    mapping = DocumentIdOrderMapping(order_mapping=mock_doc_id_to_rank_map)
+    final_mapping = DocumentIdOrderMapping(order_mapping=mock_doc_id_to_rank_map)
+    display_mapping = DocumentIdOrderMapping(order_mapping=mock_doc_id_to_rank_map)
     processor = CitationProcessor(
         context_docs=mock_docs,
-        doc_id_to_rank_map=mapping,
-        display_doc_order_dict=mock_doc_id_to_rank_map,
+        final_doc_id_to_rank_map=final_mapping,
+        display_doc_id_to_rank_map=display_mapping,
         stop_stream=None,
     )
 
@@ -374,6 +375,26 @@ def process_text(
             "print(x)  # This prints x\n"
             "```\n"
             "The code demonstrates variable assignment.",
+            [],
+        ),
+        (
+            "Long JSON string in code block",
+            [
+                "```json\n{",
+                '"name": "John Doe",',
+                '"age": 30,',
+                '"city": "New York",',
+                '"hobbies": ["reading", "swimming", "cycling"],',
+                '"education": {',
+                '    "degree": "Bachelor\'s",',
+                '    "major": "Computer Science",',
+                '    "university": "Example University"',
+                "}",
+                "}\n```",
+            ],
+            '```json\n{"name": "John Doe","age": 30,"city": "New York","hobbies": '
+            '["reading", "swimming", "cycling"],"education": {    '
+            '"degree": "Bachelor\'s",    "major": "Computer Science",    "university": "Example University"}}\n```',
             [],
         ),
         (

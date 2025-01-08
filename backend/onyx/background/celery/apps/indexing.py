@@ -60,15 +60,21 @@ def on_worker_init(sender: Any, **kwargs: Any) -> None:
     logger.info(f"Multiprocessing start method: {multiprocessing.get_start_method()}")
 
     SqlEngine.set_app_name(POSTGRES_CELERY_WORKER_INDEXING_APP_NAME)
-    SqlEngine.init_engine(pool_size=sender.concurrency, max_overflow=sender.concurrency)
 
-    # Startup checks are not needed in multi-tenant case
-    if MULTI_TENANT:
-        return
+    # rkuo: been seeing transient connection exceptions here, so upping the connection count
+    # from just concurrency/concurrency to concurrency/concurrency*2
+    SqlEngine.init_engine(
+        pool_size=sender.concurrency, max_overflow=sender.concurrency * 2
+    )
 
     app_base.wait_for_redis(sender, **kwargs)
     app_base.wait_for_db(sender, **kwargs)
     app_base.wait_for_vespa(sender, **kwargs)
+
+    # Less startup checks in multi-tenant case
+    if MULTI_TENANT:
+        return
+
     app_base.on_secondary_worker_init(sender, **kwargs)
 
 

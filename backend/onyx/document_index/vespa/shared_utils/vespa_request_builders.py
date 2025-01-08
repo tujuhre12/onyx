@@ -15,11 +15,17 @@ from onyx.document_index.vespa_constants import METADATA_LIST
 from onyx.document_index.vespa_constants import SOURCE_TYPE
 from onyx.document_index.vespa_constants import TENANT_ID
 from onyx.utils.logger import setup_logger
+from shared_configs.configs import MULTI_TENANT
 
 logger = setup_logger()
 
 
-def build_vespa_filters(filters: IndexFilters, include_hidden: bool = False) -> str:
+def build_vespa_filters(
+    filters: IndexFilters,
+    *,
+    include_hidden: bool = False,
+    remove_trailing_and: bool = False,  # Set to True when using as a complete Vespa query
+) -> str:
     def _build_or_filters(key: str, vals: list[str] | None) -> str:
         if vals is None:
             return ""
@@ -54,7 +60,8 @@ def build_vespa_filters(filters: IndexFilters, include_hidden: bool = False) -> 
 
     filter_str = f"!({HIDDEN}=true) and " if not include_hidden else ""
 
-    if filters.tenant_id:
+    # If running in multi-tenant mode, we may want to filter by tenant_id
+    if filters.tenant_id and MULTI_TENANT:
         filter_str += f'({TENANT_ID} contains "{filters.tenant_id}") and '
 
     # CAREFUL touching this one, currently there is no second ACL double-check post retrieval
@@ -77,6 +84,9 @@ def build_vespa_filters(filters: IndexFilters, include_hidden: bool = False) -> 
     filter_str += _build_or_filters(DOCUMENT_SETS, filters.document_set)
 
     filter_str += _build_time_filter(filters.time_cutoff)
+
+    if remove_trailing_and and filter_str.endswith(" and "):
+        filter_str = filter_str[:-5]  # We remove the trailing " and "
 
     return filter_str
 

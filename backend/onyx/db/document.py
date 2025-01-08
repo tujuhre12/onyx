@@ -20,10 +20,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import null
 
 from onyx.configs.constants import DEFAULT_BOOST
+from onyx.configs.constants import DocumentSource
 from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
 from onyx.db.enums import AccessType
 from onyx.db.enums import ConnectorCredentialPairStatus
 from onyx.db.feedback import delete_document_feedback_for_documents__no_commit
+from onyx.db.models import Connector
 from onyx.db.models import ConnectorCredentialPair
 from onyx.db.models import Credential
 from onyx.db.models import Document as DbDocument
@@ -416,6 +418,18 @@ def update_docs_last_modified__no_commit(
         doc.last_modified = now
 
 
+def update_docs_chunk_count__no_commit(
+    document_ids: list[str],
+    doc_id_to_chunk_count: dict[str, int],
+    db_session: Session,
+) -> None:
+    documents_to_update = (
+        db_session.query(DbDocument).filter(DbDocument.id.in_(document_ids)).all()
+    )
+    for doc in documents_to_update:
+        doc.chunk_count = doc_id_to_chunk_count[doc.id]
+
+
 def mark_document_as_modified(
     document_id: str,
     db_session: Session,
@@ -612,3 +626,79 @@ def get_document(
     stmt = select(DbDocument).where(DbDocument.id == document_id)
     doc: DbDocument | None = db_session.execute(stmt).scalar_one_or_none()
     return doc
+
+
+def get_cc_pairs_for_document(
+    db_session: Session,
+    document_id: str,
+) -> list[ConnectorCredentialPair]:
+    stmt = (
+        select(ConnectorCredentialPair)
+        .join(
+            DocumentByConnectorCredentialPair,
+            and_(
+                DocumentByConnectorCredentialPair.connector_id
+                == ConnectorCredentialPair.connector_id,
+                DocumentByConnectorCredentialPair.credential_id
+                == ConnectorCredentialPair.credential_id,
+            ),
+        )
+        .where(DocumentByConnectorCredentialPair.id == document_id)
+    )
+    return list(db_session.execute(stmt).scalars().all())
+
+
+def get_document_sources(
+    db_session: Session,
+    document_ids: list[str],
+) -> dict[str, DocumentSource]:
+    """Gets the sources for a list of document IDs.
+    Returns a dictionary mapping document ID to its source.
+    If a document has multiple sources (multiple CC pairs), returns the first one found.
+    """
+    stmt = (
+        select(
+            DocumentByConnectorCredentialPair.id,
+            Connector.source,
+        )
+        .join(
+            ConnectorCredentialPair,
+            and_(
+                DocumentByConnectorCredentialPair.connector_id
+                == ConnectorCredentialPair.connector_id,
+                DocumentByConnectorCredentialPair.credential_id
+                == ConnectorCredentialPair.credential_id,
+            ),
+        )
+        .join(
+            Connector,
+            ConnectorCredentialPair.connector_id == Connector.id,
+        )
+        .where(DocumentByConnectorCredentialPair.id.in_(document_ids))
+        .distinct()
+    )
+
+    results = db_session.execute(stmt).all()
+    return {doc_id: source for doc_id, source in results}
+
+
+def fetch_chunk_counts_for_documents(
+    document_ids: list[str],
+    db_session: Session,
+) -> list[tuple[str, int | None]]:
+    """
+    Return a list of (document_id, chunk_count) tuples.
+    Note: chunk_count might be None if not set in DB,
+    so we declare it as Optional[int].
+    """
+    stmt = select(DbDocument.id, DbDocument.chunk_count).where(
+        DbDocument.id.in_(document_ids)
+    )
+
+    # results is a list of 'Row' objects, each containing two columns
+    results = db_session.execute(stmt).all()
+
+    # If DbDocument.id is guaranteed to be a string, you can just do row.id;
+    # otherwise cast to str if you need to be sure it's a string:
+    return [(str(row[0]), row[1]) for row in results]
+    # or row.id, row.chunk_count if they are named attributes in your ORM model

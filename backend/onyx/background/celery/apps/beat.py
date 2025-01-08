@@ -13,7 +13,6 @@ from onyx.db.engine import SqlEngine
 from onyx.utils.logger import setup_logger
 from onyx.utils.variable_functionality import fetch_versioned_implementation
 from shared_configs.configs import IGNORED_SYNCING_TENANT_LIST
-from shared_configs.configs import MULTI_TENANT
 
 logger = setup_logger(__name__)
 
@@ -44,18 +43,18 @@ class DynamicTenantScheduler(PersistentScheduler):
             self._last_reload is None
             or (now - self._last_reload) > self._reload_interval
         ):
-            logger.info("Reload interval reached, initiating tenant task update")
+            logger.info("Reload interval reached, initiating task update")
             self._update_tenant_tasks()
             self._last_reload = now
-            logger.info("Tenant task update completed, reset reload timer")
+            logger.info("Task update completed, reset reload timer")
         return retval
 
     def _update_tenant_tasks(self) -> None:
-        logger.info("Starting tenant task update process")
+        logger.info("Starting task update process")
         try:
-            logger.info("Fetching all tenant IDs")
+            logger.info("Fetching all IDs")
             tenant_ids = get_all_tenant_ids()
-            logger.info(f"Found {len(tenant_ids)} tenants")
+            logger.info(f"Found {len(tenant_ids)} IDs")
 
             logger.info("Fetching tasks to schedule")
             tasks_to_schedule = fetch_versioned_implementation(
@@ -70,7 +69,7 @@ class DynamicTenantScheduler(PersistentScheduler):
             for task_name, _ in current_schedule:
                 if "-" in task_name:
                     existing_tenants.add(task_name.split("-")[-1])
-            logger.info(f"Found {len(existing_tenants)} existing tenants in schedule")
+            logger.info(f"Found {len(existing_tenants)} existing items in schedule")
 
             for tenant_id in tenant_ids:
                 if (
@@ -83,7 +82,7 @@ class DynamicTenantScheduler(PersistentScheduler):
                     continue
 
                 if tenant_id not in existing_tenants:
-                    logger.info(f"Processing new tenant: {tenant_id}")
+                    logger.info(f"Processing new item: {tenant_id}")
 
                 for task in tasks_to_schedule():
                     task_name = f"{task['name']}-{tenant_id}"
@@ -129,11 +128,10 @@ class DynamicTenantScheduler(PersistentScheduler):
                 logger.info("Schedule update completed successfully")
             else:
                 logger.info("Schedule is up to date, no changes needed")
-
-        except (AttributeError, KeyError):
-            logger.exception("Failed to process task configuration")
-        except Exception:
-            logger.exception("Unexpected error updating tenant tasks")
+        except (AttributeError, KeyError) as e:
+            logger.exception(f"Failed to process task configuration: {str(e)}")
+        except Exception as e:
+            logger.exception(f"Unexpected error updating tasks: {str(e)}")
 
     def _should_update_schedule(
         self, current_schedule: dict, new_schedule: dict
@@ -154,10 +152,6 @@ def on_beat_init(sender: Any, **kwargs: Any) -> None:
     # Celery beat shouldn't touch the db at all. But just setting a low minimum here.
     SqlEngine.set_app_name(POSTGRES_CELERY_BEAT_APP_NAME)
     SqlEngine.init_engine(pool_size=2, max_overflow=0)
-
-    # Startup checks are not needed in multi-tenant case
-    if MULTI_TENANT:
-        return
 
     app_base.wait_for_redis(sender, **kwargs)
 

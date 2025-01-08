@@ -11,6 +11,7 @@ from onyx.chat.models import RetrievalDocs
 from onyx.configs.constants import DocumentSource
 from onyx.configs.constants import MessageType
 from onyx.configs.constants import SearchFeedbackType
+from onyx.configs.constants import SessionType
 from onyx.context.search.models import BaseFilters
 from onyx.context.search.models import ChunkContext
 from onyx.context.search.models import RerankingDetails
@@ -155,6 +156,10 @@ class ChatSessionUpdateRequest(BaseModel):
     sharing_status: ChatSessionSharedStatus
 
 
+class DeleteAllSessionsRequest(BaseModel):
+    session_type: SessionType
+
+
 class RenameChatSessionResponse(BaseModel):
     new_name: str  # This is only really useful if the name is generated
 
@@ -241,6 +246,8 @@ class ChatSessionDetailResponse(BaseModel):
     description: str | None
     persona_id: int | None = None
     persona_name: str | None
+    persona_icon_color: str | None
+    persona_icon_shape: int | None
     messages: list[ChatMessageDetail]
     time_created: datetime
     shared_status: ChatSessionSharedStatus

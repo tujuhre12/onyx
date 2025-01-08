@@ -99,6 +99,9 @@ def _add_user_filters(
     return stmt.where(where_clause)
 
 
+# fetch_persona_by_id is used to fetch a persona by its ID. It is used to fetch a persona by its ID.
+
+
 def fetch_persona_by_id(
     db_session: Session, persona_id: int, user: User | None, get_editable: bool = True
 ) -> Persona:
@@ -542,6 +545,10 @@ def upsert_persona(
 
         if tools is not None:
             existing_persona.tools = tools or []
+
+        # We should only update display priority if it is not already set
+        if existing_persona.display_priority is None:
+            existing_persona.display_priority = display_priority
 
         persona = existing_persona
 

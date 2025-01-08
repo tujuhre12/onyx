@@ -1,3 +1,4 @@
+import logging
 import multiprocessing
 from typing import Any
 from typing import cast
@@ -84,15 +85,15 @@ def on_worker_init(sender: Any, **kwargs: Any) -> None:
     SqlEngine.set_app_name(POSTGRES_CELERY_WORKER_PRIMARY_APP_NAME)
     SqlEngine.init_engine(pool_size=8, max_overflow=0)
 
-    # Startup checks are not needed in multi-tenant case
-    if MULTI_TENANT:
-        return
-
     app_base.wait_for_redis(sender, **kwargs)
     app_base.wait_for_db(sender, **kwargs)
     app_base.wait_for_vespa(sender, **kwargs)
 
     logger.info("Running as the primary celery worker.")
+
+    # Less startup checks in multi-tenant case
+    if MULTI_TENANT:
+        return
 
     # This is singleton work that should be done on startup exactly once
     # by the primary worker. This is unnecessary in the multi tenant scenario
@@ -194,6 +195,10 @@ def on_setup_logging(
 ) -> None:
     app_base.on_setup_logging(loglevel, logfile, format, colorize, **kwargs)
 
+    # this can be spammy, so just enable it in the cloud for now
+    if MULTI_TENANT:
+        app_base.set_task_finished_log_level(logging.INFO)
+
 
 class HubPeriodicTask(bootsteps.StartStopStep):
     """Regularly reacquires the primary worker lock outside of the task queue.
@@ -281,5 +286,6 @@ celery_app.autodiscover_tasks(
         "onyx.background.celery.tasks.pruning",
         "onyx.background.celery.tasks.shared",
         "onyx.background.celery.tasks.vespa",
+        "onyx.background.celery.tasks.llm_model_update",
     ]
 )

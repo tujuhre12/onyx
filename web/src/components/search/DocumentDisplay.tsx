@@ -22,13 +22,13 @@ import { WarningCircle } from "@phosphor-icons/react";
 import TextView from "../chat_search/TextView";
 import { SearchResultIcon } from "../SearchResultIcon";
 import { ValidSources } from "@/lib/types";
+import { openDocument } from "@/lib/search/utils";
 
 export const buildDocumentSummaryDisplay = (
   matchHighlights: string[],
   blurb: string
 ) => {
   if (!matchHighlights || matchHighlights.length === 0) {
-    // console.log("no match highlights", matchHighlights);
     return blurb;
   }
 
@@ -428,19 +428,15 @@ export function CompactDocumentCard({
   url,
   updatePresentingDocument,
 }: {
-  document: LoadedOnyxDocument;
+  document: OnyxDocument;
   icon?: React.ReactNode;
   url?: string;
-  updatePresentingDocument: (documentIndex: LoadedOnyxDocument) => void;
+  updatePresentingDocument: (document: OnyxDocument) => void;
 }) {
   return (
     <div
       onClick={() => {
-        if (document.source_type === ValidSources.File) {
-          updatePresentingDocument(document);
-        } else if (document.link) {
-          window.open(document.link, "_blank");
-        }
+        openDocument(document, updatePresentingDocument);
       }}
       className="max-w-[250px] cursor-pointer pb-0 pt-0 mt-0 flex gap-y-0  flex-col  content-start items-start gap-0 "
     >

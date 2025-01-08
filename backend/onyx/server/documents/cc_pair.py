@@ -1,4 +1,3 @@
-import math
 from datetime import datetime
 from http import HTTPStatus
 
@@ -48,7 +47,8 @@ from onyx.server.documents.models import CCStatusUpdateRequest
 from onyx.server.documents.models import ConnectorCredentialPairIdentifier
 from onyx.server.documents.models import ConnectorCredentialPairMetadata
 from onyx.server.documents.models import DocumentSyncStatus
-from onyx.server.documents.models import PaginatedIndexAttempts
+from onyx.server.documents.models import IndexAttemptSnapshot
+from onyx.server.documents.models import PaginatedReturn
 from onyx.server.models import StatusResponse
 from onyx.utils.logger import setup_logger
 from onyx.utils.variable_functionality import fetch_ee_implementation_or_noop
@@ -64,7 +64,7 @@ def get_cc_pair_index_attempts(
     page_size: int = Query(10, ge=1, le=1000),
     user: User | None = Depends(current_curator_or_admin_user),
     db_session: Session = Depends(get_session),
-) -> PaginatedIndexAttempts:
+) -> PaginatedReturn[IndexAttemptSnapshot]:
     cc_pair = get_connector_credential_pair_from_id(
         cc_pair_id, db_session, user, get_editable=False
     )
@@ -82,10 +82,12 @@ def get_cc_pair_index_attempts(
         page=page,
         page_size=page_size,
     )
-    return PaginatedIndexAttempts.from_models(
-        index_attempt_models=index_attempts,
-        page=page,
-        total_pages=math.ceil(total_count / page_size),
+    return PaginatedReturn(
+        items=[
+            IndexAttemptSnapshot.from_index_attempt_db_model(index_attempt)
+            for index_attempt in index_attempts
+        ],
+        total_items=total_count,
     )
 
 
@@ -510,7 +512,7 @@ def associate_credential_to_connector(
     db_session: Session = Depends(get_session),
 ) -> StatusResponse[int]:
     fetch_ee_implementation_or_noop(
-        "onyx.db.user_group", "validate_user_creation_permissions", None
+        "onyx.db.user_group", "validate_object_creation_for_user", None
     )(
         db_session=db_session,
         user=user,
@@ -532,7 +534,8 @@ def associate_credential_to_connector(
         )
 
         return response
-    except IntegrityError:
+    except IntegrityError as e:
+        logger.error(f"IntegrityError: {e}")
         raise HTTPException(status_code=400, detail="Name must be unique")
 
 

@@ -34,7 +34,9 @@ class TaskDependencyError(RuntimeError):
     trail=False,
     bind=True,
 )
-def check_for_connector_deletion_task(self: Task, *, tenant_id: str | None) -> None:
+def check_for_connector_deletion_task(
+    self: Task, *, tenant_id: str | None
+) -> bool | None:
     r = get_redis_client(tenant_id=tenant_id)
 
     lock_beat: RedisLock = r.lock(
@@ -45,7 +47,7 @@ def check_for_connector_deletion_task(self: Task, *, tenant_id: str | None) -> N
     try:
         # these tasks should never overlap
         if not lock_beat.acquire(blocking=False):
-            return
+            return None
 
         # collect cc_pair_ids
         cc_pair_ids: list[int] = []
@@ -76,10 +78,12 @@ def check_for_connector_deletion_task(self: Task, *, tenant_id: str | None) -> N
             "Soft time limit exceeded, task is being terminated gracefully."
         )
     except Exception:
-        task_logger.exception(f"Unexpected exception: tenant={tenant_id}")
+        task_logger.exception("Unexpected exception during connector deletion check")
     finally:
         if lock_beat.owned():
             lock_beat.release()
+
+    return True
 
 
 def try_generate_document_cc_pair_cleanup_tasks(
@@ -131,14 +135,14 @@ def try_generate_document_cc_pair_cleanup_tasks(
             redis_connector_index = redis_connector.new_index(search_settings.id)
             if redis_connector_index.fenced:
                 raise TaskDependencyError(
-                    f"Connector deletion - Delayed (indexing in progress): "
+                    "Connector deletion - Delayed (indexing in progress): "
                     f"cc_pair={cc_pair_id} "
                     f"search_settings={search_settings.id}"
                 )
 
         if redis_connector.prune.fenced:
             raise TaskDependencyError(
-                f"Connector deletion - Delayed (pruning in progress): "
+                "Connector deletion - Delayed (pruning in progress): "
                 f"cc_pair={cc_pair_id}"
             )
 
@@ -175,7 +179,7 @@ def try_generate_document_cc_pair_cleanup_tasks(
         #     return 0
 
         task_logger.info(
-            f"RedisConnectorDeletion.generate_tasks finished. "
+            "RedisConnectorDeletion.generate_tasks finished. "
             f"cc_pair={cc_pair_id} tasks_generated={tasks_generated}"
         )
 

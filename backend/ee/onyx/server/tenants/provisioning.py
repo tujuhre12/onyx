@@ -3,15 +3,19 @@ import logging
 import uuid
 
 import aiohttp  # Async HTTP client
+import httpx
 from fastapi import HTTPException
+from fastapi import Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ee.onyx.configs.app_configs import ANTHROPIC_DEFAULT_API_KEY
 from ee.onyx.configs.app_configs import COHERE_DEFAULT_API_KEY
+from ee.onyx.configs.app_configs import HUBSPOT_TRACKING_URL
 from ee.onyx.configs.app_configs import OPENAI_DEFAULT_API_KEY
 from ee.onyx.server.tenants.access import generate_data_plane_token
 from ee.onyx.server.tenants.models import TenantCreationPayload
+from ee.onyx.server.tenants.models import TenantDeletionPayload
 from ee.onyx.server.tenants.schema_management import create_schema_if_not_exists
 from ee.onyx.server.tenants.schema_management import drop_schema
 from ee.onyx.server.tenants.schema_management import run_alembic_migrations
@@ -47,12 +51,15 @@ from shared_configs.enums import EmbeddingProvider
 logger = logging.getLogger(__name__)
 
 
-async def get_or_create_tenant_id(
-    email: str, referral_source: str | None = None
+async def get_or_provision_tenant(
+    email: str, referral_source: str | None = None, request: Request | None = None
 ) -> str:
     """Get existing tenant ID for an email or create a new tenant if none exists."""
     if not MULTI_TENANT:
         return POSTGRES_DEFAULT_SCHEMA
+
+    if referral_source and request:
+        await submit_to_hubspot(email, referral_source, request)
 
     try:
         tenant_id = get_tenant_id_for_email(email)
@@ -179,6 +186,7 @@ async def rollback_tenant_provisioning(tenant_id: str) -> None:
     try:
         # Drop the tenant's schema to rollback provisioning
         drop_schema(tenant_id)
+
         # Remove tenant mapping
         with Session(get_sqlalchemy_engine()) as db_session:
             db_session.query(UserTenantMapping).filter(
@@ -281,3 +289,59 @@ def configure_default_api_keys(db_session: Session) -> None:
         logger.info(
             "COHERE_DEFAULT_API_KEY not set, skipping Cohere embedding provider configuration"
         )
+
+
+async def submit_to_hubspot(
+    email: str, referral_source: str | None, request: Request
+) -> None:
+    if not HUBSPOT_TRACKING_URL:
+        logger.info("HUBSPOT_TRACKING_URL not set, skipping HubSpot submission")
+        return
+
+    # HubSpot tracking cookie
+    hubspot_cookie = request.cookies.get("hubspotutk")
+
+    # IP address
+    ip_address = request.client.host if request.client else None
+
+    data = {
+        "fields": [
+            {"name": "email", "value": email},
+            {"name": "referral_source", "value": referral_source or ""},
+        ],
+        "context": {
+            "hutk": hubspot_cookie,
+            "ipAddress": ip_address,
+            "pageUri": str(request.url),
+            "pageName": "User Registration",
+        },
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(HUBSPOT_TRACKING_URL, json=data)
+
+    if response.status_code != 200:
+        logger.error(f"Failed to submit to HubSpot: {response.text}")
+
+
+async def delete_user_from_control_plane(tenant_id: str, email: str) -> None:
+    token = generate_data_plane_token()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    payload = TenantDeletionPayload(tenant_id=tenant_id, email=email)
+
+    async with aiohttp.ClientSession() as session:
+        async with session.delete(
+            f"{CONTROL_PLANE_API_BASE_URL}/tenants/delete",
+            headers=headers,
+            json=payload.model_dump(),
+        ) as response:
+            print(response)
+            if response.status != 200:
+                error_text = await response.text()
+                logger.error(f"Control plane tenant creation failed: {error_text}")
+                raise Exception(
+                    f"Failed to delete tenant on control plane: {error_text}"
+                )
