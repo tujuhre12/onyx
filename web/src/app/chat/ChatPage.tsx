@@ -805,8 +805,6 @@ export function ChatPage({
       currentSessionChatState === "loading" &&
       messageHistory.length == 0
     ) {
-      console.log("sending message");
-      console.log(CHROME_MESSAGE.LOAD_NEW_CHAT_PAGE);
       window.parent.postMessage(
         { type: CHROME_MESSAGE.LOAD_NEW_CHAT_PAGE },
         "*"
