@@ -266,10 +266,10 @@ export function AssistantEditor({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            name: values.name,
-            description: values.description,
-            document_set_ids: values.document_set_ids,
-            instructions: values.system_prompt || values.task_prompt,
+            name: values.name || "",
+            description: values.description || "",
+            document_set_ids: values.document_set_ids || [],
+            instructions: values.system_prompt || values.task_prompt || "",
           }),
         });
 

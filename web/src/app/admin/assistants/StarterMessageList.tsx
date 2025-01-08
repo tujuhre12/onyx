@@ -127,6 +127,7 @@ export default function StarterMessagesList({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                type="button"
                 size="sm"
                 onClick={() => debouncedRefreshPrompts(values, setFieldValue)}
                 disabled={
@@ -166,6 +167,7 @@ export default function StarterMessagesList({
         </TooltipProvider>
         {canAddMore && (
           <Button
+            type="button"
             className="w-fit"
             onClick={() => {
               arrayHelpers.push({
