@@ -1,7 +1,7 @@
 """create pro search persistence tables
 
 Revision ID: e9cf2bd7baed
-Revises: 91a0a4d62b14
+Revises: 98a5008d8711
 Create Date: 2025-01-02 17:55:56.544246
 
 """
