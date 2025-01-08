@@ -714,7 +714,7 @@ def create_connector_and_associate_credential(
             db_session=db_session,
             connector_data=connector_base,
         )
-        connector_id = connector_response.id
+        connector_id = int(connector_response.id)
 
         # If a credential_id is provided, associate it with the connector
         if connector_data.credential_id is not None:

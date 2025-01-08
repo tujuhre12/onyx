@@ -3,6 +3,7 @@
 import { errorHandlingFetcher } from "@/lib/fetcher";
 import useSWR, { mutate } from "swr";
 import { createConnectorAndAssociateCredential } from "@/lib/connector";
+import { ValidInputTypes } from "@/lib/types";
 
 import Title from "@/components/ui/title";
 import { AdminPageTitle } from "@/components/admin/Title";
@@ -237,8 +238,12 @@ export default function AddConnector({
     refresh();
   };
 
-  const onSuccess = () => {
-    router.push("/admin/indexing/status?message=connector-created");
+  const onSuccess = (cc_pair_id?: number) => {
+    if (cc_pair_id) {
+      router.push(`/admin/connector/${cc_pair_id}`);
+    } else {
+      router.push("/admin/indexing/status?message=connector-created");
+    }
   };
 
   const handleAuthorize = async () => {
@@ -377,26 +382,32 @@ export default function AddConnector({
         if (credentialActivated) {
           const credential =
             currentCredential || liveGDriveCredential || liveGmailCredential;
-          const [error, response] = await createConnectorAndAssociateCredential(
-            {
-              connector_specific_config: transformedConnectorSpecificConfig,
-              input_type: isLoadState(connector) ? "load_state" : "poll",
-              name: name,
-              source: connector,
-              access_type: access_type,
-              refresh_freq: advancedConfiguration.refreshFreq || null,
-              prune_freq: advancedConfiguration.pruneFreq || null,
-              indexing_start: advancedConfiguration.indexingStart || null,
-              groups: groups,
-              credential_id: credential?.id!,
-              auto_sync_options: auto_sync_options,
-            }
-          );
+
+          const connectorConfig = {
+            connector_specific_config: transformedConnectorSpecificConfig,
+            input_type: (isLoadState(connector)
+              ? "load_state"
+              : "poll") as ValidInputTypes,
+            name: name,
+            source: connector,
+            access_type: access_type,
+            refresh_freq: advancedConfiguration.refreshFreq || null,
+            prune_freq: advancedConfiguration.pruneFreq || null,
+            indexing_start: advancedConfiguration.indexingStart || null,
+            groups: groups,
+            credential_id: credential?.id!,
+            auto_sync_options: auto_sync_options,
+          };
+
+          const [error, response] =
+            await createConnectorAndAssociateCredential(connectorConfig);
 
           if (error) {
             setPopup({ message: error, type: "error" });
+          } else if (!response.success) {
+            setPopup({ message: response.message, type: "error" });
           } else {
-            onSuccess();
+            onSuccess(response.data);
           }
           return;
         }
