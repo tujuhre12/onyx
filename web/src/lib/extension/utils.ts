@@ -9,6 +9,18 @@ export function sendSetDefaultNewTabMessage(value: boolean) {
   }
 }
 
+export const sendAuthRequiredMessage = () => {
+  if (typeof window !== "undefined" && window.parent) {
+    window.parent.postMessage({ type: CHROME_MESSAGE.AUTH_REQUIRED }, "*");
+  }
+};
+
+export const useSendAuthRequiredMessage = () => {
+  useEffect(() => {
+    sendAuthRequiredMessage();
+  }, []);
+};
+
 export const sendMessageToParent = () => {
   if (typeof window !== "undefined" && window.parent) {
     window.parent.postMessage({ type: CHROME_MESSAGE.ONYX_APP_LOADED }, "*");
