@@ -39,26 +39,30 @@ export async function createConnector<T>(
   });
   return handleResponse(response);
 }
-
 export async function createConnectorAndAssociateCredential<T>(
   connector: ConnectorBase<T> & {
-    credential_id: number;
-    access_type: AccessType;
-    groups: number[];
-    name: string;
+    credential_id?: number;
+    access_type?: AccessType;
+    groups?: number[];
+    name?: string;
     auto_sync_options?: Record<string, any>;
   }
 ): Promise<[string | null, any]> {
-  const response = await fetch(
-    `/api/manage/admin/connector-and-link-credential`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(connector),
-    }
-  );
+  if (!connector.connector_specific_config) {
+    connector.connector_specific_config = {} as T;
+  }
+
+  const endpoint = connector.credential_id
+    ? `/api/manage/admin/create-and-link-connector`
+    : "/api/manage/admin/connector-with-mock-credential";
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(connector),
+  });
   return handleResponse(response);
 }
 

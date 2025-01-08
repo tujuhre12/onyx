@@ -691,7 +691,7 @@ def _validate_connector_allowed(source: DocumentSource) -> None:
     )
 
 
-@router.post("/admin/connector-and-link-credential")
+@router.post("/admin/create-and-link-connector")
 def create_connector_and_associate_credential(
     connector_data: ConnectorCreateAndAssociateRequest,
     user: User = Depends(current_curator_or_admin_user),
@@ -726,7 +726,7 @@ def create_connector_and_associate_credential(
         # If a credential_id is provided, associate it with the connector
         if connector_data.credential_id is not None:
             try:
-                connector_credential_pair_response = add_credential_to_connector(
+                cc_pair_id = add_credential_to_connector(
                     db_session=db_session,
                     user=user,
                     connector_id=connector_id,
@@ -753,7 +753,14 @@ def create_connector_and_associate_credential(
             db_session=db_session,
         )
 
-        return connector_credential_pair_response
+        return StatusResponse(
+            success=True,
+            message="Connector created successfully",
+            data={
+                "cc_pair_id": cc_pair_id,
+                "connector_id": connector_id,
+            },
+        )
     except ValueError as e:
         logger.error(f"Error creating connector: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -832,7 +839,7 @@ def create_connector_with_mock_credential(
             db_session=db_session,
         )
 
-        response = add_credential_to_connector(
+        cc_pair_id = add_credential_to_connector(
             db_session=db_session,
             user=user,
             connector_id=cast(int, connector_response.id),  # will aways be an int
@@ -850,7 +857,14 @@ def create_connector_with_mock_credential(
             db_session=db_session,
         )
 
-        return response
+        return StatusResponse(
+            success=True,
+            message="Connector created successfully",
+            data={
+                "cc_pair_id": cc_pair_id,
+                "connector_id": connector_response.id,
+            },
+        )
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
