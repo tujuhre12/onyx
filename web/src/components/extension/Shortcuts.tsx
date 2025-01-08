@@ -61,7 +61,7 @@ export const ShortCut = ({
               onError={() => setFaviconError(true)}
             />
           ) : (
-            <QuestionMarkIcon />
+            <QuestionMarkIcon size={32} className="text-white w-full h-full" />
           )}
         </div>
         <h1 className="text-white w-full text-center font-semibold text-sm truncate px-2">
@@ -205,9 +205,7 @@ export const NewShortCutModal = ({
                     onError={() => setFaviconError(true)}
                   />
                 ) : (
-                  <div className="w-8 h-8">
-                    <QuestionMarkIcon />
-                  </div>
+                  <QuestionMarkIcon size={32} className="w-full h-full" />
                 )}
               </div>
             </div>
