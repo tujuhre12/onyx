@@ -31,9 +31,10 @@ import { useNRFPreferences } from "@/components/context/NRFPreferencesContext";
 import { SettingsPanel } from "../../components/nrf/SettingsPanel";
 import { ShortcutsDisplay } from "../../components/nrf/ShortcutsDisplay";
 import LoginPage from "../../auth/login/LoginPage";
-import { AuthType } from "@/lib/constants";
+import { AuthType, NEXT_PUBLIC_WEB_DOMAIN } from "@/lib/constants";
 import { sendSetDefaultNewTabMessage } from "@/lib/extension/utils";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
+import { CHROME_MESSAGE } from "@/lib/extension/constants";
 
 export default function NRFPage({
   requestCookies,
@@ -56,6 +57,7 @@ export default function NRFPage({
   const { ccPairs, documentSets, tags } = useChatContext();
 
   const { popup, setPopup } = usePopup();
+  console.log("user", user);
 
   // State
   const [message, setMessage] = useState("");
@@ -149,7 +151,7 @@ export default function NRFPage({
   };
 
   // Auth related
-  const [authType, setAuthType] = useState<string | null>(null);
+  const [authType, setAuthType] = useState<AuthType | null>(null);
   const [fetchingAuth, setFetchingAuth] = useState(false);
   useEffect(() => {
     // If user is already logged in, no need to fetch auth data
@@ -186,19 +188,23 @@ export default function NRFPage({
   } = {}) => {
     const userMessage = messageOverride || message;
 
-    setMessage("");
     let filterString = filterManager?.getFilterString();
 
     if (currentMessageFiles.length > 0) {
       filterString +=
         "&files=" + encodeURIComponent(JSON.stringify(currentMessageFiles));
     }
+
     const newHref =
-      "http://localhost:3000/chat?send-on-load=true&user-prompt=" +
+      `${NEXT_PUBLIC_WEB_DOMAIN}/chat?send-on-load=true&user-prompt=` +
       encodeURIComponent(userMessage) +
       filterString;
+
     if (typeof window !== "undefined" && window.parent) {
-      window.parent.postMessage({ type: "LOAD_NEW_PAGE", href: newHref }, "*");
+      window.parent.postMessage(
+        { type: CHROME_MESSAGE.LOAD_NEW_PAGE, href: newHref },
+        "*"
+      );
     } else {
       window.location.href = newHref;
     }
@@ -333,11 +339,8 @@ export default function NRFPage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {!user && showLoginModal && (
-        <Modal
-          className="max-w-md mx-auto"
-          onOutsideClick={() => setShowLoginModal(false)}
-        >
+      {!user && authType !== "disabled" && showLoginModal && (
+        <Modal className="max-w-md mx-auto">
           {fetchingAuth ? (
             <p className="p-4">Loading login info…</p>
           ) : authType == "basic" ? (
