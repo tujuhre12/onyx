@@ -18,6 +18,10 @@ export const CHROME_MESSAGE = {
   LOAD_NEW_PAGE: "LOAD_NEW_PAGE",
 };
 
+export const SUBMIT_MESSAGE_TYPES = {
+  PAGE_CHANGE: "PAGE_CHANGE",
+};
+
 export const LocalStorageKeys = {
   THEME: "onyxTheme",
   LIGHT_BG_URL: "lightBgUrl",
