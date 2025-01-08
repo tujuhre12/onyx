@@ -109,6 +109,7 @@ import TextView from "@/components/chat_search/TextView";
 import AssistantSelector from "@/components/chat_search/AssistantSelector";
 import { Modal } from "@/components/Modal";
 import { useSendMessageToParent } from "@/lib/extension/utils";
+import { CHROME_MESSAGE } from "@/lib/extension/constants";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -805,7 +806,10 @@ export function ChatPage({
       currentSessionChatState === "loading" &&
       messageHistory.length == 0
     ) {
-      window.parent.postMessage({ type: "LOAD_NEW_CHAT_PAGE" }, "*");
+      window.parent.postMessage(
+        { type: CHROME_MESSAGE.LOAD_NEW_CHAT_PAGE },
+        "*"
+      );
     }
   }, [submittedMessage, currentSessionChatState]);
 
@@ -1009,11 +1013,13 @@ export function ChatPage({
   }, [chatSessionIdRef.current]);
 
   const loadNewPageLogic = (event: MessageEvent) => {
-    try {
-      const url = new URL(event.data.href);
-      processSearchParamsAndSubmitMessage(url.searchParams.toString());
-    } catch (error) {
-      console.error("Error parsing URL:", error);
+    if (event.data.type === CHROME_MESSAGE.LOAD_NEW_PAGE) {
+      try {
+        const url = new URL(event.data.href);
+        processSearchParamsAndSubmitMessage(url.searchParams.toString());
+      } catch (error) {
+        console.error("Error parsing URL:", error);
+      }
     }
   };
 

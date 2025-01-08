@@ -6,6 +6,7 @@ import { notifyExtensionOfThemeChange } from "@/lib/extension/utils";
 import {
   darkExtensionImages,
   lightExtensionImages,
+  LocalStorageKeys,
 } from "@/lib/extension/constants";
 
 interface NRFPreferencesContextValue {
@@ -54,21 +55,30 @@ export function NRFPreferencesProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [theme, setTheme] = useLocalStorageState<string>("onyxTheme", "dark");
+  const [theme, setTheme] = useLocalStorageState<string>(
+    LocalStorageKeys.THEME,
+    "dark"
+  );
   const [defaultLightBackgroundUrl, setDefaultLightBackgroundUrl] =
-    useLocalStorageState<string>("lightBgUrl", lightExtensionImages[0]);
+    useLocalStorageState<string>(
+      LocalStorageKeys.LIGHT_BG_URL,
+      lightExtensionImages[0]
+    );
   const [defaultDarkBackgroundUrl, setDefaultDarkBackgroundUrl] =
-    useLocalStorageState<string>("darkBgUrl", darkExtensionImages[0]);
+    useLocalStorageState<string>(
+      LocalStorageKeys.DARK_BG_URL,
+      darkExtensionImages[0]
+    );
   const [shortcuts, setShortcuts] = useLocalStorageState<Shortcut[]>(
-    "shortCuts",
+    LocalStorageKeys.SHORTCUTS,
     []
   );
   const [showShortcuts, setShowShortcuts] = useLocalStorageState<boolean>(
-    "showShortcuts",
+    LocalStorageKeys.SHOW_SHORTCUTS,
     false
   );
   const [useOnyxAsNewTab, setUseOnyxAsNewTab] = useLocalStorageState<boolean>(
-    "useOnyxAsDefaultNewTab",
+    LocalStorageKeys.USE_ONYX_AS_NEW_TAB,
     true
   );
 
