@@ -37,11 +37,6 @@ export function notifyExtensionOfThemeChange(
   newBgUrl: string
 ) {
   if (typeof window !== "undefined" && window.parent) {
-    console.log("sending payload", {
-      theme: newTheme,
-      backgroundUrl: newBgUrl,
-    });
-    console.log("with type", CHROME_MESSAGE.PREFERENCES_UPDATED);
     window.parent.postMessage(
       {
         type: CHROME_MESSAGE.PREFERENCES_UPDATED,
