@@ -1,5 +1,5 @@
 import { PopupSpec } from "@/components/admin/connectors/Popup";
-import { ValidSources } from "./types";
+import { ValidSources, AccessType } from "./types";
 import {
   Connector,
   ConnectorBase,
@@ -37,6 +37,28 @@ export async function createConnector<T>(
     },
     body: JSON.stringify(connector),
   });
+  return handleResponse(response);
+}
+
+export async function createConnectorAndAssociateCredential<T>(
+  connector: ConnectorBase<T> & {
+    credential_id: number;
+    access_type: AccessType;
+    groups: number[];
+    name: string;
+    auto_sync_options?: Record<string, any>;
+  }
+): Promise<[string | null, any]> {
+  const response = await fetch(
+    `/api/manage/admin/connector-and-link-credential`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(connector),
+    }
+  );
   return handleResponse(response);
 }
 

@@ -2,6 +2,7 @@
 
 import { errorHandlingFetcher } from "@/lib/fetcher";
 import useSWR, { mutate } from "swr";
+import { createConnectorAndAssociateCredential } from "@/lib/connector";
 
 import Title from "@/components/ui/title";
 import { AdminPageTitle } from "@/components/admin/Title";
@@ -372,10 +373,39 @@ export default function AddConnector({
           return;
         }
 
+        // If we have a credential, use the combined endpoint
+        if (credentialActivated) {
+          const credential =
+            currentCredential || liveGDriveCredential || liveGmailCredential;
+          const [error, response] = await createConnectorAndAssociateCredential(
+            {
+              connector_specific_config: transformedConnectorSpecificConfig,
+              input_type: isLoadState(connector) ? "load_state" : "poll",
+              name: name,
+              source: connector,
+              access_type: access_type,
+              refresh_freq: advancedConfiguration.refreshFreq || null,
+              prune_freq: advancedConfiguration.pruneFreq || null,
+              indexing_start: advancedConfiguration.indexingStart || null,
+              groups: groups,
+              credential_id: credential?.id!,
+              auto_sync_options: auto_sync_options,
+            }
+          );
+
+          if (error) {
+            setPopup({ message: error, type: "error" });
+          } else {
+            onSuccess();
+          }
+          return;
+        }
+
+        // If no credential, use the regular endpoint
         const { message, isSuccess, response } = await submitConnector<any>(
           {
             connector_specific_config: transformedConnectorSpecificConfig,
-            input_type: isLoadState(connector) ? "load_state" : "poll", // single case
+            input_type: isLoadState(connector) ? "load_state" : "poll",
             name: name,
             source: connector,
             access_type: access_type,
@@ -385,39 +415,10 @@ export default function AddConnector({
             groups: groups,
           },
           undefined,
-          credentialActivated ? false : true
+          true
         );
-        // If no credential
-        if (!credentialActivated) {
-          if (isSuccess) {
-            onSuccess();
-          } else {
-            setPopup({ message: message, type: "error" });
-          }
-        }
 
-        // Without credential
-        if (credentialActivated && isSuccess && response) {
-          const credential =
-            currentCredential || liveGDriveCredential || liveGmailCredential;
-          const linkCredentialResponse = await linkCredential(
-            response.id,
-            credential?.id!,
-            name,
-            access_type,
-            groups,
-            auto_sync_options
-          );
-          if (linkCredentialResponse.ok) {
-            onSuccess();
-          } else {
-            const errorData = await linkCredentialResponse.json();
-            setPopup({
-              message: errorData.message,
-              type: "error",
-            });
-          }
-        } else if (isSuccess) {
+        if (isSuccess) {
           onSuccess();
         } else {
           setPopup({ message: message, type: "error" });

@@ -368,6 +368,12 @@ class CCPropertyUpdateRequest(BaseModel):
     value: str
 
 
+class ConnectorCreateAndAssociateRequest(
+    ConnectorUpdateRequest, ConnectorCredentialPairMetadata
+):
+    credential_id: int
+
+
 """Connectors Models"""
 
 
