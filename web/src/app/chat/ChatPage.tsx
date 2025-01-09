@@ -2258,7 +2258,9 @@ export function ChatPage({
                 setPresentingDocument={setPresentingDocument}
                 modal={false}
                 ref={innerSidebarElementRef}
-                closeSidebar={() => setDocumentSidebarToggled(false)}
+                closeSidebar={() =>
+                  setTimeout(() => setDocumentSidebarToggled(false), 300)
+                }
                 selectedMessage={aiMessage}
                 selectedDocuments={selectedDocuments}
                 toggleDocumentSelection={toggleDocumentSelection}

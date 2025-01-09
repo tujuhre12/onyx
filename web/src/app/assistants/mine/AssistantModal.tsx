@@ -1,68 +1,10 @@
 "use client";
 
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { MinimalUserSnapshot, User } from "@/lib/types";
+import React, { useState } from "react";
 import { Persona } from "@/app/admin/assistants/interfaces";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import {
-  FiBarChart,
-  FiEdit2,
-  FiList,
-  FiMinus,
-  FiMoreHorizontal,
-  FiPlus,
-  FiShare2,
-  FiTrash,
-  FiX,
-} from "react-icons/fi";
-import Link from "next/link";
-import {
-  addAssistantToList,
-  removeAssistantFromList,
-  updateUserAssistantList,
-} from "@/lib/assistants/updateAssistantPreferences";
-import { AssistantIcon } from "@/components/assistants/AssistantIcon";
-import { DefaultPopover } from "@/components/popover/DefaultPopover";
-import { PopupSpec, usePopup } from "@/components/admin/connectors/Popup";
 import { useRouter } from "next/navigation";
-import { AssistantsPageTitle } from "../AssistantsPageTitle";
-import { checkUserOwnsAssistant } from "@/lib/assistants/checkOwnership";
-import { AssistantSharingModal } from "./AssistantSharingModal";
-import { AssistantSharedStatusDisplay } from "../AssistantSharedStatus";
-import useSWR from "swr";
-import { errorHandlingFetcher } from "@/lib/fetcher";
 
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-
-import { DragHandle } from "@/components/table/DragHandle";
-import {
-  deletePersona,
-  togglePersonaPublicStatus,
-} from "@/app/admin/assistants/lib";
-import { DeleteEntityModal } from "@/components/modals/DeleteEntityModal";
-import { MakePublicAssistantModal } from "@/app/chat/modal/MakePublicAssistantModal";
-import { CustomTooltip } from "@/components/tooltip/CustomTooltip";
-import { useAssistants } from "@/components/context/AssistantsContext";
-import { useUser } from "@/components/user/UserProvider";
-import { usePaidEnterpriseFeaturesEnabled } from "@/components/settings/usePaidEnterpriseFeaturesEnabled";
 import { Modal } from "@/components/Modal";
-import { AssistantCard } from "@/components/assistants/AssistantCards";
 import NewAssistantCard from "../gallery/AssistantCard";
 
 export const AssistantBadgeSelector = ({
@@ -80,7 +22,7 @@ export const AssistantBadgeSelector = ({
         selected
           ? "bg-neutral-900 text-white"
           : "bg-transparent text-neutral-900"
-      } h-5 px-1 py-0.5 rounded-lg cursor-pointer text-[10px] font-normal leading-[10px] border border-black justify-center items-center gap-1 inline-flex`}
+      } h-5 px-1 py-0.5 rounded-lg cursor-pointer text-[12px] font-normal leading-[10px] border border-black justify-center items-center gap-1 inline-flex`}
       onClick={toggleFilter}
     >
       {text}
@@ -124,17 +66,21 @@ export default function AssistantModal({
 }) {
   const { filters, toggleFilter } = useAssistantFilter();
   const router = useRouter();
+
+  const [searchQuery, setSearchQuery] = useState("");
   return (
     <Modal
       onOutsideClick={hideModal}
-      className="w-full max-w-3xl "
-      width="w-full max-w-3xl "
+      className="w-full max-w-4xl h-[80vh]"
+      width="w-full max-w-4xl "
     >
       <>
         <div className="flex justify-between items-center mb-0">
           <div className="h-10 px-4 w-full  rounded-lg flex-col justify-center items-start gap-2.5 inline-flex">
             <div className="h-16 rounded-lg w-full shadow-[0px_0px_2px_0px_rgba(0,0,0,0.25)] border border-[#dcdad4] flex items-center px-3">
               <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 type="text"
                 className="w-full h-full bg-transparent outline-none text-black"
               />
@@ -158,7 +104,7 @@ export default function AssistantModal({
             onClick={() => router.push("/assistants/new")}
             className="h-10 cursor-pointer px-6 py-3 bg-black rounded border border-black justify-center items-center gap-2.5 inline-flex"
           >
-            <div className="text-[#fffcf4] text-base font-normal leading-normal">
+            <div className="text-[#fffcf4] text-lg font-normal leading-normal">
               Create
             </div>
           </button>
@@ -192,11 +138,15 @@ export default function AssistantModal({
         </div>
 
         <div className="w-full mt-2 h-full px-2 grid grid-cols-2 gap-4">
-          {currentlyVisibleAssistants.map((assistant, index) => (
-            <div key={assistant.id}>
-              <NewAssistantCard persona={assistant} />
-            </div>
-          ))}
+          {currentlyVisibleAssistants
+            .filter((assistant) =>
+              assistant.name.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .map((assistant, index) => (
+              <div key={assistant.id}>
+                <NewAssistantCard persona={assistant} />
+              </div>
+            ))}
         </div>
       </>
     </Modal>

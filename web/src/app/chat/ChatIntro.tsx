@@ -6,14 +6,14 @@ export function ChatIntro({ selectedPersona }: { selectedPersona: Persona }) {
     <div className="flex flex-col items-center gap-6">
       <div className="relative flex flex-col gap-y-4 w-fit mx-auto justify-center">
         <div className="absolute z-10 -left-12 top-1/2 -translate-y-1/2">
-          <OnyxIcon size={40} className="flex-none" />
+          <OnyxIcon size={36} className="flex-none" />
         </div>
 
-        <div className="text-5xl text-black font-normal text-center">
+        <div className="text-4xl text-text font-normal text-center">
           {selectedPersona.name}
         </div>
       </div>
-      <div className="self-stretch text-center text-black text-lg font-normal font-['KH Teka TRIAL'] leading-normal">
+      <div className="self-stretch text-center text-text-darker text-xl font-normal font-['KH Teka TRIAL'] leading-normal">
         {selectedPersona.description}
       </div>
     </div>

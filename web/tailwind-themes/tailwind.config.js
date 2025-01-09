@@ -171,6 +171,13 @@ module.exports = {
 
         input: "var(--white)",
 
+        text: "#000000",
+        "text-darker": "#282828",
+        "text-dark": "#4A4A4A",
+        "text-muted": "#6C6C6B",
+
+        "text-light": "#9c9c96",
+
         "text-50": "var(--text-50)",
         "text-100": "var(--text-100)",
         "text-200": "var(--text-200)",

@@ -54,10 +54,12 @@ import { SourceIcon } from "@/components/SourceIcon";
 const MAX_INPUT_HEIGHT = 200;
 
 export const SourceChip = ({
-  source,
+  icon,
+  title,
   onRemove,
 }: {
-  source: SourceMetadata;
+  icon: React.ReactNode;
+  title: string;
   onRemove: () => void;
 }) => (
   <div
@@ -75,8 +77,8 @@ export const SourceChip = ({
         gap-x-1
         h-8"
   >
-    <SourceIcon sourceType={source.internalName} iconSize={16} />
-    {source.displayName}
+    {icon}
+    {title}
     <XIcon
       size={16}
       className="text-text-900 ml-auto cursor-pointer"
@@ -508,7 +510,7 @@ export function ChatInputBar({
                 rounded-lg
                 border-0
                 bg-[#FEFCFA]
-                placeholder:text-text-chatbar-subtle
+                placeholder:text-text-muted
                 ${
                   textAreaRef.current &&
                   textAreaRef.current.scrollHeight > MAX_INPUT_HEIGHT
@@ -555,7 +557,13 @@ export function ChatInputBar({
                     filterManager.selectedSources.map((source) => (
                       <div className="flex-none" key={source.internalName}>
                         <SourceChip
-                          source={source}
+                          icon={
+                            <SourceIcon
+                              sourceType={source.internalName}
+                              iconSize={16}
+                            />
+                          }
+                          title={source.displayName}
                           onRemove={() => {
                             filterManager.setSelectedSources(
                               filterManager.selectedSources.filter(
@@ -568,20 +576,13 @@ export function ChatInputBar({
                     ))}
 
                   {selectedDocuments.length > 0 && (
-                    <button
-                      onClick={showDocs}
-                      className="flex-none relative overflow-visible flex items-center gap-x-2 h-10 px-3 rounded-lg bg-background-150 hover:bg-background-200 transition-colors duration-300 cursor-pointer max-w-[150px]"
-                    >
-                      <FileIcon size={20} />
-                      <span className="text-sm whitespace-nowrap overflow-hidden text-ellipsis">
-                        {selectedDocuments.length} selected
-                      </span>
-                      <XIcon
-                        onClick={removeDocs}
-                        size={16}
-                        className="text-text-400 hover:text-text-600 ml-auto"
+                    <div className="flex-none">
+                      <SourceChip
+                        icon={<FileIcon size={16} />}
+                        title={`${selectedDocuments.length} selected`}
+                        onRemove={removeDocs}
                       />
-                    </button>
+                    </div>
                   )}
 
                   {files.map((file) => (

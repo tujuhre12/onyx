@@ -60,6 +60,7 @@ export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
             flex 
             items-center 
             space-x-1
+            group
             text-text-700
             !rounded-lg
             hover:bg-background-chat-hover
@@ -83,11 +84,11 @@ export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
           >
             <Icon
               size={size}
-              className="h-4 w-4 my-auto text-[#4a4a4a] flex-none"
+              className="h-4 w-4 my-auto text-[#4a4a4a] group-hover:text-text flex-none"
             />
             <div className="flex items-center">
               {name && (
-                <span className="text-sm text-[#4a4a4a] break-all line-clamp-1">
+                <span className="text-sm text-[#4a4a4a] group-hover:text-text break-all line-clamp-1">
                   {name}
                 </span>
               )}

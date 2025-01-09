@@ -265,7 +265,7 @@ export function TextFormField({
             placeholder:font-description 
             placeholder:${sizeClass.placeholder}
             caret-accent
-            placeholder:text-text-400
+            placeholder:text-text-muted
             ${heightString}
             ${sizeClass.input}
             ${disabled ? " bg-background-strong" : " bg-white/80"}

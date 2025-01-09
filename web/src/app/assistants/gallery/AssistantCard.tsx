@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/tooltip";
 import { OnyxIcon, PinnedIcon } from "@/components/icons/icons";
 import { FaHashtag } from "react-icons/fa";
-import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 
 export const AssistantBadge = ({ text }: { text: string }) => {
   return (
@@ -30,23 +29,23 @@ const NewAssistantCard: React.FC<{ persona: Persona }> = ({ persona }) => {
       <div className="flex-1 flex flex-col">
         <div className="flex justify-between items-start mb-1">
           <div className="flex items-end  gap-x-2 leading-none">
-            <h3 className="text-black leading-none text-base font-normal">
+            <h3 className="text-black leading-none text-base lg-normal">
               {persona.name}
             </h3>
-            <span className="text-black text-xs leading-none">
+            <span className="text-black text-sm leading-none">
               <AssistantBadge text={persona.is_public ? "Public" : "Private"} />
             </span>
           </div>
           {persona.is_default_persona && (
-            <span className="text-[#6c6c6c] text-xs">Pinned</span>
+            <span className="text-[#6c6c6c] text-sm">Pinned</span>
           )}
         </div>
 
-        <p className="text-black text-xs mb-1">{persona.description}</p>
+        <p className="text-black text-sm mb-1">{persona.description}</p>
 
         {persona.tools.length > 0 && (
           <div className="mb-1">
-            <span className="text-black text-xs mr-1">Tools</span>
+            <span className="text-black text-sm mr-1">Tools</span>
             {persona.tools.map((tool, index) => (
               <AssistantBadge key={index} text={tool.name} />
             ))}
