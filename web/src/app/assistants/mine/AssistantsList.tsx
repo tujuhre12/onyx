@@ -77,13 +77,13 @@ export const AssistantBadgeSelector = ({
   return (
     <div
       className={`${
-        selected && "bg-neutral-200"
-      } h-5 px-1 py-0.5 rounded-lg cursor-pointer border border-black justify-center items-center gap-1 inline-flex`}
+        selected
+          ? "bg-neutral-900 text-white"
+          : "bg-neutral-100 text-neutral-900"
+      } h-5 px-1 py-0.5 rounded-lg cursor-pointer text-[10px] font-normal leading-[10px] border border-black justify-center items-center gap-1 inline-flex`}
       onClick={toggleFilter}
     >
-      <div className="text-black text-[10px] font-normal leading-[10px]">
-        {text}
-      </div>
+      {text}
     </div>
   );
 };
@@ -386,6 +386,8 @@ export function AssistantsList() {
     errorHandlingFetcher
   );
 
+  const router = useRouter();
+
   return (
     <>
       {popup}
@@ -452,11 +454,14 @@ export function AssistantsList() {
                 </svg>
               </div>
             </div>
-            <div className="h-10  px-6 py-3 bg-black rounded border border-black justify-center items-center gap-2.5 inline-flex">
-              <div className="text-[#fffcf4] text-base font-normal font-['KH Teka TRIAL'] leading-normal">
+            <button
+              onClick={() => router.push("/assistants/new")}
+              className="h-10 cursor-pointer px-6 py-3 bg-black rounded border border-black justify-center items-center gap-2.5 inline-flex"
+            >
+              <div className="text-[#fffcf4] text-base font-normal leading-normal">
                 Create
               </div>
-            </div>
+            </button>
           </div>
           <div className="ml-4 flex py-2 items-center gap-x-2">
             <AssistantBadgeSelector

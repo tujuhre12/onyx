@@ -2376,12 +2376,13 @@ export function ChatPage({
                       the top of the chat page. Oly used in the EE version of the app. */}
 
                           {messageHistory.length === 0 &&
+                            false &&
                             !isFetchingChatMessages &&
                             currentSessionChatState == "input" &&
                             !loadingError &&
                             !submittedMessage && (
                               <div className="h-full w-[95%] mx-auto mt-12 flex flex-col justify-center items-center">
-                                <ChatIntro selectedPersona={liveAssistant} />
+                                {/* <ChatIntro selectedPersona={liveAssistant} /> */}
 
                                 <StarterMessages
                                   currentPersona={currentPersona}

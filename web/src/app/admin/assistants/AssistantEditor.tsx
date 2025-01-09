@@ -769,7 +769,7 @@ export function AssistantEditor({
                               </TooltipTrigger>
                               {!currentLLMSupportsImageOutput ? (
                                 <TooltipContent side="top" align="center">
-                                  <p className="bg-background-950 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
+                                  <p className="bg-black max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
                                     To use Image Generation, select GPT-4o or
                                     another image compatible model as the
                                     default model for this Assistant.
@@ -778,7 +778,7 @@ export function AssistantEditor({
                               ) : (
                                 !isImageGenerationAvailable && (
                                   <TooltipContent side="top" align="center">
-                                    <p className="bg-background-950 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
+                                    <p className="bg-black max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
                                       Image Generation requires an OpenAI or
                                       Azure Dalle configuration.
                                     </p>

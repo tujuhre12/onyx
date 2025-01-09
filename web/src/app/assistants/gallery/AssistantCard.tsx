@@ -26,17 +26,8 @@ const NewAssistantCard: React.FC<{ persona: Persona }> = ({ persona }) => {
       {/* Left column: Image */}
       <div className="ml-2 mr-4  mt-1 w-8 h-8">
         <OnyxIcon size={40} />
-        {/* <AssistantIcon assistant={persona} size="small" /> */}
-        {/* <img
-          className="w-14 h-14"
-          src={persona.uploaded_image_id || "https://via.placeholder.com/56x56"}
-          alt={persona.name}
-        /> */}
       </div>
-
-      {/* Right column: Content */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <div className="flex justify-between items-start mb-1">
           <div className="flex items-end  gap-x-2 leading-none">
             <h3 className="text-black leading-none text-base font-normal">
@@ -51,10 +42,8 @@ const NewAssistantCard: React.FC<{ persona: Persona }> = ({ persona }) => {
           )}
         </div>
 
-        {/* Description */}
         <p className="text-black text-xs mb-1">{persona.description}</p>
 
-        {/* Tools */}
         {persona.tools.length > 0 && (
           <div className="mb-1">
             <span className="text-black text-xs mr-1">Tools</span>

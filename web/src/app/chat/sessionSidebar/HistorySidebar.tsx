@@ -11,7 +11,7 @@ import { createFolder } from "../folders/FolderManagement";
 import { usePopup } from "@/components/admin/connectors/Popup";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 
-import { AssistantsIconSkeleton } from "@/components/icons/icons";
+import { AssistantsIconSkeleton, PinnedIcon } from "@/components/icons/icons";
 import { PagesTab } from "./PagesTab";
 import { pageType } from "./types";
 import LogoWithText from "@/components/header/LogoWithText";
@@ -115,7 +115,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
           {page == "chat" && (
             <div className="mx-3 mt-4 gap-y-1 flex-col text-text-history-sidebar-button flex gap-x-1.5 items-center items-center">
               <Link
-                className=" w-full p-2 bg-white border-border border rounded items-center hover:bg-background-200 cursor-pointer transition-all duration-150 flex gap-x-2"
+                className="w-full p-2 rounded items-center  cursor-pointer transition-all duration-150 flex gap-x-2"
                 href={
                   `/${page}` +
                   (NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA &&
@@ -133,42 +133,15 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                 }}
               >
                 <FiEdit className="flex-none text-text-history-sidebar-button" />
-                <p className="my-auto flex items-center text-sm">New Chat</p>
-              </Link>
-              <button
-                onClick={() =>
-                  createFolder("New Folder")
-                    .then((folderId) => {
-                      router.refresh();
-                      setNewFolderId(folderId);
-                    })
-                    .catch((error) => {
-                      console.error("Failed to create folder:", error);
-                      setPopup({
-                        message: `Failed to create folder: ${error.message}`,
-                        type: "error",
-                      });
-                    })
-                }
-                className="w-full p-2 bg-white border-border border rounded items-center  hover:bg-background-history-sidebar-button-hover cursor-pointer transition-all duration-150 flex gap-x-2"
-              >
-                <FiFolderPlus className="my-auto text-text-history-sidebar-button" />
-                <p className="my-auto flex items-center text-sm">New Folder</p>
-              </button>
-
-              <Link
-                href="/assistants/mine"
-                className="w-full p-2 bg-white border-border border rounded items-center hover:bg-background-history-sidebar-button-hover cursor-pointer transition-all duration-150 flex gap-x-2"
-              >
-                <AssistantsIconSkeleton className="h-4 w-4 my-auto text-text-history-sidebar-button" />
                 <p className="my-auto flex items-center text-sm">
-                  Manage Assistants
+                  Start New Chat
                 </p>
               </Link>
             </div>
           )}
           <div className="border-b border-divider-history-sidebar-bar pb-4 mx-3" />
           <PagesTab
+            setNewFolderId={setNewFolderId}
             newFolderId={newFolderId}
             showDeleteModal={showDeleteModal}
             showShareModal={showShareModal}

@@ -91,7 +91,7 @@ export function ExplanationText({
 }) {
   return link ? (
     <a
-      className="underline text-text-500 cursor-pointer text-sm font-medium"
+      className="underline text-text-500 cursor-pointer text-xs font-medium"
       target="_blank"
       href={link}
     >

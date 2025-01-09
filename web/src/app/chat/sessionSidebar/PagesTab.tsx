@@ -1,7 +1,10 @@
 import { ChatSession } from "../interfaces";
 import { groupSessionsByDateRange } from "../lib";
 import { ChatSessionDisplay } from "./ChatSessionDisplay";
-import { removeChatFromFolder } from "../folders/FolderManagement";
+import {
+  createFolder,
+  removeChatFromFolder,
+} from "../folders/FolderManagement";
 import { FolderList } from "../folders/FolderList";
 import { Folder } from "../folders/interfaces";
 import { CHAT_SESSION_ID_KEY, FOLDER_ID_KEY } from "@/lib/drag/constants";
@@ -9,7 +12,7 @@ import { usePopup } from "@/components/admin/connectors/Popup";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { pageType } from "./types";
-import { FiTrash2 } from "react-icons/fi";
+import { FiFolderPlus, FiPlus, FiTrash2 } from "react-icons/fi";
 import { NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED } from "@/lib/constants";
 
 export function PagesTab({
@@ -23,6 +26,7 @@ export function PagesTab({
   showShareModal,
   showDeleteModal,
   showDeleteAllModal,
+  setNewFolderId,
 }: {
   page: pageType;
   existingChats?: ChatSession[];
@@ -34,6 +38,7 @@ export function PagesTab({
   showShareModal?: (chatSession: ChatSession) => void;
   showDeleteModal?: (chatSession: ChatSession) => void;
   showDeleteAllModal?: () => void;
+  setNewFolderId: (folderId: number) => void;
 }) {
   const groupedChatSessions = existingChats
     ? groupSessionsByDateRange(existingChats)
@@ -100,13 +105,6 @@ export function PagesTab({
             isDragOver ? "bg-hover" : ""
           } rounded-md`}
         >
-          {(page == "chat" || page == "search") && (
-            <p className="my-2 text-xs text-sidebar-subtle flex font-bold">
-              {page == "chat" && "Chat "}
-              {page == "search" && "Search "}
-              History
-            </p>
-          )}
           {isHistoryEmpty ? (
             <p className="text-sm mt-2 w-[250px]">
               Try sending a message! Your chat history will appear here.
@@ -148,6 +146,26 @@ export function PagesTab({
               }
             )
           )}
+          <button
+            className="flex text-[#6c6c6c] gap-x-1"
+            onClick={() =>
+              createFolder("New Folder")
+                .then((folderId) => {
+                  router.refresh();
+                  setNewFolderId(folderId);
+                })
+                .catch((error) => {
+                  console.error("Failed to create folder:", error);
+                  setPopup({
+                    message: `Failed to create folder: ${error.message}`,
+                    type: "error",
+                  });
+                })
+            }
+          >
+            <FiPlus className="my-auto" />
+            <p className="my-auto flex items-center text-sm">Create Group</p>
+          </button>
         </div>
         {showDeleteAllModal && NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED && (
           <div className="absolute w-full border-t border-t-border bg-background-100 bottom-0 left-0 p-4">
