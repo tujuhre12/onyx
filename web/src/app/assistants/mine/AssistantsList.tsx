@@ -434,7 +434,6 @@ export function AssistantsList() {
               <div className="h-16 rounded-lg w-full shadow-[0px_0px_2px_0px_rgba(0,0,0,0.25)] border border-[#dcdad4] flex items-center px-3">
                 <input
                   type="text"
-                  placeholder="Search assistants..."
                   className="w-full h-full bg-transparent outline-none text-black"
                 />
                 <svg
@@ -487,7 +486,7 @@ export function AssistantsList() {
             />
           </div>
 
-          <div className="w-full h-full overflow-y-auto grid grid-cols-2 gap-4">
+          <div className="w-full mt-2 h-full px-2 grid grid-cols-2 gap-4">
             {currentlyVisibleAssistants.map((assistant, index) => (
               <div key={assistant.id}>
                 <NewAssistantCard persona={assistant} />

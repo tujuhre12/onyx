@@ -313,12 +313,8 @@ export function AssistantEditor({
             llm_model_provider_override: Yup.string().nullable(),
             starter_messages: Yup.array().of(
               Yup.object().shape({
-                name: Yup.string().required(
-                  "Each starter message must have a name"
-                ),
-                message: Yup.string().required(
-                  "Each starter message must have a message"
-                ),
+                name: Yup.string().required("Must have a name"),
+                message: Yup.string().required("Must have a message"),
               })
             ),
             search_start_date: Yup.date().nullable(),

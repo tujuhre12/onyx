@@ -23,17 +23,19 @@ export function AssistantIcon({
   size,
   border,
   disableToolip,
+  show,
 }: {
   assistant: Persona;
   size?: "xs" | "small" | "medium" | "large" | "header";
   border?: boolean;
   disableToolip?: boolean;
+  show?: boolean;
 }) {
   const color = darkerGenerateColorFromId(assistant.id.toString());
 
   return (
     <CustomTooltip
-      className="hidden lg:block"
+      // className={`${show ? "block" : "hidden"} lg:block`}
       disabled={disableToolip || !assistant.description}
       showTick
       line
