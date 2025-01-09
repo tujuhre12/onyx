@@ -6,7 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HashtagIcon, OnyxIcon, PinnedIcon } from "@/components/icons/icons";
+import { OnyxIcon, PinnedIcon } from "@/components/icons/icons";
 import { FaHashtag } from "react-icons/fa";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 
@@ -66,7 +66,7 @@ const NewAssistantCard: React.FC<{ persona: Persona }> = ({ persona }) => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button className="hover:bg-neutral-100 px-2 py-0.5 gap-x-1 rounded border border-black flex items-center">
-                  <FaHashtag size={12} />
+                  <FaHashtag size={12} className="flex-none" />
                   <span className="text-xs">Start Chat</span>
                 </button>
               </TooltipTrigger>

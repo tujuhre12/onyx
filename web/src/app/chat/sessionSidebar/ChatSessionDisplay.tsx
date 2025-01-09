@@ -22,6 +22,8 @@ import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { WarningCircle } from "@phosphor-icons/react";
 import { CustomTooltip } from "@/components/tooltip/CustomTooltip";
 
+import { FaHashtag } from "react-icons/fa";
+
 export function ChatSessionDisplay({
   chatSession,
   search,
@@ -92,7 +94,7 @@ export function ChatSessionDisplay({
       )}
 
       <Link
-        className="flex my-1 group relative"
+        className="flex group relative"
         key={chatSession.id}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => {
@@ -122,9 +124,10 @@ export function ChatSessionDisplay({
           );
         }}
       >
-        <BasicSelectable padding="extra" fullWidth selected={isSelected}>
+        <BasicSelectable fullWidth selected={isSelected}>
           <>
-            <div className="flex relative">
+            <div className="flex relative gap-x-2">
+              <FaHashtag size={12} className="flex-none my-auto" />
               {isRenamingChat ? (
                 <input
                   value={chatName}

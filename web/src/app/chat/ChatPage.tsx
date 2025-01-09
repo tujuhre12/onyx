@@ -2201,6 +2201,7 @@ export function ChatPage({
             >
               <div className="w-full relative">
                 <HistorySidebar
+                  assistants={assistants}
                   explicitlyUntoggle={explicitlyUntoggle}
                   stopGenerating={stopGenerating}
                   reset={() => setMessage("")}

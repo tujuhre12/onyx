@@ -113,22 +113,10 @@ export default function SidebarWrapper<T extends object>({
                 : "opacity-0 w-[200px] pointer-events-none -translate-x-10"
             }`}
       >
-        <div className="w-full relative">
-          <HistorySidebar
-            page={page}
-            explicitlyUntoggle={explicitlyUntoggle}
-            ref={innerSidebarElementRef}
-            toggleSidebar={toggleSidebar}
-            toggled={toggledSidebar}
-            existingChats={chatSessions}
-            currentChatSession={null}
-            folders={folders}
-            openedFolders={openedFolders}
-          />
-        </div>
+        <div className="w-full relative"></div>
       </div>
 
-      <div className="absolute h-svh px-2 left-0 w-full top-0">
+      <div className="absolute px-2 left-0 w-full top-0">
         <FunctionalHeader
           sidebarToggled={toggledSidebar}
           toggleSidebar={toggleSidebar}

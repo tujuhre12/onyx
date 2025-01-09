@@ -11,10 +11,17 @@ import { createFolder } from "../folders/FolderManagement";
 import { usePopup } from "@/components/admin/connectors/Popup";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 
-import { AssistantsIconSkeleton, PinnedIcon } from "@/components/icons/icons";
+import {
+  AssistantsIconSkeleton,
+  NewChatIcon,
+  OnyxIcon,
+  PinnedIcon,
+} from "@/components/icons/icons";
 import { PagesTab } from "./PagesTab";
 import { pageType } from "./types";
 import LogoWithText from "@/components/header/LogoWithText";
+import { Persona } from "@/app/admin/assistants/interfaces";
+import { FaSearch } from "react-icons/fa";
 
 interface HistorySidebarProps {
   page: pageType;
@@ -32,6 +39,7 @@ interface HistorySidebarProps {
   explicitlyUntoggle: () => void;
   showDeleteAllModal?: () => void;
   backgroundToggled?: boolean;
+  assistants: Persona[];
 }
 
 export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
@@ -42,6 +50,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
       page,
       existingChats,
       currentChatSession,
+      assistants,
       folders,
       openedFolders,
       explicitlyUntoggle,
@@ -132,13 +141,37 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                   }
                 }}
               >
-                <FiEdit className="flex-none text-text-history-sidebar-button" />
-                <p className="my-auto flex items-center text-sm">
+                <NewChatIcon
+                  size={20}
+                  className="flex-none text-text-history-sidebar-button"
+                />
+                <p className="my-auto flex items-center text-base">
                   Start New Chat
                 </p>
               </Link>
             </div>
           )}
+
+          <div className="mt-2 mx-3">
+            <div className="flex text-sm gap-x-2 mx-2 items-center">
+              <PinnedIcon
+                className="text-text-history-sidebar-button"
+                size={12}
+              />
+              Pinned
+            </div>
+            <div className="flex flex-col gap-y-1 mt-2">
+              {assistants.slice(0, 3).map((assistant) => (
+                <div
+                  className=" hover:bg-background-sidebar-hover flex items-center gap-x-2 py-1 px-2 rounded-md"
+                  key={assistant.id}
+                >
+                  <OnyxIcon size={16} className="flex-none" />
+                  <p className="text-base text-black">{assistant.name}</p>
+                </div>
+              ))}
+            </div>
+          </div>
           <div className="border-b border-divider-history-sidebar-bar pb-4 mx-3" />
           <PagesTab
             setNewFolderId={setNewFolderId}
@@ -150,7 +183,6 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             existingChats={existingChats}
             currentChatId={currentChatId}
             folders={folders}
-            openedFolders={openedFolders}
             showDeleteAllModal={showDeleteAllModal}
           />
         </div>

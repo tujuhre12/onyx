@@ -138,8 +138,8 @@ module.exports = {
         "text-application-untoggled": "var(--text-500)",
         "text-application-untoggled-hover": "var(--text-700)",
 
-        "background-chat-hover": "var(--background-200)",
-        "background-chat-selected": "var(--background-200)",
+        "background-chat-hover": "#E6E3DD",
+        "background-chat-selected": "#E6E3DD",
 
         // Background for chat messages (user bubbles)
         user: "var(--user-bubble)",
