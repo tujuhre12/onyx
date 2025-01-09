@@ -297,7 +297,7 @@ class SearchTool(Tool):
             search_request=SearchRequest(
                 query=query,
                 evaluation_type=LLMEvaluationType.SKIP
-                if force_no_rerank == "True"
+                if force_no_rerank
                 else self.evaluation_type,
                 human_selected_filters=(
                     self.retrieval_options.filters if self.retrieval_options else None

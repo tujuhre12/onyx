@@ -122,16 +122,19 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
             retrieved_documents=[],
         )
 
+    # new db session to avoid concurrency issues
     with get_session_context_manager() as db_session:
         for tool_response in search_tool.run(
             query=query_to_retrieve,
             force_no_rerank=True,
             alternate_db_session=db_session,
         ):
+            # get retrieved docs to send to the rest of the graph
             if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
                 retrieved_docs = cast(
                     list[InferenceSection], tool_response.response.top_sections
                 )
+
             level, question_nr = (
                 parse_question_id(state["sub_question_id"])
                 if state["sub_question_id"]
