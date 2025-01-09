@@ -3,38 +3,87 @@ import { LoadedOnyxDocument, OnyxDocument } from "@/lib/search/interfaces";
 import React, { memo } from "react";
 import isEqual from "lodash/isEqual";
 import { SourceIcon } from "@/components/SourceIcon";
+import { SearchResultIcon } from "@/components/SearchResultIcon";
+
+const FALLBACK_ICON = "web.svg";
+
+// Updated error handler
+const handleError = (
+  e: React.SyntheticEvent<HTMLImageElement>,
+  associatedDoc: OnyxDocument
+) => {
+  // Prevent future error events
+  e.currentTarget.onerror = null;
+
+  // Repoint image source to fallback
+  e.currentTarget.src = FALLBACK_ICON;
+
+  // If you prefer, log fewer times or log once.
+  // For demonstration, we'll print a single warning:
+  console.warn(
+    `Failed to load favicon for document_id=${associatedDoc?.document_id}. Replacing with fallback icon.`
+  );
+};
 
 export const MemoizedAnchor = memo(
   ({
     docs,
+    iconMap,
     updatePresentingDocument,
     children,
+    handleError,
   }: {
     docs?: OnyxDocument[] | null;
+    iconMap?: Record<string, string>;
     updatePresentingDocument: (doc: OnyxDocument) => void;
     children: React.ReactNode;
+    handleError: (
+      e: React.SyntheticEvent<HTMLImageElement>,
+      associatedDoc: OnyxDocument
+    ) => void;
   }) => {
     const value = children?.toString();
     if (value?.startsWith("[") && value?.endsWith("]")) {
       const match = value.match(/\[(\d+)\]/);
       if (match) {
         const index = parseInt(match[1], 10) - 1;
-        const associatedDoc = docs && docs[index];
+        const associatedDoc = docs?.[index];
+        if (!associatedDoc) {
+          return <>{children}</>;
+        }
 
-        const url = associatedDoc?.link
-          ? new URL(associatedDoc.link).origin + "/favicon.ico"
-          : "";
+        const effectiveIconURL =
+          iconMap?.[associatedDoc.document_id] || "globe.svg";
 
-        const icon =
-          (associatedDoc && (
-            <SourceIcon sourceType={associatedDoc?.source_type} iconSize={18} />
-          )) ||
-          null;
+        let icon: React.ReactNode = null;
+        if (associatedDoc.source_type === "web") {
+          icon = (
+            <img
+              className="!m-0 !p-0 rounded-full"
+              height={18}
+              onError={(e) => {
+                console.log(iconMap);
+                handleError(e, associatedDoc);
+              }}
+              width={18}
+              src={"globe.svg"}
+              alt="Favicon"
+            />
+          );
+        } else {
+          icon = (
+            <SourceIcon sourceType={associatedDoc.source_type} iconSize={18} />
+          );
+        }
 
         return (
           <MemoizedLink
             updatePresentingDocument={updatePresentingDocument}
-            document={{ ...associatedDoc, icon, url }}
+            document={{
+              ...associatedDoc,
+              icon,
+              url: associatedDoc.link,
+            }}
           >
             {children}
           </MemoizedLink>

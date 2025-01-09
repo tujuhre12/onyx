@@ -7,7 +7,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ValidSources } from "@/lib/types";
 import { openDocument } from "@/lib/search/utils";
 
 export function Citation({

@@ -20,9 +20,11 @@ import {
 } from "../files/InputBarPreview";
 import {
   AnthropicIcon,
+  AnthropicSVG,
   AssistantsIconSkeleton,
   AWSIcon,
   FileIcon,
+  OnyxIcon,
   OpenAIIcon,
   OpenAISVG,
   SendIcon,
@@ -43,8 +45,45 @@ import UnconfiguredProviderText from "@/components/chat_search/UnconfiguredProvi
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { Upload, XIcon } from "lucide-react";
 import { fetchTitleFromUrl } from "@/lib/sources";
+import { FilterPopup } from "@/components/search/filtering/FilterPopup";
+import { DocumentSet, Tag, ValidSources } from "@/lib/types";
+import { DateRange } from "react-day-picker";
+import { SourceCategory } from "@/lib/search/interfaces";
+import { SourceIcon } from "@/components/SourceIcon";
 
 const MAX_INPUT_HEIGHT = 200;
+
+export const SourceChip = ({
+  source,
+  onRemove,
+}: {
+  source: SourceMetadata;
+  onRemove: () => void;
+}) => (
+  <div
+    className="
+        flex
+        items-center
+        px-2
+        bg-hover
+        text-sm
+        border
+        gap-x-1.5
+        border-border
+        rounded-md
+        box-border
+        gap-x-1
+        h-8"
+  >
+    <SourceIcon sourceType={source.internalName} iconSize={16} />
+    {source.displayName}
+    <XIcon
+      size={16}
+      className="text-text-900 ml-auto cursor-pointer"
+      onClick={onRemove}
+    />
+  </div>
+);
 
 const SelectedUrlChip = ({
   url,
@@ -128,11 +167,16 @@ interface ChatInputBarProps {
   handleFileUpload: (files: File[]) => void;
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
   toggleFilters?: () => void;
+  filterManager: FilterManager;
+  availableSources: SourceMetadata[];
+  availableDocumentSets: DocumentSet[];
+  availableTags: Tag[];
 }
 
 export function ChatInputBar({
   removeDocs,
   showDocs,
+  filterManager,
   showConfigureAPIKey,
   selectedDocuments,
   message,
@@ -151,6 +195,9 @@ export function ChatInputBar({
   textAreaRef,
   alternativeAssistant,
   toggleFilters,
+  availableSources,
+  availableDocumentSets,
+  availableTags,
 }: ChatInputBarProps) {
   useEffect(() => {
     const textarea = textAreaRef.current;
@@ -286,6 +333,60 @@ export function ChatInputBar({
     }
   };
 
+  const [timeRange, setTimeRange] = React.useState<DateRange | undefined>(
+    undefined
+  );
+  const [selectedSources, setSelectedSources] = React.useState<string[]>([]);
+
+  // const filterTypes: FilterType[] = [
+  //   {
+  //     name: "Sources",
+  //     icon: <FiFilter size={14} />,
+  //     options: filterManager.selectedSources.map((source) => ({
+  //       key: source.internalName,
+  //       display: source.displayName,
+  //     })),
+  //     selected: filterManager.selectedSources.map(
+  //       (source) => source.internalName
+  //     ),
+  //     onSelect: (option) => {
+  //       const source = filterManager.selectedSources.find(
+  //         (s) => s.internalName === option.key
+  //       );
+  //       if (source) {
+  //         filterManager.setSelectedSources((prev) =>
+  //           prev.filter((s) => s.internalName !== option.key)
+  //         );
+  //       } else {
+  //         const newSource = getSourceMetadata(
+  //           option.key,
+  //           option.display as string
+  //         );
+  //         if (newSource) {
+  //           filterManager.setSelectedSources((prev) => [...prev, newSource]);
+  //         }
+  //       }
+  //     },
+  //     onReset: () => filterManager.setSelectedSources([]),
+  //   },
+  //   // Add more filter types as needed
+  // ];
+
+  const getSourceMetadata = (
+    internalName: string,
+    displayName: string
+  ): SourceMetadata | null => {
+    // This is a placeholder implementation. You should replace this with actual logic
+    // to get the full SourceMetadata object based on your application's needs.
+    return {
+      internalName: internalName as ValidSources,
+      displayName,
+      icon: () => null, // Replace with actual icon component
+      category: "web" as SourceCategory, // Replace with actual category
+      adminUrl: "", // Replace with actual admin URL if applicable
+    };
+  };
+
   return (
     <div id="onyx-chat-input">
       <div className="flex  justify-center mx-auto">
@@ -302,17 +403,22 @@ export function ChatInputBar({
               ref={suggestionsRef}
               className="text-sm absolute inset-x-0 top-0 w-full transform -translate-y-full"
             >
-              <div className="rounded-lg sm-1.5 bg-background border border-border-medium shadow-lg mx-2 px-1.5 mt-2 z-10">
+              <div className="rounded-lg py-1 sm-1.5 bg-background border border-border-medium shadow-lg mx-2 px-1.5 mt-2 z-10">
                 {assistantTagOptions.map((currentAssistant, index) => (
                   <button
                     key={index}
                     className={`px-2 ${
                       tabbingIconIndex == index && "bg-hover-lightish"
-                    } rounded  rounded-lg content-start flex gap-x-1 py-2 w-full  hover:bg-hover-lightish cursor-pointer`}
+                    } rounded items-center rounded-lg content-start flex gap-x-1 py-2 w-full  hover:bg-hover-lightish cursor-pointer`}
                     onClick={() => {
                       updatedTaggedAssistant(currentAssistant);
                     }}
                   >
+                    <OnyxIcon
+                      // assistant={currentAssistant}
+                      size={16}
+                      className="my-auto text-text-400"
+                    />
                     <p className="font-bold">{currentAssistant.name}</p>
                     <p className="line-clamp-1">
                       {currentAssistant.id == selectedAssistant.id &&
@@ -355,7 +461,7 @@ export function ChatInputBar({
             "
           >
             {alternativeAssistant && (
-              <div className="flex flex-wrap gap-y-1 gap-x-2 px-2 pt-1.5 w-full">
+              <div className="flex flex-wrap gap-x-2 px-2 pt-1.5 w-full">
                 <div
                   ref={interactionsRef}
                   className="p-2 rounded-t-lg items-center flex w-full"
@@ -389,9 +495,78 @@ export function ChatInputBar({
               </div>
             )}
 
-            {(selectedDocuments.length > 0 || files.length > 0) && (
-              <div className="flex gap-x-2 px-2 pt-2">
+            <textarea
+              onPaste={handlePaste}
+              onKeyDownCapture={handleKeyDown}
+              onChange={handleInputChange}
+              ref={textAreaRef}
+              className={`
+                m-0
+                w-full
+                shrink
+                resize-none
+                rounded-lg
+                border-0
+                bg-[#FEFCFA]
+                placeholder:text-text-chatbar-subtle
+                ${
+                  textAreaRef.current &&
+                  textAreaRef.current.scrollHeight > MAX_INPUT_HEIGHT
+                    ? "overflow-y-auto mt-2"
+                    : ""
+                }
+                whitespace-normal
+                break-word
+                overscroll-contain
+                outline-none
+                placeholder-subtle
+                resize-none
+                px-5
+                py-4
+              `}
+              autoFocus
+              style={{ scrollbarWidth: "thin" }}
+              role="textarea"
+              aria-multiline
+              placeholder="Ask me anything..."
+              value={message}
+              onKeyDown={(event) => {
+                if (
+                  event.key === "Enter" &&
+                  !showSuggestions &&
+                  !event.shiftKey &&
+                  !(event.nativeEvent as any).isComposing
+                ) {
+                  event.preventDefault();
+                  if (message) {
+                    onSubmit();
+                  }
+                }
+              }}
+              suppressContentEditableWarning={true}
+            />
+
+            {(selectedDocuments.length > 0 ||
+              files.length > 0 ||
+              filterManager.selectedSources.length > 0) && (
+              <div className="flex gap-x-.5 px-2">
                 <div className="flex gap-x-1 px-2 overflow-visible overflow-x-scroll items-end miniscroll">
+                  {filterManager.selectedSources.length > 0 &&
+                    filterManager.selectedSources.map((source) => (
+                      <div className="flex-none" key={source.internalName}>
+                        <SourceChip
+                          source={source}
+                          onRemove={() => {
+                            filterManager.setSelectedSources(
+                              filterManager.selectedSources.filter(
+                                (s) => s.internalName !== source.internalName
+                              )
+                            );
+                          }}
+                        />
+                      </div>
+                    ))}
+
                   {selectedDocuments.length > 0 && (
                     <button
                       onClick={showDocs}
@@ -408,6 +583,7 @@ export function ChatInputBar({
                       />
                     </button>
                   )}
+
                   {files.map((file) => (
                     <div className="flex-none" key={file.id}>
                       {file.type === ChatFileType.IMAGE ? (
@@ -441,57 +617,6 @@ export function ChatInputBar({
               </div>
             )}
 
-            <textarea
-              onPaste={handlePaste}
-              onKeyDownCapture={handleKeyDown}
-              onChange={handleInputChange}
-              ref={textAreaRef}
-              className={`
-                m-0
-                w-full
-                shrink
-                resize-none
-                rounded-lg
-                border-0
-                bg-[#FEFCFA]
-                placeholder:text-text-chatbar-subtle
-                ${
-                  textAreaRef.current &&
-                  textAreaRef.current.scrollHeight > MAX_INPUT_HEIGHT
-                    ? "overflow-y-auto mt-2"
-                    : ""
-                }
-                whitespace-normal
-                break-word
-                overscroll-contain
-                outline-none
-                placeholder-subtle
-                resize-none
-                px-5
-                py-4
-                h-14
-              `}
-              autoFocus
-              style={{ scrollbarWidth: "thin" }}
-              role="textarea"
-              aria-multiline
-              placeholder="Ask me anything..."
-              value={message}
-              onKeyDown={(event) => {
-                if (
-                  event.key === "Enter" &&
-                  !showSuggestions &&
-                  !event.shiftKey &&
-                  !(event.nativeEvent as any).isComposing
-                ) {
-                  event.preventDefault();
-                  if (message) {
-                    onSubmit();
-                  }
-                }
-              }}
-              suppressContentEditableWarning={true}
-            />
             <div className="flex items-center space-x-1 mr-12 px-4 pb-2">
               <ChatInputOption
                 flexPriority="stiff"
@@ -513,21 +638,27 @@ export function ChatInputBar({
                 }}
                 tooltipContent={"Upload files"}
               />
-              {toggleFilters && (
-                <ChatInputOption
-                  flexPriority="stiff"
-                  name="Filters"
-                  Icon={FiFilter}
-                  onClick={toggleFilters}
-                  tooltipContent={"Filter your search"}
-                />
-              )}
+
+              <FilterPopup
+                availableSources={availableSources}
+                availableDocumentSets={availableDocumentSets}
+                availableTags={availableTags}
+                filterManager={filterManager}
+                trigger={
+                  <ChatInputOption
+                    flexPriority="stiff"
+                    name="Filters"
+                    Icon={FiFilter}
+                    tooltipContent="Filter your search"
+                  />
+                }
+              />
 
               <ChatInputOption
                 toggle
                 flexPriority="stiff"
                 name="Models"
-                Icon={OpenAISVG}
+                Icon={AnthropicSVG}
                 onClick={() => {}}
                 tooltipContent={"Switch models"}
               />

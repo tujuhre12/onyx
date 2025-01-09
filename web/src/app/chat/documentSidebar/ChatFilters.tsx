@@ -11,13 +11,9 @@ import {
   useEffect,
   useState,
 } from "react";
-import { FilterManager } from "@/lib/hooks";
-import { CCPairBasicInfo, DocumentSet, Tag } from "@/lib/types";
-import { SourceSelector } from "../shared_chat_search/SearchFilters";
-import { XIcon } from "@/components/icons/icons";
+import { SourcesIcon, XIcon } from "@/components/icons/icons";
 
 interface ChatFiltersProps {
-  filterManager?: FilterManager;
   closeSidebar: () => void;
   selectedMessage: Message | null;
   selectedDocuments: OnyxDocument[] | null;
@@ -29,10 +25,6 @@ interface ChatFiltersProps {
   isOpen: boolean;
   isSharedChat?: boolean;
   modal: boolean;
-  ccPairs: CCPairBasicInfo[];
-  tags: Tag[];
-  documentSets: DocumentSet[];
-  showFilters: boolean;
   setPresentingDocument: Dispatch<SetStateAction<OnyxDocument | null>>;
 }
 
@@ -43,7 +35,6 @@ export const ChatFilters = forwardRef<HTMLDivElement, ChatFiltersProps>(
       modal,
       selectedMessage,
       selectedDocuments,
-      filterManager,
       toggleDocumentSelection,
       clearSelectedDocuments,
       selectedDocumentTokens,
@@ -51,17 +42,32 @@ export const ChatFilters = forwardRef<HTMLDivElement, ChatFiltersProps>(
       initialWidth,
       isSharedChat,
       isOpen,
-      ccPairs,
-      tags,
       setPresentingDocument,
-      documentSets,
-      showFilters,
     },
     ref: ForwardedRef<HTMLDivElement>
   ) => {
     const { popup, setPopup } = usePopup();
     const [delayedSelectedDocumentCount, setDelayedSelectedDocumentCount] =
       useState(0);
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const sidebar = document.getElementById("onyx-chat-sidebar");
+      if (sidebar && !sidebar.contains(event.target as Node)) {
+        closeSidebar();
+      }
+    };
+
+    useEffect(() => {
+      if (isOpen) {
+        document.addEventListener("mousedown", handleOutsideClick);
+      } else {
+        document.removeEventListener("mousedown", handleOutsideClick);
+      }
+
+      return () => {
+        document.removeEventListener("mousedown", handleOutsideClick);
+      };
+    }, [isOpen]);
 
     useEffect(() => {
       const timer = setTimeout(
@@ -87,7 +93,7 @@ export const ChatFilters = forwardRef<HTMLDivElement, ChatFiltersProps>(
     return (
       <div
         id="onyx-chat-sidebar"
-        className={`relative bg-background max-w-full ${
+        className={`relative rounded-lg bg-background max-w-full ${
           !modal ? "border-l h-full border-sidebar-border" : ""
         }`}
         onClick={(e) => {
@@ -109,88 +115,58 @@ export const ChatFilters = forwardRef<HTMLDivElement, ChatFiltersProps>(
         >
           <div className="flex flex-col h-full">
             {popup}
-            <div className="p-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-text-900">
-                {showFilters ? "Filters" : "Sources"}
-              </h2>
-              <button
-                onClick={closeSidebar}
-                className="text-sm text-primary-600 mr-2  hover:text-primary-800 transition-colors duration-200 ease-in-out"
-              >
-                <XIcon className="w-4 h-4" />
-              </button>
+            <div className="p-4 flex items-center justify-start gap-x-2">
+              <SourcesIcon size={32} />
+              <h2 className="text-xl font-bold text-text-900">Sources</h2>
             </div>
             <div className="border-b border-divider-history-sidebar-bar mx-3" />
             <div className="overflow-y-auto -mx-1 sm:mx-0 flex-grow gap-y-0 default-scrollbar dark-scrollbar flex flex-col">
-              {showFilters ? (
-                <SourceSelector
-                  {...filterManager!}
-                  modal={modal}
-                  tagsOnLeft={true}
-                  filtersUntoggled={false}
-                  availableDocumentSets={documentSets}
-                  existingSources={ccPairs.map((ccPair) => ccPair.source)}
-                  availableTags={tags}
-                />
+              {dedupedDocuments.length > 0 ? (
+                dedupedDocuments.map((document, ind) => (
+                  <div key={document.document_id} className="w-full">
+                    <ChatDocumentDisplay
+                      setPresentingDocument={setPresentingDocument}
+                      closeSidebar={closeSidebar}
+                      modal={modal}
+                      document={document}
+                      isSelected={selectedDocumentIds.includes(
+                        document.document_id
+                      )}
+                      handleSelect={(documentId) => {
+                        toggleDocumentSelection(
+                          dedupedDocuments.find(
+                            (doc) => doc.document_id === documentId
+                          )!
+                        );
+                      }}
+                      hideSelection={isSharedChat}
+                      tokenLimitReached={tokenLimitReached}
+                    />
+                  </div>
+                ))
               ) : (
-                <>
-                  {dedupedDocuments.length > 0 ? (
-                    dedupedDocuments.map((document, ind) => (
-                      <div
-                        key={document.document_id}
-                        className={`${
-                          ind === dedupedDocuments.length - 1
-                            ? ""
-                            : "border-b border-border-light w-full"
-                        }`}
-                      >
-                        <ChatDocumentDisplay
-                          setPresentingDocument={setPresentingDocument}
-                          closeSidebar={closeSidebar}
-                          modal={modal}
-                          document={document}
-                          isSelected={selectedDocumentIds.includes(
-                            document.document_id
-                          )}
-                          handleSelect={(documentId) => {
-                            toggleDocumentSelection(
-                              dedupedDocuments.find(
-                                (doc) => doc.document_id === documentId
-                              )!
-                            );
-                          }}
-                          hideSelection={isSharedChat}
-                          tokenLimitReached={tokenLimitReached}
-                        />
-                      </div>
-                    ))
-                  ) : (
-                    <div className="mx-3" />
-                  )}
-                </>
+                <div className="mx-3" />
               )}
             </div>
           </div>
-          {!showFilters && (
-            <div
-              className={`sticky bottom-4 w-full left-0 flex justify-center transition-opacity duration-300 ${
-                hasSelectedDocuments
-                  ? "opacity-100"
-                  : "opacity-0 pointer-events-none"
-              }`}
+          <div
+            className={`sticky bottom-4 w-full left-0 flex justify-center transition-opacity duration-300 ${
+              hasSelectedDocuments
+                ? "opacity-100"
+                : "opacity-0 pointer-events-none"
+            }`}
+          >
+            <button
+              className="text-sm font-medium py-2 px-4 rounded-full transition-colors bg-gray-900 text-white"
+              onClick={clearSelectedDocuments}
             >
-              <button
-                className="text-sm font-medium py-2 px-4 rounded-full transition-colors bg-gray-900 text-white"
-                onClick={clearSelectedDocuments}
-              >
-                {`Remove ${
-                  delayedSelectedDocumentCount > 0
-                    ? delayedSelectedDocumentCount
-                    : ""
-                } Source${delayedSelectedDocumentCount > 1 ? "s" : ""}`}
-              </button>
-            </div>
-          )}
+              {`Remove ${
+                delayedSelectedDocumentCount > 0
+                  ? delayedSelectedDocumentCount
+                  : ""
+              } Source${delayedSelectedDocumentCount > 1 ? "s" : ""}`}
+            </button>
+          </div>
         </div>
       </div>
     );

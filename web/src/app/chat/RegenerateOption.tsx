@@ -62,8 +62,8 @@ export function RegenerateDropdown({
                 top-0 
                 flex
                 bg-background
-                font-bold
-                px-3
+                font-medium
+                px-2
                 text-sm 
                 py-1.5 
                 "

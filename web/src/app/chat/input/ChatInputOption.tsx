@@ -29,7 +29,7 @@ export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
 }) => {
   const [isDropupVisible, setDropupVisible] = useState(false);
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
-  const componentRef = useRef<HTMLDivElement>(null);
+  const componentRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -52,7 +52,7 @@ export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div
+          <button
             ref={componentRef}
             className={`
             relative 
@@ -95,7 +95,7 @@ export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
                 <ChevronDownIcon className="flex-none ml-1" size={size - 4} />
               )}
             </div>
-          </div>
+          </button>
         </TooltipTrigger>
         <TooltipContent>{tooltipContent}</TooltipContent>
       </Tooltip>

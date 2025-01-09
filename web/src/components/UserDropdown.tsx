@@ -131,7 +131,6 @@ export function UserDropdown({
       <Popover
         open={userInfoVisible}
         onOpenChange={onOpenChange}
-        contentClassName="w-[400px]"
         content={
           <div
             onClick={() => setUserInfoVisible(!userInfoVisible)}

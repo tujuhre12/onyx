@@ -114,6 +114,7 @@ import {
   SUBMIT_MESSAGE_TYPES,
 } from "@/lib/extension/constants";
 import AssistantModal from "../assistants/mine/AssistantModal";
+import { getSourceMetadata } from "@/lib/sources";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -325,6 +326,8 @@ export function ChatPage({
   const noAssistants = liveAssistant == null || liveAssistant == undefined;
 
   const availableSources = ccPairs.map((ccPair) => ccPair.source);
+  const uniqueSources = Array.from(new Set(availableSources));
+  const sources = uniqueSources.map((source) => getSourceMetadata(source));
 
   // always set the model override for the chat session, when an assistant, llm provider, or user preference exists
   useEffect(() => {
@@ -2092,12 +2095,7 @@ export function ChatPage({
             <ChatFilters
               setPresentingDocument={setPresentingDocument}
               modal={true}
-              filterManager={filterManager}
-              ccPairs={ccPairs}
-              tags={tags}
-              documentSets={documentSets}
               ref={innerSidebarElementRef}
-              showFilters={filtersToggled}
               closeSidebar={() => {
                 setDocumentSidebarToggled(false);
               }}
@@ -2259,12 +2257,7 @@ export function ChatPage({
               <ChatFilters
                 setPresentingDocument={setPresentingDocument}
                 modal={false}
-                filterManager={filterManager}
-                ccPairs={ccPairs}
-                tags={tags}
-                documentSets={documentSets}
                 ref={innerSidebarElementRef}
-                showFilters={filtersToggled}
                 closeSidebar={() => setDocumentSidebarToggled(false)}
                 selectedMessage={aiMessage}
                 selectedDocuments={selectedDocuments}
@@ -2300,7 +2293,6 @@ export function ChatPage({
                   }
                   toggleSidebar={toggleSidebar}
                   currentChatSession={selectedChatSession}
-                  documentSidebarToggled={documentSidebarToggled}
                   hideUserDropdown={user?.is_anonymous_user}
                 />
               )}
@@ -2355,26 +2347,6 @@ export function ChatPage({
                               `}
                                 ></div>
                               )}
-
-                              {!settings?.isMobile && (
-                                <div
-                                  style={{ transition: "width 0.30s ease-out" }}
-                                  className={`
-                                    flex-none 
-                                    overflow-y-hidden 
-                                    transition-all 
-                                    duration-300 
-                                    ease-in-out
-                                    h-full
-                                    pointer-events-none
-                                    ${
-                                      documentSidebarToggled && retrievalEnabled
-                                        ? "w-[400px]"
-                                        : "w-[0px]"
-                                    }
-                                `}
-                                ></div>
-                              )}
                             </div>
                           )}
 
@@ -2404,11 +2376,11 @@ export function ChatPage({
                             key={currentSessionId()}
                             className={
                               "desktop:-ml-4 w-full mx-auto " +
-                              "absolute mobile:top-0 desktop:top-12 left-0 " +
+                              "absolute mobile:top-0 desktop:top-0 left-0 " +
                               (settings?.enterpriseSettings
                                 ?.two_lines_for_chat_header
-                                ? "mt-20 "
-                                : "mt-8") +
+                                ? "pt-20 "
+                                : "pt-8") +
                               (hasPerformedInitialScroll ? "" : "invisible")
                             }
                           >
@@ -2814,6 +2786,10 @@ export function ChatPage({
                               </div>
                             )}
                             <ChatInputBar
+                              availableSources={sources}
+                              availableDocumentSets={documentSets}
+                              availableTags={tags}
+                              filterManager={filterManager}
                               llmOverrideManager={llmOverrideManager}
                               removeDocs={() => {
                                 clearSelectedDocuments();
@@ -2870,23 +2846,6 @@ export function ChatPage({
                           </div>
                         </div>
                       </div>
-                      {!settings?.isMobile && (
-                        <div
-                          style={{ transition: "width 0.30s ease-out" }}
-                          className={`
-                          flex-none 
-                          overflow-y-hidden 
-                          transition-all 
-                          duration-300 
-                          ease-in-out
-                          ${
-                            documentSidebarToggled && retrievalEnabled
-                              ? "w-[400px]"
-                              : "w-[0px]"
-                          }
-                      `}
-                        ></div>
-                      )}
                     </div>
                   )}
                 </Dropzone>
