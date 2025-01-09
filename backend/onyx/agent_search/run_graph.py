@@ -170,7 +170,7 @@ def run_graph(
                 elif isinstance(parsed_object, OnyxAnswerPiece):
                     token = parsed_object.answer_piece
                     if not token:
-                        return parsed_object
+                        yield parsed_object
                 else:
                     raise ValueError(
                         f"Invalid parsed object type: {type(parsed_object)}"
@@ -261,6 +261,9 @@ def run_graph(
                             agent_question_citations_used_docs[level][
                                 level_question_nr
                             ].append(doc_id)
+
+                yield parsed_object
+
             else:
                 citation_potential = False
                 yield parsed_object
