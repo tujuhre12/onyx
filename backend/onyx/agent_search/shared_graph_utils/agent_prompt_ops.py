@@ -18,7 +18,7 @@ def build_sub_question_answer_prompt(
     )
 
     docs_format_list = [
-        f"""Document Number: [{doc_nr + 1}]\n
+        f"""Document Number: [D{doc_nr + 1}]\n
                              Content: {doc.combined_content}\n\n"""
         for doc_nr, doc in enumerate(docs)
     ]

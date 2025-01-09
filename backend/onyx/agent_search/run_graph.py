@@ -129,6 +129,17 @@ def run_graph(
         int, defaultdict[int, list[str]]
     ] = defaultdict(lambda: defaultdict(list))
 
+    citation_potential: defaultdict[int, defaultdict[int, bool]] = defaultdict(
+        lambda: defaultdict(lambda: False)
+    )
+
+    current_yield_components: defaultdict[
+        int, defaultdict[int, list[str]]
+    ] = defaultdict(lambda: defaultdict(list))
+    current_yield_str: defaultdict[int, defaultdict[int, str]] = defaultdict(
+        lambda: defaultdict(lambda: "")
+    )
+
     # def _process_citation(current_yield_str: str) -> tuple[str, str]:
     #                 """Process a citation string and return the formatted citation and remaining text."""
     #                 section_split = current_yield_str.split(']', 1)
@@ -143,11 +154,6 @@ def run_graph(
     #                     formatted_citation = citation_part.replace('[Q', '{{').replace(']', '}}')
 
     #                 return f" --- CITATION: {citation_type} - {formatted_citation}", remaining_text
-
-    citation_potential = False
-    # leading_space = False
-    current_yield_components = []
-    current_yield_str = ""
 
     for event in _manage_async_event_streaming(
         compiled_graph=compiled_graph, graph_input=input
@@ -179,8 +185,12 @@ def run_graph(
 
                 if isinstance(parsed_object, SubAnswerPiece):
                     token: str | None = parsed_object.sub_answer
+                    level = parsed_object.level
+                    level_question_nr = parsed_object.level_question_nr
                 elif isinstance(parsed_object, OnyxAnswerPiece):
                     token = parsed_object.answer_piece
+                    level = 0
+                    level_question_nr = 0
                     if not token:
                         yield parsed_object
                 else:
@@ -188,39 +198,45 @@ def run_graph(
                         f"Invalid parsed object type: {type(parsed_object)}"
                     )
 
-                if not citation_potential and token:
+                if not citation_potential[level][level_question_nr] and token:
                     if token.startswith(" ["):
-                        citation_potential = True
-                        current_yield_components = [token]
+                        citation_potential[level][level_question_nr] = True
+                        current_yield_components[level][level_question_nr] = [token]
                     else:
                         yield parsed_object
-                elif token and citation_potential:
-                    current_yield_components.append(token)
-                    current_yield_str = "".join(current_yield_components)
+                elif token and citation_potential[level][level_question_nr]:
+                    current_yield_components[level][level_question_nr].append(token)
+                    current_yield_str[level][level_question_nr] = "".join(
+                        current_yield_components[level][level_question_nr]
+                    )
 
-                    if current_yield_str.strip().startswith(
+                    if current_yield_str[level][level_question_nr].strip().startswith(
                         "[D"
-                    ) or current_yield_str.strip().startswith("[Q"):
-                        citation_potential = True
+                    ) or current_yield_str[level][level_question_nr].strip().startswith(
+                        "[Q"
+                    ):
+                        citation_potential[level][level_question_nr] = True
 
                     else:
-                        citation_potential = False
+                        citation_potential[level][level_question_nr] = False
                         parsed_object = _set_combined_token_value(
-                            current_yield_str, parsed_object
+                            current_yield_str[level][level_question_nr], parsed_object
                         )
                         yield parsed_object
 
-                    if len(current_yield_components) > 15:
-                        citation_potential = False
+                    if len(current_yield_components[level][level_question_nr]) > 15:
+                        citation_potential[level][level_question_nr] = False
                         parsed_object = _set_combined_token_value(
-                            current_yield_str, parsed_object
+                            current_yield_str[level][level_question_nr], parsed_object
                         )
                         yield parsed_object
-                    elif "]" in current_yield_str:
-                        section_split = current_yield_str.split("]")
+                    elif "]" in current_yield_str[level][level_question_nr]:
+                        section_split = current_yield_str[level][
+                            level_question_nr
+                        ].split("]")
                         section_split[0] + "]"
                         start_of_next_section = "]".join(section_split[1:])
-                        citation_string = current_yield_str[
+                        citation_string = current_yield_str[level][level_question_nr][
                             : -len(start_of_next_section)
                         ]
                         if "[D" in citation_string:
@@ -231,7 +247,9 @@ def run_graph(
                             cite_identifyer = "D"
 
                             try:
-                                cited_document = int(citation_string[2:-1])
+                                cited_document = int(
+                                    citation_string[level][level_question_nr][2:-1]
+                                )
                                 if level and level_question_nr:
                                     link = agent_document_citations[int(level)][
                                         int(level_question_nr)
@@ -265,9 +283,11 @@ def run_graph(
 
                         yield parsed_object
 
-                        current_yield_components = [start_of_next_section]
+                        current_yield_components[level][level_question_nr] = [
+                            start_of_next_section
+                        ]
                         if not start_of_next_section.strip().startswith("["):
-                            citation_potential = False
+                            citation_potential[level][level_question_nr] = False
 
             elif isinstance(parsed_object, ExtendedToolResponse):
                 if parsed_object.id == "search_response_summary":
@@ -303,7 +323,6 @@ def run_graph(
                 yield parsed_object
 
             else:
-                citation_potential = False
                 yield parsed_object
 
 
