@@ -1,5 +1,7 @@
 from onyx.agent_search.core_state import CoreState
-from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalInput
+from onyx.agent_search.pro_search_a.expanded_retrieval.states import (
+    ExpandedRetrievalInput,
+)
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()

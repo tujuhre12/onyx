@@ -4,8 +4,12 @@ from typing import Any
 from langchain_core.callbacks.manager import dispatch_custom_event
 from langchain_core.messages import merge_message_runs
 
-from onyx.agent_search.answer_initial_sub_question.states import AnswerQuestionState
-from onyx.agent_search.answer_initial_sub_question.states import QAGenerationUpdate
+from onyx.agent_search.pro_search_a.answer_initial_sub_question.states import (
+    AnswerQuestionState,
+)
+from onyx.agent_search.pro_search_a.answer_initial_sub_question.states import (
+    QAGenerationUpdate,
+)
 from onyx.agent_search.shared_graph_utils.agent_prompt_ops import (
     build_sub_question_answer_prompt,
 )

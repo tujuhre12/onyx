@@ -2,16 +2,24 @@ from langgraph.graph import END
 from langgraph.graph import START
 from langgraph.graph import StateGraph
 
-from onyx.agent_search.expanded_retrieval.edges import parallel_retrieval_edge
-from onyx.agent_search.expanded_retrieval.nodes import doc_reranking
-from onyx.agent_search.expanded_retrieval.nodes import doc_retrieval
-from onyx.agent_search.expanded_retrieval.nodes import doc_verification
-from onyx.agent_search.expanded_retrieval.nodes import expand_queries
-from onyx.agent_search.expanded_retrieval.nodes import format_results
-from onyx.agent_search.expanded_retrieval.nodes import verification_kickoff
-from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalInput
-from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalOutput
-from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalState
+from onyx.agent_search.pro_search_a.expanded_retrieval.edges import (
+    parallel_retrieval_edge,
+)
+from onyx.agent_search.pro_search_a.expanded_retrieval.nodes import doc_reranking
+from onyx.agent_search.pro_search_a.expanded_retrieval.nodes import doc_retrieval
+from onyx.agent_search.pro_search_a.expanded_retrieval.nodes import doc_verification
+from onyx.agent_search.pro_search_a.expanded_retrieval.nodes import expand_queries
+from onyx.agent_search.pro_search_a.expanded_retrieval.nodes import format_results
+from onyx.agent_search.pro_search_a.expanded_retrieval.nodes import verification_kickoff
+from onyx.agent_search.pro_search_a.expanded_retrieval.states import (
+    ExpandedRetrievalInput,
+)
+from onyx.agent_search.pro_search_a.expanded_retrieval.states import (
+    ExpandedRetrievalOutput,
+)
+from onyx.agent_search.pro_search_a.expanded_retrieval.states import (
+    ExpandedRetrievalState,
+)
 from onyx.agent_search.shared_graph_utils.utils import get_test_config
 from onyx.utils.logger import setup_logger
 

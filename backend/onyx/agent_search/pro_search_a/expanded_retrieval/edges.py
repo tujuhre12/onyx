@@ -3,8 +3,10 @@ from collections.abc import Hashable
 from langgraph.types import Send
 
 from onyx.agent_search.core_state import in_subgraph_extract_core_fields
-from onyx.agent_search.expanded_retrieval.nodes import RetrievalInput
-from onyx.agent_search.expanded_retrieval.states import ExpandedRetrievalState
+from onyx.agent_search.pro_search_a.expanded_retrieval.nodes import RetrievalInput
+from onyx.agent_search.pro_search_a.expanded_retrieval.states import (
+    ExpandedRetrievalState,
+)
 
 
 def parallel_retrieval_edge(state: ExpandedRetrievalState) -> list[Send | Hashable]:

@@ -9,9 +9,9 @@ from langchain_core.runnables.schema import StreamEvent
 from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy.orm import Session
 
-from onyx.agent_search.main.graph_builder import main_graph_builder
-from onyx.agent_search.main.states import MainInput
 from onyx.agent_search.models import AgentDocumentCitations
+from onyx.agent_search.pro_search_a.main.graph_builder import main_graph_builder
+from onyx.agent_search.pro_search_a.main.states import MainInput
 from onyx.agent_search.shared_graph_utils.utils import get_test_config
 from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import AnswerPacket
