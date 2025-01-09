@@ -41,9 +41,12 @@ from onyx.context.search.pipeline import retrieval_preprocessing
 from onyx.context.search.postprocessing.postprocessing import rerank_sections
 from onyx.db.engine import get_session_context_manager
 from onyx.llm.interfaces import LLM
+from onyx.tools.models import SearchQueryInfo
 from onyx.tools.tool_implementations.search.search_tool import (
     SEARCH_RESPONSE_SUMMARY_ID,
 )
+from onyx.tools.tool_implementations.search.search_tool import SearchResponseSummary
+from onyx.tools.tool_implementations.search.search_tool import yield_search_responses
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -122,6 +125,7 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
             retrieved_documents=[],
         )
 
+    query_info = None
     # new db session to avoid concurrency issues
     with get_session_context_manager() as db_session:
         for tool_response in search_tool.run(
@@ -131,24 +135,13 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
         ):
             # get retrieved docs to send to the rest of the graph
             if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
-                retrieved_docs = cast(
-                    list[InferenceSection], tool_response.response.top_sections
+                response = cast(SearchResponseSummary, tool_response.response)
+                retrieved_docs = response.top_sections
+                query_info = SearchQueryInfo(
+                    predicted_search=response.predicted_search,
+                    final_filters=response.final_filters,
+                    recency_bias_multiplier=response.recency_bias_multiplier,
                 )
-
-            level, question_nr = (
-                parse_question_id(state["sub_question_id"])
-                if state["sub_question_id"]
-                else (0, 0)
-            )
-            dispatch_custom_event(
-                "tool_response",
-                ExtendedToolResponse(
-                    id=tool_response.id,
-                    response=tool_response.response,
-                    level=level,
-                    level_question_nr=question_nr,
-                ),
-            )
 
     retrieved_docs = retrieved_docs[:AGENT_MAX_QUERY_RETRIEVAL_RESULTS]
     pre_rerank_docs = retrieved_docs
@@ -169,6 +162,7 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
         query=query_to_retrieve,
         search_results=retrieved_docs,
         stats=fit_scores,
+        query_info=query_info,
     )
     return DocRetrievalUpdate(
         expanded_retrieval_results=[expanded_retrieval_result],
@@ -353,6 +347,36 @@ def _calculate_sub_question_retrieval_stats(
 
 
 def format_results(state: ExpandedRetrievalState) -> ExpandedRetrievalUpdate:
+    level, question_nr = parse_question_id(state.get("sub_question_id") or "0_0")
+    query_infos = [
+        result.query_info
+        for result in state["expanded_retrieval_results"]
+        if result.query_info is not None
+    ]
+    if len(query_infos) == 0:
+        raise ValueError("No query info found")
+
+    # main question docs will be sent later after aggregation and deduping with sub-question docs
+    if not (level == 0 and question_nr == 0):
+        for tool_response in yield_search_responses(
+            query=state["question"],
+            reranked_sections=state[
+                "retrieved_documents"
+            ],  # TODO: rename params. this one is supposed to be the sections pre-merging
+            final_context_sections=state["reranked_documents"],
+            search_query_info=query_infos[0],  # TODO: handle differing query infos?
+            get_section_relevance=lambda: None,  # TODO: add relevance
+            search_tool=state["subgraph_search_tool"],
+        ):
+            dispatch_custom_event(
+                "tool_response",
+                ExtendedToolResponse(
+                    id=tool_response.id,
+                    response=tool_response.response,
+                    level=level,
+                    level_question_nr=question_nr,
+                ),
+            )
     sub_question_retrieval_stats = _calculate_sub_question_retrieval_stats(
         verified_documents=state["verified_documents"],
         expanded_retrieval_results=state["expanded_retrieval_results"],

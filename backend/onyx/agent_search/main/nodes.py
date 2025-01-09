@@ -62,9 +62,11 @@ from onyx.agent_search.shared_graph_utils.utils import format_entity_term_extrac
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
 from onyx.agent_search.shared_graph_utils.utils import make_question_id
 from onyx.agent_search.shared_graph_utils.utils import parse_question_id
+from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import SubQuestionPiece
 from onyx.db.chat import log_agent_metrics
 from onyx.db.chat import log_agent_sub_question_results
+from onyx.tools.tool_implementations.search.search_tool import yield_search_responses
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -252,6 +254,32 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     relevant_docs = dedup_inference_sections(
         sub_question_docs, all_original_question_documents
     )
+
+    # Use the query info from the base document retrieval
+    query_infos = [
+        result.query_info
+        for result in state["original_question_retrieval_results"]
+        if result.query_info is not None
+    ]
+    if len(query_infos) == 0:
+        raise ValueError("No query info found")
+    for tool_response in yield_search_responses(
+        query=question,
+        reranked_sections=relevant_docs,
+        final_context_sections=relevant_docs,
+        search_query_info=query_infos[0],
+        get_section_relevance=lambda: None,  # TODO: add relevance
+        search_tool=state["search_tool"],
+    ):
+        dispatch_custom_event(
+            "tool_response",
+            ExtendedToolResponse(
+                id=tool_response.id,
+                response=tool_response.response,
+                level=0,
+                level_question_nr=0,  # 0, 0 is the base question
+            ),
+        )
 
     net_new_original_question_docs = []
     for all_original_question_doc in all_original_question_documents:
