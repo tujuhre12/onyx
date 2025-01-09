@@ -168,7 +168,7 @@ export default function StarterMessagesList({
         {canAddMore && (
           <Button
             type="button"
-            className="w-fit"
+            className="!text-2xs w-fit"
             onClick={() => {
               arrayHelpers.push({
                 name: "",
@@ -180,7 +180,7 @@ export default function StarterMessagesList({
               });
             }}
           >
-            <FiPlus size={16} />
+            <FiPlus size={8} />
             <span>Add Row</span>
           </Button>
         )}

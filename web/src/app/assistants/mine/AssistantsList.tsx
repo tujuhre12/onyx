@@ -61,6 +61,59 @@ import { CustomTooltip } from "@/components/tooltip/CustomTooltip";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { useUser } from "@/components/user/UserProvider";
 import { usePaidEnterpriseFeaturesEnabled } from "@/components/settings/usePaidEnterpriseFeaturesEnabled";
+import { Modal } from "@/components/Modal";
+import { AssistantCard } from "@/components/assistants/AssistantCards";
+import NewAssistantCard from "../gallery/AssistantCard";
+
+export const AssistantBadgeSelector = ({
+  text,
+  selected,
+  toggleFilter,
+}: {
+  text: string;
+  selected: boolean;
+  toggleFilter: () => void;
+}) => {
+  return (
+    <div
+      className={`${
+        selected && "bg-neutral-200"
+      } h-5 px-1 py-0.5 rounded-lg cursor-pointer border border-black justify-center items-center gap-1 inline-flex`}
+      onClick={toggleFilter}
+    >
+      <div className="text-black text-[10px] font-normal leading-[10px]">
+        {text}
+      </div>
+    </div>
+  );
+};
+
+enum AssistantFilter {
+  Recent = "Recent",
+  AdminCreated = "Admin created",
+  Pinned = "Pinned",
+  Private = "Private",
+  Public = "Public",
+}
+
+const useAssistantFilter = () => {
+  const [filters, setFilters] = useState<Record<AssistantFilter, boolean>>({
+    [AssistantFilter.Recent]: false,
+    [AssistantFilter.AdminCreated]: false,
+    [AssistantFilter.Pinned]: false,
+    [AssistantFilter.Private]: false,
+    [AssistantFilter.Public]: false,
+  });
+
+  const toggleFilter = (filter: AssistantFilter) => {
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      [filter]: !prevFilters[filter],
+    }));
+  };
+
+  return { filters, toggleFilter };
+};
 
 function DraggableAssistantListItem({ ...props }: any) {
   const {
@@ -121,6 +174,7 @@ function AssistantListItem({
   const isEnterpriseEnabled = usePaidEnterpriseFeaturesEnabled();
   const isOwnedByUser = checkUserOwnsAssistant(user, assistant);
   const { isAdmin } = useUser();
+  const { filters, toggleFilter } = useAssistantFilter();
 
   return (
     <>
@@ -317,10 +371,7 @@ export function AssistantsList() {
     setCurrentlyVisibleAssistants(finalAssistants);
   }, [finalAssistants]);
 
-  const allAssistantIds = assistants.map((assistant) =>
-    assistant.id.toString()
-  );
-
+  const { filters, toggleFilter } = useAssistantFilter();
   const [deletingPersona, setDeletingPersona] = useState<Persona | null>(null);
   const [makePublicPersona, setMakePublicPersona] = useState<Persona | null>(
     null
@@ -329,39 +380,11 @@ export function AssistantsList() {
   const { refreshUser, user } = useUser();
 
   const { popup, setPopup } = usePopup();
-  const router = useRouter();
+
   const { data: users } = useSWR<MinimalUserSnapshot[]>(
     "/api/users",
     errorHandlingFetcher
   );
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  async function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      const oldIndex = currentlyVisibleAssistants.findIndex(
-        (item) => item.id.toString() === active.id
-      );
-      const newIndex = currentlyVisibleAssistants.findIndex(
-        (item) => item.id.toString() === over.id
-      );
-      const updatedAssistants = arrayMove(
-        currentlyVisibleAssistants,
-        oldIndex,
-        newIndex
-      );
-
-      setCurrentlyVisibleAssistants(updatedAssistants);
-      await updateUserAssistantList(updatedAssistants.map((a) => a.id));
-    }
-  }
 
   return (
     <>
@@ -389,6 +412,7 @@ export function AssistantsList() {
           }}
         />
       )}
+
       {makePublicPersona && (
         <MakePublicAssistantModal
           isPublic={makePublicPersona.is_public}
@@ -403,96 +427,75 @@ export function AssistantsList() {
         />
       )}
 
-      <div className="mx-auto w-searchbar-xs 2xl:w-searchbar-sm 3xl:w-searchbar">
-        <AssistantsPageTitle>Your Assistants</AssistantsPageTitle>
-
-        <div className="grid grid-cols-2 gap-4 mt-4 mb-8">
-          <Button
-            variant="default"
-            className="p-6 text-base"
-            onClick={() => router.push("/assistants/new")}
-            icon={FiPlus}
-          >
-            Create New Assistant
-          </Button>
-
-          <Button
-            onClick={() => router.push("/assistants/gallery")}
-            variant="outline"
-            className="text-base py-6"
-            icon={FiList}
-          >
-            Assistant Gallery
-          </Button>
-        </div>
-
-        <h2 className="text-2xl font-semibold mb-2 text-text-900">
-          Active Assistants
-        </h2>
-
-        <h3 className="text-lg text-text-500">
-          The order the assistants appear below will be the order they appear in
-          the Assistants dropdown. The first assistant listed will be your
-          default assistant when you start a new chat. Drag and drop to reorder.
-        </h3>
-
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={currentlyVisibleAssistants.map((a) => a.id.toString())}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className="w-full items-center py-4">
-              {currentlyVisibleAssistants.map((assistant, index) => (
-                <DraggableAssistantListItem
-                  onlyAssistant={currentlyVisibleAssistants.length === 1}
-                  deleteAssistant={setDeletingPersona}
-                  shareAssistant={setMakePublicPersona}
-                  key={assistant.id}
-                  assistant={assistant}
-                  user={user}
-                  allAssistantIds={allAssistantIds}
-                  allUsers={users || []}
-                  isVisible
-                  setPopup={setPopup}
+      <Modal className="w-full max-w-3xl " width="w-full max-w-3xl ">
+        <>
+          <div className="flex justify-between items-center mb-0">
+            <div className="h-10 px-4 w-full  rounded-lg flex-col justify-center items-start gap-2.5 inline-flex">
+              <div className="h-16 rounded-lg w-full shadow-[0px_0px_2px_0px_rgba(0,0,0,0.25)] border border-[#dcdad4] flex items-center px-3">
+                <input
+                  type="text"
+                  placeholder="Search assistants..."
+                  className="w-full h-full bg-transparent outline-none text-black"
                 />
-              ))}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
             </div>
-          </SortableContext>
-        </DndContext>
-
-        {ownedButHiddenAssistants.length > 0 && (
-          <>
-            <Separator />
-
-            <h3 className="text-xl font-bold mb-4">Your Hidden Assistants</h3>
-
-            <h3 className="text-lg text-text-500">
-              Assistants you&apos;ve created that aren&apos;t currently visible
-              in the Assistants selector.
-            </h3>
-
-            <div className="w-full p-4">
-              {ownedButHiddenAssistants.map((assistant, index) => (
-                <AssistantListItem
-                  onlyAssistant={currentlyVisibleAssistants.length === 1}
-                  deleteAssistant={setDeletingPersona}
-                  shareAssistant={setMakePublicPersona}
-                  key={assistant.id}
-                  assistant={assistant}
-                  user={user}
-                  allUsers={users || []}
-                  isVisible={false}
-                  setPopup={setPopup}
-                />
-              ))}
+            <div className="h-10  px-6 py-3 bg-black rounded border border-black justify-center items-center gap-2.5 inline-flex">
+              <div className="text-[#fffcf4] text-base font-normal font-['KH Teka TRIAL'] leading-normal">
+                Create
+              </div>
             </div>
-          </>
-        )}
-      </div>
+          </div>
+          <div className="ml-4 flex py-2 items-center gap-x-2">
+            <AssistantBadgeSelector
+              text="Public"
+              selected={filters[AssistantFilter.Public]}
+              toggleFilter={() => toggleFilter(AssistantFilter.Public)}
+            />
+            <AssistantBadgeSelector
+              text="Private"
+              selected={filters[AssistantFilter.Private]}
+              toggleFilter={() => toggleFilter(AssistantFilter.Private)}
+            />
+            <AssistantBadgeSelector
+              text="Hidden"
+              selected={filters[AssistantFilter.Pinned]}
+              toggleFilter={() => toggleFilter(AssistantFilter.Pinned)}
+            />
+            <AssistantBadgeSelector
+              text="Admin Created"
+              selected={filters[AssistantFilter.AdminCreated]}
+              toggleFilter={() => toggleFilter(AssistantFilter.AdminCreated)}
+            />
+            <AssistantBadgeSelector
+              text="Recent"
+              selected={filters[AssistantFilter.Recent]}
+              toggleFilter={() => toggleFilter(AssistantFilter.Recent)}
+            />
+          </div>
+
+          <div className="w-full h-full overflow-y-auto grid grid-cols-2 gap-4">
+            {currentlyVisibleAssistants.map((assistant, index) => (
+              <div key={assistant.id}>
+                <NewAssistantCard persona={assistant} />
+              </div>
+            ))}
+          </div>
+        </>
+      </Modal>
     </>
   );
 }

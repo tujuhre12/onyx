@@ -148,7 +148,7 @@ module.exports = {
         "text-mobile-sidebar-toggled": "var(--text-800)",
         "text-mobile-sidebar-untoggled": "var(--text-500)",
         "text-editing-message": "var(--text-800)",
-        "background-sidebar": "var(--background-100)",
+        "background-sidebar": "#F5F3EE",
         "background-search-filter": "var(--background-100)",
         "background-search-filter-dropdown": "var(--background-hover)",
 

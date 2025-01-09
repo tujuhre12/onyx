@@ -719,10 +719,7 @@ export function AssistantEditor({
                 <div className="flex gap-x-2 py-2 flex justify-between">
                   <div>
                     <p className="block font-medium text-sm">General Access</p>
-                    <p
-                      className="text-sm text-subtle"
-                      style={{ color: "rgb(113, 114, 121)" }}
-                    >
+                    <p className="text-sm text-subtle text-[#717279]">
                       Everyone in your workspace can access this assistant
                     </p>
                   </div>
@@ -1230,7 +1227,7 @@ export function AssistantEditor({
                           <div className="block font-medium text-base">
                             Manage categories
                           </div>
-                          <TooltipProvider>
+                          <TooltipProvider delayDuration={0}>
                             <Tooltip>
                               <TooltipTrigger>
                                 <FiInfo size={12} />

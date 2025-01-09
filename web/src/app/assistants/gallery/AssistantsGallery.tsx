@@ -272,58 +272,6 @@ export function AssistantsGallery() {
           </div>
         </div>
 
-        {categories && categories?.length > 0 && (
-          <div className="mb-8">
-            <Select
-              value={selectedCategory?.toString() || "all"}
-              onValueChange={(value) =>
-                setSelectedCategory(value === "all" ? null : parseInt(value))
-              }
-            >
-              <SelectTrigger
-                className="
-                w-[240px]
-                bg-background 
-                border-2
-                border-background-strong
-                text-text-500
-                rounded-lg
-                shadow-sm
-                hover:bg-background-emphasis
-                hover:border-primary-500/50
-                hover:text-primary-500
-                transition-all
-                duration-200
-              "
-              >
-                <SelectValue placeholder="Filter by category..." />
-              </SelectTrigger>
-              <SelectContent className="bg-background border-background-strong">
-                <SelectGroup>
-                  <SelectLabel className="text-sm font-medium text-text-400">
-                    Categories
-                  </SelectLabel>
-                  <SelectItem
-                    value="all"
-                    className="cursor-pointer hover:bg-background-emphasis"
-                  >
-                    All Categories
-                  </SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem
-                      key={category.id}
-                      value={category.id.toString()}
-                      className="cursor-pointer hover:bg-background-emphasis"
-                    >
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
         {defaultAssistants.length == 0 &&
           nonDefaultAssistants.length == 0 &&
           assistants.length != 0 && (
