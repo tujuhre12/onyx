@@ -113,6 +113,7 @@ import {
   CHROME_MESSAGE,
   SUBMIT_MESSAGE_TYPES,
 } from "@/lib/extension/constants";
+import AssistantModal from "../assistants/mine/AssistantModal";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -1957,6 +1958,7 @@ export function ChatPage({
   const showShareModal = (chatSession: ChatSession) => {
     setSharedChatSession(chatSession);
   };
+  const [showAssistantsModal, setShowAssistantsModal] = useState(false);
 
   const toggleDocumentSidebar = () => {
     if (!documentSidebarToggled) {
@@ -2177,6 +2179,13 @@ export function ChatPage({
         />
       )}
 
+      {showAssistantsModal && (
+        <AssistantModal
+          currentlyVisibleAssistants={assistants}
+          hideModal={() => setShowAssistantsModal(false)}
+        />
+      )}
+
       <div className="fixed inset-0 flex flex-col text-default">
         <div className="h-[100dvh] overflow-y-hidden">
           <div className="w-full">
@@ -2201,6 +2210,7 @@ export function ChatPage({
             >
               <div className="w-full relative">
                 <HistorySidebar
+                  setShowAssistantsModal={setShowAssistantsModal}
                   assistants={assistants}
                   explicitlyUntoggle={explicitlyUntoggle}
                   stopGenerating={stopGenerating}
@@ -2210,6 +2220,7 @@ export function ChatPage({
                   toggleSidebar={toggleSidebar}
                   toggled={toggledSidebar}
                   backgroundToggled={toggledSidebar || showHistorySidebar}
+                  currentAssistantId={liveAssistant?.id}
                   existingChats={chatSessions}
                   currentChatSession={selectedChatSession}
                   folders={folders}
@@ -2327,7 +2338,7 @@ export function ChatPage({
                           className={`w-full h-[calc(100vh-160px)] flex flex-col default-scrollbar overflow-y-auto overflow-x-hidden relative`}
                           ref={scrollableDivRef}
                         >
-                          {liveAssistant && onAssistantChange && (
+                          {liveAssistant && (
                             <div className="z-20 fixed top-0 pointer-events-none left-0 w-full flex justify-center overflow-visible">
                               {!settings?.isMobile && (
                                 <div
@@ -2345,12 +2356,6 @@ export function ChatPage({
                                 ></div>
                               )}
 
-                              <AssistantSelector
-                                isMobile={settings?.isMobile!}
-                                liveAssistant={liveAssistant}
-                                onAssistantChange={onAssistantChange}
-                                llmOverrideManager={llmOverrideManager}
-                              />
                               {!settings?.isMobile && (
                                 <div
                                   style={{ transition: "width 0.30s ease-out" }}
@@ -2377,13 +2382,12 @@ export function ChatPage({
                       the top of the chat page. Oly used in the EE version of the app. */}
 
                           {messageHistory.length === 0 &&
-                            false &&
                             !isFetchingChatMessages &&
                             currentSessionChatState == "input" &&
                             !loadingError &&
                             !submittedMessage && (
-                              <div className="h-full w-[95%] mx-auto mt-12 flex flex-col justify-center items-center">
-                                {/* <ChatIntro selectedPersona={liveAssistant} /> */}
+                              <div className="h-full w-[95%] mx-auto flex flex-col justify-center items-center">
+                                <ChatIntro selectedPersona={liveAssistant} />
 
                                 <StarterMessages
                                   currentPersona={currentPersona}
@@ -2393,25 +2397,6 @@ export function ChatPage({
                                     })
                                   }
                                 />
-
-                                {!isFetchingChatMessages &&
-                                  currentSessionChatState == "input" &&
-                                  !loadingError &&
-                                  allAssistants.length > 1 && (
-                                    <div className="mobile:hidden mx-auto px-4 w-full max-w-[750px] flex flex-col items-center">
-                                      <Separator className="mx-2 w-full my-12" />
-                                      <div className="text-sm text-black font-medium mb-4">
-                                        Recent Assistants
-                                      </div>
-                                      <AssistantBanner
-                                        mobile={settings?.isMobile}
-                                        recentAssistants={recentAssistants}
-                                        liveAssistant={liveAssistant}
-                                        allAssistants={allAssistants}
-                                        onAssistantChange={onAssistantChange}
-                                      />
-                                    </div>
-                                  )}
                               </div>
                             )}
 

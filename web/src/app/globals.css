@@ -144,7 +144,7 @@
     /* Light pink for non-selectable elements */
     --highlight-text: #fef9c3;
     /* Very light yellow for highlighted text */
-    --user-bubble: #f1f2f4;
+    --user-bubble: #f1eee8;
     /* near gray-100 - Very light grayish */
     --ai-bubble: #272a2d;
     /* Dark grayish for AI bubbles */

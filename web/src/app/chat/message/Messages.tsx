@@ -47,7 +47,11 @@ import "./custom-code-styles.css";
 import { Persona } from "@/app/admin/assistants/interfaces";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 
-import { LikeFeedback, DislikeFeedback } from "@/components/icons/icons";
+import {
+  LikeFeedback,
+  DislikeFeedback,
+  OnyxIcon,
+} from "@/components/icons/icons";
 import {
   CustomTooltip,
   TooltipGroup,
@@ -111,7 +115,6 @@ function FileDisplay({
                 <div key={file.id} className="w-fit">
                   <DocumentPreview
                     fileName={file.name || file.id}
-                    maxWidth="max-w-64"
                     alignBubble={alignBubble}
                   />
                 </div>
@@ -392,10 +395,11 @@ export const AIMessage = ({
       >
         <div className={`lg:mr-12 ${!shared && "mobile:ml-0 md:ml-8"}`}>
           <div className="flex">
-            <AssistantIcon
+            <OnyxIcon size={24} className="flex-none" />
+            {/* <AssistantIcon
               size="small"
               assistant={alternativeAssistant || currentPersona}
-            />
+            /> */}
 
             <div className="w-full">
               <div className="max-w-message-max break-words">
@@ -796,7 +800,6 @@ export const HumanMessage = ({
                       border 
                       border-border 
                       rounded-lg 
-                      bg-background-emphasis
                       pb-2
                       [&:has(textarea:focus)]::ring-1
                       [&:has(textarea:focus)]::ring-black
@@ -812,7 +815,6 @@ export const HumanMessage = ({
                         border-0
                         rounded-lg 
                         overflow-y-hidden
-                        bg-background-emphasis 
                         whitespace-normal 
                         break-word
                         overscroll-contain
@@ -822,6 +824,7 @@ export const HumanMessage = ({
                         text-text-editing-message
                         pl-4
                         overflow-y-auto
+                        bg-[#FEFCFA]
                         pr-12 
                         py-4`}
                         aria-multiline

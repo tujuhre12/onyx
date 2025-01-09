@@ -1,6 +1,6 @@
 "use client";
 
-import { FiEdit, FiFolderPlus } from "react-icons/fi";
+import { FiEdit, FiFolderPlus, FiMoreHorizontal } from "react-icons/fi";
 import React, { ForwardedRef, forwardRef, useContext, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ import {
   NewChatIcon,
   OnyxIcon,
   PinnedIcon,
+  PlusIcon,
 } from "@/components/icons/icons";
 import { PagesTab } from "./PagesTab";
 import { pageType } from "./types";
@@ -40,12 +41,15 @@ interface HistorySidebarProps {
   showDeleteAllModal?: () => void;
   backgroundToggled?: boolean;
   assistants: Persona[];
+  currentAssistantId?: number | null;
+  setShowAssistantsModal?: (show: boolean) => void;
 }
 
 export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
   (
     {
       reset = () => null,
+      setShowAssistantsModal = () => null,
       toggled,
       page,
       existingChats,
@@ -61,6 +65,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
       showDeleteModal,
       showDeleteAllModal,
       backgroundToggled,
+      currentAssistantId,
     },
     ref: ForwardedRef<HTMLDivElement>
   ) => {
@@ -152,7 +157,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             </div>
           )}
 
-          <div className="mt-2 mx-3">
+          <div className="my-2 mx-3">
             <div className="flex text-sm gap-x-2 mx-2 items-center">
               <PinnedIcon
                 className="text-text-history-sidebar-button"
@@ -162,17 +167,29 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             </div>
             <div className="flex flex-col gap-y-1 mt-2">
               {assistants.slice(0, 3).map((assistant) => (
-                <div
-                  className=" hover:bg-background-sidebar-hover flex items-center gap-x-2 py-1 px-2 rounded-md"
+                <button
+                  onClick={() => {
+                    router.push(`/${page}?assistantId=${assistant.id}`);
+                  }}
+                  className={`cursor-pointer hover:bg-hover-light ${
+                    currentAssistantId === assistant.id ? "bg-hover-light" : ""
+                  } flex items-center gap-x-2 py-1 px-2 rounded-md`}
                   key={assistant.id}
                 >
                   <OnyxIcon size={16} className="flex-none" />
                   <p className="text-base text-black">{assistant.name}</p>
-                </div>
+                </button>
               ))}
+              <button
+                onClick={() => setShowAssistantsModal(true)}
+                className="cursor-pointer hover:bg-hover-light flex items-center gap-x-2 py-1 px-2 rounded-md"
+              >
+                <FiMoreHorizontal size={16} className="flex-none" />
+                <p className="text-base text-black">More Assistants</p>
+              </button>
             </div>
           </div>
-          <div className="border-b border-divider-history-sidebar-bar pb-4 mx-3" />
+
           <PagesTab
             setNewFolderId={setNewFolderId}
             newFolderId={newFolderId}

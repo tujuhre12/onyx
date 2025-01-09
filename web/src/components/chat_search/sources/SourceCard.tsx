@@ -15,7 +15,7 @@ export default function SourceCard({
     <div
       key={doc.document_id}
       onClick={() => openDocument(doc, setPresentingDocument)}
-      className="cursor-pointer text-left overflow-hidden flex flex-col gap-0.5 rounded-sm px-3 py-2.5 hover:bg-background-125 bg-background-100 w-[200px]"
+      className="cursor-pointer text-left overflow-hidden flex flex-col gap-0.5 rounded-sm px-3 py-2.5 hover:bg-[#F1EEE8]/80 bg-[#F1EEE8] w-[200px]"
     >
       <div className="line-clamp-1 font-semibold text-ellipsis  text-text-900  flex h-6 items-center gap-2 text-sm">
         {doc.is_internet || doc.source_type === "web" ? (
@@ -49,7 +49,7 @@ export function SeeMoreBlock({
       onClick={toggleDocumentSelection}
       className={`
         ${documentSelectionToggled ? "border-border-100 border" : ""}
-        cursor-pointer rounded-sm flex-none transition-all duration-500 hover:bg-background-125 bg-text-100 px-3 py-2.5
+        cursor-pointer rounded-sm flex-none transition-all duration-500 hover:bg-background-125 bg-[#F1EEE8] px-3 py-2.5
       `}
     >
       <div className="flex h-6 items-center text-sm">

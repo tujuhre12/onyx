@@ -159,7 +159,7 @@ module.exports = {
         "background-agentic-untoggled": "var(--undo)",
         "text-agentic-toggled": "var(--text-800)",
         "text-agentic-untoggled": "var(--white)",
-        "text-chatbar-subtle": "var(--text-500)",
+        "text-chatbar-subtle": "#9c9c96",
         "text-chatbar": "var(--text-800)",
 
         // Color for the star indicator on high quality search results.
@@ -241,10 +241,10 @@ module.exports = {
         accent: "var(--accent)",
 
         // hover
-        "hover-light": "var(--background-100)",
+        "hover-light": "#F1EEE8",
         "hover-lightish": "var(--background-125)",
 
-        hover: "var(--background-200)",
+        hover: "#E6E3DD",
         "hover-emphasis": "var(--background-300)",
         "accent-hover": "var(--accent-hover)",
 

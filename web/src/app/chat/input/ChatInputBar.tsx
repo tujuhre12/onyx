@@ -1,5 +1,12 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { FiPlusCircle, FiPlus, FiInfo, FiX, FiSearch } from "react-icons/fi";
+import {
+  FiPlusCircle,
+  FiPlus,
+  FiInfo,
+  FiX,
+  FiSearch,
+  FiFilter,
+} from "react-icons/fi";
 import { ChatInputOption } from "./ChatInputOption";
 import { Persona } from "@/app/admin/assistants/interfaces";
 
@@ -12,8 +19,12 @@ import {
   InputBarPreviewImageProvider,
 } from "../files/InputBarPreview";
 import {
+  AnthropicIcon,
   AssistantsIconSkeleton,
+  AWSIcon,
   FileIcon,
+  OpenAIIcon,
+  OpenAISVG,
   SendIcon,
   StopGeneratingIcon,
 } from "@/components/icons/icons";
@@ -30,7 +41,7 @@ import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { ChatState } from "../types";
 import UnconfiguredProviderText from "@/components/chat_search/UnconfiguredProviderText";
 import { useAssistants } from "@/components/context/AssistantsContext";
-import { XIcon } from "lucide-react";
+import { Upload, XIcon } from "lucide-react";
 import { fetchTitleFromUrl } from "@/lib/sources";
 
 const MAX_INPUT_HEIGHT = 200;
@@ -277,7 +288,7 @@ export function ChatInputBar({
 
   return (
     <div id="onyx-chat-input">
-      <div className="flex justify-center mx-auto">
+      <div className="flex  justify-center mx-auto">
         <div
           className="
             w-[800px]
@@ -291,7 +302,7 @@ export function ChatInputBar({
               ref={suggestionsRef}
               className="text-sm absolute inset-x-0 top-0 w-full transform -translate-y-full"
             >
-              <div className="rounded-lg py-1.5 bg-background border border-border-medium shadow-lg mx-2 px-1.5 mt-2 rounded z-10">
+              <div className="rounded-lg sm-1.5 bg-background border border-border-medium shadow-lg mx-2 px-1.5 mt-2 z-10">
                 {assistantTagOptions.map((currentAssistant, index) => (
                   <button
                     key={index}
@@ -333,14 +344,12 @@ export function ChatInputBar({
               opacity-100
               w-full
               h-fit
-              bg-bl
               flex
               flex-col
               border
               border-[#E5E7EB]
               rounded-lg
               text-text-chatbar
-              bg-background-chatbar
               [&:has(textarea:focus)]::ring-1
               [&:has(textarea:focus)]::ring-black
             "
@@ -349,7 +358,7 @@ export function ChatInputBar({
               <div className="flex flex-wrap gap-y-1 gap-x-2 px-2 pt-1.5 w-full">
                 <div
                   ref={interactionsRef}
-                  className="bg-background-200 p-2 rounded-t-lg items-center flex w-full"
+                  className="p-2 rounded-t-lg items-center flex w-full"
                 >
                   <AssistantIcon assistant={alternativeAssistant} />
                   <p className="ml-3 text-strong my-auto">
@@ -444,7 +453,7 @@ export function ChatInputBar({
                 resize-none
                 rounded-lg
                 border-0
-                bg-background-chatbar
+                bg-[#FEFCFA]
                 placeholder:text-text-chatbar-subtle
                 ${
                   textAreaRef.current &&
@@ -483,7 +492,7 @@ export function ChatInputBar({
               }}
               suppressContentEditableWarning={true}
             />
-            <div className="flex items-center space-x-3 mr-12 px-4 pb-2">
+            <div className="flex items-center space-x-1 mr-12 px-4 pb-2">
               <ChatInputOption
                 flexPriority="stiff"
                 name="File"
@@ -502,15 +511,26 @@ export function ChatInputBar({
                   };
                   input.click();
                 }}
+                tooltipContent={"Upload files"}
               />
               {toggleFilters && (
                 <ChatInputOption
                   flexPriority="stiff"
                   name="Filters"
-                  Icon={FiSearch}
+                  Icon={FiFilter}
                   onClick={toggleFilters}
+                  tooltipContent={"Filter your search"}
                 />
               )}
+
+              <ChatInputOption
+                toggle
+                flexPriority="stiff"
+                name="Models"
+                Icon={OpenAISVG}
+                onClick={() => {}}
+                tooltipContent={"Switch models"}
+              />
             </div>
 
             <div className="absolute bottom-2.5 mobile:right-4 desktop:right-10">
@@ -543,8 +563,8 @@ export function ChatInputBar({
                   disabled={chatState != "input"}
                 >
                   <SendIcon
-                    size={28}
-                    className={`text-emphasis text-white p-1 rounded-full  ${
+                    size={26}
+                    className={`text-emphasis text-white p-1 rounded-lg  ${
                       chatState == "input" && message
                         ? "bg-submit-background"
                         : "bg-disabled-submit-background"

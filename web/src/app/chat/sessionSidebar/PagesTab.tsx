@@ -3,6 +3,7 @@ import {
   createFolder,
   updateFolderName,
   deleteFolder,
+  addChatToFolder,
 } from "../folders/FolderManagement";
 import { Folder } from "../folders/interfaces";
 import { usePopup } from "@/components/admin/connectors/Popup";
@@ -11,6 +12,7 @@ import { pageType } from "./types";
 import { FiPlus, FiTrash2, FiEdit, FiCheck, FiX } from "react-icons/fi";
 import { NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED } from "@/lib/constants";
 import { FolderDropdown } from "../folders/FolderDropdown";
+import { ChatSessionDisplay } from "./ChatSessionDisplay";
 import { useState, useCallback, useRef } from "react";
 
 export function PagesTab({
@@ -38,25 +40,8 @@ export function PagesTab({
 }) {
   const { setPopup } = usePopup();
   const router = useRouter();
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    folderId: number | null;
-  } | null>(null);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const newFolderInputRef = useRef<HTMLInputElement>(null);
-
-  const handleContextMenu = useCallback(
-    (e: React.MouseEvent, folderId: number | null) => {
-      e.preventDefault();
-      setContextMenu({ x: e.clientX, y: e.clientY, folderId });
-    },
-    []
-  );
-
-  const closeContextMenu = useCallback(() => {
-    setContextMenu(null);
-  }, []);
 
   const handleEditFolder = useCallback(
     (folderId: number | "chats", newName: string) => {
@@ -156,11 +141,51 @@ export function PagesTab({
 
   const isHistoryEmpty = !existingChats || existingChats.length === 0;
 
+  const handleDrop = useCallback(
+    async (folderId: number, chatSessionId: string) => {
+      try {
+        await addChatToFolder(folderId, chatSessionId);
+        router.refresh();
+        setPopup({
+          message: "Chat added to folder successfully",
+          type: "success",
+        });
+      } catch (error: unknown) {
+        console.error("Failed to add chat to folder:", error);
+        setPopup({
+          message: `Failed to add chat to folder: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+          type: "error",
+        });
+      }
+    },
+    [router, setPopup]
+  );
+
+  const renderChatSession = useCallback(
+    (chat: ChatSession) => (
+      <div
+        key={chat.id}
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData("text/plain", chat.id);
+        }}
+      >
+        <ChatSessionDisplay
+          chatSession={chat}
+          isSelected={currentChatId === chat.id}
+          showShareModal={showShareModal}
+          showDeleteModal={showDeleteModal}
+          closeSidebar={closeSidebar}
+        />
+      </div>
+    ),
+    [currentChatId, showShareModal, showDeleteModal, closeSidebar]
+  );
+
   return (
-    <div
-      className="flex flex-col relative h-full overflow-y-auto mb-1 ml-3 miniscroll mobile:pb-40"
-      onClick={closeContextMenu}
-    >
+    <div className="flex flex-col relative h-full overflow-y-auto mb-1 ml-3 miniscroll mobile:pb-40">
       <div
         className={`flex-grow overflow-y-auto ${
           NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED && "pb-20"
@@ -175,7 +200,10 @@ export function PagesTab({
             closeSidebar={closeSidebar}
             onEdit={handleEditFolder}
             onDelete={handleDeleteFolder}
-          />
+            onDrop={handleDrop}
+          >
+            {chatFolder.chat_sessions.map(renderChatSession)}
+          </FolderDropdown>
         )}
 
         {folders &&
@@ -192,7 +220,10 @@ export function PagesTab({
                 closeSidebar={closeSidebar}
                 onEdit={handleEditFolder}
                 onDelete={handleDeleteFolder}
-              />
+                onDrop={handleDrop}
+              >
+                {folder.chat_sessions.map(renderChatSession)}
+              </FolderDropdown>
             ))}
 
         {isHistoryEmpty && (
@@ -227,26 +258,6 @@ export function PagesTab({
           >
             <FiTrash2 className="mr-2" size={14} />
             Clear All History
-          </button>
-        </div>
-      )}
-
-      {contextMenu && (
-        <div
-          className="fixed bg-white shadow-md rounded-md p-2 z-50"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-        >
-          <button
-            className="flex items-center w-full px-2 py-0 text-sm hover:bg-gray-100"
-            // onClick={() => handleEditFolder( contextMenu.folderId!)}
-          >
-            <FiEdit size={14} className="mr-2" /> Edit Folder
-          </button>
-          <button
-            className="flex items-center w-full px-2  text-sm hover:bg-gray-100 text-red-600"
-            onClick={() => handleDeleteFolder(contextMenu.folderId!)}
-          >
-            <FiTrash2 size={14} className="mr-2" /> Delete Folder
           </button>
         </div>
       )}
