@@ -19,7 +19,7 @@ BEAT_EXPIRES_DEFAULT = 15 * 60  # 15 minutes (in seconds)
 # by the DynamicTenantScheduler
 cloud_tasks_to_schedule = [
     {
-        "name": "cloud-check-for-indexing",
+        "name": "cloud_check-for-indexing",
         "task": OnyxCeleryTask.CLOUD_CHECK_FOR_INDEXING,
         "schedule": timedelta(seconds=15),
         "options": {
@@ -36,7 +36,7 @@ tasks_to_schedule = [
         "task": OnyxCeleryTask.CHECK_FOR_VESPA_SYNC_TASK,
         "schedule": timedelta(seconds=20),
         "options": {
-            "priority": OnyxCeleryPriority.HIGH,
+            "priority": OnyxCeleryPriority.MEDIUM,
             "expires": BEAT_EXPIRES_DEFAULT,
         },
     },
@@ -45,7 +45,7 @@ tasks_to_schedule = [
         "task": OnyxCeleryTask.CHECK_FOR_CONNECTOR_DELETION,
         "schedule": timedelta(seconds=20),
         "options": {
-            "priority": OnyxCeleryPriority.HIGH,
+            "priority": OnyxCeleryPriority.MEDIUM,
             "expires": BEAT_EXPIRES_DEFAULT,
         },
     },
@@ -54,7 +54,7 @@ tasks_to_schedule = [
         "task": OnyxCeleryTask.CHECK_FOR_PRUNING,
         "schedule": timedelta(seconds=15),
         "options": {
-            "priority": OnyxCeleryPriority.HIGH,
+            "priority": OnyxCeleryPriority.MEDIUM,
             "expires": BEAT_EXPIRES_DEFAULT,
         },
     },
@@ -72,7 +72,7 @@ tasks_to_schedule = [
         "task": OnyxCeleryTask.MONITOR_VESPA_SYNC,
         "schedule": timedelta(seconds=5),
         "options": {
-            "priority": OnyxCeleryPriority.HIGH,
+            "priority": OnyxCeleryPriority.MEDIUM,
             "expires": BEAT_EXPIRES_DEFAULT,
         },
     },
@@ -81,7 +81,7 @@ tasks_to_schedule = [
         "task": OnyxCeleryTask.CHECK_FOR_DOC_PERMISSIONS_SYNC,
         "schedule": timedelta(seconds=30),
         "options": {
-            "priority": OnyxCeleryPriority.HIGH,
+            "priority": OnyxCeleryPriority.MEDIUM,
             "expires": BEAT_EXPIRES_DEFAULT,
         },
     },
@@ -90,7 +90,7 @@ tasks_to_schedule = [
         "task": OnyxCeleryTask.CHECK_FOR_EXTERNAL_GROUP_SYNC,
         "schedule": timedelta(seconds=20),
         "options": {
-            "priority": OnyxCeleryPriority.HIGH,
+            "priority": OnyxCeleryPriority.MEDIUM,
             "expires": BEAT_EXPIRES_DEFAULT,
         },
     },
@@ -103,7 +103,7 @@ if not MULTI_TENANT:
             "task": OnyxCeleryTask.CHECK_FOR_INDEXING,
             "schedule": timedelta(seconds=15),
             "options": {
-                "priority": OnyxCeleryPriority.HIGH,
+                "priority": OnyxCeleryPriority.MEDIUM,
                 "expires": BEAT_EXPIRES_DEFAULT,
             },
         }

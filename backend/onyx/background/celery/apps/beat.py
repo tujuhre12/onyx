@@ -67,9 +67,7 @@ class DynamicTenantScheduler(PersistentScheduler):
 
         if MULTI_TENANT:
             # cloud tasks only need the single task beat across all tenants
-            get_cloud_tasks_to_schedule: list[
-                dict[str, Any]
-            ] = fetch_versioned_implementation(
+            get_cloud_tasks_to_schedule = fetch_versioned_implementation(
                 "onyx.background.celery.tasks.beat_schedule",
                 "get_cloud_tasks_to_schedule",
             )
@@ -79,7 +77,15 @@ class DynamicTenantScheduler(PersistentScheduler):
             ] = get_cloud_tasks_to_schedule()
             for task in cloud_tasks_to_schedule:
                 task_name = task["name"]
-                new_schedule[task_name] = task
+                cloud_task = {
+                    "task": task["task"],
+                    "schedule": task["schedule"],
+                    "kwargs": {},
+                }
+                if options := task.get("options"):
+                    logger.debug(f"Adding options to task {task_name}: {options}")
+                    cloud_task["options"] = options
+                new_schedule[task_name] = cloud_task
 
         # regular task beats are multiplied across all tenants
         get_tasks_to_schedule = fetch_versioned_implementation(

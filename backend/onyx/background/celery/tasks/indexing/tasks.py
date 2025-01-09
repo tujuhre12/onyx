@@ -25,7 +25,6 @@ from onyx.background.indexing.run_indexing import run_indexing_entrypoint
 from onyx.configs.constants import CELERY_GENERIC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import CELERY_INDEXING_LOCK_TIMEOUT
 from onyx.configs.constants import CELERY_TASK_WAIT_FOR_FENCE_TIMEOUT
-from onyx.configs.constants import CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import OnyxCeleryTask
 from onyx.configs.constants import OnyxRedisLocks
@@ -83,7 +82,7 @@ def check_for_indexing(self: Task, *, tenant_id: str | None) -> int | None:
 
     lock_beat: RedisLock = redis_client.lock(
         OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK,
-        timeout=CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT,
+        timeout=CELERY_GENERIC_BEAT_LOCK_TIMEOUT,
     )
 
     # these tasks should never overlap
@@ -784,7 +783,7 @@ def cloud_check_for_indexing(self: Task) -> bool | None:
     """a lightweight task used to kick off individual check tasks for each tenant."""
     time_start = time.monotonic()
 
-    redis_client = get_redis_client(tenant_id="system")
+    redis_client = get_redis_client(tenant_id="cloud")
 
     lock_beat: RedisLock = redis_client.lock(
         OnyxRedisLocks.CLOUD_CHECK_INDEXING_BEAT_LOCK,
@@ -820,5 +819,7 @@ def cloud_check_for_indexing(self: Task) -> bool | None:
             redis_lock_dump(lock_beat, redis_client)
 
     time_elapsed = time.monotonic() - time_start
-    task_logger.debug(f"check_for_indexing finished: elapsed={time_elapsed:.2f}")
+    task_logger.info(
+        f"cloud_check_for_indexing finished: num_tenants={len(tenant_ids)} elapsed={time_elapsed:.2f}"
+    )
     return True

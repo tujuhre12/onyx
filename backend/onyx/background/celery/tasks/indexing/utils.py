@@ -13,7 +13,7 @@ from onyx.background.celery.apps.app_base import task_logger
 from onyx.background.celery.celery_redis import celery_find_task
 from onyx.background.celery.celery_redis import celery_get_unacked_task_ids
 from onyx.configs.app_configs import DISABLE_INDEX_UPDATE_ON_SWAP
-from onyx.configs.constants import CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT
+from onyx.configs.constants import CELERY_GENERIC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import DANSWER_REDIS_FUNCTION_LOCK_PREFIX
 from onyx.configs.constants import DocumentSource
 from onyx.configs.constants import OnyxCeleryPriority
@@ -143,7 +143,7 @@ class IndexingCallback(IndexingHeartbeatInterface):
         try:
             current_time = time.monotonic()
             if current_time - self.last_lock_monotonic >= (
-                CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT / 4
+                CELERY_GENERIC_BEAT_LOCK_TIMEOUT / 4
             ):
                 self.redis_lock.reacquire()
                 self.last_lock_reacquire = datetime.now(timezone.utc)

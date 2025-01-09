@@ -244,6 +244,7 @@ def get_all_tenant_ids() -> list[str] | list[None]:
 
     if not MULTI_TENANT:
         return [None]
+
     with get_session_with_tenant(tenant_id=POSTGRES_DEFAULT_SCHEMA) as session:
         result = session.execute(
             text(
