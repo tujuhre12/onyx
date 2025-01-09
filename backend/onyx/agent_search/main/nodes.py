@@ -952,35 +952,23 @@ def agent_logging(state: MainState) -> MainOutput:
     agent_base_end_time = state["agent_base_end_time"]
     agent_refined_start_time = state["agent_refined_start_time"] or None
     agent_refined_end_time = state["agent_refined_end_time"] or None
-    if agent_refined_end_time is not None:
-        agent_end_time = agent_refined_end_time
-    else:
-        agent_end_time = agent_base_end_time
+    agent_end_time = agent_refined_end_time or agent_base_end_time
 
+    agent_base_duration = None
     if agent_base_end_time:
         agent_base_duration = (agent_base_end_time - agent_start_time).total_seconds()
-    else:
-        agent_base_duration = None
 
-    if agent_refined_end_time:
-        if agent_refined_start_time and agent_refined_end_time:
-            agent_refined_duration = (
-                agent_refined_end_time - agent_refined_start_time
-            ).total_seconds()
-        else:
-            agent_refined_duration = None
-    else:
-        agent_refined_duration = None
+    agent_refined_duration = None
+    if agent_refined_start_time and agent_refined_end_time:
+        agent_refined_duration = (
+            agent_refined_end_time - agent_refined_start_time
+        ).total_seconds()
 
+    agent_full_duration = None
     if agent_end_time:
         agent_full_duration = (agent_end_time - agent_start_time).total_seconds()
-    else:
-        agent_full_duration = None
 
-    if agent_refined_duration:
-        agent_type = "refined"
-    else:
-        agent_type = "base"
+    agent_type = "refined" if agent_refined_duration else "base"
 
     agent_base_metrics = state["agent_base_metrics"]
     agent_refined_metrics = state["agent_refined_metrics"]
@@ -996,18 +984,13 @@ def agent_logging(state: MainState) -> MainOutput:
         additional_metrics=AgentAdditionalMetrics(),
     )
 
+    persona_id = None
     if state["config"].search_request.persona:
         persona_id = state["config"].search_request.persona.id
-    else:
-        persona_id = None
 
-    if "user" in state:
-        if state["user"]:
-            user_id = state["user"].id
-        else:
-            user_id = None
-    else:
-        user_id = None
+    user_id = None
+    if "user" in state and state["user"]:
+        user_id = state["user"].id
 
     # log the agent metrics
     log_agent_metrics(
