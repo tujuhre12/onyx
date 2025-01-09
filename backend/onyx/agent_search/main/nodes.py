@@ -62,6 +62,7 @@ from onyx.agent_search.shared_graph_utils.utils import format_entity_term_extrac
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
 from onyx.agent_search.shared_graph_utils.utils import make_question_id
 from onyx.agent_search.shared_graph_utils.utils import parse_question_id
+from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import SubQuestionPiece
 from onyx.db.chat import log_agent_metrics
@@ -343,11 +344,23 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     model = state["fast_llm"]
     streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
     for message in model.stream(msg):
+        # TODO: in principle, the answer here COULD contain images, but we don't support that yet
+        content = message.content
+        if not isinstance(content, str):
+            raise ValueError(
+                f"Expected content to be a string, but got {type(content)}"
+            )
         dispatch_custom_event(
-            "main_answer",
-            message.content,
+            "initial_agent_answer",
+            AgentAnswerPiece(
+                answer_piece=content,
+                level=0,
+                level_question_nr=0,
+                answer_type="agent_level_answer",
+            ),
         )
-        streamed_tokens.append(message.content)
+        streamed_tokens.append(content)
+
     response = merge_content(*streamed_tokens)
     answer = cast(str, response)
 

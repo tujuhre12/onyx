@@ -13,12 +13,12 @@ from onyx.agent_search.main.graph_builder import main_graph_builder
 from onyx.agent_search.main.states import MainInput
 from onyx.agent_search.models import AgentDocumentCitations
 from onyx.agent_search.shared_graph_utils.utils import get_test_config
+from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
 from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import ProSearchConfig
-from onyx.chat.models import SubAnswerPiece
 from onyx.chat.models import SubQueryPiece
 from onyx.chat.models import SubQuestionPiece
 from onyx.chat.models import ToolResponse
@@ -35,14 +35,9 @@ _COMPILED_GRAPH: CompiledStateGraph | None = None
 
 
 def _set_combined_token_value(
-    combined_token: str, parsed_object: SubAnswerPiece | OnyxAnswerPiece
-) -> SubAnswerPiece | OnyxAnswerPiece:
-    if isinstance(parsed_object, SubAnswerPiece):
-        parsed_object.sub_answer = combined_token
-    elif isinstance(parsed_object, OnyxAnswerPiece):
-        parsed_object.answer_piece = combined_token
-    else:
-        raise ValueError("Invalid parsed object type to update yielded token.")
+    combined_token: str, parsed_object: AgentAnswerPiece
+) -> AgentAnswerPiece:
+    parsed_object.answer_piece = combined_token
 
     return parsed_object
 
@@ -64,9 +59,9 @@ def _parse_agent_event(
         elif event["name"] == "subqueries":
             return cast(SubQueryPiece, event["data"])
         elif event["name"] == "sub_answers":
-            return cast(SubAnswerPiece, event["data"])
-        elif event["name"] == "main_answer":
-            return OnyxAnswerPiece(answer_piece=cast(str, event["data"]))
+            return cast(AgentAnswerPiece, event["data"])
+        elif event["name"] == "initial_agent_answer":
+            return cast(AgentAnswerPiece, event["data"])
         elif event["name"] == "tool_response":
             return cast(ToolResponse, event["data"])
     return None
@@ -179,20 +174,15 @@ def run_graph(
             #     token = parsed_object.sub_answer
 
             if isinstance(parsed_object, OnyxAnswerPiece) or isinstance(
-                parsed_object, SubAnswerPiece
+                parsed_object, AgentAnswerPiece
             ):
                 # logger.info(f"FA {parsed_object.answer_piece}")
 
-                if isinstance(parsed_object, SubAnswerPiece):
-                    token: str | None = parsed_object.sub_answer
+                if isinstance(parsed_object, AgentAnswerPiece):
+                    token: str | None = parsed_object.answer_piece
                     level = parsed_object.level
                     level_question_nr = parsed_object.level_question_nr
-                elif isinstance(parsed_object, OnyxAnswerPiece):
-                    token = parsed_object.answer_piece
-                    level = 0
-                    level_question_nr = 0
-                    if not token:
-                        yield parsed_object
+                    parsed_object.answer_type
                 else:
                     raise ValueError(
                         f"Invalid parsed object type: {type(parsed_object)}"
@@ -388,11 +378,17 @@ if __name__ == "__main__":
                 logger.info(
                     f"SQ {output.level} - {output.level_question_nr} - {output.sub_question} | "
                 )
-            elif isinstance(output, SubAnswerPiece):
+            elif (
+                isinstance(output, AgentAnswerPiece)
+                and output.answer_type == "agent_sub_answer"
+            ):
                 logger.info(
-                    f"   ---- SA {output.level} - {output.level_question_nr} {output.sub_answer} | "
+                    f"   ---- SA {output.level} - {output.level_question_nr} {output.answer_piece} | "
                 )
-            elif isinstance(output, OnyxAnswerPiece):
+            elif (
+                isinstance(output, AgentAnswerPiece)
+                and output.answer_type == "agent_level_answer"
+            ):
                 logger.info(f"   ---------- FA {output.answer_piece} | ")
 
         # for tool_response in tool_responses:

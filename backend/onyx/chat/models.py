@@ -3,6 +3,7 @@ from collections.abc import Iterator
 from datetime import datetime
 from enum import Enum
 from typing import Any
+from typing import Literal
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -361,10 +362,11 @@ class SubQueryPiece(BaseModel):
     query_id: int
 
 
-class SubAnswerPiece(BaseModel):
-    sub_answer: str
+class AgentAnswerPiece(BaseModel):
+    answer_piece: str
     level: int
     level_question_nr: int
+    answer_type: Literal["agent_sub_answer", "agent_level_answer"]
 
 
 class SubQuestionPiece(BaseModel):
@@ -379,7 +381,7 @@ class ExtendedToolResponse(ToolResponse):
 
 
 ProSearchPacket = (
-    SubQuestionPiece | SubAnswerPiece | SubQueryPiece | ExtendedToolResponse
+    SubQuestionPiece | AgentAnswerPiece | SubQueryPiece | ExtendedToolResponse
 )
 
 AnswerPacket = (

@@ -13,7 +13,7 @@ from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_PERSONA
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
 from onyx.agent_search.shared_graph_utils.utils import parse_question_id
-from onyx.chat.models import SubAnswerPiece
+from onyx.chat.models import AgentAnswerPiece
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -57,10 +57,11 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
             )
         dispatch_custom_event(
             "sub_answers",
-            SubAnswerPiece(
-                sub_answer=content,
+            AgentAnswerPiece(
+                answer_piece=content,
                 level=level,
                 level_question_nr=question_nr,
+                answer_type="agent_sub_answer",
             ),
         )
         response.append(content)
