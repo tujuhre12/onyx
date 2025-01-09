@@ -153,6 +153,18 @@ def run_graph(
         compiled_graph=compiled_graph, graph_input=input
     ):
         parsed_object = _parse_agent_event(event)
+        if not parsed_object:
+            continue
+
+        if hasattr(parsed_object, "level"):
+            level = parsed_object.level
+        else:
+            level = None
+
+        if hasattr(parsed_object, "level_question_nr"):
+            level_question_nr = parsed_object.level_question_nr
+        else:
+            level_question_nr = None
 
         if parsed_object:
             # if isinstance(parsed_object, SubAnswerPiece):
@@ -212,19 +224,45 @@ def run_graph(
                             : -len(start_of_next_section)
                         ]
                         if "[D" in citation_string:
-                            citation_string = citation_string.replace(
-                                "[D", "[["
-                            ).replace("]", "]]")
+                            cite_open_bracket_marker, cite_close_bracket_marker = (
+                                "[",
+                                "]",
+                            )
+                            cite_identifyer = "D"
+
+                            try:
+                                cited_document = int(citation_string[2:-1])
+                                if level and level_question_nr:
+                                    link = agent_document_citations[int(level)][
+                                        int(level_question_nr)
+                                    ][cited_document].link
+                                else:
+                                    link = ""
+                            except (ValueError, IndexError):
+                                link = ""
                         elif "[Q" in citation_string:
-                            citation_string = citation_string.replace(
-                                "[Q", "{{"
-                            ).replace("]", "}}")
+                            cite_open_bracket_marker, cite_close_bracket_marker = (
+                                "{",
+                                "}",
+                            )
+                            cite_identifyer = "Q"
                         else:
                             pass
+
+                        citation_string = citation_string.replace(
+                            "[" + cite_identifyer,
+                            cite_open_bracket_marker + cite_open_bracket_marker,
+                        ).replace(
+                            "]", cite_close_bracket_marker + cite_close_bracket_marker
+                        )
+
+                        if cite_identifyer == "D":
+                            citation_string += f"({link})"
 
                         parsed_object = _set_combined_token_value(
                             citation_string, parsed_object
                         )
+
                         yield parsed_object
 
                         current_yield_components = [start_of_next_section]
