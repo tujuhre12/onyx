@@ -6,7 +6,7 @@ logger = setup_logger()
 
 
 def generate_raw_search_data(state: CoreState) -> ExpandedRetrievalInput:
-    logger.info("generate_raw_search_data")
+    logger.debug("generate_raw_search_data")
     return ExpandedRetrievalInput(
         subgraph_config=state["config"],
         subgraph_primary_llm=state["primary_llm"],

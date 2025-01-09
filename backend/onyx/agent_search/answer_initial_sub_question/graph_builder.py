@@ -120,4 +120,4 @@ if __name__ == "__main__":
             # debug=True,
             # subgraphs=True,
         ):
-            logger.info(thing)
+            logger.debug(thing)

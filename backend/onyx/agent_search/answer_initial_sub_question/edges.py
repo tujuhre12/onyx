@@ -11,7 +11,7 @@ logger = setup_logger()
 
 
 def send_to_expanded_retrieval(state: AnswerQuestionInput) -> Send | Hashable:
-    logger.info("sending to expanded retrieval via edge")
+    logger.debug("sending to expanded retrieval via edge")
 
     return Send(
         "initial_sub_question_expanded_retrieval",

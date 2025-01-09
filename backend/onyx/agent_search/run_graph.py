@@ -169,14 +169,14 @@ def run_graph(
 
         if parsed_object:
             # if isinstance(parsed_object, SubAnswerPiece):
-            #     logger.info(f"SA {parsed_object.sub_answer}")
+            #     logger.debug(f"SA {parsed_object.sub_answer}")
 
             #     token = parsed_object.sub_answer
 
             if isinstance(parsed_object, OnyxAnswerPiece) or isinstance(
                 parsed_object, AgentAnswerPiece
             ):
-                # logger.info(f"FA {parsed_object.answer_piece}")
+                # logger.debug(f"FA {parsed_object.answer_piece}")
 
                 if isinstance(parsed_object, AgentAnswerPiece):
                     token: str | None = parsed_object.answer_piece
@@ -343,12 +343,12 @@ if __name__ == "__main__":
     from onyx.llm.factory import get_default_llms
 
     now_start = datetime.now()
-    logger.info(f"Start at {now_start}")
+    logger.debug(f"Start at {now_start}")
 
     graph = main_graph_builder()
     compiled_graph = graph.compile()
     now_end = datetime.now()
-    logger.info(f"Graph compiled in {now_end - now_start} seconds")
+    logger.debug(f"Graph compiled in {now_end - now_start} seconds")
     primary_llm, fast_llm = get_default_llms()
     search_request = SearchRequest(
         # query="what can you do with gitlab?",
@@ -375,21 +375,21 @@ if __name__ == "__main__":
             elif isinstance(output, ToolResponse):
                 tool_responses.append(output.response)
             elif isinstance(output, SubQuestionPiece):
-                logger.info(
+                logger.debug(
                     f"SQ {output.level} - {output.level_question_nr} - {output.sub_question} | "
                 )
             elif (
                 isinstance(output, AgentAnswerPiece)
                 and output.answer_type == "agent_sub_answer"
             ):
-                logger.info(
+                logger.debug(
                     f"   ---- SA {output.level} - {output.level_question_nr} {output.answer_piece} | "
                 )
             elif (
                 isinstance(output, AgentAnswerPiece)
                 and output.answer_type == "agent_level_answer"
             ):
-                logger.info(f"   ---------- FA {output.answer_piece} | ")
+                logger.debug(f"   ---------- FA {output.answer_piece} | ")
 
         # for tool_response in tool_responses:
-        #    logger.info(tool_response)
+        #    logger.debug(tool_response)

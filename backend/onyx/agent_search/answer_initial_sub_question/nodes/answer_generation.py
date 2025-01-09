@@ -21,7 +21,7 @@ logger = setup_logger()
 
 def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
     now_start = datetime.datetime.now()
-    logger.info(f"--------{now_start}--------START ANSWER GENERATION---")
+    logger.debug(f"--------{now_start}--------START ANSWER GENERATION---")
 
     question = state["question"]
     docs = state["documents"]
@@ -35,7 +35,7 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
             persona_prompt=persona_prompt
         )
 
-    logger.info(f"Number of verified retrieval docs: {len(docs)}")
+    logger.debug(f"Number of verified retrieval docs: {len(docs)}")
 
     msg = build_sub_question_answer_prompt(
         question=question,
