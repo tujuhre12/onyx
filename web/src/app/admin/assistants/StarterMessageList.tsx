@@ -58,7 +58,7 @@ export default function StarterMessagesList({
             {row.map((starterMessage, colIndex) => (
               <div
                 key={rowIndex * 2 + colIndex}
-                className="bg-white/90 w-full border border-border rounded-lg shadow-md transition-shadow duration-200 p-4"
+                className="bg-white w-full border border-border rounded-lg shadow-md transition-shadow duration-200 p-4"
               >
                 <div className="space-y-5">
                   {isRefreshing ? (
