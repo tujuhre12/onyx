@@ -283,7 +283,6 @@ class SearchTool(Tool):
 
     def run(self, **kwargs: Any) -> Generator[ToolResponse, None, None]:
         query = cast(str, kwargs["query"])
-        # kind of awkward to require this to be str, but it's "True" or "False"
         force_no_rerank = cast(bool, kwargs.get("force_no_rerank", False))
         alternate_db_session = cast(Session, kwargs.get("alternate_db_session", None))
 

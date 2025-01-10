@@ -6,6 +6,7 @@ from langchain_core.messages import AIMessageChunk
 from langchain_core.messages import ToolCall
 from sqlalchemy.orm import Session
 
+from onyx.agent_search.run_graph import run_basic_graph
 from onyx.agent_search.run_graph import run_main_graph
 from onyx.chat.llm_response_handler import LLMResponseHandlerManager
 from onyx.chat.models import AnswerPacket
@@ -166,13 +167,10 @@ class Answer:
                 iter([dummy_tool_call_chunk])
             )
 
-            if (
-                next_answer_info := response_handler_manager.next_llm_call(
-                    current_llm_call
-                )
-            ) is None:
+            tmp_call = response_handler_manager.next_llm_call(current_llm_call)
+            if tmp_call is None:
                 return  # no more LLM calls to process
-            current_llm_call = next_answer_info
+            current_llm_call = tmp_call
 
         # if we're skipping gen ai answer generation, we should break
         # out unless we're forcing a tool call. If we don't, we might generate an
@@ -209,9 +207,9 @@ class Answer:
             tool_call_handler, answer_handler, self.is_cancelled
         )
 
-        # TODO: eventually this will be unconditional, and we'll always enter langgraph.
-        #       In langgraph, whether we do the basic thing (call llm stream) or pro search
-        #       will be based on a flag in the pro search config
+        # In langgraph, whether we do the basic thing (call llm stream) or pro search
+        # is based on a flag in the pro search config
+
         if self.pro_search_config:
             if self.pro_search_config.search_request is None:
                 raise ValueError("Search request must be provided for pro search")
@@ -223,22 +221,32 @@ class Answer:
                 raise ValueError("Multiple search tools found")
 
             search_tool = search_tools[0]
-            processed_stream = []
             if self.db_session is None:
                 raise ValueError("db_session must be provided for pro search")
             if self.fast_llm is None:
                 raise ValueError("fast_llm must be provided for pro search")
-            for packet in run_main_graph(
+
+            stream = run_main_graph(
                 config=self.pro_search_config,
                 primary_llm=self.llm,
                 fast_llm=self.fast_llm,
                 search_tool=search_tool,
                 db_session=self.db_session,
-            ):
-                processed_stream.append(packet)
-                yield packet
-            self._processed_stream = processed_stream
-            return
+            )
+        else:
+            stream = run_basic_graph(
+                last_llm_call=current_llm_call,
+                primary_llm=self.llm,
+                answer_style_config=self.answer_style_config,
+                response_handler_manager=response_handler_manager,
+            )
+
+        processed_stream = []
+        for packet in stream:
+            processed_stream.append(packet)
+            yield packet
+        self._processed_stream = processed_stream
+        return
         # DEBUG: good breakpoint
         stream = self.llm.stream(
             # For tool calling LLMs, we want to insert the task prompt as part of this flow, this is because the LLM
