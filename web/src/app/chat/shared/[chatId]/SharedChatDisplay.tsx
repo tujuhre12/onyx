@@ -128,10 +128,6 @@ export function SharedChatDisplay({
               isOpen={true}
               setPresentingDocument={setPresentingDocument}
               modal={true}
-              ccPairs={[]}
-              tags={[]}
-              documentSets={[]}
-              showFilters={false}
               closeSidebar={() => {
                 setDocumentSidebarToggled(false);
               }}
@@ -186,10 +182,6 @@ export function SharedChatDisplay({
                   initialWidth={400}
                   isOpen={true}
                   setPresentingDocument={setPresentingDocument}
-                  ccPairs={[]}
-                  tags={[]}
-                  documentSets={[]}
-                  showFilters={false}
                   closeSidebar={() => {
                     setDocumentSidebarToggled(false);
                   }}
@@ -199,7 +191,6 @@ export function SharedChatDisplay({
             )}
             <div className="flex mobile:hidden max-h-full overflow-hidden ">
               <FunctionalHeader
-                documentSidebarToggled={documentSidebarToggled}
                 sidebarToggled={false}
                 toggleSidebar={() => {}}
                 page="chat"

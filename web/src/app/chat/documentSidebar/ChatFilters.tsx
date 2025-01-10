@@ -93,8 +93,8 @@ export const ChatFilters = forwardRef<HTMLDivElement, ChatFiltersProps>(
     return (
       <div
         id="onyx-chat-sidebar"
-        className={`relative rounded-lg bg-background max-w-full ${
-          !modal ? "border-l h-full border-sidebar-border" : ""
+        className={`relative rounded-t-xl rounded-l-3xl  -mb-8 bg-background-sidebar max-w-full ${
+          !modal ? "border-l border-t h-[105vh]  border-sidebar-border" : ""
         }`}
         onClick={(e) => {
           if (e.target === e.currentTarget) {
@@ -103,12 +103,8 @@ export const ChatFilters = forwardRef<HTMLDivElement, ChatFiltersProps>(
         }}
       >
         <div
-          className={`ml-auto h-full relative sidebar transition-all duration-300 
-            ${
-              isOpen
-                ? "opacity-100 translate-x-0"
-                : "opacity-0 translate-x-[10%]"
-            }`}
+          className={`ml-auto h-full relative sidebar transition-transform ease-in-out duration-300 
+            ${isOpen ? " translate-x-0" : " translate-x-[10%]"}`}
           style={{
             width: modal ? undefined : initialWidth,
           }}

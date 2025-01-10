@@ -21,6 +21,7 @@ interface AssistantsContextProps {
   hiddenAssistants: Persona[];
   finalAssistants: Persona[];
   ownedButHiddenAssistants: Persona[];
+  pinnedAssistants: Persona[];
   refreshAssistants: () => Promise<void>;
   isImageGenerationAvailable: boolean;
   recentAssistants: Persona[];
@@ -172,13 +173,32 @@ export const AssistantsProvider: React.FC<{
     visibleAssistants,
     hiddenAssistants,
     finalAssistants,
+    pinnedAssistants,
     ownedButHiddenAssistants,
   } = useMemo(() => {
     const { visibleAssistants, hiddenAssistants } = classifyAssistants(
       user,
       assistants
     );
+    const pinnedAssistants = user?.preferences.pinned_assistants
+      ? visibleAssistants.filter((assistant) =>
+          user.preferences.pinned_assistants.includes(assistant.id)
+        )
+      : visibleAssistants.slice(0, 3);
 
+    // Fallback to first 3 assistants if pinnedAssistants is empty
+    const finalPinnedAssistants =
+      pinnedAssistants.length > 0 ? pinnedAssistants : assistants.slice(0, 3);
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("user", user);
+      console.log(
+        "user.preferences.pinned_assistants",
+        user?.preferences.pinned_assistants
+      );
+      console.log("visibleAssistants", visibleAssistants);
+      console.log("finalPinnedAssistants", finalPinnedAssistants);
+    }
     const finalAssistants = user
       ? orderAssistantsForUser(visibleAssistants, user)
       : visibleAssistants;
@@ -192,6 +212,7 @@ export const AssistantsProvider: React.FC<{
       visibleAssistants,
       hiddenAssistants,
       finalAssistants,
+      pinnedAssistants,
       ownedButHiddenAssistants,
     };
   }, [user, assistants]);
@@ -203,6 +224,7 @@ export const AssistantsProvider: React.FC<{
         visibleAssistants,
         hiddenAssistants,
         finalAssistants,
+        pinnedAssistants,
         ownedButHiddenAssistants,
         refreshAssistants,
         editablePersonas,

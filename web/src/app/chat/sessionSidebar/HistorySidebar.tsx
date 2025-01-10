@@ -23,6 +23,7 @@ import { pageType } from "./types";
 import LogoWithText from "@/components/header/LogoWithText";
 import { Persona } from "@/app/admin/assistants/interfaces";
 import { FaSearch } from "react-icons/fa";
+import { useAssistants } from "@/components/context/AssistantsContext";
 
 interface HistorySidebarProps {
   page: pageType;
@@ -76,6 +77,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
     const [newFolderId, setNewFolderId] = useState<number | null>(null);
 
     const currentChatId = currentChatSession?.id;
+    const { pinnedAssistants } = useAssistants();
 
     // NOTE: do not do something like the below - assume that the parent
     // will handle properly refreshing the existingChats
@@ -166,7 +168,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
               Pinned
             </div>
             <div className="flex flex-col gap-y-1 mt-2">
-              {assistants.slice(0, 3).map((assistant) => (
+              {pinnedAssistants.slice(0, 3).map((assistant) => (
                 <button
                   onClick={() => {
                     router.push(`/${page}?assistantId=${assistant.id}`);

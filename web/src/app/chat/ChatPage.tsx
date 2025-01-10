@@ -190,7 +190,11 @@ export function ChatPage({
 
   const [userSettingsToggled, setUserSettingsToggled] = useState(false);
 
-  const { assistants: availableAssistants, finalAssistants } = useAssistants();
+  const {
+    assistants: availableAssistants,
+    finalAssistants,
+    pinnedAssistants,
+  } = useAssistants();
 
   const [showApiKeyModal, setShowApiKeyModal] = useState(
     !shouldShowWelcomeModal
@@ -1965,22 +1969,9 @@ export function ChatPage({
 
   const toggleDocumentSidebar = () => {
     if (!documentSidebarToggled) {
-      setFiltersToggled(false);
       setDocumentSidebarToggled(true);
-    } else if (!filtersToggled) {
-      setDocumentSidebarToggled(false);
     } else {
-      setFiltersToggled(false);
-    }
-  };
-  const toggleFilters = () => {
-    if (!documentSidebarToggled) {
-      setFiltersToggled(true);
-      setDocumentSidebarToggled(true);
-    } else if (filtersToggled) {
       setDocumentSidebarToggled(false);
-    } else {
-      setFiltersToggled(true);
     }
   };
 
@@ -2178,10 +2169,7 @@ export function ChatPage({
       )}
 
       {showAssistantsModal && (
-        <AssistantModal
-          currentlyVisibleAssistants={assistants}
-          hideModal={() => setShowAssistantsModal(false)}
-        />
+        <AssistantModal hideModal={() => setShowAssistantsModal(false)} />
       )}
 
       <div className="fixed inset-0 flex flex-col text-default">
@@ -2562,9 +2550,15 @@ export function ChatPage({
                                         ) {
                                           toggleDocumentSidebar();
                                         }
-                                        setSelectedMessageForDocDisplay(
-                                          message.messageId
-                                        );
+                                        if (
+                                          !documentSidebarToggled &&
+                                          selectedMessageForDocDisplay ===
+                                            message.messageId
+                                        ) {
+                                          // setSelectedMessageForDocDisplay(
+                                          //   message.messageId
+                                          // );
+                                        }
                                       }}
                                       docs={message.documents}
                                       currentPersona={liveAssistant}
@@ -2816,9 +2810,6 @@ export function ChatPage({
                               onSubmit={onSubmit}
                               files={currentMessageFiles}
                               setFiles={setCurrentMessageFiles}
-                              toggleFilters={
-                                retrievalEnabled ? toggleFilters : undefined
-                              }
                               handleFileUpload={handleImageUpload}
                               textAreaRef={textAreaRef}
                             />

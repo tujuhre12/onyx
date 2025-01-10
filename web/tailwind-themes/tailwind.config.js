@@ -112,7 +112,7 @@ module.exports = {
         "user-bubble": "var(--user-bubble)",
 
         // colors for sidebar in chat, search, and manage settings
-        "background-sidebar": "#F5F3EE",
+
         "background-chatbar": "#F5F3EE",
         "text-sidebar": "var(--text-500)",
 

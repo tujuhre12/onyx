@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useCallback } from "react";
 import { Option } from "@/components/Dropdown";
 import { generateRandomIconShape, createSVG } from "@/lib/assistantIconUtils";
 import { CCPairBasicInfo, DocumentSet, User } from "@/lib/types";
@@ -125,6 +126,8 @@ export function AssistantEditor({
     "#6FFFFF",
   ];
 
+  const [showSearchTool, setShowSearchTool] = useState(false);
+
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [hasEditedStarterMessage, setHasEditedStarterMessage] = useState(false);
   const [showPersonaCategory, setShowPersonaCategory] = useState(!admin);
@@ -220,24 +223,7 @@ export function AssistantEditor({
       existingPersona?.llm_model_provider_override ?? null,
     llm_model_version_override:
       existingPersona?.llm_model_version_override ?? null,
-    starter_messages: existingPersona?.starter_messages ?? [
-      {
-        name: "",
-        message: "",
-      },
-      {
-        name: "",
-        message: "",
-      },
-      {
-        name: "",
-        message: "",
-      },
-      {
-        name: "",
-        message: "",
-      },
-    ],
+    starter_messages: existingPersona?.starter_messages ?? [],
     enabled_tools_map: enabledToolsMap,
     icon_color: existingPersona?.icon_color ?? defautIconColor,
     icon_shape: existingPersona?.icon_shape ?? defaultIconShape,
@@ -476,7 +462,6 @@ export function AssistantEditor({
           values,
           setFieldValue,
           errors,
-
           ...formikProps
         }: FormikProps<any>) => {
           function toggleToolInValues(toolId: number) {
@@ -487,11 +472,17 @@ export function AssistantEditor({
             setFieldValue("enabled_tools_map", updatedEnabledToolsMap);
           }
 
-          function searchToolEnabled() {
+          const searchToolEnabled = useCallback(() => {
             return searchTool && values.enabled_tools_map[searchTool.id]
               ? true
               : false;
-          }
+          }, [searchTool, values.enabled_tools_map]);
+
+          const isSearchToolEnabled = useMemo(() => {
+            return searchTool && values.enabled_tools_map[searchTool.id]
+              ? true
+              : false;
+          }, [searchTool, values.enabled_tools_map]);
 
           // model must support image input for image generation
           // to work
@@ -711,19 +702,6 @@ export function AssistantEditor({
                 </>
               )}
               <div className="w-full max-w-4xl">
-                <Separator className="w-full mt-0" />
-                <div className="flex gap-x-2 py-2 flex justify-between">
-                  <div>
-                    <p className="block font-medium text-sm">General Access</p>
-                    <p className="text-sm text-subtle text-[#717279]">
-                      Everyone in your workspace can access this assistant
-                    </p>
-                  </div>
-                  <div className="my-auto">
-                    <Switch />
-                  </div>
-                </div>
-
                 <div className="flex flex-col">
                   {imageGenerationTool && (
                     <>
@@ -791,45 +769,120 @@ export function AssistantEditor({
                       </div>
                     </>
                   )}
-                  <Separator />
-                  {/* {searchTool && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div
-                            className={`w-fit ${
-                              ccPairs.length === 0
-                                ? "opacity-70 cursor-not-allowed"
-                                : ""
-                            }`}
+
+                  {internetSearchTool && (
+                    <>
+                      <Separator />
+                      <div className="flex gap-x-2 py-2 flex justify-between">
+                        <div>
+                          <p className="block font-medium text-sm">
+                            {internetSearchTool.display_name}
+                          </p>
+                          <p
+                            className="text-sm text-subtle"
+                            style={{ color: "rgb(113, 114, 121)" }}
                           >
-                            <BooleanFormField
-                              name={`enabled_tools_map.${searchTool.id}`}
-                              label="Search Tool"
-                              removeIndent
-                              onChange={() => {
-                                setFieldValue("num_chunks", null);
-                                toggleToolInValues(searchTool.id);
-                              }}
-                              disabled={ccPairs.length === 0}
-                            />
-                          </div>
-                        </TooltipTrigger>
-                        {ccPairs.length === 0 && (
-                          <TooltipContent side="top" align="center">
-                            <p className="bg-background-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
-                              To use the Search Tool, you need to have at least
-                              one Connector-Credential pair configured.
-                            </p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
+                            Enable internet search capabilities for this
+                            assistant
+                          </p>
+                        </div>
+                        <div className="flex items-center">
+                          <Switch
+                            name={`enabled_tools_map.${internetSearchTool.id}`}
+                            onChange={() => {
+                              toggleToolInValues(internetSearchTool.id);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </>
                   )}
 
-                  {ccPairs.length > 0 && searchTool && (
+                  {customTools.length > 0 && (
                     <>
-                      {searchToolEnabled() && (
+                      {customTools.map((tool) => (
+                        <React.Fragment key={tool.id}>
+                          <Separator />
+                          <div className="flex gap-x-2 py-2 flex justify-between">
+                            <div>
+                              <p className="block font-medium text-sm">
+                                {tool.display_name}
+                              </p>
+                              {tool.description && (
+                                <p
+                                  className="text-sm text-subtle"
+                                  style={{ color: "rgb(113, 114, 121)" }}
+                                >
+                                  {tool.description}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center">
+                              <Switch
+                                name={`enabled_tools_map.${tool.id}`}
+                                onChange={() => {
+                                  toggleToolInValues(tool.id);
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </React.Fragment>
+                      ))}
+
+                      {searchTool && (
+                        <>
+                          <Separator />
+                          <div className="flex gap-x-2 py-2 flex justify-between">
+                            <div>
+                              <p className="block font-medium text-sm">
+                                Search Tool
+                              </p>
+                              <p
+                                className="text-sm text-subtle"
+                                style={{ color: "rgb(113, 114, 121)" }}
+                              >
+                                Enable search capabilities for this assistant
+                              </p>
+                            </div>
+                            <div className="flex items-center">
+                              <TooltipProvider delayDuration={0}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      className={`${
+                                        ccPairs.length === 0
+                                          ? "opacity-70 cursor-not-allowed"
+                                          : ""
+                                      }`}
+                                    >
+                                      <Switch
+                                        onCheckedChange={(checked) => {
+                                          setShowSearchTool(checked);
+                                          setFieldValue("num_chunks", null);
+                                          toggleToolInValues(searchTool.id);
+                                        }}
+                                        name={`enabled_tools_map.${searchTool.id}`}
+                                        disabled={ccPairs.length === 0}
+                                      />
+                                    </div>
+                                  </TooltipTrigger>
+                                  {ccPairs.length === 0 && (
+                                    <TooltipContent side="top" align="center">
+                                      <p className="bg-background-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
+                                        To use the Search Tool, you need to have
+                                        at least one Connector-Credential pair
+                                        configured.
+                                      </p>
+                                    </TooltipContent>
+                                  )}
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {ccPairs.length > 0 && searchTool && showSearchTool && (
                         <CollapsibleSection prompt="Configure Search">
                           <div>
                             {ccPairs.length > 0 && (
@@ -864,29 +917,28 @@ export function AssistantEditor({
                                     render={(arrayHelpers: ArrayHelpers) => (
                                       <div>
                                         <div className="mb-3 mt-2 flex gap-2 flex-wrap text-sm">
-                                          {documentSets.map((documentSet) => {
-                                            const ind =
-                                              values.document_set_ids.indexOf(
+                                          {documentSets.map((documentSet) => (
+                                            <DocumentSetSelectable
+                                              key={documentSet.id}
+                                              documentSet={documentSet}
+                                              isSelected={values.document_set_ids.includes(
                                                 documentSet.id
-                                              );
-                                            const isSelected = ind !== -1;
-                                            return (
-                                              <DocumentSetSelectable
-                                                key={documentSet.id}
-                                                documentSet={documentSet}
-                                                isSelected={isSelected}
-                                                onSelect={() => {
-                                                  if (isSelected) {
-                                                    arrayHelpers.remove(ind);
-                                                  } else {
-                                                    arrayHelpers.push(
-                                                      documentSet.id
-                                                    );
-                                                  }
-                                                }}
-                                              />
-                                            );
-                                          })}
+                                              )}
+                                              onSelect={() => {
+                                                const index =
+                                                  values.document_set_ids.indexOf(
+                                                    documentSet.id
+                                                  );
+                                                if (index !== -1) {
+                                                  arrayHelpers.remove(index);
+                                                } else {
+                                                  arrayHelpers.push(
+                                                    documentSet.id
+                                                  );
+                                                }
+                                              }}
+                                            />
+                                          ))}
                                         </div>
                                       </div>
                                     )}
@@ -904,7 +956,7 @@ export function AssistantEditor({
                                   </p>
                                 )}
 
-                                <div className="mt-4  flex flex-col gap-y-4">
+                                <div className="mt-4 flex flex-col gap-y-4">
                                   <TextFormField
                                     small={true}
                                     name="num_chunks"
@@ -939,9 +991,7 @@ export function AssistantEditor({
                                     alignTop
                                     name="llm_relevance_filter"
                                     label="Apply LLM Relevance Filter"
-                                    subtext={
-                                      "If enabled, the LLM will filter out chunks that are not relevant to the user query."
-                                    }
+                                    subtext="If enabled, the LLM will filter out chunks that are not relevant to the user query."
                                   />
 
                                   <BooleanFormField
@@ -950,11 +1000,7 @@ export function AssistantEditor({
                                     alignTop
                                     name="include_citations"
                                     label="Include Citations"
-                                    subtext={`
-                                      If set, the response will include bracket citations ([1], [2], etc.) 
-                                      for each document used by the LLM to help inform the response. This is 
-                                      the same technique used by the default Assistants. In general, we recommend 
-                                      to leave this enabled in order to increase trust in the LLM answer.`}
+                                    subtext="If set, the response will include bracket citations ([1], [2], etc.) for each document used by the LLM to help inform the response. This is the same technique used by the default Assistants. In general, we recommend to leave this enabled in order to increase trust in the LLM answer."
                                   />
                                 </div>
                               </>
@@ -962,35 +1008,6 @@ export function AssistantEditor({
                           </div>
                         </CollapsibleSection>
                       )}
-                    </>
-                  )} */}
-
-                  {internetSearchTool && (
-                    <BooleanFormField
-                      removeIndent
-                      name={`enabled_tools_map.${internetSearchTool.id}`}
-                      label={internetSearchTool.display_name}
-                      onChange={() => {
-                        toggleToolInValues(internetSearchTool.id);
-                      }}
-                    />
-                  )}
-
-                  {customTools.length > 0 && (
-                    <>
-                      {customTools.map((tool) => (
-                        <BooleanFormField
-                          removeIndent
-                          alignTop={tool.description != null}
-                          key={tool.id}
-                          name={`enabled_tools_map.${tool.id}`}
-                          label={tool.display_name}
-                          subtext={tool.description}
-                          onChange={() => {
-                            toggleToolInValues(tool.id);
-                          }}
-                        />
-                      ))}
                     </>
                   )}
                 </div>
