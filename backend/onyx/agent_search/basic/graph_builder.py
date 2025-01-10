@@ -38,7 +38,7 @@ def basic_graph_builder() -> StateGraph:
 
 def should_continue(state: BasicState) -> str:
     return (
-        END if state["last_llm_call"] is None or state["calls"] > 0 else "get_response"
+        END if state["last_llm_call"] is None or state["calls"] > 1 else "get_response"
     )
 
 
