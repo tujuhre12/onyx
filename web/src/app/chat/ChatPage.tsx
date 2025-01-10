@@ -405,7 +405,6 @@ export function ChatPage({
   }, []);
 
   useEffect(() => {
-    console.log("HOWDY");
     const priorChatSessionId = chatSessionIdRef.current;
     const loadedSessionId = loadedIdSessionRef.current;
     chatSessionIdRef.current = existingChatSessionId;
