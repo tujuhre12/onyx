@@ -157,6 +157,7 @@ export async function fetchChatData(searchParams: {
   const defaultAssistantId = defaultAssistantIdRaw
     ? parseInt(defaultAssistantIdRaw)
     : undefined;
+  console.log("defaultAssistantId", defaultAssistantId);
 
   const documentSidebarCookieInitialWidth = requestCookies.get(
     DOCUMENT_SIDEBAR_WIDTH_COOKIE_NAME

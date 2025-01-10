@@ -5,7 +5,7 @@ import { Persona } from "@/app/admin/assistants/interfaces";
 import { useRouter } from "next/navigation";
 
 import { Modal } from "@/components/Modal";
-import NewAssistantCard from "../gallery/AssistantCard";
+import NewAssistantCard from "./AssistantCard";
 import { useAssistants } from "@/components/context/AssistantsContext";
 
 export const AssistantBadgeSelector = ({

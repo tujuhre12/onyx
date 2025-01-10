@@ -86,7 +86,9 @@ export function ChatDocumentDisplay({
     >
       <div
         className={`flex relative flex-col px-3 py-2.5 gap-0.5 rounded-xl mx-2 my-1 ${
-          isSelected ? "bg-[#ebe7de] " : "bg-[#F1EEE8]/50 hover:bg-[#ebe7de]/80"
+          isSelected
+            ? "bg-[#ebe7de] "
+            : "bg-background-dark/50 hover:bg-[#ebe7de]/80"
         }`}
       >
         <button

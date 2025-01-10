@@ -20,6 +20,7 @@ import {
   InputBarPreviewImageProvider,
 } from "../files/InputBarPreview";
 import {
+  DocumentIcon2,
   FileIcon,
   OnyxIcon,
   SendIcon,
@@ -34,15 +35,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Hoverable } from "@/components/Hoverable";
-import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { ChatState } from "../types";
 import UnconfiguredProviderText from "@/components/chat_search/UnconfiguredProviderText";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { CalendarIcon, XIcon } from "lucide-react";
 import { FilterPopup } from "@/components/search/filtering/FilterPopup";
-import { DocumentSet, Tag, ValidSources } from "@/lib/types";
-import { DateRange } from "react-day-picker";
-import { SourceCategory } from "@/lib/search/interfaces";
+import { DocumentSet, Tag } from "@/lib/types";
 import { SourceIcon } from "@/components/SourceIcon";
 import { getDateRangeString } from "@/lib/dateUtils";
 
@@ -91,70 +89,8 @@ export const SourceChip = ({
   </div>
 );
 
-const SelectedUrlChip = ({
-  url,
-  onRemove,
-}: {
-  url: string;
-  onRemove: (url: string) => void;
-}) => (
-  <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-2 flex items-center space-x-2">
-    <img
-      src={`https://www.google.com/s2/favicons?domain=${new URL(url).hostname}`}
-      alt="Website favicon"
-      className="w-4 h-4"
-    />
-    <p className="text-sm font-medium text-gray-700 truncate">
-      {new URL(url).hostname}
-    </p>
-    <XIcon
-      onClick={() => onRemove(url)}
-      size={16}
-      className="text-text-400 hover:text-text-600 ml-auto cursor-pointer"
-    />
-  </div>
-);
-
-const SentUrlChip = ({
-  url,
-  onRemove,
-  onClick,
-  title,
-}: {
-  url: string;
-  onRemove: (url: string) => void;
-  onClick: () => void;
-  title: string;
-}) => {
-  return (
-    <button
-      className="bg-white/80 opacity-50 group-hover:opacity-100 border border-gray-200/50 shadow-sm rounded-lg p-2 flex items-center space-x-2  hover:bg-white hover:border-gray-200 transition-all duration-200"
-      onClick={onClick}
-    >
-      <img
-        src={`https://www.google.com/s2/favicons?domain=${
-          new URL(url).hostname
-        }`}
-        alt="Website favicon"
-        className="w-4 h-4 "
-      />
-      <p className="text-sm font-medium text-gray-600 truncate group-hover:text-gray-700">
-        {title}
-      </p>
-      <XIcon
-        onClick={(e) => {
-          onRemove(url);
-        }}
-        size={16}
-        className="text-text-300 hover:text-text-500 ml-auto transition-colors duration-200"
-      />
-    </button>
-  );
-};
-
 interface ChatInputBarProps {
   removeDocs: () => void;
-  showDocs: () => void;
   showConfigureAPIKey: () => void;
   selectedDocuments: OnyxDocument[];
   message: string;
@@ -172,7 +108,6 @@ interface ChatInputBarProps {
   setFiles: (files: FileDescriptor[]) => void;
   handleFileUpload: (files: File[]) => void;
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
-  toggleFilters?: () => void;
   filterManager: FilterManager;
   availableSources: SourceMetadata[];
   availableDocumentSets: DocumentSet[];
@@ -182,7 +117,6 @@ interface ChatInputBarProps {
 export function ChatInputBar({
   removeDocs,
   toggleDocumentSidebar,
-  showDocs,
   filterManager,
   showConfigureAPIKey,
   selectedDocuments,
@@ -201,7 +135,6 @@ export function ChatInputBar({
   handleFileUpload,
   textAreaRef,
   alternativeAssistant,
-  toggleFilters,
   availableSources,
   availableDocumentSets,
   availableTags,
@@ -235,15 +168,9 @@ export function ChatInputBar({
     }
   };
 
-  const settings = useContext(SettingsContext);
   const { finalAssistants: assistantOptions } = useAssistants();
 
   const { llmProviders } = useChatContext();
-  const [currentLlm, llmName] = getFinalLLM(
-    llmProviders,
-    selectedAssistant,
-    llmOverrideManager.llmOverride
-  );
 
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -345,60 +272,6 @@ export function ChatInputBar({
     }
   };
 
-  const [timeRange, setTimeRange] = React.useState<DateRange | undefined>(
-    undefined
-  );
-  const [selectedSources, setSelectedSources] = React.useState<string[]>([]);
-
-  // const filterTypes: FilterType[] = [
-  //   {
-  //     name: "Sources",
-  //     icon: <FiFilter size={14} />,
-  //     options: filterManager.selectedSources.map((source) => ({
-  //       key: source.internalName,
-  //       display: source.displayName,
-  //     })),
-  //     selected: filterManager.selectedSources.map(
-  //       (source) => source.internalName
-  //     ),
-  //     onSelect: (option) => {
-  //       const source = filterManager.selectedSources.find(
-  //         (s) => s.internalName === option.key
-  //       );
-  //       if (source) {
-  //         filterManager.setSelectedSources((prev) =>
-  //           prev.filter((s) => s.internalName !== option.key)
-  //         );
-  //       } else {
-  //         const newSource = getSourceMetadata(
-  //           option.key,
-  //           option.display as string
-  //         );
-  //         if (newSource) {
-  //           filterManager.setSelectedSources((prev) => [...prev, newSource]);
-  //         }
-  //       }
-  //     },
-  //     onReset: () => filterManager.setSelectedSources([]),
-  //   },
-  //   // Add more filter types as needed
-  // ];
-
-  const getSourceMetadata = (
-    internalName: string,
-    displayName: string
-  ): SourceMetadata | null => {
-    // This is a placeholder implementation. You should replace this with actual logic
-    // to get the full SourceMetadata object based on your application's needs.
-    return {
-      internalName: internalName as ValidSources,
-      displayName,
-      icon: () => null, // Replace with actual icon component
-      category: "web" as SourceCategory, // Replace with actual category
-      adminUrl: "", // Replace with actual admin URL if applicable
-    };
-  };
-
   return (
     <div id="onyx-chat-input">
       <div className="flex  justify-center mx-auto">
@@ -413,15 +286,15 @@ export function ChatInputBar({
           {showSuggestions && assistantTagOptions.length > 0 && (
             <div
               ref={suggestionsRef}
-              className="text-sm absolute inset-x-0 top-0 w-full transform -translate-y-full"
+              className="text-sm absolute  inset-x-0 top-0 w-full transform -translate-y-full"
             >
               <div className="rounded-lg py-1 sm-1.5 bg-background border border-border-medium shadow-lg mx-2 px-1.5 mt-2 z-10">
                 {assistantTagOptions.map((currentAssistant, index) => (
                   <button
                     key={index}
                     className={`px-2 ${
-                      tabbingIconIndex == index && "bg-[#F1EEE8]/75"
-                    } rounded items-center rounded-lg content-start flex gap-x-1 py-2 w-full  hover:bg-[#F1EEE8]/90 cursor-pointer`}
+                      tabbingIconIndex == index && "bg-background-dark/75"
+                    } rounded items-center rounded-lg content-start flex gap-x-1 py-2 w-full  hover:bg-background-dark/90 cursor-pointer`}
                     onClick={() => {
                       updatedTaggedAssistant(currentAssistant);
                     }}
@@ -443,8 +316,8 @@ export function ChatInputBar({
                   target="_self"
                   className={`${
                     tabbingIconIndex == assistantTagOptions.length &&
-                    "bg-[#F1EEE8]/75"
-                  } rounded rounded-lg px-3 flex gap-x-1 py-2 w-full  items-center  hover:bg-[#F1EEE8]/90 cursor-pointer"`}
+                    "bg-background-dark/75"
+                  } rounded rounded-lg px-3 flex gap-x-1 py-2 w-full  items-center  hover:bg-background-dark/90 cursor-pointer"`}
                   href="/assistants/new"
                 >
                   <FiPlus size={17} />
@@ -462,6 +335,7 @@ export function ChatInputBar({
               w-full
               h-fit
               flex
+              bg-background
               flex-col
               border
               border-[#E5E7EB]
@@ -518,7 +392,7 @@ export function ChatInputBar({
                 resize-none
                 rounded-lg
                 border-0
-                bg-[#FEFCFA]
+                bg-background
                 placeholder:text-text-muted
                 ${
                   textAreaRef.current &&
@@ -567,6 +441,7 @@ export function ChatInputBar({
                 <div className="flex gap-x-1 px-2 overflow-visible overflow-x-scroll items-end miniscroll">
                   {filterManager.timeRange && (
                     <SourceChip
+                      key="time-range"
                       icon={<CalendarIcon size={16} />}
                       title={`${getDateRangeString(
                         filterManager.timeRange.from,
@@ -577,30 +452,46 @@ export function ChatInputBar({
                       }}
                     />
                   )}
+                  {filterManager.selectedDocumentSets.length > 0 &&
+                    filterManager.selectedDocumentSets.map((docSet, index) => (
+                      <SourceChip
+                        key={`doc-set-${index}`}
+                        icon={<DocumentIcon2 size={16} />}
+                        title={docSet}
+                        onRemove={() => {
+                          filterManager.setSelectedDocumentSets(
+                            filterManager.selectedDocumentSets.filter(
+                              (ds) => ds !== docSet
+                            )
+                          );
+                        }}
+                      />
+                    ))}
+
                   {filterManager.selectedSources.length > 0 &&
-                    filterManager.selectedSources.map((source) => (
-                      <div className="flex-none" key={source.internalName}>
-                        <SourceChip
-                          icon={
-                            <SourceIcon
-                              sourceType={source.internalName}
-                              iconSize={16}
-                            />
-                          }
-                          title={source.displayName}
-                          onRemove={() => {
-                            filterManager.setSelectedSources(
-                              filterManager.selectedSources.filter(
-                                (s) => s.internalName !== source.internalName
-                              )
-                            );
-                          }}
-                        />
-                      </div>
+                    filterManager.selectedSources.map((source, index) => (
+                      <SourceChip
+                        key={`source-${index}`}
+                        icon={
+                          <SourceIcon
+                            sourceType={source.internalName}
+                            iconSize={16}
+                          />
+                        }
+                        title={source.displayName}
+                        onRemove={() => {
+                          filterManager.setSelectedSources(
+                            filterManager.selectedSources.filter(
+                              (s) => s.internalName !== source.internalName
+                            )
+                          );
+                        }}
+                      />
                     ))}
 
                   {selectedDocuments.length > 0 && (
                     <SourceChip
+                      key="selected-documents"
                       onClick={() => {
                         toggleDocumentSidebar();
                       }}
@@ -610,35 +501,35 @@ export function ChatInputBar({
                     />
                   )}
 
-                  {files.map((file) => (
-                    <div className="flex-none" key={file.id}>
-                      {file.type === ChatFileType.IMAGE ? (
-                        <InputBarPreviewImageProvider
-                          file={file}
-                          onDelete={() => {
-                            setFiles(
-                              files.filter(
-                                (fileInFilter) => fileInFilter.id !== file.id
-                              )
-                            );
-                          }}
-                          isUploading={file.isUploading || false}
-                        />
-                      ) : (
-                        <InputBarPreview
-                          file={file}
-                          onDelete={() => {
-                            setFiles(
-                              files.filter(
-                                (fileInFilter) => fileInFilter.id !== file.id
-                              )
-                            );
-                          }}
-                          isUploading={file.isUploading || false}
-                        />
-                      )}
-                    </div>
-                  ))}
+                  {files.map((file, index) =>
+                    file.type === ChatFileType.IMAGE ? (
+                      <InputBarPreviewImageProvider
+                        key={`file-${index}`}
+                        file={file}
+                        onDelete={() => {
+                          setFiles(
+                            files.filter(
+                              (fileInFilter) => fileInFilter.id !== file.id
+                            )
+                          );
+                        }}
+                        isUploading={file.isUploading || false}
+                      />
+                    ) : (
+                      <InputBarPreview
+                        key={`file-${index}`}
+                        file={file}
+                        onDelete={() => {
+                          setFiles(
+                            files.filter(
+                              (fileInFilter) => fileInFilter.id !== file.id
+                            )
+                          );
+                        }}
+                        isUploading={file.isUploading || false}
+                      />
+                    )
+                  )}
                 </div>
               </div>
             )}

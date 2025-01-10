@@ -25,7 +25,7 @@ export function SkippedSearch({
             <>
               <BasicClickable
                 onClick={handleForceSearch}
-                className="ml-auto mr-4 text-xs mobile:hidden bg-gray-100 rounded-md px-2 py-1 cursor-pointer"
+                className="ml-auto mr-4 text-xs mobile:hidden bg-background/80 rounded-md px-2 py-1 cursor-pointer"
               >
                 Force search?
               </BasicClickable>

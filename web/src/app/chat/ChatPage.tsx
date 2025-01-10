@@ -47,6 +47,7 @@ import {
 import {
   Dispatch,
   SetStateAction,
+  use,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -103,10 +104,7 @@ import { ApiKeyModal } from "@/components/llm/ApiKeyModal";
 import BlurBackground from "./shared_chat_search/BlurBackground";
 import { NoAssistantModal } from "@/components/modals/NoAssistantModal";
 import { useAssistants } from "@/components/context/AssistantsContext";
-import { Separator } from "@/components/ui/separator";
-import AssistantBanner from "../../components/assistants/AssistantBanner";
 import TextView from "@/components/chat_search/TextView";
-import AssistantSelector from "@/components/chat_search/AssistantSelector";
 import { Modal } from "@/components/Modal";
 import { useSendMessageToParent } from "@/lib/extension/utils";
 import {
@@ -115,8 +113,6 @@ import {
 } from "@/lib/extension/constants";
 import AssistantModal from "../assistants/mine/AssistantModal";
 import { getSourceMetadata } from "@/lib/sources";
-import { IconSelector } from "./input/IconSelector";
-import IconSelector2 from "./input/IconSelector2";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -144,10 +140,14 @@ export function ChatPage({
     llmProviders,
     folders,
     openedFolders,
-    defaultAssistantId,
     shouldShowWelcomeModal,
     refreshChatSessions,
   } = useChatContext();
+
+  const defaultAssistantIdRaw = searchParams.get(SEARCH_PARAM_NAMES.PERSONA_ID);
+  const defaultAssistantId = defaultAssistantIdRaw
+    ? parseInt(defaultAssistantIdRaw)
+    : undefined;
 
   function useScreenSize() {
     const [screenSize, setScreenSize] = useState({
@@ -192,11 +192,7 @@ export function ChatPage({
 
   const [userSettingsToggled, setUserSettingsToggled] = useState(false);
 
-  const {
-    assistants: availableAssistants,
-    finalAssistants,
-    pinnedAssistants,
-  } = useAssistants();
+  const { assistants: availableAssistants, finalAssistants } = useAssistants();
 
   const [showApiKeyModal, setShowApiKeyModal] = useState(
     !shouldShowWelcomeModal
@@ -206,9 +202,6 @@ export function ChatPage({
   const slackChatId = searchParams.get("slackChatId");
   const existingChatIdRaw = searchParams.get("chatId");
 
-  const modelVersionFromSearchParams = searchParams.get(
-    SEARCH_PARAM_NAMES.STRUCTURED_MODEL
-  );
   const [showHistorySidebar, setShowHistorySidebar] = useState(false); // State to track if sidebar is open
 
   useEffect(() => {
@@ -243,7 +236,6 @@ export function ChatPage({
 
     // If there's a message, submit it
     if (message) {
-      console.log("SUBMITTING MESSAGE");
       setSubmittedMessage(message);
       onSubmit({ messageOverride: message, overrideFileDescriptors });
     }
@@ -413,6 +405,7 @@ export function ChatPage({
   }, []);
 
   useEffect(() => {
+    console.log("HOWDY");
     const priorChatSessionId = chatSessionIdRef.current;
     const loadedSessionId = loadedIdSessionRef.current;
     chatSessionIdRef.current = existingChatSessionId;
@@ -545,7 +538,7 @@ export function ChatPage({
 
     initialSessionFetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [existingChatSessionId]);
+  }, [existingChatSessionId, searchParams.get(SEARCH_PARAM_NAMES.PERSONA_ID)]);
 
   const [message, setMessage] = useState(
     searchParams.get(SEARCH_PARAM_NAMES.USER_PROMPT) || ""
@@ -1575,6 +1568,7 @@ export function ChatPage({
       setSelectedMessageForDocDisplay(finalMessage.message_id);
     }
     setAlternativeGeneratingAssistant(null);
+    setSubmittedMessage("");
   };
 
   const onFeedback = async (
@@ -2340,10 +2334,8 @@ export function ChatPage({
                               )}
                             </div>
                           )}
-
                           {/* ChatBanner is a custom banner that displays a admin-specified message at 
                       the top of the chat page. Oly used in the EE version of the app. */}
-
                           {messageHistory.length === 0 &&
                             !isFetchingChatMessages &&
                             currentSessionChatState == "input" &&
@@ -2362,7 +2354,6 @@ export function ChatPage({
                                 />
                               </div>
                             )}
-
                           <div
                             key={currentSessionId()}
                             className={
@@ -2786,10 +2777,6 @@ export function ChatPage({
                               llmOverrideManager={llmOverrideManager}
                               removeDocs={() => {
                                 clearSelectedDocuments();
-                              }}
-                              showDocs={() => {
-                                setFiltersToggled(false);
-                                setDocumentSidebarToggled(true);
                               }}
                               showConfigureAPIKey={() =>
                                 setShowApiKeyModal(true)

@@ -123,7 +123,7 @@ export const ChatFilters = forwardRef<HTMLDivElement, ChatFiltersProps>(
                 <h2 className="text-xl font-bold text-text-900">Sources</h2>
               </div>
               <div className="border-b border-divider-history-sidebar-bar mx-3" />
-              <div className="overflow-y-auto pb-8 -mx-1 sm:mx-0 flex-grow gap-y-0 default-scrollbar dark-scrollbar flex flex-col">
+              <div className="overflow-y-auto h-fit mb-8 pb-8 -mx-1 sm:mx-0 flex-grow gap-y-0 default-scrollbar dark-scrollbar flex flex-col">
                 {dedupedDocuments.length > 0 ? (
                   dedupedDocuments.map((document, ind) => (
                     <div key={document.document_id} className="w-full">
@@ -160,7 +160,7 @@ export const ChatFilters = forwardRef<HTMLDivElement, ChatFiltersProps>(
               }`}
             >
               <button
-                className="text-sm font-medium py-2 px-4 rounded-full transition-colors bg-gray-900 text-white"
+                className="text-sm font-medium py-2 px-4 rounded-full transition-colors bg-neutral-900 text-white"
                 onClick={clearSelectedDocuments}
               >
                 {`Remove ${

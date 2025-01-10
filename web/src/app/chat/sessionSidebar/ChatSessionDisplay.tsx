@@ -82,7 +82,7 @@ export function ChatSessionDisplay({
       )}
 
       <Link
-        className="flex text-text-dark group relative"
+        className="flex group relative"
         key={chatSession.id}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => {
@@ -136,7 +136,7 @@ export function ChatSessionDisplay({
                     ${
                       isSelected
                         ? "to-background-chat-selected"
-                        : "group-hover:to-background-chat-hover"
+                        : "group-hover:to-background-chat-hover to-background-sidebar"
                     } `}
                   />
                 </p>

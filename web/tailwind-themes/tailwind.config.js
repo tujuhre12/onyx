@@ -84,7 +84,8 @@ module.exports = {
         "non-selectable": "var(--non-selectable)",
 
         // background
-        background: "var(--background)",
+        background: "#FEFCFA",
+        "background-dark": "#F1EEE8",
         "background-100": "var(--background-100)",
         "background-125": "var(--background-125)",
         "background-150": "var(--background-150)",
@@ -144,7 +145,7 @@ module.exports = {
         // Background for chat messages (user bubbles)
         user: "var(--user-bubble)",
 
-        "userdropdown-background": "var(--background-150)",
+        "userdropdown-background": "var(--background-800)",
         "text-mobile-sidebar-toggled": "var(--text-800)",
         "text-mobile-sidebar-untoggled": "var(--text-500)",
         "text-editing-message": "var(--text-800)",
@@ -175,6 +176,8 @@ module.exports = {
         "text-darker": "#282828",
         "text-dark": "#4A4A4A",
         "text-muted": "#6C6C6B",
+
+        // background: "#F1EEE8",
 
         "text-light": "#9c9c96",
 

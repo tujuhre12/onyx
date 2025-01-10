@@ -1,3 +1,5 @@
+"use client";
+
 import { ValidSources } from "@/lib/types";
 import { SourceIcon } from "./SourceIcon";
 import { useState } from "react";

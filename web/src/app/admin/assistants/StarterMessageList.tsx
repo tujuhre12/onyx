@@ -9,7 +9,7 @@ import {
   TooltipTrigger,
 } from "@radix-ui/react-tooltip";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FiInfo, FiTrash2, FiPlus, FiRefreshCcw } from "react-icons/fi";
 import { StarterMessage } from "./interfaces";
 import { Label, TextFormField } from "@/components/admin/connectors/Field";
@@ -38,6 +38,7 @@ export default function StarterMessagesList({
   errors: any;
   setFieldValue: any;
 }) {
+  const [tooltipOpen, setTooltipOpen] = useState(false);
   const { handleChange } = useFormikContext();
 
   // Group starter messages into rows of 2 for display purposes
@@ -124,31 +125,25 @@ export default function StarterMessagesList({
 
       <div className="relative gap-x-2 flex w-fit">
         <TooltipProvider delayDuration={50}>
-          <Tooltip>
+          <Tooltip onOpenChange={setTooltipOpen} open={tooltipOpen}>
             <TooltipTrigger asChild>
               <Button
                 type="button"
                 size="sm"
+                onMouseEnter={() => setTooltipOpen(true)}
+                onMouseLeave={() => setTooltipOpen(false)}
                 onClick={() => debouncedRefreshPrompts(values, setFieldValue)}
-                disabled={
-                  !autoStarterMessageEnabled ||
-                  isRefreshing ||
-                  (Object.keys(errors).length > 0 &&
-                    Object.keys(errors).some(
-                      (key) => !key.startsWith("starter_messages")
-                    ))
-                }
                 className={`
-                            ${
-                              isRefreshing || !autoStarterMessageEnabled
-                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                : "bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700"
-                            }
+                          ${
+                            isRefreshing || !autoStarterMessageEnabled
+                              ? "bg-neutral-200 border border-neutral-900 text-neutral-900 cursor-not-allowed"
+                              : "bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700"
+                          }
                           `}
               >
                 <div className="flex text-xs items-center gap-x-2">
                   {isRefreshing ? (
-                    <FiRefreshCcw className="w-4 h-4 animate-spin text-white" />
+                    <FiRefreshCcw className="w-4 h-4 animate-spin text-black" />
                   ) : (
                     <SwapIcon className="w-4 h-4 text-white" />
                   )}
@@ -156,9 +151,15 @@ export default function StarterMessagesList({
                 </div>
               </Button>
             </TooltipTrigger>
-            {!autoStarterMessageEnabled && (
+            {!autoStarterMessageEnabled ? (
               <TooltipContent side="top" align="center">
-                <p className="bg-background-900 max-w-[200px] text-sm p-1.5 text-white">
+                <p className="bg-background-950 max-w-[200px] text-sm p-1.5 text-white">
+                  No LLM providers configured. Generation is not available.
+                </p>
+              </TooltipContent>
+            ) : (
+              <TooltipContent side="top" align="center">
+                <p className="bg-background-950 max-w-[200px] text-sm p-1.5 text-white">
                   No LLM providers configured. Generation is not available.
                 </p>
               </TooltipContent>

@@ -81,7 +81,6 @@ function Identicon({ idString, gridSize = 7 }: IdenticonProps) {
         // Draw a square slightly larger for overlap
         cells.push(
           <rect
-            key={`cell-${row}-${col}`}
             x={xPos - 1}
             y={yPos - 1}
             width={cellSize + 2}

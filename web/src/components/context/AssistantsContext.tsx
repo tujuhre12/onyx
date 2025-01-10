@@ -190,15 +190,6 @@ export const AssistantsProvider: React.FC<{
     const finalPinnedAssistants =
       pinnedAssistants.length > 0 ? pinnedAssistants : assistants.slice(0, 3);
 
-    if (process.env.NODE_ENV === "development") {
-      console.log("user", user);
-      console.log(
-        "user.preferences.pinned_assistants",
-        user?.preferences.pinned_assistants
-      );
-      console.log("visibleAssistants", visibleAssistants);
-      console.log("finalPinnedAssistants", finalPinnedAssistants);
-    }
     const finalAssistants = user
       ? orderAssistantsForUser(visibleAssistants, user)
       : visibleAssistants;

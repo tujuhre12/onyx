@@ -535,8 +535,8 @@ export function AssistantEditor({
                       </div>
                     }
                     popover={
-                      <div className="bg-white text-text-800 flex flex-col gap-y-1 w-[300px] border border-border rounded-lg shadow-lg p-2">
-                        <label className="block w-full flex gap-x-2 text-left items-center px-4 py-2 hover:bg-background-100 rounded cursor-pointer">
+                      <div className="bg-white text-sm text-text-800 flex flex-col gap-y-1 w-[200px] border border-border rounded-lg shadow-lg p-2">
+                        <label className="block w-full flex gap-x-2 text-left items-center p-2 hover:bg-background-100 rounded cursor-pointer">
                           <CameraIcon />
                           Upload {values.uploaded_image && " New "} Photo
                           <input
@@ -559,7 +559,7 @@ export function AssistantEditor({
                               setFieldValue("uploaded_image", null);
                               setRemovePersonaImage(false);
                             }}
-                            className="block w-full items-center flex gap-x-2 text-left px-4 py-2 hover:bg-background-100 rounded"
+                            className="block w-full items-center flex gap-x-2 text-left p-2 hover:bg-background-100 rounded"
                           >
                             <TrashIcon />
                             {removePersonaImage
@@ -588,7 +588,7 @@ export function AssistantEditor({
                                 );
                                 setFieldValue("icon_color", randomColor);
                               }}
-                              className="block w-full items-center flex gap-x-2 text-left px-4 py-2 hover:bg-background-100 rounded"
+                              className="block w-full items-center flex gap-x-2 text-left p-2 hover:bg-background-100 rounded"
                             >
                               <NewChatIcon size={16} />
                               Generate New Icon
@@ -604,7 +604,7 @@ export function AssistantEditor({
                                 setRemovePersonaImage(false);
                                 setFieldValue("uploaded_image", null);
                               }}
-                              className="block w-full items-center flex gap-x-2 text-left px-4 py-2 hover:bg-background-100 rounded"
+                              className="block w-full items-center flex gap-x-2 text-left p-2 hover:bg-background-100 rounded"
                             >
                               <SwapIcon />
                               Revert to Previous Image
@@ -644,6 +644,7 @@ export function AssistantEditor({
               </div>
 
               <TextFormField
+                maxWidth="max-w-lg"
                 name="name"
                 tooltip="Used to identify the Assistant in the UI."
                 label="Name"
@@ -652,6 +653,7 @@ export function AssistantEditor({
               />
 
               <TextFormField
+                maxWidth="max-w-lg"
                 tooltip="Used for identifying assistants and their use cases."
                 name="description"
                 label="Description"

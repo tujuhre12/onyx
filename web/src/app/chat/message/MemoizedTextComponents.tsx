@@ -4,6 +4,7 @@ import React, { memo } from "react";
 import isEqual from "lodash/isEqual";
 import { SourceIcon } from "@/components/SourceIcon";
 import { SearchResultIcon } from "@/components/SearchResultIcon";
+import { WebResultIcon } from "@/components/WebResultIcon";
 
 const FALLBACK_ICON = "web.svg";
 
@@ -31,16 +32,11 @@ export const MemoizedAnchor = memo(
     iconMap,
     updatePresentingDocument,
     children,
-    handleError,
   }: {
     docs?: OnyxDocument[] | null;
     iconMap?: Record<string, string>;
     updatePresentingDocument: (doc: OnyxDocument) => void;
     children: React.ReactNode;
-    handleError: (
-      e: React.SyntheticEvent<HTMLImageElement>,
-      associatedDoc: OnyxDocument
-    ) => void;
   }) => {
     const value = children?.toString();
     if (value?.startsWith("[") && value?.endsWith("]")) {
@@ -57,19 +53,21 @@ export const MemoizedAnchor = memo(
 
         let icon: React.ReactNode = null;
         if (associatedDoc.source_type === "web") {
-          icon = (
-            <img
-              className="!m-0 !p-0 rounded-full"
-              height={18}
-              onError={(e) => {
-                console.log(iconMap);
-                handleError(e, associatedDoc);
-              }}
-              width={18}
-              src={"globe.svg"}
-              alt="Favicon"
-            />
-          );
+          icon = <WebResultIcon url={associatedDoc.link} />;
+          // (
+          //   <img
+          //     className="!m-0 !p-0 rounded-full"
+          //     height={18}
+          //     onError={(e) => {
+          //       handleError(e, associatedDoc);
+          //     }}
+          //     width={18}
+          //     src={`https://www.google.com/s2/favicons?domain=${
+          //       new URL(associatedDoc.link).hostname
+          //     }`}
+          //     alt="Favicon"
+          //   />
+          // );
         } else {
           icon = (
             <SourceIcon sourceType={associatedDoc.source_type} iconSize={18} />

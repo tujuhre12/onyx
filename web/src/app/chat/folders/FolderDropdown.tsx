@@ -132,14 +132,14 @@ export const FolderDropdown: React.FC<FolderDropdownProps> = ({
           </button>
         )}
         {isEditing && (
-          <>
+          <div className="-my-1">
             <button onClick={handleSave} className="p-1 text-green-500">
               <FiCheck size={14} />
             </button>
             <button onClick={handleCancel} className="p-1 text-red-500">
               <FiX size={14} />
             </button>
-          </>
+          </div>
         )}
       </div>
       {isOpen && <div className="mr-4 ml-1 mt-1">{children}</div>}

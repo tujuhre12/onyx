@@ -118,18 +118,7 @@ export default function LLMPopover({
                     {getDisplayNameForModel(name)}
                   </span>
                   {(() => {
-                    if (
-                      currentAssistant?.llm_model_version_override === name &&
-                      globalDefault.modelName === name
-                    ) {
-                      return (
-                        <span className="ml-auto text-xs">
-                          (assistant + user default)
-                        </span>
-                      );
-                    } else if (
-                      currentAssistant?.llm_model_version_override === name
-                    ) {
+                    if (currentAssistant?.llm_model_version_override === name) {
                       return (
                         <span className="flex-none ml-auto text-xs">
                           (assistant)

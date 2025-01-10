@@ -3,7 +3,7 @@
 import { FiEdit, FiFolderPlus, FiMoreHorizontal } from "react-icons/fi";
 import React, { ForwardedRef, forwardRef, useContext, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChatSession } from "../interfaces";
 import { NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA } from "@/lib/constants";
 import { Folder } from "../folders/interfaces";
@@ -24,6 +24,8 @@ import LogoWithText from "@/components/header/LogoWithText";
 import { Persona } from "@/app/admin/assistants/interfaces";
 import { FaSearch } from "react-icons/fa";
 import { useAssistants } from "@/components/context/AssistantsContext";
+import { AssistantIcon } from "@/components/assistants/AssistantIcon";
+import { buildChatUrl } from "../lib";
 
 interface HistorySidebarProps {
   page: pageType;
@@ -70,6 +72,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
     },
     ref: ForwardedRef<HTMLDivElement>
   ) => {
+    const searchParams = useSearchParams();
     const router = useRouter();
     const { popup, setPopup } = usePopup();
 
@@ -171,14 +174,20 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
               {pinnedAssistants.slice(0, 3).map((assistant) => (
                 <button
                   onClick={() => {
-                    router.push(`/${page}?assistantId=${assistant.id}`);
+                    router.push(buildChatUrl(searchParams, null, assistant.id));
+
+                    // router.push(`/${page}?assistantId=${assistant.id}`);
                   }}
                   className={`cursor-pointer hover:bg-hover-light ${
                     currentAssistantId === assistant.id ? "bg-hover-light" : ""
                   } flex items-center gap-x-2 py-1 px-2 rounded-md`}
                   key={assistant.id}
                 >
-                  <OnyxIcon size={16} className="flex-none" />
+                  <AssistantIcon
+                    assistant={assistant}
+                    size={16}
+                    className="flex-none"
+                  />
                   <p className="text-base text-black">{assistant.name}</p>
                 </button>
               ))}

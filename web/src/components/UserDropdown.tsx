@@ -149,6 +149,7 @@ export function UserDropdown({
                 inline-block
                 flex-none
                 px-2
+                text-white
                 text-base
               "
             >
