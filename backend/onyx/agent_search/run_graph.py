@@ -9,19 +9,24 @@ from langchain_core.runnables.schema import StreamEvent
 from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy.orm import Session
 
+from onyx.agent_search.basic.graph_builder import basic_graph_builder
+from onyx.agent_search.basic.states import BasicInput
 from onyx.agent_search.models import AgentDocumentCitations
 from onyx.agent_search.pro_search_a.main.graph_builder import main_graph_builder
 from onyx.agent_search.pro_search_a.main.states import MainInput
 from onyx.agent_search.shared_graph_utils.utils import get_test_config
+from onyx.chat.llm_response_handler import LLMResponseHandlerManager
 from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
+from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import ProSearchConfig
 from onyx.chat.models import SubQueryPiece
 from onyx.chat.models import SubQuestionPiece
 from onyx.chat.models import ToolResponse
+from onyx.chat.prompt_builder.build import LLMCall
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
 from onyx.llm.interfaces import LLM
@@ -64,12 +69,14 @@ def _parse_agent_event(
             return cast(AgentAnswerPiece, event["data"])
         elif event["name"] == "tool_response":
             return cast(ToolResponse, event["data"])
+        elif event["name"] == "basic_response":
+            return cast(AnswerPacket, event["data"])
     return None
 
 
 def _manage_async_event_streaming(
     compiled_graph: CompiledStateGraph,
-    graph_input: MainInput,
+    graph_input: MainInput | BasicInput,
 ) -> Iterable[StreamEvent]:
     async def _run_async_event_stream() -> AsyncIterable[StreamEvent]:
         async for event in compiled_graph.astream_events(
@@ -105,19 +112,8 @@ def _manage_async_event_streaming(
 
 def run_graph(
     compiled_graph: CompiledStateGraph,
-    config: ProSearchConfig,
-    search_tool: SearchTool,
-    primary_llm: LLM,
-    fast_llm: LLM,
-    db_session: Session,
+    input: BasicInput | MainInput,
 ) -> AnswerStream:
-    input = MainInput(
-        config=config,
-        primary_llm=primary_llm,
-        fast_llm=fast_llm,
-        db_session=db_session,
-        search_tool=search_tool,
-    )
 
     agent_document_citations: dict[int, dict[int, list[AgentDocumentCitations]]] = {}
     agent_question_citations_used_docs: defaultdict[
@@ -183,6 +179,9 @@ def run_graph(
                     level = parsed_object.level
                     level_question_nr = parsed_object.level_question_nr
                     parsed_object.answer_type
+                elif isinstance(parsed_object, OnyxAnswerPiece):
+                    yield parsed_object
+                    continue
                 else:
                     raise ValueError(
                         f"Invalid parsed object type: {type(parsed_object)}"
@@ -334,9 +333,33 @@ def run_main_graph(
     db_session: Session,
 ) -> AnswerStream:
     compiled_graph = load_compiled_graph()
-    return run_graph(
-        compiled_graph, config, search_tool, primary_llm, fast_llm, db_session
+    input = MainInput(
+        config=config,
+        primary_llm=primary_llm,
+        fast_llm=fast_llm,
+        db_session=db_session,
+        search_tool=search_tool,
     )
+    return run_graph(
+        compiled_graph, input
+    )
+
+def run_basic_graph(
+    last_llm_call: LLMCall | None,
+    primary_llm: LLM,
+    answer_style_config: AnswerStyleConfig,
+    response_handler_manager: LLMResponseHandlerManager,
+) -> AnswerStream:
+    graph = basic_graph_builder()
+    compiled_graph = graph.compile()
+    input = BasicInput(
+        last_llm_call=last_llm_call,
+        llm=primary_llm,
+        answer_style_config=answer_style_config,
+        response_handler_manager=response_handler_manager,
+        calls=0,
+    )
+    return run_graph(compiled_graph, input)
 
 
 if __name__ == "__main__":
