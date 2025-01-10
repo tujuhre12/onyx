@@ -382,10 +382,4 @@ class Chunker:
             chunks = self._handle_single_document(document)
             final_chunks.extend(chunks)
 
-            if self.callback:
-                self.callback.progress(
-                    f"Chunker.chunk finish: doc={document.id} " f"chunks={len(chunks)}",
-                    len(chunks),
-                )
-
         return final_chunks
