@@ -12,17 +12,13 @@ import {
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi";
-import { getDateRangeString } from "@/lib/dateUtils";
 import { FilterManager } from "@/lib/hooks";
-import { ValidSources } from "@/lib/types";
 import { DocumentSet, Tag } from "@/lib/types";
 import { SourceMetadata } from "@/lib/search/interfaces";
-import { getSourceMetadata } from "@/lib/sources";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { SourceIcon } from "@/components/SourceIcon";
-import { filter } from "lodash";
 
 interface FilterPopupProps {
   filterManager: FilterManager;
@@ -239,11 +235,15 @@ export function FilterPopup({
             {selectedFilter === FilterCategories.date && (
               <div>
                 {renderCalendar()}
-                {filterManager.timeRange && (
+                {filterManager.timeRange ? (
                   <div className="mt-2 text-xs text-gray-600">
                     Selected:{" "}
                     {filterManager.timeRange.from.toLocaleDateString()} -{" "}
                     {filterManager.timeRange.to.toLocaleDateString()}
+                  </div>
+                ) : (
+                  <div className="mt-2 text-xs text-gray-600">
+                    No time restriction selected
                   </div>
                 )}
 
@@ -254,7 +254,7 @@ export function FilterPopup({
                     }}
                     className="mt-2 text-xs text-text-dark hover:text-text transition-colors duration-200"
                   >
-                    Reset Date
+                    Reset Date Filter
                   </button>
                 )}
               </div>

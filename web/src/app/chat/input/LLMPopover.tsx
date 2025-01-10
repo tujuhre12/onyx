@@ -92,7 +92,9 @@ export default function LLMPopover({
                 <button
                   key={index}
                   className={`w-full flex items-center gap-x-3 px-3 py-2 text-sm text-left hover:bg-gray-100 transition-colors duration-150 ${
-                    currentLlm === name ? "bg-gray-100" : ""
+                    currentLlm === name
+                      ? "bg-gray-100 text-text"
+                      : "text-text-darker"
                   }`}
                   onClick={() => updateLLMOverride(destructureValue(value))}
                 >
@@ -111,7 +113,7 @@ export default function LLMPopover({
                       )}
                     </div>
                   </div>
-                  {icon({ size: 16, className: "text-gray-600" })}
+                  {icon({ size: 16, className: "my-auto " })}
                   <span className="ml-1">{getDisplayNameForModel(name)}</span>
                   {(() => {
                     if (

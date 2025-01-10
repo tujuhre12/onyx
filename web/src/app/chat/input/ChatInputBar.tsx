@@ -20,10 +20,6 @@ import {
   InputBarPreviewImageProvider,
 } from "../files/InputBarPreview";
 import {
-  AnthropicIcon,
-  AnthropicSVG,
-  AssistantsIconSkeleton,
-  AWSIcon,
   FileIcon,
   OnyxIcon,
   SendIcon,
@@ -42,13 +38,13 @@ import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { ChatState } from "../types";
 import UnconfiguredProviderText from "@/components/chat_search/UnconfiguredProviderText";
 import { useAssistants } from "@/components/context/AssistantsContext";
-import { Upload, XIcon } from "lucide-react";
-import { fetchTitleFromUrl } from "@/lib/sources";
+import { CalendarIcon, XIcon } from "lucide-react";
 import { FilterPopup } from "@/components/search/filtering/FilterPopup";
 import { DocumentSet, Tag, ValidSources } from "@/lib/types";
 import { DateRange } from "react-day-picker";
 import { SourceCategory } from "@/lib/search/interfaces";
 import { SourceIcon } from "@/components/SourceIcon";
+import { getDateRangeString } from "@/lib/dateUtils";
 
 const MAX_INPUT_HEIGHT = 200;
 
@@ -66,6 +62,7 @@ export const SourceChip = ({
   <div
     onClick={onClick ? onClick : undefined}
     className={`
+      flex-none
         flex
         items-center
         px-2
@@ -86,7 +83,10 @@ export const SourceChip = ({
     <XIcon
       size={16}
       className="text-text-900 ml-auto cursor-pointer"
-      onClick={onRemove}
+      onClick={(e: React.MouseEvent<SVGSVGElement>) => {
+        e.stopPropagation();
+        onRemove();
+      }}
     />
   </div>
 );
@@ -420,19 +420,17 @@ export function ChatInputBar({
                   <button
                     key={index}
                     className={`px-2 ${
-                      tabbingIconIndex == index && "bg-hover-lightish"
-                    } rounded items-center rounded-lg content-start flex gap-x-1 py-2 w-full  hover:bg-hover-lightish cursor-pointer`}
+                      tabbingIconIndex == index && "bg-[#F1EEE8]/75"
+                    } rounded items-center rounded-lg content-start flex gap-x-1 py-2 w-full  hover:bg-[#F1EEE8]/90 cursor-pointer`}
                     onClick={() => {
                       updatedTaggedAssistant(currentAssistant);
                     }}
                   >
-                    <OnyxIcon
-                      // assistant={currentAssistant}
-                      size={16}
-                      className="my-auto text-text-400"
-                    />
-                    <p className="font-bold">{currentAssistant.name}</p>
-                    <p className="line-clamp-1">
+                    <OnyxIcon size={16} className="my-auto text-text-darker" />
+                    <p className="text-text-darker font-semibold">
+                      {currentAssistant.name}
+                    </p>
+                    <p className="text-text-dark line-clamp-1">
                       {currentAssistant.id == selectedAssistant.id &&
                         "(default) "}
                       {currentAssistant.description}
@@ -444,8 +442,9 @@ export function ChatInputBar({
                   key={assistantTagOptions.length}
                   target="_self"
                   className={`${
-                    tabbingIconIndex == assistantTagOptions.length && "bg-hover"
-                  } rounded rounded-lg px-3 flex gap-x-1 py-2 w-full  items-center  hover:bg-hover-lightish cursor-pointer"`}
+                    tabbingIconIndex == assistantTagOptions.length &&
+                    "bg-[#F1EEE8]/75"
+                  } rounded rounded-lg px-3 flex gap-x-1 py-2 w-full  items-center  hover:bg-[#F1EEE8]/90 cursor-pointer"`}
                   href="/assistants/new"
                 >
                   <FiPlus size={17} />
@@ -560,11 +559,24 @@ export function ChatInputBar({
 
             {(selectedDocuments.length > 0 ||
               files.length > 0 ||
+              filterManager.timeRange ||
               filterManager.selectedDocumentSets.length > 0 ||
               filterManager.selectedTags.length > 0 ||
               filterManager.selectedSources.length > 0) && (
               <div className="flex gap-x-.5 px-2">
                 <div className="flex gap-x-1 px-2 overflow-visible overflow-x-scroll items-end miniscroll">
+                  {filterManager.timeRange && (
+                    <SourceChip
+                      icon={<CalendarIcon size={16} />}
+                      title={`${getDateRangeString(
+                        filterManager.timeRange.from,
+                        filterManager.timeRange.to
+                      )}`}
+                      onRemove={() => {
+                        filterManager.setTimeRange(null);
+                      }}
+                    />
+                  )}
                   {filterManager.selectedSources.length > 0 &&
                     filterManager.selectedSources.map((source) => (
                       <div className="flex-none" key={source.internalName}>

@@ -472,18 +472,6 @@ export function AssistantEditor({
             setFieldValue("enabled_tools_map", updatedEnabledToolsMap);
           }
 
-          const searchToolEnabled = useCallback(() => {
-            return searchTool && values.enabled_tools_map[searchTool.id]
-              ? true
-              : false;
-          }, [searchTool, values.enabled_tools_map]);
-
-          const isSearchToolEnabled = useMemo(() => {
-            return searchTool && values.enabled_tools_map[searchTool.id]
-              ? true
-              : false;
-          }, [searchTool, values.enabled_tools_map]);
-
           // model must support image input for image generation
           // to work
           const currentLLMSupportsImageOutput = checkLLMSupportsImageInput(
@@ -1069,33 +1057,28 @@ export function AssistantEditor({
                     )}
                   </div>
                 ) : (
-                  <div className="max-w-sm">
-                    <LlmList
-                      scrollable
-                      userDefault={
-                        user?.preferences?.default_model!
-                          ? destructureValue(user?.preferences?.default_model!)
-                              .modelName
-                          : null
+                  <LlmList
+                    scrollable
+                    userDefault={
+                      user?.preferences?.default_model!
+                        ? destructureValue(user?.preferences?.default_model!)
+                            .modelName
+                        : null
+                    }
+                    llmProviders={llmProviders}
+                    currentLlm={values.llm_model_version_override}
+                    onSelect={(value: string | null) => {
+                      if (value !== null) {
+                        const { modelName, provider, name } =
+                          destructureValue(value);
+                        setFieldValue("llm_model_version_override", modelName);
+                        setFieldValue("llm_model_provider_override", name);
+                      } else {
+                        setFieldValue("llm_model_version_override", null);
+                        setFieldValue("llm_model_provider_override", null);
                       }
-                      llmProviders={llmProviders}
-                      currentLlm={values.llm_model_version_override}
-                      onSelect={(value: string | null) => {
-                        if (value !== null) {
-                          const { modelName, provider, name } =
-                            destructureValue(value);
-                          setFieldValue(
-                            "llm_model_version_override",
-                            modelName
-                          );
-                          setFieldValue("llm_model_provider_override", name);
-                        } else {
-                          setFieldValue("llm_model_version_override", null);
-                          setFieldValue("llm_model_provider_override", null);
-                        }
-                      }}
-                    />
-                  </div>
+                    }}
+                  />
                 )}
               </div>
               <Separator className="max-w-4xl" />

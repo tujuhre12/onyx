@@ -49,10 +49,10 @@ export function RegenerateDropdown({
                 border 
                 rounded-lg 
                 flex 
-                flex-col 
+                flex-col
                 mx-2
                 bg-background
-                ${maxHeight || "max-h-96"}
+                ${maxHeight || "max-h-72"}
                 overflow-y-auto 
                 overscroll-contain relative`}
     >

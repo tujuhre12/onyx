@@ -50,19 +50,7 @@ export function ChatSessionDisplay({
     useState(false);
   const [isShareModalVisible, setIsShareModalVisible] = useState(false);
   const [chatName, setChatName] = useState(chatSession.name);
-  const [delayedSkipGradient, setDelayedSkipGradient] = useState(skipGradient);
   const settings = useContext(SettingsContext);
-
-  useEffect(() => {
-    if (skipGradient) {
-      setDelayedSkipGradient(true);
-    } else {
-      const timer = setTimeout(() => {
-        setDelayedSkipGradient(skipGradient);
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [skipGradient]);
 
   const onRename = async () => {
     const response = await renameChatSession(chatSession.id, chatName);
@@ -94,7 +82,7 @@ export function ChatSessionDisplay({
       )}
 
       <Link
-        className="flex group relative"
+        className="flex text-text-dark group relative"
         key={chatSession.id}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => {

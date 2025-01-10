@@ -101,7 +101,11 @@ export default function AssistantModal({
   }, [assistants, searchQuery, assistantFilters, pinnedAssistants]);
 
   return (
-    <Modal onOutsideClick={hideModal} className="max-w-4xl  w-[95%] h-[80vh]">
+    <Modal
+      hideCloseButton
+      onOutsideClick={hideModal}
+      className="max-w-4xl  w-[95%] h-[80vh]"
+    >
       <>
         <div className="flex justify-between items-center mb-0">
           <div className="h-10 px-4 w-full  rounded-lg flex-col justify-center items-start gap-2.5 inline-flex">

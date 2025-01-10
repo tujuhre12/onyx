@@ -14,6 +14,7 @@ import {
   FiEyeOff,
   FiTrash,
   FiMoreHorizontal,
+  FiEdit,
 } from "react-icons/fi";
 import { toggleAssistantPinnedStatus } from "@/lib/assistants/updateAssistantPreferences";
 import { useAssistants } from "@/components/context/AssistantsContext";
@@ -72,6 +73,10 @@ const NewAssistantCard: React.FC<{
   };
   const handleDelete = () => {
     setShowDeleteModal(true);
+    closePopover();
+  };
+  const handleEdit = () => {
+    router.push(`/assistants/edit/${persona.id}`);
     closePopover();
   };
 
@@ -166,17 +171,17 @@ const NewAssistantCard: React.FC<{
                   <FiMoreHorizontal size={16} />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="z-[1000000] w-40 p-2">
+              <PopoverContent className="z-[10000] w-40 p-2">
                 <button
                   onClick={handleShare}
-                  className="w-full text-left px-2 py-1 hover:bg-neutral-100 rounded"
+                  className="w-full text-left flex items-center px-2 py-1 hover:bg-neutral-100 rounded"
                 >
                   <FiShare2 size={12} className="inline mr-2" />
                   Share
                 </button>
                 <button
                   onClick={handleToggleVisibility}
-                  className="w-full text-left px-2 py-1 hover:bg-neutral-100 rounded"
+                  className="w-full text-left flex items-center px-2 py-1 hover:bg-neutral-100 rounded"
                 >
                   {persona.is_public ? (
                     <FiEyeOff size={12} className="inline mr-2" />
@@ -187,10 +192,17 @@ const NewAssistantCard: React.FC<{
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="w-full text-left px-2 py-1 hover:bg-neutral-100 rounded text-red-600"
+                  className="w-full text-left items-center px-2 py-1 hover:bg-neutral-100 rounded text-red-600"
                 >
                   <FiTrash size={12} className="inline mr-2" />
                   Delete
+                </button>
+                <button
+                  onClick={handleEdit}
+                  className="w-full flex items-center text-left px-2 py-1 hover:bg-neutral-100 rounded"
+                >
+                  <FiEdit size={12} className="inline mr-2" />
+                  Edit
                 </button>
               </PopoverContent>
             </Popover>
