@@ -17,6 +17,7 @@ APP_PORT = 8080
 # prefix from requests directed towards the API server. In these cases, set this to `/api`
 APP_API_PREFIX = os.environ.get("API_PREFIX", "")
 
+SKIP_WARM_UP = os.environ.get("SKIP_WARM_UP", "").lower() == "true"
 
 #####
 # User Facing Features Configs
@@ -279,6 +280,11 @@ try:
     CELERY_WORKER_INDEXING_CONCURRENCY = int(env_value)
 except ValueError:
     CELERY_WORKER_INDEXING_CONCURRENCY = CELERY_WORKER_INDEXING_CONCURRENCY_DEFAULT
+
+# The maximum number of tasks that can be queued up to sync to Vespa in a single pass
+VESPA_SYNC_MAX_TASKS = 1024
+
+DB_YIELD_PER_DEFAULT = 64
 
 #####
 # Connector Configs
