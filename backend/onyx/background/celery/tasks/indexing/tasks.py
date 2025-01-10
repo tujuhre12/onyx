@@ -1211,11 +1211,15 @@ def connector_indexing_task(
             r,
         )
 
+        queue_delay_datetime = payload.started - payload.submitted
+
         logger.info(
-            f"Indexing spawned task running entrypoint: attempt={index_attempt_id} "
+            f"Indexing spawned task running entrypoint: "
+            f"attempt={index_attempt_id} "
             f"tenant={tenant_id} "
             f"cc_pair={cc_pair_id} "
             f"search_settings={search_settings_id}"
+            f"queue_delay={queue_delay_datetime.total_seconds()}"
         )
 
         # This is where the heavy/real work happens
