@@ -213,6 +213,8 @@ class ProSearchConfig(BaseModel):
     Configuration for the Pro Search feature.
     """
 
+    use_agentic_search: bool = False
+
     # For persisting agent search data
     chat_session_id: UUID | None = None
     # The message ID of the user message that triggered the Pro Search
