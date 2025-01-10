@@ -386,10 +386,17 @@ if __name__ == "__main__":
         # search_request.persona = get_persona_by_id(1, None, db_session)
         config.use_persistence = True
 
+        input = MainInput(
+            config=config,
+            primary_llm=primary_llm,
+            fast_llm=fast_llm,
+            db_session=db_session,
+            search_tool=search_tool,
+        )
         # with open("output.txt", "w") as f:
         tool_responses: list = []
         for output in run_graph(
-            compiled_graph, config, search_tool, primary_llm, fast_llm, db_session
+            compiled_graph, input
         ):
             # pass
 
