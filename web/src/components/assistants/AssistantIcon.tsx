@@ -41,8 +41,8 @@ export function generateIdenticon(str: string, dimension: number) {
             key={`${xPos}-${yPos}`}
             x={xPos - 0.5}
             y={yPos - 0.5}
-            width={cellSize + 1}
-            height={cellSize + 1}
+            width={cellSize}
+            height={cellSize}
             fill="black"
           />
         );
@@ -55,8 +55,8 @@ export function generateIdenticon(str: string, dimension: number) {
               key={`a-${mirrorX}-${yPos}`}
               x={mirrorX - 0.5}
               y={yPos - 0.5}
-              width={cellSize + 1}
-              height={cellSize + 1}
+              width={cellSize}
+              height={cellSize}
               fill="black"
             />
           );

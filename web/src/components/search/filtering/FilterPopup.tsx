@@ -57,7 +57,7 @@ export function FilterPopup({
     label: string;
   }) => (
     <li
-      className={`px-3 py-2 flex items-center gap-x-2 cursor-pointer transition-colors duration-200 ${
+      className={`px-3 py-2 flex rounded-lg items-center gap-x-2 cursor-pointer transition-colors duration-200 ${
         selectedFilter === category
           ? "bg-gray-100 text-gray-900"
           : "text-gray-600 hover:bg-gray-50"
@@ -200,7 +200,7 @@ export function FilterPopup({
         <button>{trigger}</button>
       </PopoverTrigger>
       <PopoverContent className="w-[400px] p-0 shadow-lg" align="start">
-        <div className="flex h-[325px]">
+        <div className="flex h-[300px]">
           <div className="w-1/3 border-r border-gray-200 p-2">
             <ul className="space-y-1">
               <FilterOption
@@ -231,7 +231,7 @@ export function FilterPopup({
               )}
             </ul>
           </div>
-          <div className="w-2/3 p-4 overflow-y-auto">
+          <div className="w-2/3 px-4 pt-2 overflow-none">
             {selectedFilter === FilterCategories.date && (
               <div>
                 {renderCalendar()}
@@ -303,9 +303,10 @@ export function FilterPopup({
               </div>
             )}
             {selectedFilter === FilterCategories.documentSets && (
-              <div>
-                <h3 className="text-sm font-semibold mb-2">Document Sets</h3>
-                <ul className="space-y-2">
+              <div className="h-full flex flex-col overflow-hidden">
+                <h3 className="text-sm font-semibold mb-1">Document Sets</h3>
+                <ul className="default-scrollbar relative   t-1 space-y-2 h-fit overflow-y-auto">
+                  <div className="absolute top-0 left-0 w-full h-4 bg-background-950 opacity-50 z-10"></div>
                   {availableDocumentSets.map((docSet) => (
                     <li key={docSet.id} className="flex items-center space-x-2">
                       <Checkbox
@@ -370,7 +371,7 @@ export function FilterPopup({
           </div>
         </div>
         <Separator className="mt-0 mb-2" />
-        <div className="flex justify-between items-center px-4 py-2">
+        <div className="flex justify-between items-center px-4 p-2">
           <Button
             variant="ghost"
             size="sm"

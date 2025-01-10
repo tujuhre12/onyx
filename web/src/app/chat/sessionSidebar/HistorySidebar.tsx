@@ -189,6 +189,9 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                     className="flex-none"
                   />
                   <p className="text-base text-black">{assistant.name}</p>
+                  {currentAssistantId === assistant.id && (
+                    <PinnedIcon className="ml-auto text-text-dark" size={12} />
+                  )}
                 </button>
               ))}
               <button
