@@ -3,7 +3,7 @@ from typing import Annotated
 from typing import TypedDict
 
 from onyx.agent_search.core_state import SubgraphCoreState
-from onyx.agent_search.pro_search_a.expanded_retrieval.models import (
+from onyx.agent_search.pro_search_b.expanded_retrieval.models import (
     ExpandedRetrievalResult,
 )
 from onyx.agent_search.shared_graph_utils.models import QueryResult

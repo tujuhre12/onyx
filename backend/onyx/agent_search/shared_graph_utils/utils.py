@@ -13,7 +13,7 @@ from uuid import UUID
 from langchain_core.messages import BaseMessage
 from sqlalchemy.orm import Session
 
-from onyx.agent_search.pro_search_a.main.models import EntityRelationshipTermExtraction
+from onyx.agent_search.shared_graph_utils.models import EntityRelationshipTermExtraction
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationConfig
 from onyx.chat.models import DocumentPruningConfig

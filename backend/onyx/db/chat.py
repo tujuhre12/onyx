@@ -16,10 +16,8 @@ from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import Session
 
-from onyx.agent_search.pro_search_a.answer_initial_sub_question.models import (
-    QuestionAnswerResults,
-)
-from onyx.agent_search.pro_search_a.main.models import CombinedAgentMetrics
+from onyx.agent_search.shared_graph_utils.models import CombinedAgentMetrics
+from onyx.agent_search.shared_graph_utils.models import QuestionAnswerResults
 from onyx.auth.schemas import UserRole
 from onyx.chat.models import DocumentRelevance
 from onyx.configs.chat_configs import HARD_DELETE_CHATS

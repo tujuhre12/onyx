@@ -5,7 +5,9 @@ from typing import TypedDict
 from onyx.agent_search.core_state import SubgraphCoreState
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.models import QueryResult
-from onyx.agent_search.shared_graph_utils.models import QuestionAnswerResults
+from onyx.agent_search.shared_graph_utils.models import (
+    QuestionAnswerResults,
+)
 from onyx.agent_search.shared_graph_utils.operators import dedup_inference_sections
 from onyx.context.search.models import InferenceSection
 
