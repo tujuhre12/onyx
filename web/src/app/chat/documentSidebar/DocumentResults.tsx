@@ -13,7 +13,7 @@ import {
 } from "react";
 import { SourcesIcon, XIcon } from "@/components/icons/icons";
 
-interface ChatFiltersProps {
+interface DocumentResultsProps {
   closeSidebar: () => void;
   selectedMessage: Message | null;
   selectedDocuments: OnyxDocument[] | null;
@@ -28,7 +28,7 @@ interface ChatFiltersProps {
   setPresentingDocument: Dispatch<SetStateAction<OnyxDocument | null>>;
 }
 
-export const ChatFilters = forwardRef<HTMLDivElement, ChatFiltersProps>(
+export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
   (
     {
       closeSidebar,
@@ -177,4 +177,4 @@ export const ChatFilters = forwardRef<HTMLDivElement, ChatFiltersProps>(
   }
 );
 
-ChatFilters.displayName = "ChatFilters";
+DocumentResults.displayName = "DocumentResults";

@@ -20,7 +20,7 @@ import { Persona } from "@/app/admin/assistants/interfaces";
 import { Button } from "@/components/ui/button";
 import { OnyxDocument } from "@/lib/search/interfaces";
 import TextView from "@/components/chat_search/TextView";
-import { ChatFilters } from "../../documentSidebar/ChatFilters";
+import { DocumentResults } from "../../documentSidebar/DocumentResults";
 import { Modal } from "@/components/Modal";
 import FunctionalHeader from "@/components/chat_search/Header";
 import FixedLogo from "../../shared_chat_search/FixedLogo";
@@ -107,7 +107,7 @@ export function SharedChatDisplay({
       {documentSidebarToggled && settings?.isMobile && (
         <div className="md:hidden">
           <Modal noPadding noScroll>
-            <ChatFilters
+            <DocumentResults
               isSharedChat={true}
               selectedMessage={
                 selectedMessageForDocDisplay
@@ -162,7 +162,7 @@ export function SharedChatDisplay({
                   ${documentSidebarToggled ? "w-[400px]" : "w-[0px]"}
             `}
               >
-                <ChatFilters
+                <DocumentResults
                   modal={false}
                   isSharedChat={true}
                   selectedMessage={

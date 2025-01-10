@@ -59,7 +59,7 @@ import { SEARCH_PARAM_NAMES, shouldSubmitOnLoad } from "./searchParams";
 import { useDocumentSelection } from "./useDocumentSelection";
 import { LlmOverride, useFilters, useLlmOverride } from "@/lib/hooks";
 import { ChatState, FeedbackType, RegenerationState } from "./types";
-import { ChatFilters } from "./documentSidebar/ChatFilters";
+import { DocumentResults } from "./documentSidebar/DocumentResults";
 import { OnyxInitializingLoader } from "@/components/OnyxInitializingLoader";
 import { FeedbackModal } from "./modal/FeedbackModal";
 import { ShareChatSessionModal } from "./modal/ShareChatSessionModal";
@@ -2077,7 +2077,7 @@ export function ChatPage({
             noPadding
             noScroll
           >
-            <ChatFilters
+            <DocumentResults
               setPresentingDocument={setPresentingDocument}
               modal={true}
               ref={innerSidebarElementRef}
@@ -2236,7 +2236,7 @@ export function ChatPage({
                 ${documentSidebarToggled ? "w-[400px]" : "w-[0px]"}
             `}
             >
-              <ChatFilters
+              <DocumentResults
                 setPresentingDocument={setPresentingDocument}
                 modal={false}
                 ref={innerSidebarElementRef}
