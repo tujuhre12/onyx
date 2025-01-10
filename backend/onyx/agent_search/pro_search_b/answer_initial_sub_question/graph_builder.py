@@ -5,10 +5,10 @@ from langgraph.graph import StateGraph
 from onyx.agent_search.pro_search_b.answer_initial_sub_question.edges import (
     send_to_expanded_retrieval,
 )
-from onyx.agent_search.pro_search_b.answer_initial_sub_question.nodes.answer_check import (
+from onyx.agent_search.pro_search_b.answer_initial_sub_question.nodes.empty_answer_check import (
     answer_check,
 )
-from onyx.agent_search.pro_search_b.answer_initial_sub_question.nodes.answer_generation import (
+from onyx.agent_search.pro_search_b.answer_initial_sub_question.nodes.empty_answer_generation import (
     answer_generation,
 )
 from onyx.agent_search.pro_search_b.answer_initial_sub_question.nodes.format_answer import (
