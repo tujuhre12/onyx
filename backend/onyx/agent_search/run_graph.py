@@ -12,8 +12,8 @@ from sqlalchemy.orm import Session
 from onyx.agent_search.basic.graph_builder import basic_graph_builder
 from onyx.agent_search.basic.states import BasicInput
 from onyx.agent_search.models import AgentDocumentCitations
-from onyx.agent_search.pro_search_a.main.graph_builder import main_graph_builder
-from onyx.agent_search.pro_search_a.main.states import MainInput
+from onyx.agent_search.pro_search_b.main.graph_builder import main_graph_builder
+from onyx.agent_search.pro_search_b.main.states import MainInput
 from onyx.agent_search.shared_graph_utils.utils import get_test_config
 from onyx.chat.llm_response_handler import LLMResponseHandlerManager
 from onyx.chat.models import AgentAnswerPiece
@@ -33,6 +33,9 @@ from onyx.llm.interfaces import LLM
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
 from onyx.tools.tool_runner import ToolCallKickoff
 from onyx.utils.logger import setup_logger
+
+# from onyx.agent_search.pro_search_a.main.graph_builder import main_graph_builder
+# from onyx.agent_search.pro_search_a.main.states import MainInput
 
 logger = setup_logger()
 
