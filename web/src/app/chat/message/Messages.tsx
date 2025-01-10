@@ -72,7 +72,6 @@ import SourceCard, {
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import { useFaviconPreloader } from "@/hooks/useFaviconPreloader";
 
 const TOOLS_WITH_CUSTOM_HANDLING = [
   SEARCH_TOOL_NAME,
@@ -315,20 +314,16 @@ export const AIMessage = ({
     []
   );
 
-  const { iconMap, handleError } = useFaviconPreloader(docs || []);
-
   const anchorCallback = useCallback(
     (props: any) => (
       <MemoizedAnchor
-        handleError={handleError}
         updatePresentingDocument={setPresentingDocument!}
         docs={docs}
-        iconMap={iconMap}
       >
         {props.children}
       </MemoizedAnchor>
     ),
-    [docs, iconMap]
+    [docs]
   );
 
   const currentMessageInd = messageId
