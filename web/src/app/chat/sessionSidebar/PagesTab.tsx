@@ -232,13 +232,20 @@ export function PagesTab({
           </p>
         )}
         {isCreatingFolder ? (
-          <form onSubmit={handleNewFolderSubmit} className="mt-2">
+          <form onSubmit={handleNewFolderSubmit} className="mt-2 relative">
             <input
               ref={newFolderInputRef}
               type="text"
               placeholder="Enter folder name"
-              className="w-full p-1 text-sm border rounded"
+              className="w-full p-1 text-sm border rounded pr-8"
             />
+            <button
+              type="button"
+              onClick={() => setIsCreatingFolder(false)}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            >
+              <FiX size={16} />
+            </button>
           </form>
         ) : (
           <button

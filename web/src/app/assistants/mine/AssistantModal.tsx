@@ -32,7 +32,7 @@ export const AssistantBadgeSelector = ({
 };
 
 export enum AssistantFilter {
-  AdminCreated = "Admin created",
+  AdminCreated = "Admin-created",
   Pinned = "Pinned",
   Private = "Private",
   Public = "Public",
@@ -149,7 +149,7 @@ export default function AssistantModal({
             toggleFilter={() => toggleAssistantFilter(AssistantFilter.Private)}
           />
           <AssistantBadgeSelector
-            text="Admin Created"
+            text="Admin-Created"
             selected={assistantFilters[AssistantFilter.AdminCreated] ?? false}
             toggleFilter={() =>
               toggleAssistantFilter(AssistantFilter.AdminCreated)

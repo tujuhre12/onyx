@@ -12,6 +12,9 @@ import {
 } from "react-icons/fi";
 import { Caret } from "@/components/icons/icons";
 import { addChatToFolder } from "./FolderManagement";
+import { FaPencilAlt } from "react-icons/fa";
+import { Pencil } from "@phosphor-icons/react";
+import { PencilIcon } from "lucide-react";
 
 interface FolderDropdownProps {
   folder:
@@ -117,7 +120,7 @@ export const FolderDropdown: React.FC<FolderDropdownProps> = ({
               <span className="text-sm font-medium">{folder.folder_name}</span>
               {isHovered && folder.folder_id !== "chats" && (
                 <button onClick={handleEdit} className="ml-1 px-1">
-                  <FiEdit size={14} />
+                  <PencilIcon size={14} />
                 </button>
               )}
             </div>

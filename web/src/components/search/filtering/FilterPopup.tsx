@@ -4,16 +4,25 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
-import { FiCalendar, FiFilter, FiFolder, FiTag } from "react-icons/fi";
-import { FilterDropdown } from "@/components/search/filtering/FilterDropdown";
+import {
+  FiCalendar,
+  FiFilter,
+  FiFolder,
+  FiTag,
+  FiChevronLeft,
+  FiChevronRight,
+} from "react-icons/fi";
 import { getDateRangeString } from "@/lib/dateUtils";
-import { Calendar } from "@/components/ui/calendar";
-import { DateRange } from "react-day-picker";
 import { FilterManager } from "@/lib/hooks";
 import { ValidSources } from "@/lib/types";
 import { DocumentSet, Tag } from "@/lib/types";
 import { SourceMetadata } from "@/lib/search/interfaces";
 import { getSourceMetadata } from "@/lib/sources";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { SourceIcon } from "@/components/SourceIcon";
+import { filter } from "lodash";
 
 interface FilterPopupProps {
   filterManager: FilterManager;
@@ -37,30 +46,156 @@ export function FilterPopup({
   filterManager,
   trigger,
 }: FilterPopupProps) {
-  const handleSelect = (source: ValidSources) => {
-    filterManager.setSelectedSources((prev: SourceMetadata[]) => {
-      if (prev.map((source) => source.internalName).includes(source)) {
-        return prev.filter((s) => s.internalName !== source);
-      } else {
-        return [...prev, getSourceMetadata(source)];
-      }
-    });
-  };
+  const [selectedFilter, setSelectedFilter] = useState<FilterCategories>(
+    FilterCategories.date
+  );
+  const [currentDate, setCurrentDate] = useState(new Date());
 
-  const [hoveredFilter, setHoveredFilter] = useState<FilterCategories | null>(
-    null
+  const FilterOption = ({
+    category,
+    icon,
+    label,
+  }: {
+    category: FilterCategories;
+    icon: React.ReactNode;
+    label: string;
+  }) => (
+    <li
+      className={`px-3 py-2 flex items-center gap-x-2 cursor-pointer transition-colors duration-200 ${
+        selectedFilter === category
+          ? "bg-gray-100 text-gray-900"
+          : "text-gray-600 hover:bg-gray-50"
+      }`}
+      onClick={() => setSelectedFilter(category)}
+    >
+      {icon}
+      <span className="text-sm font-medium">{label}</span>
+    </li>
   );
 
-  const handleDateRangeSelect = (selectedRange: DateRange | undefined) => {
-    if (selectedRange?.from && selectedRange?.to) {
-      filterManager.setTimeRange({
-        from: selectedRange.from,
-        to: selectedRange.to,
-        selectValue: "",
-      });
-    } else {
-      filterManager.setTimeRange(null);
-    }
+  const renderCalendar = () => {
+    const daysInMonth = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() + 1,
+      0
+    ).getDate();
+    const firstDayOfMonth = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      1
+    ).getDay();
+    const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+    const isDateInRange = (date: Date) => {
+      if (!filterManager.timeRange) return false;
+      return (
+        date >= filterManager.timeRange.from &&
+        date <= filterManager.timeRange.to
+      );
+    };
+
+    const isStartDate = (date: Date) =>
+      filterManager.timeRange?.from.toDateString() === date.toDateString();
+    const isEndDate = (date: Date) =>
+      filterManager.timeRange?.to.toDateString() === date.toDateString();
+
+    return (
+      <div className="w-full">
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={() =>
+              setCurrentDate(
+                new Date(
+                  currentDate.getFullYear(),
+                  currentDate.getMonth() - 1,
+                  1
+                )
+              )
+            }
+            className="text-gray-600 hover:text-gray-800"
+          >
+            <FiChevronLeft size={20} />
+          </button>
+          <span className="text-base font-semibold">
+            {currentDate.toLocaleString("default", {
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
+          <button
+            onClick={() =>
+              setCurrentDate(
+                new Date(
+                  currentDate.getFullYear(),
+                  currentDate.getMonth() + 1,
+                  1
+                )
+              )
+            }
+            className="text-gray-600 hover:text-gray-800"
+          >
+            <FiChevronRight size={20} />
+          </button>
+        </div>
+        <div className="grid grid-cols-7 gap-1 text-center mb-2">
+          {days.map((day) => (
+            <div key={day} className="text-xs font-medium text-gray-400">
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1 text-center">
+          {Array.from({ length: firstDayOfMonth }).map((_, index) => (
+            <div key={`empty-${index}`} />
+          ))}
+          {Array.from({ length: daysInMonth }).map((_, index) => {
+            const date = new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth(),
+              index + 1
+            );
+            const isInRange = isDateInRange(date);
+            const isStart = isStartDate(date);
+            const isEnd = isEndDate(date);
+            return (
+              <button
+                key={index + 1}
+                className={`w-8 h-8 text-sm rounded-full flex items-center justify-center
+                  ${isInRange ? "bg-blue-100" : "hover:bg-gray-100"}
+                  ${isStart || isEnd ? "bg-blue-500 text-white" : ""}
+                  ${
+                    isInRange && !isStart && !isEnd
+                      ? "text-blue-600"
+                      : "text-gray-700"
+                  }
+                `}
+                onClick={() => {
+                  if (!filterManager.timeRange || (isStart && isEnd)) {
+                    filterManager.setTimeRange({
+                      from: date,
+                      to: date,
+                      selectValue: "",
+                    });
+                  } else if (date < filterManager.timeRange.from) {
+                    filterManager.setTimeRange({
+                      ...filterManager.timeRange,
+                      from: date,
+                    });
+                  } else {
+                    filterManager.setTimeRange({
+                      ...filterManager.timeRange,
+                      to: date,
+                    });
+                  }
+                }}
+              >
+                {index + 1}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -68,118 +203,128 @@ export function FilterPopup({
       <PopoverTrigger asChild>
         <button>{trigger}</button>
       </PopoverTrigger>
-      <PopoverContent className="h-[400px] w-[350px] p-0" align="start">
-        <div className="flex">
-          {/* Left column: Filter types */}
-          <div className="w-1/3 text-sm border-r border-border-light">
-            <ul className="py-2">
-              <li
-                className="px-4 py-2 flex items-center gap-x-1 hover:bg-background-hover cursor-pointer"
-                onMouseEnter={() => setHoveredFilter(FilterCategories.date)}
-              >
-                <FiCalendar className="flex-none" />
-                <span>Range</span>
-              </li>
-              <li
-                className="px-4 py-2 flex items-center gap-x-1 hover:bg-background-hover cursor-pointer"
-                onMouseEnter={() => setHoveredFilter(FilterCategories.sources)}
-              >
-                <FiFilter className="flex-none" />
-                <span>Sources</span>
-              </li>
-              <li
-                className="px-4 py-2 flex items-center gap-x-1 hover:bg-background-hover cursor-pointer"
-                onMouseEnter={() =>
-                  setHoveredFilter(FilterCategories.documentSets)
-                }
-              >
-                <FiFolder className="flex-none" />
-                <span>Sets</span>
-              </li>
-              <li
-                className="px-4 py-2 flex items-center gap-x-1 hover:bg-background-hover cursor-pointer"
-                onMouseEnter={() => setHoveredFilter(FilterCategories.tags)}
-              >
-                <FiTag className="flex-none" />
-                <span>Tags</span>
-              </li>
+      <PopoverContent className="w-[400px] p-0 shadow-lg" align="start">
+        <div className="flex h-[325px]">
+          <div className="w-1/3 border-r border-gray-200 p-2">
+            <ul className="space-y-1">
+              <FilterOption
+                category={FilterCategories.date}
+                icon={<FiCalendar className="w-4 h-4" />}
+                label="Date"
+              />
+              {availableSources.length > 0 && (
+                <FilterOption
+                  category={FilterCategories.sources}
+                  icon={<FiFilter className="w-4 h-4" />}
+                  label="Sources"
+                />
+              )}
+              {availableDocumentSets.length > 0 && (
+                <FilterOption
+                  category={FilterCategories.documentSets}
+                  icon={<FiFolder className="w-4 h-4" />}
+                  label="Sets"
+                />
+              )}
+              {availableTags.length > 0 && (
+                <FilterOption
+                  category={FilterCategories.tags}
+                  icon={<FiTag className="w-4 h-4" />}
+                  label="Tags"
+                />
+              )}
             </ul>
           </div>
-
-          {/* Right column: Filter options */}
-          <div className="w-2/3 p-4">
-            {hoveredFilter === FilterCategories.date && (
+          <div className="w-2/3 p-4 overflow-y-auto">
+            {selectedFilter === FilterCategories.date && (
               <div>
-                <h3 className="font-semibold mb-2">Date Range</h3>
-                <Calendar
-                  mode="range"
-                  selected={filterManager.timeRange || undefined}
-                  onSelect={handleDateRangeSelect}
-                  className="rounded-md"
-                />
+                {renderCalendar()}
+                {filterManager.timeRange && (
+                  <div className="mt-2 text-xs text-gray-600">
+                    Selected:{" "}
+                    {filterManager.timeRange.from.toLocaleDateString()} -{" "}
+                    {filterManager.timeRange.to.toLocaleDateString()}
+                  </div>
+                )}
+
+                {filterManager.timeRange && (
+                  <button
+                    onClick={() => {
+                      filterManager.setTimeRange(null);
+                    }}
+                    className="mt-2 text-xs text-text-dark hover:text-text transition-colors duration-200"
+                  >
+                    Reset Date
+                  </button>
+                )}
               </div>
             )}
-
-            {hoveredFilter === FilterCategories.sources && (
+            {selectedFilter === FilterCategories.sources && (
               <div>
-                <h3 className="font-semibold mb-2">Sources</h3>
-                <ul>
-                  {availableSources.map((source, index) => (
-                    <li key={index} className="flex items-center mb-2">
-                      <input
-                        type="checkbox"
+                <h3 className="text-sm font-semibold mb-2">Sources</h3>
+                <ul className="space-y-2">
+                  {availableSources.map((source) => (
+                    <li
+                      key={source.internalName}
+                      className="flex items-center space-x-2"
+                    >
+                      <Checkbox
+                        id={source.internalName}
                         checked={filterManager.selectedSources.some(
                           (s) => s.internalName === source.internalName
                         )}
-                        onChange={() => {
-                          handleSelect(source.internalName);
+                        onCheckedChange={() => {
+                          filterManager.setSelectedSources((prev) =>
+                            prev.some(
+                              (s) => s.internalName === source.internalName
+                            )
+                              ? prev.filter(
+                                  (s) => s.internalName !== source.internalName
+                                )
+                              : [...prev, source]
+                          );
                         }}
-                        className="mr-2"
                       />
-                      <label htmlFor={source.internalName}>
-                        {source.displayName}
-                      </label>
+                      <div className="flex items-center space-x-1">
+                        <SourceIcon
+                          sourceType={source.internalName}
+                          iconSize={14}
+                        />
+                        <label
+                          htmlFor={source.internalName}
+                          className="text-sm cursor-pointer"
+                        >
+                          {source.displayName}
+                        </label>
+                      </div>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
-            {hoveredFilter === FilterCategories.documentSets && (
+            {selectedFilter === FilterCategories.documentSets && (
               <div>
-                <h3 className="font-semibold mb-2">Document Sets</h3>
-                <ul>
-                  {availableDocumentSets.map((docSet, index) => (
-                    <li key={index} className="flex items-center mb-2">
-                      <input
-                        type="checkbox"
+                <h3 className="text-sm font-semibold mb-2">Document Sets</h3>
+                <ul className="space-y-2">
+                  {availableDocumentSets.map((docSet) => (
+                    <li key={docSet.id} className="flex items-center space-x-2">
+                      <Checkbox
                         id={docSet.id.toString()}
                         checked={filterManager.selectedDocumentSets.includes(
                           docSet.id.toString()
                         )}
-                        onChange={() => {
-                          if (
-                            filterManager.selectedDocumentSets.includes(
-                              docSet.id.toString()
-                            )
-                          ) {
-                            filterManager.setSelectedDocumentSets(
-                              (documentIds: string[]) =>
-                                documentIds.filter(
-                                  (ds: string) => ds !== docSet.id.toString()
-                                )
-                            );
-                          } else {
-                            filterManager.setSelectedDocumentSets(
-                              (documentIds: string[]) => [
-                                ...documentIds,
-                                docSet.id.toString(),
-                              ]
-                            );
-                          }
+                        onCheckedChange={() => {
+                          filterManager.setSelectedDocumentSets((prev) =>
+                            prev.includes(docSet.id.toString())
+                              ? prev.filter((id) => id !== docSet.id.toString())
+                              : [...prev, docSet.id.toString()]
+                          );
                         }}
-                        className="mr-2"
                       />
-                      <label htmlFor={docSet.id.toString()}>
+                      <label
+                        htmlFor={docSet.id.toString()}
+                        className="text-sm cursor-pointer"
+                      >
                         {docSet.name}
                       </label>
                     </li>
@@ -187,40 +332,78 @@ export function FilterPopup({
                 </ul>
               </div>
             )}
-            {hoveredFilter === FilterCategories.tags && (
+            {selectedFilter === FilterCategories.tags && (
               <div>
-                <h3 className="font-semibold mb-2">Tags</h3>
-                <ul>
+                <h3 className="text-sm font-semibold mb-2">Tags</h3>
+                <ul className="space-y-2">
                   {availableTags.map((tag) => (
-                    <li key={tag.tag_value} className="flex items-center mb-2">
-                      <input
-                        type="checkbox"
+                    <li
+                      key={tag.tag_value}
+                      className="flex items-center space-x-2"
+                    >
+                      <Checkbox
                         id={tag.tag_value}
                         checked={filterManager.selectedTags.some(
                           (t) => t.tag_value === tag.tag_value
                         )}
-                        onChange={() => {
-                          const isSelected = filterManager.selectedTags.some(
-                            (t) => t.tag_value === tag.tag_value
+                        onCheckedChange={() => {
+                          filterManager.setSelectedTags((prev) =>
+                            prev.some((t) => t.tag_value === tag.tag_value)
+                              ? prev.filter(
+                                  (t) => t.tag_value !== tag.tag_value
+                                )
+                              : [...prev, tag]
                           );
-                          if (isSelected) {
-                            filterManager.setSelectedTags((prev) =>
-                              prev.filter((t) => t.tag_value !== tag.tag_value)
-                            );
-                          } else {
-                            filterManager.setSelectedTags((prev) => [
-                              ...prev,
-                              tag,
-                            ]);
-                          }
                         }}
-                        className="mr-2"
                       />
-                      <label htmlFor={tag.tag_value}>{tag.tag_value}</label>
+                      <label
+                        htmlFor={tag.tag_value}
+                        className="text-sm cursor-pointer"
+                      >
+                        {tag.tag_value}
+                      </label>
                     </li>
                   ))}
                 </ul>
               </div>
+            )}
+          </div>
+        </div>
+        <Separator className="mt-0 mb-2" />
+        <div className="flex justify-between items-center px-4 py-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              filterManager.setTimeRange(null);
+              filterManager.setSelectedSources([]);
+              filterManager.setSelectedDocumentSets([]);
+              filterManager.setSelectedTags([]);
+            }}
+            className="text-xs"
+          >
+            Clear Filters
+          </Button>
+          <div className="text-xs text-gray-500 flex items-center space-x-1">
+            {filterManager.selectedSources.length > 0 && (
+              <span className="bg-gray-100 px-1.5 py-0.5 rounded-full">
+                {filterManager.selectedSources.length} sources
+              </span>
+            )}
+            {filterManager.selectedDocumentSets.length > 0 && (
+              <span className="bg-gray-100 px-1.5 py-0.5 rounded-full">
+                {filterManager.selectedDocumentSets.length} sets
+              </span>
+            )}
+            {filterManager.selectedTags.length > 0 && (
+              <span className="bg-gray-100 px-1.5 py-0.5 rounded-full">
+                {filterManager.selectedTags.length} tags
+              </span>
+            )}
+            {filterManager.timeRange && (
+              <span className="bg-gray-100 px-1.5 py-0.5 rounded-full">
+                Date range
+              </span>
             )}
           </div>
         </div>

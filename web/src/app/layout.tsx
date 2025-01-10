@@ -106,7 +106,7 @@ export default async function RootLayout({
         )}
       </head>
       <body
-        className={`relative ${inter.variable} caret-[#1fcd8a] font-hanken`}
+        className={`relative ${inter.variable} caret-[#8A1FCD] font-hanken`}
       >
         <div
           className={`text-default min-h-screen bg-background ${

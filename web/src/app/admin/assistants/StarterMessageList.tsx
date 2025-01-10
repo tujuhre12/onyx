@@ -146,7 +146,7 @@ export default function StarterMessagesList({
                             }
                           `}
               >
-                <div className="flex items-center gap-x-2">
+                <div className="flex text-xs items-center gap-x-2">
                   {isRefreshing ? (
                     <FiRefreshCcw className="w-4 h-4 animate-spin text-white" />
                   ) : (
@@ -168,7 +168,7 @@ export default function StarterMessagesList({
         {canAddMore && (
           <Button
             type="button"
-            className="!text-2xs w-fit"
+            className="text-xs w-fit"
             onClick={() => {
               arrayHelpers.push({
                 name: "",

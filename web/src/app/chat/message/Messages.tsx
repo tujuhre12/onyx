@@ -400,7 +400,7 @@ export const AIMessage = ({
       >
         <div className={`lg:mr-12 ${!shared && "mobile:ml-0 md:ml-8"}`}>
           <div className="flex">
-            <OnyxIcon size={24} className="flex-none" />
+            <OnyxIcon size={24} className="hidden lg:block flex-none" />
             {/* <AssistantIcon
               size="small"
               assistant={alternativeAssistant || currentPersona}

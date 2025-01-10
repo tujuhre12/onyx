@@ -275,7 +275,7 @@ export function AssistantEditor({
   const [isRequestSuccessful, setIsRequestSuccessful] = useState(false);
 
   return (
-    <div>
+    <div className="mx-auto max-w-4xl">
       {popup}
       <Formik
         enableReinitialize={true}

@@ -88,7 +88,7 @@ const NewAssistantCard: React.FC<{
             </h3>
             <AssistantBadge text={persona.is_public ? "Public" : "Private"} />
           </div>
-          {pinned && <span className="text-[#6c6c6c] text-sm">Pinned</span>}
+          {pinned && <span className="text-[#6c6c6c] h-0 text-sm">Pinned</span>}
         </div>
 
         <p className="text-black text-sm mb-1 line-clamp-2 h-[2.7em]">

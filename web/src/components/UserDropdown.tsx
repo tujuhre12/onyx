@@ -35,7 +35,7 @@ const DropdownOption: React.FC<DropdownOptionProps> = ({
   openInNewTab,
 }) => {
   const content = (
-    <div className="flex py-1.5 px-2 gap-x-1 text-t text-sm cursor-pointer rounded hover:bg-[#f1eee8]">
+    <div className="flex py-1.5 text-sm px-2 gap-x-2 text-t text-sm cursor-pointer rounded hover:bg-[#f1eee8]">
       {icon}
       {label}
     </div>
@@ -188,7 +188,7 @@ export function UserDropdown({
             ) : hideUserDropdown ? (
               <DropdownOption
                 onClick={() => router.push("/auth/login")}
-                icon={<UserIcon className="h-5 w-5 my-auto " />}
+                icon={<UserIcon className="h-5w-5 my-auto " />}
                 label="Log In"
               />
             ) : (
@@ -204,7 +204,6 @@ export function UserDropdown({
                         h-4
                         w-4
                         my-auto
-                        
                         overflow-hidden
                         flex
                         items-center
@@ -235,14 +234,14 @@ export function UserDropdown({
                 {showAdminPanel ? (
                   <DropdownOption
                     href="/admin/indexing/status"
-                    icon={<LightSettingsIcon className="h-3 w-3 my-auto " />}
+                    icon={<LightSettingsIcon size={16} className="my-auto" />}
                     label="Admin Panel"
                   />
                 ) : (
                   showCuratorPanel && (
                     <DropdownOption
                       href="/admin/indexing/status"
-                      icon={<LightSettingsIcon className="h-4 w-3 my-auto " />}
+                      icon={<LightSettingsIcon size={16} className="my-auto" />}
                       label="Curator Panel"
                     />
                   )
@@ -251,7 +250,7 @@ export function UserDropdown({
                 {toggleUserSettings && (
                   <DropdownOption
                     onClick={toggleUserSettings}
-                    icon={<UserIcon className="h-4 w-4 my-auto " />}
+                    icon={<UserIcon size={16} className="my-auto" />}
                     label="User Settings"
                   />
                 )}
@@ -261,7 +260,7 @@ export function UserDropdown({
                     setUserInfoVisible(true);
                     setShowNotifications(true);
                   }}
-                  icon={<BellIcon className="h-5 w-5 my-auto " />}
+                  icon={<BellIcon size={16} className="my-auto" />}
                   label={`Notifications ${
                     notifications && notifications.length > 0
                       ? `(${notifications.length})`
@@ -279,7 +278,7 @@ export function UserDropdown({
                 {showLogout && (
                   <DropdownOption
                     onClick={handleLogout}
-                    icon={<FiLogOut className="my-auto  text-lg" />}
+                    icon={<FiLogOut size={16} className="my-auto" />}
                     label="Log out"
                   />
                 )}

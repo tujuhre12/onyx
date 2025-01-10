@@ -302,9 +302,8 @@ export function ChatPage({
 
   const llmOverrideManager = useLlmOverride(
     llmProviders,
-    modelVersionFromSearchParams || (user?.preferences.default_model ?? null),
-    selectedChatSession,
-    defaultTemperature
+    user?.preferences.default_model,
+    selectedChatSession
   );
 
   const [alternativeAssistant, setAlternativeAssistant] =
@@ -2782,6 +2781,7 @@ export function ChatPage({
                               </div>
                             )}
                             <ChatInputBar
+                              toggleDocumentSidebar={toggleDocumentSidebar}
                               availableSources={sources}
                               availableDocumentSets={documentSets}
                               availableTags={tags}

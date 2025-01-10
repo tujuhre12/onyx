@@ -9,6 +9,7 @@ import {
 } from "react-icons/fi";
 import { ChatInputOption } from "./ChatInputOption";
 import { Persona } from "@/app/admin/assistants/interfaces";
+import LLMPopover from "./LLMPopover";
 
 import { FilterManager, LlmOverrideManager } from "@/lib/hooks";
 import { useChatContext } from "@/components/context/ChatContext";
@@ -25,8 +26,6 @@ import {
   AWSIcon,
   FileIcon,
   OnyxIcon,
-  OpenAIIcon,
-  OpenAISVG,
   SendIcon,
   StopGeneratingIcon,
 } from "@/components/icons/icons";
@@ -57,13 +56,16 @@ export const SourceChip = ({
   icon,
   title,
   onRemove,
+  onClick,
 }: {
   icon: React.ReactNode;
   title: string;
   onRemove: () => void;
+  onClick?: () => void;
 }) => (
   <div
-    className="
+    onClick={onClick ? onClick : undefined}
+    className={`
         flex
         items-center
         px-2
@@ -75,7 +77,9 @@ export const SourceChip = ({
         rounded-md
         box-border
         gap-x-1
-        h-8"
+        h-8
+        ${onClick ? "cursor-pointer" : ""}
+      `}
   >
     {icon}
     {title}
@@ -163,7 +167,7 @@ interface ChatInputBarProps {
   // assistants
   selectedAssistant: Persona;
   setAlternativeAssistant: (alternativeAssistant: Persona | null) => void;
-
+  toggleDocumentSidebar: () => void;
   files: FileDescriptor[];
   setFiles: (files: FileDescriptor[]) => void;
   handleFileUpload: (files: File[]) => void;
@@ -177,6 +181,7 @@ interface ChatInputBarProps {
 
 export function ChatInputBar({
   removeDocs,
+  toggleDocumentSidebar,
   showDocs,
   filterManager,
   showConfigureAPIKey,
@@ -200,6 +205,7 @@ export function ChatInputBar({
   availableSources,
   availableDocumentSets,
   availableTags,
+  llmOverrideManager,
 }: ChatInputBarProps) {
   useEffect(() => {
     const textarea = textAreaRef.current;
@@ -233,7 +239,11 @@ export function ChatInputBar({
   const { finalAssistants: assistantOptions } = useAssistants();
 
   const { llmProviders } = useChatContext();
-  const [_, llmName] = getFinalLLM(llmProviders, selectedAssistant, null);
+  const [currentLlm, llmName] = getFinalLLM(
+    llmProviders,
+    selectedAssistant,
+    llmOverrideManager.llmOverride
+  );
 
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -550,6 +560,8 @@ export function ChatInputBar({
 
             {(selectedDocuments.length > 0 ||
               files.length > 0 ||
+              filterManager.selectedDocumentSets.length > 0 ||
+              filterManager.selectedTags.length > 0 ||
               filterManager.selectedSources.length > 0) && (
               <div className="flex gap-x-.5 px-2">
                 <div className="flex gap-x-1 px-2 overflow-visible overflow-x-scroll items-end miniscroll">
@@ -576,13 +588,14 @@ export function ChatInputBar({
                     ))}
 
                   {selectedDocuments.length > 0 && (
-                    <div className="flex-none">
-                      <SourceChip
-                        icon={<FileIcon size={16} />}
-                        title={`${selectedDocuments.length} selected`}
-                        onRemove={removeDocs}
-                      />
-                    </div>
+                    <SourceChip
+                      onClick={() => {
+                        toggleDocumentSidebar();
+                      }}
+                      icon={<FileIcon size={16} />}
+                      title={`${selectedDocuments.length} selected`}
+                      onRemove={removeDocs}
+                    />
                   )}
 
                   {files.map((file) => (
@@ -626,7 +639,7 @@ export function ChatInputBar({
                 onClick={() => {
                   const input = document.createElement("input");
                   input.type = "file";
-                  input.multiple = true; // Allow multiple files
+                  input.multiple = true;
                   input.onchange = (event: any) => {
                     const files = Array.from(
                       event?.target?.files || []
@@ -655,13 +668,11 @@ export function ChatInputBar({
                 }
               />
 
-              <ChatInputOption
-                toggle
-                flexPriority="stiff"
-                name="Models"
-                Icon={AnthropicSVG}
-                onClick={() => {}}
-                tooltipContent={"Switch models"}
+              <LLMPopover
+                llmProviders={llmProviders}
+                llmOverrideManager={llmOverrideManager}
+                requiresImageGeneration={false}
+                currentAssistant={selectedAssistant}
               />
             </div>
 
@@ -696,7 +707,7 @@ export function ChatInputBar({
                 >
                   <SendIcon
                     size={26}
-                    className={`text-emphasis text-white p-1 rounded-lg  ${
+                    className={`text-emphasis text-white p-1 rounded-full  ${
                       chatState == "input" && message
                         ? "bg-submit-background"
                         : "bg-disabled-submit-background"
