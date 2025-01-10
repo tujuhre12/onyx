@@ -91,7 +91,7 @@ export default function LLMPopover({
               return (
                 <button
                   key={index}
-                  className={`w-full flex items-center gap-x-3 px-3 py-2 text-sm text-left hover:bg-gray-100 transition-colors duration-150 ${
+                  className={`w-full flex items-center gap-x-2 px-3 py-2 text-sm text-left hover:bg-gray-100 transition-colors duration-150 ${
                     currentLlm === name
                       ? "bg-gray-100 text-text"
                       : "text-text-darker"
@@ -113,15 +113,17 @@ export default function LLMPopover({
                       )}
                     </div>
                   </div>
-                  {icon({ size: 16, className: "my-auto " })}
-                  <span className="ml-1">{getDisplayNameForModel(name)}</span>
+                  {icon({ size: 16, className: "flex-none my-auto " })}
+                  <span className="line-clamp-1 ">
+                    {getDisplayNameForModel(name)}
+                  </span>
                   {(() => {
                     if (
                       currentAssistant?.llm_model_version_override === name &&
                       globalDefault.modelName === name
                     ) {
                       return (
-                        <span className="ml-auto text-xs text-gray-400">
+                        <span className="ml-auto text-xs">
                           (assistant + user default)
                         </span>
                       );
@@ -129,13 +131,13 @@ export default function LLMPopover({
                       currentAssistant?.llm_model_version_override === name
                     ) {
                       return (
-                        <span className="ml-auto text-xs text-gray-400">
+                        <span className="flex-none ml-auto text-xs">
                           (assistant)
                         </span>
                       );
                     } else if (globalDefault.modelName === name) {
                       return (
-                        <span className="ml-auto text-xs text-gray-400">
+                        <span className="flex-none ml-auto text-xs">
                           (user default)
                         </span>
                       );
