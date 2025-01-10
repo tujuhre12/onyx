@@ -9,24 +9,19 @@ from langchain_core.runnables.schema import StreamEvent
 from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy.orm import Session
 
-from onyx.agent_search.basic.graph_builder import basic_graph_builder
-from onyx.agent_search.basic.states import BasicInput
 from onyx.agent_search.models import AgentDocumentCitations
 from onyx.agent_search.pro_search_a.main.graph_builder import main_graph_builder
 from onyx.agent_search.pro_search_a.main.states import MainInput
 from onyx.agent_search.shared_graph_utils.utils import get_test_config
-from onyx.chat.llm_response_handler import LLMResponseHandlerManager
 from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
-from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import ProSearchConfig
 from onyx.chat.models import SubQueryPiece
 from onyx.chat.models import SubQuestionPiece
 from onyx.chat.models import ToolResponse
-from onyx.chat.prompt_builder.build import LLMCall
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
 from onyx.llm.interfaces import LLM
@@ -69,14 +64,12 @@ def _parse_agent_event(
             return cast(AgentAnswerPiece, event["data"])
         elif event["name"] == "tool_response":
             return cast(ToolResponse, event["data"])
-        elif event["name"] == "basic_response":
-            return cast(AnswerPacket, event["data"])
     return None
 
 
 def _manage_async_event_streaming(
     compiled_graph: CompiledStateGraph,
-    graph_input: MainInput | BasicInput,
+    graph_input: MainInput,
 ) -> Iterable[StreamEvent]:
     async def _run_async_event_stream() -> AsyncIterable[StreamEvent]:
         async for event in compiled_graph.astream_events(
@@ -112,8 +105,20 @@ def _manage_async_event_streaming(
 
 def run_graph(
     compiled_graph: CompiledStateGraph,
-    input: MainInput | BasicInput,
+    config: ProSearchConfig,
+    search_tool: SearchTool,
+    primary_llm: LLM,
+    fast_llm: LLM,
+    db_session: Session,
 ) -> AnswerStream:
+    input = MainInput(
+        config=config,
+        primary_llm=primary_llm,
+        fast_llm=fast_llm,
+        db_session=db_session,
+        search_tool=search_tool,
+    )
+
     agent_document_citations: dict[int, dict[int, list[AgentDocumentCitations]]] = {}
     agent_question_citations_used_docs: defaultdict[
         int, defaultdict[int, list[str]]
@@ -151,7 +156,164 @@ def run_graph(
         parsed_object = _parse_agent_event(event)
         if not parsed_object:
             continue
-        yield parsed_object
+
+        if hasattr(parsed_object, "level"):
+            level = parsed_object.level
+        else:
+            level = None
+
+        if hasattr(parsed_object, "level_question_nr"):
+            level_question_nr = parsed_object.level_question_nr
+        else:
+            level_question_nr = None
+
+        if parsed_object:
+            # if isinstance(parsed_object, SubAnswerPiece):
+            #     logger.debug(f"SA {parsed_object.sub_answer}")
+
+            #     token = parsed_object.sub_answer
+
+            if isinstance(parsed_object, OnyxAnswerPiece) or isinstance(
+                parsed_object, AgentAnswerPiece
+            ):
+                # logger.debug(f"FA {parsed_object.answer_piece}")
+
+                if isinstance(parsed_object, AgentAnswerPiece):
+                    token: str | None = parsed_object.answer_piece
+                    level = parsed_object.level
+                    level_question_nr = parsed_object.level_question_nr
+                    parsed_object.answer_type
+                else:
+                    raise ValueError(
+                        f"Invalid parsed object type: {type(parsed_object)}"
+                    )
+
+                if not citation_potential[level][level_question_nr] and token:
+                    if token.startswith(" ["):
+                        citation_potential[level][level_question_nr] = True
+                        current_yield_components[level][level_question_nr] = [token]
+                    else:
+                        yield parsed_object
+                elif token and citation_potential[level][level_question_nr]:
+                    current_yield_components[level][level_question_nr].append(token)
+                    current_yield_str[level][level_question_nr] = "".join(
+                        current_yield_components[level][level_question_nr]
+                    )
+
+                    if current_yield_str[level][level_question_nr].strip().startswith(
+                        "[D"
+                    ) or current_yield_str[level][level_question_nr].strip().startswith(
+                        "[Q"
+                    ):
+                        citation_potential[level][level_question_nr] = True
+
+                    else:
+                        citation_potential[level][level_question_nr] = False
+                        parsed_object = _set_combined_token_value(
+                            current_yield_str[level][level_question_nr], parsed_object
+                        )
+                        yield parsed_object
+
+                    if len(current_yield_components[level][level_question_nr]) > 15:
+                        citation_potential[level][level_question_nr] = False
+                        parsed_object = _set_combined_token_value(
+                            current_yield_str[level][level_question_nr], parsed_object
+                        )
+                        yield parsed_object
+                    elif "]" in current_yield_str[level][level_question_nr]:
+                        section_split = current_yield_str[level][
+                            level_question_nr
+                        ].split("]")
+                        section_split[0] + "]"
+                        start_of_next_section = "]".join(section_split[1:])
+                        citation_string = current_yield_str[level][level_question_nr][
+                            : -len(start_of_next_section)
+                        ]
+                        if "[D" in citation_string:
+                            cite_open_bracket_marker, cite_close_bracket_marker = (
+                                "[",
+                                "]",
+                            )
+                            cite_identifyer = "D"
+
+                            try:
+                                cited_document = int(
+                                    citation_string[level][level_question_nr][2:-1]
+                                )
+                                if level and level_question_nr:
+                                    link = agent_document_citations[int(level)][
+                                        int(level_question_nr)
+                                    ][cited_document].link
+                                else:
+                                    link = ""
+                            except (ValueError, IndexError):
+                                link = ""
+                        elif "[Q" in citation_string:
+                            cite_open_bracket_marker, cite_close_bracket_marker = (
+                                "{",
+                                "}",
+                            )
+                            cite_identifyer = "Q"
+                        else:
+                            pass
+
+                        citation_string = citation_string.replace(
+                            "[" + cite_identifyer,
+                            cite_open_bracket_marker + cite_open_bracket_marker,
+                        ).replace(
+                            "]", cite_close_bracket_marker + cite_close_bracket_marker
+                        )
+
+                        if cite_identifyer == "D":
+                            citation_string += f"({link})"
+
+                        parsed_object = _set_combined_token_value(
+                            citation_string, parsed_object
+                        )
+
+                        yield parsed_object
+
+                        current_yield_components[level][level_question_nr] = [
+                            start_of_next_section
+                        ]
+                        if not start_of_next_section.strip().startswith("["):
+                            citation_potential[level][level_question_nr] = False
+
+            elif isinstance(parsed_object, ExtendedToolResponse):
+                if parsed_object.id == "search_response_summary":
+                    level = parsed_object.level
+                    level_question_nr = parsed_object.level_question_nr
+                    for inference_section in parsed_object.response.top_sections:
+                        doc_link = inference_section.center_chunk.source_links[0]
+                        doc_title = inference_section.center_chunk.title
+                        doc_id = inference_section.center_chunk.document_id
+
+                        if (
+                            doc_id
+                            not in agent_question_citations_used_docs[level][
+                                level_question_nr
+                            ]
+                        ):
+                            if level not in agent_document_citations:
+                                agent_document_citations[level] = {}
+                            if level_question_nr not in agent_document_citations[level]:
+                                agent_document_citations[level][level_question_nr] = []
+
+                            agent_document_citations[level][level_question_nr].append(
+                                AgentDocumentCitations(
+                                    document_id=doc_id,
+                                    document_title=doc_title,
+                                    link=doc_link,
+                                )
+                            )
+                            agent_question_citations_used_docs[level][
+                                level_question_nr
+                            ].append(doc_id)
+
+                yield parsed_object
+
+            else:
+                yield parsed_object
 
 
 # TODO: call this once on startup, TBD where and if it should be gated based
@@ -172,32 +334,9 @@ def run_main_graph(
     db_session: Session,
 ) -> AnswerStream:
     compiled_graph = load_compiled_graph()
-    input = MainInput(
-        config=config,
-        primary_llm=primary_llm,
-        fast_llm=fast_llm,
-        db_session=db_session,
-        search_tool=search_tool,
+    return run_graph(
+        compiled_graph, config, search_tool, primary_llm, fast_llm, db_session
     )
-    return run_graph(compiled_graph, input)
-
-
-def run_basic_graph(
-    last_llm_call: LLMCall | None,
-    primary_llm: LLM,
-    answer_style_config: AnswerStyleConfig,
-    response_handler_manager: LLMResponseHandlerManager,
-) -> AnswerStream:
-    graph = basic_graph_builder()
-    compiled_graph = graph.compile()
-    input = BasicInput(
-        last_llm_call=last_llm_call,
-        llm=primary_llm,
-        answer_style_config=answer_style_config,
-        response_handler_manager=response_handler_manager,
-        calls=0,
-    )
-    return run_graph(compiled_graph, input)
 
 
 if __name__ == "__main__":
@@ -226,14 +365,9 @@ if __name__ == "__main__":
 
         # with open("output.txt", "w") as f:
         tool_responses: list = []
-        input = MainInput(
-            config=config,
-            primary_llm=primary_llm,
-            fast_llm=fast_llm,
-            db_session=db_session,
-            search_tool=search_tool,
-        )
-        for output in run_graph(compiled_graph, input):
+        for output in run_graph(
+            compiled_graph, config, search_tool, primary_llm, fast_llm, db_session
+        ):
             # pass
 
             if isinstance(output, ToolCallKickoff):
