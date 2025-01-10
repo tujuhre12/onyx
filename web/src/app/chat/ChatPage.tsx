@@ -115,6 +115,8 @@ import {
 } from "@/lib/extension/constants";
 import AssistantModal from "../assistants/mine/AssistantModal";
 import { getSourceMetadata } from "@/lib/sources";
+import { IconSelector } from "./input/IconSelector";
+import IconSelector2 from "./input/IconSelector2";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;

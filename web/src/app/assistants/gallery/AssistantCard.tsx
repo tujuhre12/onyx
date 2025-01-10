@@ -33,6 +33,7 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
+import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 
 export const AssistantBadge = ({ text }: { text: string }) => {
   return (
@@ -83,7 +84,7 @@ const NewAssistantCard: React.FC<{
   return (
     <div className="w-full p-2 overflow-visible bg-[#fefcf9] rounded shadow-[0px_0px_4px_0px_rgba(0,0,0,0.25)] flex">
       <div className="ml-2 mr-4 mt-1 w-8 h-8">
-        <OnyxIcon size={40} />
+        <AssistantIcon assistant={persona} size="large" />
       </div>
       <div className="flex-1 flex flex-col">
         <div className="flex justify-between items-start mb-1">

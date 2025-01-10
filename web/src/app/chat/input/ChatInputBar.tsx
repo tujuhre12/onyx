@@ -426,7 +426,7 @@ export function ChatInputBar({
                       updatedTaggedAssistant(currentAssistant);
                     }}
                   >
-                    <OnyxIcon size={16} className="my-auto text-text-darker" />
+                    <AssistantIcon size={16} assistant={currentAssistant} />
                     <p className="text-text-darker font-semibold">
                       {currentAssistant.name}
                     </p>

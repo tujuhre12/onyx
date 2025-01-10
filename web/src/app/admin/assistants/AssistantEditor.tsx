@@ -2,7 +2,7 @@
 
 import React, { useCallback } from "react";
 import { Option } from "@/components/Dropdown";
-import { generateRandomIconShape, createSVG } from "@/lib/assistantIconUtils";
+import { generateRandomIconShape } from "@/lib/assistantIconUtils";
 import { CCPairBasicInfo, DocumentSet, User } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,7 @@ import StarterMessagesList from "./StarterMessageList";
 import { Input } from "@/components/ui/input";
 import { CategoryCard } from "./CategoryCard";
 import { Switch } from "@/components/ui/switch";
+import { generateIdenticon } from "@/components/assistants/AssistantIcon";
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
@@ -484,7 +485,7 @@ export function AssistantEditor({
               <p className="text-base font-normal !text-2xl">
                 Create an assistant
               </p>
-              {/* <div className="max-w-4xl w-full">
+              <div className="max-w-4xl w-full">
                 <Separator />
                 <div className="flex gap-x-2 items-center">
                   <div className="block font-medium text-sm">
@@ -500,7 +501,7 @@ export function AssistantEditor({
                     onOpenChange={setIsIconDropdownOpen}
                     content={
                       <div
-                        className="p-1 cursor-pointer border-dashed rounded-full flex border border-border border-2 border-dashed"
+                        className="p-2 cursor-pointer border-dashed rounded-full flex border border-border border-2 border-dashed"
                         style={{
                           borderStyle: "dashed",
                           borderWidth: "1.5px",
@@ -526,14 +527,9 @@ export function AssistantEditor({
                             className="w-12 h-12 rounded-full object-cover"
                           />
                         ) : (
-                          createSVG(
-                            {
-                              encodedGrid: values.icon_shape,
-                              filledSquares: 0,
-                            },
-                            values.icon_color,
-                            undefined,
-                            true
+                          generateIdenticon(
+                            (values.icon_shape || 0).toString(),
+                            24
                           )
                         )}
                       </div>
@@ -594,7 +590,7 @@ export function AssistantEditor({
                               }}
                               className="block w-full items-center flex gap-x-2 text-left px-4 py-2 hover:bg-background-100 rounded"
                             >
-                              <NewChatIcon />
+                              <NewChatIcon size={16} />
                               Generate New Icon
                             </button>
                           )}
@@ -645,7 +641,7 @@ export function AssistantEditor({
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-              </div> */}
+              </div>
 
               <TextFormField
                 name="name"

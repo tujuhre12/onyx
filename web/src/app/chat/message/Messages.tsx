@@ -400,11 +400,10 @@ export const AIMessage = ({
       >
         <div className={`lg:mr-12 ${!shared && "mobile:ml-0 md:ml-8"}`}>
           <div className="flex">
-            <OnyxIcon size={24} className="hidden lg:block flex-none" />
-            {/* <AssistantIcon
-              size="small"
+            <AssistantIcon
+              size={24}
               assistant={alternativeAssistant || currentPersona}
-            /> */}
+            />
 
             <div className="w-full">
               <div className="max-w-message-max break-words">
