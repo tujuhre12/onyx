@@ -53,7 +53,7 @@ export function SeeMoreBlock({
     >
       <div className="flex gap-y-2 flex-col items-start text-sm">
         <p className="flex-1 mr-1 font-semibold text-text-900 overflow-hidden text-ellipsis whitespace-nowrap">
-          {documentSelectionToggled ? "Hide sources" : "Full Results"}
+          Full Results
         </p>
         <div className="flex-shrink-0 flex gap-x-1  items-center">
           {uniqueSources.slice(0, 3).map((sourceType, ind) => (

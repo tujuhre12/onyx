@@ -2549,15 +2549,10 @@ export function ChatPage({
                                         ) {
                                           toggleDocumentSidebar();
                                         }
-                                        if (
-                                          !documentSidebarToggled &&
-                                          selectedMessageForDocDisplay ===
-                                            message.messageId
-                                        ) {
-                                          // setSelectedMessageForDocDisplay(
-                                          //   message.messageId
-                                          // );
-                                        }
+
+                                        setSelectedMessageForDocDisplay(
+                                          message.messageId
+                                        );
                                       }}
                                       docs={message.documents}
                                       currentPersona={liveAssistant}
