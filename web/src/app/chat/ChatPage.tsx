@@ -15,6 +15,9 @@ import {
   RetrievalType,
   StreamingError,
   ToolCallMetadata,
+  SubQuestionDetail,
+  constructSubQuestions,
+  SubQueryDetail,
 } from "./interfaces";
 
 import Prism from "prismjs";
@@ -72,6 +75,8 @@ import {
   DocumentInfoPacket,
   StreamStopInfo,
   StreamStopReason,
+  SubQueryPiece,
+  SubQuestionPiece,
 } from "@/lib/search/interfaces";
 import { buildFilters } from "@/lib/search/utils";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
@@ -657,6 +662,12 @@ export function ChatPage({
   const messageHistory = buildLatestMessageChain(
     currentMessageMap(completeMessageDetail)
   );
+
+  console.log(
+    "currentMessageMap(completeMessageDetail)",
+    currentMessageMap(completeMessageDetail)
+  );
+  console.log("Message History", messageHistory);
 
   const [submittedMessage, setSubmittedMessage] = useState(firstMessage || "");
 
@@ -1248,6 +1259,8 @@ export function ChatPage({
     let error: string | null = null;
     let stackTrace: string | null = null;
 
+    let sub_questions: SubQuestionDetail[] = [];
+
     let finalMessage: BackendMessage | null = null;
     let toolCall: ToolCallMetadata | null = null;
 
@@ -1444,6 +1457,19 @@ export function ChatPage({
               if (stop_reason === StreamStopReason.CONTEXT_LENGTH) {
                 updateCanContinue(true, frozenSessionId);
               }
+
+              // Continuously refine the sub_questions based on the packets that we receive
+              else if (Object.hasOwn(packet, "sub_questions")) {
+                sub_questions = constructSubQuestions(
+                  sub_questions,
+                  packet as SubQuestionPiece
+                );
+              } else if (Object.hasOwn(packet, "sub_queries")) {
+                sub_questions = constructSubQuestions(
+                  sub_questions,
+                  packet as SubQueryPiece
+                );
+              }
             }
 
             // on initial message send, we insert a dummy system message
@@ -1488,6 +1514,7 @@ export function ChatPage({
                     []),
                   initialFetchDetails.assistant_message_id!,
                 ],
+                sub_questions: sub_questions,
                 latestChildMessageId: initialFetchDetails.assistant_message_id,
               },
               {
@@ -2472,6 +2499,7 @@ export function ChatPage({
                                 ) {
                                   return <></>;
                                 }
+                                console.log("AI Message", message);
                                 return (
                                   <div
                                     id={`message-${message.messageId}`}
@@ -2549,7 +2577,7 @@ export function ChatPage({
                                           message.messageId
                                         );
                                       }}
-                                      docs={message.documents}
+                                      docs={parentMessage?.documents}
                                       currentPersona={liveAssistant}
                                       alternativeAssistant={
                                         currentAlternativeAssistant
