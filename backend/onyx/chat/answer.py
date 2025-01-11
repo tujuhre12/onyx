@@ -307,8 +307,9 @@ class Answer:
     def llm_answer(self) -> str:
         answer = ""
         for packet in self.processed_streamed_output:
-            if isinstance(packet, (OnyxAnswerPiece, AgentAnswerPiece)) and packet.answer_piece:
+            if (isinstance(packet, OnyxAnswerPiece) and packet.answer_piece) or (isinstance(packet, AgentAnswerPiece) and packet.answer_piece and packet.answer_type == "agent_level_answer"):
                 answer += packet.answer_piece
+            
 
         return answer
 
