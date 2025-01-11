@@ -306,12 +306,10 @@ export const AgenticMessage = ({
     <div
       id="onyx-ai-message"
       ref={trackedElementRef}
-      className={`py-5 ml-4 lg:px-5 relative flex `}
+      className={`py-5 ml-4 lg:px-5 relative flex flex-col`}
     >
       <div
-        className={`mx-auto ${
-          shared ? "w-full" : "w-[90%]"
-        }  max-w-message-max`}
+        className={`mx-auto ${shared ? "w-full" : "w-[90%]"} max-w-message-max`}
       >
         <div className={`lg:mr-12 ${!shared && "mobile:ml-0 md:ml-8"}`}>
           <div className="flex">
@@ -421,6 +419,29 @@ export const AgenticMessage = ({
                       </div>
                     )}
                   </div>
+
+                  {subQuestions && subQuestions.length > 0 && (
+                    <SubQuestionsDisplay
+                      subQuestions={subQuestions}
+                      documents={docs || []}
+                    />
+                  )}
+
+                  {content || files ? (
+                    <>
+                      {/* <FileDisplay files={files || []} /> */}
+
+                      {typeof content === "string" ? (
+                        <div className="overflow-x-visible max-w-content-max">
+                          {renderedMarkdown}
+                        </div>
+                      ) : (
+                        content
+                      )}
+                    </>
+                  ) : isComplete ? null : (
+                    <></>
+                  )}
 
                   {handleFeedback &&
                     (isActive ? (
@@ -590,19 +611,6 @@ export const AgenticMessage = ({
           continueGenerating && (
             <ContinueGenerating handleContinueGenerating={continueGenerating} />
           )}
-      </div>
-      <div className="mt-4">
-        {subQuestions && subQuestions.length > 0 && (
-          <div className="mb-4">
-            <SubQuestionsDisplay subQuestions={subQuestions} />
-          </div>
-        )}
-
-        {docs && docs.length > 0 && (
-          <div className="mt-4">
-            <DocumentsDisplay documents={docs} />
-          </div>
-        )}
       </div>
     </div>
   );

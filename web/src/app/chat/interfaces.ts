@@ -3,6 +3,8 @@ import {
   Filters,
   SearchOnyxDocument,
   StreamStopReason,
+  SubQuestionPiece,
+  SubQueryPiece,
 } from "@/lib/search/interfaces";
 
 export enum RetrievalType {
@@ -117,14 +119,6 @@ export interface SubQueryDetail {
   doc_ids?: number[] | null;
 }
 
-export interface SubQuestionDetail {
-  level: number;
-  level_question_nr: number;
-  question: string;
-  answer: string;
-  sub_queries?: SubQueryDetail[] | null;
-  context_docs?: { top_documents: OnyxDocument[] } | null;
-}
 export interface BackendMessage {
   message_id: number;
   message_type: string;
@@ -141,7 +135,7 @@ export interface BackendMessage {
   files: FileDescriptor[];
   tool_call: ToolCallFinalResult | null;
 
-  sub_questions: SubQuestionDetail[] | null;
+  sub_questions: SubQuestionDetail[];
   // Keeping existing properties
   comments: any;
   parentMessageId: number | null;
@@ -197,3 +191,64 @@ export interface PromptData {
   prompt: string;
   content: string;
 }
+// We need to update the constructSubQuestions function so it can take in either SubQueryDetail or SubQuestionDetail and given current state of subQuestions, build it up
+
+/**
+ * // Start of Selection
+ */
+export interface SubQuestionDetail {
+  level: number;
+  level_question_nr: number;
+  question: string;
+  answer: string;
+  sub_queries?: SubQueryDetail[] | null;
+  context_docs?: { top_documents: OnyxDocument[] } | null;
+}
+
+export const constructSubQuestions = (
+  subQuestions: SubQuestionDetail[],
+  newDetail: SubQuestionPiece | SubQueryPiece
+): SubQuestionDetail[] => {
+  if (!newDetail) {
+    return subQuestions;
+  }
+
+  // If it looks like a SubQuestionDetail (contains "question" and "answer"),
+  // transform it to a valid SubQuestionDetail and add to the list.
+  if (
+    "question" in newDetail &&
+    typeof newDetail.question === "string" &&
+    "answer" in newDetail &&
+    typeof newDetail.answer === "string"
+  ) {
+    const subQuestion: SubQuestionDetail = {
+      level: newDetail.level,
+      level_question_nr: newDetail.level_question_nr,
+      question: newDetail.question,
+      answer: newDetail.answer,
+      sub_queries: [],
+      context_docs: undefined,
+    };
+    return [...subQuestions, subQuestion];
+  } else {
+    // Otherwise, treat it as a SubQueryDetail and attach it to the last SubQuestion (if any).
+    if (subQuestions.length === 0) {
+      return subQuestions;
+    }
+    const updatedSubQuestions = [...subQuestions];
+    const lastIndex = updatedSubQuestions.length - 1;
+    const lastSub = { ...updatedSubQuestions[lastIndex] };
+
+    const subQueryDetail: SubQueryDetail = {
+      query: ("sub_query" in newDetail && newDetail.sub_query) || "",
+      query_id: ("query_id" in newDetail && newDetail.query_id) || 0,
+    };
+
+    lastSub.sub_queries = lastSub.sub_queries
+      ? [...lastSub.sub_queries, subQueryDetail]
+      : [subQueryDetail];
+
+    updatedSubQuestions[lastIndex] = lastSub;
+    return updatedSubQuestions;
+  }
+};

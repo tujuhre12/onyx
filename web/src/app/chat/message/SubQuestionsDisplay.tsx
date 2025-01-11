@@ -1,52 +1,87 @@
-import React from "react";
+import React, { useState } from "react";
 import { SubQuestionDetail } from "../interfaces";
+import { FiChevronDown } from "react-icons/fi";
+import { OnyxDocument } from "@/lib/search/interfaces";
 
 interface SubQuestionsDisplayProps {
   subQuestions: SubQuestionDetail[];
+  documents: OnyxDocument[];
 }
+
+export const SubQuestionDisplay = ({
+  subQuestion,
+  documents,
+}: {
+  subQuestion: SubQuestionDetail;
+  documents: OnyxDocument[];
+}) => {
+  const [toggled, setToggled] = useState(false);
+  return (
+    <>
+      {toggled ? (
+        <div className="border-b border-neutral-900 pb-4 p-3 last:border-b-0 last:pb-0">
+          <h4
+            className="cursor-pointer font-medium mb-2"
+            onClick={() => setToggled(!toggled)}
+          >
+            {subQuestion.question}
+          </h4>
+          <div className="text-sm text-neutral-600">
+            <p>Searching:</p>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {subQuestion.sub_queries?.map((query, queryIndex) => (
+                <span
+                  key={queryIndex}
+                  className="px-2 py-1 rounded-full text-xs"
+                >
+                  {query.query}
+                </span>
+              ))}
+            </div>
+            <p>
+              Reading:
+              {documents
+                .filter((doc) =>
+                  subQuestion.context_docs?.top_documents?.some(
+                    (contextDoc) => contextDoc.db_doc_id === doc.db_doc_id
+                  )
+                )
+                ?.map((doc) => doc.semantic_identifier)
+                .join(", ")
+                .slice(0, 100)}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-start items-center p-1 bg-neutral-50 cursor-pointer">
+          <h3
+            onClick={() => setToggled(!toggled)}
+            className="text-lg font-semibold"
+          >
+            {subQuestion.question}
+          </h3>
+          <FiChevronDown />
+        </div>
+      )}
+    </>
+  );
+};
 
 const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   subQuestions,
+  documents,
 }) => {
   return (
-    <div className="h-[962px] py-4 rounded border border-[#f1eee8] flex-col justify-start items-start gap-2 inline-flex">
+    <div className="w-full border border-neutral-200 rounded-lg overflow-hidden">
+      <div className="flex justify-between items-center p-4 bg-white cursor-pointer">
+        <h3 className="text-lg font-semibold">Subquestions</h3>
+      </div>
       {subQuestions.map((subQuestion, index) => (
-        <div
+        <SubQuestionDisplay
           key={index}
-          className="w-[562px] px-4 rounded justify-start items-start gap-2 inline-flex"
-        >
-          <div className="h-[230px] px-1 flex-col justify-between items-center inline-flex">
-            <div className="w-3 h-3 relative" />
-            <div className="w-[188px] h-[0px] origin-top-left rotate-90 border border-[#e6e3dd]"></div>
-            <div className="w-3 h-3 relative overflow-hidden" />
-          </div>
-          <div className="grow shrink basis-0 flex-col justify-start items-start gap-2 inline-flex">
-            <div className="self-stretch text-black text-base font-medium font-['KH Teka TRIAL'] leading-normal">
-              {subQuestion.question}
-            </div>
-            <div className="self-stretch h-[52px] flex-col justify-start items-start gap-1 flex">
-              <div className="self-stretch justify-start items-start inline-flex">
-                <div className="text-[#4a4a4a] text-xs font-medium font-['KH Teka TRIAL'] leading-normal">
-                  Searching
-                </div>
-              </div>
-              <div className="self-stretch justify-start items-center gap-2 inline-flex">
-                {subQuestion.sub_queries?.map((query, queryIndex) => (
-                  <div
-                    key={queryIndex}
-                    className="px-2 bg-[#f1eee8] rounded-2xl justify-center items-center flex"
-                  >
-                    <div className="w-4 h-4 p-[3px] justify-center items-center gap-2 flex overflow-hidden" />
-                    <div className="text-[#4a4a4a] text-xs font-medium font-['KH Teka TRIAL'] leading-normal">
-                      {query.query}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* Add more details here as needed */}
-          </div>
-        </div>
+          subQuestion={subQuestion}
+          documents={documents}
+        />
       ))}
     </div>
   );
