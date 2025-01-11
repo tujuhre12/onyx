@@ -5,6 +5,8 @@ import {
   StreamStopReason,
   SubQuestionPiece,
   SubQueryPiece,
+  AgentAnswerPiece,
+  SubQuestionSearchDoc,
 } from "@/lib/search/interfaces";
 
 export enum RetrievalType {
@@ -207,48 +209,105 @@ export interface SubQuestionDetail {
 
 export const constructSubQuestions = (
   subQuestions: SubQuestionDetail[],
-  newDetail: SubQuestionPiece | SubQueryPiece
+  newDetail:
+    | SubQuestionPiece
+    | SubQueryPiece
+    | AgentAnswerPiece
+    | SubQuestionSearchDoc
 ): SubQuestionDetail[] => {
   if (!newDetail) {
     return subQuestions;
   }
 
-  // If it looks like a SubQuestionDetail (contains "question" and "answer"),
-  // transform it to a valid SubQuestionDetail and add to the list.
-  if (
-    "question" in newDetail &&
-    typeof newDetail.question === "string" &&
-    "answer" in newDetail &&
-    typeof newDetail.answer === "string"
-  ) {
-    const subQuestion: SubQuestionDetail = {
-      level: newDetail.level,
-      level_question_nr: newDetail.level_question_nr,
-      question: newDetail.question,
-      answer: newDetail.answer,
-      sub_queries: [],
-      context_docs: undefined,
-    };
-    return [...subQuestions, subQuestion];
-  } else {
-    // Otherwise, treat it as a SubQueryDetail and attach it to the last SubQuestion (if any).
-    if (subQuestions.length === 0) {
-      return subQuestions;
+  const updatedSubQuestions = [...subQuestions];
+  // .filter(
+  //   (sq) => sq.level_question_nr !== 0
+  // );
+
+  if ("answer_piece" in newDetail) {
+    // Handle AgentAnswerPiece
+    const { level, level_question_nr, answer_piece } = newDetail;
+    const actual_level_question_nr = level_question_nr + 1;
+    // Find or create the relevant SubQuestionDetail
+    let subQuestion = updatedSubQuestions.find(
+      (sq) =>
+        sq.level === level && sq.level_question_nr === actual_level_question_nr
+    );
+
+    if (!subQuestion) {
+      subQuestion = {
+        level,
+        level_question_nr: actual_level_question_nr,
+        question: "",
+        answer: "",
+        sub_queries: [],
+        context_docs: undefined,
+      };
+      updatedSubQuestions.push(subQuestion);
     }
-    const updatedSubQuestions = [...subQuestions];
-    const lastIndex = updatedSubQuestions.length - 1;
-    const lastSub = { ...updatedSubQuestions[lastIndex] };
 
-    const subQueryDetail: SubQueryDetail = {
-      query: ("sub_query" in newDetail && newDetail.sub_query) || "",
-      query_id: ("query_id" in newDetail && newDetail.query_id) || 0,
-    };
+    // Append to the answer
+    subQuestion.answer += answer_piece;
+  } else if ("sub_question" in newDetail) {
+    // Handle SubQuestionPiece
+    const { level, level_question_nr, sub_question } = newDetail;
 
-    lastSub.sub_queries = lastSub.sub_queries
-      ? [...lastSub.sub_queries, subQueryDetail]
-      : [subQueryDetail];
+    // Find or create the relevant SubQuestionDetail
+    let subQuestion = updatedSubQuestions.find(
+      (sq) => sq.level === level && sq.level_question_nr === level_question_nr
+    );
 
-    updatedSubQuestions[lastIndex] = lastSub;
-    return updatedSubQuestions;
+    if (!subQuestion) {
+      subQuestion = {
+        level,
+        level_question_nr,
+        question: "",
+        answer: "",
+        sub_queries: [],
+        context_docs: undefined,
+      };
+      updatedSubQuestions.push(subQuestion);
+    }
+
+    // Append to the question
+    subQuestion.question += sub_question;
+  } else if ("sub_query" in newDetail) {
+    // Handle SubQueryPiece
+    const { level, level_question_nr, query_id, sub_query } = newDetail;
+    const actual_level_question_nr = level_question_nr + 1;
+
+    // Find the relevant SubQuestionDetail
+    let subQuestion = updatedSubQuestions.find(
+      (sq) =>
+        sq.level === level && sq.level_question_nr === actual_level_question_nr
+    );
+
+    if (!subQuestion) {
+      // If we receive a sub_query before its parent question, create a placeholder
+      subQuestion = {
+        level,
+        level_question_nr: actual_level_question_nr,
+        question: "",
+        answer: "",
+        sub_queries: [],
+        context_docs: undefined,
+      };
+      updatedSubQuestions.push(subQuestion);
+    }
+
+    // Find or create the relevant SubQueryDetail
+    let subQuery = subQuestion.sub_queries?.find(
+      (sq) => sq.query_id === query_id
+    );
+
+    if (!subQuery) {
+      subQuery = { query: "", query_id };
+      subQuestion.sub_queries = [...(subQuestion.sub_queries || []), subQuery];
+    }
+
+    // Append to the query
+    subQuery.query += sub_query;
   }
+
+  return updatedSubQuestions;
 };

@@ -77,6 +77,7 @@ import {
   StreamStopReason,
   SubQueryPiece,
   SubQuestionPiece,
+  AgentAnswerPiece,
 } from "@/lib/search/interfaces";
 import { buildFilters } from "@/lib/search/utils";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
@@ -478,7 +479,6 @@ export function ChatPage({
       );
 
       const session = await response.json();
-      console.log(session);
       const chatSession = session as BackendChatSession;
       setSelectedAssistantFromId(chatSession.persona_id);
 
@@ -662,12 +662,6 @@ export function ChatPage({
   const messageHistory = buildLatestMessageChain(
     currentMessageMap(completeMessageDetail)
   );
-
-  console.log(
-    "currentMessageMap(completeMessageDetail)",
-    currentMessageMap(completeMessageDetail)
-  );
-  console.log("Message History", messageHistory);
 
   const [submittedMessage, setSubmittedMessage] = useState(firstMessage || "");
 
@@ -1337,7 +1331,7 @@ export function ChatPage({
           if (!packet) {
             continue;
           }
-          console.log(packet);
+
           if (!initialFetchDetails) {
             if (!Object.hasOwn(packet, "user_message_id")) {
               console.error(
@@ -1408,10 +1402,33 @@ export function ChatPage({
               }
               return prevState;
             });
-
-            if (Object.hasOwn(packet, "answer_piece")) {
+            // Continuously refine the sub_questions based on the packets that we receive
+            if (Object.hasOwn(packet, "sub_question")) {
+              sub_questions = constructSubQuestions(
+                sub_questions,
+                packet as SubQuestionPiece
+              );
+            } else if (Object.hasOwn(packet, "sub_query")) {
+              sub_questions = constructSubQuestions(
+                sub_questions,
+                packet as SubQueryPiece
+              );
+            } else if (
+              Object.hasOwn(packet, "answer_piece") &&
+              Object.hasOwn(packet, "answer_type") &&
+              (packet as AgentAnswerPiece).answer_type === "agent_sub_answer"
+            ) {
+              sub_questions = constructSubQuestions(
+                sub_questions,
+                packet as AgentAnswerPiece
+              );
+            } else if (Object.hasOwn(packet, "answer_piece")) {
               answer += (packet as AnswerPiecePacket).answer_piece;
-            } else if (Object.hasOwn(packet, "top_documents")) {
+            } else {
+              console.log("packet", packet);
+            }
+
+            if (Object.hasOwn(packet, "top_documents")) {
               documents = (packet as DocumentInfoPacket).top_documents;
               retrievalType = RetrievalType.Search;
               if (documents && documents.length > 0) {
@@ -1456,19 +1473,6 @@ export function ChatPage({
               const stop_reason = (packet as StreamStopInfo).stop_reason;
               if (stop_reason === StreamStopReason.CONTEXT_LENGTH) {
                 updateCanContinue(true, frozenSessionId);
-              }
-
-              // Continuously refine the sub_questions based on the packets that we receive
-              else if (Object.hasOwn(packet, "sub_questions")) {
-                sub_questions = constructSubQuestions(
-                  sub_questions,
-                  packet as SubQuestionPiece
-                );
-              } else if (Object.hasOwn(packet, "sub_queries")) {
-                sub_questions = constructSubQuestions(
-                  sub_questions,
-                  packet as SubQueryPiece
-                );
               }
             }
 
@@ -2499,7 +2503,7 @@ export function ChatPage({
                                 ) {
                                   return <></>;
                                 }
-                                console.log("AI Message", message);
+
                                 return (
                                   <div
                                     id={`message-${message.messageId}`}
@@ -2510,11 +2514,18 @@ export function ChatPage({
                                         : null
                                     }
                                   >
-                                    <AIMessage
-                                      toggledDocumentSidebar={
-                                        documentSidebarToggled &&
-                                        selectedMessageForDocDisplay ==
-                                          message.messageId
+                                    <AgenticMessage
+                                      subQuestions={
+                                        message.sub_questions &&
+                                        message.sub_questions.length > 0
+                                          ? message.sub_questions
+                                          : parentMessage?.sub_questions || []
+                                      }
+                                      docs={
+                                        message?.documents &&
+                                        message?.documents.length > 0
+                                          ? message?.documents
+                                          : parentMessage?.documents
                                       }
                                       subQuestions={message.sub_questions || []}
                                       setPresentingDocument={
@@ -2577,7 +2588,6 @@ export function ChatPage({
                                           message.messageId
                                         );
                                       }}
-                                      docs={parentMessage?.documents}
                                       currentPersona={liveAssistant}
                                       alternativeAssistant={
                                         currentAlternativeAssistant
