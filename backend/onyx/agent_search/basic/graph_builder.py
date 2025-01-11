@@ -74,9 +74,13 @@ def get_response(state: BasicState) -> BasicStateUpdate:
 
 
     next_call = response_handler_manager.next_llm_call(current_llm_call)
-    final_search_results, displayed_search_results = SearchTool.get_search_result(
-        next_call
-    ) or ([], [])
+    if next_call is not None:
+        final_search_results, displayed_search_results = SearchTool.get_search_result(
+            next_call
+        ) or ([], [])
+    else:
+        final_search_results, displayed_search_results = [], []
+        
     response_handler_manager.answer_handler.update((
         final_search_results, 
         map_document_id_order(final_search_results), 
