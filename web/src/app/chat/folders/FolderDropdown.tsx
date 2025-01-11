@@ -118,25 +118,25 @@ export const FolderDropdown: React.FC<FolderDropdownProps> = ({
           ) : (
             <div className="flex items-center">
               <span className="text-sm font-medium">{folder.folder_name}</span>
-              {isHovered && folder.folder_id !== "chats" && (
-                <button onClick={handleEdit} className="ml-1 px-1">
-                  <PencilIcon size={14} />
-                </button>
-              )}
             </div>
           )}
         </button>
         {isHovered && !isEditing && folder.folder_id !== "chats" && (
-          <button onClick={handleDelete} className="px-1 ml-auto">
+          <button onClick={handleEdit} className="ml-auto px-1">
+            <PencilIcon size={14} />
+          </button>
+        )}
+        {isHovered && !isEditing && folder.folder_id !== "chats" && (
+          <button onClick={handleDelete} className="px-1 ">
             <FiTrash2 size={14} />
           </button>
         )}
         {isEditing && (
           <div className="-my-1">
-            <button onClick={handleSave} className="p-1 text-green-500">
+            <button onClick={handleSave} className="p-1 text-black ">
               <FiCheck size={14} />
             </button>
-            <button onClick={handleCancel} className="p-1 text-red-500">
+            <button onClick={handleCancel} className="p-1 text-black">
               <FiX size={14} />
             </button>
           </div>

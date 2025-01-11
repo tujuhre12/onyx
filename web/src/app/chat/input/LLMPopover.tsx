@@ -78,8 +78,14 @@ export default function LLMPopover({
           <ChatInputOption
             toggle
             flexPriority="stiff"
-            name="Models"
-            Icon={AnthropicSVG}
+            name={getDisplayNameForModel(
+              llmOverrideManager?.llmOverride.modelName || "Models"
+            )}
+            Icon={getProviderIcon(
+              llmOverrideManager?.llmOverride.provider || "anthropic",
+              llmOverrideManager?.llmOverride.modelName ||
+                "claude-3-5-sonnet-20240620"
+            )}
             tooltipContent="Switch models"
           />
         </button>

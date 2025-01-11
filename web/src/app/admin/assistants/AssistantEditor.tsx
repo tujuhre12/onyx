@@ -646,28 +646,25 @@ export function AssistantEditor({
               <TextFormField
                 maxWidth="max-w-lg"
                 name="name"
-                tooltip="Used to identify the Assistant in the UI."
                 label="Name"
-                placeholder="e.g. 'Email Assistant'"
+                placeholder="Email Assistant"
                 aria-label="assistant-name-input"
               />
 
               <TextFormField
                 maxWidth="max-w-lg"
-                tooltip="Used for identifying assistants and their use cases."
                 name="description"
                 label="Description"
-                placeholder="e.g. 'Use this Assistant to help draft professional emails'"
+                placeholder="Use this Assistant to help draft professional emails"
                 data-testid="assistant-description-input"
               />
 
               <TextFormField
                 maxWidth="max-w-4xl"
-                tooltip="Gives your assistant a prime directive"
                 name="system_prompt"
                 label="Instructions"
                 isTextArea={true}
-                placeholder="e.g. 'You are a professional email writing assistant that always uses a polite enthusiastic tone, emphasizes action items, and leaves blanks for the human to fill in when you have unknowns'"
+                placeholder="You are a professional email writing assistant that always uses a polite enthusiastic tone, emphasizes action items, and leaves blanks for the human to fill in when you have unknowns"
                 data-testid="assistant-instructions-input"
               />
 
@@ -678,7 +675,7 @@ export function AssistantEditor({
                     name="task_prompt"
                     label="Reminders (Optional)"
                     isTextArea={true}
-                    placeholder="e.g. 'Remember to reference all of the points mentioned in my message to you and focus on identifying action items that can move things forward'"
+                    placeholder="Remember to reference all of the points mentioned in my message to you and focus on identifying action items that can move things forward"
                     onChange={(e) => {
                       setFieldValue("task_prompt", e.target.value);
                     }}
@@ -814,206 +811,189 @@ export function AssistantEditor({
                           </div>
                         </React.Fragment>
                       ))}
-
-                      {searchTool && (
-                        <>
-                          <Separator />
-                          <div className="flex gap-x-2 py-2 flex justify-between">
-                            <div>
-                              <p className="block font-medium text-sm">
-                                Search Tool
-                              </p>
-                              <p
-                                className="text-sm text-subtle"
-                                style={{ color: "rgb(113, 114, 121)" }}
-                              >
-                                Enable search capabilities for this assistant
-                              </p>
-                            </div>
-                            <div className="flex items-center">
-                              <TooltipProvider delayDuration={0}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div
-                                      className={`${
-                                        ccPairs.length === 0
-                                          ? "opacity-70 cursor-not-allowed"
-                                          : ""
-                                      }`}
-                                    >
-                                      <Switch
-                                        onCheckedChange={(checked) => {
-                                          setShowSearchTool(checked);
-                                          setFieldValue("num_chunks", null);
-                                          toggleToolInValues(searchTool.id);
-                                        }}
-                                        name={`enabled_tools_map.${searchTool.id}`}
-                                        disabled={ccPairs.length === 0}
-                                      />
-                                    </div>
-                                  </TooltipTrigger>
-                                  {ccPairs.length === 0 && (
-                                    <TooltipContent side="top" align="center">
-                                      <p className="bg-background-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
-                                        To use the Search Tool, you need to have
-                                        at least one Connector-Credential pair
-                                        configured.
-                                      </p>
-                                    </TooltipContent>
-                                  )}
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {ccPairs.length > 0 && searchTool && showSearchTool && (
-                        <CollapsibleSection prompt="Configure Search">
-                          <div>
-                            {ccPairs.length > 0 && (
-                              <>
-                                <Label small>Document Sets</Label>
-                                <div>
-                                  <SubLabel>
-                                    <>
-                                      Select which{" "}
-                                      {!user || user.role === "admin" ? (
-                                        <Link
-                                          href="/admin/documents/sets"
-                                          className="text-blue-500"
-                                          target="_blank"
-                                        >
-                                          Document Sets
-                                        </Link>
-                                      ) : (
-                                        "Document Sets"
-                                      )}{" "}
-                                      this Assistant should search through. If
-                                      none are specified, the Assistant will
-                                      search through all available documents in
-                                      order to try and respond to queries.
-                                    </>
-                                  </SubLabel>
-                                </div>
-
-                                {documentSets.length > 0 ? (
-                                  <FieldArray
-                                    name="document_set_ids"
-                                    render={(arrayHelpers: ArrayHelpers) => (
-                                      <div>
-                                        <div className="mb-3 mt-2 flex gap-2 flex-wrap text-sm">
-                                          {documentSets.map((documentSet) => (
-                                            <DocumentSetSelectable
-                                              key={documentSet.id}
-                                              documentSet={documentSet}
-                                              isSelected={values.document_set_ids.includes(
-                                                documentSet.id
-                                              )}
-                                              onSelect={() => {
-                                                const index =
-                                                  values.document_set_ids.indexOf(
-                                                    documentSet.id
-                                                  );
-                                                if (index !== -1) {
-                                                  arrayHelpers.remove(index);
-                                                } else {
-                                                  arrayHelpers.push(
-                                                    documentSet.id
-                                                  );
-                                                }
-                                              }}
-                                            />
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  />
-                                ) : (
-                                  <p className="text-sm italic">
-                                    No Document Sets available.{" "}
-                                    {user?.role !== "admin" && (
-                                      <>
-                                        If this functionality would be useful,
-                                        reach out to the administrators of Onyx
-                                        for assistance.
-                                      </>
-                                    )}
-                                  </p>
-                                )}
-
-                                <div className="mt-4 flex flex-col gap-y-4">
-                                  <TextFormField
-                                    small={true}
-                                    name="num_chunks"
-                                    label="Number of Context Documents"
-                                    tooltip="How many of the top matching document sections to feed the LLM for context when generating a response"
-                                    placeholder="Defaults to 10"
-                                    onChange={(e) => {
-                                      const value = e.target.value;
-                                      if (
-                                        value === "" ||
-                                        /^[0-9]+$/.test(value)
-                                      ) {
-                                        setFieldValue("num_chunks", value);
-                                      }
-                                    }}
-                                  />
-
-                                  <TextFormField
-                                    width="max-w-xl"
-                                    type="date"
-                                    small
-                                    subtext="Documents prior to this date will not be referenced by the search tool"
-                                    optional
-                                    label="Search Start Date"
-                                    value={values.search_start_date}
-                                    name="search_start_date"
-                                  />
-
-                                  <BooleanFormField
-                                    small
-                                    removeIndent
-                                    alignTop
-                                    name="llm_relevance_filter"
-                                    label="Apply LLM Relevance Filter"
-                                    subtext="If enabled, the LLM will filter out chunks that are not relevant to the user query."
-                                  />
-
-                                  <BooleanFormField
-                                    small
-                                    removeIndent
-                                    alignTop
-                                    name="include_citations"
-                                    label="Include Citations"
-                                    subtext="If set, the response will include bracket citations ([1], [2], etc.) for each document used by the LLM to help inform the response. This is the same technique used by the default Assistants. In general, we recommend to leave this enabled in order to increase trust in the LLM answer."
-                                  />
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </CollapsibleSection>
-                      )}
                     </>
+                  )}
+                  {searchTool && (
+                    <>
+                      <Separator />
+                      <div className="flex gap-x-2 py-2 flex justify-between">
+                        <div>
+                          <p className="block font-medium text-sm">
+                            Search Tool
+                          </p>
+                          <p
+                            className="text-sm text-subtle"
+                            style={{ color: "rgb(113, 114, 121)" }}
+                          >
+                            Enable search capabilities for this assistant
+                          </p>
+                        </div>
+                        <div className="flex items-center">
+                          <TooltipProvider delayDuration={0}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className={`${
+                                    ccPairs.length === 0
+                                      ? "opacity-70 cursor-not-allowed"
+                                      : ""
+                                  }`}
+                                >
+                                  <Switch
+                                    onCheckedChange={(checked) => {
+                                      setShowSearchTool(checked);
+                                      setFieldValue("num_chunks", null);
+                                      toggleToolInValues(searchTool.id);
+                                    }}
+                                    name={`enabled_tools_map.${searchTool.id}`}
+                                    disabled={ccPairs.length === 0}
+                                  />
+                                </div>
+                              </TooltipTrigger>
+                              {ccPairs.length === 0 && (
+                                <TooltipContent side="top" align="center">
+                                  <p className="bg-background-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
+                                    To use the Search Tool, you need to have at
+                                    least one Connector-Credential pair
+                                    configured.
+                                  </p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {ccPairs.length > 0 && searchTool && showSearchTool && (
+                    <CollapsibleSection prompt="Configure Search">
+                      <div>
+                        {ccPairs.length > 0 && (
+                          <>
+                            <Label small>Document Sets</Label>
+                            <div>
+                              <SubLabel>
+                                <>
+                                  Select which{" "}
+                                  {!user || user.role === "admin" ? (
+                                    <Link
+                                      href="/admin/documents/sets"
+                                      className="text-blue-500"
+                                      target="_blank"
+                                    >
+                                      Document Sets
+                                    </Link>
+                                  ) : (
+                                    "Document Sets"
+                                  )}{" "}
+                                  this Assistant should search through. If none
+                                  are specified, the Assistant will search
+                                  through all available documents in order to
+                                  try and respond to queries.
+                                </>
+                              </SubLabel>
+                            </div>
+
+                            {documentSets.length > 0 ? (
+                              <FieldArray
+                                name="document_set_ids"
+                                render={(arrayHelpers: ArrayHelpers) => (
+                                  <div>
+                                    <div className="mb-3 mt-2 flex gap-2 flex-wrap text-sm">
+                                      {documentSets.map((documentSet) => (
+                                        <DocumentSetSelectable
+                                          key={documentSet.id}
+                                          documentSet={documentSet}
+                                          isSelected={values.document_set_ids.includes(
+                                            documentSet.id
+                                          )}
+                                          onSelect={() => {
+                                            const index =
+                                              values.document_set_ids.indexOf(
+                                                documentSet.id
+                                              );
+                                            if (index !== -1) {
+                                              arrayHelpers.remove(index);
+                                            } else {
+                                              arrayHelpers.push(documentSet.id);
+                                            }
+                                          }}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              />
+                            ) : (
+                              <p className="text-sm italic">
+                                No Document Sets available.{" "}
+                                {user?.role !== "admin" && (
+                                  <>
+                                    If this functionality would be useful, reach
+                                    out to the administrators of Onyx for
+                                    assistance.
+                                  </>
+                                )}
+                              </p>
+                            )}
+
+                            <div className="mt-4 flex flex-col gap-y-4">
+                              <TextFormField
+                                small={true}
+                                name="num_chunks"
+                                label="Number of Context Documents"
+                                placeholder="Defaults to 10"
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value === "" || /^[0-9]+$/.test(value)) {
+                                    setFieldValue("num_chunks", value);
+                                  }
+                                }}
+                              />
+
+                              <TextFormField
+                                width="max-w-xl"
+                                type="date"
+                                small
+                                subtext="Documents prior to this date will not be referenced by the search tool"
+                                optional
+                                label="Search Start Date"
+                                value={values.search_start_date}
+                                name="search_start_date"
+                              />
+
+                              <BooleanFormField
+                                small
+                                removeIndent
+                                alignTop
+                                name="llm_relevance_filter"
+                                label="Apply LLM Relevance Filter"
+                                subtext="If enabled, the LLM will filter out chunks that are not relevant to the user query."
+                              />
+
+                              <BooleanFormField
+                                small
+                                removeIndent
+                                alignTop
+                                name="include_citations"
+                                label="Include Citations"
+                                subtext="If set, the response will include bracket citations ([1], [2], etc.) for each document used by the LLM to help inform the response. This is the same technique used by the default Assistants. In general, we recommend to leave this enabled in order to increase trust in the LLM answer."
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </CollapsibleSection>
                   )}
                 </div>
               </div>
+              <Separator className="max-w-4xl" />
               <div className="-mt-2">
                 <div className="flex gap-x-2 items-center">
                   <div className="block  font-medium text-sm">
                     Default AI Model{" "}
                   </div>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <FiInfo size={12} />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" align="center">
-                        Select a Large Language Model (Generative AI model) to
-                        power this Assistant
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
                 </div>
 
                 {admin ? (
@@ -1167,14 +1147,15 @@ export function AssistantEditor({
                           fontSize="sm"
                           name="newCategoryName"
                           label="Category Name"
-                          placeholder="e.g. Development"
+                          placeholder="Development"
                         />
                         <TextFormField
                           fontSize="sm"
                           name="newCategoryDescription"
                           label="Category Description"
-                          placeholder="e.g. Assistants for software development"
+                          placeholder="Assistants for software development"
                         />
+
                         <div className="flex items-end">
                           <Button
                             type="button"

@@ -16,7 +16,6 @@ import { ChatSessionDisplay } from "./ChatSessionDisplay";
 import { useState, useCallback, useRef } from "react";
 
 export function PagesTab({
-  page,
   existingChats,
   currentChatId,
   folders,
@@ -27,7 +26,6 @@ export function PagesTab({
   showDeleteAllModal,
   setNewFolderId,
 }: {
-  page: pageType;
   existingChats?: ChatSession[];
   currentChatId?: string;
   folders?: Folder[];
@@ -186,6 +184,19 @@ export function PagesTab({
 
   return (
     <div className="flex flex-col relative h-full overflow-y-auto mb-1 ml-3 miniscroll mobile:pb-40">
+      <div className="my-2 ">
+        <div className="flex justify-between text-sm gap-x-2 mx-2 text-[#6c6c6c] items-center font-medium leading-normal">
+          <p>Chats</p>
+          <button
+            onClick={handleCreateFolder}
+            className="flex cursor-pointer gap-x-1 items-center text-black text-xs font-medium font-['KH Teka TRIAL'] leading-normal"
+          >
+            <FiPlus size={16} className="flex-none" />
+            Create Group
+          </button>
+        </div>
+      </div>
+
       <div
         className={`flex-grow overflow-y-auto ${
           NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED && "pb-20"

@@ -114,8 +114,15 @@ export function ChatSessionDisplay({
       >
         <BasicSelectable fullWidth selected={isSelected}>
           <>
-            <div className="flex relative gap-x-2">
-              <FaHashtag size={12} className="flex-none my-auto" />
+            {/* // Profit Margin trends
+text-black
+text-sm
+font-normal
+font-['KH
+Teka
+TRIAL']
+leading-normal */}
+            <div className="flex text-text-darker text-sm leading-normal relative gap-x-2">
               {isRenamingChat ? (
                 <input
                   value={chatName}

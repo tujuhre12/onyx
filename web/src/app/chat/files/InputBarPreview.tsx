@@ -44,7 +44,7 @@ export function InputBarPreviewImageProvider({
 
   return (
     <div
-      className="h-10 relative"
+      className="h-6 relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

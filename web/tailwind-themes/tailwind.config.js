@@ -83,6 +83,8 @@ module.exports = {
         "token-attr-name": "var(--token-attr-name)",
         "non-selectable": "var(--non-selectable)",
 
+        "gray-background": "#F4F2ED",
+
         // background
         background: "#FEFCFA",
         "background-dark": "#F1EEE8",
@@ -176,6 +178,7 @@ module.exports = {
         "text-darker": "#282828",
         "text-dark": "#4A4A4A",
         "text-muted": "#6C6C6B",
+        "text-gray": "#6c6c6c",
 
         // background: "#F1EEE8",
 

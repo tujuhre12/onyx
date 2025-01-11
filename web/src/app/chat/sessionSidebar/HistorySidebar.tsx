@@ -1,13 +1,12 @@
 "use client";
 
-import { FiEdit, FiFolderPlus, FiMoreHorizontal } from "react-icons/fi";
+import { FiEdit, FiFolderPlus, FiMoreHorizontal, FiPlus } from "react-icons/fi";
 import React, { ForwardedRef, forwardRef, useContext, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChatSession } from "../interfaces";
 import { NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA } from "@/lib/constants";
 import { Folder } from "../folders/interfaces";
-import { createFolder } from "../folders/FolderManagement";
 import { usePopup } from "@/components/admin/connectors/Popup";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 
@@ -163,34 +162,40 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
           )}
 
           <div className="my-2 mx-3">
-            <div className="flex text-sm gap-x-2 mx-2 items-center">
-              <PinnedIcon
-                className="text-text-history-sidebar-button"
-                size={12}
-              />
-              Pinned
+            <div className="flex text-sm gap-x-2 mx-2 text-[#6c6c6c] items-center font-medium leading-normal">
+              Pinned assistants
             </div>
             <div className="flex flex-col gap-y-1 mt-2">
-              {pinnedAssistants.slice(0, 3).map((assistant) => (
-                <button
-                  onClick={() => {
-                    router.push(buildChatUrl(searchParams, null, assistant.id));
-
-                    // router.push(`/${page}?assistantId=${assistant.id}`);
-                  }}
-                  className={`cursor-pointer hover:bg-hover-light ${
-                    currentAssistantId === assistant.id ? "bg-hover-light" : ""
-                  } flex items-center gap-x-2 py-1 px-2 rounded-md`}
-                  key={assistant.id}
-                >
-                  <AssistantIcon
-                    assistant={assistant}
-                    size={16}
-                    className="flex-none"
-                  />
-                  <p className="text-base text-black">{assistant.name}</p>
-                </button>
-              ))}
+              {pinnedAssistants.length > 0 ? (
+                pinnedAssistants.slice(0, 3).map((assistant) => (
+                  <button
+                    onClick={() => {
+                      router.push(
+                        buildChatUrl(searchParams, null, assistant.id)
+                      );
+                    }}
+                    className={`cursor-pointer hover:bg-hover-light ${
+                      currentAssistantId === assistant.id
+                        ? "bg-hover-light"
+                        : ""
+                    } flex items-center gap-x-2 py-1 px-2 rounded-md`}
+                    key={assistant.id}
+                  >
+                    <AssistantIcon
+                      assistant={assistant}
+                      size={16}
+                      className="flex-none"
+                    />
+                    <p className="text-base text-black">{assistant.name}</p>
+                  </button>
+                ))
+              ) : (
+                <div className="flex items-center gap-x-2 py-1 px-2 rounded-md">
+                  <p className="text-sm text-black">
+                    Pin an assistant to get started
+                  </p>
+                </div>
+              )}
               <button
                 onClick={() => setShowAssistantsModal(true)}
                 className="cursor-pointer hover:bg-hover-light flex items-center gap-x-2 py-1 px-2 rounded-md"
@@ -207,7 +212,6 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             showDeleteModal={showDeleteModal}
             showShareModal={showShareModal}
             closeSidebar={removeToggle}
-            page={page}
             existingChats={existingChats}
             currentChatId={currentChatId}
             folders={folders}

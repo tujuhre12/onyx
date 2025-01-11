@@ -1,28 +1,15 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
-import {
-  FiPlusCircle,
-  FiPlus,
-  FiInfo,
-  FiX,
-  FiSearch,
-  FiFilter,
-} from "react-icons/fi";
+import React, { useEffect, useRef, useState } from "react";
+import { FiPlusCircle, FiPlus, FiInfo, FiX, FiFilter } from "react-icons/fi";
 import { ChatInputOption } from "./ChatInputOption";
 import { Persona } from "@/app/admin/assistants/interfaces";
 import LLMPopover from "./LLMPopover";
 
 import { FilterManager, LlmOverrideManager } from "@/lib/hooks";
 import { useChatContext } from "@/components/context/ChatContext";
-import { getFinalLLM } from "@/lib/llm/utils";
 import { ChatFileType, FileDescriptor } from "../interfaces";
-import {
-  InputBarPreview,
-  InputBarPreviewImageProvider,
-} from "../files/InputBarPreview";
 import {
   DocumentIcon2,
   FileIcon,
-  OnyxIcon,
   SendIcon,
   StopGeneratingIcon,
 } from "@/components/icons/icons";
@@ -42,7 +29,9 @@ import { CalendarIcon, XIcon } from "lucide-react";
 import { FilterPopup } from "@/components/search/filtering/FilterPopup";
 import { DocumentSet, Tag } from "@/lib/types";
 import { SourceIcon } from "@/components/SourceIcon";
-import { getDateRangeString } from "@/lib/dateUtils";
+import { getFormattedDateRangeString } from "@/lib/dateUtils";
+import { truncateString } from "@/lib/utils";
+import { buildImgUrl } from "../files/images/utils";
 
 const MAX_INPUT_HEIGHT = 200;
 
@@ -51,11 +40,13 @@ export const SourceChip = ({
   title,
   onRemove,
   onClick,
+  truncateTitle = true,
 }: {
   icon: React.ReactNode;
   title: string;
   onRemove: () => void;
   onClick?: () => void;
+  truncateTitle?: boolean;
 }) => (
   <div
     onClick={onClick ? onClick : undefined}
@@ -63,23 +54,24 @@ export const SourceChip = ({
       flex-none
         flex
         items-center
-        px-2
-        bg-hover
-        text-sm
+        px-1
+        bg-gray-background
+        text-xs
+        text-text-darker
         border
         gap-x-1.5
         border-border
         rounded-md
         box-border
         gap-x-1
-        h-8
+        h-6
         ${onClick ? "cursor-pointer" : ""}
       `}
   >
     {icon}
-    {title}
+    {truncateTitle ? truncateString(title, 20) : title}
     <XIcon
-      size={16}
+      size={12}
       className="text-text-900 ml-auto cursor-pointer"
       onClick={(e: React.MouseEvent<SVGSVGElement>) => {
         e.stopPropagation();
@@ -286,9 +278,9 @@ export function ChatInputBar({
           {showSuggestions && assistantTagOptions.length > 0 && (
             <div
               ref={suggestionsRef}
-              className="text-sm absolute  inset-x-0 top-0 w-full transform -translate-y-full"
+              className="text-sm absolute w-[calc(100%-2rem)] top-0 transform -translate-y-full"
             >
-              <div className="rounded-lg py-1 sm-1.5 bg-background border border-border-medium shadow-lg mx-2 px-1.5 mt-2 z-10">
+              <div className="rounded-lg py-1 sm-1.5 bg-background border border-border-medium shadow-lg px-1.5 mt-2 z-10">
                 {assistantTagOptions.map((currentAssistant, index) => (
                   <button
                     key={index}
@@ -328,14 +320,13 @@ export function ChatInputBar({
           )}
 
           <UnconfiguredProviderText showConfigureAPIKey={showConfigureAPIKey} />
-
+          <div className="w-full h-[10px]"></div>
           <div
             className="
               opacity-100
               w-full
               h-fit
               flex
-              bg-background
               flex-col
               border
               border-[#E5E7EB]
@@ -441,9 +432,10 @@ export function ChatInputBar({
                 <div className="flex gap-x-1 px-2 overflow-visible overflow-x-scroll items-end miniscroll">
                   {filterManager.timeRange && (
                     <SourceChip
+                      truncateTitle={false}
                       key="time-range"
-                      icon={<CalendarIcon size={16} />}
-                      title={`${getDateRangeString(
+                      icon={<CalendarIcon size={12} />}
+                      title={`${getFormattedDateRangeString(
                         filterManager.timeRange.from,
                         filterManager.timeRange.to
                       )}`}
@@ -503,30 +495,48 @@ export function ChatInputBar({
 
                   {files.map((file, index) =>
                     file.type === ChatFileType.IMAGE ? (
-                      <InputBarPreviewImageProvider
+                      <SourceChip
                         key={`file-${index}`}
-                        file={file}
-                        onDelete={() => {
+                        icon={
+                          <img
+                            className="h-full py-.5 object-cover rounded-lg bg-background cursor-pointer"
+                            src={buildImgUrl(file.id)}
+                          />
+                        }
+                        title={file.name || "File"}
+                        onRemove={() => {
                           setFiles(
                             files.filter(
                               (fileInFilter) => fileInFilter.id !== file.id
                             )
                           );
                         }}
-                        isUploading={file.isUploading || false}
                       />
                     ) : (
-                      <InputBarPreview
+                      // <InputBarPreviewImageProvider
+                      // <InputBarPreviewImageProvider
+                      //   key={`file-${index}`}
+                      //   file={file}
+                      //   onDelete={() => {
+                      //     setFiles(
+                      //       files.filter(
+                      //         (fileInFilter) => fileInFilter.id !== file.id
+                      //       )
+                      //     );
+                      //   }}
+                      //   isUploading={file.isUploading || false}
+                      // />
+                      <SourceChip
                         key={`file-${index}`}
-                        file={file}
-                        onDelete={() => {
+                        icon={<FileIcon className="text-red-500" size={16} />}
+                        title={file.name || "File"}
+                        onRemove={() => {
                           setFiles(
                             files.filter(
                               (fileInFilter) => fileInFilter.id !== file.id
                             )
                           );
                         }}
-                        isUploading={file.isUploading || false}
                       />
                     )
                   )}
@@ -556,6 +566,12 @@ export function ChatInputBar({
                 tooltipContent={"Upload files"}
               />
 
+              <LLMPopover
+                llmProviders={llmProviders}
+                llmOverrideManager={llmOverrideManager}
+                requiresImageGeneration={false}
+                currentAssistant={selectedAssistant}
+              />
               <FilterPopup
                 availableSources={availableSources}
                 availableDocumentSets={availableDocumentSets}
@@ -569,13 +585,6 @@ export function ChatInputBar({
                     tooltipContent="Filter your search"
                   />
                 }
-              />
-
-              <LLMPopover
-                llmProviders={llmProviders}
-                llmOverrideManager={llmOverrideManager}
-                requiresImageGeneration={false}
-                currentAssistant={selectedAssistant}
               />
             </div>
 
