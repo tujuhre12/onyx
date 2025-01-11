@@ -114,6 +114,7 @@ import {
 import AssistantModal from "../assistants/mine/AssistantModal";
 import { getSourceMetadata } from "@/lib/sources";
 import { UserSettingsModal } from "./modal/UserSettingsModal";
+import { AgenticMessage } from "./message/AgenticMessage";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -268,10 +269,10 @@ export function ChatPage({
           (assistant) => assistant.id === existingChatSessionAssistantId
         )
       : defaultAssistantId !== undefined
-        ? availableAssistants.find(
-            (assistant) => assistant.id === defaultAssistantId
-          )
-        : undefined
+      ? availableAssistants.find(
+          (assistant) => assistant.id === defaultAssistantId
+        )
+      : undefined
   );
   // Gather default temperature settings
   const search_param_temperature = searchParams.get(
@@ -281,12 +282,12 @@ export function ChatPage({
   const defaultTemperature = search_param_temperature
     ? parseFloat(search_param_temperature)
     : selectedAssistant?.tools.some(
-          (tool) =>
-            tool.in_code_tool_id === "SearchTool" ||
-            tool.in_code_tool_id === "InternetSearchTool"
-        )
-      ? 0
-      : 0.7;
+        (tool) =>
+          tool.in_code_tool_id === "SearchTool" ||
+          tool.in_code_tool_id === "InternetSearchTool"
+      )
+    ? 0
+    : 0.7;
 
   const setSelectedAssistantFromId = (assistantId: number) => {
     // NOTE: also intentionally look through available assistants here, so that
@@ -472,7 +473,9 @@ export function ChatPage({
         `/api/chat/get-chat-session/${existingChatSessionId}`
       );
 
-      const chatSession = (await response.json()) as BackendChatSession;
+      const session = await response.json();
+      console.log(session);
+      const chatSession = session as BackendChatSession;
       setSelectedAssistantFromId(chatSession.persona_id);
 
       const newMessageMap = processRawChatHistory(chatSession.messages);
@@ -1228,8 +1231,8 @@ export function ChatPage({
     const currentAssistantId = alternativeAssistantOverride
       ? alternativeAssistantOverride.id
       : alternativeAssistant
-        ? alternativeAssistant.id
-        : liveAssistant.id;
+      ? alternativeAssistant.id
+      : liveAssistant.id;
 
     resetInputBar();
     let messageUpdates: Message[] | null = null;
@@ -1323,6 +1326,7 @@ export function ChatPage({
           if (!packet) {
             continue;
           }
+          console.log(packet);
           if (!initialFetchDetails) {
             if (!Object.hasOwn(packet, "user_message_id")) {
               console.error(
@@ -2482,7 +2486,9 @@ export function ChatPage({
                                         : null
                                     }
                                   >
-                                    <AIMessage
+                                    {message.message}
+                                    <AgenticMessage
+                                      subQuestions={message.sub_questions || []}
                                       setPresentingDocument={
                                         setPresentingDocument
                                       }
@@ -2657,7 +2663,8 @@ export function ChatPage({
                               } else {
                                 return (
                                   <div key={messageReactComponentKey}>
-                                    <AIMessage
+                                    <AgenticMessage
+                                      subQuestions={message.sub_questions || []}
                                       currentPersona={liveAssistant}
                                       messageId={message.messageId}
                                       content={
