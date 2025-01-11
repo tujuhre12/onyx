@@ -119,7 +119,7 @@ export default function LogoWithText({
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="mr-3  my-auto ml-auto"
+                className="mr-2  my-auto ml-auto"
                 onClick={() => {
                   toggleSidebar();
                   if (toggled) {

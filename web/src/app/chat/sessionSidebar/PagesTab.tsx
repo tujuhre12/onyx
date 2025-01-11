@@ -14,6 +14,9 @@ import { NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED } from "@/lib/constants";
 import { FolderDropdown } from "../folders/FolderDropdown";
 import { ChatSessionDisplay } from "./ChatSessionDisplay";
 import { useState, useCallback, useRef } from "react";
+import { Caret } from "@/components/icons/icons";
+import { CaretCircleDown } from "@phosphor-icons/react";
+import { groupSessionsByDateRange } from "../lib";
 
 export function PagesTab({
   existingChats,
@@ -99,11 +102,11 @@ export function PagesTab({
   }, []);
 
   const handleNewFolderSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
+    async (e: React.FormEvent<HTMLDivElement>) => {
       e.preventDefault();
       const newFolderName = newFolderInputRef.current?.value;
       if (newFolderName) {
-        createFolder(newFolderName)
+        await createFolder(newFolderName)
           .then((folderId) => {
             router.refresh();
             setNewFolderId(folderId);
@@ -125,17 +128,7 @@ export function PagesTab({
     [router, setNewFolderId, setPopup]
   );
 
-  const ungroupedChats =
-    existingChats?.filter((chat) => chat.folder_id === null) || [];
-  const chatFolder: {
-    folder_name: "Chats";
-    chat_sessions: ChatSession[];
-    folder_id?: "chats";
-  } = {
-    folder_name: "Chats",
-    chat_sessions: ungroupedChats,
-    folder_id: "chats",
-  };
+  const groupedChatSesssions = groupSessionsByDateRange(existingChats || []);
 
   const isHistoryEmpty = !existingChats || existingChats.length === 0;
 
@@ -183,15 +176,15 @@ export function PagesTab({
   );
 
   return (
-    <div className="flex flex-col relative h-full overflow-y-auto mb-1 ml-3 miniscroll mobile:pb-40">
-      <div className="my-2 ">
-        <div className="flex justify-between text-sm gap-x-2 mx-2 text-[#6c6c6c] items-center font-medium leading-normal">
+    <div className="flex flex-col relative h-full overflow-y-auto mb-1 miniscroll mobile:pb-40">
+      <div className="my-2 mr-2">
+        <div className="flex  justify-between text-sm gap-x-2 text-[#6c6c6c] items-center font-normal leading-normal">
           <p>Chats</p>
           <button
             onClick={handleCreateFolder}
             className="flex cursor-pointer gap-x-1 items-center text-black text-xs font-medium font-['KH Teka TRIAL'] leading-normal"
           >
-            <FiPlus size={16} className="flex-none" />
+            <FiPlus size={12} className="flex-none" />
             Create Group
           </button>
         </div>
@@ -203,18 +196,57 @@ export function PagesTab({
         }`}
       >
         {!isHistoryEmpty && (
-          <FolderDropdown
-            folder={chatFolder}
-            currentChatId={currentChatId}
-            showShareModal={showShareModal}
-            showDeleteModal={showDeleteModal}
-            closeSidebar={closeSidebar}
-            onEdit={handleEditFolder}
-            onDelete={handleDeleteFolder}
-            onDrop={handleDrop}
-          >
-            {chatFolder.chat_sessions.map(renderChatSession)}
-          </FolderDropdown>
+          <>
+            {Object.entries(groupedChatSesssions)
+              .filter(([groupName, chats]) => chats.length > 0)
+              .map(([groupName, chats]) => (
+                <FolderDropdown
+                  key={groupName}
+                  folder={{
+                    folder_name: groupName,
+                    chat_sessions: chats,
+                    display_priority: 0,
+                  }}
+                  currentChatId={currentChatId}
+                  showShareModal={showShareModal}
+                  showDeleteModal={showDeleteModal}
+                  closeSidebar={closeSidebar}
+                  onEdit={handleEditFolder}
+                  onDelete={handleDeleteFolder}
+                  onDrop={handleDrop}
+                >
+                  {chats.map(renderChatSession)}
+                </FolderDropdown>
+              ))}
+          </>
+        )}
+
+        {isCreatingFolder ? (
+          <div className="mb-2">
+            <div className="!flex  items-center w-full text-[#6c6c6c] rounded-md p-1 relative">
+              <Caret size={16} className="mr-1" />
+              <input
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleNewFolderSubmit(e);
+                  }
+                }}
+                ref={newFolderInputRef}
+                type="text"
+                placeholder="Enter folder name"
+                className="text-sm font-medium bg-transparent border-none outline-none w-fit"
+              />
+              <button
+                type="button"
+                onClick={() => setIsCreatingFolder(false)}
+                className="ml-auto"
+              >
+                <FiX size={14} className="text-white" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <></>
         )}
 
         {folders &&
@@ -241,31 +273,6 @@ export function PagesTab({
           <p className="text-sm mt-2 w-[250px]">
             Try sending a message! Your chat history will appear here.
           </p>
-        )}
-        {isCreatingFolder ? (
-          <form onSubmit={handleNewFolderSubmit} className="mt-2 relative">
-            <input
-              ref={newFolderInputRef}
-              type="text"
-              placeholder="Enter folder name"
-              className="w-full p-1 text-sm border rounded pr-8"
-            />
-            <button
-              type="button"
-              onClick={() => setIsCreatingFolder(false)}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-            >
-              <FiX size={16} />
-            </button>
-          </form>
-        ) : (
-          <button
-            className="flex text-[#6c6c6c] gap-x-1 mt-2"
-            onClick={handleCreateFolder}
-          >
-            <FiPlus className="my-auto" />
-            <p className="my-auto flex items-center text-sm">Create Group</p>
-          </button>
         )}
       </div>
       {showDeleteAllModal && NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED && (

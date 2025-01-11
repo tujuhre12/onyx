@@ -96,6 +96,7 @@ export function BasicSelectable({
         rounded
         font-medium 
         text-sm
+        px-2
         ${padding == "normal" && "p-1"}
         ${padding == "extra" && "p-1.5"}
         select-none

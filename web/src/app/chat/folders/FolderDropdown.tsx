@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect, ReactNode } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from "react";
 import { Folder } from "./interfaces";
 import { ChatSession } from "../interfaces";
 import { ChatSessionDisplay } from "../sessionSidebar/ChatSessionDisplay";
@@ -17,24 +23,18 @@ import { Pencil } from "@phosphor-icons/react";
 import { PencilIcon } from "lucide-react";
 
 interface FolderDropdownProps {
-  folder:
-    | Folder
-    | {
-        folder_name: "Chats";
-        chat_sessions: ChatSession[];
-        folder_id?: "chats";
-      };
+  folder: Folder;
   currentChatId?: string;
   showShareModal?: (chatSession: ChatSession) => void;
   showDeleteModal?: (chatSession: ChatSession) => void;
   closeSidebar?: () => void;
-  onEdit?: (folderId: number | "chats", newName: string) => void;
-  onDelete?: (folderId: number | "chats") => void;
+  onEdit?: (folderId: number, newName: string) => void;
+  onDelete?: (folderId: number) => void;
   onDrop?: (folderId: number, chatSessionId: string) => void;
   children?: ReactNode;
 }
 
-export const FolderDropdown: React.FC<FolderDropdownProps> = ({
+export function FolderDropdown({
   folder,
   currentChatId,
   showShareModal,
@@ -44,7 +44,17 @@ export const FolderDropdown: React.FC<FolderDropdownProps> = ({
   onDelete,
   onDrop,
   children,
-}) => {
+}: {
+  folder: Folder;
+  currentChatId?: string;
+  showShareModal?: (chatSession: ChatSession) => void;
+  showDeleteModal?: (chatSession: ChatSession) => void;
+  closeSidebar?: () => void;
+  onEdit: (folderId: number, newName: string) => void;
+  onDelete: (folderId: number) => void;
+  onDrop: (folderId: number, chatSessionId: string) => void;
+  children: React.ReactNode;
+}) {
   const [isOpen, setIsOpen] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [newFolderName, setNewFolderName] = useState(folder.folder_name);
@@ -57,39 +67,33 @@ export const FolderDropdown: React.FC<FolderDropdownProps> = ({
     }
   }, [isEditing]);
 
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleSave = () => {
-    if (onEdit && folder.folder_id) {
+  const handleEdit = useCallback(() => {
+    if (newFolderName && folder.folder_id !== undefined) {
       onEdit(folder.folder_id, newFolderName);
+      setIsEditing(false);
     }
-    setIsEditing(false);
-  };
+  }, [newFolderName, folder.folder_id, onEdit]);
 
-  const handleCancel = () => {
-    setNewFolderName(folder.folder_name);
-    setIsEditing(false);
-  };
-
-  const handleDelete = () => {
-    if (onDelete && folder.folder_id) {
+  const handleDelete = useCallback(() => {
+    if (folder.folder_id !== undefined) {
       onDelete(folder.folder_id);
     }
-  };
+  }, [folder.folder_id, onDelete]);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const chatSessionId = e.dataTransfer.getData("text/plain");
-    if (folder.folder_id && folder.folder_id !== "chats" && onDrop) {
-      onDrop(folder.folder_id, chatSessionId);
-    }
-  };
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const chatSessionId = e.dataTransfer.getData("text/plain");
+      if (folder.folder_id) {
+        onDrop(folder.folder_id, chatSessionId);
+      }
+    },
+    [folder.folder_id, onDrop]
+  );
 
   return (
     <div className="mb-2" onDragOver={handleDragOver} onDrop={handleDrop}>
@@ -121,28 +125,31 @@ export const FolderDropdown: React.FC<FolderDropdownProps> = ({
             </div>
           )}
         </button>
-        {isHovered && !isEditing && folder.folder_id !== "chats" && (
+        {isHovered && !isEditing && folder.folder_id && (
           <button onClick={handleEdit} className="ml-auto px-1">
             <PencilIcon size={14} />
           </button>
         )}
-        {isHovered && !isEditing && folder.folder_id !== "chats" && (
+        {isHovered && !isEditing && folder.folder_id && (
           <button onClick={handleDelete} className="px-1 ">
             <FiTrash2 size={14} />
           </button>
         )}
         {isEditing && (
-          <div className="-my-1">
-            <button onClick={handleSave} className="p-1 text-black ">
+          <div className="flex -my-1">
+            <button onClick={handleEdit} className="p-1 text-black ">
               <FiCheck size={14} />
             </button>
-            <button onClick={handleCancel} className="p-1 text-black">
+            <button
+              onClick={() => setIsEditing(false)}
+              className="p-1 text-black"
+            >
               <FiX size={14} />
             </button>
           </div>
         )}
       </div>
-      {isOpen && <div className="mr-4 ml-1 mt-1">{children}</div>}
+      {isOpen && <div className="mr-3 ml-1 mt-1">{children}</div>}
     </div>
   );
-};
+}
