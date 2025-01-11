@@ -24,13 +24,6 @@ export interface ProSearchPacket {
   level_question_nr: number;
 }
 
-export interface SubQueryPiece {
-  sub_query: string;
-  level: number;
-  level_question_nr: number;
-  query_id: number;
-}
-
 export interface AgentAnswerPiece {
   answer_piece: string;
   level: number;
@@ -42,6 +35,19 @@ export interface SubQuestionPiece {
   sub_question: string;
   level: number;
   level_question_nr: number;
+}
+
+export interface SubQueryPiece {
+  sub_query: string;
+  level: number;
+  level_question_nr: number;
+  query_id: number;
+}
+
+export interface SubQuestionSearchDoc {
+  context_docs: OnyxDocument[];
+  level_question_nr: number;
+  level: number;
 }
 
 export interface ToolResponse {
