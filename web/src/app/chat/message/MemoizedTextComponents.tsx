@@ -88,8 +88,16 @@ export const MemoizedLink = memo((props: any) => {
 });
 
 export const MemoizedParagraph = memo(
-  function MemoizedParagraph({ children }: any) {
-    return <p className="text-default">{children}</p>;
+  function MemoizedParagraph({ children, fontSize }: any) {
+    return (
+      <p
+        className={`text-default ${
+          fontSize === "sm" ? "leading-tight text-sm" : ""
+        }`}
+      >
+        {children}
+      </p>
+    );
   },
   (prevProps, nextProps) => {
     const areEqual = isEqual(prevProps.children, nextProps.children);
