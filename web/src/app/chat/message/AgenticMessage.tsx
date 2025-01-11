@@ -173,6 +173,8 @@ export const AgenticMessage = ({
         return preprocessLaTeX(content);
       }
     }
+    // Add newlines after ]] or ) if there's text immediately following
+    content = content.replace(/(\]\]|\))((?!\s|\n|\[|\(|$).)/g, "$1\n$2");
 
     return (
       preprocessLaTeX(content) +
