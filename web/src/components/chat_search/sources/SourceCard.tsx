@@ -3,6 +3,7 @@ import { SourceIcon } from "@/components/SourceIcon";
 import { OnyxDocument } from "@/lib/search/interfaces";
 import { truncateString } from "@/lib/utils";
 import { openDocument } from "@/lib/search/utils";
+import { ValidSources } from "@/lib/types";
 
 export default function SourceCard({
   doc,
@@ -35,15 +36,21 @@ export default function SourceCard({
 
 interface SeeMoreBlockProps {
   documentSelectionToggled: boolean;
-  toggleDocumentSelection?: () => void;
-  uniqueSources: OnyxDocument["source_type"][];
+  toggleDocumentSelection: () => void;
+  uniqueSources: ValidSources[];
+  webSourceDomains: string[];
 }
 
 export function SeeMoreBlock({
   documentSelectionToggled,
   toggleDocumentSelection,
+  webSourceDomains,
   uniqueSources,
 }: SeeMoreBlockProps) {
+  const filteredUniqueSources = uniqueSources.filter(
+    (source) => source !== "web" && webSourceDomains.length > 0
+  );
+  const numOfWebSourcesToDisplay = 3 - filteredUniqueSources.length;
   return (
     <div
       onClick={toggleDocumentSelection}
@@ -55,12 +62,15 @@ export function SeeMoreBlock({
         <p className="flex-1 mr-1 font-semibold text-text-900 overflow-hidden text-ellipsis whitespace-nowrap">
           Full Results
         </p>
-        <div className="flex-shrink-0 flex gap-x-1  items-center">
-          {uniqueSources.slice(0, 3).map((sourceType, ind) => (
-            <div key={ind} className="inline-block ">
-              <SourceIcon sourceType={sourceType} iconSize={16} />
-            </div>
+        <div className="flex-shrink-0 flex gap-x-1 items-center">
+          {filteredUniqueSources.slice(0, 3).map((source) => (
+            <SourceIcon sourceType={source} iconSize={16} />
           ))}
+          {webSourceDomains
+            .slice(0, numOfWebSourcesToDisplay)
+            .map((domain, ind) => (
+              <WebResultIcon url={domain} />
+            ))}
           {uniqueSources.length > 3 && (
             <span className="text-xs text-text-700 font-semibold ml-1">
               +{uniqueSources.length - 3}
