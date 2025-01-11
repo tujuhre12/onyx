@@ -14,6 +14,7 @@ from onyx.chat.models import AnswerStream
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationInfo
 from onyx.chat.models import OnyxAnswerPiece
+from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import PromptConfig
 from onyx.chat.models import ProSearchConfig
 from onyx.chat.prompt_builder.build import AnswerPromptBuilder
@@ -306,7 +307,7 @@ class Answer:
     def llm_answer(self) -> str:
         answer = ""
         for packet in self.processed_streamed_output:
-            if isinstance(packet, OnyxAnswerPiece) and packet.answer_piece:
+            if isinstance(packet, (OnyxAnswerPiece, AgentAnswerPiece)) and packet.answer_piece:
                 answer += packet.answer_piece
 
         return answer
