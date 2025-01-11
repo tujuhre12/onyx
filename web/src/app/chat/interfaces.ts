@@ -95,6 +95,7 @@ export interface Message {
   stackTrace?: string | null;
   overridden_model?: string;
   stopReason?: StreamStopReason | null;
+  sub_questions?: SubQuestionDetail[] | null;
 }
 
 export interface BackendChatSession {
@@ -110,22 +111,40 @@ export interface BackendChatSession {
   current_alternate_model?: string;
 }
 
+export interface SubQueryDetail {
+  query: string;
+  query_id: number;
+  doc_ids?: number[] | null;
+}
+
+export interface SubQuestionDetail {
+  level: number;
+  level_question_nr: number;
+  question: string;
+  answer: string;
+  sub_queries?: SubQueryDetail[] | null;
+  context_docs?: { top_documents: OnyxDocument[] } | null;
+}
 export interface BackendMessage {
   message_id: number;
-  comments: any;
-  chat_session_id: string;
+  message_type: string;
   parent_message: number | null;
   latest_child_message: number | null;
   message: string;
   rephrased_query: string | null;
   context_docs: { top_documents: OnyxDocument[] } | null;
-  message_type: "user" | "assistant" | "system";
   time_sent: string;
-  citations: CitationMap;
+  overridden_model: string;
+  alternate_assistant_id: number | null;
+  chat_session_id: string;
+  citations: CitationMap | null;
   files: FileDescriptor[];
   tool_call: ToolCallFinalResult | null;
-  alternate_assistant_id?: number | null;
-  overridden_model?: string;
+
+  sub_questions: SubQuestionDetail[] | null;
+  // Keeping existing properties
+  comments: any;
+  parentMessageId: number | null;
 }
 
 export interface MessageResponseIDInfo {

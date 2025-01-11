@@ -113,6 +113,7 @@ import {
 import AssistantModal from "../assistants/mine/AssistantModal";
 import { getSourceMetadata } from "@/lib/sources";
 import { UserSettingsModal } from "./modal/UserSettingsModal";
+import { AgenticMessage } from "./message/AgenticMessage";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -471,7 +472,9 @@ export function ChatPage({
         `/api/chat/get-chat-session/${existingChatSessionId}`
       );
 
-      const chatSession = (await response.json()) as BackendChatSession;
+      const session = await response.json();
+      console.log(session);
+      const chatSession = session as BackendChatSession;
       setSelectedAssistantFromId(chatSession.persona_id);
 
       const newMessageMap = processRawChatHistory(chatSession.messages);
@@ -1321,6 +1324,7 @@ export function ChatPage({
           if (!packet) {
             continue;
           }
+          console.log(packet);
           if (!initialFetchDetails) {
             if (!Object.hasOwn(packet, "user_message_id")) {
               console.error(
@@ -2484,6 +2488,7 @@ export function ChatPage({
                                         selectedMessageForDocDisplay ==
                                           message.messageId
                                       }
+                                      subQuestions={message.sub_questions || []}
                                       setPresentingDocument={
                                         setPresentingDocument
                                       }
@@ -2657,7 +2662,8 @@ export function ChatPage({
                               } else {
                                 return (
                                   <div key={messageReactComponentKey}>
-                                    <AIMessage
+                                    <AgenticMessage
+                                      subQuestions={message.sub_questions || []}
                                       currentPersona={liveAssistant}
                                       messageId={message.messageId}
                                       content={
