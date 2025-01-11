@@ -50,6 +50,7 @@ from onyx.server.query_and_chat.models import SubQueryDetail
 from onyx.server.query_and_chat.models import SubQuestionDetail
 from onyx.tools.tool_runner import ToolCallFinalResult
 from onyx.utils.logger import setup_logger
+from onyx.context.search.utils import chunks_or_sections_to_search_docs
 
 
 logger = setup_logger()
@@ -1003,9 +1004,6 @@ def log_agent_sub_question_results(
         sub_document_results = _create_citation_format_list(
             sub_question_answer_result.documents
         )
-        sub_queries = [
-            x.query for x in sub_question_answer_result.expanded_retrieval_results
-        ]
 
         sub_question_object = AgentSubQuestion(
             chat_session_id=chat_session_id,
@@ -1023,16 +1021,23 @@ def log_agent_sub_question_results(
 
         sub_question_id = sub_question_object.id
 
-        for sub_query in sub_queries:
+        for sub_query in sub_question_answer_result.expanded_retrieval_results:
             sub_query_object = AgentSubQuery(
                 parent_question_id=sub_question_id,
                 chat_session_id=chat_session_id,
-                sub_query=sub_query,
+                sub_query=sub_query.query,
                 time_created=now,
             )
 
             db_session.add(sub_query_object)
             db_session.commit()
             # db_session.flush()
+
+            search_docs = chunks_or_sections_to_search_docs(sub_query.search_results)
+            for doc in search_docs:
+                db_doc = create_db_search_doc(doc, db_session)
+                db_session.add(db_doc)
+                sub_query_object.search_docs.append(db_doc)
+            db_session.commit()
 
     return None
