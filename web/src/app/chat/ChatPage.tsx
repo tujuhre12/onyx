@@ -1423,6 +1423,11 @@ export function ChatPage({
                 packet as AgentAnswerPiece
               );
             } else if (Object.hasOwn(packet, "answer_piece")) {
+              // Mark every sub_question's is_generating as false
+              sub_questions = sub_questions.map((subQ) => ({
+                ...subQ,
+                is_generating: false,
+              }));
               answer += (packet as AnswerPiecePacket).answer_piece;
             } else {
               console.log("packet", packet);

@@ -205,6 +205,7 @@ export interface SubQuestionDetail {
   answer: string;
   sub_queries?: SubQueryDetail[] | null;
   context_docs?: { top_documents: OnyxDocument[] } | null;
+  is_generating?: boolean;
 }
 
 export const constructSubQuestions = (
