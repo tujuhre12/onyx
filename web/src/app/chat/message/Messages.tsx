@@ -334,6 +334,21 @@ export const AIMessage = ({
     new Set((docs || []).map((doc) => doc.source_type))
   ).slice(0, 3);
 
+  const webSourceDomains: string[] = Array.from(
+    new Set(
+      docs
+        ?.filter((doc) => doc.source_type === "web")
+        .map((doc) => {
+          try {
+            const url = new URL(doc.link);
+            return `https://${url.hostname}`;
+          } catch {
+            return doc.link; // fallback to full link if parsing fails
+          }
+        }) || []
+    )
+  );
+
   const markdownComponents = useMemo(
     () => ({
       a: anchorCallback,
@@ -470,7 +485,7 @@ export const AIMessage = ({
                               docs.length > 0 &&
                               docs
                                 .slice(0, 2)
-                                .map((doc, ind) => (
+                                .map((doc: OnyxDocument, ind: number) => (
                                   <SourceCard
                                     doc={doc}
                                     key={ind}
@@ -485,8 +500,9 @@ export const AIMessage = ({
                                   selectedMessageForDocDisplay === messageId) ||
                                 false
                               }
-                              toggleDocumentSelection={toggleDocumentSelection}
+                              toggleDocumentSelection={toggleDocumentSelection!}
                               uniqueSources={uniqueSources}
+                              webSourceDomains={webSourceDomains}
                             />
                           </div>
                         </div>

@@ -73,7 +73,7 @@ export default function FunctionalHeader({
           assistantId={currentChatSession?.persona_id}
           page={page}
           toggleSidebar={toggleSidebar}
-          toggled={sidebarToggled && !settings?.isMobile}
+          toggled={false}
           handleNewChat={handleNewChat}
         />
         <div className="mt-2 flex w-full h-8">
@@ -132,7 +132,7 @@ export default function FunctionalHeader({
                   : "")
               }
             >
-              <div className="cursor-pointer ml-2 mr-4 flex-none text-text-700 hover:text-text-600 transition-colors duration-300">
+              <div className="bg-green-200 cursor-pointer ml-2 mr-4 flex-none text-text-700 hover:text-text-600 transition-colors duration-300">
                 <NewChatIcon size={40} />
               </div>
             </Link>

@@ -4,7 +4,12 @@ import { Persona } from "@/app/admin/assistants/interfaces";
 import { CustomTooltip } from "../tooltip/CustomTooltip";
 import { buildImgUrl } from "@/app/chat/files/images/utils";
 import { OnyxIcon } from "../icons/icons";
-
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 type IconSize = number | "xs" | "small" | "medium" | "large" | "header";
 
 function md5ToBits(str: string): number[] {
@@ -114,29 +119,36 @@ export function AssistantIcon({
   const style = { width: dimension, height: dimension };
 
   return (
-    <CustomTooltip
-      className={className}
-      disabled={disableToolip || !assistant.description}
-      showTick
-      line
-      wrap
-      content={assistant.description}
-    >
-      {assistant.id == 0 ? (
-        <OnyxIcon size={dimension} />
-      ) : assistant.uploaded_image_id ? (
-        <img
-          alt={assistant.name}
-          src={buildImgUrl(assistant.uploaded_image_id)}
-          loading="lazy"
-          className={`object-cover object-center rounded-sm transition-opacity duration-300 ${wrapperClass}`}
-          style={style}
-        />
-      ) : (
-        <div className={wrapperClass} style={style}>
-          {generateIdenticon((assistant.icon_shape || 0).toString(), dimension)}
-        </div>
-      )}
-    </CustomTooltip>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className={className}>
+            {assistant.id == 0 ? (
+              <OnyxIcon size={dimension} />
+            ) : assistant.uploaded_image_id ? (
+              <img
+                alt={assistant.name}
+                src={buildImgUrl(assistant.uploaded_image_id)}
+                loading="lazy"
+                className={`object-cover object-center rounded-sm transition-opacity duration-300 ${wrapperClass}`}
+                style={style}
+              />
+            ) : (
+              <div className={wrapperClass} style={style}>
+                {generateIdenticon(
+                  (assistant.icon_shape || 0).toString(),
+                  dimension
+                )}
+              </div>
+            )}
+          </div>
+        </TooltipTrigger>
+        {!disableToolip && assistant.description && (
+          <TooltipContent>
+            <p>{assistant.description}</p>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
   );
 }
