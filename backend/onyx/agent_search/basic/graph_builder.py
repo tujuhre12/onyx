@@ -7,7 +7,10 @@ from onyx.agent_search.basic.states import BasicInput
 from onyx.agent_search.basic.states import BasicOutput
 from onyx.agent_search.basic.states import BasicState
 from onyx.agent_search.basic.states import BasicStateUpdate
-
+from onyx.tools.tool_implementations.search.search_tool import SearchTool
+from onyx.chat.stream_processing.utils import (
+    map_document_id_order,
+)
 
 def basic_graph_builder() -> StateGraph:
     graph = StateGraph(
@@ -68,8 +71,18 @@ def get_response(state: BasicState) -> BasicStateUpdate:
             "basic_response",
             response,
         )
+
+
+    next_call = response_handler_manager.next_llm_call(current_llm_call)
+    final_search_results, displayed_search_results = SearchTool.get_search_result(
+        next_call
+    ) or ([], [])
+    response_handler_manager.answer_handler.update((
+        final_search_results, 
+        map_document_id_order(final_search_results), 
+        map_document_id_order(displayed_search_results)))
     return BasicStateUpdate(
-        last_llm_call=response_handler_manager.next_llm_call(current_llm_call),
+        last_llm_call=next_call,
         calls=state["calls"] + 1,
     )
 
