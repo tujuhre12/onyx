@@ -238,7 +238,11 @@ export const AgenticMessage = ({
   }
 
   const paragraphCallback = useCallback(
-    (props: any) => <MemoizedParagraph>{props.children}</MemoizedParagraph>,
+    (props: any, fontSize: "sm" | "base" = "base") => (
+      <MemoizedParagraph fontSize={fontSize}>
+        {props.children}
+      </MemoizedParagraph>
+    ),
     []
   );
 
@@ -325,18 +329,6 @@ export const AgenticMessage = ({
                   <div className="max-w-message-max break-words">
                     {!toolCall || toolCall.tool_name === SEARCH_TOOL_NAME ? (
                       <>
-                        {query !== undefined && !retrievalDisabled && (
-                          <div className="mb-1">
-                            <SearchSummary
-                              index={index || 0}
-                              query={query}
-                              finished={toolCall?.tool_result != undefined}
-                              handleSearchQueryEdit={handleSearchQueryEdit}
-                              docs={docs || []}
-                              toggleDocumentSelection={toggleDocumentSelection!}
-                            />
-                          </div>
-                        )}
                         {handleForceSearch &&
                           content &&
                           query === undefined &&
@@ -350,94 +342,36 @@ export const AgenticMessage = ({
                           )}
                       </>
                     ) : null}
-
-                    {toolCall &&
-                      !TOOLS_WITH_CUSTOM_HANDLING.includes(
-                        toolCall.tool_name
-                      ) && (
-                        <ToolRunDisplay
-                          toolName={
-                            toolCall.tool_result && content
-                              ? `Used "${toolCall.tool_name}"`
-                              : `Using "${toolCall.tool_name}"`
-                          }
-                          toolLogo={
-                            <FiTool size={15} className="my-auto mr-1" />
-                          }
-                          isRunning={!toolCall.tool_result || !content}
-                        />
-                      )}
-
-                    {toolCall &&
-                      (!files || files.length == 0) &&
-                      toolCall.tool_name === IMAGE_GENERATION_TOOL_NAME &&
-                      !toolCall.tool_result && <GeneratingImageDisplay />}
-
-                    {toolCall &&
-                      toolCall.tool_name === INTERNET_SEARCH_TOOL_NAME && (
-                        <ToolRunDisplay
-                          toolName={
-                            toolCall.tool_result
-                              ? `Searched the internet`
-                              : `Searching the internet`
-                          }
-                          toolLogo={
-                            <FiGlobe size={15} className="my-auto mr-1" />
-                          }
-                          isRunning={!toolCall.tool_result}
-                        />
-                      )}
-
-                    {docs && docs.length > 0 && (
-                      <div className="mobile:hidden mt-2 -mx-8 w-full mb-4 flex relative">
-                        <div className="w-full">
-                          <div className="px-8 flex gap-x-2">
-                            {!settings?.isMobile &&
-                              docs.length > 0 &&
-                              docs
-                                .slice(0, 2)
-                                .map((doc, ind) => (
-                                  <SourceCard
-                                    doc={doc}
-                                    key={ind}
-                                    setPresentingDocument={
-                                      setPresentingDocument
-                                    }
-                                  />
-                                ))}
-                            <SeeMoreBlock
-                              documentSelectionToggled={
-                                (documentSelectionToggled &&
-                                  selectedMessageForDocDisplay === messageId) ||
-                                false
-                              }
-                              toggleDocumentSelection={toggleDocumentSelection}
-                              uniqueSources={uniqueSources}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {subQuestions && subQuestions.length > 0 && (
                     <SubQuestionsDisplay
                       subQuestions={subQuestions}
                       documents={docs || []}
+                      toggleDocumentSelection={toggleDocumentSelection!}
+                      setPresentingDocument={setPresentingDocument!}
                     />
                   )}
 
                   {content || files ? (
                     <>
                       {/* <FileDisplay files={files || []} /> */}
-
-                      {typeof content === "string" ? (
-                        <div className="overflow-x-visible max-w-content-max">
-                          {renderedMarkdown}
+                      <div className="w-full  py-4 flex flex-col gap-4">
+                        <div className="flex items-center px-4">
+                          <div className="text-black text-base font-medium font-['KH Teka TRIAL']">
+                            Answer
+                          </div>
                         </div>
-                      ) : (
-                        content
-                      )}
+                        <div className="px-4">
+                          {typeof content === "string" ? (
+                            <div className="overflow-x-visible !text-sm max-w-content-max">
+                              {renderedMarkdown}
+                            </div>
+                          ) : (
+                            content
+                          )}
+                        </div>
+                      </div>
                     </>
                   ) : isComplete ? null : (
                     <></>
