@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/Modal";
 import NewAssistantCard from "./AssistantCard";
 import { useAssistants } from "@/components/context/AssistantsContext";
+import { checkUserOwnsAssistant } from "@/lib/assistants/checkOwnership";
+import { useUser } from "@/components/user/UserProvider";
 
 export const AssistantBadgeSelector = ({
   text,
@@ -33,6 +35,7 @@ export const AssistantBadgeSelector = ({
 
 export enum AssistantFilter {
   AdminCreated = "Admin-created",
+  UserCreated = "User-created", // Add this
   Pinned = "Pinned",
   Private = "Private",
   Public = "Public",
@@ -48,6 +51,7 @@ const useAssistantFilter = () => {
     [AssistantFilter.Pinned]: false,
     [AssistantFilter.Private]: false,
     [AssistantFilter.Public]: false,
+    [AssistantFilter.UserCreated]: false,
   });
 
   const toggleAssistantFilter = (filter: AssistantFilter) => {
@@ -68,6 +72,7 @@ export default function AssistantModal({
   const { assistants, visibleAssistants, pinnedAssistants } = useAssistants();
   const { assistantFilters, toggleAssistantFilter } = useAssistantFilter();
   const router = useRouter();
+  const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
 
   const memoizedCurrentlyVisibleAssistants = useMemo(() => {
@@ -88,6 +93,10 @@ export default function AssistantModal({
 
       const builtinFilter =
         !assistantFilters[AssistantFilter.Builtin] || assistant.builtin_persona;
+      const isOwnedByUser = checkUserOwnsAssistant(user, assistant);
+
+      const userCreatedFilter =
+        !assistantFilters[AssistantFilter.UserCreated] || isOwnedByUser;
 
       return (
         nameMatches &&
@@ -95,7 +104,8 @@ export default function AssistantModal({
         privateFilter &&
         pinnedFilter &&
         adminCreatedFilter &&
-        builtinFilter
+        builtinFilter &&
+        userCreatedFilter
       );
     });
   }, [assistants, searchQuery, assistantFilters, pinnedAssistants]);

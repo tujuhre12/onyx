@@ -145,7 +145,7 @@ export function UserDropdown({
                 group-hover:ring-background-300/50
                 transition-ring
                 duration-150
-                rounded-lg
+                rounded-full
                 inline-block
                 flex-none
                 px-2
@@ -156,7 +156,7 @@ export function UserDropdown({
               {user && user.email ? user.email[0].toUpperCase() : "A"}
             </div>
             {notifications && notifications.length > 0 && (
-              <div className="absolute right-0 top-0 w-2 h-2 bg-red-500 rounded-full"></div>
+              <div className="absolute right-0 top-0 w-3 h-3 bg-red-500 rounded-full"></div>
             )}
           </div>
         }

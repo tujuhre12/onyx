@@ -14,7 +14,7 @@ export function ChatIntro({ selectedPersona }: { selectedPersona: Persona }) {
           {selectedPersona.name}
         </div>
       </div>
-      <div className="self-stretch text-center text-text-darker text-xl font-normal font-['KH Teka TRIAL'] leading-normal">
+      <div className="self-stretch text-center text-text-darker text-xl font-normal leading-normal">
         {selectedPersona.description}
       </div>
     </div>
