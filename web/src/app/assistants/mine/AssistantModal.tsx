@@ -5,7 +5,7 @@ import { Persona } from "@/app/admin/assistants/interfaces";
 import { useRouter } from "next/navigation";
 
 import { Modal } from "@/components/Modal";
-import NewAssistantCard from "./AssistantCard";
+import AssistantCard from "./AssistantCard";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { checkUserOwnsAssistant } from "@/lib/assistants/checkOwnership";
 import { useUser } from "@/components/user/UserProvider";
@@ -110,11 +110,13 @@ export default function AssistantModal({
     });
   }, [assistants, searchQuery, assistantFilters, pinnedAssistants]);
 
+  const height = Math.ceil(assistants.length / 2) * 160 + 75;
+
   return (
     <Modal
-      hideCloseButton
+      heightOverride={`${height}px`}
       onOutsideClick={hideModal}
-      className="max-w-4xl  w-[95%] h-[80vh]"
+      className={`max-w-4xl w-[95%]`}
     >
       <>
         <div className="flex justify-between items-center mb-0">
@@ -181,10 +183,10 @@ export default function AssistantModal({
           />
         </div>
 
-        <div className="w-full mt-2 justify-start h-fit px-2 grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-3">
+        <div className="w-full mt-2 justify-start h-fit px-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           {memoizedCurrentlyVisibleAssistants.map((assistant, index) => (
             <div key={index}>
-              <NewAssistantCard
+              <AssistantCard
                 pinned={pinnedAssistants.includes(assistant)}
                 persona={assistant}
                 closeModal={hideModal}

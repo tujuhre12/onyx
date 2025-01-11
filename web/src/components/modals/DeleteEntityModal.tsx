@@ -18,7 +18,7 @@ export const DeleteEntityModal = ({
   deleteButtonText?: string;
 }) => {
   return (
-    <Modal onOutsideClick={onClose}>
+    <Modal width="max-w-4xl" onOutsideClick={onClose}>
       <>
         <div className="flex mb-4">
           <h2 className="my-auto text-2xl font-bold">

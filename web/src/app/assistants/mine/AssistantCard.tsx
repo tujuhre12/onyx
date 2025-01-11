@@ -35,9 +35,17 @@ import {
 } from "@/components/ui/popover";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 
-export const AssistantBadge = ({ text }: { text: string }) => {
+export const AssistantBadge = ({
+  text,
+  className,
+}: {
+  text: string;
+  className?: string;
+}) => {
   return (
-    <div className="h-4 px-1.5 py-1 bg-[#e6e3dd]/50 rounded-lg justify-center items-center gap-2.5 inline-flex">
+    <div
+      className={`h-4 px-1.5 py-1 bg-[#e6e3dd]/50 rounded-lg justify-center items-center gap-2.5 inline-flex ${className}`}
+    >
       <div className="text-[#4a4a4a] text-[10px] font-normal leading-[8px]">
         {text}
       </div>
@@ -45,7 +53,7 @@ export const AssistantBadge = ({ text }: { text: string }) => {
   );
 };
 
-const NewAssistantCard: React.FC<{
+const AssistantCard: React.FC<{
   persona: Persona;
   pinned: boolean;
   closeModal: () => void;
@@ -92,9 +100,58 @@ const NewAssistantCard: React.FC<{
             <h3 className="text-black leading-none text-base lg-normal">
               {persona.name}
             </h3>
-            <AssistantBadge text={persona.is_public ? "Public" : "Private"} />
           </div>
-          {pinned && <span className="text-[#6c6c6c] h-0 text-sm">Pinned</span>}
+          <div className="flex items-center gap-x-2">
+            <AssistantBadge text={persona.is_public ? "Public" : "Private"} />
+            {isOwnedByUser && (
+              <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="hover:bg-neutral-100 p-1  -my-1 rounded-full"
+                  >
+                    <FiMoreHorizontal size={16} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="z-[10000] w-40 p-2">
+                  <button
+                    onClick={handleShare}
+                    className="w-full text-left flex items-center px-2 py-1 hover:bg-neutral-100 rounded"
+                  >
+                    <FiShare2 size={12} className="inline mr-2" />
+                    Share
+                  </button>
+                  <button
+                    onClick={handleToggleVisibility}
+                    className="w-full text-left flex items-center px-2 py-1 hover:bg-neutral-100 rounded"
+                  >
+                    {persona.is_public ? (
+                      <FiEyeOff size={12} className="inline mr-2" />
+                    ) : (
+                      <FiEye size={12} className="inline mr-2" />
+                    )}
+                    Make {persona.is_public ? "Private" : "Public"}
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="w-full text-left items-center px-2 py-1 hover:bg-neutral-100 rounded text-red-600"
+                  >
+                    <FiTrash size={12} className="inline mr-2" />
+                    Delete
+                  </button>
+                  <button
+                    onClick={handleEdit}
+                    className="w-full flex items-center text-left px-2 py-1 hover:bg-neutral-100 rounded"
+                  >
+                    <FiEdit size={12} className="inline mr-2" />
+                    Edit
+                  </button>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
+
+          {/* {pinned && <span className="text-[#6c6c6c] h-0 text-sm">Pinned</span>} */}
         </div>
 
         <p className="text-black text-sm mb-1 line-clamp-2 h-[2.7em]">
@@ -110,7 +167,7 @@ const NewAssistantCard: React.FC<{
               ))}
             </>
           ) : (
-            <AssistantBadge text="No Tools" />
+            <AssistantBadge text="No Tools" className="invisible" />
           )}
         </div>
 
@@ -161,53 +218,6 @@ const NewAssistantCard: React.FC<{
               </Tooltip>
             </TooltipProvider>
           </div>
-
-          {isOwnedByUser && (
-            <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="hover:bg-neutral-100 p-1 rounded-full"
-                >
-                  <FiMoreHorizontal size={16} />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="z-[10000] w-40 p-2">
-                <button
-                  onClick={handleShare}
-                  className="w-full text-left flex items-center px-2 py-1 hover:bg-neutral-100 rounded"
-                >
-                  <FiShare2 size={12} className="inline mr-2" />
-                  Share
-                </button>
-                <button
-                  onClick={handleToggleVisibility}
-                  className="w-full text-left flex items-center px-2 py-1 hover:bg-neutral-100 rounded"
-                >
-                  {persona.is_public ? (
-                    <FiEyeOff size={12} className="inline mr-2" />
-                  ) : (
-                    <FiEye size={12} className="inline mr-2" />
-                  )}
-                  Make {persona.is_public ? "Private" : "Public"}
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="w-full text-left items-center px-2 py-1 hover:bg-neutral-100 rounded text-red-600"
-                >
-                  <FiTrash size={12} className="inline mr-2" />
-                  Delete
-                </button>
-                <button
-                  onClick={handleEdit}
-                  className="w-full flex items-center text-left px-2 py-1 hover:bg-neutral-100 rounded"
-                >
-                  <FiEdit size={12} className="inline mr-2" />
-                  Edit
-                </button>
-              </PopoverContent>
-            </Popover>
-          )}
         </div>
       </div>
 
@@ -252,4 +262,4 @@ const NewAssistantCard: React.FC<{
   );
 };
 
-export default NewAssistantCard;
+export default AssistantCard;

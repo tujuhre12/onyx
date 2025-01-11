@@ -20,6 +20,7 @@ interface ModalProps {
   noPadding?: boolean;
   height?: string;
   noScroll?: boolean;
+  heightOverride?: string;
 }
 
 export function Modal({
@@ -35,6 +36,7 @@ export function Modal({
   icon,
   hideCloseButton,
   noScroll,
+  heightOverride,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -112,9 +114,10 @@ export function Modal({
             </>
           )}
           <div
+            style={{ height: heightOverride }}
             className={cn(
               noScroll ? "overflow-auto" : "overflow-x-visible",
-              height || "max-h-[60vh]"
+              !heightOverride && (height || "max-h-[60vh]")
             )}
           >
             {children}

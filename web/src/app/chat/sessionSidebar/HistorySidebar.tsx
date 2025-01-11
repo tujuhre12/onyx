@@ -21,10 +21,11 @@ import { PagesTab } from "./PagesTab";
 import { pageType } from "./types";
 import LogoWithText from "@/components/header/LogoWithText";
 import { Persona } from "@/app/admin/assistants/interfaces";
-import { FaSearch } from "react-icons/fa";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { buildChatUrl } from "../lib";
+import { toggleAssistantPinnedStatus } from "@/lib/assistants/updateAssistantPreferences";
+import { useUser } from "@/components/user/UserProvider";
 
 interface HistorySidebarProps {
   page: pageType;
@@ -73,6 +74,8 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
   ) => {
     const searchParams = useSearchParams();
     const router = useRouter();
+    const { refreshUser } = useUser();
+    const { refreshAssistants } = useAssistants();
     const { popup, setPopup } = usePopup();
 
     // For determining intial focus state
@@ -110,6 +113,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
           className={`
             flex
             flex-none
+            gap-y-4
             bg-background-sidebar
             w-full
             border-r 
@@ -118,6 +122,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             flex-col relative
             h-screen
             pt-2
+            p-4
             transition-transform 
             `}
         >
@@ -131,9 +136,9 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             />
           </div>
           {page == "chat" && (
-            <div className="mx-3 mt-4 gap-y-1 flex-col text-text-history-sidebar-button flex gap-x-1.5 items-center items-center">
+            <div className="px-1 gap-y-1 flex-col text-text-history-sidebar-button flex gap-x-1.5 items-center items-center">
               <Link
-                className="w-full p-2 rounded items-center  cursor-pointer transition-all duration-150 flex gap-x-2"
+                className="w-full px-2 py-1  rounded-md items-center hover:bg-hover cursor-pointer transition-all duration-150 flex gap-x-2"
                 href={
                   `/${page}` +
                   (NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA &&
@@ -154,18 +159,18 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                   size={20}
                   className="flex-none text-text-history-sidebar-button"
                 />
-                <p className="my-auto flex items-center text-base">
+                <p className="my-auto flex font-normal items-center text-base">
                   Start New Chat
                 </p>
               </Link>
             </div>
           )}
 
-          <div className="my-2 mx-3">
-            <div className="flex text-sm gap-x-2 mx-2 text-[#6c6c6c] items-center font-medium leading-normal">
+          <div>
+            <div className="flex font-normal text-sm gap-x-2 leading-normal text-[#6c6c6c] items-center font-normal leading-normal">
               Pinned assistants
             </div>
-            <div className="flex flex-col gap-y-1 mt-2">
+            <div className="mx-1 flex flex-col gap-y-1 mt-1">
               {pinnedAssistants.length > 0 ? (
                 pinnedAssistants.slice(0, 3).map((assistant) => (
                   <button
@@ -174,11 +179,11 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                         buildChatUrl(searchParams, null, assistant.id)
                       );
                     }}
-                    className={`cursor-pointer hover:bg-hover-light ${
+                    className={`cursor-pointer  group hover:bg-hover-light ${
                       currentAssistantId === assistant.id
                         ? "bg-hover-light"
                         : ""
-                    } flex items-center gap-x-2 py-1 px-2 rounded-md`}
+                    } relative flex items-center gap-x-2 py-1 px-2 rounded-md`}
                     key={assistant.id}
                   >
                     <AssistantIcon
@@ -186,7 +191,21 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                       size={16}
                       className="flex-none"
                     />
-                    <p className="text-base text-black">{assistant.name}</p>
+                    <p className="text-base   text-black">{assistant.name}</p>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        toggleAssistantPinnedStatus(assistant.id, false);
+                        await refreshUser();
+                        await refreshAssistants();
+                      }}
+                      className="group-hover:block hidden absolute right-2"
+                    >
+                      <PinnedIcon
+                        size={16}
+                        className="text-text-history-sidebar-button"
+                      />
+                    </button>
                   </button>
                 ))
               ) : (

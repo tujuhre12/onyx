@@ -2185,7 +2185,7 @@ export function ChatPage({
                 ${
                   !untoggled && (showHistorySidebar || toggledSidebar)
                     ? "opacity-100 w-[250px] translate-x-0"
-                    : "opacity-0 w-[200px] pointer-events-none -translate-x-10"
+                    : "opacity-0 w-[250px] pointer-events-none -translate-x-10"
                 }`}
             >
               <div className="w-full relative">
