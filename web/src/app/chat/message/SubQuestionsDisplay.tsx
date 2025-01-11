@@ -9,7 +9,7 @@ import { SourcesDisplay } from "./SourcesDisplay";
 import ReactMarkdown from "react-markdown";
 import { MemoizedAnchor } from "./MemoizedTextComponents";
 import { MemoizedParagraph } from "./MemoizedTextComponents";
-import { extractCodeText } from "./codeUtils";
+import { extractCodeText, preprocessLaTeX } from "./codeUtils";
 
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -29,8 +29,47 @@ const SubQuestionDisplay: React.FC<{
   isLast: boolean;
   isFirst: boolean;
   setPresentingDocument: (document: OnyxDocument) => void;
-}> = ({ subQuestion, documents, isLast, isFirst, setPresentingDocument }) => {
+  isComplete?: boolean;
+}> = ({
+  subQuestion,
+  documents,
+  isLast,
+  isFirst,
+  setPresentingDocument,
+  isComplete,
+}) => {
   const [toggled, setToggled] = useState(true);
+
+  const processContent = (content: string | JSX.Element) => {
+    if (typeof content !== "string") {
+      return content;
+    }
+
+    const codeBlockRegex = /```(\w*)\n[\s\S]*?```|```[\s\S]*?$/g;
+    const matches = content.match(codeBlockRegex);
+
+    if (matches) {
+      content = matches.reduce((acc, match) => {
+        if (!match.match(/```\w+/)) {
+          return acc.replace(match, match.replace("```", "```plaintext"));
+        }
+        return acc;
+      }, content);
+
+      const lastMatch = matches[matches.length - 1];
+      if (!lastMatch.endsWith("```")) {
+        return preprocessLaTeX(content);
+      }
+    }
+    // Add newlines after ]] or ) if there's text immediately following
+    content = content.replace(/(\]\]|\))((?!\s|\n|\[|\(|$).)/g, "$1\n$2");
+
+    return (
+      preprocessLaTeX(content) + (subQuestion.is_generating ? " [*]() " : "")
+    );
+  };
+
+  const finalContent = processContent(subQuestion.answer as string) as string;
 
   const paragraphCallback = useCallback(
     (props: any) => (
@@ -51,6 +90,13 @@ const SubQuestionDisplay: React.FC<{
     [documents]
   );
 
+  const textCallback = useCallback(
+    (props: any) => (
+      <span className="text-sm leading-tight">{props.children}</span>
+    ),
+    []
+  );
+
   const markdownComponents = useMemo(
     () => ({
       a: anchorCallback,
@@ -68,8 +114,17 @@ const SubQuestionDisplay: React.FC<{
           </CodeBlock>
         );
       },
+      li: ({ children }: any) => (
+        <li className="text-sm leading-tight">{children}</li>
+      ),
+      ul: ({ children }: any) => (
+        <ul className="text-sm leading-tight pl-4 mt-0 mb-2">{children}</ul>
+      ),
+      ol: ({ children }: any) => (
+        <ol className="text-sm leading-tight pl-4 mt-0 mb-2">{children}</ol>
+      ),
     }),
-    [anchorCallback, paragraphCallback, subQuestion.answer]
+    [anchorCallback, paragraphCallback, textCallback, subQuestion.answer]
   );
 
   const renderedMarkdown = useMemo(() => {
@@ -80,10 +135,10 @@ const SubQuestionDisplay: React.FC<{
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
       >
-        {subQuestion.answer as string}
+        {finalContent}
       </ReactMarkdown>
     );
-  }, [subQuestion.answer, markdownComponents]);
+  }, [finalContent, markdownComponents]);
 
   return (
     <div className="relative">

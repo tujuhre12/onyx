@@ -71,7 +71,7 @@ export const SourceChip2 = ({
             <div className="h-2.5 relative">{icon}</div>
           </div>
           <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-            {truncateTitle ? truncateString(title, 20) : title}
+            {truncateTitle ? truncateString(title, 50) : title}
           </div>
           {onRemove && (
             <XIcon
