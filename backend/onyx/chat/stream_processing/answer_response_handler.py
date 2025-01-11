@@ -1,6 +1,6 @@
 import abc
 from collections.abc import Generator
-
+from typing import Any, cast
 from langchain_core.messages import BaseMessage
 
 from onyx.chat.llm_response_handler import ResponsePart
@@ -22,6 +22,13 @@ class AnswerResponseHandler(abc.ABC):
     ) -> Generator[ResponsePart, None, None]:
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def update(
+        self,
+        state_update: Any
+    ) -> None:
+        raise NotImplementedError
+
 
 class DummyAnswerResponseHandler(AnswerResponseHandler):
     def handle_response_part(
@@ -31,6 +38,12 @@ class DummyAnswerResponseHandler(AnswerResponseHandler):
     ) -> Generator[ResponsePart, None, None]:
         # This is a dummy handler that returns nothing
         yield from []
+
+    def update(
+        self,
+        state_update: Any
+    ) -> None:
+        pass
 
 
 class CitationResponseHandler(AnswerResponseHandler):
@@ -73,6 +86,20 @@ class CitationResponseHandler(AnswerResponseHandler):
 
         # Process the new content through the citation processor
         yield from self.citation_processor.process_token(content)
+
+    def update(
+        self,
+        state_update: Any
+    ) -> None:
+        state = cast(tuple[list[LlmDoc], DocumentIdOrderMapping, DocumentIdOrderMapping], state_update)
+        self.context_docs = state[0]
+        self.final_doc_id_to_rank_map = state[1]
+        self.display_doc_id_to_rank_map = state[2]
+        self.citation_processor = CitationProcessor(
+            context_docs=self.context_docs,
+            final_doc_id_to_rank_map=self.final_doc_id_to_rank_map,
+            display_doc_id_to_rank_map=self.display_doc_id_to_rank_map,
+        )
 
 
 def BaseMessage_to_str(message: BaseMessage) -> str:
