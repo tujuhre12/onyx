@@ -500,6 +500,8 @@ export function buildLatestMessageChain(
   messageMap: Map<number, Message>,
   additionalMessagesOnMainline: Message[] = []
 ): Message[] {
+  console.log("messageMap");
+  console.log(messageMap);
   const rootMessage = Array.from(messageMap.values()).find(
     (message) => message.parentMessageId === null
   );
@@ -518,6 +520,8 @@ export function buildLatestMessageChain(
     }
   }
 
+  console.log("finalMessageList", finalMessageList);
+  //
   // remove system message
   if (finalMessageList.length > 0 && finalMessageList[0].type === "system") {
     finalMessageList = finalMessageList.slice(1);
