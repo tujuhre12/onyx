@@ -8,7 +8,6 @@ import React, {
 } from "react";
 import { Folder } from "./interfaces";
 import { ChatSession } from "../interfaces";
-import { ChatSessionDisplay } from "../sessionSidebar/ChatSessionDisplay";
 import {
   FiChevronDown,
   FiChevronRight,
@@ -19,12 +18,11 @@ import {
 } from "react-icons/fi";
 import { Caret } from "@/components/icons/icons";
 import { addChatToFolder, deleteFolder } from "./FolderManagement";
-import { FaPencilAlt } from "react-icons/fa";
-import { Pencil } from "@phosphor-icons/react";
 import { PencilIcon } from "lucide-react";
 import { Popover } from "@/components/popover/Popover";
-import { Button } from "@/components/ui/button";
 import { useChatContext } from "@/components/context/ChatContext";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface FolderDropdownProps {
   folder: Folder;
@@ -37,20 +35,8 @@ interface FolderDropdownProps {
   onDrop?: (folderId: number, chatSessionId: string) => void;
   children?: ReactNode;
 }
-// import React, { forwardRef } from 'react';
 
-export const FolderDropdown = forwardRef<
-  HTMLDivElement,
-  {
-    folder: Folder;
-    currentChatId?: string;
-    showShareModal?: (chatSession: ChatSession) => void;
-    closeSidebar?: () => void;
-    onEdit: (folderId: number, newName: string) => void;
-    onDrop: (folderId: number, chatSessionId: string) => void;
-    children: React.ReactNode;
-  }
->(
+export const FolderDropdown = forwardRef<HTMLDivElement, FolderDropdownProps>(
   (
     {
       folder,
@@ -72,6 +58,24 @@ export const FolderDropdown = forwardRef<
     const editingRef = useRef<HTMLDivElement>(null);
     const { refreshFolders } = useChatContext();
 
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: folder.folder_id?.toString() ?? "" });
+
+    const style: React.CSSProperties = {
+      transform: transform
+        ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+        : undefined,
+      transition,
+      zIndex: isDragging ? 9999 : undefined,
+      position: isDragging ? "absolute" : "relative",
+    };
+
     useEffect(() => {
       if (isEditing && inputRef.current) {
         inputRef.current.focus();
@@ -79,7 +83,7 @@ export const FolderDropdown = forwardRef<
     }, [isEditing]);
 
     const handleEdit = useCallback(() => {
-      if (newFolderName && folder.folder_id !== undefined) {
+      if (newFolderName && folder.folder_id !== undefined && onEdit) {
         onEdit(folder.folder_id, newFolderName);
         setIsEditing(false);
       }
@@ -92,7 +96,7 @@ export const FolderDropdown = forwardRef<
           !editingRef.current.contains(event.target as Node) &&
           isEditing
         ) {
-          handleEdit();
+          setIsEditing(false);
         }
       };
 
@@ -102,7 +106,7 @@ export const FolderDropdown = forwardRef<
       return () => {
         document.removeEventListener("mousedown", handleClickOutside);
       };
-    }, [isEditing, handleEdit]);
+    }, [isEditing]);
 
     const handleDeleteClick = useCallback(() => {
       setIsDeletePopoverOpen(true);
@@ -124,7 +128,7 @@ export const FolderDropdown = forwardRef<
         await refreshFolders();
         setIsDeletePopoverOpen(false);
       },
-      [folder.folder_id]
+      [folder.folder_id, refreshFolders]
     );
 
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -135,19 +139,18 @@ export const FolderDropdown = forwardRef<
       (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         const chatSessionId = e.dataTransfer.getData("text/plain");
-        console.log("handleDrop", chatSessionId, folder.folder_id);
-        if (folder.folder_id) {
+        if (folder.folder_id && onDrop) {
           onDrop(folder.folder_id, chatSessionId);
         }
       },
       [folder.folder_id, onDrop]
     );
 
-    const chatSessionRef = useRef<HTMLDivElement>(null);
-
     return (
       <div
-        ref={chatSessionRef}
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
         className="overflow-visible w-full"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
@@ -160,7 +163,8 @@ export const FolderDropdown = forwardRef<
         >
           <button
             className="flex overflow-hidden items-center flex-grow"
-            onClick={() => setIsOpen(!isOpen)}
+            onClick={() => !isEditing && setIsOpen(!isOpen)}
+            {...(isEditing ? {} : listeners)}
           >
             {isOpen ? (
               <Caret size={16} className="mr-1" />
@@ -168,7 +172,7 @@ export const FolderDropdown = forwardRef<
               <Caret size={16} className="-rotate-90 mr-1" />
             )}
             {isEditing ? (
-              <div ref={editingRef}>
+              <div ref={editingRef} className="flex-grow z-[9999] relative">
                 <input
                   ref={inputRef}
                   type="text"
@@ -180,6 +184,7 @@ export const FolderDropdown = forwardRef<
                       handleEdit();
                     }
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
             ) : (
@@ -242,8 +247,8 @@ export const FolderDropdown = forwardRef<
             />
           )}
           {isEditing && (
-            <div className="flex -my-1">
-              <button onClick={handleEdit} className="p-1  ">
+            <div className="flex -my-1 z-[9999]">
+              <button onClick={handleEdit} className="p-1">
                 <FiCheck size={14} />
               </button>
               <button onClick={() => setIsEditing(false)} className="p-1">
