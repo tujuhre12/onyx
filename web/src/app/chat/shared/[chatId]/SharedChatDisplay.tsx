@@ -203,8 +203,7 @@ export function SharedChatDisplay({
                 <div className="fixed z-10 w-full ">
                   <div className="bg-background relative px-5 pt-4 w-full">
                     <h1 className="text-3xl text-strong font-bold">
-                      {chatSession.description ||
-                        `Chat ${chatSession.chat_session_id}`}
+                      {chatSession.description || `Unnamed Chat`}
                     </h1>
                     <p className=" text-emphasis">
                       {humanReadableFormat(chatSession.time_created)}

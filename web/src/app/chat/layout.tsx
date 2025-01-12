@@ -31,6 +31,7 @@ export default async function Layout({
     llmProviders,
     folders,
     openedFolders,
+    toggleSidebar,
     defaultAssistantId,
     shouldShowWelcomeModal,
     ccPairs,
@@ -42,6 +43,7 @@ export default async function Layout({
       <ChatProvider
         value={{
           chatSessions,
+          toggledSidebar: toggleSidebar,
           availableSources,
           ccPairs,
           documentSets,

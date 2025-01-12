@@ -14,6 +14,7 @@ import { Folder } from "@/app/chat/folders/interfaces";
 
 interface ChatContextProps {
   chatSessions: ChatSession[];
+  toggledSidebar: boolean;
   availableSources: ValidSources[];
   ccPairs: CCPairBasicInfo[];
   tags: Tag[];
