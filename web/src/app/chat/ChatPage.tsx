@@ -18,6 +18,7 @@ import {
   SubQuestionDetail,
   constructSubQuestions,
   SubQueryDetail,
+  DocumentsResponse,
 } from "./interfaces";
 
 import Prism from "prismjs";
@@ -1429,11 +1430,16 @@ export function ChatPage({
                 is_generating: false,
               }));
               answer += (packet as AnswerPiecePacket).answer_piece;
-            } else {
-              console.log("packet", packet);
-            }
-
-            if (Object.hasOwn(packet, "top_documents")) {
+            } else if (
+              Object.hasOwn(packet, "top_documents") &&
+              Object.hasOwn(packet, "level_question_nr")
+            ) {
+              const documentsResponse = packet as DocumentsResponse;
+              sub_questions = constructSubQuestions(
+                sub_questions,
+                documentsResponse
+              );
+            } else if (Object.hasOwn(packet, "top_documents")) {
               documents = (packet as DocumentInfoPacket).top_documents;
               retrievalType = RetrievalType.Search;
               if (documents && documents.length > 0) {
