@@ -1,13 +1,27 @@
 import { useState, useRef, useEffect } from "react";
 import { SubQuestionDetail } from "../interfaces";
-import { set } from "lodash";
 
-enum StreamingState {
-  QUESTION,
-  SUB_QUERY,
-  CONTEXT_DOCS,
-  ANSWER,
-  COMPLETE,
+enum SubQStreamingPhase {
+  SUB_QUERIES = "sub_queries",
+  CONTEXT_DOCS = "context_docs",
+  ANSWER = "answer",
+  COMPLETE = "complete",
+}
+
+interface SubQuestionProgress {
+  // Tracks whether the "question" field is fully streamed
+  questionDone: boolean;
+  // Index into the question string
+  questionCharIndex: number;
+  // Which phase of subquestion-level streaming we’re in
+  currentPhase: SubQStreamingPhase;
+  // Subqueries
+  subQueryIndex: number;
+  subQueryCharIndex: number;
+  // Docs
+  docIndex: number;
+  // Answer
+  answerCharIndex: number;
 }
 
 export const useStreamingMessages = (subQuestions: SubQuestionDetail[]) => {
@@ -15,438 +29,213 @@ export const useStreamingMessages = (subQuestions: SubQuestionDetail[]) => {
     SubQuestionDetail[]
   >([]);
 
-  // Refs to store the "in-progress" data. We don’t want to lose track of indices or
-  // dynamicSubQuestions every time React re-renders
+  // Store latest subQuestions in a ref
+  const subQuestionsRef = useRef<SubQuestionDetail[]>(subQuestions);
+  useEffect(() => {
+    subQuestionsRef.current = subQuestions;
+  }, [subQuestions]);
+
+  // Our “in-progress” array for rendering
   const dynamicSubQuestionsRef = useRef<SubQuestionDetail[]>([]);
-  const currentSubQuestionIndexRef = useRef(0);
-  const currentSubQueryIndexRef = useRef(0);
-  const currentCharIndexRef = useRef(0);
-  const currentDocIndexRef = useRef(0);
-  const currentStateRef = useRef<StreamingState>(StreamingState.QUESTION);
+  // Per-subquestion progress
+  const progressRef = useRef<SubQuestionProgress[]>([]);
+  // Index of the subquestion we’re actively streaming (SUB_QUERIES→DOCS→ANSWER)
+  const activeSubQIndexRef = useRef<number>(0);
 
   useEffect(() => {
-    // Reset everything whenever subQuestions changes
-    currentSubQuestionIndexRef.current = 0;
-    currentSubQueryIndexRef.current = 0;
-    currentCharIndexRef.current = 0;
-    currentDocIndexRef.current = 0;
-    currentStateRef.current = StreamingState.QUESTION;
+    // Reset whenever subQuestions changes
     dynamicSubQuestionsRef.current = [];
     setDynamicSubQuestions([]);
+    activeSubQIndexRef.current = 0;
 
-    const loadNextPiece = () => {
-      const { current: currentSubQuestionIndex } = currentSubQuestionIndexRef;
-      if (currentSubQuestionIndex >= subQuestions.length) {
-        return; // all subquestions done
-      }
+    // Initialize progress for each subquestion
+    progressRef.current = subQuestions.map(() => ({
+      questionDone: false,
+      questionCharIndex: 0,
+      currentPhase: SubQStreamingPhase.SUB_QUERIES,
+      subQueryIndex: 0,
+      subQueryCharIndex: 0,
+      docIndex: 0,
+      answerCharIndex: 0,
+    }));
 
-      const currentSubQuestion = subQuestions[currentSubQuestionIndex];
-      if (!currentSubQuestion || !currentSubQuestion.question) {
-        // Wait for the subquestion object to be built
-        // setTimeout(loadNextPiece, 100);
-        return;
-      }
-
-      // We always work off the ref:
-      const updatedSubQuestions = [...dynamicSubQuestionsRef.current];
-
-      // Ensure there's an entry for the current subquestion in updatedSubQuestions
-      if (!updatedSubQuestions[currentSubQuestionIndex]) {
-        updatedSubQuestions[currentSubQuestionIndex] = {
-          level: currentSubQuestion.level,
-          level_question_nr: currentSubQuestion.level_question_nr,
+    // Helper to ensure dynamicSubQuestions has an entry for subquestion i
+    function ensureDynamicSlot(i: number): SubQuestionDetail {
+      const dsq = dynamicSubQuestionsRef.current;
+      if (!dsq[i]) {
+        dsq[i] = {
+          level: subQuestionsRef.current[i].level,
+          level_question_nr: subQuestionsRef.current[i].level_question_nr,
           question: "",
           answer: "",
           sub_queries: [],
           context_docs: { top_documents: [] },
         };
       }
+      return dsq[i];
+    }
 
-      const currentDynamicSubQuestion =
-        updatedSubQuestions[currentSubQuestionIndex];
-      const state = currentStateRef.current;
+    function loadNextPiece() {
+      const subQs = subQuestionsRef.current;
+      if (!subQs || subQs.length === 0) {
+        return; // nothing to stream
+      }
 
-      switch (state) {
-        case StreamingState.QUESTION: {
-          if (
-            currentCharIndexRef.current < currentSubQuestion.question.length
-          ) {
-            currentDynamicSubQuestion.question =
-              currentSubQuestion.question.slice(
-                0,
-                currentCharIndexRef.current + 1
-              );
-            currentCharIndexRef.current++;
-          } else {
-            currentStateRef.current = StreamingState.SUB_QUERY;
-            currentCharIndexRef.current = 0;
-            currentSubQueryIndexRef.current = 0;
+      // ------------------------------------------------------
+      // 1) Stream one character of each incomplete question (in parallel)
+      //    If we do stream any question chars, we skip the subquestion-phase logic
+      //    for this iteration, to keep question streaming "live" as soon as it arrives.
+      // ------------------------------------------------------
+      let didStreamQuestion = false;
+      for (let i = 0; i < progressRef.current.length; i++) {
+        const p = progressRef.current[i];
+        const sq = subQs[i];
+        // If there's a question to stream and it's not done, do 1 char
+        if (!p.questionDone && sq.question) {
+          const dynSQ = ensureDynamicSlot(i);
+          const nextIndex = p.questionCharIndex + 1;
+          dynSQ.question = sq.question.slice(0, nextIndex);
+          p.questionCharIndex = nextIndex;
+
+          if (p.questionCharIndex >= sq.question.length) {
+            p.questionDone = true;
           }
-          break;
-        }
-
-        case StreamingState.SUB_QUERY: {
-          if (
-            !currentSubQuestion.sub_queries ||
-            currentSubQuestion.sub_queries.length === 0
-          ) {
-            break;
-          }
-
-          const { current: currentSubQueryIndex } = currentSubQueryIndexRef;
-          if (currentSubQueryIndex < currentSubQuestion.sub_queries.length) {
-            const currentSubQuery =
-              currentSubQuestion.sub_queries[currentSubQueryIndex];
-
-            if (
-              !currentDynamicSubQuestion.sub_queries ||
-              !currentDynamicSubQuestion.sub_queries[currentSubQueryIndex]
-            ) {
-              currentDynamicSubQuestion.sub_queries = [
-                ...(currentDynamicSubQuestion.sub_queries || []),
-                {
-                  query: "",
-                  query_id: currentSubQuery.query_id,
-                  doc_ids: currentSubQuery.doc_ids,
-                },
-              ];
-            }
-
-            if (currentCharIndexRef.current < currentSubQuery.query.length) {
-              currentDynamicSubQuestion.sub_queries[
-                currentSubQueryIndex
-              ].query = currentSubQuery.query.slice(
-                0,
-                currentCharIndexRef.current + 1
-              );
-              currentCharIndexRef.current++;
-            } else {
-              currentSubQueryIndexRef.current++;
-              currentCharIndexRef.current = 0;
-              // if we've exhausted all sub_queries, move on
-              if (
-                currentSubQueryIndexRef.current >=
-                currentSubQuestion.sub_queries.length
-              ) {
-                currentStateRef.current = StreamingState.CONTEXT_DOCS;
-              }
-            }
-          } else {
-            currentStateRef.current = StreamingState.CONTEXT_DOCS;
-          }
-          break;
-        }
-
-        case StreamingState.CONTEXT_DOCS: {
-          if (
-            !currentSubQuestion.context_docs ||
-            !currentSubQuestion.context_docs.top_documents
-          ) {
-            // Wait for context_docs to be built
-            return;
-          }
-
-          console.log("updating context doc");
-
-          const { current: currentDocIndex } = currentDocIndexRef;
-          console.log(currentDocIndex);
-
-          if (
-            currentDocIndex <
-            currentSubQuestion.context_docs.top_documents.length
-          ) {
-            const currentDoc =
-              currentSubQuestion.context_docs.top_documents[currentDocIndex];
-            // Only push if not present
-            if (
-              !currentDynamicSubQuestion.context_docs?.top_documents.some(
-                (doc) => doc.document_id === currentDoc.document_id
-              )
-            ) {
-              currentDynamicSubQuestion.context_docs!.top_documents.push(
-                currentDoc
-              );
-            }
-            currentDocIndexRef.current++;
-          } else {
-            currentStateRef.current = StreamingState.ANSWER;
-            currentDocIndexRef.current = 0;
-          }
-          break;
-        }
-
-        case StreamingState.ANSWER: {
-          if (!currentSubQuestion.answer) {
-            // Wait for answer to be built
-            break;
-          }
-
-          if (currentCharIndexRef.current < currentSubQuestion.answer.length) {
-            currentDynamicSubQuestion.answer = currentSubQuestion.answer.slice(
-              0,
-              currentCharIndexRef.current + 1
-            );
-            currentCharIndexRef.current++;
-          } else {
-            currentStateRef.current = StreamingState.COMPLETE;
-          }
-          break;
-        }
-
-        case StreamingState.COMPLETE: {
-          currentSubQuestionIndexRef.current++;
-          currentSubQueryIndexRef.current = 0;
-          currentCharIndexRef.current = 0;
-          currentDocIndexRef.current = 0;
-          currentStateRef.current = StreamingState.QUESTION;
-          break;
+          didStreamQuestion = true;
         }
       }
 
-      // Commit our local “in-progress” array to the ref
-      dynamicSubQuestionsRef.current = updatedSubQuestions;
-      // Then, actually set state for the UI
-      setDynamicSubQuestions(updatedSubQuestions);
+      if (didStreamQuestion) {
+        // Commit changes
+        dynamicSubQuestionsRef.current = [...dynamicSubQuestionsRef.current];
+        setDynamicSubQuestions(dynamicSubQuestionsRef.current);
 
-      // Keep going unless we just finished a COMPLETE cycle for one subquestion.
-      if (currentStateRef.current !== StreamingState.COMPLETE) {
-        if (currentStateRef.current === StreamingState.CONTEXT_DOCS) {
-          // Move to next subquestion right away
-          setTimeout(loadNextPiece, 1000);
-        } else {
-          setTimeout(loadNextPiece, 15);
-        }
-      } else {
-        setTimeout(loadNextPiece, 100);
+        // Stream next question character(s) in ~15ms
+        setTimeout(loadNextPiece, 15);
+        return;
       }
-    };
 
-    // Start the streaming
+      // ------------------------------------------------------
+      // 2) If no more incomplete questions, proceed with
+      //    subqueries → context docs → answer for the "active" subquestion
+      // ------------------------------------------------------
+      const { current: activeIndex } = activeSubQIndexRef;
+      if (activeIndex >= subQs.length) {
+        // All subquestions are done
+        return;
+      }
+
+      const p = progressRef.current[activeIndex];
+      const sq = subQs[activeIndex];
+      const dynSQ = ensureDynamicSlot(activeIndex);
+
+      switch (p.currentPhase) {
+        case SubQStreamingPhase.SUB_QUERIES: {
+          // If no sub_queries or we've finished them, move on
+          if (!sq.sub_queries || sq.sub_queries.length === 0) {
+            p.currentPhase = SubQStreamingPhase.CONTEXT_DOCS;
+            break;
+          }
+          if (p.subQueryIndex >= sq.sub_queries.length) {
+            p.currentPhase = SubQStreamingPhase.CONTEXT_DOCS;
+            break;
+          }
+
+          // Otherwise, stream subquery #p.subQueryIndex
+          const currentSubQ = sq.sub_queries[p.subQueryIndex];
+          // Ensure dynamic has a slot for it
+          while ((dynSQ.sub_queries?.length || 0) <= p.subQueryIndex) {
+            // add an empty subquery in dynamic
+            dynSQ.sub_queries!.push({
+              query: "",
+              query_id: sq.sub_queries[dynSQ.sub_queries!.length].query_id,
+            });
+          }
+
+          const dynSubQ = dynSQ.sub_queries![p.subQueryIndex];
+          const nextIndex = p.subQueryCharIndex + 1;
+          dynSubQ.query = currentSubQ.query.slice(0, nextIndex);
+          p.subQueryCharIndex = nextIndex;
+
+          if (p.subQueryCharIndex >= currentSubQ.query.length) {
+            p.subQueryIndex++;
+            p.subQueryCharIndex = 0;
+          }
+
+          break;
+        }
+
+        case SubQStreamingPhase.CONTEXT_DOCS: {
+          const docs = sq.context_docs?.top_documents || [];
+          if (p.docIndex >= docs.length) {
+            // done with docs, move on to answer
+            p.currentPhase = SubQStreamingPhase.ANSWER;
+            break;
+          }
+
+          // push one doc at a time
+          const docToAdd = docs[p.docIndex];
+          if (
+            !dynSQ.context_docs?.top_documents.some(
+              (d) => d.document_id === docToAdd.document_id
+            )
+          ) {
+            dynSQ.context_docs?.top_documents.push(docToAdd);
+          }
+          p.docIndex++;
+          break;
+        }
+
+        case SubQStreamingPhase.ANSWER: {
+          // Stream one character of the answer
+          const nextIndex = p.answerCharIndex + 1;
+
+          if (sq.answer) {
+            dynSQ.answer = sq.answer.slice(0, nextIndex);
+            p.answerCharIndex = nextIndex;
+            if (p.answerCharIndex >= sq.answer.length) {
+              p.currentPhase = SubQStreamingPhase.COMPLETE;
+            }
+            if (p.answerCharIndex >= 10) {
+              p.currentPhase = SubQStreamingPhase.COMPLETE;
+            }
+          } else {
+            // no answer? just mark complete
+            p.currentPhase = SubQStreamingPhase.COMPLETE;
+          }
+          break;
+        }
+
+        case SubQStreamingPhase.COMPLETE: {
+          // Move on to the next subquestion
+          activeSubQIndexRef.current++;
+          break;
+        }
+
+        default:
+          break;
+      }
+
+      // Commit changes
+      dynamicSubQuestionsRef.current = [...dynamicSubQuestionsRef.current];
+      setDynamicSubQuestions(dynamicSubQuestionsRef.current);
+
+      // Timing: tweak as you prefer
+      let delay = 25;
+      if (p.currentPhase === SubQStreamingPhase.CONTEXT_DOCS) {
+        delay = 200; // doc streaming can be slower
+      } else if (p.currentPhase === SubQStreamingPhase.COMPLETE) {
+        delay = 100; // small pause before we move to next subquestion
+      }
+
+      setTimeout(loadNextPiece, delay);
+    }
+
     loadNextPiece();
+
+    return () => {
+      // Cleanup if needed (e.g., clearTimeout)
+    };
   }, [subQuestions]);
 
   return { dynamicSubQuestions };
 };
-
-// import { useState, useEffect, useRef } from "react";
-// import { SubQuestionDetail, SubQueryDetail } from "../interfaces";
-
-// enum StreamingState {
-//   QUESTION,
-//   SUB_QUERY,
-//   CONTEXT_DOCS,
-//   ANSWER,
-//   COMPLETE,
-// }
-
-// export const useStreamingMessages = (subQuestions: SubQuestionDetail[]) => {
-//   const [dynamicSubQuestions, setDynamicSubQuestions] = useState<
-//     SubQuestionDetail[]
-//   >([]);
-
-//   // Keep track of indices and streaming state in a ref.
-//   // This avoids closure issues if React re-renders.
-//   const streamingRefs = useRef({
-//     currentSubQuestionIndex: 0,
-//     currentSubQueryIndex: 0,
-//     currentCharIndex: 0,
-//     currentDocIndex: 0,
-//     currentState: StreamingState.QUESTION,
-//     timeoutId: 0 as unknown as NodeJS.Timeout, // for cleanup
-//   });
-
-//   useEffect(() => {
-//     // Reset everything each time subQuestions is newly set
-//     streamingRefs.current.currentSubQuestionIndex = 0;
-//     streamingRefs.current.currentSubQueryIndex = 0;
-//     streamingRefs.current.currentCharIndex = 0;
-//     streamingRefs.current.currentDocIndex = 0;
-//     streamingRefs.current.currentState = StreamingState.QUESTION;
-
-//     let shouldCancel = false; // to handle cleanup if the component unmounts
-
-//     const loadNextPiece = () => {
-//       // If unmounted or a new effect triggers, stop
-//       if (shouldCancel) return;
-
-//       const {
-//         currentSubQuestionIndex,
-//         currentSubQueryIndex,
-//         currentCharIndex,
-//         currentDocIndex,
-//         currentState,
-//       } = streamingRefs.current;
-
-//       if (currentSubQuestionIndex >= subQuestions.length) {
-//         return;
-//       }
-
-//       const currentSubQuestion = subQuestions[currentSubQuestionIndex];
-
-//       // If the subQuestion isn't ready, re-check soon
-//       if (!currentSubQuestion || !currentSubQuestion.question) {
-//         streamingRefs.current.timeoutId = setTimeout(loadNextPiece, 100);
-//         return;
-//       }
-
-//       setDynamicSubQuestions((prevDynamicSubQuestions) => {
-//         const updatedSubQuestions = [...prevDynamicSubQuestions];
-
-//         if (!updatedSubQuestions[currentSubQuestionIndex]) {
-//           updatedSubQuestions[currentSubQuestionIndex] = {
-//             level: currentSubQuestion.level,
-//             level_question_nr: currentSubQuestion.level_question_nr,
-//             question: "",
-//             answer: "",
-//             sub_queries: [],
-//             context_docs: { top_documents: [] },
-//           };
-//         }
-
-//         const currentDynamicSubQuestion =
-//           updatedSubQuestions[currentSubQuestionIndex];
-
-//         switch (currentState) {
-//           case StreamingState.QUESTION: {
-//             if (currentCharIndex < currentSubQuestion.question.length) {
-//               currentDynamicSubQuestion.question =
-//                 currentSubQuestion.question.slice(0, currentCharIndex + 1);
-//               streamingRefs.current.currentCharIndex += 1;
-//             } else {
-//               streamingRefs.current.currentState = StreamingState.SUB_QUERY;
-//               streamingRefs.current.currentCharIndex = 0;
-//               streamingRefs.current.currentSubQueryIndex = 0;
-//             }
-//             break;
-//           }
-
-//           case StreamingState.SUB_QUERY: {
-//             if (
-//               !currentSubQuestion.sub_queries ||
-//               currentSubQuestion.sub_queries.length === 0
-//             ) {
-//               streamingRefs.current.timeoutId = setTimeout(loadNextPiece, 100);
-//               return updatedSubQuestions;
-//             }
-
-//             if (currentSubQueryIndex < currentSubQuestion.sub_queries.length) {
-//               const sq = currentSubQuestion.sub_queries[currentSubQueryIndex];
-//               if (
-//                 !currentDynamicSubQuestion.sub_queries ||
-//                 !currentDynamicSubQuestion.sub_queries[currentSubQueryIndex]
-//               ) {
-//                 currentDynamicSubQuestion.sub_queries = [
-//                   ...(currentDynamicSubQuestion.sub_queries || []),
-//                   {
-//                     query: "",
-//                     query_id: sq.query_id,
-//                     doc_ids: sq.doc_ids,
-//                   },
-//                 ];
-//               }
-//               if (currentCharIndex < sq.query.length) {
-//                 currentDynamicSubQuestion.sub_queries[
-//                   currentSubQueryIndex
-//                 ].query = sq.query.slice(0, currentCharIndex + 1);
-//                 streamingRefs.current.currentCharIndex += 1;
-//               } else {
-//                 streamingRefs.current.currentSubQueryIndex += 1;
-//                 streamingRefs.current.currentCharIndex = 0;
-//                 if (
-//                   streamingRefs.current.currentSubQueryIndex >=
-//                   currentSubQuestion.sub_queries.length
-//                 ) {
-//                   streamingRefs.current.currentState =
-//                     StreamingState.CONTEXT_DOCS;
-//                 }
-//               }
-//             } else {
-//               streamingRefs.current.currentState = StreamingState.CONTEXT_DOCS;
-//             }
-//             break;
-//           }
-
-//           case StreamingState.CONTEXT_DOCS: {
-//             if (
-//               !currentSubQuestion.context_docs ||
-//               !currentSubQuestion.context_docs.top_documents
-//             ) {
-//               streamingRefs.current.timeoutId = setTimeout(loadNextPiece, 100);
-//               return updatedSubQuestions;
-//             }
-
-//             if (
-//               currentDocIndex <
-//               currentSubQuestion.context_docs.top_documents.length
-//             ) {
-//               const currentDoc =
-//                 currentSubQuestion.context_docs.top_documents[currentDocIndex];
-//               if (
-//                 !currentDynamicSubQuestion.context_docs!.top_documents.some(
-//                   (doc) => doc.document_id === currentDoc.document_id
-//                 )
-//               ) {
-//                 currentDynamicSubQuestion.context_docs!.top_documents.push(
-//                   currentDoc
-//                 );
-//               }
-//               streamingRefs.current.currentDocIndex += 1;
-//             } else {
-//               streamingRefs.current.currentState = StreamingState.ANSWER;
-//               streamingRefs.current.currentDocIndex = 0;
-//             }
-//             break;
-//           }
-
-//           case StreamingState.ANSWER: {
-//             if (!currentSubQuestion.answer) {
-//               streamingRefs.current.timeoutId = setTimeout(loadNextPiece, 100);
-//               return updatedSubQuestions;
-//             }
-
-//             if (currentCharIndex < currentSubQuestion.answer.length) {
-//               currentDynamicSubQuestion.answer =
-//                 currentSubQuestion.answer.slice(0, currentCharIndex + 1);
-//               streamingRefs.current.currentCharIndex += 1;
-//             } else {
-//               streamingRefs.current.currentState = StreamingState.COMPLETE;
-//             }
-//             break;
-//           }
-
-//           case StreamingState.COMPLETE: {
-//             streamingRefs.current.currentSubQuestionIndex += 1;
-//             streamingRefs.current.currentSubQueryIndex = 0;
-//             streamingRefs.current.currentCharIndex = 0;
-//             streamingRefs.current.currentDocIndex = 0;
-//             streamingRefs.current.currentState = StreamingState.QUESTION;
-//             break;
-//           }
-//         }
-
-//         return updatedSubQuestions;
-//       });
-
-//       if (streamingRefs.current.currentState !== StreamingState.COMPLETE) {
-//         streamingRefs.current.timeoutId = setTimeout(loadNextPiece, 40);
-//       } else {
-//         // Move on to the next piece immediately after we've reached COMPLETE
-//         if (
-//           streamingRefs.current.currentSubQuestionIndex < subQuestions.length
-//         ) {
-//           streamingRefs.current.timeoutId = setTimeout(loadNextPiece, 40);
-//         }
-//       }
-//     };
-
-//     loadNextPiece();
-
-//     // Cleanup to avoid memory leaks
-//     return () => {
-//       shouldCancel = true;
-//       clearTimeout(streamingRefs.current.timeoutId);
-//     };
-//   }, [subQuestions]);
-
-//   return { dynamicSubQuestions };
-// };
