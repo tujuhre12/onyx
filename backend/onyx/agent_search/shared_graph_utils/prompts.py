@@ -69,6 +69,7 @@ BASE_RAG_PROMPT_v2 = (
 
     Please remember to provide inline citations in the format [[D1]](), [[D2]](), [[D3]](), etc.
     Proper citations are very important to the user!\n\n\n
+    Please remember to provide inline citations in the format [[D1]](), [[D2]](), [[D3]](), etc.\n\n\n
 
     For your general information, here is the ultimate motivation:
     \n--\n {original_question} \n--\n
