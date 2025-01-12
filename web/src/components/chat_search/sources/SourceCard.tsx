@@ -63,13 +63,13 @@ export function SeeMoreBlock({
           Full Results
         </p>
         <div className="flex-shrink-0 flex gap-x-1 items-center">
-          {filteredUniqueSources.slice(0, 3).map((source) => (
-            <SourceIcon sourceType={source} iconSize={16} />
+          {filteredUniqueSources.slice(0, 3).map((source, index) => (
+            <SourceIcon key={index} sourceType={source} iconSize={16} />
           ))}
           {webSourceDomains
             .slice(0, numOfWebSourcesToDisplay)
             .map((domain, ind) => (
-              <WebResultIcon url={domain} />
+              <WebResultIcon key={ind} url={domain} />
             ))}
           {uniqueSources.length > 3 && (
             <span className="text-xs text-text-700 font-semibold ml-1">
