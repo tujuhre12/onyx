@@ -142,6 +142,7 @@ export function ChatPage({
     openedFolders,
     shouldShowWelcomeModal,
     refreshChatSessions,
+    refreshFolders,
   } = useChatContext();
 
   const defaultAssistantIdRaw = searchParams.get(SEARCH_PARAM_NAMES.PERSONA_ID);
