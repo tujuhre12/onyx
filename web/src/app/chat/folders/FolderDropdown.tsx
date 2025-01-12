@@ -129,7 +129,7 @@ export function FolderDropdown({
               type="text"
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
-              className="text-sm font-medium bg-transparent  outline-none w-full pb-1 border-b border-[#6c6c6c] transition-colors duration-200"
+              className="text-sm font-medium bg-transparent outline-none w-full pb-1 border-b border-[#6c6c6c] transition-colors duration-200"
             />
           ) : (
             <div className="flex items-center">

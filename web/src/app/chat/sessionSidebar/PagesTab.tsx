@@ -296,8 +296,8 @@ export function PagesTab({
 
       {isCreatingFolder ? (
         <div className="px-4">
-          <div className="!flex items-center w-full text-[#6c6c6c] rounded-md p-1 relative">
-            <Caret size={16} className="mr-1" />
+          <div className="flex items-center w-full text-[#6c6c6c] rounded-md  relative">
+            <Caret size={16} className="flex-none mr-1" />
             <input
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -307,20 +307,33 @@ export function PagesTab({
               ref={newFolderInputRef}
               type="text"
               placeholder="Enter group name"
-              className="text-sm font-medium bg-transparent  border-b border-text-600 w-fit"
+              className="text-sm font-medium border-b border-[#6c6c6c] bg-transparent "
             />
-            <button
-              type="button"
-              onClick={() => setIsCreatingFolder(false)}
-              className="ml-auto"
-            >
-              <FiX size={14} />
-            </button>
+            <div className="flex -my-1">
+              <div onClick={handleNewFolderSubmit} className="p-1">
+                <FiCheck size={14} />
+              </div>
+              <div onClick={() => setIsCreatingFolder(false)} className="p-1 ">
+                <FiX size={14} />
+              </div>
+            </div>
           </div>
         </div>
       ) : (
         <></>
       )}
+
+      {/* {isEditing && (
+          <div className="flex -my-1">
+            <button onClick={handleEdit} className="p-1  ">
+              <FiCheck size={14} />
+            </button>
+            <button onClick={() => setIsEditing(false)} className="p-1">
+              <FiX size={14} />
+            </button>
+          </div>
+        )}
+         */}
 
       {folders && folders.length > 0 && (
         <DndContext
@@ -385,11 +398,12 @@ export function PagesTab({
           </>
         )}
 
-        {isHistoryEmpty && (
-          <p className="text-sm mt-2 w-[250px]">
-            Try sending a message! Your chat history will appear here.
-          </p>
-        )}
+        {(isHistoryEmpty && !folders) ||
+          (folders && folders.length === 0 && (
+            <p className="text-sm mt-2 w-[250px]">
+              Try sending a message! Your chat history will appear here.
+            </p>
+          ))}
       </div>
       {showDeleteAllModal && NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED && (
         <div className="absolute w-full border-t border-t-border bg-background-100 bottom-0 left-0 p-4">
