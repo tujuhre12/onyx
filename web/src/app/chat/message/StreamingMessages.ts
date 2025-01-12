@@ -24,7 +24,10 @@ interface SubQuestionProgress {
   answerCharIndex: number;
 }
 
-export const useStreamingMessages = (subQuestions: SubQuestionDetail[]) => {
+export const useStreamingMessages = (
+  subQuestions: SubQuestionDetail[],
+  allowStreaming: () => void
+) => {
   const [dynamicSubQuestions, setDynamicSubQuestions] = useState<
     SubQuestionDetail[]
   >([]);
@@ -79,6 +82,21 @@ export const useStreamingMessages = (subQuestions: SubQuestionDetail[]) => {
       const subQs = subQuestionsRef.current;
       if (!subQs || subQs.length === 0) {
         return; // nothing to stream
+      }
+
+      // Check if we have streamed everything
+
+      if (
+        dynamicSubQuestionsRef.current[3] &&
+        dynamicSubQuestionsRef.current[3].answer &&
+        dynamicSubQuestionsRef.current[3].answer.length > 0
+      ) {
+        console.log("streaming allowed");
+        allowStreaming();
+        // Exit the function as we're done streaming
+      } else {
+        console.log("streaming not allowed");
+        console.log(dynamicSubQuestionsRef.current);
       }
 
       // ------------------------------------------------------
