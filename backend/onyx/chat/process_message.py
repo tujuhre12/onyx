@@ -813,6 +813,8 @@ def stream_chat_message_objects(
                     else BASIC_KEY
                 )
                 info = info_by_subq[(level, level_question_nr)]
+                print(packet.id)
+
                 # TODO: don't need to dedupe here when we do it in agent flow
                 if packet.id == SEARCH_RESPONSE_SUMMARY_ID:
                     (
