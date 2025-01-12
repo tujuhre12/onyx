@@ -68,7 +68,7 @@ export default function FunctionalHeader({
   };
   return (
     <div className="left-0 sticky top-0 z-20 w-full relative flex">
-      <div className="items-end flex mt-2 cursor-pointer text-text-700 relative flex w-full">
+      <div className="items-end flex mt-2 text-text-700 relative flex w-full">
         <LogoWithText
           assistantId={currentChatSession?.persona_id}
           page={page}

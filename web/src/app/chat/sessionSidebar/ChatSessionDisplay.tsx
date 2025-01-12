@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ChatSession } from "../interfaces";
-import { useState, useEffect, useContext, useRef } from "react";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import {
   deleteChatSession,
   getChatRetentionInfo,
@@ -59,6 +59,39 @@ export function ChatSessionDisplay({
   const settings = useContext(SettingsContext);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const chatSessionRef = useRef<HTMLDivElement>(null);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  const handlePopoverOpenChange = useCallback(
+    (open: boolean) => {
+      if (!isDeleteModalOpen) {
+        setPopoverOpen(open);
+      }
+    },
+    [isDeleteModalOpen]
+  );
+
+  const handleDeleteClick = useCallback(() => {
+    setIsDeleteModalOpen(true);
+  }, []);
+
+  const handleCancelDelete = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDeleteModalOpen(false);
+  }, []);
+
+  const handleConfirmDelete = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (showDeleteModal) {
+        showDeleteModal(chatSession);
+      }
+      setIsDeleteModalOpen(false);
+      setPopoverOpen(false);
+    },
+    [chatSession, showDeleteModal]
+  );
 
   const onRename = async () => {
     const response = await renameChatSession(chatSession.id, chatName);
@@ -124,7 +157,7 @@ export function ChatSessionDisplay({
         >
           <DragHandle
             size={16}
-            className="w-4 mr-1 invisible group-hover:visible flex-none"
+            className="w-3 ml-1 mr-1 invisible group-hover:visible flex-none"
           />
           <BasicSelectable
             fullWidth
@@ -210,37 +243,69 @@ export function ChatSessionDisplay({
                           className="-my-1"
                         >
                           <Popover
-                            open={isMoreOptionsDropdownOpen}
-                            onOpenChange={(open: boolean) =>
-                              setIsMoreOptionsDropdownOpen(open)
-                            }
+                            open={popoverOpen}
+                            onOpenChange={handlePopoverOpenChange}
                             content={
                               <div className="p-1 rounded">
-                                <FiMoreHorizontal size={16} />
+                                <FiMoreHorizontal
+                                  onClick={() => setPopoverOpen(true)}
+                                  size={16}
+                                />
                               </div>
                             }
                             popover={
-                              <div className="border border-border rounded-lg bg-background z-50 w-32">
-                                {showShareModal && (
-                                  <DefaultDropdownElement
-                                    name="Share"
-                                    icon={FiShare2}
-                                    onSelect={() => showShareModal(chatSession)}
-                                  />
-                                )}
-                                {!search && (
-                                  <DefaultDropdownElement
-                                    name="Rename"
-                                    icon={FiEdit2}
-                                    onSelect={() => setIsRenamingChat(true)}
-                                  />
-                                )}
-                                {showDeleteModal && (
-                                  <DefaultDropdownElement
-                                    name="Delete"
-                                    icon={FiTrash}
-                                    onSelect={() => setIsDeleteModalOpen(true)}
-                                  />
+                              <div
+                                className={`border border-border rounded-lg bg-background z-50 ${
+                                  isDeleteModalOpen ? "w-72" : "w-32"
+                                }`}
+                              >
+                                {!isDeleteModalOpen ? (
+                                  <>
+                                    {showShareModal && (
+                                      <DefaultDropdownElement
+                                        name="Share"
+                                        icon={FiShare2}
+                                        onSelect={() =>
+                                          showShareModal(chatSession)
+                                        }
+                                      />
+                                    )}
+                                    {!search && (
+                                      <DefaultDropdownElement
+                                        name="Rename"
+                                        icon={FiEdit2}
+                                        onSelect={() => setIsRenamingChat(true)}
+                                      />
+                                    )}
+                                    {showDeleteModal && (
+                                      <DefaultDropdownElement
+                                        name="Delete"
+                                        icon={FiTrash}
+                                        onSelect={handleDeleteClick}
+                                      />
+                                    )}
+                                  </>
+                                ) : (
+                                  <div className="p-3">
+                                    <p className="text-sm mb-3">
+                                      Are you sure you want to delete this chat
+                                      session?
+                                    </p>
+                                    <div className="flex justify-end gap-2">
+                                      <button
+                                        className="px-3 py-1 text-sm bg-gray-200 rounded"
+                                        onClick={handleCancelDelete}
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        className="px-3 py-1 text-sm bg-red-500 text-white rounded"
+                                        onClick={handleConfirmDelete}
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </div>
                                 )}
                               </div>
                             }
@@ -257,39 +322,6 @@ export function ChatSessionDisplay({
           </BasicSelectable>
         </Link>
       </div>
-
-      <SlideOverModal
-        isOpen={isDeleteModalOpen}
-        onOpenChange={setIsDeleteModalOpen}
-        anchor={chatSessionRef}
-      >
-        <div className="px-4 pb-4">
-          <h2 className="text-xl font-semibold mb-4">
-            Delete Chat Session "{chatSession.name}"
-          </h2>
-          <p className="mb-4">
-            Are you sure you want to delete this chat session?
-          </p>
-          <div className="flex justify-end space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                await deleteChatSession(chatSession.id);
-                setIsDeleteModalOpen(false);
-                refreshChatSessions();
-              }}
-            >
-              Delete
-            </Button>
-          </div>
-        </div>
-      </SlideOverModal>
     </>
   );
 }

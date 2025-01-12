@@ -28,6 +28,7 @@ interface ChatContextProps {
   defaultAssistantId?: number;
   refreshChatSessions: () => Promise<void>;
   reorderFolders: (displayPriorityMap: Record<number, number>) => void;
+  refreshFolders: () => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextProps | undefined>(undefined);
@@ -66,6 +67,12 @@ export const ChatProvider: React.FC<{
       console.error("Error refreshing chat sessions:", error);
     }
   };
+  const refreshFolders = async () => {
+    const response = await fetch("/api/folder");
+    if (!response.ok) throw new Error("Failed to fetch folders");
+    const { folders } = await response.json();
+    setFolders(folders);
+  };
 
   return (
     <ChatContext.Provider
@@ -75,6 +82,7 @@ export const ChatProvider: React.FC<{
         folders,
         reorderFolders,
         refreshChatSessions,
+        refreshFolders,
       }}
     >
       {children}

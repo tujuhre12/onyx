@@ -54,17 +54,38 @@ interface SortableFolderProps {
 const SortableFolder: React.FC<SortableFolderProps> = (props) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: props.folder.folder_id?.toString() ?? "" });
-
+  const ref = useRef<HTMLDivElement>(null);
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
   const [isHovering, setIsHovering] = useState(false);
 
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (ref.current) {
+        const rect = ref.current.getBoundingClientRect();
+        const isInside =
+          event.clientX >= rect.left &&
+          event.clientX <= rect.right &&
+          event.clientY >= rect.top &&
+          event.clientY <= rect.bottom;
+        if (isInside) {
+          setIsHovering(true);
+        } else {
+          setIsHovering(false);
+        }
+      }
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, []);
+
   return (
     <div
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
       ref={setNodeRef}
       className="pr-4 overflow-visible flex items-start"
       style={style}
@@ -73,11 +94,11 @@ const SortableFolder: React.FC<SortableFolderProps> = (props) => {
         size={16}
         {...attributes}
         {...listeners}
-        className={`w-4 mt-1.5 ${
+        className={`w-3 ml-1 mt-1.5 ${
           isHovering ? "visible" : "invisible"
         } flex-none cursor-grab`}
       />
-      <FolderDropdown {...props} />
+      <FolderDropdown ref={ref} {...props} />
     </div>
   );
 };
@@ -107,7 +128,7 @@ export function PagesTab({
   const router = useRouter();
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const newFolderInputRef = useRef<HTMLInputElement>(null);
-  const { reorderFolders } = useChatContext();
+  const { reorderFolders, refreshFolders } = useChatContext();
 
   const handleEditFolder = useCallback(
     (folderId: number | "chats", newName: string) => {
@@ -188,9 +209,10 @@ export function PagesTab({
             });
           });
       }
+      await refreshFolders();
       setIsCreatingFolder(false);
     },
-    [router, setNewFolderId, setPopup]
+    [router, setNewFolderId, setPopup, refreshFolders]
   );
 
   const groupedChatSesssions = groupSessionsByDateRange(existingChats || []);
@@ -296,7 +318,7 @@ export function PagesTab({
 
       {isCreatingFolder ? (
         <div className="px-4">
-          <div className="flex items-center w-full text-[#6c6c6c] rounded-md  relative">
+          <div className="flex  overflow-visible items-center w-full text-[#6c6c6c] rounded-md p-1 relative">
             <Caret size={16} className="flex-none mr-1" />
             <input
               onKeyDown={(e) => {
@@ -307,13 +329,13 @@ export function PagesTab({
               ref={newFolderInputRef}
               type="text"
               placeholder="Enter group name"
-              className="text-sm font-medium border-b border-[#6c6c6c] bg-transparent "
+              className="text-sm font-medium bg-transparent outline-none w-full pb-1 border-b border-[#6c6c6c] transition-colors duration-200"
             />
             <div className="flex -my-1">
-              <div onClick={handleNewFolderSubmit} className="p-1">
+              <div onClick={handleNewFolderSubmit} className="px-1">
                 <FiCheck size={14} />
               </div>
-              <div onClick={() => setIsCreatingFolder(false)} className="p-1 ">
+              <div onClick={() => setIsCreatingFolder(false)} className="px-1 ">
                 <FiX size={14} />
               </div>
             </div>
