@@ -145,7 +145,7 @@ export function AssistantIcon({
         </TooltipTrigger>
         {!disableToolip && assistant.description && (
           <TooltipContent>
-            <p>{assistant.description}</p>
+            <p className="text-left">{assistant.description}</p>
           </TooltipContent>
         )}
       </Tooltip>

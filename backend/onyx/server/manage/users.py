@@ -673,12 +673,42 @@ def update_user_default_model(
     db_session.commit()
 
 
+class ReorderPinnedAssistantsRequest(BaseModel):
+    ordered_assistant_ids: list[int]
+
+
+@router.patch("/user/pinned-assistants")
+def update_user_pinned_assistants(
+    request: ReorderPinnedAssistantsRequest,
+    user: User | None = Depends(current_user),
+    db_session: Session = Depends(get_session),
+) -> None:
+    ordered_assistant_ids = request.ordered_assistant_ids
+
+    if user is None:
+        if AUTH_TYPE == AuthType.DISABLED:
+            store = get_kv_store()
+            no_auth_user = fetch_no_auth_user(store)
+            no_auth_user.preferences.pinned_assistants = ordered_assistant_ids
+            set_no_auth_user_preferences(store, no_auth_user.preferences)
+            return
+        else:
+            raise RuntimeError("This should never happen")
+
+    db_session.execute(
+        update(User)
+        .where(User.id == user.id)  # type: ignore
+        .values(pinned_assistants=ordered_assistant_ids)
+    )
+    db_session.commit()
+
+
 class PinnedAssistantsRequest(BaseModel):
     assistant_id: int
 
 
 @router.patch("/user/pinned-assistants/{assistant_id}")
-def update_user_pinned_assistants(
+def update_user_pinned_assistant(
     assistant_id: int,
     pinned: bool,
     user: User | None = Depends(current_user),

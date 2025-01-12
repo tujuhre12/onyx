@@ -2,8 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { ChatSession } from "../interfaces";
-import { useState, useEffect, useContext } from "react";
-import { getChatRetentionInfo, renameChatSession } from "../lib";
+import { useState, useEffect, useContext, useRef } from "react";
+import {
+  deleteChatSession,
+  getChatRetentionInfo,
+  renameChatSession,
+} from "../lib";
 import { BasicSelectable } from "@/components/BasicClickable";
 import Link from "next/link";
 import {
@@ -21,8 +25,8 @@ import { CHAT_SESSION_ID_KEY, FOLDER_ID_KEY } from "@/lib/drag/constants";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { WarningCircle } from "@phosphor-icons/react";
 import { CustomTooltip } from "@/components/tooltip/CustomTooltip";
-
-import { FaHashtag } from "react-icons/fa";
+import SlideOverModal from "@/components/ui/SlideOverModal";
+import { useChatContext } from "@/components/context/ChatContext";
 
 export function ChatSessionDisplay({
   chatSession,
@@ -51,6 +55,8 @@ export function ChatSessionDisplay({
   const [isShareModalVisible, setIsShareModalVisible] = useState(false);
   const [chatName, setChatName] = useState(chatSession.name);
   const settings = useContext(SettingsContext);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const chatSessionRef = useRef<HTMLDivElement>(null);
 
   const onRename = async () => {
     const response = await renameChatSession(chatSession.id, chatName);
@@ -70,6 +76,7 @@ export function ChatSessionDisplay({
     chatSession,
     settings?.settings
   );
+  const { refreshChatSessions, reorderFolders } = useChatContext();
 
   return (
     <>
@@ -81,128 +88,113 @@ export function ChatSessionDisplay({
         />
       )}
 
-      <Link
-        className="flex group relative"
-        key={chatSession.id}
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => {
-          setIsMoreOptionsDropdownOpen(false);
-          setIsHovering(false);
-        }}
-        onClick={() => {
-          if (settings?.isMobile && closeSidebar) {
-            closeSidebar();
+      <div ref={chatSessionRef}>
+        <Link
+          className="flex items-center w-full group relative"
+          key={chatSession.id}
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => {
+            setIsMoreOptionsDropdownOpen(false);
+            setIsHovering(false);
+          }}
+          onClick={() => {
+            if (settings?.isMobile && closeSidebar) {
+              closeSidebar();
+            }
+          }}
+          href={
+            search
+              ? `/search?searchId=${chatSession.id}`
+              : `/chat?chatId=${chatSession.id}`
           }
-        }}
-        href={
-          search
-            ? `/search?searchId=${chatSession.id}`
-            : `/chat?chatId=${chatSession.id}`
-        }
-        scroll={false}
-        draggable="true"
-        onDragStart={(event) => {
-          event.dataTransfer.setData(
-            CHAT_SESSION_ID_KEY,
-            chatSession.id.toString()
-          );
-          event.dataTransfer.setData(
-            FOLDER_ID_KEY,
-            chatSession.folder_id?.toString() || ""
-          );
-        }}
-      >
-        <BasicSelectable fullWidth selected={isSelected}>
-          <>
-            {/* // Profit Margin trends
-text-black
-text-sm
-font-normal
-font-['KH
-Teka
-TRIAL']
-leading-normal */}
-            <div className="flex text-text-darker text-sm leading-normal relative gap-x-2">
-              {isRenamingChat ? (
-                <input
-                  value={chatName}
-                  onChange={(e) => setChatName(e.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      onRename();
-                      event.preventDefault();
-                    }
-                  }}
-                  className="-my-px px-1 mr-1 w-full rounded"
-                />
-              ) : (
-                <p className="break-all overflow-hidden whitespace-nowrap w-full mr-3 relative">
-                  {chatName || `Chat ${chatSession.id}`}
-                  <span
-                    className={`absolute right-0 top-0 h-full w-8 bg-gradient-to-r from-transparent 
-                    ${
-                      isSelected
-                        ? "to-background-chat-selected"
-                        : "group-hover:to-background-chat-hover to-background-sidebar"
-                    } `}
+          scroll={false}
+          draggable="true"
+          onDragStart={(event) => {
+            event.dataTransfer.setData(
+              CHAT_SESSION_ID_KEY,
+              chatSession.id.toString()
+            );
+            event.dataTransfer.setData(
+              FOLDER_ID_KEY,
+              chatSession.folder_id?.toString() || ""
+            );
+          }}
+        >
+          {/* <DragHandle size={16} className="w-4  group-hover:visible flex-none" /> */}
+          <BasicSelectable
+            fullWidth
+            selected={isSelected}
+            removeColors={isRenamingChat}
+          >
+            <>
+              <div className="flex  text-text-darker text-sm leading-normal relative gap-x-2">
+                {isRenamingChat ? (
+                  <input
+                    value={chatName}
+                    onChange={(e) => setChatName(e.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        onRename();
+                        event.preventDefault();
+                      }
+                    }}
+                    className="text-sm bg-transparent  border-b border-text-darker flex-1 min-w-0 -my-px mr-2"
                   />
-                </p>
-              )}
-
-              {isHovering &&
-                (isRenamingChat ? (
-                  <div className="ml-auto my-auto items-center flex">
-                    <div
-                      onClick={onRename}
-                      className={`hover:bg-black/10  p-1 -m-1 rounded`}
-                    >
-                      <FiCheck size={16} />
-                    </div>
-                    <div
-                      onClick={() => {
-                        setChatName(chatSession.name);
-                        setIsRenamingChat(false);
-                      }}
-                      className={`hover:bg-black/10 p-1 -m-1 rounded ml-2`}
-                    >
-                      <FiX size={16} />
-                    </div>
-                  </div>
                 ) : (
-                  <div className="ml-auto my-auto justify-end flex z-30">
-                    {!showShareModal && showRetentionWarning && (
-                      <CustomTooltip
-                        line
-                        content={
-                          <p>
-                            This chat will expire{" "}
-                            {daysUntilExpiration < 1
-                              ? "today"
-                              : `in ${daysUntilExpiration} day${
-                                  daysUntilExpiration !== 1 ? "s" : ""
-                                }`}
-                          </p>
-                        }
+                  <p className="break-all overflow-hidden whitespace-nowrap w-full mr-3 relative">
+                    {chatName || `Chat ${chatSession.id}`}
+                    <span
+                      className={`absolute right-0 top-0 h-full w-8 bg-gradient-to-r from-transparent 
+                      ${
+                        isSelected
+                          ? "to-background-chat-selected"
+                          : "group-hover:to-background-chat-hover to-background-sidebar"
+                      } `}
+                    />
+                  </p>
+                )}
+
+                {isHovering &&
+                  (isRenamingChat ? (
+                    <div className="flex ml-auto my-auto">
+                      <div
+                        onClick={onRename}
+                        className="hover:bg-black/10 p-1 -m-1 rounded"
                       >
-                        <div className="mr-1 hover:bg-black/10 p-1 -m-1 rounded z-50">
-                          <WarningCircle className="text-warning" />
-                        </div>
-                      </CustomTooltip>
-                    )}
-                    <div>
-                      {search ? (
-                        showDeleteModal && (
-                          <div
-                            onClick={(e) => {
-                              e.preventDefault();
-                              showDeleteModal(chatSession);
-                            }}
-                            className={`p-1 -m-1 rounded ml-1`}
-                          >
-                            <FiTrash size={16} />
+                        <FiCheck size={16} />
+                      </div>
+                      <div
+                        onClick={() => {
+                          setChatName(chatSession.name);
+                          setIsRenamingChat(false);
+                        }}
+                        className="hover:bg-black/10 p-1 -m-1 rounded ml-2"
+                      >
+                        <FiX size={16} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="ml-auto my-auto justify-end flex z-30">
+                      {!showShareModal && showRetentionWarning && (
+                        <CustomTooltip
+                          line
+                          content={
+                            <p>
+                              This chat will expire{" "}
+                              {daysUntilExpiration < 1
+                                ? "today"
+                                : `in ${daysUntilExpiration} day${
+                                    daysUntilExpiration !== 1 ? "s" : ""
+                                  }`}
+                            </p>
+                          }
+                        >
+                          <div className="mr-1 hover:bg-black/10 p-1 -m-1 rounded z-50">
+                            <WarningCircle className="text-warning" />
                           </div>
-                        )
-                      ) : (
+                        </CustomTooltip>
+                      )}
+                      <div>
                         <div
                           onClick={(e) => {
                             e.preventDefault();
@@ -242,9 +234,7 @@ leading-normal */}
                                   <DefaultDropdownElement
                                     name="Delete"
                                     icon={FiTrash}
-                                    onSelect={() =>
-                                      showDeleteModal(chatSession)
-                                    }
+                                    onSelect={() => setIsDeleteModalOpen(true)}
                                   />
                                 )}
                               </div>
@@ -254,14 +244,45 @@ leading-normal */}
                             triggerMaxWidth
                           />
                         </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-            </div>
-          </>
-        </BasicSelectable>
-      </Link>
+                  ))}
+              </div>
+            </>
+          </BasicSelectable>
+        </Link>
+      </div>
+
+      <SlideOverModal
+        isOpen={isDeleteModalOpen}
+        onOpenChange={setIsDeleteModalOpen}
+        anchor={chatSessionRef}
+      >
+        <div className="px-4 pb-4">
+          <h2 className="text-xl font-semibold mb-4">Delete Chat Session</h2>
+          <p className="mb-4">
+            Are you sure you want to delete this chat session?
+          </p>
+          <div className="flex justify-end space-x-2">
+            <button
+              className="px-4 py-2 bg-gray-200 text-gray-800 rounded"
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-4 py-2 bg-red-500 text-white rounded"
+              onClick={async () => {
+                await deleteChatSession(chatSession.id);
+                setIsDeleteModalOpen(false);
+                refreshChatSessions();
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </SlideOverModal>
     </>
   );
 }

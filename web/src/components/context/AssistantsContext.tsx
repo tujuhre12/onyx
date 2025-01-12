@@ -5,6 +5,8 @@ import React, {
   useContext,
   useMemo,
   useEffect,
+  SetStateAction,
+  Dispatch,
 } from "react";
 import { Persona } from "@/app/admin/assistants/interfaces";
 import {
@@ -22,6 +24,7 @@ interface AssistantsContextProps {
   finalAssistants: Persona[];
   ownedButHiddenAssistants: Persona[];
   pinnedAssistants: Persona[];
+  setPinnedAssistants: Dispatch<SetStateAction<Persona[]>>;
   refreshAssistants: () => Promise<void>;
   isImageGenerationAvailable: boolean;
   recentAssistants: Persona[];
@@ -49,6 +52,7 @@ export const AssistantsProvider: React.FC<{
   const [assistants, setAssistants] = useState<Persona[]>(
     initialAssistants || []
   );
+  const [pinnedAssistants, setPinnedAssistants] = useState<Persona[]>([]);
   const { user, isAdmin, isCurator } = useUser();
   const [editablePersonas, setEditablePersonas] = useState<Persona[]>([]);
   const [allAssistants, setAllAssistants] = useState<Persona[]>([]);
@@ -173,7 +177,6 @@ export const AssistantsProvider: React.FC<{
     visibleAssistants,
     hiddenAssistants,
     finalAssistants,
-    pinnedAssistants,
     ownedButHiddenAssistants,
   } = useMemo(() => {
     const { visibleAssistants, hiddenAssistants } = classifyAssistants(
@@ -186,6 +189,7 @@ export const AssistantsProvider: React.FC<{
         )
       : visibleAssistants.slice(0, 3);
 
+    setPinnedAssistants(pinnedAssistants);
     // Fallback to first 3 assistants if pinnedAssistants is empty
     const finalPinnedAssistants =
       pinnedAssistants.length > 0 ? pinnedAssistants : assistants.slice(0, 3);
@@ -216,6 +220,7 @@ export const AssistantsProvider: React.FC<{
         hiddenAssistants,
         finalAssistants,
         pinnedAssistants,
+        setPinnedAssistants,
         ownedButHiddenAssistants,
         refreshAssistants,
         editablePersonas,
