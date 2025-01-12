@@ -25,6 +25,7 @@ import Cookies from "js-cookie";
 import { Popover } from "@/components/popover/Popover";
 import { ChatSession } from "../interfaces";
 import { useChatContext } from "@/components/context/ChatContext";
+
 const FolderItem = ({
   folder,
   currentChatId,

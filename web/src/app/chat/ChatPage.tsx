@@ -1951,12 +1951,7 @@ export function ChatPage({
   }, [router]);
   const [sharedChatSession, setSharedChatSession] =
     useState<ChatSession | null>();
-  const [deletingChatSession, setDeletingChatSession] =
-    useState<ChatSession | null>();
 
-  const showDeleteModal = (chatSession: ChatSession) => {
-    setDeletingChatSession(chatSession);
-  };
   const showShareModal = (chatSession: ChatSession) => {
     setSharedChatSession(chatSession);
   };
@@ -2098,30 +2093,6 @@ export function ChatPage({
         </div>
       )}
 
-      {deletingChatSession && (
-        <DeleteEntityModal
-          includeCancelButton
-          additionalDetails="This will permanently delete the chat session."
-          entityType="chat"
-          entityName={deletingChatSession.name.slice(0, 30)}
-          onClose={() => setDeletingChatSession(null)}
-          onSubmit={async () => {
-            const response = await deleteChatSession(deletingChatSession.id);
-            if (response.ok) {
-              setDeletingChatSession(null);
-              // go back to the main page
-              if (deletingChatSession.id === chatSessionIdRef.current) {
-                router.push("/chat");
-              }
-            } else {
-              const responseJson = await response.json();
-              setPopup({ message: responseJson.detail, type: "error" });
-            }
-            refreshChatSessions();
-          }}
-        />
-      )}
-
       {presentingDocument && (
         <TextView
           presentingDocument={presentingDocument}
@@ -2210,7 +2181,6 @@ export function ChatPage({
                   openedFolders={openedFolders}
                   removeToggle={removeToggle}
                   showShareModal={showShareModal}
-                  showDeleteModal={showDeleteModal}
                   showDeleteAllModal={() => setShowDeleteAllModal(true)}
                 />
               </div>

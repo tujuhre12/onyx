@@ -42,7 +42,13 @@ export function Popover({
 
   return (
     <RadixPopover.Root open={open} onOpenChange={onOpenChange}>
-      <RadixPopover.Trigger style={triggerMaxWidth ? { width: "100%" } : {}}>
+      <RadixPopover.Trigger
+        style={triggerMaxWidth ? { width: "100%" } : {}}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
         {/* NOTE: this weird `-mb-1.5` is needed to offset the Anchor, otherwise 
           the content will shift up by 1.5px when the Popover is open. */}
         {open ? (
@@ -65,6 +71,7 @@ export function Popover({
           align={align}
           sideOffset={sideOffset}
           alignOffset={alignOffset}
+          onClick={(e) => e.stopPropagation()}
         >
           {popover}
         </RadixPopover.Content>

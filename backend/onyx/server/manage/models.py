@@ -75,6 +75,8 @@ class UserInfo(BaseModel):
         organization_name: str | None = None,
         is_anonymous_user: bool | None = None,
     ) -> "UserInfo":
+        print("user.pinned_assistants", user.pinned_assistants)
+        print("user.pinned_assistants", user.pinned_assistants)
         return cls(
             id=str(user.id),
             email=user.email,
@@ -88,6 +90,7 @@ class UserInfo(BaseModel):
                     chosen_assistants=user.chosen_assistants,
                     default_model=user.default_model,
                     hidden_assistants=user.hidden_assistants,
+                    pinned_assistants=user.pinned_assistants,
                     visible_assistants=user.visible_assistants,
                 )
             ),

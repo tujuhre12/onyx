@@ -87,18 +87,10 @@ const SortableFolder: React.FC<SortableFolderProps> = (props) => {
   return (
     <div
       ref={setNodeRef}
-      className="pr-4 overflow-visible flex items-start"
+      className="pr-4 ml-4 overflow-visible flex items-start"
       style={style}
     >
-      <DragHandle
-        size={16}
-        {...attributes}
-        {...listeners}
-        className={`w-3 ml-1 mt-1.5 ${
-          isHovering ? "visible" : "invisible"
-        } flex-none cursor-grab`}
-      />
-      <FolderDropdown ref={ref} {...props} />
+      <FolderDropdown ref={ref} {...props} {...attributes} {...listeners} />
     </div>
   );
 };
@@ -128,33 +120,31 @@ export function PagesTab({
   const router = useRouter();
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const newFolderInputRef = useRef<HTMLInputElement>(null);
-  const { reorderFolders, refreshFolders } = useChatContext();
+  const { reorderFolders, refreshFolders, refreshChatSessions } =
+    useChatContext();
 
   const handleEditFolder = useCallback(
-    (folderId: number | "chats", newName: string) => {
-      if (folderId === "chats") return; // Don't edit the default "Chats" folder
-      updateFolderName(folderId, newName)
-        .then(() => {
-          router.refresh();
-          setPopup({
-            message: "Folder updated successfully",
-            type: "success",
-          });
-        })
-        .catch((error: Error) => {
-          console.error("Failed to update folder:", error);
-          setPopup({
-            message: `Failed to update folder: ${error.message}`,
-            type: "error",
-          });
+    async (folderId: number, newName: string) => {
+      try {
+        await updateFolderName(folderId, newName);
+        setPopup({
+          message: "Folder updated successfully",
+          type: "success",
         });
+        await refreshFolders();
+      } catch (error) {
+        console.error("Failed to update folder:", error);
+        setPopup({
+          message: `Failed to update folder: ${(error as Error).message}`,
+          type: "error",
+        });
+      }
     },
-    [router, setPopup]
+    [router, setPopup, refreshChatSessions, refreshFolders]
   );
 
   const handleDeleteFolder = useCallback(
-    (folderId: number | "chats") => {
-      if (folderId === "chats") return; // Don't delete the default "Chats" folder
+    (folderId: number) => {
       if (
         confirm(
           "Are you sure you want to delete this folder? This action cannot be undone."
@@ -192,30 +182,40 @@ export function PagesTab({
       e.preventDefault();
       const newFolderName = newFolderInputRef.current?.value;
       if (newFolderName) {
-        await createFolder(newFolderName)
-          .then((folderId) => {
-            router.refresh();
-            setNewFolderId(folderId);
-            setPopup({
-              message: "Folder created successfully",
-              type: "success",
-            });
-          })
-          .catch((error) => {
-            console.error("Failed to create folder:", error);
-            setPopup({
-              message: `Failed to create folder: ${error.message}`,
-              type: "error",
-            });
+        try {
+          const folderId = await createFolder(newFolderName);
+          await refreshFolders();
+          setNewFolderId(folderId);
+          router.refresh();
+          setPopup({
+            message: "Folder created successfully",
+            type: "success",
           });
+        } catch (error) {
+          console.error("Failed to create folder:", error);
+          setPopup({
+            message: `Failed to create folder: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+            type: "error",
+          });
+        }
       }
-      await refreshFolders();
       setIsCreatingFolder(false);
     },
     [router, setNewFolderId, setPopup, refreshFolders]
   );
 
-  const groupedChatSesssions = groupSessionsByDateRange(existingChats || []);
+  const existingChatsNotinFolders = existingChats?.filter(
+    (chat) =>
+      !folders?.some((folder) =>
+        folder.chat_sessions?.some((session) => session.id === chat.id)
+      )
+  );
+
+  const groupedChatSesssions = groupSessionsByDateRange(
+    existingChatsNotinFolders || []
+  );
 
   const isHistoryEmpty = !existingChats || existingChats.length === 0;
 
@@ -237,14 +237,17 @@ export function PagesTab({
           type: "error",
         });
       }
+      // await refreshChatSessions();
+      await refreshFolders();
     },
     [router, setPopup]
   );
 
   const renderChatSession = useCallback(
-    (chat: ChatSession) => (
+    (chat: ChatSession, foldersExisting: boolean) => (
       <div
         key={chat.id}
+        className="-ml-4 -mr-2"
         draggable
         onDragStart={(e) => {
           e.dataTransfer.setData("text/plain", chat.id);
@@ -252,6 +255,7 @@ export function PagesTab({
       >
         <ChatSessionDisplay
           chatSession={chat}
+          foldersExisting={foldersExisting}
           isSelected={currentChatId === chat.id}
           showShareModal={showShareModal}
           showDeleteModal={showDeleteModal}
@@ -303,6 +307,7 @@ export function PagesTab({
 
   return (
     <div className="flex flex-col gap-y-2 overflow-y-auto flex-grow">
+      {popup}
       <div className="px-4 mt-2 group mr-2">
         <div className="flex justify-between text-sm gap-x-2 text-[#6c6c6c] items-center font-normal leading-normal">
           <p>Chats</p>
@@ -345,18 +350,6 @@ export function PagesTab({
         <></>
       )}
 
-      {/* {isEditing && (
-          <div className="flex -my-1">
-            <button onClick={handleEdit} className="p-1  ">
-              <FiCheck size={14} />
-            </button>
-            <button onClick={() => setIsEditing(false)} className="p-1">
-              <FiX size={14} />
-            </button>
-          </div>
-        )}
-         */}
-
       {folders && folders.length > 0 && (
         <DndContext
           sensors={sensors}
@@ -384,7 +377,12 @@ export function PagesTab({
                   onDrop={handleDrop}
                 >
                   {folder.chat_sessions &&
-                    folder.chat_sessions.map(renderChatSession)}
+                    folder.chat_sessions.map((chat) =>
+                      renderChatSession(
+                        chat,
+                        folders != undefined && folders.length > 0
+                      )
+                    )}
                 </SortableFolder>
               ))}
           </SortableContext>
@@ -408,24 +406,26 @@ export function PagesTab({
                   }}
                   currentChatId={currentChatId}
                   showShareModal={showShareModal}
-                  showDeleteModal={showDeleteModal}
                   closeSidebar={closeSidebar}
                   onEdit={handleEditFolder}
-                  onDelete={handleDeleteFolder}
                   onDrop={handleDrop}
                 >
-                  {chats.map(renderChatSession)}
+                  {chats.map((chat) =>
+                    renderChatSession(
+                      chat,
+                      folders != undefined && folders.length > 0
+                    )
+                  )}
                 </FolderDropdown>
               ))}
           </>
         )}
 
-        {(isHistoryEmpty && !folders) ||
-          (folders && folders.length === 0 && (
-            <p className="text-sm mt-2 w-[250px]">
-              Try sending a message! Your chat history will appear here.
-            </p>
-          ))}
+        {isHistoryEmpty && (!folders || folders.length === 0) && (
+          <p className="text-sm mt-2 w-[250px]">
+            Try sending a message! Your chat history will appear here.
+          </p>
+        )}
       </div>
       {showDeleteAllModal && NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED && (
         <div className="absolute w-full border-t border-t-border bg-background-100 bottom-0 left-0 p-4">

@@ -87,7 +87,7 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
   onUnpin,
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: assistant.id });
+    useSortable({ id: assistant.id === 0 ? "assistant-0" : assistant.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -101,11 +101,11 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
         {...attributes}
         {...listeners}
         size={16}
-        className="w-3 ml-1 group-hover:visible invisible flex-none cursor-grab"
+        className="w-3 ml-1 group-hover:visible invisible hover:bg-background-chat-hover flex-none cursor-grab"
       />
       <button
         onClick={onClick}
-        className={`cursor-pointer w-full group hover:bg-hover-light ${
+        className={`cursor-pointer w-full group hover:bg-background-chat-hover ${
           currentAssistantId === assistant.id ? "bg-hover-light" : ""
         } relative flex items-center gap-x-2 py-1 px-2 rounded-md`}
       >
@@ -173,19 +173,24 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
         if (active.id !== over?.id) {
           setPinnedAssistants((prevAssistants: Persona[]) => {
             const oldIndex = prevAssistants.findIndex(
-              (a: Persona) => a.id === active.id
+              (a: Persona) => (a.id === 0 ? "assistant-0" : a.id) === active.id
             );
             const newIndex = prevAssistants.findIndex(
-              (a: Persona) => a.id === over?.id
+              (a: Persona) => (a.id === 0 ? "assistant-0" : a.id) === over?.id
             );
 
             const newOrder = arrayMove(prevAssistants, oldIndex, newIndex);
-            reorderPinnedAssistants(newOrder.map((a: Persona) => a.id));
+
+            // Ensure we're sending the correct IDs to the API
+            const reorderedIds = newOrder.map((a: Persona) => a.id);
+            console.log("reorderedIds", reorderedIds);
+            reorderPinnedAssistants(reorderedIds);
+
             return newOrder;
           });
         }
       },
-      [setPinnedAssistants]
+      [setPinnedAssistants, reorderPinnedAssistants]
     );
 
     const combinedSettings = useContext(SettingsContext);
@@ -274,13 +279,15 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={pinnedAssistants.map((a) => a.id)}
+                items={pinnedAssistants.map((a) =>
+                  a.id === 0 ? "assistant-0" : a.id
+                )}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="flex px-0  mr-4 flex-col gap-y-1 mt-1">
                   {pinnedAssistants.map((assistant: Persona) => (
                     <SortableAssistant
-                      key={assistant.id}
+                      key={assistant.id === 0 ? "assistant-0" : assistant.id}
                       assistant={assistant}
                       currentAssistantId={currentAssistantId}
                       onClick={() => {
@@ -302,7 +309,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             <div className="w-full px-4">
               <button
                 onClick={() => setShowAssistantsModal(true)}
-                className="w-full cursor-pointer text-base text-black hover:bg-hover-light flex items-center gap-x-2 py-1 px-2 rounded-md"
+                className="w-full cursor-pointer text-base text-black hover:bg-background-chat-hover flex items-center gap-x-2 py-1 px-2 rounded-md"
               >
                 Explore Assistants
               </button>

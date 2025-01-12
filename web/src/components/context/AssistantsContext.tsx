@@ -184,10 +184,16 @@ export const AssistantsProvider: React.FC<{
       assistants
     );
     const pinnedAssistants = user?.preferences.pinned_assistants
-      ? visibleAssistants.filter((assistant) =>
-          user.preferences.pinned_assistants.includes(assistant.id)
-        )
-      : visibleAssistants.slice(0, 3);
+      ? visibleAssistants
+          .filter((assistant) =>
+            user.preferences.pinned_assistants.includes(assistant.id)
+          )
+          .sort((a, b) => {
+            const indexA = user.preferences.pinned_assistants.indexOf(a.id);
+            const indexB = user.preferences.pinned_assistants.indexOf(b.id);
+            return indexA - indexB;
+          })
+      : [];
 
     setPinnedAssistants(pinnedAssistants);
     // Fallback to first 3 assistants if pinnedAssistants is empty
