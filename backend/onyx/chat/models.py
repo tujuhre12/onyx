@@ -53,6 +53,8 @@ class QADocsResponse(RetrievalDocs):
     applied_source_filters: list[DocumentSource] | None
     applied_time_cutoff: datetime | None
     recency_bias_multiplier: float
+    level: int | None = None
+    level_question_nr: int | None = None
 
     def model_dump(self, *args: list, **kwargs: dict[str, Any]) -> dict[str, Any]:  # type: ignore
         initial_dict = super().model_dump(mode="json", *args, **kwargs)  # type: ignore

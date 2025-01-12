@@ -26,6 +26,7 @@ from onyx.chat.models import OnyxContexts
 from onyx.chat.models import PromptConfig
 from onyx.chat.models import ProSearchConfig
 from onyx.chat.models import ProSearchPacket
+from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import QADocsResponse
 from onyx.chat.models import StreamingError
 from onyx.chat.models import StreamStopInfo
@@ -163,12 +164,13 @@ def _handle_search_tool_response_summary(
 ) -> tuple[QADocsResponse, list[DbSearchDoc], list[int] | None]:
     response_sumary = cast(SearchResponseSummary, packet.response)
 
+    is_extended = isinstance(packet, ExtendedToolResponse)
     dropped_inds = None
     if not selected_search_docs:
         top_docs = chunks_or_sections_to_search_docs(response_sumary.top_sections)
 
         deduped_docs = top_docs
-        if dedupe_docs:
+        if dedupe_docs and not is_extended: # Extended tool responses are already deduped
             deduped_docs, dropped_inds = dedupe_documents(top_docs)
 
         reference_db_search_docs = [
@@ -182,6 +184,10 @@ def _handle_search_tool_response_summary(
         translate_db_search_doc_to_server_search_doc(db_search_doc)
         for db_search_doc in reference_db_search_docs
     ]
+
+    level, question_nr = None, None
+    if isinstance(packet, ExtendedToolResponse):
+        level, question_nr = packet.level, packet.level_question_nr
     return (
         QADocsResponse(
             rephrased_query=response_sumary.rephrased_query,
@@ -191,6 +197,8 @@ def _handle_search_tool_response_summary(
             applied_source_filters=response_sumary.final_filters.source_type,
             applied_time_cutoff=response_sumary.final_filters.time_cutoff,
             recency_bias_multiplier=response_sumary.recency_bias_multiplier,
+            level=level,
+            level_question_nr=question_nr,
         ),
         reference_db_search_docs,
         dropped_inds,
