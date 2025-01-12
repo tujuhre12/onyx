@@ -276,12 +276,12 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
         }
       `}</style>
       <div className="relative">
-        {dynamicSubQuestions.map((subQuestion, index) => (
+        {subQuestions.map((subQuestion, index) => (
           <SubQuestionDisplay
             key={index}
             subQuestion={subQuestion}
             documents={documents}
-            isLast={index === dynamicSubQuestions.length - 1}
+            isLast={index === subQuestions.length - 1}
             isFirst={index === 0}
             setPresentingDocument={setPresentingDocument}
             unToggle={

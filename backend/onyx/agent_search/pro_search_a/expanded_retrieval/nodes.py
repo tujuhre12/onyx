@@ -393,6 +393,9 @@ def format_results(
     pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
     # main question docs will be sent later after aggregation and deduping with sub-question docs
     if not (level == 0 and question_nr == 0):
+        print("Yielding search responses for sub-question")
+        print(level)
+        print(question_nr)
         for tool_response in yield_search_responses(
             query=state["question"],
             reranked_sections=state[
