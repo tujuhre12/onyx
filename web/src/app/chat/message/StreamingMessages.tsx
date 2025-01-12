@@ -28,6 +28,12 @@ export const useStreamingMessages = (subQuestions: SubQuestionDetail[]) => {
 
       const currentSubQuestion = subQuestions[currentSubQuestionIndex];
 
+      // Check if the current subquestion is fully built
+      if (!currentSubQuestion || !currentSubQuestion.question) {
+        setTimeout(loadNextPiece, 100); // Wait for the subquestion to be built
+        return;
+      }
+
       setDynamicSubQuestions((prevDynamicSubQuestions) => {
         const updatedSubQuestions = [...prevDynamicSubQuestions];
 
@@ -60,11 +66,17 @@ export const useStreamingMessages = (subQuestions: SubQuestionDetail[]) => {
 
           case StreamingState.SUB_QUERY:
             if (
-              currentSubQueryIndex <
-              (currentSubQuestion.sub_queries?.length || 0)
+              !currentSubQuestion.sub_queries ||
+              currentSubQuestion.sub_queries.length === 0
             ) {
+              // Wait for sub_queries to be built
+              setTimeout(loadNextPiece, 100);
+              return updatedSubQuestions;
+            }
+
+            if (currentSubQueryIndex < currentSubQuestion.sub_queries.length) {
               const currentSubQuery =
-                currentSubQuestion.sub_queries![currentSubQueryIndex];
+                currentSubQuestion.sub_queries[currentSubQueryIndex];
               if (
                 !currentDynamicSubQuestion.sub_queries ||
                 !currentDynamicSubQuestion.sub_queries[currentSubQueryIndex]
@@ -87,24 +99,32 @@ export const useStreamingMessages = (subQuestions: SubQuestionDetail[]) => {
                 currentSubQueryIndex++;
                 currentCharIndex = 0;
                 if (
-                  currentSubQueryIndex >=
-                  (currentSubQuestion.sub_queries?.length || 0)
+                  currentSubQueryIndex >= currentSubQuestion.sub_queries.length
                 ) {
-                  currentState = StreamingState.CONTEXT_DOCS;
+                  currentState = StreamingState.ANSWER;
                 }
               }
             } else {
-              currentState = StreamingState.CONTEXT_DOCS;
+              currentState = StreamingState.ANSWER;
             }
             break;
 
           case StreamingState.CONTEXT_DOCS:
             if (
+              !currentSubQuestion.context_docs ||
+              !currentSubQuestion.context_docs.top_documents
+            ) {
+              // Wait for context_docs to be built
+              setTimeout(loadNextPiece, 100);
+              return updatedSubQuestions;
+            }
+
+            if (
               currentDocIndex <
-              (currentSubQuestion.context_docs?.top_documents.length || 0)
+              currentSubQuestion.context_docs.top_documents.length
             ) {
               const currentDoc =
-                currentSubQuestion.context_docs!.top_documents[currentDocIndex];
+                currentSubQuestion.context_docs.top_documents[currentDocIndex];
               if (
                 !currentDynamicSubQuestion.context_docs!.top_documents.some(
                   (doc) => doc.document_id === currentDoc.document_id
@@ -122,6 +142,12 @@ export const useStreamingMessages = (subQuestions: SubQuestionDetail[]) => {
             break;
 
           case StreamingState.ANSWER:
+            if (!currentSubQuestion.answer) {
+              // Wait for answer to be built
+              setTimeout(loadNextPiece, 100);
+              return updatedSubQuestions;
+            }
+
             if (currentCharIndex < currentSubQuestion.answer.length) {
               currentDynamicSubQuestion.answer =
                 currentSubQuestion.answer.slice(0, currentCharIndex + 1);
