@@ -1,7 +1,13 @@
 "use client";
 
 import { FiEdit, FiFolderPlus, FiMoreHorizontal, FiPlus } from "react-icons/fi";
-import React, { ForwardedRef, forwardRef, useContext, useState } from "react";
+import React, {
+  ForwardedRef,
+  forwardRef,
+  useContext,
+  useState,
+  useCallback,
+} from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChatSession } from "../interfaces";
@@ -21,11 +27,30 @@ import { PagesTab } from "./PagesTab";
 import { pageType } from "./types";
 import LogoWithText from "@/components/header/LogoWithText";
 import { Persona } from "@/app/admin/assistants/interfaces";
+import { DragEndEvent } from "@dnd-kit/core";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { buildChatUrl } from "../lib";
 import { toggleAssistantPinnedStatus } from "@/lib/assistants/updateAssistantPreferences";
 import { useUser } from "@/components/user/UserProvider";
+import { DragHandle } from "@/components/table/DragHandle";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { reorderPinnedAssistants } from "@/lib/assistants/updateAssistantPreferences";
 
 interface HistorySidebarProps {
   page: pageType;
@@ -47,6 +72,55 @@ interface HistorySidebarProps {
   currentAssistantId?: number | null;
   setShowAssistantsModal?: (show: boolean) => void;
 }
+
+interface SortableAssistantProps {
+  assistant: Persona;
+  currentAssistantId: number | null | undefined;
+  onClick: () => void;
+  onUnpin: (e: React.MouseEvent) => void;
+}
+
+const SortableAssistant: React.FC<SortableAssistantProps> = ({
+  assistant,
+  currentAssistantId,
+  onClick,
+  onUnpin,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: assistant.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div style={style} className="flex items-center group">
+      <DragHandle
+        ref={setNodeRef}
+        {...attributes}
+        {...listeners}
+        size={16}
+        className="w-4 flex-none cursor-grab"
+      />
+      <button
+        onClick={onClick}
+        className={`cursor-pointer w-full group hover:bg-hover-light ${
+          currentAssistantId === assistant.id ? "bg-hover-light" : ""
+        } relative flex items-center gap-x-2 py-1 px-2 rounded-md`}
+      >
+        <AssistantIcon assistant={assistant} size={16} className="flex-none" />
+        <p className="text-base text-black">{assistant.name}</p>
+        <button
+          onClick={onUnpin}
+          className="group-hover:block hidden absolute right-2"
+        >
+          <PinnedIcon size={16} className="text-text-history-sidebar-button" />
+        </button>
+      </button>
+    </div>
+  );
+};
 
 export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
   (
@@ -75,20 +149,44 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
     const searchParams = useSearchParams();
     const router = useRouter();
     const { refreshUser } = useUser();
-    const { refreshAssistants } = useAssistants();
+    const { refreshAssistants, pinnedAssistants, setPinnedAssistants } =
+      useAssistants();
+
     const { popup, setPopup } = usePopup();
 
     // For determining intial focus state
     const [newFolderId, setNewFolderId] = useState<number | null>(null);
 
     const currentChatId = currentChatSession?.id;
-    const { pinnedAssistants } = useAssistants();
 
-    // NOTE: do not do something like the below - assume that the parent
-    // will handle properly refreshing the existingChats
-    // useEffect(() => {
-    //   router.refresh();
-    // }, [currentChatId]);
+    const sensors = useSensors(
+      useSensor(PointerSensor),
+      useSensor(KeyboardSensor, {
+        coordinateGetter: sortableKeyboardCoordinates,
+      })
+    );
+
+    const handleDragEnd = useCallback(
+      (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (active.id !== over?.id) {
+          setPinnedAssistants((prevAssistants: Persona[]) => {
+            const oldIndex = prevAssistants.findIndex(
+              (a: Persona) => a.id === active.id
+            );
+            const newIndex = prevAssistants.findIndex(
+              (a: Persona) => a.id === over?.id
+            );
+
+            const newOrder = arrayMove(prevAssistants, oldIndex, newIndex);
+            reorderPinnedAssistants(newOrder.map((a: Persona) => a.id));
+            return newOrder;
+          });
+        }
+      },
+      [setPinnedAssistants]
+    );
 
     const combinedSettings = useContext(SettingsContext);
     if (!combinedSettings) {
@@ -122,11 +220,11 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             flex-col relative
             h-screen
             pt-2
-            p-4
+            
             transition-transform 
             `}
         >
-          <div className="pl-2">
+          <div className="px-4 pl-2">
             <LogoWithText
               showArrow={true}
               toggled={toggled}
@@ -136,7 +234,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             />
           </div>
           {page == "chat" && (
-            <div className="px-1 gap-y-1 flex-col text-text-history-sidebar-button flex gap-x-1.5 items-center items-center">
+            <div className="px-4 px-1 gap-y-1 flex-col text-text-history-sidebar-button flex gap-x-1.5 items-center items-center">
               <Link
                 className="w-full px-2 py-1  rounded-md items-center hover:bg-hover cursor-pointer transition-all duration-150 flex gap-x-2"
                 href={
@@ -167,60 +265,46 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
           )}
 
           <div>
-            <div className="flex font-normal text-sm gap-x-2 leading-normal text-[#6c6c6c] items-center font-normal leading-normal">
+            <div className="flex px-4 font-normal text-sm gap-x-2 leading-normal text-[#6c6c6c] items-center font-normal leading-normal">
               Pinned assistants
             </div>
-            <div className="mx-1 flex flex-col gap-y-1 mt-1">
-              {pinnedAssistants.length > 0 ? (
-                pinnedAssistants.slice(0, 3).map((assistant) => (
-                  <button
-                    onClick={() => {
-                      router.push(
-                        buildChatUrl(searchParams, null, assistant.id)
-                      );
-                    }}
-                    className={`cursor-pointer  group hover:bg-hover-light ${
-                      currentAssistantId === assistant.id
-                        ? "bg-hover-light"
-                        : ""
-                    } relative flex items-center gap-x-2 py-1 px-2 rounded-md`}
-                    key={assistant.id}
-                  >
-                    <AssistantIcon
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={pinnedAssistants.map((a) => a.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="flex px-0  mr-4 flex-col gap-y-1 mt-1">
+                  {pinnedAssistants.map((assistant: Persona) => (
+                    <SortableAssistant
+                      key={assistant.id}
                       assistant={assistant}
-                      size={16}
-                      className="flex-none"
-                    />
-                    <p className="text-base   text-black">{assistant.name}</p>
-                    <button
-                      onClick={async (e) => {
+                      currentAssistantId={currentAssistantId}
+                      onClick={() => {
+                        router.push(
+                          buildChatUrl(searchParams, null, assistant.id)
+                        );
+                      }}
+                      onUnpin={async (e: React.MouseEvent) => {
                         e.stopPropagation();
-                        toggleAssistantPinnedStatus(assistant.id, false);
+                        await toggleAssistantPinnedStatus(assistant.id, false);
                         await refreshUser();
                         await refreshAssistants();
                       }}
-                      className="group-hover:block hidden absolute right-2"
-                    >
-                      <PinnedIcon
-                        size={16}
-                        className="text-text-history-sidebar-button"
-                      />
-                    </button>
-                  </button>
-                ))
-              ) : (
-                <div className="flex items-center gap-x-2 py-1 px-2 rounded-md">
-                  <p className="text-sm text-black">
-                    Pin an assistant to get started
-                  </p>
+                    />
+                  ))}
                 </div>
-              )}
+              </SortableContext>
+            </DndContext>
+            <div className="w-full px-4">
               <button
                 onClick={() => setShowAssistantsModal(true)}
-                className="cursor-pointer hover:bg-hover-light flex items-center gap-x-2 py-1 px-2 rounded-md"
+                className="w-full cursor-pointer text-base text-black hover:bg-hover-light flex items-center gap-x-2 py-1 px-2 rounded-md"
               >
-                <FiMoreHorizontal size={16} className="flex-none" />
-                <p className="text-base text-black">More Assistants</p>
+                Explore Assistants
               </button>
             </div>
           </div>

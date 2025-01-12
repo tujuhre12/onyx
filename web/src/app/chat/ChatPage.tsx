@@ -2099,6 +2099,8 @@ export function ChatPage({
 
       {deletingChatSession && (
         <DeleteEntityModal
+          includeCancelButton
+          additionalDetails="This will permanently delete the chat session."
           entityType="chat"
           entityName={deletingChatSession.name.slice(0, 30)}
           onClose={() => setDeletingChatSession(null)}

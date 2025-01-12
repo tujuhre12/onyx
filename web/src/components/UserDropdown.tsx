@@ -148,7 +148,11 @@ export function UserDropdown({
                 rounded-full
                 inline-block
                 flex-none
-                px-2
+                w-6
+                h-6
+                flex
+                items-center
+                justify-center
                 text-white
                 text-base
               "

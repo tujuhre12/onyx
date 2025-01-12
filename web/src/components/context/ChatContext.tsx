@@ -27,6 +27,7 @@ interface ChatContextProps {
   shouldDisplaySourcesIncompleteModal?: boolean;
   defaultAssistantId?: number;
   refreshChatSessions: () => Promise<void>;
+  reorderFolders: (displayPriorityMap: Record<number, number>) => void;
 }
 
 const ChatContext = createContext<ChatContextProps | undefined>(undefined);
@@ -41,6 +42,19 @@ export const ChatProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ value, children }) => {
   const [chatSessions, setChatSessions] = useState(value?.chatSessions || []);
+  const [folders, setFolders] = useState(value?.folders || []);
+
+  const reorderFolders = (displayPriorityMap: Record<number, number>) => {
+    setFolders(
+      folders.map((folder) => {
+        if (folder.folder_id) {
+          folder.display_priority = displayPriorityMap[folder.folder_id];
+        }
+        return folder;
+      })
+    );
+    console.log("reordered folders", folders);
+  };
 
   const refreshChatSessions = async () => {
     try {
@@ -58,6 +72,8 @@ export const ChatProvider: React.FC<{
       value={{
         ...value,
         chatSessions,
+        folders,
+        reorderFolders,
         refreshChatSessions,
       }}
     >

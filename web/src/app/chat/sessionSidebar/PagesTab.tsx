@@ -4,6 +4,7 @@ import {
   updateFolderName,
   deleteFolder,
   addChatToFolder,
+  updateFolderDisplayPriorities,
 } from "../folders/FolderManagement";
 import { Folder } from "../folders/interfaces";
 import { usePopup } from "@/components/admin/connectors/Popup";
@@ -13,10 +14,73 @@ import { FiPlus, FiTrash2, FiEdit, FiCheck, FiX } from "react-icons/fi";
 import { NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED } from "@/lib/constants";
 import { FolderDropdown } from "../folders/FolderDropdown";
 import { ChatSessionDisplay } from "./ChatSessionDisplay";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Caret } from "@/components/icons/icons";
 import { CaretCircleDown } from "@phosphor-icons/react";
 import { groupSessionsByDateRange } from "../lib";
+import React from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { DragHandle } from "@/components/table/DragHandle";
+import { useChatContext } from "@/components/context/ChatContext";
+
+interface SortableFolderProps {
+  folder: Folder;
+  children: React.ReactNode;
+  currentChatId?: string;
+  showShareModal?: (chatSession: ChatSession) => void;
+  showDeleteModal?: (chatSession: ChatSession) => void;
+  closeSidebar?: () => void;
+  onEdit: (folderId: number, newName: string) => void;
+  onDelete: (folderId: number) => void;
+  onDrop: (folderId: number, chatSessionId: string) => void;
+}
+
+const SortableFolder: React.FC<SortableFolderProps> = (props) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: props.folder.folder_id?.toString() ?? "" });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  const [isHovering, setIsHovering] = useState(false);
+
+  return (
+    <div
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      ref={setNodeRef}
+      className="pr-4 overflow-visible flex items-start"
+      style={style}
+    >
+      <DragHandle
+        size={16}
+        {...attributes}
+        {...listeners}
+        className={`w-4 mt-1.5 ${
+          isHovering ? "visible" : "invisible"
+        } flex-none cursor-grab`}
+      />
+      <FolderDropdown {...props} />
+    </div>
+  );
+};
 
 export function PagesTab({
   existingChats,
@@ -39,10 +103,11 @@ export function PagesTab({
   showDeleteAllModal?: () => void;
   setNewFolderId: (folderId: number) => void;
 }) {
-  const { setPopup } = usePopup();
+  const { setPopup, popup } = usePopup();
   const router = useRouter();
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const newFolderInputRef = useRef<HTMLInputElement>(null);
+  const { reorderFolders } = useChatContext();
 
   const handleEditFolder = useCallback(
     (folderId: number | "chats", newName: string) => {
@@ -175,14 +240,53 @@ export function PagesTab({
     [currentChatId, showShareModal, showDeleteModal, closeSidebar]
   );
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (active.id !== over?.id && folders) {
+        const oldIndex = folders.findIndex(
+          (f) => f.folder_id?.toString() === active.id
+        );
+        const newIndex = folders.findIndex(
+          (f) => f.folder_id?.toString() === over?.id
+        );
+
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const newOrder = arrayMove(folders, oldIndex, newIndex);
+          const displayPriorityMap = newOrder.reduce(
+            (acc, folder, index) => {
+              if (folder.folder_id !== undefined) {
+                acc[folder.folder_id] = index;
+              }
+              return acc;
+            },
+            {} as Record<number, number>
+          );
+
+          updateFolderDisplayPriorities(displayPriorityMap);
+          reorderFolders(displayPriorityMap);
+        }
+      }
+    },
+    [folders]
+  );
+
   return (
-    <div className="flex flex-col relative h-full overflow-y-auto mb-1 miniscroll mobile:pb-40">
-      <div className="my-2 mr-2">
-        <div className="flex  justify-between text-sm gap-x-2 text-[#6c6c6c] items-center font-normal leading-normal">
+    <div className="flex flex-col gap-y-2 overflow-y-auto flex-grow">
+      <div className="px-4 mt-2 group mr-2">
+        <div className="flex justify-between text-sm gap-x-2 text-[#6c6c6c] items-center font-normal leading-normal">
           <p>Chats</p>
           <button
             onClick={handleCreateFolder}
-            className="flex cursor-pointer gap-x-1 items-center text-black text-xs font-medium font-['KH Teka TRIAL'] leading-normal"
+            className="flex group-hover:opacity-100 opacity-0 transition duration-200 cursor-pointer gap-x-1 items-center text-black text-xs font-medium font-['KH Teka TRIAL'] leading-normal"
           >
             <FiPlus size={12} className="flex-none" />
             Create Group
@@ -190,10 +294,70 @@ export function PagesTab({
         </div>
       </div>
 
+      {isCreatingFolder ? (
+        <div className="px-4 mb-2">
+          <div className="!flex items-center w-full text-[#6c6c6c] rounded-md p-1 relative">
+            <Caret size={16} className="mr-1" />
+            <input
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleNewFolderSubmit(e);
+                }
+              }}
+              ref={newFolderInputRef}
+              type="text"
+              placeholder="Enter group name"
+              className="text-sm font-medium bg-transparent border-none outline-none w-fit"
+            />
+            <button
+              type="button"
+              onClick={() => setIsCreatingFolder(false)}
+              className="ml-auto"
+            >
+              <FiX size={14} className="text-white" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {folders && folders.length > 0 && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={folders.map((f) => f.folder_id?.toString() ?? "")}
+            strategy={verticalListSortingStrategy}
+          >
+            {folders
+              .sort(
+                (a, b) => (a.display_priority ?? 0) - (b.display_priority ?? 0)
+              )
+              .map((folder) => (
+                <SortableFolder
+                  key={folder.folder_id}
+                  folder={folder}
+                  currentChatId={currentChatId}
+                  showShareModal={showShareModal}
+                  showDeleteModal={showDeleteModal}
+                  closeSidebar={closeSidebar}
+                  onEdit={handleEditFolder}
+                  onDelete={handleDeleteFolder}
+                  onDrop={handleDrop}
+                >
+                  {folder.chat_sessions &&
+                    folder.chat_sessions.map(renderChatSession)}
+                </SortableFolder>
+              ))}
+          </SortableContext>
+        </DndContext>
+      )}
+
       <div
-        className={`flex-grow overflow-y-auto ${
-          NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED && "pb-20"
-        }`}
+        className={`px-4 ${NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED && "pb-20"}`}
       >
         {!isHistoryEmpty && (
           <>
@@ -221,54 +385,6 @@ export function PagesTab({
           </>
         )}
 
-        {isCreatingFolder ? (
-          <div className="mb-2">
-            <div className="!flex  items-center w-full text-[#6c6c6c] rounded-md p-1 relative">
-              <Caret size={16} className="mr-1" />
-              <input
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleNewFolderSubmit(e);
-                  }
-                }}
-                ref={newFolderInputRef}
-                type="text"
-                placeholder="Enter folder name"
-                className="text-sm font-medium bg-transparent border-none outline-none w-fit"
-              />
-              <button
-                type="button"
-                onClick={() => setIsCreatingFolder(false)}
-                className="ml-auto"
-              >
-                <FiX size={14} className="text-white" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <></>
-        )}
-
-        {folders &&
-          folders.length > 0 &&
-          folders
-            .sort((a, b) => a.display_priority - b.display_priority)
-            .map((folder) => (
-              <FolderDropdown
-                key={folder.folder_id}
-                folder={folder}
-                currentChatId={currentChatId}
-                showShareModal={showShareModal}
-                showDeleteModal={showDeleteModal}
-                closeSidebar={closeSidebar}
-                onEdit={handleEditFolder}
-                onDelete={handleDeleteFolder}
-                onDrop={handleDrop}
-              >
-                {folder.chat_sessions.map(renderChatSession)}
-              </FolderDropdown>
-            ))}
-
         {isHistoryEmpty && (
           <p className="text-sm mt-2 w-[250px]">
             Try sending a message! Your chat history will appear here.
@@ -278,7 +394,7 @@ export function PagesTab({
       {showDeleteAllModal && NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED && (
         <div className="absolute w-full border-t border-t-border bg-background-100 bottom-0 left-0 p-4">
           <button
-            className="w-full py-2 px-4 text-text-600 hover:text-text-800 bg-background-125 border border-border-strong/50 shadow-sm rounded-md transition-colors duration-200 flex items-center justify-center text-sm"
+            className="px-4 w-full py-2 px-4 text-text-600 hover:text-text-800 bg-background-125 border border-border-strong/50 shadow-sm rounded-md transition-colors duration-200 flex items-center justify-center text-sm"
             onClick={showDeleteAllModal}
           >
             <FiTrash2 className="mr-2" size={14} />

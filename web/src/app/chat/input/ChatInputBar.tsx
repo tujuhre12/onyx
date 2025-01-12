@@ -4,7 +4,11 @@ import { ChatInputOption } from "./ChatInputOption";
 import { Persona } from "@/app/admin/assistants/interfaces";
 import LLMPopover from "./LLMPopover";
 
-import { FilterManager, LlmOverrideManager } from "@/lib/hooks";
+import {
+  FilterManager,
+  getDisplayNameForModel,
+  LlmOverrideManager,
+} from "@/lib/hooks";
 import { useChatContext } from "@/components/context/ChatContext";
 import { ChatFileType, FileDescriptor } from "../interfaces";
 import {
@@ -295,7 +299,7 @@ export function ChatInputBar({
                     <p className="text-text-darker font-semibold">
                       {currentAssistant.name}
                     </p>
-                    <p className="text-text-dark line-clamp-1">
+                    <p className="text-text-dark font-light line-clamp-1">
                       {currentAssistant.id == selectedAssistant.id &&
                         "(default) "}
                       {currentAssistant.description}
@@ -572,6 +576,7 @@ export function ChatInputBar({
                 requiresImageGeneration={false}
                 currentAssistant={selectedAssistant}
               />
+
               <FilterPopup
                 availableSources={availableSources}
                 availableDocumentSets={availableDocumentSets}
