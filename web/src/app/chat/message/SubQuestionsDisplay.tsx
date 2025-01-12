@@ -41,7 +41,9 @@ const SubQuestionDisplay: React.FC<{
   isFirst,
   setPresentingDocument,
 }) => {
-  const [toggled, setToggled] = useState(true);
+  const [analysisToggled, setAnalysisToggled] = useState(false);
+  const [toggled, setToggled] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   const processContent = (content: string | JSX.Element) => {
     if (typeof content !== "string") {
@@ -133,10 +135,18 @@ const SubQuestionDisplay: React.FC<{
   );
 
   useEffect(() => {
-    if (unToggle) {
-      setToggled(false);
-    }
+    setToggled(!unToggle);
   }, [unToggle]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (toggled) {
+      setIsVisible(true);
+    } else {
+      timer = setTimeout(() => setIsVisible(false), 500);
+    }
+    return () => clearTimeout(timer);
+  }, [toggled]);
 
   const renderedMarkdown = useMemo(() => {
     return (
@@ -168,79 +178,105 @@ const SubQuestionDisplay: React.FC<{
               : "bg-neutral-700 rotating-circle"
           }`}
         />
-        <div className="ml-8">
+        <div className="ml-8 w-full">
           <div
             className="flex items-center py-1 cursor-pointer"
             onClick={() => setToggled(!toggled)}
           >
-            <div className="text-black text-base font-medium leading-normal">
+            <div className="text-black text-base font-medium leading-normal flex-grow">
               {subQuestion.question}
             </div>
             <ChevronDown
-              className={`transition-transform duration-200 ${
-                toggled ? "-rotate-90" : ""
+              className={`transition-transform duration-500 ease-in-out ${
+                toggled ? "rotate-180" : ""
               }`}
               size={16}
             />
           </div>
-          {toggled && (
-            <div className="pl-0 pb-2">
-              <div className="mb-4 flex flex-col gap-2">
-                <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                  Searching
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {subQuestion.sub_queries?.map((query, queryIndex) => (
-                    <SourceChip2
-                      key={queryIndex}
-                      icon={<FiSearch size={10} />}
-                      title={query.query}
-                      includeTooltip
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="mb-4  flex flex-col gap-2">
-                <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                  Reading
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {(subQuestion.context_docs?.top_documents
-                    ? subQuestion.context_docs?.top_documents
-                    : documents.filter((doc) =>
-                        subQuestion.context_docs?.top_documents?.some(
-                          (contextDoc) =>
-                            contextDoc.document_id === doc.document_id
-                        )
-                      )
-                  )
-                    .slice(0, 10)
-                    .map((doc, docIndex) => {
-                      const truncatedIdentifier =
-                        doc.semantic_identifier?.slice(0, 20) || "";
-                      return (
+          <div
+            className={`overflow-hidden transition-all duration-500 ease-in-out ${
+              toggled ? "max-h-[1000px]" : "max-h-0"
+            }`}
+          >
+            {isVisible && (
+              <div
+                className={`transform transition-all duration-500 ease-in-out origin-top ${
+                  toggled ? "scale-y-100 opacity-100" : "scale-y-95 opacity-0"
+                }`}
+              >
+                <div className="pl-0 pb-2">
+                  <div className="mb-4 flex flex-col gap-2">
+                    <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                      Searching
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {subQuestion.sub_queries?.map((query, queryIndex) => (
                         <SourceChip2
-                          onClick={() =>
-                            openDocument(doc, setPresentingDocument)
-                          }
-                          key={docIndex}
-                          icon={<ResultIcon doc={doc} size={10} />}
-                          title={`${truncatedIdentifier}${
-                            truncatedIdentifier.length === 20 ? "..." : ""
-                          }`}
+                          key={queryIndex}
+                          icon={<FiSearch size={10} />}
+                          title={query.query}
+                          includeTooltip
                         />
-                      );
-                    })}
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mb-4  flex flex-col gap-2">
+                    <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                      Reading
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(subQuestion.context_docs?.top_documents
+                        ? subQuestion.context_docs?.top_documents
+                        : documents.filter((doc) =>
+                            subQuestion.context_docs?.top_documents?.some(
+                              (contextDoc) =>
+                                contextDoc.document_id === doc.document_id
+                            )
+                          )
+                      )
+                        .slice(0, 10)
+                        .map((doc, docIndex) => {
+                          const truncatedIdentifier =
+                            doc.semantic_identifier?.slice(0, 20) || "";
+                          return (
+                            <SourceChip2
+                              includeAnimation
+                              onClick={() =>
+                                openDocument(doc, setPresentingDocument)
+                              }
+                              key={docIndex}
+                              icon={<ResultIcon doc={doc} size={10} />}
+                              title={`${truncatedIdentifier}${
+                                truncatedIdentifier.length === 20 ? "..." : ""
+                              }`}
+                            />
+                          );
+                        })}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <div
+                      className="text-[#4a4a4a] cursor-pointer items-center text-xs flex gap-x-1 font-medium leading-normal"
+                      onClick={() => setAnalysisToggled(!analysisToggled)}
+                    >
+                      Analysis
+                      <ChevronDown
+                        className={`transition-transform duration-200 ${
+                          analysisToggled ? "" : "-rotate-90"
+                        }`}
+                        size={8}
+                      />
+                    </div>
+                    {analysisToggled && (
+                      <div className="flex flex-wrap gap-2">
+                        {renderedMarkdown}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
-                <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                  Analysis
-                </div>
-                <div className="flex flex-wrap gap-2">{renderedMarkdown}</div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -280,8 +316,8 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
         }
       `}</style>
       <div className="relative">
-        {subQuestions.map((subQuestion, index) => (
-          // {dynamicSubQuestions.map((subQuestion, index) => (
+        {/* {subQuestions.map((subQuestion, index) => ( */}
+        {dynamicSubQuestions.map((subQuestion, index) => (
           // {dynamicSubQuestions.map((subQuestion, index) => (
           <SubQuestionDisplay
             key={index}
@@ -291,11 +327,17 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             isFirst={index === 0}
             setPresentingDocument={setPresentingDocument}
             unToggle={
-              subQuestion != undefined &&
-              subQuestion.answer != undefined &&
-              subQuestion.answer.length > 1 &&
-              dynamicSubQuestions[index + 1] &&
-              dynamicSubQuestions[index + 1]?.sub_queries?.length! > 0
+              subQuestion?.sub_queries == undefined ||
+              subQuestion?.sub_queries.length == 0 ||
+              (subQuestion?.sub_queries?.length > 0 &&
+                (subQuestion.answer == undefined ||
+                  subQuestion.answer.length > 3))
+              //   subQuestion == undefined &&
+              //   subQuestion.answer != undefined &&
+              //   !(
+              //     dynamicSubQuestions[index + 1] != undefined ||
+              //     dynamicSubQuestions[index + 1]?.sub_queries?.length! > 0
+              //   )
             }
           />
         ))}

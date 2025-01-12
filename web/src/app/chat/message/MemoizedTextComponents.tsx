@@ -14,13 +14,12 @@ export const MemoizedAnchor = memo(
     docs?: OnyxDocument[] | null;
     updatePresentingDocument: (doc: OnyxDocument) => void;
     children: React.ReactNode;
-  }) => {
+  }): JSX.Element => {
     const value = children?.toString();
     if (value?.startsWith("[") && value?.endsWith("]")) {
       const match = value.match(/\[D?(\d+)\]/);
       if (match) {
         const index = parseInt(match[1], 10) - 1;
-        console.log("index", index);
 
         const associatedDoc = docs?.[index];
 
@@ -28,7 +27,6 @@ export const MemoizedAnchor = memo(
           return <>{children}</>;
         }
 
-        console.log("associatedDoc", associatedDoc);
         let icon: React.ReactNode = null;
         if (associatedDoc.source_type === "web") {
           icon = <WebResultIcon url={associatedDoc.link} />;
@@ -52,7 +50,7 @@ export const MemoizedAnchor = memo(
         );
       }
     }
-    return { children };
+    return <>{children}</>;
   }
 );
 
