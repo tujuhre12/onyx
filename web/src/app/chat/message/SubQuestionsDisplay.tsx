@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FiSearch } from "react-icons/fi";
 import { OnyxDocument } from "@/lib/search/interfaces";
 import { SubQuestionDetail } from "../interfaces";
@@ -15,28 +15,31 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./CodeBlock";
+import { ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
+import { useStreamingMessages } from "./StreamingMessages";
 
 interface SubQuestionsDisplayProps {
   subQuestions: SubQuestionDetail[];
   documents: OnyxDocument[];
   toggleDocumentSelection: () => void;
   setPresentingDocument: (document: OnyxDocument) => void;
+  unToggle: boolean;
 }
 
 const SubQuestionDisplay: React.FC<{
   subQuestion: SubQuestionDetail;
   documents: OnyxDocument[];
   isLast: boolean;
+  unToggle: boolean;
   isFirst: boolean;
   setPresentingDocument: (document: OnyxDocument) => void;
-  isComplete?: boolean;
 }> = ({
   subQuestion,
   documents,
   isLast,
+  unToggle,
   isFirst,
   setPresentingDocument,
-  isComplete,
 }) => {
   const [toggled, setToggled] = useState(true);
 
@@ -127,6 +130,12 @@ const SubQuestionDisplay: React.FC<{
     [anchorCallback, paragraphCallback, textCallback, subQuestion.answer]
   );
 
+  useEffect(() => {
+    if (unToggle) {
+      setToggled(false);
+    }
+  }, [unToggle]);
+
   const renderedMarkdown = useMemo(() => {
     return (
       <ReactMarkdown
@@ -141,11 +150,13 @@ const SubQuestionDisplay: React.FC<{
   }, [finalContent, markdownComponents]);
 
   return (
-    <div className="relative">
+    <div className="bg- relative">
       <div
         className={`absolute left-[5px] ${
           isFirst ? "top-[9px]" : "top-0"
-        } bottom-0 w-[2px] bg-neutral-200 ${isLast ? "h-full" : ""}`}
+        } bottom-0 w-[2px]  bg-neutral-200  ${
+          isLast && !toggled ? "h-4" : "h-full"
+        }`}
       />
       <div className="flex items-start pb-4">
         <div
@@ -163,6 +174,12 @@ const SubQuestionDisplay: React.FC<{
             <div className="text-black text-base font-medium leading-normal">
               {subQuestion.question}
             </div>
+            <ChevronDown
+              className={`transition-transform duration-200 ${
+                toggled ? "-rotate-90" : ""
+              }`}
+              size={16}
+            />
           </div>
           {toggled && (
             <div className="pl-0 pb-2">
@@ -232,6 +249,8 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   toggleDocumentSelection,
   setPresentingDocument,
 }) => {
+  const { dynamicSubQuestions } = useStreamingMessages(subQuestions);
+
   return (
     <div className="w-full">
       <style jsx global>{`
@@ -257,18 +276,28 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
         }
       `}</style>
       <div className="relative">
-        {subQuestions.map((subQuestion, index) => (
+        {dynamicSubQuestions.map((subQuestion, index) => (
           <SubQuestionDisplay
             key={index}
             subQuestion={subQuestion}
             documents={documents}
-            isLast={index === subQuestions.length - 1}
+            isLast={index === dynamicSubQuestions.length - 1}
             isFirst={index === 0}
             setPresentingDocument={setPresentingDocument}
+            unToggle={
+              subQuestion.answer.length > 1 &&
+              dynamicSubQuestions[index + 1] &&
+              dynamicSubQuestions[index + 1]?.sub_queries?.length! > 0
+            }
           />
         ))}
+        {dynamicSubQuestions.length < subQuestions.length && (
+          <div className="flex items-center justify-center py-4">
+            <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+          </div>
+        )}
       </div>
-      {subQuestions.length > 0 && (
+      {dynamicSubQuestions.length > 0 && (
         <SourcesDisplay
           toggleDocumentSelection={toggleDocumentSelection}
           documents={documents}
