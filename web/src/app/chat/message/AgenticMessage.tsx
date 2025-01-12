@@ -150,8 +150,6 @@ export const AgenticMessage = ({
   regenerate?: (modelOverRide: LlmOverride) => Promise<void>;
   setPresentingDocument?: (document: OnyxDocument) => void;
 }) => {
-  const toolCallGenerating = toolCall && !toolCall.tool_result;
-
   const processContent = (content: string | JSX.Element) => {
     if (typeof content !== "string") {
       return content;
@@ -181,8 +179,26 @@ export const AgenticMessage = ({
       (!isComplete && !toolCallGenerating ? " [*]() " : "")
     );
   };
-
   const finalContent = processContent(content as string);
+
+  const [streamingAllowed, setStreamingAllowed] = useState(false);
+  const [streamedContent, setStreamedContent] = useState("");
+  const toolCallGenerating = toolCall && !toolCall.tool_result;
+  const streamIndexRef = useRef(0);
+
+  const allowStreaming = () => {
+    setStreamingAllowed(true);
+    const streamContent = () => {
+      if (streamIndexRef.current < (finalContent as string).length) {
+        setStreamedContent(
+          (finalContent as string).slice(0, streamIndexRef.current + 1)
+        );
+        streamIndexRef.current++;
+        setTimeout(streamContent, 120);
+      }
+    };
+    streamContent();
+  };
 
   const [isRegenerateHovered, setIsRegenerateHovered] = useState(false);
   const [isRegenerateDropdownVisible, setIsRegenerateDropdownVisible] =
@@ -273,11 +289,7 @@ export const AgenticMessage = ({
       a: anchorCallback,
       p: paragraphCallback,
       code: ({ node, className, children }: any) => {
-        const codeText = extractCodeText(
-          node,
-          finalContent as string,
-          children
-        );
+        const codeText = extractCodeText(node, streamedContent, children);
 
         return (
           <CodeBlock className={className} codeText={codeText}>
@@ -286,7 +298,7 @@ export const AgenticMessage = ({
         );
       },
     }),
-    [anchorCallback, paragraphCallback, finalContent]
+    [anchorCallback, paragraphCallback, streamedContent]
   );
 
   const renderedMarkdown = useMemo(() => {
@@ -297,10 +309,10 @@ export const AgenticMessage = ({
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[[rehypePrism, { ignoreMissing: true }], rehypeKatex]}
       >
-        {finalContent as string}
+        {streamedContent}
       </ReactMarkdown>
     );
-  }, [finalContent, markdownComponents]);
+  }, [streamedContent, markdownComponents]);
 
   const includeMessageSwitcher =
     currentMessageInd !== undefined &&
@@ -348,6 +360,7 @@ export const AgenticMessage = ({
 
                   {subQuestions && subQuestions.length > 0 && (
                     <SubQuestionsDisplay
+                      allowStreaming={allowStreaming}
                       subQuestions={subQuestions}
                       documents={docs || []}
                       toggleDocumentSelection={toggleDocumentSelection!}
@@ -356,7 +369,7 @@ export const AgenticMessage = ({
                     />
                   )}
 
-                  {content || files ? (
+                  {(content || files) && streamingAllowed ? (
                     <>
                       {/* <FileDisplay files={files || []} /> */}
                       <div className="w-full  py-4 flex flex-col gap-4">

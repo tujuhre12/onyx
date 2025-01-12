@@ -24,6 +24,7 @@ interface SubQuestionsDisplayProps {
   toggleDocumentSelection: () => void;
   setPresentingDocument: (document: OnyxDocument) => void;
   unToggle: boolean;
+  allowStreaming: () => void;
 }
 
 const SubQuestionDisplay: React.FC<{
@@ -285,11 +286,15 @@ const SubQuestionDisplay: React.FC<{
 
 const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   subQuestions,
+  allowStreaming,
   documents,
   toggleDocumentSelection,
   setPresentingDocument,
 }) => {
-  const { dynamicSubQuestions } = useStreamingMessages(subQuestions);
+  const { dynamicSubQuestions } = useStreamingMessages(
+    subQuestions,
+    allowStreaming
+  );
 
   return (
     <div className="w-full">
