@@ -252,7 +252,7 @@ export const AgenticMessage = ({
     (props: any) => (
       <MemoizedAnchor
         updatePresentingDocument={setPresentingDocument!}
-        docs={docs}
+        docs={subQuestions?.[0]?.context_docs?.top_documents || docs}
       >
         {props.children}
       </MemoizedAnchor>
@@ -352,6 +352,7 @@ export const AgenticMessage = ({
                       documents={docs || []}
                       toggleDocumentSelection={toggleDocumentSelection!}
                       setPresentingDocument={setPresentingDocument!}
+                      unToggle={false}
                     />
                   )}
 

@@ -72,7 +72,9 @@ const SubQuestionDisplay: React.FC<{
     );
   };
 
-  const finalContent = processContent(subQuestion.answer as string) as string;
+  const finalContent = subQuestion.answer
+    ? (processContent(subQuestion.answer as string) as string)
+    : "";
 
   const paragraphCallback = useCallback(
     (props: any) => (
@@ -85,7 +87,7 @@ const SubQuestionDisplay: React.FC<{
     (props: any) => (
       <MemoizedAnchor
         updatePresentingDocument={setPresentingDocument!}
-        docs={documents}
+        docs={subQuestion.context_docs?.top_documents || documents}
       >
         {props.children}
       </MemoizedAnchor>
@@ -279,6 +281,8 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
       `}</style>
       <div className="relative">
         {subQuestions.map((subQuestion, index) => (
+          // {dynamicSubQuestions.map((subQuestion, index) => (
+          // {dynamicSubQuestions.map((subQuestion, index) => (
           <SubQuestionDisplay
             key={index}
             subQuestion={subQuestion}
@@ -287,6 +291,8 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             isFirst={index === 0}
             setPresentingDocument={setPresentingDocument}
             unToggle={
+              subQuestion != undefined &&
+              subQuestion.answer != undefined &&
               subQuestion.answer.length > 1 &&
               dynamicSubQuestions[index + 1] &&
               dynamicSubQuestions[index + 1]?.sub_queries?.length! > 0
