@@ -51,6 +51,7 @@ import {
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { reorderPinnedAssistants } from "@/lib/assistants/updateAssistantPreferences";
+import { CircleIcon, CircleX } from "lucide-react";
 
 interface HistorySidebarProps {
   page: pageType;
@@ -106,7 +107,9 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
       <button
         onClick={onClick}
         className={`cursor-pointer w-full group hover:bg-background-chat-hover ${
-          currentAssistantId === assistant.id ? "bg-hover-light" : ""
+          currentAssistantId === assistant.id
+            ? "bg-background-chat-hover/60"
+            : ""
         } relative flex items-center gap-x-2 py-1 px-2 rounded-md`}
       >
         <AssistantIcon assistant={assistant} size={16} className="flex-none" />
@@ -115,7 +118,7 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
           onClick={onUnpin}
           className="group-hover:block hidden absolute right-2"
         >
-          <PinnedIcon size={16} className="text-text-history-sidebar-button" />
+          <CircleX size={16} className="text-text-history-sidebar-button" />
         </button>
       </button>
     </div>
@@ -270,7 +273,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
           )}
 
           <div>
-            <div className="flex px-4 font-normal text-sm gap-x-2 leading-normal text-[#6c6c6c] items-center font-normal leading-normal">
+            <div className="flex px-4 font-normal text-sm gap-x-2 leading-normal text-[#6c6c6c]/80 items-center font-normal leading-normal">
               Assistants
             </div>
             <DndContext
