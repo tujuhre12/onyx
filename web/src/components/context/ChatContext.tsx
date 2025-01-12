@@ -39,7 +39,10 @@ const ChatContext = createContext<ChatContextProps | undefined>(undefined);
 export const ChatProvider: React.FC<{
   value: Omit<
     ChatContextProps,
-    "refreshChatSessions" | "refreshAvailableAssistants"
+    | "refreshChatSessions"
+    | "refreshAvailableAssistants"
+    | "reorderFolders"
+    | "refreshFolders"
   >;
   children: React.ReactNode;
 }> = ({ value, children }) => {

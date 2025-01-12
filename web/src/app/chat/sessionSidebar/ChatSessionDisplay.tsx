@@ -65,6 +65,8 @@ export function ChatSessionDisplay({
   const inputRef = useRef<HTMLInputElement>(null);
   const renamingRef = useRef<HTMLDivElement>(null);
 
+  const { refreshChatSessions, reorderFolders, refreshFolders } =
+    useChatContext();
   const handlePopoverOpenChange = useCallback(
     (open: boolean) => {
       setPopoverOpen(open);
@@ -136,8 +138,6 @@ export function ChatSessionDisplay({
     chatSession,
     settings?.settings
   );
-  const { refreshChatSessions, reorderFolders, refreshFolders } =
-    useChatContext();
 
   return (
     <>

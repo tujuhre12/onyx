@@ -96,7 +96,11 @@ export const FolderDropdown = forwardRef<HTMLDivElement, FolderDropdownProps>(
           !editingRef.current.contains(event.target as Node) &&
           isEditing
         ) {
-          setIsEditing(false);
+          if (newFolderName !== folder.folder_name) {
+            handleEdit();
+          } else {
+            setIsEditing(false);
+          }
         }
       };
 
@@ -106,7 +110,7 @@ export const FolderDropdown = forwardRef<HTMLDivElement, FolderDropdownProps>(
       return () => {
         document.removeEventListener("mousedown", handleClickOutside);
       };
-    }, [isEditing]);
+    }, [isEditing, newFolderName, folder.folder_name, handleEdit]);
 
     const handleDeleteClick = useCallback(() => {
       setIsDeletePopoverOpen(true);
