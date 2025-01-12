@@ -17,14 +17,18 @@ export const MemoizedAnchor = memo(
   }) => {
     const value = children?.toString();
     if (value?.startsWith("[") && value?.endsWith("]")) {
-      const match = value.match(/\[(\d+)\]/);
+      const match = value.match(/\[D?(\d+)\]/);
       if (match) {
         const index = parseInt(match[1], 10) - 1;
+        console.log("index", index);
+
         const associatedDoc = docs?.[index];
+
         if (!associatedDoc) {
           return <>{children}</>;
         }
 
+        console.log("associatedDoc", associatedDoc);
         let icon: React.ReactNode = null;
         if (associatedDoc.source_type === "web") {
           icon = <WebResultIcon url={associatedDoc.link} />;
@@ -48,11 +52,7 @@ export const MemoizedAnchor = memo(
         );
       }
     }
-    return (
-      <MemoizedLink updatePresentingDocument={updatePresentingDocument}>
-        {children}
-      </MemoizedLink>
-    );
+    return { children };
   }
 );
 
