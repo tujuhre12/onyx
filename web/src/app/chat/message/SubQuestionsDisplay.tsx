@@ -203,13 +203,15 @@ const SubQuestionDisplay: React.FC<{
                   Reading
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {documents
-                    .filter((doc) =>
-                      subQuestion.context_docs?.top_documents?.some(
-                        (contextDoc) =>
-                          contextDoc.document_id === doc.document_id
+                  {(subQuestion.context_docs?.top_documents
+                    ? subQuestion.context_docs?.top_documents
+                    : documents.filter((doc) =>
+                        subQuestion.context_docs?.top_documents?.some(
+                          (contextDoc) =>
+                            contextDoc.document_id === doc.document_id
+                        )
                       )
-                    )
+                  )
                     .slice(0, 10)
                     .map((doc, docIndex) => {
                       const truncatedIdentifier =

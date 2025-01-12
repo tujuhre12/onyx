@@ -151,6 +151,8 @@ export interface MessageResponseIDInfo {
 export interface DocumentsResponse {
   top_documents: OnyxDocument[];
   rephrased_query: string | null;
+  level?: number | null;
+  level_question_nr?: number | null;
 }
 
 export interface FileChatDisplay {
@@ -215,6 +217,7 @@ export const constructSubQuestions = (
     | SubQueryPiece
     | AgentAnswerPiece
     | SubQuestionSearchDoc
+    | DocumentsResponse
 ): SubQuestionDetail[] => {
   if (!newDetail) {
     return subQuestions;
@@ -225,7 +228,26 @@ export const constructSubQuestions = (
   //   (sq) => sq.level_question_nr !== 0
   // );
 
-  if ("answer_piece" in newDetail) {
+  if ("top_documents" in newDetail) {
+    const { level, level_question_nr, top_documents } = newDetail;
+    const actual_level_question_nr = level_question_nr ?? 0;
+    let subQuestion = updatedSubQuestions.find(
+      (sq) =>
+        sq.level === level && sq.level_question_nr === actual_level_question_nr
+    );
+    if (!subQuestion) {
+      subQuestion = {
+        level: level ?? 0,
+        level_question_nr: actual_level_question_nr,
+        question: "",
+        answer: "",
+        sub_queries: [],
+        context_docs: { top_documents },
+      };
+    } else {
+      subQuestion.context_docs = { top_documents };
+    }
+  } else if ("answer_piece" in newDetail) {
     // Handle AgentAnswerPiece
     const { level, level_question_nr, answer_piece } = newDetail;
     const actual_level_question_nr = level_question_nr + 1;

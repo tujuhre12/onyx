@@ -54,7 +54,7 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
         {hasMoreDocuments && (
           <button
             onClick={toggleDocumentSelection}
-            className="w-[260px] h-[80px] bg-red-400 p-3 bg-[#f1eee8] hover:bg-[#ebe7de] cursor-pointer rounded-lg flex  flex-col  items-start justify-between"
+            className="w-[260px] h-[80px] p-3 bg-[#f1eee8] hover:bg-[#ebe7de] cursor-pointer rounded-lg flex  flex-col  items-start justify-between"
           >
             <div className="flex items-center gap-1">
               {documents.slice(3, 6).map((doc, index) => (
