@@ -733,7 +733,7 @@ def stream_chat_message_objects(
                 ProSearchConfig(
                     search_request=search_request,
                     chat_session_id=chat_session_id,
-                    message_id=user_message.id if user_message else None,
+                    message_id=reserved_message_id,
                     message_history=message_history,
                 )
                 if new_msg_req.use_pro_search
