@@ -23,6 +23,7 @@ import { Popover } from "@/components/popover/Popover";
 import { ShareChatSessionModal } from "../modal/ShareChatSessionModal";
 import { CHAT_SESSION_ID_KEY, FOLDER_ID_KEY } from "@/lib/drag/constants";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
+import { DragHandle } from "@/components/table/DragHandle";
 import { WarningCircle } from "@phosphor-icons/react";
 import { CustomTooltip } from "@/components/tooltip/CustomTooltip";
 import SlideOverModal from "@/components/ui/SlideOverModal";
@@ -90,7 +91,7 @@ export function ChatSessionDisplay({
 
       <div ref={chatSessionRef}>
         <Link
-          className="flex items-center w-full group relative"
+          className="flex -ml-5 group items-center w-full relative"
           key={chatSession.id}
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => {
@@ -120,7 +121,10 @@ export function ChatSessionDisplay({
             );
           }}
         >
-          {/* <DragHandle size={16} className="w-4  group-hover:visible flex-none" /> */}
+          <DragHandle
+            size={16}
+            className="w-4 mr-1 invisible group-hover:visible flex-none"
+          />
           <BasicSelectable
             fullWidth
             selected={isSelected}

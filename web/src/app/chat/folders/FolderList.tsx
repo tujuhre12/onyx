@@ -62,11 +62,11 @@ const FolderItem = ({
         ? JSON.parse(openedFoldersCookieVal)
         : {};
       if (newIsExpanded) {
-        openedFolders[folder.folder_id] = true;
+        openedFolders[folder.folder_id!] = true;
       } else {
         setShowDeleteConfirm(false);
 
-        delete openedFolders[folder.folder_id];
+        delete openedFolders[folder.folder_id!];
       }
       Cookies.set("openedFolders", JSON.stringify(openedFolders));
     }
@@ -91,7 +91,7 @@ const FolderItem = ({
 
   const saveFolderName = async (continueEditing?: boolean) => {
     try {
-      await updateFolderName(folder.folder_id, editedFolderName);
+      await updateFolderName(folder.folder_id!, editedFolderName);
       if (!continueEditing) {
         setIsEditing(false);
       }
@@ -112,7 +112,7 @@ const FolderItem = ({
   const confirmDelete = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     try {
-      await deleteFolder(folder.folder_id);
+      await deleteFolder(folder.folder_id!);
       router.refresh();
     } catch (error) {
       setPopup({ message: "Failed to delete folder", type: "error" });
@@ -155,7 +155,7 @@ const FolderItem = ({
     setIsDragOver(false);
     const chatSessionId = event.dataTransfer.getData(CHAT_SESSION_ID_KEY);
     try {
-      await addChatToFolder(folder.folder_id, chatSessionId);
+      await addChatToFolder(folder.folder_id!, chatSessionId);
       await refreshChatSessions();
       router.refresh();
     } catch (error) {
@@ -341,7 +341,7 @@ export const FolderList = ({
           currentChatId={currentChatId}
           initiallySelected={newFolderId == folder.folder_id}
           isInitiallyExpanded={
-            openedFolders ? openedFolders[folder.folder_id] || false : false
+            openedFolders ? openedFolders[folder.folder_id!] || false : false
           }
           showShareModal={showShareModal}
           showDeleteModal={showDeleteModal}
