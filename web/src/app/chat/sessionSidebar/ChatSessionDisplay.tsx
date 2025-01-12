@@ -28,6 +28,7 @@ import { WarningCircle } from "@phosphor-icons/react";
 import { CustomTooltip } from "@/components/tooltip/CustomTooltip";
 import SlideOverModal from "@/components/ui/SlideOverModal";
 import { useChatContext } from "@/components/context/ChatContext";
+import { Button } from "@/components/ui/button";
 
 export function ChatSessionDisplay({
   chatSession,
@@ -263,19 +264,21 @@ export function ChatSessionDisplay({
         anchor={chatSessionRef}
       >
         <div className="px-4 pb-4">
-          <h2 className="text-xl font-semibold mb-4">Delete Chat Session</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            Delete Chat Session "{chatSession.name}"
+          </h2>
           <p className="mb-4">
             Are you sure you want to delete this chat session?
           </p>
           <div className="flex justify-end space-x-2">
-            <button
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded"
+            <Button
+              variant="outline"
               onClick={() => setIsDeleteModalOpen(false)}
             >
               Cancel
-            </button>
-            <button
-              className="px-4 py-2 bg-red-500 text-white rounded"
+            </Button>
+            <Button
+              variant="destructive"
               onClick={async () => {
                 await deleteChatSession(chatSession.id);
                 setIsDeleteModalOpen(false);
@@ -283,7 +286,7 @@ export function ChatSessionDisplay({
               }}
             >
               Delete
-            </button>
+            </Button>
           </div>
         </div>
       </SlideOverModal>

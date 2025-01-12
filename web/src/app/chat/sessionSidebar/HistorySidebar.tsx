@@ -266,7 +266,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
 
           <div>
             <div className="flex px-4 font-normal text-sm gap-x-2 leading-normal text-[#6c6c6c] items-center font-normal leading-normal">
-              Pinned assistants
+              Assistants
             </div>
             <DndContext
               sensors={sensors}

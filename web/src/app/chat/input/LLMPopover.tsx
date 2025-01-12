@@ -74,6 +74,7 @@ export default function LLMPopover({
   const defaultProvider = llmProviders.find(
     (llmProvider) => llmProvider.is_default_provider
   );
+
   const defaultModelName = defaultProvider?.default_model_name;
   const defaultModelDisplayName = defaultModelName
     ? getDisplayNameForModel(defaultModelName)
@@ -92,9 +93,11 @@ export default function LLMPopover({
                 "Models"
             )}
             Icon={getProviderIcon(
-              llmOverrideManager?.llmOverride.provider || "anthropic",
+              llmOverrideManager?.llmOverride.provider ||
+                defaultProvider?.provider ||
+                "anthropic",
               llmOverrideManager?.llmOverride.modelName ||
-                defaultModelName ||
+                defaultProvider?.default_model_name ||
                 "claude-3-5-sonnet-20240620"
             )}
             tooltipContent="Switch models"
