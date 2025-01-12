@@ -295,7 +295,7 @@ export function PagesTab({
       </div>
 
       {isCreatingFolder ? (
-        <div className="px-4 mb-2">
+        <div className="px-4">
           <div className="!flex items-center w-full text-[#6c6c6c] rounded-md p-1 relative">
             <Caret size={16} className="mr-1" />
             <input
@@ -307,14 +307,14 @@ export function PagesTab({
               ref={newFolderInputRef}
               type="text"
               placeholder="Enter group name"
-              className="text-sm font-medium bg-transparent border-none outline-none w-fit"
+              className="text-sm font-medium bg-transparent  border-b border-text-600 w-fit"
             />
             <button
               type="button"
               onClick={() => setIsCreatingFolder(false)}
               className="ml-auto"
             >
-              <FiX size={14} className="text-white" />
+              <FiX size={14} />
             </button>
           </div>
         </div>
