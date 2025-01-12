@@ -284,7 +284,7 @@ export function ChatInputBar({
               ref={suggestionsRef}
               className="text-sm absolute w-[calc(100%-2rem)] top-0 transform -translate-y-full"
             >
-              <div className="rounded-lg py-1 sm-1.5 bg-background border border-border-medium shadow-lg px-1.5 mt-2 z-10">
+              <div className="rounded-lg py-1 sm-1.5 bg-background border border-border-strong shadow-lg px-1.5 mt-2 z-10">
                 {assistantTagOptions.map((currentAssistant, index) => (
                   <button
                     key={index}
@@ -333,7 +333,8 @@ export function ChatInputBar({
               flex
               flex-col
               border
-              border-[#E5E7EB]
+              shadow
+              border-[#DCDAD4]/60
               rounded-lg
               text-text-chatbar
               [&:has(textarea:focus)]::ring-1
