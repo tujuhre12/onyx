@@ -106,6 +106,13 @@ export interface OnyxDocument {
   is_internet: boolean;
   validationState?: null | "good" | "bad";
 }
+
+export interface PCAOnyxDocument {
+  top_documents: OnyxDocument[];
+  level_question_nr: number;
+  level: number;
+}
+
 export interface LoadedOnyxDocument extends OnyxDocument {
   icon: React.FC<{ size?: number; className?: string }>;
 }
