@@ -9,6 +9,8 @@ import {
   FiEdit,
   FiHash,
   FiBarChart,
+  FiLock,
+  FiUnlock,
 } from "react-icons/fi";
 import { FaHashtag } from "react-icons/fa";
 import {
@@ -92,92 +94,93 @@ const AssistantCard: React.FC<{
             </h3>
           </div>
           <div className="flex items-center gap-x-2">
-            <AssistantBadge text={persona.is_public ? "Public" : "Private"} />
-            {isOwnedByUser && (
-              <Popover
-                open={activePopover !== undefined}
-                onOpenChange={(open) =>
-                  open ? setActivePopover(null) : setActivePopover(undefined)
-                }
-              >
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="hover:bg-neutral-100 p-1 -my-1 rounded-full"
-                  >
-                    <FiMoreHorizontal size={16} />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className={`z-[10000] ${
-                    activePopover === null ? "w-52" : "w-80"
-                  } p-4`}
+            <Popover
+              open={activePopover !== undefined}
+              onOpenChange={(open) =>
+                open ? setActivePopover(null) : setActivePopover(undefined)
+              }
+            >
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="hover:bg-neutral-100 p-1 -my-1 rounded-full"
                 >
-                  {activePopover === null && (
-                    <div className="flex flex-col space-y-2">
-                      <button
-                        onClick={handleShare}
-                        className="w-full text-left flex items-center px-2 py-1 hover:bg-neutral-100 rounded"
-                      >
-                        <FiShare2 size={14} className="inline mr-2" />
-                        Visibility
-                      </button>
+                  <FiMoreHorizontal size={16} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                className={`z-[10000] ${
+                  activePopover === null ? "w-52" : "w-80"
+                } p-4`}
+              >
+                {activePopover === null && (
+                  <div className="flex flex-col space-y-2">
+                    {isOwnedByUser && (
+                      <>
+                        <button
+                          onClick={handleShare}
+                          className="w-full text-left flex items-center px-2 py-1 hover:bg-neutral-100 rounded"
+                        >
+                          <FiShare2 size={14} className="inline mr-2" />
+                          Visibility
+                        </button>
 
-                      <button
-                        onClick={handleEdit}
-                        className="w-full flex items-center text-left px-2 py-1 hover:bg-neutral-100 rounded"
-                      >
-                        <FiEdit size={14} className="inline mr-2" />
-                        Edit
-                      </button>
+                        <button
+                          onClick={handleEdit}
+                          className="w-full flex items-center text-left px-2 py-1 hover:bg-neutral-100 rounded"
+                        >
+                          <FiEdit size={14} className="inline mr-2" />
+                          Edit
+                        </button>
 
-                      <button
-                        onClick={() => {
-                          router.push(`/assistants/stats/${persona.id}`);
-                          closePopover();
-                        }}
-                        className="w-full text-left items-center px-2 py-1 hover:bg-neutral-100 rounded"
-                      >
-                        <FiBarChart size={14} className="inline mr-2" />
-                        Stats
-                      </button>
-                      <button
-                        onClick={handleDelete}
-                        className="w-full text-left items-center px-2 py-1 hover:bg-neutral-100 rounded text-red-600"
-                      >
-                        <FiTrash size={14} className="inline mr-2" />
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                  {activePopover === "visibility" && (
-                    <AssistantVisibilityPopover
-                      assistant={persona}
-                      user={user}
-                      allUsers={[]}
-                      onClose={closePopover}
-                      onTogglePublic={async (isPublic: boolean) => {
-                        await togglePersonaPublicStatus(persona.id, isPublic);
-                        await refreshAssistants();
-                      }}
-                    />
-                  )}
-                  {activePopover === "delete" && (
-                    <DeleteAssistantPopover
-                      entityName={persona.name}
-                      onClose={closePopover}
-                      onSubmit={async () => {
-                        const success = await deletePersona(persona.id);
-                        if (success) {
-                          await refreshAssistants();
-                        }
+                        <button
+                          onClick={handleDelete}
+                          className="w-full text-left items-center px-2 py-1 hover:bg-neutral-100 rounded text-red-600"
+                        >
+                          <FiTrash size={14} className="inline mr-2" />
+                          Delete
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => {
+                        router.push(`/assistants/stats/${persona.id}`);
                         closePopover();
                       }}
-                    />
-                  )}
-                </PopoverContent>
-              </Popover>
-            )}
+                      className="w-full text-left items-center px-2 py-1 hover:bg-neutral-100 rounded"
+                    >
+                      <FiBarChart size={14} className="inline mr-2" />
+                      Stats
+                    </button>
+                  </div>
+                )}
+                {activePopover === "visibility" && (
+                  <AssistantVisibilityPopover
+                    assistant={persona}
+                    user={user}
+                    allUsers={[]}
+                    onClose={closePopover}
+                    onTogglePublic={async (isPublic: boolean) => {
+                      await togglePersonaPublicStatus(persona.id, isPublic);
+                      await refreshAssistants();
+                    }}
+                  />
+                )}
+                {activePopover === "delete" && (
+                  <DeleteAssistantPopover
+                    entityName={persona.name}
+                    onClose={closePopover}
+                    onSubmit={async () => {
+                      const success = await deletePersona(persona.id);
+                      if (success) {
+                        await refreshAssistants();
+                      }
+                      closePopover();
+                    }}
+                  />
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* {pinned && <span className="text-[#6c6c6c] h-0 text-sm">Pinned</span>} */}
@@ -188,16 +191,34 @@ const AssistantCard: React.FC<{
         </p>
 
         <div className="mb-1">
+          <span className="text-black text-sm mr-1">Tools:</span>
           {persona.tools.length > 0 ? (
-            <>
-              <span className="text-black text-sm mr-1">Tools</span>
-              {persona.tools.map((tool, index) => (
-                <AssistantBadge key={index} text={tool.name} />
-              ))}
-            </>
+            persona.tools.map((tool, index) => (
+              <AssistantBadge key={index} text={tool.name} />
+            ))
           ) : (
-            <AssistantBadge text="No Tools" className="invisible" />
+            <AssistantBadge text="None" />
           )}
+        </div>
+
+        <div className="mb-1">
+          <span className="text-black text-sm">
+            By{" "}
+            {persona.owner?.email ||
+              (persona.builtin_persona ? "Onyx" : "Anonymous")}
+            <span className="mx-2">•</span>
+            {persona.is_public ? (
+              <>
+                <FiUnlock size={12} className="inline mr-1" />
+                Public
+              </>
+            ) : (
+              <>
+                <FiLock size={12} className="inline mr-1" />
+                Private
+              </>
+            )}
+          </span>
         </div>
 
         <div className="mb-1 flex flex-wrap">
