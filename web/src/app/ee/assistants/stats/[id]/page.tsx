@@ -41,6 +41,7 @@ export default async function GalleryPage(props: {
     <ChatProvider
       value={{
         chatSessions,
+        toggledSidebar: toggleSidebar,
         availableSources,
         ccPairs,
         documentSets,
