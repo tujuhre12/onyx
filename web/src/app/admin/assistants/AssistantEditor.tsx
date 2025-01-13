@@ -50,6 +50,7 @@ import { Popover } from "@/components/popover/Popover";
 import {
   CameraIcon,
   NewChatIcon,
+  PlusIcon,
   SwapIcon,
   TrashIcon,
 } from "@/components/icons/icons";
@@ -485,7 +486,13 @@ export function AssistantEditor({
             <Form className="w-full text-text-950">
               {/* Refresh starter messages when name or description changes */}
               <p className="text-base font-normal !text-2xl">
-                Create an assistant
+                {existingPersona ? (
+                  <>
+                    Edit assistant <b>{existingPersona.name}</b>
+                  </>
+                ) : (
+                  "Create an Assistant"
+                )}
               </p>
               <div className="max-w-4xl w-full">
                 <Separator />
@@ -639,6 +646,7 @@ export function AssistantEditor({
                 placeholder="Use this Assistant to help draft professional emails"
                 data-testid="assistant-description-input"
               />
+              <Separator />
 
               <TextFormField
                 maxWidth="max-w-4xl"
@@ -673,7 +681,7 @@ export function AssistantEditor({
                       <div className="flex gap-x-2 py-2 flex justify-between">
                         <div>
                           <p className="block font-medium text-sm">
-                            Image Generation Tool
+                            Image Generation
                           </p>
                           <p
                             className="text-sm text-subtle"
@@ -799,9 +807,7 @@ export function AssistantEditor({
                       <Separator />
                       <div className="flex gap-x-2 py-2 flex justify-between">
                         <div>
-                          <p className="block font-medium text-sm">
-                            Search Tool
-                          </p>
+                          <p className="block font-medium text-sm">Knowledge</p>
                           <p
                             className="text-sm text-subtle"
                             style={{ color: "rgb(113, 114, 121)" }}
@@ -834,8 +840,8 @@ export function AssistantEditor({
                               {ccPairs.length === 0 && (
                                 <TooltipContent side="top" align="center">
                                   <p className="bg-background-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
-                                    To use the Search Tool, you need to have at
-                                    least one Connector-Credential pair
+                                    To use the Knowledge Action, you need to
+                                    have at least one Connector-Credential pair
                                     configured.
                                   </p>
                                 </TooltipContent>
@@ -847,9 +853,11 @@ export function AssistantEditor({
                     </>
                   )}
 
-                  {ccPairs.length > 0 && searchTool && showSearchTool && (
-                    <CollapsibleSection prompt="Configure Search">
-                      <div>
+                  {ccPairs.length > 0 &&
+                    searchTool &&
+                    showSearchTool &&
+                    !(user?.role != "admin" && documentSets.length === 0) && (
+                      <div className="mt-2">
                         {ccPairs.length > 0 && (
                           <>
                             <Label small>Document Sets</Label>
@@ -860,7 +868,7 @@ export function AssistantEditor({
                                   {!user || user.role === "admin" ? (
                                     <Link
                                       href="/admin/documents/sets"
-                                      className="text-blue-500"
+                                      className="font-semibold hover:underline text-text"
                                       target="_blank"
                                     >
                                       Document Sets
@@ -907,15 +915,20 @@ export function AssistantEditor({
                                 )}
                               />
                             ) : (
-                              <p className="text-sm italic">
-                                No Document Sets available.{" "}
-                                {user?.role !== "admin" && (
-                                  <>
-                                    If this functionality would be useful, reach
-                                    out to the administrators of Onyx for
-                                    assistance.
-                                  </>
-                                )}
+                              <p className="text-sm flex gap-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    router.push("/admin/documents/sets/new")
+                                  }
+                                  className="py-1 px-2 rounded-md bg-black"
+                                >
+                                  <PlusIcon
+                                    className="bg-black text-white"
+                                    size={12}
+                                  />
+                                </button>
+                                Create a document set to get started.
                               </p>
                             )}
 
@@ -965,8 +978,7 @@ export function AssistantEditor({
                           </>
                         )}
                       </div>
-                    </CollapsibleSection>
-                  )}
+                    )}
                 </div>
               </div>
               <Separator className="max-w-4xl" />

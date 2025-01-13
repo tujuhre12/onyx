@@ -93,8 +93,9 @@ export default function FunctionalHeader({
             ${sidebarToggled ? "w-[250px]" : "w-[0px]"}
             `}
           />
-          <div
-            className={`
+          {page == "chat" && (
+            <div
+              className={`
             absolute
             ${
               documentSidebarToggled && !sidebarToggled
@@ -117,9 +118,10 @@ export default function FunctionalHeader({
             -translate-x-1/2
             transition-all duration-300
           `}
-          >
-            <ChatBanner />
-          </div>
+            >
+              <ChatBanner />
+            </div>
+          )}
 
           {/* <div
             className={`absolute 

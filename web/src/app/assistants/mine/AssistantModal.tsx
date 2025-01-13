@@ -9,6 +9,7 @@ import AssistantCard from "./AssistantCard";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { checkUserOwnsAssistant } from "@/lib/assistants/checkOwnership";
 import { useUser } from "@/components/user/UserProvider";
+import { Button } from "@/components/ui/button";
 
 export const AssistantBadgeSelector = ({
   text,
@@ -69,6 +70,8 @@ export default function AssistantModal({
 }: {
   hideModal: () => void;
 }) {
+  const [showAllFeaturedAssistants, setShowAllFeaturedAssistants] =
+    useState(false);
   const { assistants, visibleAssistants, pinnedAssistants } = useAssistants();
   const { assistantFilters, toggleAssistantFilter } = useAssistantFilter();
   const router = useRouter();
@@ -117,6 +120,14 @@ export default function AssistantModal({
     window.innerHeight * 0.8
   );
   const height = Math.min(calculatedHeight, maxHeight);
+  const featuredAssistants = [
+    ...memoizedCurrentlyVisibleAssistants.filter(
+      (assistant) => assistant.builtin_persona || assistant.is_default_persona
+    ),
+  ];
+  const allAssistants = memoizedCurrentlyVisibleAssistants.filter(
+    (assistant) => !assistant.builtin_persona && !assistant.is_default_persona
+  );
 
   return (
     <Modal
@@ -202,8 +213,15 @@ export default function AssistantModal({
         </div>
 
         <div className="flex-grow overflow-y-auto">
-          <div className="w-full mt-2 px-2 pb-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
-            {memoizedCurrentlyVisibleAssistants.map((assistant, index) => (
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2 px-4 py-2">
+            Featured Assistants
+          </h2>
+
+          <div className="w-full px-2 pb-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+            {(showAllFeaturedAssistants
+              ? featuredAssistants
+              : featuredAssistants.slice(0, 6)
+            ).map((assistant, index) => (
               <div key={index}>
                 <AssistantCard
                   pinned={pinnedAssistants.includes(assistant)}
@@ -212,6 +230,35 @@ export default function AssistantModal({
                 />
               </div>
             ))}
+          </div>
+
+          {featuredAssistants.length > 6 && !showAllFeaturedAssistants && (
+            <div className="text-center mt-4 mb-8">
+              <Button
+                onClick={() => setShowAllFeaturedAssistants(true)}
+                className=" font-normal"
+              >
+                See All Featured Assistants
+              </Button>
+            </div>
+          )}
+
+          <h2 className="text-2xl font-semibold text-gray-800 mt-4 mb-2 px-4 py-2">
+            All Assistants
+          </h2>
+
+          <div className="w-full mt-2 px-2 pb-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+            {allAssistants
+              .sort((a, b) => b.id - a.id)
+              .map((assistant, index) => (
+                <div key={index}>
+                  <AssistantCard
+                    pinned={pinnedAssistants.includes(assistant)}
+                    persona={assistant}
+                    closeModal={hideModal}
+                  />
+                </div>
+              ))}
           </div>
         </div>
       </div>

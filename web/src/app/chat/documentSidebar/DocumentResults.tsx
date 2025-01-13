@@ -120,7 +120,7 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
               {popup}
               <div className="p-4 flex items-center justify-between gap-x-2">
                 <div className="flex items-center gap-x-2">
-                  <SourcesIcon size={32} />
+                  {/* <SourcesIcon size={32} /> */}
                   <h2 className="text-xl font-bold text-text-900">Sources</h2>
                 </div>
                 <button className="my-auto" onClick={closeSidebar}>
