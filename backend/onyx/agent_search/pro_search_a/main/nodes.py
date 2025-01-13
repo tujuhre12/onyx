@@ -74,6 +74,8 @@ from onyx.db.chat import log_agent_sub_question_results
 from onyx.tools.tool_implementations.search.search_tool import yield_search_responses
 from onyx.utils.logger import setup_logger
 
+from onyx.tools.models import ToolCallKickoff
+
 logger = setup_logger()
 
 
@@ -865,6 +867,10 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
 
 def refined_sub_question_creation(state: MainState) -> FollowUpSubQuestionsUpdate:
     """ """
+    dispatch_custom_event("start_refined_answer_creation", ToolCallKickoff(
+        tool_name="agent_search_1",
+        tool_args={"query": state["config"].search_request.query, "answer": state["initial_answer"]},
+    ))
 
     now_start = datetime.now()
 
