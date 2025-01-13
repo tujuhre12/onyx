@@ -54,11 +54,10 @@ export function ChatBanner() {
         border-border
         border-l-8 border-l-400
         border-r-4 border-r-200
-        bg-background
+        bg-background-sidebar
         transition-all duration-300 ease-in-out
         ${isExpanded ? "shadow-md bg-background-100" : ""}
       `}
-      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       aria-expanded={isExpanded}
       role="region"
@@ -108,6 +107,7 @@ export function ChatBanner() {
           <div className="absolute bottom-2 right-2">
             {isOverflowing && !isExpanded && (
               <button
+                onMouseEnter={handleMouseEnter}
                 className="cursor-pointer bg-background-100 p-1 rounded-full transition-opacity duration-300 ease-in-out"
                 aria-label="Expand banner content"
                 onClick={() => setIsExpanded(true)}

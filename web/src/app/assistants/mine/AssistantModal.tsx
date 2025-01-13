@@ -127,8 +127,8 @@ export default function AssistantModal({
     >
       <div className="flex flex-col h-full">
         <div className="flex flex-col sticky top-0 z-10">
-          <div className="flex justify-between items-center mb-0 px-2">
-            <div className="h-12 px-2 w-full rounded-lg flex-col justify-center items-start gap-2.5 inline-flex">
+          <div className="flex px-2 justify-between items-center gap-x-2 mb-0">
+            <div className="h-12 w-full rounded-lg flex-col justify-center items-start gap-2.5 inline-flex">
               <div className="h-12 rounded-md w-full shadow-[0px_0px_2px_0px_rgba(0,0,0,0.25)] border border-[#dcdad4] flex items-center px-3">
                 {!isSearchFocused && (
                   <svg
