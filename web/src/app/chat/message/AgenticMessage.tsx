@@ -80,6 +80,7 @@ import "katex/dist/katex.min.css";
 import FiltersDisplay from "../input/FilterDisplay";
 import SubQuestionsDisplay from "./SubQuestionsDisplay";
 import DocumentsDisplay from "./DocumentsDisplay";
+import SubQuestionProgress from "./ZZSub";
 
 const TOOLS_WITH_CUSTOM_HANDLING = [
   SEARCH_TOOL_NAME,
@@ -369,6 +370,8 @@ export const AgenticMessage = ({
                       unToggle={false}
                     />
                   )}
+
+                  <SubQuestionProgress subQuestions={subQuestions || []} />
 
                   {(content || files) && streamingAllowed ? (
                     <>

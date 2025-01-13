@@ -50,7 +50,11 @@ export const MemoizedAnchor = memo(
         );
       }
     }
-    return <>{children}</>;
+    return (
+      <MemoizedLink updatePresentingDocument={updatePresentingDocument}>
+        {children}
+      </MemoizedLink>
+    );
   }
 );
 

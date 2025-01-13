@@ -153,6 +153,7 @@ export const useStreamingMessages = (
             const subQueries = sq.sub_queries || [];
             const docs = sq.context_docs?.top_documents || [];
             const hasDocs = docs.length > 0;
+            const hasAnswer = !!sq.answer?.length;
 
             if (p.subQueryIndex < subQueries.length) {
               const currentSubQ = subQueries[p.subQueryIndex];
@@ -175,7 +176,7 @@ export const useStreamingMessages = (
                 p.subQueryIndex++;
                 p.subQueryCharIndex = 0;
               }
-            } else if (hasDocs) {
+            } else if (hasDocs || hasAnswer) {
               // Done with subqueries, move to docs
               p.currentPhase = SubQStreamingPhase.CONTEXT_DOCS;
               p.lastDocTimestamp = null; // reset doc timestamp
@@ -186,6 +187,10 @@ export const useStreamingMessages = (
           case SubQStreamingPhase.CONTEXT_DOCS: {
             const docs = sq.context_docs?.top_documents || [];
             const hasAnswer = !!sq.answer?.length;
+            if (hasAnswer && !docs.length) {
+              p.currentPhase = SubQStreamingPhase.ANSWER;
+              break;
+            }
 
             if (p.docIndex < docs.length) {
               // Check if we have waited long enough since the last doc
@@ -221,7 +226,7 @@ export const useStreamingMessages = (
               const nextIndex = p.answerCharIndex + 1;
               dynSQ.answer = answerText.slice(0, nextIndex);
               p.answerCharIndex = nextIndex;
-              if (nextIndex >= answerText.length) {
+              if (nextIndex >= answerText.length && sq.is_complete) {
                 p.currentPhase = SubQStreamingPhase.COMPLETE;
               }
             }
