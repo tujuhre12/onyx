@@ -2,6 +2,13 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from onyx.agent_search.pro_search_a.main.models import AgentAdditionalMetrics
+from onyx.agent_search.pro_search_a.main.models import AgentBaseMetrics
+from onyx.agent_search.pro_search_a.main.models import AgentRefinedMetrics
+from onyx.agent_search.pro_search_a.main.models import AgentTimings
+from onyx.context.search.models import InferenceSection
+from onyx.tools.models import SearchQueryInfo
+
 
 # Pydantic models for structured outputs
 class RewrittenQueries(BaseModel):
@@ -50,3 +57,56 @@ class InitialAgentResultStats(BaseModel):
 class RefinedAgentStats(BaseModel):
     revision_doc_efficiency: float | None
     revision_question_efficiency: float | None
+
+
+class Term(BaseModel):
+    term_name: str
+    term_type: str
+    term_similar_to: list[str]
+
+
+### Models ###
+
+
+class Entity(BaseModel):
+    entity_name: str
+    entity_type: str
+
+
+class Relationship(BaseModel):
+    relationship_name: str
+    relationship_type: str
+    relationship_entities: list[str]
+
+
+class EntityRelationshipTermExtraction(BaseModel):
+    entities: list[Entity]
+    relationships: list[Relationship]
+    terms: list[Term]
+
+
+### Models ###
+
+
+class QueryResult(BaseModel):
+    query: str
+    search_results: list[InferenceSection]
+    stats: RetrievalFitStats | None
+    query_info: SearchQueryInfo | None
+
+
+class QuestionAnswerResults(BaseModel):
+    question: str
+    question_id: str
+    answer: str
+    quality: str
+    expanded_retrieval_results: list[QueryResult]
+    documents: list[InferenceSection]
+    sub_question_retrieval_stats: AgentChunkStats
+
+
+class CombinedAgentMetrics(BaseModel):
+    timings: AgentTimings
+    base_metrics: AgentBaseMetrics
+    refined_metrics: AgentRefinedMetrics
+    additional_metrics: AgentAdditionalMetrics
