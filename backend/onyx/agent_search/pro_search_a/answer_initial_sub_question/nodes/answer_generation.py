@@ -82,9 +82,10 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
             )
             response.append(content)
 
-        stop_event = StreamStopInfo(stop_reason=StreamStopReason.FINISHED, stream_level=level, stream_level_question_nr=question_nr)
-        dispatch_custom_event("sub_answer_finished", stop_event)
         answer_str = merge_message_runs(response, chunk_separator="")[0].content
+
+    stop_event = StreamStopInfo(stop_reason=StreamStopReason.FINISHED, level=level, level_question_nr=question_nr)
+    dispatch_custom_event("sub_answer_finished", stop_event)
 
     return QAGenerationUpdate(
         answer=answer_str,
