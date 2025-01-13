@@ -796,12 +796,13 @@ def stream_chat_message_objects(
             db_session=db_session,
         )
 
-        # reference_db_search_docs = None
-        # qa_docs_response = None
-        # # any files to associate with the AI message e.g. dall-e generated images
-        # ai_message_files = []
-        # dropped_indices = None
-        # tool_result = None
+        reference_db_search_docs = None
+        qa_docs_response = None
+        # any files to associate with the AI message e.g. dall-e generated images
+        ai_message_files = []
+        dropped_indices = None
+        tool_result = None
+        sub_queries = {}
 
         # TODO: different channels for stored info when it's coming from the agent flow
         info_by_subq: dict[tuple[int, int], AnswerPostInfo] = defaultdict(
@@ -932,8 +933,6 @@ def stream_chat_message_objects(
                     yield cast(OnyxContexts, packet.response)
 
             elif isinstance(packet, StreamStopInfo):
-                print(packet)
-                print("this is the stop reason")
                 if packet.stop_reason == StreamStopReason.FINISHED:
                     yield packet
             else:
