@@ -116,10 +116,39 @@ export default function AssistantModal({
     <Modal
       heightOverride={`${height}px`}
       onOutsideClick={hideModal}
-      className={`max-w-4xl w-[95%]`}
+      className={`max-w-4xl !max-h-[80vh] w-[95%]`}
     >
       <>
-        <div className="flex justify-between items-center mb-0">
+        <div className="ml-4 flex pb-2 items-center gap-x-2">
+          <AssistantBadgeSelector
+            text="Public"
+            selected={assistantFilters[AssistantFilter.Public] ?? false}
+            toggleFilter={() => toggleAssistantFilter(AssistantFilter.Public)}
+          />
+          <AssistantBadgeSelector
+            text="Private"
+            selected={assistantFilters[AssistantFilter.Private] ?? false}
+            toggleFilter={() => toggleAssistantFilter(AssistantFilter.Private)}
+          />
+          <AssistantBadgeSelector
+            text="Admin-Created"
+            selected={assistantFilters[AssistantFilter.AdminCreated] ?? false}
+            toggleFilter={() =>
+              toggleAssistantFilter(AssistantFilter.AdminCreated)
+            }
+          />
+          <AssistantBadgeSelector
+            text="Pinned"
+            selected={assistantFilters[AssistantFilter.Pinned] ?? false}
+            toggleFilter={() => toggleAssistantFilter(AssistantFilter.Pinned)}
+          />
+          <AssistantBadgeSelector
+            text="Builtin"
+            selected={assistantFilters[AssistantFilter.Builtin] ?? false}
+            toggleFilter={() => toggleAssistantFilter(AssistantFilter.Builtin)}
+          />
+        </div>
+        <div className="flex justify-between items-center mb-4">
           <div className="h-10 px-4 w-full  rounded-lg flex-col justify-center items-start gap-2.5 inline-flex">
             <div className="h-16 rounded-md w-full shadow-[0px_0px_2px_0px_rgba(0,0,0,0.25)] border border-[#dcdad4] flex items-center px-3">
               <input
@@ -153,37 +182,8 @@ export default function AssistantModal({
             </div>
           </button>
         </div>
-        <div className="ml-4 flex py-2 items-center gap-x-2">
-          <AssistantBadgeSelector
-            text="Public"
-            selected={assistantFilters[AssistantFilter.Public] ?? false}
-            toggleFilter={() => toggleAssistantFilter(AssistantFilter.Public)}
-          />
-          <AssistantBadgeSelector
-            text="Private"
-            selected={assistantFilters[AssistantFilter.Private] ?? false}
-            toggleFilter={() => toggleAssistantFilter(AssistantFilter.Private)}
-          />
-          <AssistantBadgeSelector
-            text="Admin-Created"
-            selected={assistantFilters[AssistantFilter.AdminCreated] ?? false}
-            toggleFilter={() =>
-              toggleAssistantFilter(AssistantFilter.AdminCreated)
-            }
-          />
-          <AssistantBadgeSelector
-            text="Pinned"
-            selected={assistantFilters[AssistantFilter.Pinned] ?? false}
-            toggleFilter={() => toggleAssistantFilter(AssistantFilter.Pinned)}
-          />
-          <AssistantBadgeSelector
-            text="Builtin"
-            selected={assistantFilters[AssistantFilter.Builtin] ?? false}
-            toggleFilter={() => toggleAssistantFilter(AssistantFilter.Builtin)}
-          />
-        </div>
 
-        <div className="w-full mt-2 justify-start h-fit px-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div className="w-full mt-4 justify-start h-fit px-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           {memoizedCurrentlyVisibleAssistants.map((assistant, index) => (
             <div key={index}>
               <AssistantCard

@@ -2184,49 +2184,59 @@ export function ChatPage({
                   showDeleteAllModal={() => setShowDeleteAllModal(true)}
                 />
               </div>
-            </div>
-          </div>
-          {!settings?.isMobile && retrievalEnabled && (
-            <div
-              style={{ transition: "width 0.30s ease-out" }}
-              className={`
-                flex-none 
+              <div
+                className={`
+                flex-none
                 fixed
-                right-0
-                z-[1000]
-                bg-background
+                left-0
+                z-40
+                bg-background-100
                 h-screen
                 transition-all
                 bg-opacity-80
                 duration-300
                 ease-in-out
+                ${documentSidebarToggled && "opacity-100 w-[350px]"}`}
+              ></div>
+            </div>
+          </div>
+
+          <div
+            style={{ transition: "width 0.30s ease-out" }}
+            className={`
+                flex-none 
+                fixed
+                right-0
+                z-[1000]
+                h-screen
+                transition-all
+                duration-300
+                ease-in-out
                 bg-transparent
                 transition-all
-                bg-opacity-80
                 duration-300
                 ease-in-out
                 h-full
                 ${documentSidebarToggled ? "w-[400px]" : "w-[0px]"}
             `}
-            >
-              <DocumentResults
-                setPresentingDocument={setPresentingDocument}
-                modal={false}
-                ref={innerSidebarElementRef}
-                closeSidebar={() =>
-                  setTimeout(() => setDocumentSidebarToggled(false), 300)
-                }
-                selectedMessage={aiMessage}
-                selectedDocuments={selectedDocuments}
-                toggleDocumentSelection={toggleDocumentSelection}
-                clearSelectedDocuments={clearSelectedDocuments}
-                selectedDocumentTokens={selectedDocumentTokens}
-                maxTokens={maxTokens}
-                initialWidth={400}
-                isOpen={documentSidebarToggled}
-              />
-            </div>
-          )}
+          >
+            <DocumentResults
+              setPresentingDocument={setPresentingDocument}
+              modal={false}
+              ref={innerSidebarElementRef}
+              closeSidebar={() =>
+                setTimeout(() => setDocumentSidebarToggled(false), 300)
+              }
+              selectedMessage={aiMessage}
+              selectedDocuments={selectedDocuments}
+              toggleDocumentSelection={toggleDocumentSelection}
+              clearSelectedDocuments={clearSelectedDocuments}
+              selectedDocumentTokens={selectedDocumentTokens}
+              maxTokens={maxTokens}
+              initialWidth={400}
+              isOpen={documentSidebarToggled}
+            />
+          </div>
 
           <BlurBackground
             visible={!untoggled && (showHistorySidebar || toggledSidebar)}
@@ -2248,6 +2258,7 @@ export function ChatPage({
                       ? setSharingModalVisible
                       : undefined
                   }
+                  documentSidebarToggled={documentSidebarToggled}
                   toggleSidebar={toggleSidebar}
                   currentChatSession={selectedChatSession}
                   hideUserDropdown={user?.is_anonymous_user}
@@ -2795,6 +2806,21 @@ export function ChatPage({
                           </div>
                         </div>
                       </div>
+
+                      <div
+                        style={{ transition: "width 0.30s ease-out" }}
+                        className={`
+                          flex-none 
+                          overflow-y-hidden 
+                          bg-background-100 
+                          transition-all 
+                          bg-opacity-80
+                          duration-300 
+                          ease-in-out
+                          h-full
+                          ${documentSidebarToggled ? "w-[350px]" : "w-[0px]"}
+                      `}
+                      ></div>
                     </div>
                   )}
                 </Dropzone>

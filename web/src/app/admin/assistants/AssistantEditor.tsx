@@ -241,11 +241,12 @@ export function AssistantEditor({
   }
 
   const debouncedRefreshPrompts = debounce(
-    async (values: any, setFieldValue: any) => {
+    async (formValues: any, setFieldValue: any) => {
       if (!autoStarterMessageEnabled) {
         return;
       }
       setIsRefreshing(true);
+      console.log("Form values:", formValues);
       try {
         const response = await fetch("/api/persona/assistant-prompt-refresh", {
           method: "POST",
@@ -253,14 +254,15 @@ export function AssistantEditor({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            name: values.name || "",
-            description: values.description || "",
-            document_set_ids: values.document_set_ids || [],
-            instructions: values.system_prompt || values.task_prompt || "",
+            name: formValues.name || "",
+            description: formValues.description || "",
+            document_set_ids: formValues.document_set_ids || [],
+            instructions:
+              formValues.system_prompt || formValues.task_prompt || "",
           }),
         });
 
-        const data: AssistantPrompt = await response.json();
+        const data: AssistantPrompt[] = await response.json();
         if (response.ok) {
           setFieldValue("starter_messages", data);
         }
@@ -496,150 +498,129 @@ export function AssistantEditor({
                   The icon that will visually represent your Assistant
                 </SubLabel>
                 <div className="flex gap-x-2 items-center">
-                  <Popover
-                    open={isIconDropdownOpen}
-                    onOpenChange={setIsIconDropdownOpen}
-                    content={
-                      <div
-                        className="p-2 cursor-pointer border-dashed rounded-full flex border border-border border-2 border-dashed"
-                        style={{
-                          borderStyle: "dashed",
-                          borderWidth: "1.5px",
-                          borderSpacing: "4px",
+                  <div
+                    className="p-2 cursor-pointer border-dashed rounded-full flex border border-border border-2 border-dashed"
+                    style={{
+                      borderStyle: "dashed",
+                      borderWidth: "1.5px",
+                      borderSpacing: "4px",
+                    }}
+                  >
+                    {values.uploaded_image ? (
+                      <img
+                        src={URL.createObjectURL(values.uploaded_image)}
+                        alt="Uploaded assistant icon"
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : existingPersona?.uploaded_image_id &&
+                      !removePersonaImage ? (
+                      <img
+                        src={buildImgUrl(existingPersona?.uploaded_image_id)}
+                        alt="Uploaded assistant icon"
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      generateIdenticon((values.icon_shape || 0).toString(), 24)
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => {
+                        const fileInput = document.createElement("input");
+                        fileInput.type = "file";
+                        fileInput.accept = "image/*";
+                        fileInput.onchange = (e) => {
+                          const file = (e.target as HTMLInputElement)
+                            .files?.[0];
+                          if (file) {
+                            setFieldValue("uploaded_image", file);
+                          }
+                        };
+                        fileInput.click();
+                      }}
+                    >
+                      <CameraIcon size={14} />
+                      Upload {values.uploaded_image && "New "}Photo
+                    </Button>
+
+                    {values.uploaded_image && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => {
+                          setFieldValue("uploaded_image", null);
+                          setRemovePersonaImage(false);
                         }}
-                        onClick={() =>
-                          setIsIconDropdownOpen(!isIconDropdownOpen)
-                        }
                       >
-                        {values.uploaded_image ? (
-                          <img
-                            src={URL.createObjectURL(values.uploaded_image)}
-                            alt="Uploaded assistant icon"
-                            className="w-12 h-12 rounded-full object-cover"
-                          />
-                        ) : existingPersona?.uploaded_image_id &&
-                          !removePersonaImage ? (
-                          <img
-                            src={buildImgUrl(
-                              existingPersona?.uploaded_image_id
-                            )}
-                            alt="Uploaded assistant icon"
-                            className="w-12 h-12 rounded-full object-cover"
-                          />
-                        ) : (
-                          generateIdenticon(
-                            (values.icon_shape || 0).toString(),
-                            24
-                          )
-                        )}
-                      </div>
-                    }
-                    popover={
-                      <div className="bg-white text-sm text-text-800 flex flex-col gap-y-1 w-[200px] border border-border rounded-lg shadow-lg p-2">
-                        <label className="block w-full flex gap-x-2 text-left items-center p-2 hover:bg-background-100 rounded cursor-pointer">
-                          <CameraIcon />
-                          Upload {values.uploaded_image && " New "} Photo
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setFieldValue("uploaded_image", file);
-                                setIsIconDropdownOpen(false);
-                              }
-                            }}
-                          />
-                        </label>
+                        <TrashIcon className="h-3 w-3" />
+                        {removePersonaImage ? "Revert to Previous " : "Remove "}
+                        Image
+                      </Button>
+                    )}
 
-                        {values.uploaded_image && (
-                          <button
-                            onClick={() => {
-                              setFieldValue("uploaded_image", null);
-                              setRemovePersonaImage(false);
-                            }}
-                            className="block w-full items-center flex gap-x-2 text-left p-2 hover:bg-background-100 rounded"
-                          >
-                            <TrashIcon />
-                            {removePersonaImage
-                              ? "Revert to Previous "
-                              : "Remove "}
-                            Image
-                          </button>
-                        )}
+                    {!values.uploaded_image &&
+                      (!existingPersona?.uploaded_image_id ||
+                        removePersonaImage) && (
+                        <Button
+                          variant="outline"
+                          className="text-xs"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const newShape = generateRandomIconShape();
+                            const randomColor =
+                              colorOptions[
+                                Math.floor(Math.random() * colorOptions.length)
+                              ];
+                            setFieldValue("icon_shape", newShape.encodedGrid);
+                            setFieldValue("icon_color", randomColor);
+                          }}
+                        >
+                          <NewChatIcon size={14} />
+                          Generate New Icon
+                        </Button>
+                      )}
 
-                        {!values.uploaded_image &&
-                          (!existingPersona?.uploaded_image_id ||
-                            removePersonaImage) && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const newShape = generateRandomIconShape();
-                                const randomColor =
-                                  colorOptions[
-                                    Math.floor(
-                                      Math.random() * colorOptions.length
-                                    )
-                                  ];
-                                setFieldValue(
-                                  "icon_shape",
-                                  newShape.encodedGrid
-                                );
-                                setFieldValue("icon_color", randomColor);
-                              }}
-                              className="block w-full items-center flex gap-x-2 text-left p-2 hover:bg-background-100 rounded"
-                            >
-                              <NewChatIcon size={16} />
-                              Generate New Icon
-                            </button>
-                          )}
+                    {existingPersona?.uploaded_image_id &&
+                      removePersonaImage &&
+                      !values.uploaded_image && (
+                        <Button
+                          variant="outline"
+                          className="text-xs"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRemovePersonaImage(false);
+                            setFieldValue("uploaded_image", null);
+                          }}
+                        >
+                          <SwapIcon className="h-3 w-3" />
+                          Revert to Previous Image
+                        </Button>
+                      )}
 
-                        {existingPersona?.uploaded_image_id &&
-                          removePersonaImage &&
-                          !values.uploaded_image && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setRemovePersonaImage(false);
-                                setFieldValue("uploaded_image", null);
-                              }}
-                              className="block w-full items-center flex gap-x-2 text-left p-2 hover:bg-background-100 rounded"
-                            >
-                              <SwapIcon />
-                              Revert to Previous Image
-                            </button>
-                          )}
-
-                        {existingPersona?.uploaded_image_id &&
-                          !removePersonaImage &&
-                          !values.uploaded_image && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setRemovePersonaImage(true);
-                              }}
-                              className="block w-full items-center flex gap-x-2 text-left px-4 py-2 hover:bg-background-100 rounded"
-                            >
-                              <TrashIcon />
-                              Remove Image
-                            </button>
-                          )}
-                      </div>
-                    }
-                    align="start"
-                    side="bottom"
-                  />
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <FiInfo size={12} />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" align="center">
-                        This icon will visually represent your Assistant
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                    {existingPersona?.uploaded_image_id &&
+                      !removePersonaImage &&
+                      !values.uploaded_image && (
+                        <Button
+                          variant="outline"
+                          className="text-xs"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRemovePersonaImage(true);
+                          }}
+                        >
+                          <TrashIcon className="h-3 w-3" />
+                          Remove Image
+                        </Button>
+                      )}
+                  </div>
                 </div>
               </div>
 
@@ -1077,7 +1058,9 @@ export function AssistantEditor({
                     name="starter_messages"
                     render={(arrayHelpers: ArrayHelpers) => (
                       <StarterMessagesList
-                        debouncedRefreshPrompts={debouncedRefreshPrompts}
+                        debouncedRefreshPrompts={() =>
+                          debouncedRefreshPrompts(values, setFieldValue)
+                        }
                         autoStarterMessageEnabled={autoStarterMessageEnabled}
                         errors={errors}
                         isRefreshing={isRefreshing}

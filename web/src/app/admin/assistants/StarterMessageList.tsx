@@ -30,10 +30,7 @@ export default function StarterMessagesList({
   arrayHelpers: ArrayHelpers;
   isRefreshing: boolean;
   touchStarterMessages: () => void;
-  debouncedRefreshPrompts: (
-    values: StarterMessage[],
-    setFieldValue: any
-  ) => void;
+  debouncedRefreshPrompts: () => void;
   autoStarterMessageEnabled: boolean;
   errors: any;
   setFieldValue: any;
@@ -132,14 +129,14 @@ export default function StarterMessagesList({
                 size="sm"
                 onMouseEnter={() => setTooltipOpen(true)}
                 onMouseLeave={() => setTooltipOpen(false)}
-                onClick={() => debouncedRefreshPrompts(values, setFieldValue)}
+                onClick={() => debouncedRefreshPrompts()}
                 className={`
-                          ${
-                            isRefreshing || !autoStarterMessageEnabled
-                              ? "bg-neutral-200 border border-neutral-900 text-neutral-900 cursor-not-allowed"
-                              : "bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700"
-                          }
-                          `}
+                  ${
+                    isRefreshing || !autoStarterMessageEnabled
+                      ? "bg-neutral-200 border border-neutral-900 text-neutral-900 cursor-not-allowed"
+                      : "bg-[#FF6810] text-white hover:bg-[#FF6810] active:bg-[#FF6810]"
+                  }
+                `}
               >
                 <div className="flex text-xs items-center gap-x-2">
                   {isRefreshing ? (
@@ -151,13 +148,7 @@ export default function StarterMessagesList({
                 </div>
               </Button>
             </TooltipTrigger>
-            {!autoStarterMessageEnabled ? (
-              <TooltipContent side="top" align="center">
-                <p className="bg-background-950 max-w-[200px] text-sm p-1.5 text-white">
-                  No LLM providers configured. Generation is not available.
-                </p>
-              </TooltipContent>
-            ) : (
+            {!autoStarterMessageEnabled && (
               <TooltipContent side="top" align="center">
                 <p className="bg-background-950 max-w-[200px] text-sm p-1.5 text-white">
                   No LLM providers configured. Generation is not available.
