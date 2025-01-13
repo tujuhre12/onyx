@@ -102,7 +102,6 @@ export function ChatBanner() {
                 }
                 popover={
                   <div className="bg-background-100 p-4 rounded shadow-lg mobile:max-w-xs desktop:max-w-md">
-                    <p className="text-lg font-bold">Banner Content</p>
                     <MinimalMarkdown
                       className="max-h-96 overflow-y-auto"
                       content={
