@@ -862,7 +862,7 @@ def translate_db_sub_questions_to_server_objects(
     sub_questions = []
     for sub_question in db_sub_questions:
         sub_queries = []
-        docs: dict[int, SearchDoc] = {}
+        docs: dict[str, SearchDoc] = {}
         doc_results = cast(list[dict[str, JSON_ro]], sub_question.sub_question_doc_results)
         verified_doc_ids = [x["document_id"] for x in doc_results]
         for sub_query in sub_question.sub_queries:
@@ -875,9 +875,9 @@ def translate_db_sub_questions_to_server_objects(
                 )
             )
             for doc in sub_query.search_docs:
-                docs[doc.id] = doc
+                docs[doc.document_id] = doc
 
-        verified_docs = [docs[cast(int, doc_id)] for doc_id in verified_doc_ids if doc_id in docs]
+        verified_docs = [docs[cast(str, doc_id)] for doc_id in verified_doc_ids if doc_id in docs]
 
         sub_questions.append(
             SubQuestionDetail(
