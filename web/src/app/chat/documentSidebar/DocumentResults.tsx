@@ -56,19 +56,6 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
         closeSidebar();
       }
     };
-
-    useEffect(() => {
-      if (isOpen) {
-        document.addEventListener("mousedown", handleOutsideClick);
-      } else {
-        document.removeEventListener("mousedown", handleOutsideClick);
-      }
-
-      return () => {
-        document.removeEventListener("mousedown", handleOutsideClick);
-      };
-    }, [isOpen]);
-
     useEffect(() => {
       const timer = setTimeout(
         () => {
@@ -93,14 +80,8 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
     return (
       <>
         <div
-          className={`fixed inset-0  cursor-pointer transition-opacity duration-300 ${
-            isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
-          onClick={closeSidebar}
-        />
-        <div
           id="onyx-chat-sidebar"
-          className={`relative rounded-t-xl rounded-l-3xl  -mb-8 bg-background-sidebar max-w-full ${
+          className={`relative rounded-t-xl rounded-l-3xl  -mb-8 bg-background max-w-full ${
             !modal ? "border-l border-t h-[105vh]  border-sidebar-border" : ""
           }`}
           onClick={(e) => {

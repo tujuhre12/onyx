@@ -2812,7 +2812,6 @@ export function ChatPage({
                         className={`
                           flex-none 
                           overflow-y-hidden 
-                          bg-background-100 
                           transition-all 
                           bg-opacity-80
                           duration-300 
