@@ -234,7 +234,12 @@ class Answer:
         # DEBUG: good breakpoint
         stream = self.llm.stream(
             prompt=current_llm_call.prompt_builder.build(),
-            tools=[tool.tool_definition() for tool in current_llm_call.tools] or None,
+            tools=(
+                [tool.tool_definition() for tool in current_llm_call.tools]
+                if self.using_tool_calling_llm
+                else None
+            )
+            or None,
             tool_choice=(
                 "required"
                 if current_llm_call.tools and current_llm_call.force_use_tool.force_use
