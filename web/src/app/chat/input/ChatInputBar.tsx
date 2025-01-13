@@ -409,9 +409,7 @@ export function ChatInputBar({
               style={{ scrollbarWidth: "thin" }}
               role="textarea"
               aria-multiline
-              placeholder={`Message ${
-                selectedAssistant?.name || "assistant"
-              }...`}
+              placeholder={`Message ${selectedAssistant.name} assistant...`}
               value={message}
               onKeyDown={(event) => {
                 if (

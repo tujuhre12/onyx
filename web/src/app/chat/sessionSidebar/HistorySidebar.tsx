@@ -102,7 +102,7 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
         {...attributes}
         {...listeners}
         size={16}
-        className="w-3 ml-1 group-hover:visible invisible hover:bg-background-chat-hover flex-none cursor-grab"
+        className="w-3 ml-1 group-hover:visible invisible flex-none cursor-grab"
       />
       <button
         onClick={onClick}

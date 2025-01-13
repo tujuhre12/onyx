@@ -52,8 +52,14 @@ interface SortableFolderProps {
 }
 
 const SortableFolder: React.FC<SortableFolderProps> = (props) => {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: props.folder.folder_id?.toString() ?? "" });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: props.folder.folder_id?.toString() ?? "" });
   const ref = useRef<HTMLDivElement>(null);
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -87,7 +93,7 @@ const SortableFolder: React.FC<SortableFolderProps> = (props) => {
   return (
     <div
       ref={setNodeRef}
-      className="pr-4 ml-4 overflow-visible flex items-start"
+      className="pr-3 ml-4 overflow-visible flex items-start"
       style={style}
     >
       <FolderDropdown ref={ref} {...props} {...attributes} {...listeners} />
@@ -243,26 +249,36 @@ export function PagesTab({
     [router, setPopup]
   );
 
+  const [isDraggingSessionId, setIsDraggingSessionId] = useState<string | null>(
+    null
+  );
+
   const renderChatSession = useCallback(
-    (chat: ChatSession, foldersExisting: boolean) => (
-      <div
-        key={chat.id}
-        className="-ml-4 -mr-2"
-        draggable
-        onDragStart={(e) => {
-          e.dataTransfer.setData("text/plain", chat.id);
-        }}
-      >
-        <ChatSessionDisplay
-          chatSession={chat}
-          foldersExisting={foldersExisting}
-          isSelected={currentChatId === chat.id}
-          showShareModal={showShareModal}
-          showDeleteModal={showDeleteModal}
-          closeSidebar={closeSidebar}
-        />
-      </div>
-    ),
+    (chat: ChatSession, foldersExisting: boolean) => {
+      return (
+        <div
+          key={chat.id}
+          className="-ml-4 bg-transparent -mr-2"
+          draggable
+          onDragStart={(e) => {
+            setIsDraggingSessionId(chat.id);
+            console.log("dragging");
+            e.dataTransfer.setData("text/plain", chat.id);
+          }}
+          onDragEnd={() => setIsDraggingSessionId(null)}
+        >
+          <ChatSessionDisplay
+            chatSession={chat}
+            foldersExisting={foldersExisting}
+            isSelected={currentChatId === chat.id}
+            showShareModal={showShareModal}
+            showDeleteModal={showDeleteModal}
+            closeSidebar={closeSidebar}
+            isDragging={isDraggingSessionId === chat.id}
+          />
+        </div>
+      );
+    },
     [currentChatId, showShareModal, showDeleteModal, closeSidebar]
   );
 
@@ -337,10 +353,16 @@ export function PagesTab({
               className="text-sm font-medium bg-transparent outline-none w-full pb-1 border-b border-[#6c6c6c] transition-colors duration-200"
             />
             <div className="flex -my-1">
-              <div onClick={handleNewFolderSubmit} className="px-1">
+              <div
+                onClick={handleNewFolderSubmit}
+                className="cursor-pointer px-1"
+              >
                 <FiCheck size={14} />
               </div>
-              <div onClick={() => setIsCreatingFolder(false)} className="px-1 ">
+              <div
+                onClick={() => setIsCreatingFolder(false)}
+                className="cursor-pointer px-1"
+              >
                 <FiX size={14} />
               </div>
             </div>
@@ -390,7 +412,9 @@ export function PagesTab({
       )}
 
       <div
-        className={`px-4 ${NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED && "pb-20"}`}
+        className={`pl-4 pr-3 ${
+          NEXT_PUBLIC_DELETE_ALL_CHATS_ENABLED && "pb-20"
+        }`}
       >
         {!isHistoryEmpty && (
           <>

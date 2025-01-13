@@ -76,7 +76,7 @@ export default function FunctionalHeader({
           toggled={false}
           handleNewChat={handleNewChat}
         />
-        <div className="mt-2 flex w-full h-8">
+        <div className="mt-1 items-center flex w-full h-8">
           <div
             style={{ transition: "width 0.30s ease-out" }}
             className={`
@@ -105,7 +105,9 @@ export default function FunctionalHeader({
             />
           </div>
 
-          <div className="absolute right-0 mobile:top-2 desktop:top-0 flex">
+          {/* className="fixed cursor-pointer flex z-40 left-4 bg-black top-3 h-8" */}
+
+          <div className="absolute right-0 mobile:top-2 desktop:top-1 h-8  flex">
             {setSharingModalVisible && !hideUserDropdown && (
               <div
                 onClick={() => setSharingModalVisible(true)}
