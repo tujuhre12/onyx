@@ -39,6 +39,7 @@ export function ChatSessionDisplay({
   showShareModal,
   showDeleteModal,
   foldersExisting,
+  isDragging,
 }: {
   chatSession: ChatSession;
   isSelected: boolean;
@@ -50,8 +51,11 @@ export function ChatSessionDisplay({
   showShareModal?: (chatSession: ChatSession) => void;
   showDeleteModal?: (chatSession: ChatSession) => void;
   foldersExisting?: boolean;
+  isDragging?: boolean;
 }) {
   const router = useRouter();
+  const [isHovered, setIsHovered] = useState(false);
+
   const [isHovering, setIsHovering] = useState(false);
   const [isRenamingChat, setIsRenamingChat] = useState(false);
   const [isMoreOptionsDropdownOpen, setIsMoreOptionsDropdownOpen] =
@@ -85,6 +89,7 @@ export function ChatSessionDisplay({
     e.preventDefault();
     e.stopPropagation();
     setIsDeleteModalOpen(false);
+    setPopoverOpen(false);
   }, []);
 
   const handleConfirmDelete = useCallback(
@@ -103,15 +108,22 @@ export function ChatSessionDisplay({
     [chatSession, showDeleteModal]
   );
 
-  const onRename = useCallback(async () => {
-    const response = await renameChatSession(chatSession.id, chatName);
-    if (response.ok) {
-      setIsRenamingChat(false);
-      router.refresh();
-    } else {
-      alert("Failed to rename chat session");
-    }
-  }, [chatSession.id, chatName, router]);
+  const onRename = useCallback(
+    async (e?: React.MouseEvent) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const response = await renameChatSession(chatSession.id, chatName);
+      if (response.ok) {
+        setIsRenamingChat(false);
+        router.refresh();
+      } else {
+        alert("Failed to rename chat session");
+      }
+    },
+    [chatSession.id, chatName, router]
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -149,15 +161,18 @@ export function ChatSessionDisplay({
         />
       )}
 
-      <div ref={chatSessionRef}>
+      <div className="bg-transparent" ref={chatSessionRef}>
         <Link
-          className="flex group items-center w-full relative"
-          key={chatSession.id}
-          onMouseEnter={() => setIsHovering(true)}
+          onMouseEnter={() => {
+            setIsHovered(true);
+          }}
           onMouseLeave={() => {
             setIsMoreOptionsDropdownOpen(false);
             setIsHovering(false);
+            setIsHovered(false);
           }}
+          className="flex group items-center w-full relative"
+          key={chatSession.id}
           onClick={() => {
             if (settings?.isMobile && closeSidebar) {
               closeSidebar();
@@ -183,11 +198,13 @@ export function ChatSessionDisplay({
         >
           <DragHandle
             size={16}
-            className={`w-3 ml-1 mr-1 invisible flex-none ${
+            className={`w-3 ml-2 invisible flex-none ${
               foldersExisting ? "group-hover:visible" : "invisible"
             }`}
           />
           <BasicSelectable
+            isHovered={isHovered}
+            isDragging={isDragging}
             fullWidth
             selected={isSelected}
             removeColors={isRenamingChat}
@@ -204,6 +221,10 @@ export function ChatSessionDisplay({
                       <input
                         ref={inputRef}
                         value={chatName}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
                         onChange={(e) => setChatName(e.target.value)}
                         onKeyDown={(event) => {
                           if (event.key === "Enter") {
@@ -219,9 +240,12 @@ export function ChatSessionDisplay({
                         <FiCheck size={14} />
                       </button>
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           setChatName(chatSession.name);
                           setIsRenamingChat(false);
+                          setPopoverOpen(false);
                         }}
                         className="p-1"
                       >
@@ -237,7 +261,9 @@ export function ChatSessionDisplay({
                       ${
                         isSelected
                           ? "to-background-chat-selected"
-                          : "group-hover:to-background-chat-hover to-background-sidebar"
+                          : isHovered
+                            ? "to-background-chat-hover"
+                            : "to-background-sidebar"
                       } `}
                     />
                   </p>
@@ -264,86 +290,88 @@ export function ChatSessionDisplay({
                         </div>
                       </CustomTooltip>
                     )}
-                    <div>
-                      <div
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setIsMoreOptionsDropdownOpen(
-                            !isMoreOptionsDropdownOpen
-                          );
-                        }}
-                        className="-my-1"
-                      >
-                        <Popover
-                          open={popoverOpen}
-                          onOpenChange={handlePopoverOpenChange}
-                          content={
-                            <div className="p-1 rounded">
-                              <FiMoreHorizontal
-                                onClick={() => setPopoverOpen(true)}
-                                size={16}
-                              />
-                            </div>
-                          }
-                          popover={
-                            <div
-                              className={`border border-border rounded-lg bg-background z-50 ${
-                                isDeleteModalOpen ? "w-64" : "w-32"
-                              }`}
-                            >
-                              {!isDeleteModalOpen ? (
-                                <>
-                                  {showShareModal && (
+                    {(isHovered || popoverOpen) && (
+                      <div>
+                        <div
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setIsMoreOptionsDropdownOpen(
+                              !isMoreOptionsDropdownOpen
+                            );
+                          }}
+                          className="-my-1"
+                        >
+                          <Popover
+                            open={popoverOpen}
+                            onOpenChange={handlePopoverOpenChange}
+                            content={
+                              <div className="p-1 rounded">
+                                <FiMoreHorizontal
+                                  onClick={() => setPopoverOpen(true)}
+                                  size={16}
+                                />
+                              </div>
+                            }
+                            popover={
+                              <div
+                                className={`border border-border rounded-lg bg-background z-50 ${
+                                  isDeleteModalOpen ? "w-64" : "w-32"
+                                }`}
+                              >
+                                {!isDeleteModalOpen ? (
+                                  <>
+                                    {showShareModal && (
+                                      <DefaultDropdownElement
+                                        name="Share"
+                                        icon={FiShare2}
+                                        onSelect={() =>
+                                          showShareModal(chatSession)
+                                        }
+                                      />
+                                    )}
+                                    {!search && (
+                                      <DefaultDropdownElement
+                                        name="Rename"
+                                        icon={FiEdit2}
+                                        onSelect={() => setIsRenamingChat(true)}
+                                      />
+                                    )}
                                     <DefaultDropdownElement
-                                      name="Share"
-                                      icon={FiShare2}
-                                      onSelect={() =>
-                                        showShareModal(chatSession)
-                                      }
+                                      name="Delete"
+                                      icon={FiTrash}
+                                      onSelect={handleDeleteClick}
                                     />
-                                  )}
-                                  {!search && (
-                                    <DefaultDropdownElement
-                                      name="Rename"
-                                      icon={FiEdit2}
-                                      onSelect={() => setIsRenamingChat(true)}
-                                    />
-                                  )}
-                                  <DefaultDropdownElement
-                                    name="Delete"
-                                    icon={FiTrash}
-                                    onSelect={handleDeleteClick}
-                                  />
-                                </>
-                              ) : (
-                                <div className="p-3">
-                                  <p className="text-sm mb-3">
-                                    Are you sure you want to delete this chat?
-                                  </p>
-                                  <div className="flex justify-center gap-2">
-                                    <button
-                                      className="px-3 py-1 text-sm bg-gray-200 rounded"
-                                      onClick={handleCancelDelete}
-                                    >
-                                      Cancel
-                                    </button>
-                                    <button
-                                      className="px-3 py-1 text-sm bg-red-500 text-white rounded"
-                                      onClick={handleConfirmDelete}
-                                    >
-                                      Delete
-                                    </button>
+                                  </>
+                                ) : (
+                                  <div className="p-3">
+                                    <p className="text-sm mb-3">
+                                      Are you sure you want to delete this chat?
+                                    </p>
+                                    <div className="flex justify-center gap-2">
+                                      <button
+                                        className="px-3 py-1 text-sm bg-gray-200 rounded"
+                                        onClick={handleCancelDelete}
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        className="px-3 py-1 text-sm bg-red-500 text-white rounded"
+                                        onClick={handleConfirmDelete}
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
-                              )}
-                            </div>
-                          }
-                          requiresContentPadding
-                          sideOffset={6}
-                          triggerMaxWidth
-                        />
+                                )}
+                              </div>
+                            }
+                            requiresContentPadding
+                            sideOffset={6}
+                            triggerMaxWidth
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
               </div>

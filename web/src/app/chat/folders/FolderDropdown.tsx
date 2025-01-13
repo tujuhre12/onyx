@@ -210,46 +210,48 @@ export const FolderDropdown = forwardRef<HTMLDivElement, FolderDropdownProps>(
               <PencilIcon size={14} />
             </button>
           )}
-          {isHovered && !isEditing && folder.folder_id && (
-            <Popover
-              open={isDeletePopoverOpen}
-              onOpenChange={setIsDeletePopoverOpen}
-              content={
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteClick();
-                  }}
-                  className="px-1"
-                >
-                  <FiTrash2 size={14} />
-                </button>
-              }
-              popover={
-                <div className="p-3 w-64 border border-border rounded-lg bg-background z-50">
-                  <p className="text-sm mb-3">
-                    Are you sure you want to delete this folder?
-                  </p>
-                  <div className="flex justify-center gap-2">
-                    <button
-                      className="px-3 py-1 text-sm bg-gray-200 rounded"
-                      onClick={handleCancelDelete}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className="px-3 py-1 text-sm bg-red-500 text-white rounded"
-                      onClick={handleConfirmDelete}
-                    >
-                      Delete
-                    </button>
+          {(isHovered || isDeletePopoverOpen) &&
+            !isEditing &&
+            folder.folder_id && (
+              <Popover
+                open={isDeletePopoverOpen}
+                onOpenChange={setIsDeletePopoverOpen}
+                content={
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteClick();
+                    }}
+                    className="px-1"
+                  >
+                    <FiTrash2 size={14} />
+                  </button>
+                }
+                popover={
+                  <div className="p-3 w-64 border border-border rounded-lg bg-background z-50">
+                    <p className="text-sm mb-3">
+                      Are you sure you want to delete this folder?
+                    </p>
+                    <div className="flex justify-center gap-2">
+                      <button
+                        className="px-3 py-1 text-sm bg-gray-200 rounded"
+                        onClick={handleCancelDelete}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="px-3 py-1 text-sm bg-red-500 text-white rounded"
+                        onClick={handleConfirmDelete}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
-                </div>
-              }
-              requiresContentPadding
-              sideOffset={6}
-            />
-          )}
+                }
+                requiresContentPadding
+                sideOffset={6}
+              />
+            )}
           {isEditing && (
             <div className="flex -my-1 z-[9999]">
               <button onClick={handleEdit} className="p-1">
