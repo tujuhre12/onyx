@@ -70,6 +70,8 @@ export enum StreamStopReason {
 
 export interface StreamStopInfo {
   stop_reason: StreamStopReason;
+  level?: number;
+  level_question_nr?: number;
 }
 
 export interface ErrorMessagePacket {
