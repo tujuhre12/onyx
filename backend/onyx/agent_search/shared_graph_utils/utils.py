@@ -13,7 +13,7 @@ from uuid import UUID
 from langchain_core.messages import BaseMessage
 from sqlalchemy.orm import Session
 
-from onyx.agent_search.pro_search_a.main.models import EntityRelationshipTermExtraction
+from onyx.agent_search.shared_graph_utils.models import EntityRelationshipTermExtraction
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationConfig
 from onyx.chat.models import DocumentPruningConfig
@@ -46,6 +46,15 @@ def format_docs(docs: Sequence[InferenceSection]) -> str:
 
     for doc_nr, doc in enumerate(docs):
         formatted_doc_list.append(f"Document D{doc_nr + 1}:\n{doc.combined_content}")
+
+    return "\n\n".join(formatted_doc_list)
+
+
+def format_docs_content_flat(docs: Sequence[InferenceSection]) -> str:
+    formatted_doc_list = []
+
+    for _, doc in enumerate(docs):
+        formatted_doc_list.append(f"\n...{doc.combined_content}\n")
 
     return "\n\n".join(formatted_doc_list)
 

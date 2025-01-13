@@ -34,3 +34,10 @@ class AgentRefinedMetrics(BaseModel):
 
 class AgentAdditionalMetrics(BaseModel):
     pass
+
+
+class CombinedAgentMetrics(BaseModel):
+    timings: AgentTimings
+    base_metrics: AgentBaseMetrics
+    refined_metrics: AgentRefinedMetrics
+    additional_metrics: AgentAdditionalMetrics
