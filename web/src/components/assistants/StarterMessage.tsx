@@ -41,7 +41,7 @@ export function StarterMessages({
                   <button
                     onClick={() => onSubmit(starterMessage.message)}
                     className={`
-                      relative flex ${!isMobile && "w-40"}
+                      relative flex ${!isMobile ? "w-40" : "w-full max-w-52"}
                       shadow
                       border-[#DCDAD4]/60
                       flex-col gap-2 rounded-md
@@ -57,7 +57,7 @@ export function StarterMessages({
                     `}
                     style={{ height: "5.2rem" }}
                   >
-                    {starterMessage.name}
+                    {starterMessage.name}k
                   </button>
                 </div>
               ))}
