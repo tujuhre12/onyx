@@ -112,7 +112,7 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
     >
       <DragHandle
         size={16}
-        className="w-3 ml-1.5 mr-[2px] group-hover:visible invisible flex-none cursor-grab"
+        className="w-3 ml-[2px] mr-[2px] group-hover:visible invisible flex-none cursor-grab"
       />
       <button
         onClick={(e) => {

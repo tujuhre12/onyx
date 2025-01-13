@@ -94,6 +94,34 @@ export default function FunctionalHeader({
             `}
           />
           <div
+            className={`
+            absolute
+            ${
+              documentSidebarToggled && !sidebarToggled
+                ? "left-[calc(50%-125px)]"
+                : !documentSidebarToggled && sidebarToggled
+                  ? "left-[calc(50%+125px)]"
+                  : "left-1/2"
+            }
+            ${
+              documentSidebarToggled || sidebarToggled
+                ? "mobile:w-[40vw] max-w-[50vw]"
+                : "mobile:w-[50vw] max-w-[60vw]"
+            }
+            ${
+              settings?.enterpriseSettings?.two_lines_for_chat_header
+                ? "top-0"
+                : "top-1"
+            }
+            h-8
+            -translate-x-1/2
+            transition-all duration-300
+          `}
+          >
+            <ChatBanner />
+          </div>
+
+          {/* <div
             className={`absolute 
               ${
                 documentSidebarToggled && !sidebarToggled
@@ -110,7 +138,7 @@ export default function FunctionalHeader({
               top-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300`}
           >
             <ChatBanner />
-          </div>
+          </div> */}
 
           <div className="invisible">
             <LogoWithText
@@ -123,7 +151,7 @@ export default function FunctionalHeader({
 
           {/* className="fixed cursor-pointer flex z-40 left-4 bg-black top-3 h-8" */}
 
-          <div className="absolute right-2 mobile:top-2 desktop:top-1 h-8  flex">
+          <div className="absolute right-2 mobile:top-1 desktop:top-1 h-8  flex">
             {setSharingModalVisible && !hideUserDropdown && (
               <div
                 onClick={() => setSharingModalVisible(true)}

@@ -198,7 +198,7 @@ export function ChatSessionDisplay({
         >
           <DragHandle
             size={16}
-            className={`w-3 ml-2 invisible flex-none ${
+            className={`w-3 ml-[4px] mr-[2px] invisible flex-none ${
               foldersExisting ? "group-hover:visible" : "invisible"
             }`}
           />
