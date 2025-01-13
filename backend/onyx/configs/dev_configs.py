@@ -48,6 +48,8 @@ agent_reranking_max_query_retrieval_results_os: int | str = os.environ.get(
 
 AGENT_RERANKING_MAX_QUERY_RETRIEVAL_RESULTS: int = NUM_RETURNED_HITS
 
+GRAPH_NAME: str = "a"
+
 try:
     atmqrr = int(agent_reranking_max_query_retrieval_results_os)
     AGENT_RERANKING_MAX_QUERY_RETRIEVAL_RESULTS = atmqrr

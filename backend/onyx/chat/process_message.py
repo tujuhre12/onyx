@@ -30,6 +30,7 @@ from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import QADocsResponse
 from onyx.chat.models import StreamingError
 from onyx.chat.models import StreamStopInfo
+from onyx.chat.models import StreamStopReason
 from onyx.configs.chat_configs import CHAT_TARGET_CHUNK_PERCENTAGE
 from onyx.configs.chat_configs import DISABLE_LLM_CHOOSE_SEARCH
 from onyx.configs.chat_configs import MAX_CHUNKS_FED_TO_CHAT
@@ -890,7 +891,8 @@ def stream_chat_message_objects(
                     yield cast(OnyxContexts, packet.response)
 
             elif isinstance(packet, StreamStopInfo):
-                pass
+                if packet.stop_reason == StreamStopReason.FINISHED:
+                    yield packet
             else:
                 if isinstance(packet, ToolCallFinalResult):
                     tool_result = packet

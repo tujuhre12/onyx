@@ -68,10 +68,15 @@ class QADocsResponse(RetrievalDocs):
 class StreamStopReason(Enum):
     CONTEXT_LENGTH = "context_length"
     CANCELLED = "cancelled"
+    FINISHED = "finished"
 
 
 class StreamStopInfo(BaseModel):
     stop_reason: StreamStopReason
+
+    # used to identify the stream that was stopped for agent search
+    stream_level: int | None = None
+    stream_level_question_nr: int | None = None
 
     def model_dump(self, *args: list, **kwargs: dict[str, Any]) -> dict[str, Any]:  # type: ignore
         data = super().model_dump(mode="json", *args, **kwargs)  # type: ignore
