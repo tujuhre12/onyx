@@ -921,8 +921,8 @@ def stream_chat_message_objects(
 
                     print(
                         f"[SUB-QUESTION] Level: {packet.level}, Question Number:"
-                        "{packet.level_question_nr} query id: "
-                        "{packet.query_id} value: {value}"
+                        f"{packet.level_question_nr} query id: "
+                        f"{packet.query_id} value: {value}"
                     )
 
                 yield cast(ChatPacket, packet)

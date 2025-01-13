@@ -23,8 +23,6 @@ interface SubQuestionProgressProps {
 const SubQuestionProgress: React.FC<SubQuestionProgressProps> = ({
   subQuestions,
 }) => {
-  console.log("SUB QUESTIONS");
-  console.log(subQuestions);
   return (
     <div className="sub-question-progress space-y-4">
       <Table>

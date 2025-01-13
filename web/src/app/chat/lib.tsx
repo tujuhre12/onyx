@@ -450,8 +450,6 @@ export function processRawChatHistory(
       is_complete: true,
     }));
 
-    console.log("SUB QUESTIONS");
-    console.log(subQuestions);
     const message: Message = {
       messageId: messageInfo.message_id,
       message: messageInfo.message,

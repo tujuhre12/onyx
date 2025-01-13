@@ -187,7 +187,7 @@ export const useStreamingMessages = (
           case SubQStreamingPhase.CONTEXT_DOCS: {
             const docs = sq.context_docs?.top_documents || [];
             const hasAnswer = !!sq.answer?.length;
-            if (hasAnswer && !docs.length) {
+            if (hasAnswer && docs.length === 0) {
               p.currentPhase = SubQStreamingPhase.ANSWER;
               break;
             }
@@ -218,16 +218,36 @@ export const useStreamingMessages = (
 
           case SubQStreamingPhase.ANSWER: {
             const answerText = sq.answer || "";
-            if (!answerText) {
-              p.currentPhase = SubQStreamingPhase.COMPLETE;
-              break;
-            }
+
             if (p.answerCharIndex < answerText.length) {
               const nextIndex = p.answerCharIndex + 1;
               dynSQ.answer = answerText.slice(0, nextIndex);
               p.answerCharIndex = nextIndex;
               if (nextIndex >= answerText.length && sq.is_complete) {
                 dynSQ.is_complete = true;
+                if (
+                  dynamicSubQuestionsRef.current.length > 0 &&
+                  dynSQ.level_question_nr + 1 ===
+                    Math.max(
+                      ...dynamicSubQuestionsRef.current.map(
+                        (sq) => sq.level_question_nr
+                      )
+                    )
+                ) {
+                  console.log("for real finishing", dynSQ.level_question_nr);
+                  allowStreaming();
+                }
+                console.log(
+                  "FINISHING",
+                  dynSQ.level_question_nr,
+                  dynamicSubQuestionsRef.current.length,
+                  Math.max(
+                    ...dynamicSubQuestionsRef.current.map(
+                      (sq) => sq.level_question_nr
+                    )
+                  )
+                );
+
                 p.currentPhase = SubQStreamingPhase.COMPLETE;
               }
             }
