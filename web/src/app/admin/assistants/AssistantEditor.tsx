@@ -876,10 +876,10 @@ export function AssistantEditor({
                                   ) : (
                                     "Document Sets"
                                   )}{" "}
-                                  this Assistant should search through. If none
-                                  are specified, the Assistant will search
-                                  through all available documents in order to
-                                  try and respond to queries.
+                                  this Assistant should use to inform its
+                                  responses. If none are specified, the
+                                  Assistant will reference all available
+                                  documents.
                                 </>
                               </SubLabel>
                             </div>
@@ -950,9 +950,9 @@ export function AssistantEditor({
                                 width="max-w-xl"
                                 type="date"
                                 small
-                                subtext="Documents prior to this date will not be referenced by the search tool"
+                                subtext="Documents prior to this date will not be ignored."
                                 optional
-                                label="Search Start Date"
+                                label="Knowledge Cutoff Date"
                                 value={values.search_start_date}
                                 name="search_start_date"
                               />
@@ -962,8 +962,8 @@ export function AssistantEditor({
                                 removeIndent
                                 alignTop
                                 name="llm_relevance_filter"
-                                label="Apply LLM Relevance Filter"
-                                subtext="If enabled, the LLM will filter out chunks that are not relevant to the user query."
+                                label="AI Relevance Filter"
+                                subtext="If enabled, the LLM will filter out documents that are not useful for answering the user query prior to generating a response. This typically improves the quality of the response but incurs slightly higher cost."
                               />
 
                               <BooleanFormField
@@ -971,8 +971,8 @@ export function AssistantEditor({
                                 removeIndent
                                 alignTop
                                 name="include_citations"
-                                label="Include Citations"
-                                subtext="If set, the response will include bracket citations ([1], [2], etc.) for each document used by the LLM to help inform the response. This is the same technique used by the default Assistants. In general, we recommend to leave this enabled in order to increase trust in the LLM answer."
+                                label="Citations"
+                                subtext="Response will include citations ([1], [2], etc.) for documents referenced by the LLM. In general, we recommend to leave this enabled in order to increase trust in the LLM answer."
                               />
                             </div>
                           </>
