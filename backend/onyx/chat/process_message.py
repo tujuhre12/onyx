@@ -932,6 +932,8 @@ def stream_chat_message_objects(
                     yield cast(OnyxContexts, packet.response)
 
             elif isinstance(packet, StreamStopInfo):
+                print(packet)
+                print("this is the stop reason")
                 if packet.stop_reason == StreamStopReason.FINISHED:
                     yield packet
             else:
