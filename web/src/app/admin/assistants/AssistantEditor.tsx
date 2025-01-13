@@ -65,6 +65,8 @@ import { Input } from "@/components/ui/input";
 import { CategoryCard } from "./CategoryCard";
 import { Switch } from "@/components/ui/switch";
 import { generateIdenticon } from "@/components/assistants/AssistantIcon";
+import { BackButton } from "@/components/BackButton";
+import { Checkbox } from "@/components/ui/checkbox";
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
@@ -280,6 +282,8 @@ export function AssistantEditor({
 
   return (
     <div className="mx-auto max-w-4xl">
+      <BackButton />
+
       {popup}
       <Formik
         enableReinitialize={true}
@@ -675,139 +679,55 @@ export function AssistantEditor({
               )}
               <div className="w-full max-w-4xl">
                 <div className="flex flex-col">
-                  {imageGenerationTool && (
-                    <>
-                      <Separator />
-                      <div className="flex gap-x-2 py-2 flex justify-between">
-                        <div>
-                          <p className="block font-medium text-sm">
-                            Image Generation
-                          </p>
-                          <p
-                            className="text-sm text-subtle"
-                            style={{ color: "rgb(113, 114, 121)" }}
-                          >
-                            Enable image generation capabilities for this
-                            assistant
-                          </p>
-                        </div>
-                        <div className="flex items-center">
-                          <TooltipProvider delayDuration={0}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div
-                                  className={`${
-                                    !currentLLMSupportsImageOutput ||
-                                    !isImageGenerationAvailable
-                                      ? "opacity-70 cursor-not-allowed"
-                                      : ""
-                                  }`}
-                                >
-                                  <Switch
-                                    name={`enabled_tools_map.${imageGenerationTool.id}`}
-                                    onChange={() => {
-                                      toggleToolInValues(
-                                        imageGenerationTool.id
-                                      );
-                                    }}
-                                    disabled={
-                                      !currentLLMSupportsImageOutput ||
-                                      !isImageGenerationAvailable
-                                    }
-                                  />
-                                </div>
-                              </TooltipTrigger>
-                              {!currentLLMSupportsImageOutput ? (
-                                <TooltipContent side="top" align="center">
-                                  <p className="bg-black max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
-                                    To use Image Generation, select GPT-4o or
-                                    another image compatible model as the
-                                    default model for this Assistant.
-                                  </p>
-                                </TooltipContent>
-                              ) : (
-                                !isImageGenerationAvailable && (
-                                  <TooltipContent side="top" align="center">
-                                    <p className="bg-black max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
-                                      Image Generation requires an OpenAI or
-                                      Azure Dalle configuration.
-                                    </p>
-                                  </TooltipContent>
-                                )
-                              )}
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {internetSearchTool && (
-                    <>
-                      <Separator />
-                      <div className="flex gap-x-2 py-2 flex justify-between">
-                        <div>
-                          <p className="block font-medium text-sm">
-                            {internetSearchTool.display_name}
-                          </p>
-                          <p
-                            className="text-sm text-subtle"
-                            style={{ color: "rgb(113, 114, 121)" }}
-                          >
-                            Enable internet search capabilities for this
-                            assistant
-                          </p>
-                        </div>
-                        <div className="flex items-center">
-                          <Switch
-                            name={`enabled_tools_map.${internetSearchTool.id}`}
-                            onChange={() => {
-                              toggleToolInValues(internetSearchTool.id);
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {customTools.length > 0 && (
-                    <>
-                      {customTools.map((tool) => (
-                        <React.Fragment key={tool.id}>
-                          <Separator />
-                          <div className="flex gap-x-2 py-2 flex justify-between">
-                            <div>
-                              <p className="block font-medium text-sm">
-                                {tool.display_name}
-                              </p>
-                              {tool.description && (
-                                <p
-                                  className="text-sm text-subtle"
-                                  style={{ color: "rgb(113, 114, 121)" }}
-                                >
-                                  {tool.description}
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex items-center">
-                              <Switch
-                                name={`enabled_tools_map.${tool.id}`}
-                                onChange={() => {
-                                  toggleToolInValues(tool.id);
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </React.Fragment>
-                      ))}
-                    </>
-                  )}
                   {searchTool && (
                     <>
                       <Separator />
-                      <div className="flex gap-x-2 py-2 flex justify-between">
+                      <div className="flex gap-x-2 py-2 flex justify-start">
                         <div>
-                          <p className="block font-medium text-sm">Knowledge</p>
+                          <div
+                            className="flex items-start gap-x-2
+                          "
+                          >
+                            <p className="block font-medium text-sm">
+                              Knowledge
+                            </p>
+                            <div className="flex items-center">
+                              <TooltipProvider delayDuration={0}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      className={`${
+                                        ccPairs.length === 0
+                                          ? "opacity-70 cursor-not-allowed"
+                                          : ""
+                                      }`}
+                                    >
+                                      <Switch
+                                        size="sm"
+                                        onCheckedChange={(checked) => {
+                                          setShowSearchTool(checked);
+                                          setFieldValue("num_chunks", null);
+                                          toggleToolInValues(searchTool.id);
+                                        }}
+                                        name={`enabled_tools_map.${searchTool.id}`}
+                                        disabled={ccPairs.length === 0}
+                                      />
+                                    </div>
+                                  </TooltipTrigger>
+
+                                  {ccPairs.length === 0 && (
+                                    <TooltipContent side="top" align="center">
+                                      <p className="bg-background-900 max-w-[200px] text-sm rounded-lg p-1.5 text-white">
+                                        To use the Knowledge Action, you need to
+                                        have at least one Connector-Credential
+                                        pair configured.
+                                      </p>
+                                    </TooltipContent>
+                                  )}
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </div>
                           <p
                             className="text-sm text-subtle"
                             style={{ color: "rgb(113, 114, 121)" }}
@@ -815,44 +735,9 @@ export function AssistantEditor({
                             Enable search capabilities for this assistant
                           </p>
                         </div>
-                        <div className="flex items-center">
-                          <TooltipProvider delayDuration={0}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div
-                                  className={`${
-                                    ccPairs.length === 0
-                                      ? "opacity-70 cursor-not-allowed"
-                                      : ""
-                                  }`}
-                                >
-                                  <Switch
-                                    onCheckedChange={(checked) => {
-                                      setShowSearchTool(checked);
-                                      setFieldValue("num_chunks", null);
-                                      toggleToolInValues(searchTool.id);
-                                    }}
-                                    name={`enabled_tools_map.${searchTool.id}`}
-                                    disabled={ccPairs.length === 0}
-                                  />
-                                </div>
-                              </TooltipTrigger>
-                              {ccPairs.length === 0 && (
-                                <TooltipContent side="top" align="center">
-                                  <p className="bg-background-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
-                                    To use the Knowledge Action, you need to
-                                    have at least one Connector-Credential pair
-                                    configured.
-                                  </p>
-                                </TooltipContent>
-                              )}
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
                       </div>
                     </>
                   )}
-
                   {ccPairs.length > 0 &&
                     searchTool &&
                     showSearchTool &&
@@ -979,6 +864,114 @@ export function AssistantEditor({
                         )}
                       </div>
                     )}
+
+                  <Separator />
+                  <div className="py-2">
+                    <p className="block font-medium text-sm mb-2">
+                      Capabilities
+                    </p>
+
+                    {internetSearchTool && (
+                      <>
+                        <div className="flex items-center mb-2">
+                          <Switch
+                            name={`enabled_tools_map.${internetSearchTool.id}`}
+                            onChange={() => {
+                              toggleToolInValues(internetSearchTool.id);
+                            }}
+                          />
+                          <span className="ml-2 text-sm">
+                            {internetSearchTool.display_name}
+                          </span>
+                        </div>
+
+                        <p
+                          className="text-sm text-subtle mb-4"
+                          style={{ color: "rgb(113, 114, 121)" }}
+                        >
+                          Enable internet search capabilities for this assistant
+                        </p>
+                      </>
+                    )}
+
+                    {imageGenerationTool && (
+                      <>
+                        <div className="flex items-center content-start  mb-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Checkbox
+                                  id={`enabled_tools_map.${imageGenerationTool.id}`}
+                                  checked={
+                                    values.enabled_tools_map[
+                                      imageGenerationTool.id
+                                    ]
+                                  }
+                                  onCheckedChange={() => {
+                                    toggleToolInValues(imageGenerationTool.id);
+                                  }}
+                                  disabled={
+                                    !currentLLMSupportsImageOutput ||
+                                    !isImageGenerationAvailable
+                                  }
+                                />
+                              </TooltipTrigger>
+                              {(!currentLLMSupportsImageOutput ||
+                                !isImageGenerationAvailable) && (
+                                <TooltipContent side="top" align="center">
+                                  <p className="bg-background-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
+                                    {!currentLLMSupportsImageOutput
+                                      ? "To use Image Generation, select GPT-4 or another image compatible model as the default model for this Assistant."
+                                      : "Image Generation requires an OpenAI or Azure Dalle configuration."}
+                                  </p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                          <div className="ml-2 flex items-start flex-col">
+                            <span className="text-sm">
+                              {imageGenerationTool.display_name}
+                            </span>
+                            <p
+                              className="text-sm text-subtle "
+                              style={{ color: "rgb(113, 114, 121)" }}
+                            >
+                              Enable image generation capabilities for this
+                              assistant
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {customTools.length > 0 &&
+                      customTools.map((tool) => (
+                        <React.Fragment key={tool.id}>
+                          <div className="flex items-center content-start mb-2">
+                            <Checkbox
+                              id={`enabled_tools_map.${tool.id}`}
+                              checked={values.enabled_tools_map[tool.id]}
+                              onCheckedChange={() => {
+                                toggleToolInValues(tool.id);
+                              }}
+                            />
+                            <div className="ml-2 flex items-start flex-col">
+                              <span className="text-sm">
+                                {tool.display_name}
+                              </span>
+                              {tool.description && (
+                                <p
+                                  className="text-sm text-subtle"
+                                  style={{ color: "rgb(113, 114, 121)" }}
+                                >
+                                  {tool.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </React.Fragment>
+                      ))}
+                  </div>
                 </div>
               </div>
               <Separator className="max-w-4xl" />
