@@ -22,26 +22,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     );
   } else {
     body = (
-      <div className="w-full my-16">
+      <div className="w-full py-16">
         <div className="px-32">
           <div className="mx-auto container">
-            <CardSection>
-              <AssistantEditor
-                {...values}
-                defaultPublic={false}
-                redirectType={SuccessfulPersonaUpdateRedirectType.CHAT}
-              />
-            </CardSection>
-            <Title className="mt-12">Delete Assistant</Title>
-            <Text>
-              Click the button below to permanently delete this assistant.
-            </Text>
-            <div className="flex mt-6">
-              <DeletePersonaButton
-                personaId={values.existingPersona!.id}
-                redirectType={SuccessfulPersonaUpdateRedirectType.CHAT}
-              />
-            </div>
+            <AssistantEditor
+              {...values}
+              defaultPublic={false}
+              redirectType={SuccessfulPersonaUpdateRedirectType.CHAT}
+            />
           </div>
         </div>
       </div>

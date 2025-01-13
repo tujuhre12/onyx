@@ -17,6 +17,7 @@ export default function FunctionalHeader({
   currentChatSession,
   setSharingModalVisible,
   toggleSidebar = () => null,
+  documentSidebarToggled,
   reset = () => null,
   sidebarToggled,
   toggleUserSettings,
@@ -30,6 +31,7 @@ export default function FunctionalHeader({
   toggleSidebar?: () => void;
   toggleUserSettings?: () => void;
   hideUserDropdown?: boolean;
+  documentSidebarToggled?: boolean;
 }) {
   const settings = useContext(SettingsContext);
   useEffect(() => {
@@ -92,9 +94,20 @@ export default function FunctionalHeader({
             `}
           />
           <div
-            className={`absolute ${
-              sidebarToggled ? "left-[calc(50%+125px)]" : "left-1/2"
-            } top-1/2 transform -translate-x-1/2 -translate-y-1/2 mobile:w-[50vw] max-w-[70vw] transition-all duration-300`}
+            className={`absolute 
+              ${
+                documentSidebarToggled && !sidebarToggled
+                  ? "left-[calc(50%-125px)]"
+                  : !documentSidebarToggled && sidebarToggled
+                    ? "left-[calc(50%+125px)]"
+                    : "left-1/2"
+              }
+              ${
+                documentSidebarToggled || sidebarToggled
+                  ? "mobile:w-[40vw] max-w-[50vw]"
+                  : "mobile:w-[50vw] max-w-[60vw]"
+              }
+              top-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300`}
           >
             <ChatBanner />
           </div>
@@ -110,7 +123,7 @@ export default function FunctionalHeader({
 
           {/* className="fixed cursor-pointer flex z-40 left-4 bg-black top-3 h-8" */}
 
-          <div className="absolute right-0 mobile:top-2 desktop:top-1 h-8  flex">
+          <div className="absolute right-2 mobile:top-2 desktop:top-1 h-8  flex">
             {setSharingModalVisible && !hideUserDropdown && (
               <div
                 onClick={() => setSharingModalVisible(true)}
@@ -152,6 +165,20 @@ export default function FunctionalHeader({
             duration-300 
             ease-in-out
             h-full
+            `}
+            />
+            <div
+              style={{ transition: "width 0.30s ease-out" }}
+              className={`
+            mobile:hidden
+            flex-none 
+            mx-auto
+            overflow-y-hidden 
+            transition-all 
+            duration-300 
+            ease-in-out
+            h-full
+            ${documentSidebarToggled ? "w-[400px]" : "w-[0px]"}
             `}
             />
           </div>
