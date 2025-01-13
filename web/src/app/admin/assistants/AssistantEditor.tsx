@@ -499,7 +499,7 @@ export function AssistantEditor({
                 </SubLabel>
                 <div className="flex gap-x-2 items-center">
                   <div
-                    className="p-2 cursor-pointer border-dashed rounded-full flex border border-border border-2 border-dashed"
+                    className="p-4 cursor-pointer  rounded-full flex  "
                     style={{
                       borderStyle: "dashed",
                       borderWidth: "1.5px",
@@ -520,15 +520,15 @@ export function AssistantEditor({
                         className="w-12 h-12 rounded-full object-cover"
                       />
                     ) : (
-                      generateIdenticon((values.icon_shape || 0).toString(), 24)
+                      generateIdenticon((values.icon_shape || 0).toString(), 36)
                     )}
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-xs"
+                      className="text-xs flex justify-start gap-x-2"
                       onClick={() => {
                         const fileInput = document.createElement("input");
                         fileInput.type = "file";
@@ -544,14 +544,14 @@ export function AssistantEditor({
                       }}
                     >
                       <CameraIcon size={14} />
-                      Upload {values.uploaded_image && "New "}Photo
+                      Upload {values.uploaded_image && "New "}Image
                     </Button>
 
                     {values.uploaded_image && (
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs"
+                        className="flex justify-start gap-x-2 text-xs"
                         onClick={() => {
                           setFieldValue("uploaded_image", null);
                           setRemovePersonaImage(false);
@@ -582,7 +582,7 @@ export function AssistantEditor({
                           }}
                         >
                           <NewChatIcon size={14} />
-                          Generate New Icon
+                          Generate Icon
                         </Button>
                       )}
 
