@@ -238,15 +238,15 @@ export const useStreamingMessages = (
       // Update the UI
       setDynamicSubQuestions([...dynamicSubQuestionsRef.current]);
 
-      if (
-        dynamicSubQuestionsRef.current &&
-        dynamicSubQuestionsRef.current[3] &&
-        dynamicSubQuestionsRef.current[3].answer &&
-        dynamicSubQuestionsRef.current[3].answer.length > 0
-      ) {
-        allowStreaming();
-        return;
-      }
+      // if (
+      //   dynamicSubQuestionsRef.current &&
+      //   dynamicSubQuestionsRef.current[3] &&
+      //   dynamicSubQuestionsRef.current[3].answer &&
+      //   dynamicSubQuestionsRef.current[3].answer.length > 0
+      // ) {
+      //   allowStreaming();
+      //   return;
+      // }
 
       setTimeout(loadNextPiece, 5);
     }
