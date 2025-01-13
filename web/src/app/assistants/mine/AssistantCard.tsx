@@ -8,6 +8,7 @@ import {
   FiTrash,
   FiEdit,
   FiHash,
+  FiBarChart,
 } from "react-icons/fi";
 import { FaHashtag } from "react-icons/fa";
 import {
@@ -128,6 +129,17 @@ const AssistantCard: React.FC<{
                       >
                         <FiEdit size={14} className="inline mr-2" />
                         Edit
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          router.push(`/assistants/stats/${persona.id}`);
+                          closePopover();
+                        }}
+                        className="w-full text-left items-center px-2 py-1 hover:bg-neutral-100 rounded"
+                      >
+                        <FiBarChart size={14} className="inline mr-2" />
+                        Stats
                       </button>
                       <button
                         onClick={handleDelete}

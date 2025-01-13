@@ -13,11 +13,6 @@ export function ChatBanner() {
   const contentRef = useRef<HTMLDivElement>(null);
   const fullContentRef = useRef<HTMLDivElement>(null);
 
-  // Bail out if no custom header content
-  if (!settings?.enterpriseSettings?.custom_header_content) {
-    return null;
-  }
-
   // Check for text overflow
   useLayoutEffect(() => {
     const checkOverflow = () => {
@@ -36,6 +31,11 @@ export function ChatBanner() {
     window.addEventListener("resize", checkOverflow);
     return () => window.removeEventListener("resize", checkOverflow);
   }, []);
+
+  // Bail out if no custom header content
+  if (!settings?.enterpriseSettings?.custom_header_content) {
+    return null;
+  }
 
   const handleMouseEnter = () => setIsExpanded(true);
   const handleMouseLeave = () => setIsExpanded(false);
