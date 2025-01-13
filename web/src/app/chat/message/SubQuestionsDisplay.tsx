@@ -71,7 +71,7 @@ const SubQuestionDisplay: React.FC<{
     content = content.replace(/(\]\]|\))((?!\s|\n|\[|\(|$).)/g, "$1\n$2");
 
     return (
-      preprocessLaTeX(content) + (subQuestion.is_generating ? " [*]() " : "")
+      preprocessLaTeX(content) + (!subQuestion.is_complete ? " [*]() " : "")
     );
   };
 
@@ -221,40 +221,49 @@ const SubQuestionDisplay: React.FC<{
                       ))}
                     </div>
                   </div>
-                  <div className="mb-4  flex flex-col gap-2">
-                    <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                      Reading
+                  {subQuestion.is_complete &&
+                  subQuestion?.context_docs?.top_documents.length == 0 ? (
+                    <div className="mb-4  flex flex-col gap-2">
+                      <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                        No results found
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {(subQuestion.context_docs?.top_documents
-                        ? subQuestion.context_docs?.top_documents
-                        : documents.filter((doc) =>
-                            subQuestion.context_docs?.top_documents?.some(
-                              (contextDoc) =>
-                                contextDoc.document_id === doc.document_id
+                  ) : (
+                    <div className="mb-4  flex flex-col gap-2">
+                      <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                        Reading
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(subQuestion.context_docs?.top_documents
+                          ? subQuestion.context_docs?.top_documents
+                          : documents.filter((doc) =>
+                              subQuestion.context_docs?.top_documents?.some(
+                                (contextDoc) =>
+                                  contextDoc.document_id === doc.document_id
+                              )
                             )
-                          )
-                      )
-                        .slice(0, 10)
-                        .map((doc, docIndex) => {
-                          const truncatedIdentifier =
-                            doc.semantic_identifier?.slice(0, 20) || "";
-                          return (
-                            <SourceChip2
-                              includeAnimation
-                              onClick={() =>
-                                openDocument(doc, setPresentingDocument)
-                              }
-                              key={docIndex}
-                              icon={<ResultIcon doc={doc} size={10} />}
-                              title={`${truncatedIdentifier}${
-                                truncatedIdentifier.length === 20 ? "..." : ""
-                              }`}
-                            />
-                          );
-                        })}
+                        )
+                          .slice(0, 10)
+                          .map((doc, docIndex) => {
+                            const truncatedIdentifier =
+                              doc.semantic_identifier?.slice(0, 20) || "";
+                            return (
+                              <SourceChip2
+                                includeAnimation
+                                onClick={() =>
+                                  openDocument(doc, setPresentingDocument)
+                                }
+                                key={docIndex}
+                                icon={<ResultIcon doc={doc} size={10} />}
+                                title={`${truncatedIdentifier}${
+                                  truncatedIdentifier.length === 20 ? "..." : ""
+                                }`}
+                              />
+                            );
+                          })}
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <div className="flex flex-col gap-2">
                     <div
                       className="text-[#4a4a4a] cursor-pointer items-center text-xs flex gap-x-1 font-medium leading-normal"

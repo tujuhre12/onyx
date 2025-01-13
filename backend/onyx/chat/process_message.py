@@ -16,6 +16,7 @@ from onyx.chat.models import CitationConfig
 from onyx.chat.models import CitationInfo
 from onyx.chat.models import CustomToolResponse
 from onyx.chat.models import DocumentPruningConfig
+from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import FileChatDisplay
 from onyx.chat.models import FinalUsedContextDocsResponse
 from onyx.chat.models import LLMRelevanceFilterResponse
@@ -26,7 +27,6 @@ from onyx.chat.models import OnyxContexts
 from onyx.chat.models import PromptConfig
 from onyx.chat.models import ProSearchConfig
 from onyx.chat.models import ProSearchPacket
-from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import QADocsResponse
 from onyx.chat.models import StreamingError
 from onyx.chat.models import StreamStopInfo
@@ -171,7 +171,9 @@ def _handle_search_tool_response_summary(
         top_docs = chunks_or_sections_to_search_docs(response_sumary.top_sections)
 
         deduped_docs = top_docs
-        if dedupe_docs and not is_extended: # Extended tool responses are already deduped
+        if (
+            dedupe_docs and not is_extended
+        ):  # Extended tool responses are already deduped
             deduped_docs, dropped_inds = dedupe_documents(top_docs)
 
         reference_db_search_docs = [
@@ -893,6 +895,8 @@ def stream_chat_message_objects(
                     yield cast(OnyxContexts, packet.response)
 
             elif isinstance(packet, StreamStopInfo):
+                print(packet)
+                print("this is the stop reason")
                 if packet.stop_reason == StreamStopReason.FINISHED:
                     yield packet
             else:

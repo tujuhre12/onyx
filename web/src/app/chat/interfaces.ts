@@ -7,6 +7,7 @@ import {
   SubQueryPiece,
   AgentAnswerPiece,
   SubQuestionSearchDoc,
+  StreamStopInfo,
 } from "@/lib/search/interfaces";
 
 export enum RetrievalType {
@@ -115,12 +116,6 @@ export interface BackendChatSession {
   current_alternate_model?: string;
 }
 
-export interface SubQueryDetail {
-  query: string;
-  query_id: number;
-  doc_ids?: number[] | null;
-}
-
 export interface BackendMessage {
   message_id: number;
   message_type: string;
@@ -207,7 +202,13 @@ export interface SubQuestionDetail {
   answer: string;
   sub_queries?: SubQueryDetail[] | null;
   context_docs?: { top_documents: OnyxDocument[] } | null;
-  is_generating?: boolean;
+  is_complete?: boolean;
+}
+
+export interface SubQueryDetail {
+  query: string;
+  query_id: number;
+  doc_ids?: number[] | null;
 }
 
 export const constructSubQuestions = (
@@ -218,6 +219,7 @@ export const constructSubQuestions = (
     | AgentAnswerPiece
     | SubQuestionSearchDoc
     | DocumentsResponse
+    | StreamStopInfo
 ): SubQuestionDetail[] => {
   if (!newDetail) {
     return subQuestions;
@@ -228,7 +230,17 @@ export const constructSubQuestions = (
   //   (sq) => sq.level_question_nr !== 0
   // );
 
-  if ("top_documents" in newDetail) {
+  if ("stop_reason" in newDetail) {
+    const { level, level_question_nr } = newDetail;
+    const actual_level_question_nr = level_question_nr ?? 0;
+    let subQuestion = updatedSubQuestions.find(
+      (sq) =>
+        sq.level === level && sq.level_question_nr === actual_level_question_nr
+    );
+    if (subQuestion) {
+      subQuestion.is_complete = true;
+    }
+  } else if ("top_documents" in newDetail) {
     const { level, level_question_nr, top_documents } = newDetail;
     const actual_level_question_nr = level_question_nr ?? 0;
     let subQuestion = updatedSubQuestions.find(

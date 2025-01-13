@@ -276,10 +276,10 @@ export function ChatPage({
           (assistant) => assistant.id === existingChatSessionAssistantId
         )
       : defaultAssistantId !== undefined
-      ? availableAssistants.find(
-          (assistant) => assistant.id === defaultAssistantId
-        )
-      : undefined
+        ? availableAssistants.find(
+            (assistant) => assistant.id === defaultAssistantId
+          )
+        : undefined
   );
   // Gather default temperature settings
   const search_param_temperature = searchParams.get(
@@ -289,12 +289,12 @@ export function ChatPage({
   const defaultTemperature = search_param_temperature
     ? parseFloat(search_param_temperature)
     : selectedAssistant?.tools.some(
-        (tool) =>
-          tool.in_code_tool_id === "SearchTool" ||
-          tool.in_code_tool_id === "InternetSearchTool"
-      )
-    ? 0
-    : 0.7;
+          (tool) =>
+            tool.in_code_tool_id === "SearchTool" ||
+            tool.in_code_tool_id === "InternetSearchTool"
+        )
+      ? 0
+      : 0.7;
 
   const setSelectedAssistantFromId = (assistantId: number) => {
     // NOTE: also intentionally look through available assistants here, so that
@@ -481,6 +481,7 @@ export function ChatPage({
       );
 
       const session = await response.json();
+      console.log(session);
       const chatSession = session as BackendChatSession;
       setSelectedAssistantFromId(chatSession.persona_id);
 
@@ -1237,8 +1238,8 @@ export function ChatPage({
     const currentAssistantId = alternativeAssistantOverride
       ? alternativeAssistantOverride.id
       : alternativeAssistant
-      ? alternativeAssistant.id
-      : liveAssistant.id;
+        ? alternativeAssistant.id
+        : liveAssistant.id;
 
     resetInputBar();
     let messageUpdates: Message[] | null = null;
@@ -1405,8 +1406,20 @@ export function ChatPage({
               }
               return prevState;
             });
+            console.log("PACKET INFO");
+            console.log(packet);
             // Continuously refine the sub_questions based on the packets that we receive
-            if (Object.hasOwn(packet, "sub_question")) {
+            if (
+              Object.hasOwn(packet, "stop_reason") &&
+              Object.hasOwn(packet, "level_question_nr")
+            ) {
+              sub_questions = constructSubQuestions(
+                sub_questions,
+                packet as StreamStopInfo
+              );
+              console.log("PACKET INFO");
+              console.log(sub_questions);
+            } else if (Object.hasOwn(packet, "sub_question")) {
               sub_questions = constructSubQuestions(
                 sub_questions,
                 packet as SubQuestionPiece
