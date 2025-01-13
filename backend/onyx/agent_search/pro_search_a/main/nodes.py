@@ -125,26 +125,13 @@ def initial_sub_question_creation(state: MainState) -> BaseDecompUpdate:
 
     # use no-op cast() instead of str() which runs code
     # list_of_subquestions = clean_and_parse_list_string(cast(str, response))
-    list_of_subquestions = cast(str, response).split("\n")
+    list_of_subqs = cast(str, response).split("\n")
 
     decomp_list: list[str] = [
-        sub_question.strip() for sub_question in list_of_subquestions
+        sq.strip() for sq in list_of_subqs if sq.strip() != ""
     ]
 
-    # Persist sub-questions to database
-    # from onyx.agent_search.db_operations import create_sub_question
 
-    if state["config"].use_persistence:
-        # for sub_q in decomp_list:
-        #     sub_questions.append(
-        #         create_sub_question(
-        #             db_session=db_session,
-        #             chat_session_id=chat_session_id,
-        #             primary_message_id=primary_message_id,
-        #             sub_question=sub_q,
-        #         )
-        #     )
-        pass
 
     now_end = datetime.now()
 
