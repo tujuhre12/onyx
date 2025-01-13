@@ -17,7 +17,7 @@ from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_PERSONA
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
 from onyx.agent_search.shared_graph_utils.utils import parse_question_id
-from onyx.chat.models import AgentAnswerPiece
+from onyx.chat.models import AgentAnswerPiece, StreamStopInfo, StreamStopReason
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -82,6 +82,8 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
             )
             response.append(content)
 
+        stop_event = StreamStopInfo(stop_reason=StreamStopReason.FINISHED, stream_level=level, stream_level_question_nr=question_nr)
+        dispatch_custom_event("sub_answer_finished", stop_event)
         answer_str = merge_message_runs(response, chunk_separator="")[0].content
 
     return QAGenerationUpdate(

@@ -12,8 +12,10 @@ from sqlalchemy.orm import Session
 from onyx.agent_search.basic.graph_builder import basic_graph_builder
 from onyx.agent_search.basic.states import BasicInput
 from onyx.agent_search.models import AgentDocumentCitations
-from onyx.agent_search.pro_search_a.main.graph_builder import main_graph_builder
-from onyx.agent_search.pro_search_a.main.states import MainInput
+from onyx.agent_search.pro_search_b.main.graph_builder import main_graph_builder as main_graph_builder_b
+from onyx.agent_search.pro_search_b.main.states import MainInput as MainInput_b
+from onyx.agent_search.pro_search_a.main.graph_builder import main_graph_builder as main_graph_builder_a
+from onyx.agent_search.pro_search_a.main.states import MainInput as MainInput_a
 from onyx.agent_search.shared_graph_utils.utils import get_test_config
 from onyx.chat.llm_response_handler import LLMResponseHandlerManager
 from onyx.chat.models import AgentAnswerPiece
@@ -23,10 +25,12 @@ from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import ProSearchConfig
+from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import SubQueryPiece
 from onyx.chat.models import SubQuestionPiece
 from onyx.chat.models import ToolResponse
 from onyx.chat.prompt_builder.build import LLMCall
+from onyx.configs.dev_configs import GRAPH_NAME
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
 from onyx.llm.interfaces import LLM
@@ -65,6 +69,8 @@ def _parse_agent_event(
             return cast(SubQueryPiece, event["data"])
         elif event["name"] == "sub_answers":
             return cast(AgentAnswerPiece, event["data"])
+        elif event["name"] == "sub_answer_finished":
+            return cast(StreamStopInfo, event["data"])
         elif event["name"] == "initial_agent_answer":
             return cast(AgentAnswerPiece, event["data"])
         elif event["name"] == "tool_response":
@@ -76,7 +82,7 @@ def _parse_agent_event(
 
 def _manage_async_event_streaming(
     compiled_graph: CompiledStateGraph,
-    graph_input: MainInput | BasicInput,
+    graph_input: MainInput_a | MainInput_b | BasicInput,
 ) -> Iterable[StreamEvent]:
     async def _run_async_event_stream() -> AsyncIterable[StreamEvent]:
         async for event in compiled_graph.astream_events(
@@ -112,7 +118,7 @@ def _manage_async_event_streaming(
 
 def run_graph(
     compiled_graph: CompiledStateGraph,
-    input: BasicInput | MainInput,
+    input: BasicInput | MainInput_a | MainInput_b,
 ) -> AnswerStream:
 
     agent_document_citations: dict[int, dict[int, list[AgentDocumentCitations]]] = {}
@@ -317,7 +323,8 @@ def run_graph(
 
 # TODO: call this once on startup, TBD where and if it should be gated based
 # on dev mode or not
-def load_compiled_graph() -> CompiledStateGraph:
+def load_compiled_graph(graph_name: str) -> CompiledStateGraph:
+    main_graph_builder = main_graph_builder_a if graph_name == "a" else main_graph_builder_b
     global _COMPILED_GRAPH
     if _COMPILED_GRAPH is None:
         graph = main_graph_builder()
@@ -331,15 +338,25 @@ def run_main_graph(
     primary_llm: LLM,
     fast_llm: LLM,
     db_session: Session,
+    graph_name: str = "a",
 ) -> AnswerStream:
-    compiled_graph = load_compiled_graph()
-    input = MainInput(
-        config=config,
-        primary_llm=primary_llm,
-        fast_llm=fast_llm,
-        db_session=db_session,
-        search_tool=search_tool,
-    )
+    compiled_graph = load_compiled_graph(graph_name)
+    if graph_name == "a":
+        input = MainInput_a(
+            config=config,
+            primary_llm=primary_llm,
+            fast_llm=fast_llm,
+            db_session=db_session,
+            search_tool=search_tool,
+        )
+    else:
+        input = MainInput_b(
+            config=config,
+            primary_llm=primary_llm,
+            fast_llm=fast_llm,
+            db_session=db_session,
+            search_tool=search_tool,
+        )
     return run_graph(
         compiled_graph, input
     )
@@ -368,7 +385,10 @@ if __name__ == "__main__":
     now_start = datetime.now()
     logger.debug(f"Start at {now_start}")
 
-    graph = main_graph_builder()
+    if GRAPH_NAME == "a":
+        graph = main_graph_builder_a()
+    else:
+        graph = main_graph_builder_b()
     compiled_graph = graph.compile()
     now_end = datetime.now()
     logger.debug(f"Graph compiled in {now_end - now_start} seconds")
@@ -386,13 +406,22 @@ if __name__ == "__main__":
         # search_request.persona = get_persona_by_id(1, None, db_session)
         config.use_persistence = True
 
-        input = MainInput(
-            config=config,
-            primary_llm=primary_llm,
-            fast_llm=fast_llm,
-            db_session=db_session,
-            search_tool=search_tool,
-        )
+        if GRAPH_NAME == "a":
+            input = MainInput_a(
+                config=config,
+                primary_llm=primary_llm,
+                fast_llm=fast_llm,
+                db_session=db_session,
+                search_tool=search_tool,
+            )
+        else:
+            input = MainInput_b(
+                config=config,
+                primary_llm=primary_llm,
+                fast_llm=fast_llm,
+                db_session=db_session,
+                search_tool=search_tool,
+                )
         # with open("output.txt", "w") as f:
         tool_responses: list = []
         for output in run_graph(
