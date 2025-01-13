@@ -501,6 +501,55 @@ SUB_QUESTION_ANSWER_TEMPLATE = """
     Sub-Question: Q{sub_question_nr}\n  Sub-Question:\n  - \n{sub_question}\n  --\nAnswer:\n  -\n {sub_answer}\n\n
     """
 
+SUB_QUESTION_SEARCH_RESULTS_TEMPLATE = """
+    Sub-Question: Q{sub_question_nr}\n  Sub-Question:\n  - \n{sub_question}\n  --\nRelevant Documents:\n
+    -\n {formatted_sub_question_docs}\n\n
+    """
+
+INITIAL_RAG_PROMPT_SUB_QUESTION_SEARCH = """ \n
+{persona_specification}
+
+Use the information provided below - and only the
+provided information - to answer the provided question.
+
+The information provided below consists of:
+    1) a number of sub-questions and supporting document information that would help answer them.
+    2) a broader collection of documents that were deemed relevant for the question. These documents contain informattion
+    that was also provided in the sub-questions and often more.
+
+IMPORTANT RULES:
+ - If you cannot reliably answer the question solely using the provided information, say that you cannot reliably answer.
+ You may give some additional facts you learned, but do not try to invent an answer.
+ - If the information is empty or irrelevant, just say "I don't know".
+ - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
+
+Please provide inline citations of documentsin the format [D1], [D2], [D3], etc.,  If you have multiple citations,
+please cite for example as [D1][Q3], or [D2][D4], etc. Feel free to cite documents in addition to the sub-questions!
+Proper citations are important for the final answer to be verifiable! \n\n\n
+
+Again, you should be sure that the answer is supported by the information provided!
+
+Try to keep your answer concise. But also highlight uncertainties you may have should there be substantial ones,
+or assumptions you made.
+
+Here is the contextual information:
+\n-------\n
+*Answered Sub-questions (these should really matter!):
+{answered_sub_questions}
+
+And here are relevant document information that support the sub-question answers, or that are relevant for the actual question:\n
+
+{relevant_docs}
+
+\n-------\n
+\n
+And here is the question I want you to answer based on the information above:
+\n--\n
+{question}
+\n--\n\n
+Answer:"""
+
+
 INITIAL_RAG_PROMPT = """ \n
 {persona_specification}
 

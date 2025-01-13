@@ -1,4 +1,4 @@
-from onyx.agent_search.pro_search_a.answer_initial_sub_question.models import (
+from onyx.agent_search.shared_graph_utils.models import (
     QuestionAnswerResults,
 )
 from onyx.chat.prune_and_merge import _merge_sections

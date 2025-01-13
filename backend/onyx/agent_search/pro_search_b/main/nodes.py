@@ -10,28 +10,28 @@ from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.messages import merge_message_runs
 
-from onyx.agent_search.pro_search_a.answer_initial_sub_question.states import (
+from onyx.agent_search.pro_search_b.answer_initial_sub_question.states import (
     AnswerQuestionOutput,
 )
-from onyx.agent_search.pro_search_a.base_raw_search.states import BaseRawSearchOutput
-from onyx.agent_search.pro_search_a.main.models import AgentAdditionalMetrics
-from onyx.agent_search.pro_search_a.main.models import AgentBaseMetrics
-from onyx.agent_search.pro_search_a.main.models import AgentRefinedMetrics
-from onyx.agent_search.pro_search_a.main.models import AgentTimings
-from onyx.agent_search.pro_search_a.main.models import FollowUpSubQuestion
-from onyx.agent_search.pro_search_a.main.states import BaseDecompUpdate
-from onyx.agent_search.pro_search_a.main.states import DecompAnswersUpdate
-from onyx.agent_search.pro_search_a.main.states import EntityTermExtractionUpdate
-from onyx.agent_search.pro_search_a.main.states import ExpandedRetrievalUpdate
-from onyx.agent_search.pro_search_a.main.states import FollowUpSubQuestionsUpdate
-from onyx.agent_search.pro_search_a.main.states import InitialAnswerBASEUpdate
-from onyx.agent_search.pro_search_a.main.states import InitialAnswerQualityUpdate
-from onyx.agent_search.pro_search_a.main.states import InitialAnswerUpdate
-from onyx.agent_search.pro_search_a.main.states import MainOutput
-from onyx.agent_search.pro_search_a.main.states import MainState
-from onyx.agent_search.pro_search_a.main.states import RefinedAnswerUpdate
-from onyx.agent_search.pro_search_a.main.states import RequireRefinedAnswerUpdate
+from onyx.agent_search.pro_search_b.base_raw_search.states import BaseRawSearchOutput
+from onyx.agent_search.pro_search_b.main.models import FollowUpSubQuestion
+from onyx.agent_search.pro_search_b.main.states import BaseDecompUpdate
+from onyx.agent_search.pro_search_b.main.states import DecompAnswersUpdate
+from onyx.agent_search.pro_search_b.main.states import EntityTermExtractionUpdate
+from onyx.agent_search.pro_search_b.main.states import ExpandedRetrievalUpdate
+from onyx.agent_search.pro_search_b.main.states import FollowUpSubQuestionsUpdate
+from onyx.agent_search.pro_search_b.main.states import InitialAnswerBASEUpdate
+from onyx.agent_search.pro_search_b.main.states import InitialAnswerQualityUpdate
+from onyx.agent_search.pro_search_b.main.states import InitialAnswerUpdate
+from onyx.agent_search.pro_search_b.main.states import MainOutput
+from onyx.agent_search.pro_search_b.main.states import MainState
+from onyx.agent_search.pro_search_b.main.states import RefinedAnswerUpdate
+from onyx.agent_search.pro_search_b.main.states import RequireRefinedAnswerUpdate
+from onyx.agent_search.shared_graph_utils.models import AgentAdditionalMetrics
+from onyx.agent_search.shared_graph_utils.models import AgentBaseMetrics
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
+from onyx.agent_search.shared_graph_utils.models import AgentRefinedMetrics
+from onyx.agent_search.shared_graph_utils.models import AgentTimings
 from onyx.agent_search.shared_graph_utils.models import CombinedAgentMetrics
 from onyx.agent_search.shared_graph_utils.models import Entity
 from onyx.agent_search.shared_graph_utils.models import EntityRelationshipTermExtraction
@@ -51,17 +51,23 @@ from onyx.agent_search.shared_graph_utils.prompts import (
     INITIAL_DECOMPOSITION_PROMPT_QUESTIONS,
 )
 from onyx.agent_search.shared_graph_utils.prompts import INITIAL_RAG_BASE_PROMPT
-from onyx.agent_search.shared_graph_utils.prompts import INITIAL_RAG_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import (
     INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS,
+)
+from onyx.agent_search.shared_graph_utils.prompts import (
+    INITIAL_RAG_PROMPT_SUB_QUESTION_SEARCH,
 )
 from onyx.agent_search.shared_graph_utils.prompts import REVISED_RAG_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import (
     REVISED_RAG_PROMPT_NO_SUB_QUESTIONS,
 )
 from onyx.agent_search.shared_graph_utils.prompts import SUB_QUESTION_ANSWER_TEMPLATE
+from onyx.agent_search.shared_graph_utils.prompts import (
+    SUB_QUESTION_SEARCH_RESULTS_TEMPLATE,
+)
 from onyx.agent_search.shared_graph_utils.utils import dispatch_separated
 from onyx.agent_search.shared_graph_utils.utils import format_docs
+from onyx.agent_search.shared_graph_utils.utils import format_docs_content_flat
 from onyx.agent_search.shared_graph_utils.utils import format_entity_term_extraction
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
 from onyx.agent_search.shared_graph_utils.utils import make_question_id
@@ -73,6 +79,8 @@ from onyx.db.chat import log_agent_metrics
 from onyx.db.chat import log_agent_sub_question_results
 from onyx.tools.tool_implementations.search.search_tool import yield_search_responses
 from onyx.utils.logger import setup_logger
+
+# from onyx.agent_search.pro_search_b.main.mod els import CombinedAgentMetrics
 
 logger = setup_logger()
 
@@ -314,24 +322,24 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
 
         for decomp_answer_result in decomp_answer_results:
             decomp_questions.append(decomp_answer_result.question)
-            if (
-                decomp_answer_result.quality.lower().startswith("yes")
-                and len(decomp_answer_result.answer) > 0
-                and decomp_answer_result.answer != "I don't know"
-            ):
-                good_qa_list.append(
-                    SUB_QUESTION_ANSWER_TEMPLATE.format(
-                        sub_question=decomp_answer_result.question,
-                        sub_answer=decomp_answer_result.answer,
-                        sub_question_nr=sub_question_nr,
-                    )
+
+            formatted_sub_question_docs = format_docs_content_flat(
+                decomp_answer_result.documents
+            )
+
+            good_qa_list.append(
+                SUB_QUESTION_SEARCH_RESULTS_TEMPLATE.format(
+                    sub_question=decomp_answer_result.question,
+                    formatted_sub_question_docs=formatted_sub_question_docs,
+                    sub_question_nr=sub_question_nr,
                 )
-                sub_question_nr += 1
+            )
+            sub_question_nr += 1
 
         if len(good_qa_list) > 0:
-            sub_question_answer_str = "\n\n------\n\n".join(good_qa_list)
+            sub_question_doc_str = "\n\n------\n\n".join(good_qa_list)
         else:
-            sub_question_answer_str = ""
+            sub_question_doc_str = ""
 
         # Determine which persona-specification prompt to use
 
@@ -344,7 +352,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
 
         # Determine which base prompt to use given the sub-question information
         if len(good_qa_list) > 0:
-            base_prompt = INITIAL_RAG_PROMPT
+            base_prompt = INITIAL_RAG_PROMPT_SUB_QUESTION_SEARCH
         else:
             base_prompt = INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS
 
@@ -352,7 +360,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
             HumanMessage(
                 content=base_prompt.format(
                     question=question,
-                    answered_sub_questions=sub_question_answer_str,
+                    answered_sub_questions=sub_question_doc_str,
                     relevant_docs=format_docs(relevant_docs),
                     persona_specification=persona_specification,
                 )
@@ -387,7 +395,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
         )
 
         logger.debug(
-            f"\n\nYYYYY--Sub-Questions:\n\n{sub_question_answer_str}\n\nStats:\n\n"
+            f"\n\nYYYYY--Sub-Questions:\n\n{sub_question_doc_str}\n\nStats:\n\n"
         )
 
         if initial_agent_stats:
@@ -794,12 +802,6 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     logger.debug("-" * 10)
     logger.debug(
         f"\n\nNEW REVISED Sub-Questions\n\n{new_revised_good_sub_questions_str}\n\n"
-    )
-
-    logger.debug("-" * 100)
-
-    logger.debug(
-        f"\n\nINITAL & REVISED Sub-Questions & Answers:\n\n{sub_question_answer_str}\n\nStas:\n\n"
     )
 
     logger.debug("-" * 100)
