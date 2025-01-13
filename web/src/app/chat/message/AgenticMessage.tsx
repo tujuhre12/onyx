@@ -189,18 +189,37 @@ export const AgenticMessage = ({
   const streamIndexRef = useRef(0);
 
   const allowStreaming = () => {
+    console.log("ALLOW STREAMING has been called");
     setStreamingAllowed(true);
-    const streamContent = () => {
-      if (streamIndexRef.current < (finalContent as string).length) {
-        setStreamedContent(
-          (finalContent as string).slice(0, streamIndexRef.current + 1)
-        );
+  };
+
+  const streamContent = (content: string) => {
+    console.log("streamContent called, current index:", streamIndexRef.current);
+
+    if (content.length === 0) {
+      console.log("finalContent is empty");
+      return;
+    }
+
+    const streamNextChar = () => {
+      if (streamIndexRef.current < content.length) {
+        setStreamedContent(content.slice(0, streamIndexRef.current + 1));
         streamIndexRef.current++;
-        setTimeout(streamContent, 30);
+        setTimeout(streamNextChar, 30);
+      } else {
+        console.log("Streaming completed");
       }
     };
-    streamContent();
+
+    streamNextChar();
   };
+
+  useEffect(() => {
+    if (streamingAllowed && typeof finalContent === "string") {
+      // if streamIndexRef.current = 0; // Reset the index
+      streamContent(finalContent);
+    }
+  }, [finalContent, streamingAllowed]);
 
   const [isRegenerateHovered, setIsRegenerateHovered] = useState(false);
   const [isRegenerateDropdownVisible, setIsRegenerateDropdownVisible] =
