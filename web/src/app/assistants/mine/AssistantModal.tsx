@@ -112,7 +112,7 @@ export default function AssistantModal({
   }, [assistants, searchQuery, assistantFilters, pinnedAssistants]);
 
   const maxHeight = 900;
-  const calculatedHeight = Math.ceil(assistants.length / 2) * 160 + 75;
+  const calculatedHeight = Math.ceil(assistants.length / 2) * 170 + 75;
   const height = Math.min(calculatedHeight, maxHeight);
 
   return (
@@ -150,15 +150,15 @@ export default function AssistantModal({
                 className="w-full h-full bg-transparent outline-none text-black"
               />
             </div>
+            <button
+              onClick={() => router.push("/assistants/new")}
+              className="h-10 cursor-pointer px-6 py-3 bg-black rounded-md border border-black justify-center items-center gap-2.5 inline-flex"
+            >
+              <div className="text-[#fffcf4] text-lg font-normal leading-normal">
+                Create
+              </div>
+            </button>
           </div>
-          <button
-            onClick={() => router.push("/assistants/new")}
-            className="h-10 cursor-pointer px-6 py-3 bg-black rounded-md border border-black justify-center items-center gap-2.5 inline-flex"
-          >
-            <div className="text-[#fffcf4] text-lg font-normal leading-normal">
-              Create
-            </div>
-          </button>
         </div>
 
         <div className="px-2 flex py-2 items-center gap-x-2">
