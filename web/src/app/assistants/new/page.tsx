@@ -5,6 +5,7 @@ import { SuccessfulPersonaUpdateRedirectType } from "@/app/admin/assistants/enum
 import { fetchAssistantEditorInfoSS } from "@/lib/assistants/fetchPersonaEditorInfoSS";
 import { ErrorCallout } from "@/components/ErrorCallout";
 import { LargeBackButton } from "../LargeBackButton";
+import { BackButton } from "@/components/BackButton";
 
 export default async function Page() {
   const [values, error] = await fetchAssistantEditorInfoSS();
