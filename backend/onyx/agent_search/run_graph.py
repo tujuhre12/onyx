@@ -61,6 +61,9 @@ def _parse_agent_event(
 
     event_type = event["event"]
 
+    # We always just yield the event data, but this piece is useful for two development reasons:
+    # 1. It's a list of the names of every place we dispatch a custom event
+    # 2. We maintain the intended types yielded by each event
     if event_type == "on_custom_event":
         # TODO: different AnswerStream types for different events
         if event["name"] == "decomp_qs":
@@ -73,6 +76,8 @@ def _parse_agent_event(
             return cast(StreamStopInfo, event["data"])
         elif event["name"] == "initial_agent_answer":
             return cast(AgentAnswerPiece, event["data"])
+        elif event["name"] == "start_refined_answer_creation":
+            return cast(ToolCallKickoff, event["data"])
         elif event["name"] == "tool_response":
             return cast(ToolResponse, event["data"])
         elif event["name"] == "basic_response":
@@ -357,7 +362,13 @@ def run_main_graph(
             db_session=db_session,
             search_tool=search_tool,
         )
-    return run_graph(
+
+    # Agent search is not a Tool per se, but this is helpful for the frontend
+    yield ToolCallKickoff(
+        tool_name="agent_search_0",
+        tool_args={"query": config.search_request.query},
+    )
+    yield from run_graph(
         compiled_graph, input
     )
 
