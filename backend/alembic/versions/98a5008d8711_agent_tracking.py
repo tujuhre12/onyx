@@ -1,7 +1,7 @@
 """agent_tracking
 
 Revision ID: 98a5008d8711
-Revises: aeda5f2df4f6
+Revises: 3c6531f32351
 Create Date: 2025-01-04 14:41:52.732238
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "98a5008d8711"
-down_revision = "aeda5f2df4f6"
+down_revision = "3c6531f32351"
 branch_labels = None
 depends_on = None
 
