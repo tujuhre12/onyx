@@ -91,8 +91,11 @@ export default function FunctionalHeader({
             ${sidebarToggled ? "w-[250px]" : "w-[0px]"}
             `}
           />
-
-          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 mobile:w-[50vw] max-w-[70vw]">
+          <div
+            className={`absolute ${
+              sidebarToggled ? "left-[calc(50%+125px)]" : "left-1/2"
+            } top-1/2 transform -translate-x-1/2 -translate-y-1/2 mobile:w-[50vw] max-w-[70vw] transition-all duration-300`}
+          >
             <ChatBanner />
           </div>
 

@@ -59,7 +59,14 @@ const SortableFolder: React.FC<SortableFolderProps> = (props) => {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: props.folder.folder_id?.toString() ?? "" });
+  } = useSortable({
+    id: props.folder.folder_id?.toString() ?? "",
+    data: {
+      activationConstraint: {
+        distance: 8,
+      },
+    },
+  });
   const ref = useRef<HTMLDivElement>(null);
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -283,7 +290,11 @@ export function PagesTab({
   );
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
