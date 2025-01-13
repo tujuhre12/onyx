@@ -1,4 +1,11 @@
-import { Dispatch, SetStateAction, useContext, useEffect, useRef } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Modal } from "@/components/Modal";
 import Text from "@/components/ui/text";
 import { getDisplayNameForModel, LlmOverride } from "@/lib/hooks";
@@ -13,8 +20,10 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/admin/connectors/Field";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
+import { useChatContext } from "@/components/context/ChatContext";
+import { InputPromptsSection } from "./InputPromptsSection";
 
-export function SetDefaultModelModal({
+export function UserSettingsModal({
   setPopup,
   llmProviders,
   onClose,
@@ -27,6 +36,7 @@ export function SetDefaultModelModal({
   onClose: () => void;
   defaultModel: string | null;
 }) {
+  const { inputPrompts, refreshInputPrompts } = useChatContext();
   const { refreshUser, user, updateUserAutoScroll } = useUser();
   const containerRef = useRef<HTMLDivElement>(null);
   const messageRef = useRef<HTMLDivElement>(null);
@@ -242,6 +252,14 @@ export function SetDefaultModelModal({
             })}
           </div>
         </div>
+
+        <Separator className="my-4" />
+
+        <InputPromptsSection
+          inputPrompts={inputPrompts}
+          refreshInputPrompts={refreshInputPrompts}
+          setPopup={setPopup}
+        />
       </>
     </Modal>
   );

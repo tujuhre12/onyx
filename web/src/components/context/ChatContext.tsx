@@ -8,7 +8,7 @@ import {
   User,
   ValidSources,
 } from "@/lib/types";
-import { ChatSession } from "@/app/chat/interfaces";
+import { ChatSession, InputPrompt } from "@/app/chat/interfaces";
 import { LLMProviderDescriptor } from "@/app/admin/configuration/llm/interfaces";
 import { Folder } from "@/app/chat/folders/interfaces";
 
@@ -30,6 +30,8 @@ interface ChatContextProps {
   refreshChatSessions: () => Promise<void>;
   reorderFolders: (displayPriorityMap: Record<number, number>) => void;
   refreshFolders: () => Promise<void>;
+  refreshInputPrompts: () => Promise<void>;
+  inputPrompts: InputPrompt[];
 }
 
 const ChatContext = createContext<ChatContextProps | undefined>(undefined);
@@ -43,9 +45,11 @@ export const ChatProvider: React.FC<{
     | "refreshAvailableAssistants"
     | "reorderFolders"
     | "refreshFolders"
+    | "refreshInputPrompts"
   >;
   children: React.ReactNode;
 }> = ({ value, children }) => {
+  const [inputPrompts, setInputPrompts] = useState(value?.inputPrompts || []);
   const [chatSessions, setChatSessions] = useState(value?.chatSessions || []);
   const [folders, setFolders] = useState(value?.folders || []);
 
@@ -77,11 +81,20 @@ export const ChatProvider: React.FC<{
     const { folders } = await response.json();
     setFolders(folders);
   };
+  const refreshInputPrompts = async () => {
+    const response = await fetch("/api/input_prompt");
+    if (!response.ok) throw new Error("Failed to fetch input prompts");
+    const inputPrompts = await response.json();
+    console.log("inputPrompts", inputPrompts);
+    setInputPrompts(inputPrompts);
+  };
 
   return (
     <ChatContext.Provider
       value={{
         ...value,
+        inputPrompts,
+        refreshInputPrompts,
         chatSessions,
         folders,
         reorderFolders,
