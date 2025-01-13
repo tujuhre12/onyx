@@ -195,7 +195,7 @@ export const AgenticMessage = ({
           (finalContent as string).slice(0, streamIndexRef.current + 1)
         );
         streamIndexRef.current++;
-        setTimeout(streamContent, 120);
+        setTimeout(streamContent, 30);
       }
     };
     streamContent();
