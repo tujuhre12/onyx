@@ -283,7 +283,7 @@ export function AssistantEditor({
   return (
     <div className="mx-auto max-w-4xl">
       <BackButton />
-
+      <div className="my-8" />
       {popup}
       <Formik
         enableReinitialize={true}

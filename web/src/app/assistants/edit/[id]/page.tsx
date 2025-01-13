@@ -22,7 +22,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     );
   } else {
     body = (
-      <div className="w-full py-16">
+      <div className="w-full py-2">
         <div className="px-32">
           <div className="mx-auto container">
             <AssistantEditor

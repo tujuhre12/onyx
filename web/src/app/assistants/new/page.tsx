@@ -19,7 +19,7 @@ export default async function Page() {
     );
   } else {
     body = (
-      <div className="w-full py-16">
+      <div className="w-full py-2">
         <div className="px-32">
           <div className="mx-auto container">
             <CardSection className="!border-none !bg-transparent !ring-none">
