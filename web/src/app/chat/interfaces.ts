@@ -231,8 +231,10 @@ export const constructSubQuestions = (
   // );
 
   if ("stop_reason" in newDetail) {
+    console.log("STOP REASON");
+    console.log(newDetail);
     const { level, level_question_nr } = newDetail;
-    const actual_level_question_nr = level_question_nr ?? 0;
+    const actual_level_question_nr = level_question_nr ?? 0 + 1;
     let subQuestion = updatedSubQuestions.find(
       (sq) =>
         sq.level === level && sq.level_question_nr === actual_level_question_nr
