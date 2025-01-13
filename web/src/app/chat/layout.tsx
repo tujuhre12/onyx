@@ -35,6 +35,7 @@ export default async function Layout({
     defaultAssistantId,
     shouldShowWelcomeModal,
     ccPairs,
+    inputPrompts,
   } = data;
 
   return (
@@ -42,6 +43,7 @@ export default async function Layout({
       <InstantSSRAutoRefresh />
       <ChatProvider
         value={{
+          inputPrompts,
           chatSessions,
           toggledSidebar: toggleSidebar,
           availableSources,

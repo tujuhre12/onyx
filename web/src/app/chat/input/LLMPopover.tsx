@@ -104,7 +104,10 @@ export default function LLMPopover({
           />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-1 bg-white border border-gray-200 rounded-md shadow-lg">
+      <PopoverContent
+        align="start"
+        className="w-64 p-1 bg-white border border-gray-200 rounded-md shadow-lg"
+      >
         <div className="max-h-[300px] overflow-y-auto">
           {llmOptions.map(({ name, icon, value }, index) => {
             if (!requiresImageGeneration || checkLLMSupportsImageInput(name)) {

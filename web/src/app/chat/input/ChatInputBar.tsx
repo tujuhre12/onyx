@@ -3,12 +3,9 @@ import { FiPlusCircle, FiPlus, FiInfo, FiX, FiFilter } from "react-icons/fi";
 import { ChatInputOption } from "./ChatInputOption";
 import { Persona } from "@/app/admin/assistants/interfaces";
 import LLMPopover from "./LLMPopover";
+import { InputPrompt } from "@/app/chat/interfaces";
 
-import {
-  FilterManager,
-  getDisplayNameForModel,
-  LlmOverrideManager,
-} from "@/lib/hooks";
+import { FilterManager, LlmOverrideManager } from "@/lib/hooks";
 import { useChatContext } from "@/components/context/ChatContext";
 import { ChatFileType, FileDescriptor } from "../interfaces";
 import {
@@ -166,7 +163,7 @@ export function ChatInputBar({
 
   const { finalAssistants: assistantOptions } = useAssistants();
 
-  const { llmProviders } = useChatContext();
+  const { llmProviders, inputPrompts } = useChatContext();
 
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -216,10 +213,38 @@ export function ChatInputBar({
     }
   };
 
+  const [showPrompts, setShowPrompts] = useState(false);
+
+  const hidePrompts = () => {
+    setTimeout(() => {
+      setShowPrompts(false);
+    }, 50);
+    setTabbingIconIndex(0);
+  };
+
+  const updateInputPrompt = (prompt: InputPrompt) => {
+    hidePrompts();
+    setMessage(`${prompt.content}`);
+  };
+
+  const handlePromptInput = (text: string) => {
+    if (!text.startsWith("/")) {
+      hidePrompts();
+    } else {
+      const promptMatch = text.match(/(?:\s|^)\/(\w*)$/);
+      if (promptMatch) {
+        setShowPrompts(true);
+      } else {
+        hidePrompts();
+      }
+    }
+  };
+
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = event.target.value;
     setMessage(text);
     handleAssistantInput(text);
+    handlePromptInput(text);
   };
 
   const assistantTagOptions = assistantOptions.filter((assistant) =>
@@ -233,32 +258,56 @@ export function ChatInputBar({
 
   const [tabbingIconIndex, setTabbingIconIndex] = useState(0);
 
+  const filteredPrompts = inputPrompts.filter(
+    (prompt) =>
+      prompt.active &&
+      prompt.prompt.toLowerCase().startsWith(
+        message
+          .slice(message.lastIndexOf("/") + 1)
+          .split(/\s/)[0]
+          .toLowerCase()
+      )
+  );
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (
-      showSuggestions &&
-      assistantTagOptions.length > 0 &&
+      ((showSuggestions && assistantTagOptions.length > 0) || showPrompts) &&
       (e.key === "Tab" || e.key == "Enter")
     ) {
       e.preventDefault();
 
-      if (tabbingIconIndex == assistantTagOptions.length && showSuggestions) {
-        window.open("/assistants/new", "_self");
+      if (
+        (tabbingIconIndex == assistantTagOptions.length && showSuggestions) ||
+        (tabbingIconIndex == filteredPrompts.length && showPrompts)
+      ) {
+        if (showPrompts) {
+          window.open("/prompts", "_self");
+        } else {
+          window.open("/assistants/new", "_self");
+        }
       } else {
-        const option =
-          assistantTagOptions[tabbingIconIndex >= 0 ? tabbingIconIndex : 0];
-
-        updatedTaggedAssistant(option);
+        if (showPrompts) {
+          const selectedPrompt =
+            filteredPrompts[tabbingIconIndex >= 0 ? tabbingIconIndex : 0];
+          updateInputPrompt(selectedPrompt);
+        } else {
+          const option =
+            assistantTagOptions[tabbingIconIndex >= 0 ? tabbingIconIndex : 0];
+          updatedTaggedAssistant(option);
+        }
       }
     }
-    if (!showSuggestions) {
+    if (!showPrompts && !showSuggestions) {
       return;
     }
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-
       setTabbingIconIndex((tabbingIconIndex) =>
-        Math.min(tabbingIconIndex + 1, assistantTagOptions.length)
+        Math.min(
+          tabbingIconIndex + 1,
+          showPrompts ? filteredPrompts.length : assistantTagOptions.length
+        )
       );
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
@@ -284,13 +333,13 @@ export function ChatInputBar({
               ref={suggestionsRef}
               className="text-sm absolute w-[calc(100%-2rem)] top-0 transform -translate-y-full"
             >
-              <div className="rounded-lg py-1 sm-1.5 bg-background border border-border-strong shadow-lg px-1.5 mt-2 z-10">
+              <div className="rounded-lg py-1 sm-1.5 bg-background border border-border shadow-lg px-1.5 mt-2 z-10">
                 {assistantTagOptions.map((currentAssistant, index) => (
                   <button
                     key={index}
                     className={`px-2 ${
                       tabbingIconIndex == index && "bg-background-dark/75"
-                    } rounded items-center rounded-lg content-start flex gap-x-1 py-2 w-full  hover:bg-background-dark/90 cursor-pointer`}
+                    } rounded items-center rounded-lg content-start flex gap-x-1 py-2 w-full hover:bg-background-dark/90 cursor-pointer`}
                     onClick={() => {
                       updatedTaggedAssistant(currentAssistant);
                     }}
@@ -313,11 +362,52 @@ export function ChatInputBar({
                   className={`${
                     tabbingIconIndex == assistantTagOptions.length &&
                     "bg-background-dark/75"
-                  } rounded rounded-lg px-3 flex gap-x-1 py-2 w-full  items-center  hover:bg-background-dark/90 cursor-pointer"`}
+                  } rounded rounded-lg px-3 flex gap-x-1 py-2 w-full items-center hover:bg-background-dark/90 cursor-pointer`}
                   href="/assistants/new"
                 >
                   <FiPlus size={17} />
                   <p>Create a new assistant</p>
+                </a>
+              </div>
+            </div>
+          )}
+
+          {showPrompts && (
+            <div
+              ref={suggestionsRef}
+              className="text-sm absolute inset-x-0 top-0 w-full transform -translate-y-full"
+            >
+              <div className="rounded-lg py-1.5 bg-background border border-border shadow-lg mx-2 px-1.5 mt-2 rounded z-10">
+                {filteredPrompts.map(
+                  (currentPrompt: InputPrompt, index: number) => (
+                    <button
+                      key={index}
+                      className={`px-2 ${
+                        tabbingIconIndex == index && "bg-background-dark/75"
+                      } rounded content-start flex gap-x-1 py-1.5 w-full hover:bg-background-dark/90 cursor-pointer`}
+                      onClick={() => {
+                        updateInputPrompt(currentPrompt);
+                      }}
+                    >
+                      <p className="font-bold">{currentPrompt.prompt}:</p>
+                      <p className="text-left flex-grow mr-auto line-clamp-1">
+                        {currentPrompt.content?.trim()}
+                      </p>
+                    </button>
+                  )
+                )}
+
+                <a
+                  key={filteredPrompts.length}
+                  target="_self"
+                  className={`${
+                    tabbingIconIndex == filteredPrompts.length &&
+                    "bg-background-dark/75"
+                  } px-3 flex gap-x-1 py-2 w-full rounded-lg items-center hover:bg-background-dark/90 cursor-pointer`}
+                  href="/prompts"
+                >
+                  <FiPlus size={17} />
+                  <p>Create a new prompt</p>
                 </a>
               </div>
             </div>
@@ -414,6 +504,7 @@ export function ChatInputBar({
               onKeyDown={(event) => {
                 if (
                   event.key === "Enter" &&
+                  !showPrompts &&
                   !showSuggestions &&
                   !event.shiftKey &&
                   !(event.nativeEvent as any).isComposing
