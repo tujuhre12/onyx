@@ -87,25 +87,40 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
   onClick,
   onUnpin,
 }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: assistant.id === 0 ? "assistant-0" : assistant.id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: assistant.id === 0 ? "assistant-0" : assistant.id });
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
+    ...(isDragging ? { zIndex: 1000, position: "relative" as const } : {}),
   };
 
   return (
-    <div style={style} className="flex items-center group">
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="flex items-center group"
+    >
       <DragHandle
-        ref={setNodeRef}
-        {...attributes}
-        {...listeners}
         size={16}
         className="w-3 ml-1 group-hover:visible invisible flex-none cursor-grab"
       />
       <button
-        onClick={onClick}
+        onClick={(e) => {
+          e.preventDefault();
+          if (!isDragging) {
+            onClick();
+          }
+        }}
         className={`cursor-pointer w-full group hover:bg-background-chat-hover ${
           currentAssistantId === assistant.id
             ? "bg-background-chat-hover/60"
@@ -115,7 +130,10 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
         <AssistantIcon assistant={assistant} size={16} className="flex-none" />
         <p className="text-base text-black">{assistant.name}</p>
         <button
-          onClick={onUnpin}
+          onClick={(e) => {
+            e.stopPropagation();
+            onUnpin(e);
+          }}
           className="group-hover:block hidden absolute right-2"
         >
           <CircleX size={16} className="text-text-history-sidebar-button" />
@@ -163,7 +181,11 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
     const currentChatId = currentChatSession?.id;
 
     const sensors = useSensors(
-      useSensor(PointerSensor),
+      useSensor(PointerSensor, {
+        activationConstraint: {
+          distance: 8,
+        },
+      }),
       useSensor(KeyboardSensor, {
         coordinateGetter: sortableKeyboardCoordinates,
       })
