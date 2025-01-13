@@ -150,6 +150,8 @@ export const AgenticMessage = ({
   regenerate?: (modelOverRide: LlmOverride) => Promise<void>;
   setPresentingDocument?: (document: OnyxDocument) => void;
 }) => {
+  const toolCallGenerating = toolCall && !toolCall.tool_result;
+
   const processContent = (content: string | JSX.Element) => {
     if (typeof content !== "string") {
       return content;
@@ -183,7 +185,6 @@ export const AgenticMessage = ({
 
   const [streamingAllowed, setStreamingAllowed] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
-  const toolCallGenerating = toolCall && !toolCall.tool_result;
   const streamIndexRef = useRef(0);
 
   const allowStreaming = () => {
