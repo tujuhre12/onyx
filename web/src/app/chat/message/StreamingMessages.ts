@@ -227,6 +227,7 @@ export const useStreamingMessages = (
               dynSQ.answer = answerText.slice(0, nextIndex);
               p.answerCharIndex = nextIndex;
               if (nextIndex >= answerText.length && sq.is_complete) {
+                dynSQ.is_complete = true;
                 p.currentPhase = SubQStreamingPhase.COMPLETE;
               }
             }

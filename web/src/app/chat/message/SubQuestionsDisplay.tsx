@@ -162,6 +162,16 @@ const SubQuestionDisplay: React.FC<{
     );
   }, [finalContent, markdownComponents]);
 
+  const memoizedDocs =
+    subQuestion.context_docs?.top_documents &&
+    subQuestion.context_docs?.top_documents.length > 0
+      ? subQuestion.context_docs?.top_documents
+      : documents.filter((doc) =>
+          subQuestion.context_docs?.top_documents?.some(
+            (contextDoc) => contextDoc.document_id === doc.document_id
+          )
+        );
+
   return (
     <div className="bg- relative">
       <div
@@ -221,55 +231,42 @@ const SubQuestionDisplay: React.FC<{
                       ))}
                     </div>
                   </div>
-                  {subQuestion.is_complete &&
-                  subQuestion?.context_docs?.top_documents.length == 0 ? (
-                    <div className="mb-4  flex flex-col gap-2">
-                      <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                        No results found
-                      </div>
+
+                  <div className="mb-4 flex flex-col gap-2">
+                    <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                      {subQuestion.is_complete
+                        ? memoizedDocs?.length || 0 > 0
+                          ? `Read ${memoizedDocs?.length} documents`
+                          : "No docs found"
+                        : "Reading"}
                     </div>
-                  ) : (
-                    <div className="mb-4  flex flex-col gap-2">
-                      <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                        Reading
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {(subQuestion.context_docs?.top_documents
-                          ? subQuestion.context_docs?.top_documents
-                          : documents.filter((doc) =>
-                              subQuestion.context_docs?.top_documents?.some(
-                                (contextDoc) =>
-                                  contextDoc.document_id === doc.document_id
-                              )
-                            )
-                        )
-                          .slice(0, 10)
-                          .map((doc, docIndex) => {
-                            const truncatedIdentifier =
-                              doc.semantic_identifier?.slice(0, 20) || "";
-                            return (
-                              <SourceChip2
-                                includeAnimation
-                                onClick={() =>
-                                  openDocument(doc, setPresentingDocument)
-                                }
-                                key={docIndex}
-                                icon={<ResultIcon doc={doc} size={10} />}
-                                title={`${truncatedIdentifier}${
-                                  truncatedIdentifier.length === 20 ? "..." : ""
-                                }`}
-                              />
-                            );
-                          })}
-                      </div>
+                    <div className="flex flex-wrap gap-2">
+                      {memoizedDocs.slice(0, 10).map((doc, docIndex) => {
+                        const truncatedIdentifier =
+                          doc.semantic_identifier?.slice(0, 20) || "";
+                        return (
+                          <SourceChip2
+                            includeAnimation
+                            onClick={() =>
+                              openDocument(doc, setPresentingDocument)
+                            }
+                            key={docIndex}
+                            icon={<ResultIcon doc={doc} size={10} />}
+                            title={`${truncatedIdentifier}${
+                              truncatedIdentifier.length === 20 ? "..." : ""
+                            }`}
+                          />
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
+
                   <div className="flex flex-col gap-2">
                     <div
                       className="text-[#4a4a4a] cursor-pointer items-center text-xs flex gap-x-1 font-medium leading-normal"
                       onClick={() => setAnalysisToggled(!analysisToggled)}
                     >
-                      Analysis
+                      {subQuestion.is_complete ? "Analysis" : "Analyzing..."}
                       <ChevronDown
                         className={`transition-transform duration-200 ${
                           analysisToggled ? "" : "-rotate-90"
