@@ -81,7 +81,7 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
       <>
         <div
           id="onyx-chat-sidebar"
-          className={`relative rounded-t-xl rounded-l-3xl  -mb-8 bg-background max-w-full ${
+          className={`relative -mb-8 bg-background max-w-full ${
             !modal ? "border-l border-t h-[105vh]  border-sidebar-border" : ""
           }`}
           onClick={(e) => {
