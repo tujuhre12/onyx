@@ -488,6 +488,9 @@ export function ChatPage({
       const newMessageMap = processRawChatHistory(chatSession.messages);
       const newMessageHistory = buildLatestMessageChain(newMessageMap);
 
+      console.log("message history");
+      console.log(newMessageHistory);
+
       // Update message history except for edge where where
       // last message is an error and we're on a new chat.
       // This corresponds to a "renaming" of chat, which occurs after first message
@@ -1406,8 +1409,7 @@ export function ChatPage({
               }
               return prevState;
             });
-            console.log("PACKET INFO");
-            console.log(packet);
+
             // Continuously refine the sub_questions based on the packets that we receive
             if (
               Object.hasOwn(packet, "stop_reason") &&

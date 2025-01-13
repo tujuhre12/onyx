@@ -777,6 +777,7 @@ def stream_chat_message_objects(
         ai_message_files = []
         dropped_indices = None
         tool_result = None
+        sub_queries = {}
 
         for packet in answer.processed_streamed_output:
             if isinstance(packet, ToolResponse):
@@ -895,13 +896,35 @@ def stream_chat_message_objects(
                     yield cast(OnyxContexts, packet.response)
 
             elif isinstance(packet, StreamStopInfo):
-                print(packet)
-                print("this is the stop reason")
                 if packet.stop_reason == StreamStopReason.FINISHED:
                     yield packet
             else:
                 if isinstance(packet, ToolCallFinalResult):
                     tool_result = packet
+
+                if (
+                    hasattr(packet, "level")
+                    and hasattr(packet, "level_question_nr")
+                    and hasattr(packet, "sub_query")
+                    and hasattr(packet, "query_id")
+                ):
+                    value = sub_queries.get(packet.level, {}).get(
+                        packet.level_question_nr, ""
+                    )
+                    if value == "":
+                        value = packet.sub_query
+                    else:
+                        value += f" {packet.sub_query}"
+                    if packet.level not in sub_queries:
+                        sub_queries[packet.level] = {}
+                    sub_queries[packet.level][packet.level_question_nr] = value
+
+                    print(
+                        f"[SUB-QUESTION] Level: {packet.level}, Question Number:"
+                        "{packet.level_question_nr} query id: "
+                        "{packet.query_id} value: {value}"
+                    )
+
                 yield cast(ChatPacket, packet)
         logger.debug("Reached end of stream")
     except ValueError as e:
