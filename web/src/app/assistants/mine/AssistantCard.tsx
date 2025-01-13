@@ -1,39 +1,40 @@
-import React, { useCallback, useState } from "react";
-import { Persona } from "@/app/admin/assistants/interfaces";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { OnyxIcon, PinnedIcon } from "@/components/icons/icons";
-import { FaHashtag } from "react-icons/fa";
-import {
+  FiMoreHorizontal,
   FiShare2,
   FiEye,
   FiEyeOff,
   FiTrash,
-  FiMoreHorizontal,
   FiEdit,
+  FiHash,
 } from "react-icons/fi";
-import { toggleAssistantPinnedStatus } from "@/lib/assistants/updateAssistantPreferences";
-import { useAssistants } from "@/components/context/AssistantsContext";
-import { useUser } from "@/components/user/UserProvider";
-import { useRouter } from "next/navigation";
-import { checkUserOwnsAssistant } from "@/lib/assistants/checkOwnership";
-import { AssistantSharingModal } from "../mine/AssistantSharingModal";
-import {
-  togglePersonaPublicStatus,
-  deletePersona,
-} from "@/app/admin/assistants/lib";
-import { DeleteEntityModal } from "@/components/modals/DeleteEntityModal";
-import { MakePublicAssistantModal } from "@/app/chat/modal/MakePublicAssistantModal";
+import { FaHashtag } from "react-icons/fa";
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
+import { AssistantVisibilityPopover } from "./AssistantVisibilityPopover";
+import { DeleteAssistantPopover } from "./DeleteAssistantPopover";
+import { Persona } from "@/app/admin/assistants/interfaces";
+import { useUser } from "@/components/user/UserProvider";
+import { useAssistants } from "@/components/context/AssistantsContext";
+import { checkUserOwnsAssistant } from "@/lib/assistants/utils";
+import { toggleAssistantPinnedStatus } from "@/lib/assistants/updateAssistantPreferences";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { PinnedIcon } from "@/components/icons/icons";
+import {
+  deletePersona,
+  togglePersonaPublicStatus,
+} from "@/app/admin/assistants/lib";
 
 export const AssistantBadge = ({
   text,
@@ -61,33 +62,21 @@ const AssistantCard: React.FC<{
   const { user, refreshUser } = useUser();
   const router = useRouter();
   const { refreshAssistants } = useAssistants();
-  const [showSharingModal, setShowSharingModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showPublicModal, setShowPublicModal] = useState(false);
 
   const isOwnedByUser = checkUserOwnsAssistant(user, persona);
 
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [activePopover, setActivePopover] = useState<string | null | undefined>(
+    undefined
+  );
 
-  const closePopover = useCallback(() => {
-    setIsPopoverOpen(false);
-  }, []);
-  const handleShare = () => {
-    setShowSharingModal(true);
-    closePopover();
-  };
-  const handleToggleVisibility = () => {
-    setShowPublicModal(true);
-    closePopover();
-  };
-  const handleDelete = () => {
-    setShowDeleteModal(true);
-    closePopover();
-  };
+  const handleShare = () => setActivePopover("visibility");
+  const handleDelete = () => setActivePopover("delete");
   const handleEdit = () => {
     router.push(`/assistants/edit/${persona.id}`);
-    closePopover();
+    setActivePopover(null);
   };
+
+  const closePopover = () => setActivePopover(undefined);
 
   return (
     <div className="w-full p-2 overflow-visible bg-[#fefcf9] rounded shadow-[0px_0px_4px_0px_rgba(0,0,0,0.25)] flex">
@@ -104,48 +93,76 @@ const AssistantCard: React.FC<{
           <div className="flex items-center gap-x-2">
             <AssistantBadge text={persona.is_public ? "Public" : "Private"} />
             {isOwnedByUser && (
-              <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+              <Popover
+                open={activePopover !== undefined}
+                onOpenChange={(open) =>
+                  open ? setActivePopover(null) : setActivePopover(undefined)
+                }
+              >
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="hover:bg-neutral-100 p-1  -my-1 rounded-full"
+                    className="hover:bg-neutral-100 p-1 -my-1 rounded-full"
                   >
                     <FiMoreHorizontal size={16} />
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="z-[10000] w-40 p-2">
-                  <button
-                    onClick={handleShare}
-                    className="w-full text-left flex items-center px-2 py-1 hover:bg-neutral-100 rounded"
-                  >
-                    <FiShare2 size={12} className="inline mr-2" />
-                    Share
-                  </button>
-                  <button
-                    onClick={handleToggleVisibility}
-                    className="w-full text-left flex items-center px-2 py-1 hover:bg-neutral-100 rounded"
-                  >
-                    {persona.is_public ? (
-                      <FiEyeOff size={12} className="inline mr-2" />
-                    ) : (
-                      <FiEye size={12} className="inline mr-2" />
-                    )}
-                    Make {persona.is_public ? "Private" : "Public"}
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="w-full text-left items-center px-2 py-1 hover:bg-neutral-100 rounded text-red-600"
-                  >
-                    <FiTrash size={12} className="inline mr-2" />
-                    Delete
-                  </button>
-                  <button
-                    onClick={handleEdit}
-                    className="w-full flex items-center text-left px-2 py-1 hover:bg-neutral-100 rounded"
-                  >
-                    <FiEdit size={12} className="inline mr-2" />
-                    Edit
-                  </button>
+                <PopoverContent
+                  className={`z-[10000] ${
+                    activePopover === null ? "w-52" : "w-80"
+                  } p-4`}
+                >
+                  {activePopover === null && (
+                    <div className="flex flex-col space-y-2">
+                      <button
+                        onClick={handleShare}
+                        className="w-full text-left flex items-center px-2 py-1 hover:bg-neutral-100 rounded"
+                      >
+                        <FiShare2 size={14} className="inline mr-2" />
+                        Visibility
+                      </button>
+
+                      <button
+                        onClick={handleEdit}
+                        className="w-full flex items-center text-left px-2 py-1 hover:bg-neutral-100 rounded"
+                      >
+                        <FiEdit size={14} className="inline mr-2" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={handleDelete}
+                        className="w-full text-left items-center px-2 py-1 hover:bg-neutral-100 rounded text-red-600"
+                      >
+                        <FiTrash size={14} className="inline mr-2" />
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                  {activePopover === "visibility" && (
+                    <AssistantVisibilityPopover
+                      assistant={persona}
+                      user={user}
+                      allUsers={[]}
+                      onClose={closePopover}
+                      onTogglePublic={async (isPublic: boolean) => {
+                        await togglePersonaPublicStatus(persona.id, isPublic);
+                        await refreshAssistants();
+                      }}
+                    />
+                  )}
+                  {activePopover === "delete" && (
+                    <DeleteAssistantPopover
+                      entityName={persona.name}
+                      onClose={closePopover}
+                      onSubmit={async () => {
+                        const success = await deletePersona(persona.id);
+                        if (success) {
+                          await refreshAssistants();
+                        }
+                        closePopover();
+                      }}
+                    />
+                  )}
                 </PopoverContent>
               </Popover>
             )}
@@ -220,44 +237,6 @@ const AssistantCard: React.FC<{
           </div>
         </div>
       </div>
-
-      {showSharingModal && (
-        <AssistantSharingModal
-          assistant={persona}
-          user={user}
-          allUsers={[]}
-          onClose={() => {
-            setShowSharingModal(false);
-            refreshAssistants();
-          }}
-          show={showSharingModal}
-        />
-      )}
-
-      {showDeleteModal && (
-        <DeleteEntityModal
-          entityType="Assistant"
-          entityName={persona.name}
-          onClose={() => setShowDeleteModal(false)}
-          onSubmit={async () => {
-            const success = await deletePersona(persona.id);
-            if (success) {
-              await refreshAssistants();
-            }
-          }}
-        />
-      )}
-
-      {showPublicModal && (
-        <MakePublicAssistantModal
-          isPublic={persona.is_public}
-          onClose={() => setShowPublicModal(false)}
-          onShare={async (newPublicStatus: boolean) => {
-            await togglePersonaPublicStatus(persona.id, newPublicStatus);
-            await refreshAssistants();
-          }}
-        />
-      )}
     </div>
   );
 };
