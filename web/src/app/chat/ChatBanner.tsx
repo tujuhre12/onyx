@@ -104,19 +104,19 @@ export function ChatBanner() {
           </div>
 
           {/* Chevron button if content is truncated */}
-          <div className="absolute bottom-2 right-2">
-            {isOverflowing && !isExpanded && (
-              <button
-                onMouseEnter={handleMouseEnter}
-                className="cursor-pointer bg-background-100 p-1 rounded-full transition-opacity duration-300 ease-in-out"
-                aria-label="Expand banner content"
-                onClick={() => setIsExpanded(true)}
-              >
-                <ChevronDownIcon className="h-4 w-4 text-emphasis" />
-              </button>
-            )}
-          </div>
         </div>
+      </div>
+      <div className="absolute -top-1 right-0">
+        {isOverflowing && !isExpanded && (
+          <button
+            onMouseEnter={handleMouseEnter}
+            className="cursor-pointer bg-background-100 p-.5 rounded-full transition-opacity duration-300 ease-in-out"
+            aria-label="Expand banner content"
+            onClick={() => setIsExpanded(true)}
+          >
+            <ChevronDownIcon className="h-3 w-3 text-emphasis" />
+          </button>
+        )}
       </div>
     </div>
   );

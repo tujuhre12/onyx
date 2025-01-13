@@ -155,7 +155,7 @@ export function AssistantStats({ assistantId }: { assistantId: number }) {
           <DateRangeSelector value={dateRange} onValueChange={setDateRange} />
         </div>
         {assistant && (
-          <div className="bg-gray-100 p-4 rounded-lg shadow-sm">
+          <div className="bg-gray-100 p-4 max-w-xs rounded-lg shadow-sm">
             <div className="flex items-center mb-2">
               <AssistantIcon
                 disableToolip
