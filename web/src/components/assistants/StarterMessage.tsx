@@ -17,7 +17,6 @@ export function StarterMessages({
       className={`
         mx-auto
         w-full
-
         ${
           isMobile
             ? "gap-x-2 w-2/3 justify-between"
@@ -33,16 +32,30 @@ export function StarterMessages({
             {currentPersona.starter_messages
               .slice(0, isMobile ? 2 : 4)
               .map((starterMessage, i) => (
-                <div key={i} className={`${isMobile ? "w-1/2" : "w-1/4"}`}>
+                <div
+                  key={i}
+                  className={`${
+                    isMobile ? "w-1/2" : "w-1/4"
+                  } flex justify-center`}
+                >
                   <button
                     onClick={() => onSubmit(starterMessage.message)}
-                    className={`relative flex ${!isMobile && "w-40"}
-                                  shadow
-              border-[#DCDAD4]/60
- flex-col gap-2 rounded-md  text-text-dark hover:text-text border   bg-background-starter-message px-3 py-2 text-start align-to text-wrap text-[15px] shadow-xs transition 
-
-                    enabled:hover:bg-background-dark/75  disabled:cursor-not-allowed line-clamp-3`}
-                    style={{ height: `5.2rem` }}
+                    className={`
+                      relative flex ${!isMobile && "w-40"}
+                      shadow
+                      border-[#DCDAD4]/60
+                      flex-col gap-2 rounded-md
+                      text-text-dark hover:text-text
+                      border
+                      bg-background-starter-message
+                      px-3 py-2
+                      text-start align-to text-wrap
+                      text-[15px] shadow-xs transition
+                      enabled:hover:bg-background-dark/75
+                      disabled:cursor-not-allowed
+                      line-clamp-3
+                    `}
+                    style={{ height: "5.2rem" }}
                   >
                     {starterMessage.name}
                   </button>

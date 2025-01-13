@@ -92,7 +92,7 @@ export default function FunctionalHeader({
             `}
           />
 
-          <div className="w-full mobile:-mx-20 desktop:px-4">
+          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 mobile:w-[50vw] max-w-[70vw]">
             <ChatBanner />
           </div>
 
@@ -134,8 +134,8 @@ export default function FunctionalHeader({
                   : "")
               }
             >
-              <div className="bg-green-200 cursor-pointer ml-2 mr-4 flex-none text-text-700 hover:text-text-600 transition-colors duration-300">
-                <NewChatIcon size={40} />
+              <div className=" cursor-pointer ml-2 mr-4 flex-none text-text-700 hover:text-text-600 transition-colors duration-300">
+                <NewChatIcon size={24} />
               </div>
             </Link>
             <div
