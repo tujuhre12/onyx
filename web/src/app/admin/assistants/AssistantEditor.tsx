@@ -683,7 +683,7 @@ export function AssistantEditor({
                   <TextFormField
                     maxWidth="max-w-4xl"
                     name="task_prompt"
-                    label="Reminders (Optional)"
+                    label="[Optional] Reminders"
                     isTextArea={true}
                     placeholder="Remember to reference all of the points mentioned in my message to you and focus on identifying action items that can move things forward"
                     onChange={(e) => {
@@ -750,7 +750,7 @@ export function AssistantEditor({
                             className="text-sm text-subtle"
                             style={{ color: "rgb(113, 114, 121)" }}
                           >
-                            Enable search capabilities for this assistant
+                            Attach additional unique knowledge to this assistant
                           </p>
                         </div>
                       </div>
@@ -771,7 +771,7 @@ export function AssistantEditor({
                                   {!user || user.role === "admin" ? (
                                     <Link
                                       href="/admin/documents/sets"
-                                      className="font-semibold hover:underline text-text"
+                                      className="font-semibold underline hover:underline text-text"
                                       target="_blank"
                                     >
                                       Document Sets
@@ -818,20 +818,13 @@ export function AssistantEditor({
                                 )}
                               />
                             ) : (
-                              <p className="text-sm flex gap-x-2">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    router.push("/admin/documents/sets/new")
-                                  }
-                                  className="py-1 px-2 rounded-md bg-black"
+                              <p className="text-sm">
+                                <Link
+                                  href="/admin/documents/sets/new"
+                                  className="text-primary hover:underline"
                                 >
-                                  <PlusIcon
-                                    className="bg-black text-white"
-                                    size={12}
-                                  />
-                                </button>
-                                Create a document set to get started.
+                                  + Create Document Set
+                                </Link>
                               </p>
                             )}
 
@@ -855,7 +848,7 @@ export function AssistantEditor({
                                 small
                                 subtext="Documents prior to this date will not be ignored."
                                 optional
-                                label="Knowledge Cutoff Date"
+                                label="[Optional] Knowledge Cutoff Date"
                                 value={values.search_start_date}
                                 name="search_start_date"
                               />
@@ -977,7 +970,7 @@ export function AssistantEditor({
               <div className="-mt-2">
                 <div className="flex gap-x-2 items-center">
                   <div className="block  font-medium text-sm">
-                    Default AI Model{" "}
+                    Default Model{" "}
                   </div>
                 </div>
 
@@ -1048,13 +1041,13 @@ export function AssistantEditor({
               <div className="w-full flex flex-col">
                 <div className="flex gap-x-2 items-center">
                   <div className="block font-medium text-sm">
-                    Starter Messages
+                    [Optional] Starter Messages
                   </div>
                 </div>
 
                 <SubLabel>
-                  Pre-configured messages that help users understand what this
-                  assistant can do and how to interact with it effectively.
+                  Sample messages that help users understand what this assistant
+                  can do and how to interact with it effectively.
                 </SubLabel>
 
                 <div className="w-full">
