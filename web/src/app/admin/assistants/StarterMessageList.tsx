@@ -45,7 +45,7 @@ export default function StarterMessagesList({
   };
 
   return (
-    <div className="mt-4 flex flex-col gap-2">
+    <div className="flex flex-col gap-2">
       {values.map((starterMessage, index) => (
         <div key={index} className="flex items-center gap-2">
           <TextFormField
@@ -75,7 +75,7 @@ export default function StarterMessagesList({
         </div>
       ))}
 
-      <div className="flex items-center gap-2 mt-4">
+      <div className="flex items-center gap-2 ">
         <TooltipProvider delayDuration={50}>
           <Tooltip onOpenChange={setTooltipOpen} open={tooltipOpen}>
             <TooltipTrigger asChild>
