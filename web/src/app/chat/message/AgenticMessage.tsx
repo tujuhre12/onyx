@@ -80,7 +80,7 @@ import "katex/dist/katex.min.css";
 import FiltersDisplay from "../input/FilterDisplay";
 import SubQuestionsDisplay from "./SubQuestionsDisplay";
 import DocumentsDisplay from "./DocumentsDisplay";
-import SubQuestionProgress from "./ZZSub";
+import SubQuestionProgress from "./SubQuestionProgress";
 
 const TOOLS_WITH_CUSTOM_HANDLING = [
   SEARCH_TOOL_NAME,
