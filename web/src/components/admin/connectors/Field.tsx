@@ -149,6 +149,7 @@ export function TextFormField({
   onChange,
   width,
   vertical,
+  className,
 }: {
   value?: string;
   name: string;
@@ -177,6 +178,7 @@ export function TextFormField({
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   width?: string;
   vertical?: boolean;
+  className?: string;
 }) {
   let heightString = defaultHeight || "";
   if (isTextArea && !heightString) {
@@ -270,6 +272,7 @@ export function TextFormField({
             ${sizeClass.input}
             ${disabled ? " bg-background-strong" : " bg-white/80"}
             ${isCode ? " font-mono" : ""}
+            ${className}
           `}
           disabled={disabled}
           placeholder={placeholder}

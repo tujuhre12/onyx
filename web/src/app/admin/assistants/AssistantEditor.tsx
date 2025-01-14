@@ -282,8 +282,17 @@ export function AssistantEditor({
 
   return (
     <div className="mx-auto max-w-4xl">
-      <BackButton />
-      <div className="my-8" />
+      <style>
+        {`
+          .assistant-editor input::placeholder,
+          .assistant-editor textarea::placeholder {
+            opacity: 0.5;
+          }
+        `}
+      </style>
+      <div className="absolute top-4 left-4">
+        <BackButton />
+      </div>
       {popup}
       <Formik
         enableReinitialize={true}
@@ -487,7 +496,7 @@ export function AssistantEditor({
           );
 
           return (
-            <Form className="w-full text-text-950">
+            <Form className="w-full text-text-950 assistant-editor">
               {/* Refresh starter messages when name or description changes */}
               <p className="text-base font-normal !text-2xl">
                 {existingPersona ? (
@@ -641,6 +650,7 @@ export function AssistantEditor({
                 label="Name"
                 placeholder="Email Assistant"
                 aria-label="assistant-name-input"
+                className="[&_input]:placeholder:text-text-muted/50"
               />
 
               <TextFormField
@@ -649,6 +659,7 @@ export function AssistantEditor({
                 label="Description"
                 placeholder="Use this Assistant to help draft professional emails"
                 data-testid="assistant-description-input"
+                className="[&_input]:placeholder:text-text-muted/50"
               />
               <Separator />
 
@@ -659,6 +670,7 @@ export function AssistantEditor({
                 isTextArea={true}
                 placeholder="You are a professional email writing assistant that always uses a polite enthusiastic tone, emphasizes action items, and leaves blanks for the human to fill in when you have unknowns"
                 data-testid="assistant-instructions-input"
+                className="[&_textarea]:placeholder:text-text-muted/50"
               />
 
               {llmProviders.length > 0 && (
@@ -674,6 +686,7 @@ export function AssistantEditor({
                     }}
                     explanationText="Learn about prompting in our docs!"
                     explanationLink="https://docs.onyx.app/guides/assistants"
+                    className="[&_textarea]:placeholder:text-text-muted/50"
                   />
                 </>
               )}
@@ -867,36 +880,11 @@ export function AssistantEditor({
 
                   <Separator />
                   <div className="py-2">
-                    <p className="block font-medium text-sm mb-2">
-                      Capabilities
-                    </p>
-
-                    {internetSearchTool && (
-                      <>
-                        <div className="flex items-center mb-2">
-                          <Switch
-                            name={`enabled_tools_map.${internetSearchTool.id}`}
-                            onChange={() => {
-                              toggleToolInValues(internetSearchTool.id);
-                            }}
-                          />
-                          <span className="ml-2 text-sm">
-                            {internetSearchTool.display_name}
-                          </span>
-                        </div>
-
-                        <p
-                          className="text-sm text-subtle mb-4"
-                          style={{ color: "rgb(113, 114, 121)" }}
-                        >
-                          Enable internet search capabilities for this assistant
-                        </p>
-                      </>
-                    )}
+                    <p className="block font-medium text-sm mb-2">Actions</p>
 
                     {imageGenerationTool && (
                       <>
-                        <div className="flex items-center content-start  mb-2">
+                        <div className="flex items-center content-start mb-2">
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger>
@@ -928,17 +916,31 @@ export function AssistantEditor({
                               )}
                             </Tooltip>
                           </TooltipProvider>
-                          <div className="ml-2 flex items-start flex-col">
+                          <div className="ml-2">
                             <span className="text-sm">
                               {imageGenerationTool.display_name}
                             </span>
-                            <p
-                              className="text-sm text-subtle "
-                              style={{ color: "rgb(113, 114, 121)" }}
-                            >
-                              Enable image generation capabilities for this
-                              assistant
-                            </p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {internetSearchTool && (
+                      <>
+                        <div className="flex items-center content-start mb-2">
+                          <Checkbox
+                            id={`enabled_tools_map.${internetSearchTool.id}`}
+                            checked={
+                              values.enabled_tools_map[internetSearchTool.id]
+                            }
+                            onCheckedChange={() => {
+                              toggleToolInValues(internetSearchTool.id);
+                            }}
+                          />
+                          <div className="ml-2">
+                            <span className="text-sm">
+                              {internetSearchTool.display_name}
+                            </span>
                           </div>
                         </div>
                       </>
@@ -955,18 +957,10 @@ export function AssistantEditor({
                                 toggleToolInValues(tool.id);
                               }}
                             />
-                            <div className="ml-2 flex items-start flex-col">
+                            <div className="ml-2">
                               <span className="text-sm">
                                 {tool.display_name}
                               </span>
-                              {tool.description && (
-                                <p
-                                  className="text-sm text-subtle"
-                                  style={{ color: "rgb(113, 114, 121)" }}
-                                >
-                                  {tool.description}
-                                </p>
-                              )}
                             </div>
                           </div>
                         </React.Fragment>
@@ -974,7 +968,7 @@ export function AssistantEditor({
                   </div>
                 </div>
               </div>
-              <Separator className="max-w-4xl" />
+              <Separator className="max-w-4xl mt-0" />
               <div className="-mt-2">
                 <div className="flex gap-x-2 items-center">
                   <div className="block  font-medium text-sm">
