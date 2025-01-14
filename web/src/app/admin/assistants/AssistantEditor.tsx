@@ -922,7 +922,8 @@ export function AssistantEditor({
                               {imageGenerationTool.display_name}
                             </span>
                             <span className="text-xs text-subtle">
-                              Generate images with this tool
+                              Generate and manipulate images using AI-powered
+                              tools
                             </span>
                           </div>
                         </div>
@@ -933,6 +934,7 @@ export function AssistantEditor({
                       <>
                         <div className="flex items-center content-start mb-2">
                           <Checkbox
+                            size="sm"
                             id={`enabled_tools_map.${internetSearchTool.id}`}
                             checked={
                               values.enabled_tools_map[internetSearchTool.id]
@@ -941,9 +943,13 @@ export function AssistantEditor({
                               toggleToolInValues(internetSearchTool.id);
                             }}
                           />
-                          <div className="ml-2">
+                          <div className="flex flex-col ml-2">
                             <span className="text-sm">
                               {internetSearchTool.display_name}
+                            </span>
+                            <span className="text-xs text-subtle">
+                              Access real-time information and search the web
+                              for up-to-date results
                             </span>
                           </div>
                         </div>
