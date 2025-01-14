@@ -191,6 +191,7 @@ export const AIMessage = ({
   onMessageSelection,
   setPresentingDocument,
   index,
+  toggledDocumentSidebar,
 }: {
   index?: number;
   selectedMessageForDocDisplay?: number | null;
@@ -212,6 +213,7 @@ export const AIMessage = ({
   citedDocuments?: [string, OnyxDocument][] | null;
   toolCall?: ToolCallMetadata | null;
   isComplete?: boolean;
+  toggledDocumentSidebar?: boolean;
   hasDocs?: boolean;
   handleFeedback?: (feedbackType: FeedbackType) => void;
   handleShowRetrieved?: (messageNumber: number | null) => void;
@@ -495,11 +497,7 @@ export const AIMessage = ({
                                   />
                                 ))}
                             <SeeMoreBlock
-                              documentSelectionToggled={
-                                (documentSelectionToggled &&
-                                  selectedMessageForDocDisplay === messageId) ||
-                                false
-                              }
+                              toggled={toggledDocumentSidebar!}
                               toggleDocumentSelection={toggleDocumentSelection!}
                               uniqueSources={uniqueSources}
                               webSourceDomains={webSourceDomains}

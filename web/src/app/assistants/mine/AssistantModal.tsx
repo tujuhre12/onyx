@@ -114,12 +114,6 @@ export default function AssistantModal({
     });
   }, [assistants, searchQuery, assistantFilters, pinnedAssistants]);
 
-  const maxHeight = 900;
-  const calculatedHeight = Math.min(
-    Math.ceil(assistants.length / 2) * 170 + 75,
-    window.innerHeight * 0.8
-  );
-  const height = Math.min(calculatedHeight, maxHeight);
   const featuredAssistants = [
     ...memoizedCurrentlyVisibleAssistants.filter(
       (assistant) => assistant.builtin_persona || assistant.is_default_persona
@@ -129,12 +123,20 @@ export default function AssistantModal({
     (assistant) => !assistant.builtin_persona && !assistant.is_default_persona
   );
 
+  const maxHeight = 900;
+  const calculatedHeight = Math.min(
+    Math.ceil(assistants.length / 2) * 170 + 200,
+    window.innerHeight * 0.8
+  );
+
+  const height = Math.min(calculatedHeight, maxHeight);
+
   return (
     <Modal
       heightOverride={`${height}px`}
       onOutsideClick={hideModal}
       removeBottomPadding
-      className="max-w-4xl  w-[95%] overflow-hidden"
+      className={`max-w-4xl ${height} w-[95%] overflow-hidden`}
     >
       <div className="flex flex-col h-full">
         <div className="flex flex-col sticky top-0 z-10">
@@ -218,39 +220,8 @@ export default function AssistantModal({
           </h2>
 
           <div className="w-full px-2 pb-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
-            {(showAllFeaturedAssistants
-              ? featuredAssistants
-              : featuredAssistants.slice(0, 6)
-            ).map((assistant, index) => (
-              <div key={index}>
-                <AssistantCard
-                  pinned={pinnedAssistants.includes(assistant)}
-                  persona={assistant}
-                  closeModal={hideModal}
-                />
-              </div>
-            ))}
-          </div>
-
-          {featuredAssistants.length > 6 && !showAllFeaturedAssistants && (
-            <div className="text-center mt-4 mb-8">
-              <Button
-                onClick={() => setShowAllFeaturedAssistants(true)}
-                className=" font-normal"
-              >
-                See All Featured Assistants
-              </Button>
-            </div>
-          )}
-
-          <h2 className="text-2xl font-semibold text-gray-800 mt-4 mb-2 px-4 py-2">
-            All Assistants
-          </h2>
-
-          <div className="w-full mt-2 px-2 pb-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
-            {allAssistants
-              .sort((a, b) => b.id - a.id)
-              .map((assistant, index) => (
+            {featuredAssistants.length > 0 ? (
+              featuredAssistants.map((assistant, index) => (
                 <div key={index}>
                   <AssistantCard
                     pinned={pinnedAssistants.includes(assistant)}
@@ -258,8 +229,35 @@ export default function AssistantModal({
                     closeModal={hideModal}
                   />
                 </div>
-              ))}
+              ))
+            ) : (
+              <div className="col-span-2 text-center text-gray-500">
+                No featured assistants match filters
+              </div>
+            )}
           </div>
+
+          {allAssistants && allAssistants.length > 0 && (
+            <>
+              <h2 className="text-2xl font-semibold text-gray-800 mt-4 mb-2 px-4 py-2">
+                All Assistants
+              </h2>
+
+              <div className="w-full mt-2 px-2 pb-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                {allAssistants
+                  .sort((a, b) => b.id - a.id)
+                  .map((assistant, index) => (
+                    <div key={index}>
+                      <AssistantCard
+                        pinned={pinnedAssistants.includes(assistant)}
+                        persona={assistant}
+                        closeModal={hideModal}
+                      />
+                    </div>
+                  ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </Modal>

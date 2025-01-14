@@ -97,227 +97,212 @@ const AssistantCard: React.FC<{
                 {persona.name}
               </h3>
             </div>
-
-            <div className="flex items-center gap-x-2">
-              <Popover
-                open={activePopover !== undefined}
-                onOpenChange={(open) =>
-                  open ? setActivePopover(null) : setActivePopover(undefined)
-                }
-              >
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="hover:bg-neutral-100 p-1 -my-1 rounded-full"
-                  >
-                    <FiMoreHorizontal size={16} />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className={`z-[10000] ${
-                    activePopover === null ? "w-52" : "w-80"
-                  } p-4`}
+            {isOwnedByUser && (
+              <div className="flex items-center gap-x-2">
+                <Popover
+                  open={activePopover !== undefined}
+                  onOpenChange={(open) =>
+                    open ? setActivePopover(null) : setActivePopover(undefined)
+                  }
                 >
-                  {activePopover === null && (
-                    <div className="flex flex-col space-y-2">
-                      <button
-                        onClick={isOwnedByUser ? handleEdit : undefined}
-                        className={`w-full flex items-center text-left px-2 py-1 rounded ${
-                          isOwnedByUser
-                            ? "hover:bg-neutral-100"
-                            : "opacity-50 cursor-not-allowed"
-                        }`}
-                        disabled={!isOwnedByUser}
-                      >
-                        <FiEdit size={14} className="inline mr-2" />
-                        Edit
-                      </button>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="hover:bg-neutral-100 p-1 -my-1 rounded-full"
+                    >
+                      <FiMoreHorizontal size={16} />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className={`z-[10000] ${
+                      activePopover === null ? "w-52" : "w-80"
+                    } p-4`}
+                  >
+                    {activePopover === null && (
+                      <div className="flex flex-col space-y-2">
+                        <button
+                          onClick={isOwnedByUser ? handleEdit : undefined}
+                          className={`w-full flex items-center text-left px-2 py-1 rounded ${
+                            isOwnedByUser
+                              ? "hover:bg-neutral-100"
+                              : "opacity-50 cursor-not-allowed"
+                          }`}
+                          disabled={!isOwnedByUser}
+                        >
+                          <FiEdit size={14} className="inline mr-2" />
+                          Edit
+                        </button>
+                        {/* 
+                        <button
+                          onClick={isOwnedByUser ? handleShare : undefined}
+                          className={`w-full text-left flex items-center px-2 py-1 rounded ${
+                            isOwnedByUser
+                              ? "hover:bg-neutral-100"
+                              : "opacity-50 cursor-not-allowed"
+                          }`}
+                          disabled={!isOwnedByUser}
+                        >
+                          <FiShare2 size={14} className="inline mr-2" />
+                          Share
+                        </button> */}
 
-                      <button
-                        onClick={isOwnedByUser ? handleShare : undefined}
-                        className={`w-full text-left flex items-center px-2 py-1 rounded ${
-                          isOwnedByUser
-                            ? "hover:bg-neutral-100"
-                            : "opacity-50 cursor-not-allowed"
-                        }`}
-                        disabled={!isOwnedByUser}
-                      >
-                        <FiShare2 size={14} className="inline mr-2" />
-                        Share
-                      </button>
-
-                      <button
-                        onClick={
-                          isOwnedByUser
-                            ? () => {
-                                router.push(`/assistants/stats/${persona.id}`);
-                                closePopover();
-                              }
-                            : undefined
-                        }
-                        className={`w-full text-left items-center px-2 py-1 rounded ${
-                          isOwnedByUser
-                            ? "hover:bg-neutral-100"
-                            : "opacity-50 cursor-not-allowed"
-                        }`}
-                        disabled={!isOwnedByUser}
-                      >
-                        <FiBarChart size={14} className="inline mr-2" />
-                        See Stats
-                      </button>
-                      <button
-                        onClick={isOwnedByUser ? handleDelete : undefined}
-                        className={`w-full text-left items-center px-2 py-1 rounded ${
-                          isOwnedByUser
-                            ? "hover:bg-neutral-100 text-red-600"
-                            : "opacity-50 cursor-not-allowed text-red-300"
-                        }`}
-                        disabled={!isOwnedByUser}
-                      >
-                        <FiTrash size={14} className="inline mr-2" />
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                  {activePopover === "visibility" && (
-                    <AssistantVisibilityPopover
-                      assistant={persona}
-                      user={user}
-                      allUsers={[]}
-                      onClose={closePopover}
-                      onTogglePublic={async (isPublic: boolean) => {
-                        await togglePersonaPublicStatus(persona.id, isPublic);
-                        await refreshAssistants();
-                      }}
-                    />
-                  )}
-                  {activePopover === "delete" && (
-                    <DeleteAssistantPopover
-                      entityName={persona.name}
-                      onClose={closePopover}
-                      onSubmit={async () => {
-                        const success = await deletePersona(persona.id);
-                        if (success) {
+                        <button
+                          onClick={
+                            isOwnedByUser
+                              ? () => {
+                                  router.push(
+                                    `/assistants/stats/${persona.id}`
+                                  );
+                                  closePopover();
+                                }
+                              : undefined
+                          }
+                          className={`w-full text-left items-center px-2 py-1 rounded ${
+                            isOwnedByUser
+                              ? "hover:bg-neutral-100"
+                              : "opacity-50 cursor-not-allowed"
+                          }`}
+                          disabled={!isOwnedByUser}
+                        >
+                          <FiBarChart size={14} className="inline mr-2" />
+                          Stats
+                        </button>
+                        <button
+                          onClick={isOwnedByUser ? handleDelete : undefined}
+                          className={`w-full text-left items-center px-2 py-1 rounded ${
+                            isOwnedByUser
+                              ? "hover:bg-neutral-100 text-red-600"
+                              : "opacity-50 cursor-not-allowed text-red-300"
+                          }`}
+                          disabled={!isOwnedByUser}
+                        >
+                          <FiTrash size={14} className="inline mr-2" />
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                    {activePopover === "visibility" && (
+                      <AssistantVisibilityPopover
+                        assistant={persona}
+                        user={user}
+                        allUsers={[]}
+                        onClose={closePopover}
+                        onTogglePublic={async (isPublic: boolean) => {
+                          await togglePersonaPublicStatus(persona.id, isPublic);
                           await refreshAssistants();
-                        }
-                        closePopover();
-                      }}
-                    />
-                  )}
-                </PopoverContent>
-              </Popover>
-            </div>
+                        }}
+                      />
+                    )}
+                    {activePopover === "delete" && (
+                      <DeleteAssistantPopover
+                        entityName={persona.name}
+                        onClose={closePopover}
+                        onSubmit={async () => {
+                          const success = await deletePersona(persona.id);
+                          if (success) {
+                            await refreshAssistants();
+                          }
+                          closePopover();
+                        }}
+                      />
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
           </div>
 
           <p className="text-black font-[350] mt-0 text-sm mb-1 line-clamp-2 h-[2.7em]">
             {persona.description || "\u00A0"}
           </p>
+          <div className="h-[52px] flex flex-col">
+            {persona.tools.length == 0 && (
+              <div className="mb-1 mt-1">
+                <div className="flex items-center">
+                  <>
+                    <span className="text-black text-xs mr-1">Labels:</span>
+                  </>
+                </div>
+              </div>
+            )}
 
-          <div className="mb-1 mt-1">
-            <div className="flex items-center">
-              {persona.tools.length == 0 ? (
-                <span className="text-black text-xs mr-1"> Labels: None </span>
-              ) : (
-                <>
-                  <span className="text-black text-xs mr-1">Labels:</span>
-                  {persona.tools.length > 0 ? (
-                    <>
-                      {persona.tools.slice(0, 2).map((tool, index) => (
-                        <AssistantBadge key={index} text={tool.name} />
-                      ))}
-                      {persona.tools.length > 2 && (
-                        <AssistantBadge
-                          text={`+${persona.tools.length - 2} more`}
-                        />
-                      )}
-                    </>
-                  ) : (
-                    <AssistantBadge text="None" />
-                  )}
-                </>
-              )}
+            <div className="my-1">
+              <span className="flex items-center text-black text-xs">
+                {persona.owner?.email || persona.builtin_persona ? (
+                  <>
+                    By{" "}
+                    {persona.owner?.email ||
+                      (persona.builtin_persona ? "Onyx" : "Anonymous")}
+                    <span className="mx-2">•</span>
+                  </>
+                ) : null}
+                <HammerIcon size={12} className="inline mr-1" />
+                {persona.tools.length > 0 ? (
+                  <>
+                    {persona.tools.length}
+                    Action{persona.tools.length !== 1 ? "s" : ""}
+                  </>
+                ) : (
+                  "No Actions"
+                )}
+                <span className="mx-2">•</span>
+                {persona.is_public ? (
+                  <>
+                    <FiUnlock size={12} className="inline mr-1" />
+                    Public
+                  </>
+                ) : (
+                  <>
+                    <FiLock size={12} className="inline mr-1" />
+                    Private
+                  </>
+                )}
+              </span>
             </div>
           </div>
-
-          <div className="my-1">
-            <span className="flex items-center text-black text-xs">
-              By{" "}
-              {persona.owner?.email ||
-                (persona.builtin_persona ? "Onyx" : "Anonymous")}
-              <span className="mx-2">•</span>
-              <HammerIcon size={12} className="inline mr-1" />
-              {persona.tools.length > 0 ? (
-                <>
-                  {persona.tools.length}
-                  Action{persona.tools.length !== 1 ? "s" : ""}
-                </>
-              ) : (
-                "No Actions"
-              )}
-              <span className="mx-2">•</span>
-              {persona.is_public ? (
-                <>
-                  <FiUnlock size={12} className="inline mr-1" />
-                  Public
-                </>
-              ) : (
-                <>
-                  <FiLock size={12} className="inline mr-1" />
-                  Private
-                </>
-              )}
-            </span>
-          </div>
-
-          <div className="mb-1 flex flex-wrap">
-            {persona.document_sets.slice(0, 5).map((set, index) => (
-              <AssistantBadge key={index} text={set.name} />
-            ))}
+          <div className="flex gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => {
+                      router.push(`/chat?assistantId=${persona.id}`);
+                      closeModal();
+                    }}
+                    className="hover:bg-neutral-100 px-2 py-1 gap-x-1 rounded border border-black flex items-center"
+                  >
+                    <FaHashtag size={12} className="flex-none" />
+                    <span className="text-xs">Start Chat</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Start a new chat with this assistant
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={async () => {
+                      await toggleAssistantPinnedStatus(persona.id, !pinned);
+                      await refreshUser();
+                    }}
+                    className="hover:bg-neutral-100 px-2 py-1 gap-x-1 rounded border border-black flex items-center"
+                  >
+                    <PinnedIcon size={12} />
+                    <span className="text-xs">{pinned ? "Unpin" : "Pin"}</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {pinned ? "Remove from" : "Add to"} your pinned list
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-center">
-        <div className="flex gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => {
-                    router.push(`/chat?assistantId=${persona.id}`);
-                    closeModal();
-                  }}
-                  className="hover:bg-neutral-100 px-2 py-1 gap-x-1 rounded border border-black flex items-center"
-                >
-                  <FaHashtag size={12} className="flex-none" />
-                  <span className="text-xs">Start Chat</span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                Start a new chat with this assistant
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={async () => {
-                    await toggleAssistantPinnedStatus(persona.id, !pinned);
-                    await refreshUser();
-                  }}
-                  className="hover:bg-neutral-100 px-2 py-1 gap-x-1 rounded border border-black flex items-center"
-                >
-                  <PinnedIcon size={12} />
-                  <span className="text-xs">{pinned ? "Unpin" : "Pin"}</span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {pinned ? "Remove from" : "Add to"} your pinned list
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
+      <div className="flex items-center justify-center"></div>
     </div>
   );
 };

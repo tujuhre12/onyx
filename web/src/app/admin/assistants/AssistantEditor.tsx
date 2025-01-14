@@ -282,8 +282,6 @@ export function AssistantEditor({
 
   return (
     <div className="mx-auto max-w-4xl">
-      <BackButton />
-      <div className="my-8" />
       {popup}
       <Formik
         enableReinitialize={true}
@@ -537,6 +535,7 @@ export function AssistantEditor({
 
                   <div className="flex flex-col gap-2">
                     <Button
+                      type="button"
                       variant="outline"
                       size="sm"
                       className="text-xs flex justify-start gap-x-2"
@@ -560,6 +559,7 @@ export function AssistantEditor({
 
                     {values.uploaded_image && (
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         className="flex justify-start gap-x-2 text-xs"
@@ -578,6 +578,7 @@ export function AssistantEditor({
                       (!existingPersona?.uploaded_image_id ||
                         removePersonaImage) && (
                         <Button
+                          type="button"
                           variant="outline"
                           className="text-xs"
                           size="sm"
@@ -601,6 +602,7 @@ export function AssistantEditor({
                       removePersonaImage &&
                       !values.uploaded_image && (
                         <Button
+                          type="button"
                           variant="outline"
                           className="text-xs"
                           size="sm"
@@ -619,6 +621,7 @@ export function AssistantEditor({
                       !removePersonaImage &&
                       !values.uploaded_image && (
                         <Button
+                          type="button"
                           variant="outline"
                           className="text-xs"
                           size="sm"

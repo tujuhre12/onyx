@@ -35,17 +35,17 @@ export default function SourceCard({
 }
 
 interface SeeMoreBlockProps {
-  documentSelectionToggled: boolean;
   toggleDocumentSelection: () => void;
   uniqueSources: ValidSources[];
   webSourceDomains: string[];
+  toggled: boolean;
 }
 
 export function SeeMoreBlock({
-  documentSelectionToggled,
   toggleDocumentSelection,
   webSourceDomains,
   uniqueSources,
+  toggled,
 }: SeeMoreBlockProps) {
   const filteredUniqueSources = uniqueSources.filter(
     (source) => source !== "web" && webSourceDomains.length > 0
@@ -59,8 +59,11 @@ export function SeeMoreBlock({
       `}
     >
       <div className="flex gap-y-2 flex-col items-start text-sm">
-        <p className="flex-1 mr-1 font-semibold text-text-900 overflow-hidden text-ellipsis whitespace-nowrap">
-          Full Results
+        <p
+          onClick={toggleDocumentSelection}
+          className="flex-1 mr-1 font-semibold text-text-900 overflow-hidden text-ellipsis whitespace-nowrap"
+        >
+          {toggled ? "Hide Results" : "Show Results"}
         </p>
         <div className="flex-shrink-0 flex gap-x-1 items-center">
           {filteredUniqueSources.slice(0, 3).map((source, index) => (

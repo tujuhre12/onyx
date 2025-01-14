@@ -17,6 +17,8 @@ import { pageType } from "../chat/sessionSidebar/types";
 import FixedLogo from "../chat/shared_chat_search/FixedLogo";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { useChatContext } from "@/components/context/ChatContext";
+import { HistorySidebar } from "../chat/sessionSidebar/HistorySidebar";
+import { useAssistants } from "@/components/context/AssistantsContext";
 
 interface SidebarWrapperProps<T extends object> {
   initiallyToggled: boolean;
@@ -46,6 +48,16 @@ export default function SidebarWrapper<T extends object>({
   }, [toggledSidebar]);
 
   const sidebarElementRef = useRef<HTMLDivElement>(null);
+  const { folders, openedFolders, chatSessions } = useChatContext();
+  const { assistants } = useAssistants();
+  const explicitlyUntoggle = () => {
+    setShowDocSidebar(false);
+
+    setUntoggled(true);
+    setTimeout(() => {
+      setUntoggled(false);
+    }, 200);
+  };
 
   const settings = useContext(SettingsContext);
   useSidebarVisibility({
@@ -96,7 +108,21 @@ export default function SidebarWrapper<T extends object>({
                 : "opacity-0 w-[200px] pointer-events-none -translate-x-10"
             }`}
       >
-        <div className="w-full relative"></div>
+        <div className="w-full relative">
+          {" "}
+          <HistorySidebar
+            assistants={assistants}
+            page={"chat"}
+            explicitlyUntoggle={explicitlyUntoggle}
+            ref={sidebarElementRef}
+            toggleSidebar={toggleSidebar}
+            toggled={toggledSidebar}
+            existingChats={chatSessions}
+            currentChatSession={null}
+            folders={folders}
+            openedFolders={openedFolders}
+          />
+        </div>
       </div>
 
       <div className="absolute px-2 left-0 w-full top-0">
