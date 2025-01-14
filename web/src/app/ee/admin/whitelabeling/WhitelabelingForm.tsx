@@ -75,7 +75,8 @@ export function WhitelabelingForm() {
           auto_scroll: Yup.boolean().nullable(),
           application_name: Yup.string()
             .trim()
-            .min(1, "Application name cannot be empty"),
+            .min(1, "Application name cannot be empty")
+            .nullable(),
           use_custom_logo: Yup.boolean().required(),
           use_custom_logotype: Yup.boolean().required(),
           custom_header_content: Yup.string().nullable(),

@@ -190,7 +190,6 @@ export function ChatPage({
   const enterpriseSettings = settings?.enterpriseSettings;
 
   const [documentSidebarToggled, setDocumentSidebarToggled] = useState(false);
-  const [filtersToggled, setFiltersToggled] = useState(false);
 
   const [userSettingsToggled, setUserSettingsToggled] = useState(false);
 
@@ -1007,8 +1006,7 @@ export function ChatPage({
     if (
       !personaIncludesRetrieval &&
       (!selectedDocuments || selectedDocuments.length === 0) &&
-      documentSidebarToggled &&
-      !filtersToggled
+      documentSidebarToggled
     ) {
       setDocumentSidebarToggled(false);
     }
@@ -2470,6 +2468,11 @@ export function ChatPage({
                                     }
                                   >
                                     <AIMessage
+                                      toggledDocumentSidebar={
+                                        documentSidebarToggled &&
+                                        selectedMessageForDocDisplay ==
+                                          message.messageId
+                                      }
                                       setPresentingDocument={
                                         setPresentingDocument
                                       }
@@ -2478,8 +2481,7 @@ export function ChatPage({
                                         selectedMessageForDocDisplay
                                       }
                                       documentSelectionToggled={
-                                        documentSidebarToggled &&
-                                        !filtersToggled
+                                        documentSidebarToggled
                                       }
                                       continueGenerating={
                                         i == messageHistory.length - 1 &&

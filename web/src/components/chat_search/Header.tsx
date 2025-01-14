@@ -98,15 +98,20 @@ export default function FunctionalHeader({
               className={`
             absolute
             ${
+              documentSidebarToggled &&
+              sidebarToggled &&
+              "left-[calc(50%-75px)]"
+            }
+            ${
               documentSidebarToggled && !sidebarToggled
-                ? "left-[calc(50%-125px)]"
+                ? "left-[calc(50%-175px)]"
                 : !documentSidebarToggled && sidebarToggled
-                  ? "left-[calc(50%+125px)]"
+                  ? "left-[calc(50%+100px)]"
                   : "left-1/2"
             }
             ${
               documentSidebarToggled || sidebarToggled
-                ? "mobile:w-[40vw] max-w-[50vw]"
+                ? "mobile:w-[40vw] max-w-[40vw]"
                 : "mobile:w-[50vw] max-w-[60vw]"
             }
             ${

@@ -228,6 +228,8 @@ def get_assistant_stats(
         datetime.datetime.utcnow() - datetime.timedelta(days=_DEFAULT_LOOKBACK_DAYS)
     )
     end = end or datetime.datetime.utcnow()
+    print("current user")
+    print(user)
 
     if not user_can_view_assistant_stats(db_session, user, assistant_id):
         raise HTTPException(
