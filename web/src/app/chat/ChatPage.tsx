@@ -2571,7 +2571,6 @@ export function ChatPage({
                                           ? message?.documents
                                           : parentMessage?.documents
                                       }
-                                      subQuestions={message.sub_questions || []}
                                       setPresentingDocument={
                                         setPresentingDocument
                                       }
