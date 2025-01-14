@@ -33,7 +33,7 @@ export const LLMSelector: React.FC<LLMSelectorProps> = ({
   requiresImageGeneration,
 }) => {
   const llmOptions = llmProviders.flatMap((provider) =>
-    provider.model_names.map((modelName) => ({
+    (provider.display_model_names || provider.model_names).map((modelName) => ({
       name: getDisplayNameForModel(modelName),
       value: structureValue(provider.name, provider.provider, modelName),
       icon: getProviderIcon(provider.provider, modelName),

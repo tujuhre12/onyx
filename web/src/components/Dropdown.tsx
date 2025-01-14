@@ -35,16 +35,14 @@ function StandardDropdownOption<T>({
   return (
     <button
       onClick={() => handleSelect(option)}
-      className={`w-full text-left block px-4 py-2.5 text-sm hover:bg-gray-800 ${
-        index !== 0 ? " border-t-2 border-gray-600" : ""
+      className={`w-full text-left block px-4 py-2.5 text-sm bg-white hover:bg-gray-50 ${
+        index !== 0 ? "border-t border-gray-200" : ""
       }`}
       role="menuitem"
     >
-      <p className="font-medium">{option.name}</p>
+      <p className="font-medium  text-xs text-gray-900">{option.name}</p>
       {option.description && (
-        <div>
-          <p className="text-xs text-gray-300">{option.description}</p>
-        </div>
+        <p className="text-xs text-gray-500">{option.description}</p>
       )}
     </button>
   );

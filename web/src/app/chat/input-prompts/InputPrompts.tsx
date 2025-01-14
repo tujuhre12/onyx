@@ -42,10 +42,10 @@ export default function InputPrompts() {
         const data = await response.json();
         setInputPrompts(data);
       } else {
-        throw new Error("Failed to fetch input prompts");
+        throw new Error("Failed to fetch prompt shortcuts");
       }
     } catch (error) {
-      setPopup({ message: "Failed to fetch input prompts", type: "error" });
+      setPopup({ message: "Failed to fetch prompt shortcuts", type: "error" });
     }
   };
 
@@ -129,8 +129,8 @@ export default function InputPrompts() {
       {popup}
       <div className="flex justify-between items-start mb-6">
         <div className="flex flex-col gap-2">
-          <Title>Input Prompts</Title>
-          <Text>Manage and customize input prompts for your assistants</Text>
+          <Title>Prompt Shortcuts</Title>
+          <Text>Manage and customize prompt shortcuts for your assistants</Text>
         </div>
       </div>
 
