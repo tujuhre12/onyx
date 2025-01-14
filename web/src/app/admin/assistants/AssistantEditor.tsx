@@ -1174,7 +1174,7 @@ export function AssistantEditor({
               {admin && labels && labels.length > 0 && (
                 <div className=" max-w-4xl">
                   <Separator />
-                  <div className="flex gap-x-2 items-center  mb-2">
+                  <div className="flex gap-x-2 items-center ">
                     <div className="block font-medium text-sm">
                       Manage Labels
                     </div>
@@ -1191,7 +1191,7 @@ export function AssistantEditor({
                     </TooltipProvider>
                   </div>
                   <SubLabel>Edit or delete existing labels</SubLabel>
-                  <div className="grid grid-cols-1 gap-4 mt-2">
+                  <div className="grid grid-cols-1 gap-4">
                     {labels.map((label: PersonaLabel) => (
                       <div
                         key={label.id}
@@ -1209,6 +1209,12 @@ export function AssistantEditor({
                           onChange={(e) => {
                             setFieldValue("editLabelId", label.id);
                             setFieldValue("editLabelName", e.target.value);
+                            if (!values.editLabelDescription) {
+                              setFieldValue(
+                                "editLabelDescription",
+                                label.description
+                              );
+                            }
                           }}
                         />
                         <TextFormField
@@ -1226,6 +1232,9 @@ export function AssistantEditor({
                               "editLabelDescription",
                               e.target.value
                             );
+                            if (!values.editLabelName) {
+                              setFieldValue("editLabelName", label.name);
+                            }
                           }}
                         />
                         <div className="flex gap-2">
@@ -1233,18 +1242,25 @@ export function AssistantEditor({
                             <>
                               <Button
                                 onClick={async () => {
+                                  const updatedName =
+                                    values.editLabelName || label.name;
+                                  const updatedDescription =
+                                    values.editLabelDescription ||
+                                    label.description;
                                   const response = await updatePersonaLabel(
                                     label.id,
-                                    values.editLabelName,
-                                    values.editLabelDescription
+                                    updatedName,
+                                    updatedDescription
                                   );
                                   if (response?.ok) {
                                     setPopup({
-                                      message: `Label "${values.editLabelName}" updated successfully`,
+                                      message: `Label "${updatedName}" updated successfully`,
                                       type: "success",
                                     });
                                     await refreshLabels();
                                     setFieldValue("editLabelId", null);
+                                    setFieldValue("editLabelName", "");
+                                    setFieldValue("editLabelDescription", "");
                                   } else {
                                     setPopup({
                                       message: `Failed to update label - ${await response.text()}`,
@@ -1257,15 +1273,30 @@ export function AssistantEditor({
                               </Button>
                               <Button
                                 variant="outline"
-                                onClick={() =>
-                                  setFieldValue("editLabelId", null)
-                                }
+                                onClick={() => {
+                                  setFieldValue("editLabelId", null);
+                                  setFieldValue("editLabelName", "");
+                                  setFieldValue("editLabelDescription", "");
+                                }}
                               >
                                 Cancel
                               </Button>
                             </>
                           ) : (
                             <>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setFieldValue("editLabelId", label.id);
+                                  setFieldValue("editLabelName", label.name);
+                                  setFieldValue(
+                                    "editLabelDescription",
+                                    label.description
+                                  );
+                                }}
+                              >
+                                Edit
+                              </Button>
                               <Button
                                 variant="destructive"
                                 onClick={async () => {

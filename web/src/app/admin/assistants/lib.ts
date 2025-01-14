@@ -134,6 +134,15 @@ export const updatePersonaLabel = (
   name: string,
   description: string
 ) => {
+  console.log(
+    "updatePersonaLabel",
+    "id",
+    id,
+    "name",
+    name,
+    "description",
+    description
+  );
   return fetch(`/api/admin/persona/label/${id}`, {
     method: "PATCH",
     headers: {
