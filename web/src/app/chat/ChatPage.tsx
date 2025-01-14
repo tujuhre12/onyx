@@ -121,6 +121,9 @@ import AssistantModal from "../assistants/mine/AssistantModal";
 import { getSourceMetadata } from "@/lib/sources";
 import { UserSettingsModal } from "./modal/UserSettingsModal";
 import { AgenticMessage } from "./message/AgenticMessage";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -197,7 +200,7 @@ export function ChatPage({
 
   const [documentSidebarToggled, setDocumentSidebarToggled] = useState(false);
   const [filtersToggled, setFiltersToggled] = useState(false);
-  const [langgraphEnabled, setLanggraphEnabled] = useState(false);
+  const [langgraphEnabled, setLanggraphEnabled] = useState(true);
 
   const [userSettingsToggled, setUserSettingsToggled] = useState(false);
 
@@ -2058,6 +2061,32 @@ export function ChatPage({
     <>
       <HealthCheckBanner />
 
+      <div className="fixed right-4 top-20 z-50">
+        <Card className="w-72 shadow-lg bg-gray-100 dark:bg-gray-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Langgraph Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center space-x-3">
+              <Switch
+                id="langgraph-toggle"
+                checked={langgraphEnabled}
+                onCheckedChange={setLanggraphEnabled}
+                className="data-[state=checked]:bg-gray-600"
+              />
+              <Label
+                htmlFor="langgraph-toggle"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Enable Langgraph
+              </Label>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {showApiKeyModal && !shouldShowWelcomeModal && (
         <ApiKeyModal
           hide={() => setShowApiKeyModal(false)}
@@ -2324,17 +2353,6 @@ export function ChatPage({
                   hideUserDropdown={user?.is_anonymous_user}
                 />
               )}
-              <div className="flex items-center justify-end px-4 py-2">
-                <label className="flex items-center cursor-pointer">
-                  <span className="mr-2 text-sm">Langgraph</span>
-                  <input
-                    type="checkbox"
-                    checked={langgraphEnabled}
-                    onChange={(e) => setLanggraphEnabled(e.target.checked)}
-                    className="form-checkbox h-4 w-4"
-                  />
-                </label>
-              </div>
 
               {documentSidebarInitialWidth !== undefined && isReady ? (
                 <Dropzone
