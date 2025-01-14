@@ -3,7 +3,7 @@
 import React, { useCallback } from "react";
 import { Option } from "@/components/Dropdown";
 import { generateRandomIconShape } from "@/lib/assistantIconUtils";
-import { CCPairBasicInfo, DocumentSet, User } from "@/lib/types";
+import { CCPairBasicInfo, DocumentSet, User, UserGroup } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +21,11 @@ import { usePopup } from "@/components/admin/connectors/Popup";
 import { getDisplayNameForModel, useLabels } from "@/lib/hooks";
 import { DocumentSetSelectable } from "@/components/documentSet/DocumentSetSelectable";
 import { addAssistantToList } from "@/lib/assistants/updateAssistantPreferences";
-import { checkLLMSupportsImageInput, destructureValue } from "@/lib/llm/utils";
+import {
+  checkLLMSupportsImageInput,
+  destructureValue,
+  structureValue,
+} from "@/lib/llm/utils";
 import { ToolSnapshot } from "@/lib/tools/interfaces";
 import { checkUserIsNoAuthUser } from "@/lib/user";
 
@@ -34,7 +38,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { FiInfo, FiRefreshCcw } from "react-icons/fi";
+import { FiInfo, FiRefreshCcw, FiUsers } from "react-icons/fi";
 import * as Yup from "yup";
 import CollapsibleSection from "./CollapsibleSection";
 import { SuccessfulPersonaUpdateRedirectType } from "./enums";
@@ -53,7 +57,6 @@ import {
   TrashIcon,
 } from "@/components/icons/icons";
 import { buildImgUrl } from "@/app/chat/files/images/utils";
-import { LlmList } from "@/components/llm/LLMList";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { debounce } from "lodash";
 import { FullLLMProvider } from "../configuration/llm/interfaces";
@@ -64,6 +67,25 @@ import { generateIdenticon } from "@/components/assistants/AssistantIcon";
 import { BackButton } from "@/components/BackButton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { AdvancedOptionsToggle } from "@/components/AdvancedOptionsToggle";
+import { AssistantVisibilityPopover } from "@/app/assistants/mine/AssistantVisibilityPopover";
+import { MinimalUserSnapshot } from "@/lib/types";
+import { useUserGroups } from "@/lib/hooks";
+import { useUsers } from "@/lib/hooks";
+import { AllUsersResponse } from "@/lib/types";
+// import { Badge } from "@/components/ui/Badge";
+// import {
+//   addUsersToAssistantSharedList,
+//   shareAssistantWithGroups,
+// } from "@/lib/assistants/shareAssistant";
+import {
+  SearchMultiSelectDropdown,
+  Option as DropdownOption,
+} from "@/components/Dropdown";
+import { Badge } from "@/components/ui/badge";
+import { SourceChip } from "@/app/chat/input/ChatInputBar";
+import { GroupIcon, UserIcon } from "lucide-react";
+import { LLMSelector } from "@/components/llm/LLMSelector";
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
@@ -224,7 +246,11 @@ export function AssistantEditor({
       existingPersona?.llm_model_provider_override ?? null,
     llm_model_version_override:
       existingPersona?.llm_model_version_override ?? null,
-    starter_messages: existingPersona?.starter_messages ?? [],
+    starter_messages: existingPersona?.starter_messages ?? [
+      {
+        message: "",
+      },
+    ],
     enabled_tools_map: enabledToolsMap,
     icon_color: existingPersona?.icon_color ?? defautIconColor,
     icon_shape: existingPersona?.icon_shape ?? defaultIconShape,
@@ -234,6 +260,11 @@ export function AssistantEditor({
     // EE Only
     groups: existingPersona?.groups ?? [],
     label_ids: existingPersona?.labels?.map((label) => label.id) ?? [],
+    selectedUsers:
+      existingPersona?.users?.filter(
+        (u) => u.id !== existingPersona.owner?.id
+      ) ?? [],
+    selectedGroups: existingPersona?.groups ?? [],
   };
 
   interface AssistantPrompt {
@@ -247,7 +278,6 @@ export function AssistantEditor({
         return;
       }
       setIsRefreshing(true);
-      console.log("Form values:", formValues);
       try {
         const response = await fetch("/api/persona/assistant-prompt-refresh", {
           method: "POST",
@@ -260,12 +290,23 @@ export function AssistantEditor({
             document_set_ids: formValues.document_set_ids || [],
             instructions:
               formValues.system_prompt || formValues.task_prompt || "",
+            generation_count:
+              4 -
+              formValues.starter_messages.filter(
+                (message: StarterMessage) => message.message.trim() !== ""
+              ).length,
           }),
         });
 
         const data: AssistantPrompt[] = await response.json();
         if (response.ok) {
-          setFieldValue("starter_messages", data);
+          const filteredStarterMessages = formValues.starter_messages.filter(
+            (message: StarterMessage) => message.message.trim() !== ""
+          );
+          setFieldValue("starter_messages", [
+            ...filteredStarterMessages,
+            ...data,
+          ]);
         }
       } catch (error) {
         console.error("Failed to refresh prompts:", error);
@@ -277,6 +318,20 @@ export function AssistantEditor({
   );
 
   const [isRequestSuccessful, setIsRequestSuccessful] = useState(false);
+
+  const { data: userGroups } = useUserGroups();
+  const { data: allUsers } = useUsers() as {
+    data: MinimalUserSnapshot[] | undefined;
+  };
+
+  const mapUsersToMinimalSnapshot = (users: any): MinimalUserSnapshot[] => {
+    if (!users || !Array.isArray(users.users)) return [];
+    return users.users.map((user: any) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    }));
+  };
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -316,8 +371,7 @@ export function AssistantEditor({
             llm_model_provider_override: Yup.string().nullable(),
             starter_messages: Yup.array().of(
               Yup.object().shape({
-                name: Yup.string().required("Must have a name"),
-                message: Yup.string().required("Must have a message"),
+                message: Yup.string(),
               })
             ),
             search_start_date: Yup.date().nullable(),
@@ -327,6 +381,8 @@ export function AssistantEditor({
             // EE Only
             groups: Yup.array().of(Yup.number()),
             label_ids: Yup.array().of(Yup.number()),
+            selectedUsers: Yup.array().of(Yup.object()),
+            selectedGroups: Yup.array().of(Yup.number()),
           })
           .test(
             "system-prompt-or-task-prompt",
@@ -389,9 +445,30 @@ export function AssistantEditor({
           // if disable_retrieval is set, set num_chunks to 0
           // to tell the backend to not fetch any documents
           const numChunks = searchToolEnabled ? values.num_chunks || 10 : 0;
+          const starterMessages = values.starter_messages.filter(
+            (message: StarterMessage) => message.message.trim() !== ""
+          );
 
           // don't set groups if marked as public
           const groups = values.is_public ? [] : values.groups;
+
+          const submissionData = {
+            ...values,
+            starter_messages: starterMessages,
+            groups: values.is_public ? [] : values.selectedGroups,
+            users: values.is_public
+              ? undefined
+              : [
+                  ...(user && !checkUserIsNoAuthUser(user.id) ? [user.id] : []),
+                  ...values.selectedUsers.map((u: MinimalUserSnapshot) => u.id),
+                ],
+            tool_ids: enabledTools,
+            remove_image: removePersonaImage,
+            search_start_date: values.search_start_date
+              ? new Date(values.search_start_date)
+              : null,
+            num_chunks: numChunks,
+          };
 
           let promptResponse;
           let personaResponse;
@@ -399,31 +476,12 @@ export function AssistantEditor({
             [promptResponse, personaResponse] = await updatePersona({
               id: existingPersona.id,
               existingPromptId: existingPrompt?.id,
-              ...values,
-              search_start_date: values.search_start_date
-                ? new Date(values.search_start_date)
-                : null,
-              num_chunks: numChunks,
-              users:
-                user && !checkUserIsNoAuthUser(user.id) ? [user.id] : undefined,
-              groups,
-              tool_ids: enabledTools,
-              remove_image: removePersonaImage,
-              label_ids: values.label_ids,
+              ...submissionData,
             });
           } else {
             [promptResponse, personaResponse] = await createPersona({
-              ...values,
+              ...submissionData,
               is_default_persona: admin!,
-              num_chunks: numChunks,
-              search_start_date: values.search_start_date
-                ? new Date(values.search_start_date)
-                : null,
-              users:
-                user && !checkUserIsNoAuthUser(user.id) ? [user.id] : undefined,
-              groups,
-              tool_ids: enabledTools,
-              label_ids: values.label_ids,
             });
           }
 
@@ -593,6 +651,7 @@ export function AssistantEditor({
                         <Button
                           type="button"
                           className="text-xs"
+                          variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -728,23 +787,6 @@ export function AssistantEditor({
                 </div>
               )}
 
-              {llmProviders.length > 0 && (
-                <>
-                  <TextFormField
-                    maxWidth="max-w-4xl"
-                    name="task_prompt"
-                    label="[Optional] Reminders"
-                    isTextArea={true}
-                    placeholder="Remember to reference all of the points mentioned in my message to you and focus on identifying action items that can move things forward"
-                    onChange={(e) => {
-                      setFieldValue("task_prompt", e.target.value);
-                    }}
-                    explanationText="Learn about prompting in our docs!"
-                    explanationLink="https://docs.onyx.app/guides/assistants"
-                    className="[&_textarea]:placeholder:text-text-muted/50"
-                  />
-                </>
-              )}
               <div className="w-full max-w-4xl">
                 <div className="flex flex-col">
                   {searchTool && (
@@ -810,120 +852,80 @@ export function AssistantEditor({
                     searchTool &&
                     showSearchTool &&
                     !(user?.role != "admin" && documentSets.length === 0) && (
-                      <div className="mt-2">
-                        {ccPairs.length > 0 && (
-                          <>
-                            <Label small>Document Sets</Label>
-                            <div>
-                              <SubLabel>
-                                <>
-                                  Select which{" "}
-                                  {!user || user.role === "admin" ? (
-                                    <Link
-                                      href="/admin/documents/sets"
-                                      className="font-semibold underline hover:underline text-text"
-                                      target="_blank"
-                                    >
-                                      Document Sets
-                                    </Link>
-                                  ) : (
-                                    "Document Sets"
-                                  )}{" "}
-                                  this Assistant should use to inform its
-                                  responses. If none are specified, the
-                                  Assistant will reference all available
-                                  documents.
-                                </>
-                              </SubLabel>
-                            </div>
+                      <CollapsibleSection>
+                        <div className="mt-2">
+                          {ccPairs.length > 0 && (
+                            <>
+                              <Label small>Document Sets</Label>
+                              <div>
+                                <SubLabel>
+                                  <>
+                                    Select which{" "}
+                                    {!user || user.role === "admin" ? (
+                                      <Link
+                                        href="/admin/documents/sets"
+                                        className="font-semibold underline hover:underline text-text"
+                                        target="_blank"
+                                      >
+                                        Document Sets
+                                      </Link>
+                                    ) : (
+                                      "Document Sets"
+                                    )}{" "}
+                                    this Assistant should use to inform its
+                                    responses. If none are specified, the
+                                    Assistant will reference all available
+                                    documents.
+                                  </>
+                                </SubLabel>
+                              </div>
 
-                            {documentSets.length > 0 ? (
-                              <FieldArray
-                                name="document_set_ids"
-                                render={(arrayHelpers: ArrayHelpers) => (
-                                  <div>
-                                    <div className="mb-3 mt-2 flex gap-2 flex-wrap text-sm">
-                                      {documentSets.map((documentSet) => (
-                                        <DocumentSetSelectable
-                                          key={documentSet.id}
-                                          documentSet={documentSet}
-                                          isSelected={values.document_set_ids.includes(
-                                            documentSet.id
-                                          )}
-                                          onSelect={() => {
-                                            const index =
-                                              values.document_set_ids.indexOf(
-                                                documentSet.id
-                                              );
-                                            if (index !== -1) {
-                                              arrayHelpers.remove(index);
-                                            } else {
-                                              arrayHelpers.push(documentSet.id);
-                                            }
-                                          }}
-                                        />
-                                      ))}
+                              {documentSets.length > 0 ? (
+                                <FieldArray
+                                  name="document_set_ids"
+                                  render={(arrayHelpers: ArrayHelpers) => (
+                                    <div>
+                                      <div className="mb-3 mt-2 flex gap-2 flex-wrap text-sm">
+                                        {documentSets.map((documentSet) => (
+                                          <DocumentSetSelectable
+                                            key={documentSet.id}
+                                            documentSet={documentSet}
+                                            isSelected={values.document_set_ids.includes(
+                                              documentSet.id
+                                            )}
+                                            onSelect={() => {
+                                              const index =
+                                                values.document_set_ids.indexOf(
+                                                  documentSet.id
+                                                );
+                                              if (index !== -1) {
+                                                arrayHelpers.remove(index);
+                                              } else {
+                                                arrayHelpers.push(
+                                                  documentSet.id
+                                                );
+                                              }
+                                            }}
+                                          />
+                                        ))}
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
-                              />
-                            ) : (
-                              <p className="text-sm">
-                                <Link
-                                  href="/admin/documents/sets/new"
-                                  className="text-primary hover:underline"
-                                >
-                                  + Create Document Set
-                                </Link>
-                              </p>
-                            )}
-
-                            <div className="mt-4 flex flex-col gap-y-4">
-                              <TextFormField
-                                small={true}
-                                name="num_chunks"
-                                label="Number of Context Documents"
-                                placeholder="Defaults to 10"
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  if (value === "" || /^[0-9]+$/.test(value)) {
-                                    setFieldValue("num_chunks", value);
-                                  }
-                                }}
-                              />
-
-                              <TextFormField
-                                width="max-w-xl"
-                                type="date"
-                                small
-                                subtext="Documents prior to this date will not be ignored."
-                                optional
-                                label="[Optional] Knowledge Cutoff Date"
-                                value={values.search_start_date}
-                                name="search_start_date"
-                              />
-
-                              <BooleanFormField
-                                small
-                                removeIndent
-                                alignTop
-                                name="llm_relevance_filter"
-                                label="AI Relevance Filter"
-                                subtext="If enabled, the LLM will filter out documents that are not useful for answering the user query prior to generating a response. This typically improves the quality of the response but incurs slightly higher cost."
-                              />
-
-                              <BooleanFormField
-                                small
-                                removeIndent
-                                alignTop
-                                name="include_citations"
-                                label="Citations"
-                                subtext="Response will include citations ([1], [2], etc.) for documents referenced by the LLM. In general, we recommend to leave this enabled in order to increase trust in the LLM answer."
-                              />
-                            </div>
-                          </>
-                        )}
-                      </div>
+                                  )}
+                                />
+                              ) : (
+                                <p className="text-sm">
+                                  <Link
+                                    href="/admin/documents/sets/new"
+                                    className="text-primary hover:underline"
+                                  >
+                                    + Create Document Set
+                                  </Link>
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </CollapsibleSection>
                     )}
 
                   <Separator />
@@ -1027,111 +1029,59 @@ export function AssistantEditor({
                 </div>
               </div>
               <Separator className="max-w-4xl mt-0" />
+
               <div className="-mt-2">
-                <div className="flex gap-x-2 items-center">
-                  <div className="block  font-medium text-sm">
-                    Default Model{" "}
-                  </div>
+                <div className="flex gap-x-2 mb-2 items-center">
+                  <div className="block font-medium text-sm">Default Model</div>
                 </div>
+                <LLMSelector
+                  llmProviders={llmProviders}
+                  currentLlm={
+                    values.llm_model_version_override
+                      ? structureValue(
+                          values.llm_model_provider_override,
+                          "",
+                          values.llm_model_version_override
+                        )
+                      : null
+                  }
+                  userDefault={user?.preferences?.default_model || null}
+                  requiresImageGeneration={
+                    imageGenerationTool
+                      ? values.enabled_tools_map[imageGenerationTool.id]
+                      : false
+                  }
+                  onSelect={(selected) => {
+                    if (selected === null) {
+                      setFieldValue("llm_model_version_override", null);
+                      setFieldValue("llm_model_provider_override", null);
+                    } else {
+                      const { modelName, provider, name } =
+                        destructureValue(selected);
 
-                {admin ? (
-                  <div className="mb-2 flex items-starts">
-                    <div className="w-96">
-                      <SelectorFormField
-                        defaultValue={`User default`}
-                        name="llm_model_provider_override"
-                        options={llmProviders.map((llmProvider) => ({
-                          name: llmProvider.name,
-                          value: llmProvider.name,
-                          icon: llmProvider.icon,
-                        }))}
-                        includeDefault={true}
-                        onSelect={(selected) => {
-                          if (selected !== values.llm_model_provider_override) {
-                            setFieldValue("llm_model_version_override", null);
-                          }
-                          setFieldValue(
-                            "llm_model_provider_override",
-                            selected
-                          );
-                        }}
-                      />
-                    </div>
+                      console.log(values);
+                      console.log("model name:", modelName);
+                      console.log("provider:", provider);
+                      console.log("name:", name);
 
-                    {values.llm_model_provider_override && (
-                      <div className="w-96 ml-4">
-                        <SelectorFormField
-                          name="llm_model_version_override"
-                          options={
-                            modelOptionsByProvider.get(
-                              values.llm_model_provider_override
-                            ) || []
-                          }
-                          maxHeight="max-h-72"
-                        />
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <LlmList
-                    scrollable
-                    userDefault={
-                      user?.preferences?.default_model!
-                        ? destructureValue(user?.preferences?.default_model!)
-                            .modelName
-                        : null
-                    }
-                    llmProviders={llmProviders}
-                    currentLlm={values.llm_model_version_override}
-                    onSelect={(value: string | null) => {
-                      if (value !== null) {
-                        const { modelName, provider, name } =
-                          destructureValue(value);
+                      console.log(
+                        values.llm_model_version_override
+                          ? structureValue(
+                              values.llm_model_provider_override,
+                              "",
+                              values.llm_model_version_override
+                            )
+                          : null
+                      );
+                      if (modelName && name) {
                         setFieldValue("llm_model_version_override", modelName);
                         setFieldValue("llm_model_provider_override", name);
-                      } else {
-                        setFieldValue("llm_model_version_override", null);
-                        setFieldValue("llm_model_provider_override", null);
                       }
-                    }}
-                  />
-                )}
+                    }
+                  }}
+                />
               </div>
               <Separator className="max-w-4xl" />
-              <div className="w-full flex flex-col">
-                <div className="flex gap-x-2 items-center">
-                  <div className="block font-medium text-sm">
-                    [Optional] Starter Messages
-                  </div>
-                </div>
-
-                <SubLabel>
-                  Sample messages that help users understand what this assistant
-                  can do and how to interact with it effectively.
-                </SubLabel>
-
-                <div className="w-full">
-                  <FieldArray
-                    name="starter_messages"
-                    render={(arrayHelpers: ArrayHelpers) => (
-                      <StarterMessagesList
-                        debouncedRefreshPrompts={() =>
-                          debouncedRefreshPrompts(values, setFieldValue)
-                        }
-                        autoStarterMessageEnabled={autoStarterMessageEnabled}
-                        errors={errors}
-                        isRefreshing={isRefreshing}
-                        values={values.starter_messages}
-                        arrayHelpers={arrayHelpers}
-                        touchStarterMessages={() => {
-                          setHasEditedStarterMessage(true);
-                        }}
-                        setFieldValue={setFieldValue}
-                      />
-                    )}
-                  />
-                </div>
-              </div>
 
               {admin && (
                 <div className="my-4 max-w-4xl">
@@ -1353,28 +1303,257 @@ export function AssistantEditor({
                 </div>
               )}
 
-              <div className="max-w-4xl w-full">
-                <IsPublicGroupSelector
-                  formikProps={{
-                    values,
-                    isSubmitting,
-                    setFieldValue,
-                    errors,
-                    ...formikProps,
-                  }}
-                  objectName="assistant"
-                  enforceGroupSelection={false}
-                />
+              <AdvancedOptionsToggle
+                showAdvancedOptions={showAdvancedOptions}
+                setShowAdvancedOptions={setShowAdvancedOptions}
+              />
+              {showAdvancedOptions && (
+                <>
+                  <div className="max-w-4xl w-full">
+                    <div className="flex gap-x-2 items-center ">
+                      <div className="block font-medium text-sm">
+                        Visibility and Sharing
+                      </div>
+                    </div>
+                    <SubLabel>
+                      Control who can access and use this assistant
+                    </SubLabel>
 
-                <div className="mt-12 flex">
-                  <Button
-                    variant="submit"
-                    type="submit"
-                    disabled={isSubmitting || isRequestSuccessful}
-                  >
-                    {isUpdate ? "Update!" : "Create!"}
-                  </Button>
-                </div>
+                    <div className="flex items-center mb-4">
+                      <Switch
+                        size="md"
+                        checked={values.is_public}
+                        onCheckedChange={(checked) => {
+                          setFieldValue("is_public", checked);
+                          if (checked) {
+                            setFieldValue("selectedUsers", []);
+                            setFieldValue("selectedGroups", []);
+                          }
+                        }}
+                      />
+                      <span className="ml-2">
+                        {values.is_public ? "Public" : "Private"}
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-gray-600 mb-4">
+                      {values.is_public &&
+                        "Anyone from your organization can view and use this assistant"}
+                    </p>
+
+                    {!values.is_public && (
+                      <>
+                        <div className="mb-4">
+                          <Label small>Share with Users and Groups</Label>
+                          <SubLabel>
+                            Select users and groups to share this assistant with
+                          </SubLabel>
+                          <SearchMultiSelectDropdown
+                            options={[
+                              ...(Array.isArray(allUsers) ? allUsers : [])
+                                .filter(
+                                  (u: MinimalUserSnapshot) =>
+                                    !values.selectedUsers.some(
+                                      (su: MinimalUserSnapshot) =>
+                                        su.id === u.id
+                                    ) && u.id !== user?.id
+                                )
+                                .map((u: MinimalUserSnapshot) => ({
+                                  name: u.email,
+                                  value: u.id,
+                                  type: "user",
+                                })),
+                              ...(userGroups || [])
+                                .filter(
+                                  (g: UserGroup) =>
+                                    !values.selectedGroups.includes(g.id)
+                                )
+                                .map((g: UserGroup) => ({
+                                  name: g.name,
+                                  value: g.id,
+                                  type: "group",
+                                })),
+                            ]}
+                            onSelect={(
+                              selected: DropdownOption<string | number>
+                            ) => {
+                              const option = selected as {
+                                name: string;
+                                value: string | number;
+                                type: "user" | "group";
+                              };
+                              if (option.type === "user") {
+                                setFieldValue("selectedUsers", [
+                                  ...values.selectedUsers,
+                                  { id: option.value, email: option.name },
+                                ]);
+                              } else {
+                                setFieldValue("selectedGroups", [
+                                  ...values.selectedGroups,
+                                  option.value,
+                                ]);
+                              }
+                            }}
+                          />
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {values.selectedUsers.map(
+                            (user: MinimalUserSnapshot) => (
+                              <SourceChip
+                                key={user.id}
+                                onClick={() => {
+                                  setFieldValue(
+                                    "selectedUsers",
+                                    values.selectedUsers.filter(
+                                      (u: MinimalUserSnapshot) =>
+                                        u.id !== user.id
+                                    )
+                                  );
+                                }}
+                                title={user.email}
+                                icon={<UserIcon />}
+                              />
+                            )
+                          )}
+                          {values.selectedGroups.map((groupId: number) => {
+                            const group = (userGroups || []).find(
+                              (g: UserGroup) => g.id === groupId
+                            );
+                            return group ? (
+                              <SourceChip
+                                key={group.id}
+                                title={group.name}
+                                onRemove={() => {
+                                  setFieldValue(
+                                    "selectedGroups",
+                                    values.selectedGroups.filter(
+                                      (id: number) => id !== group.id
+                                    )
+                                  );
+                                }}
+                                icon={<GroupIcon />}
+                              />
+                            ) : null;
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <Separator />
+                  <div className="w-full flex flex-col">
+                    <div className="flex gap-x-2 items-center">
+                      <div className="block font-medium text-sm">
+                        [Optional] Starter Messages
+                      </div>
+                    </div>
+
+                    <SubLabel>
+                      Sample messages that help users understand what this
+                      assistant can do and how to interact with it effectively.
+                    </SubLabel>
+
+                    <div className="w-full">
+                      <FieldArray
+                        name="starter_messages"
+                        render={(arrayHelpers: ArrayHelpers) => (
+                          <StarterMessagesList
+                            debouncedRefreshPrompts={() =>
+                              debouncedRefreshPrompts(values, setFieldValue)
+                            }
+                            autoStarterMessageEnabled={
+                              autoStarterMessageEnabled
+                            }
+                            errors={errors}
+                            isRefreshing={isRefreshing}
+                            values={values.starter_messages}
+                            arrayHelpers={arrayHelpers}
+                            touchStarterMessages={() => {
+                              setHasEditedStarterMessage(true);
+                            }}
+                            setFieldValue={setFieldValue}
+                          />
+                        )}
+                      />
+                    </div>
+                  </div>
+                  <Separator />
+
+                  <div className="flex flex-col gap-y-4">
+                    <TextFormField
+                      small={true}
+                      name="num_chunks"
+                      label="Number of Context Documents"
+                      placeholder="Defaults to 10"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "" || /^[0-9]+$/.test(value)) {
+                          setFieldValue("num_chunks", value);
+                        }
+                      }}
+                    />
+
+                    <TextFormField
+                      width="max-w-xl"
+                      type="date"
+                      small
+                      subtext="Documents prior to this date will not be ignored."
+                      label="[Optional] Knowledge Cutoff Date"
+                      value={values.search_start_date}
+                      name="search_start_date"
+                    />
+
+                    <BooleanFormField
+                      small
+                      removeIndent
+                      alignTop
+                      name="llm_relevance_filter"
+                      label="AI Relevance Filter"
+                      subtext="If enabled, the LLM will filter out documents that are not useful for answering the user query prior to generating a response. This typically improves the quality of the response but incurs slightly higher cost."
+                    />
+
+                    <BooleanFormField
+                      small
+                      removeIndent
+                      alignTop
+                      name="include_citations"
+                      label="Citations"
+                      subtext="Response will include citations ([1], [2], etc.) for documents referenced by the LLM. In general, we recommend to leave this enabled in order to increase trust in the LLM answer."
+                    />
+                  </div>
+                  <Separator />
+
+                  <TextFormField
+                    maxWidth="max-w-4xl"
+                    name="task_prompt"
+                    label="[Optional] Reminders"
+                    isTextArea={true}
+                    placeholder="Remember to reference all of the points mentioned in my message to you and focus on identifying action items that can move things forward"
+                    onChange={(e) => {
+                      setFieldValue("task_prompt", e.target.value);
+                    }}
+                    explanationText="Learn about prompting in our docs!"
+                    explanationLink="https://docs.onyx.app/guides/assistants"
+                    className="[&_textarea]:placeholder:text-text-muted/50"
+                  />
+                </>
+              )}
+
+              <div className="mt-12 gap-x-2 w-full  justify-end flex">
+                <Button
+                  onClick={() => console.log(values)}
+                  type="submit"
+                  disabled={isSubmitting || isRequestSuccessful}
+                >
+                  {isUpdate ? "Update" : "Create"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.back()}
+                >
+                  Cancel
+                </Button>
               </div>
             </Form>
           );

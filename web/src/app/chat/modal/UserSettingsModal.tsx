@@ -37,7 +37,8 @@ export function UserSettingsModal({
   defaultModel: string | null;
 }) {
   const { inputPrompts, refreshInputPrompts } = useChatContext();
-  const { refreshUser, user, updateUserAutoScroll } = useUser();
+  const { refreshUser, user, updateUserAutoScroll, updateUserShortcuts } =
+    useUser();
   const containerRef = useRef<HTMLDivElement>(null);
   const messageRef = useRef<HTMLDivElement>(null);
 
@@ -167,12 +168,24 @@ export function UserSettingsModal({
         <div className="flex flex-col gap-y-2">
           <div className="flex items-center gap-x-2">
             <Switch
+              size="sm"
               checked={checked}
               onCheckedChange={(checked) => {
                 updateUserAutoScroll(checked);
               }}
             />
             <Label className="text-sm">Enable auto-scroll</Label>
+          </div>
+          <div className="flex items-center gap-x-2">
+            <Switch
+              size="sm"
+              checked={user?.preferences?.shortcut_enabled}
+              onCheckedChange={(checked) => {
+                updateUserShortcuts(checked);
+                refreshUser();
+              }}
+            />
+            <Label className="text-sm">Enable Prompt Shortcuts</Label>
           </div>
         </div>
 
@@ -252,14 +265,6 @@ export function UserSettingsModal({
             })}
           </div>
         </div>
-
-        <Separator className="my-4" />
-
-        <InputPromptsSection
-          inputPrompts={inputPrompts}
-          refreshInputPrompts={refreshInputPrompts}
-          setPopup={setPopup}
-        />
       </>
     </Modal>
   );

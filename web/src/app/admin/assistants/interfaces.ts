@@ -2,7 +2,6 @@ import { ToolSnapshot } from "@/lib/tools/interfaces";
 import { DocumentSet, MinimalUserSnapshot } from "@/lib/types";
 
 export interface StarterMessage {
-  name: string;
   message: string;
 }
 

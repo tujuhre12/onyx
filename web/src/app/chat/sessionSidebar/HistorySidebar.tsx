@@ -18,6 +18,7 @@ import { SettingsContext } from "@/components/settings/SettingsProvider";
 
 import {
   AssistantsIconSkeleton,
+  DocumentIcon2,
   NewChatIcon,
   OnyxIcon,
   PinnedIcon,
@@ -51,7 +52,8 @@ import {
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { reorderPinnedAssistants } from "@/lib/assistants/updateAssistantPreferences";
-import { CircleIcon, CircleX } from "lucide-react";
+import { CircleIcon, CircleX, TextIcon } from "lucide-react";
+import { FaPage4 } from "react-icons/fa";
 
 interface HistorySidebarProps {
   page: pageType;
@@ -169,7 +171,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
   ) => {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const { refreshUser } = useUser();
+    const { refreshUser, user } = useUser();
     const { refreshAssistants, pinnedAssistants, setPinnedAssistants } =
       useAssistants();
 
@@ -291,6 +293,28 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                   Start New Chat
                 </p>
               </Link>
+              {user?.preferences?.shortcut_enabled && (
+                <Link
+                  className="w-full px-2 py-1  rounded-md items-center hover:bg-hover cursor-pointer transition-all duration-150 flex gap-x-2"
+                  href="/chat/input-prompts"
+                  onClick={(e) => {
+                    if (e.metaKey || e.ctrlKey) {
+                      return;
+                    }
+                    if (handleNewChat) {
+                      handleNewChat();
+                    }
+                  }}
+                >
+                  <DocumentIcon2
+                    size={20}
+                    className="flex-none text-text-history-sidebar-button"
+                  />
+                  <p className="my-auto flex font-normal items-center text-base">
+                    Prompt Shortcuts
+                  </p>
+                </Link>
+              )}
             </div>
           )}
 

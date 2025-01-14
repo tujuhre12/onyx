@@ -35,7 +35,7 @@ export function AssistantSharingPopover({
   const [selectedUsers, setSelectedUsers] = useState<MinimalUserSnapshot[]>([]);
 
   const assistantName = assistant.name;
-  const sharedUsersWithoutOwner = assistant.users.filter(
+  const sharedUsersWithoutOwner = (assistant.users || [])?.filter(
     (u) => u.id !== assistant.owner?.id
   );
 

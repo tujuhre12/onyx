@@ -9,6 +9,8 @@ export function StarterMessages({
   currentPersona: Persona;
   onSubmit: (messageOverride: string) => void;
 }) {
+  console.log(currentPersona);
+  console.log(currentPersona.starter_messages);
   const settings = useContext(SettingsContext);
   const isMobile = settings?.isMobile;
   return (
@@ -57,7 +59,7 @@ export function StarterMessages({
                     `}
                     style={{ height: "5.2rem" }}
                   >
-                    {starterMessage.name}
+                    {starterMessage.message}
                   </button>
                 </div>
               ))}

@@ -512,6 +512,8 @@ def upsert_persona(
             db_session.query(PersonaLabel).filter(PersonaLabel.id.in_(label_ids)).all()
         )
 
+    print("STARTER MESSAGES", starter_messages)
+
     # ensure all specified tools are valid
     if tools:
         validate_persona_tools(tools)

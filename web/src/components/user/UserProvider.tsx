@@ -12,6 +12,7 @@ interface UserContextType {
   refreshUser: () => Promise<void>;
   isCloudSuperuser: boolean;
   updateUserAutoScroll: (autoScroll: boolean | null) => Promise<void>;
+  updateUserShortcuts: (enabled: boolean) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -23,6 +24,7 @@ export function UserProvider({
   children: React.ReactNode;
   user: User | null;
 }) {
+  console.log(user);
   const [upToDateUser, setUpToDateUser] = useState<User | null>(user);
 
   const posthog = usePostHog();
@@ -51,6 +53,39 @@ export function UserProvider({
       console.error("Error fetching current user:", error);
     }
   };
+  const updateUserShortcuts = async (enabled: boolean) => {
+    try {
+      const response = await fetch(
+        `/api/shortcut-enabled?shortcut_enabled=${enabled}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      setUpToDateUser((prevUser) => {
+        if (prevUser) {
+          return {
+            ...prevUser,
+            preferences: {
+              ...prevUser.preferences,
+              shortcut_enabled: enabled,
+            },
+          };
+        }
+        return prevUser;
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update user shortcut setting");
+      }
+    } catch (error) {
+      console.error("Error updating user shortcut setting:", error);
+      throw error;
+    }
+  };
+
   const updateUserAutoScroll = async (autoScroll: boolean | null) => {
     try {
       const response = await fetch("/api/auto-scroll", {
@@ -92,6 +127,7 @@ export function UserProvider({
         user: upToDateUser,
         refreshUser,
         updateUserAutoScroll,
+        updateUserShortcuts,
         isAdmin: upToDateUser?.role === UserRole.ADMIN,
         // Curator status applies for either global or basic curator
         isCurator:

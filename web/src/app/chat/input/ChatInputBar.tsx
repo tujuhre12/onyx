@@ -33,6 +33,7 @@ import { SourceIcon } from "@/components/SourceIcon";
 import { getFormattedDateRangeString } from "@/lib/dateUtils";
 import { truncateString } from "@/lib/utils";
 import { buildImgUrl } from "../files/images/utils";
+import { useUser } from "@/components/user/UserProvider";
 
 const MAX_INPUT_HEIGHT = 200;
 
@@ -45,7 +46,7 @@ export const SourceChip = ({
 }: {
   icon: React.ReactNode;
   title: string;
-  onRemove: () => void;
+  onRemove?: () => void;
   onClick?: () => void;
   truncateTitle?: boolean;
 }) => (
@@ -71,14 +72,16 @@ export const SourceChip = ({
   >
     {icon}
     {truncateTitle ? truncateString(title, 20) : title}
-    <XIcon
-      size={12}
-      className="text-text-900 ml-auto cursor-pointer"
-      onClick={(e: React.MouseEvent<SVGSVGElement>) => {
-        e.stopPropagation();
-        onRemove();
-      }}
-    />
+    {onRemove && (
+      <XIcon
+        size={12}
+        className="text-text-900 ml-auto cursor-pointer"
+        onClick={(e: React.MouseEvent<SVGSVGElement>) => {
+          e.stopPropagation();
+          onRemove();
+        }}
+      />
+    )}
   </div>
 );
 
@@ -133,6 +136,7 @@ export function ChatInputBar({
   availableTags,
   llmOverrideManager,
 }: ChatInputBarProps) {
+  const { user } = useUser();
   useEffect(() => {
     const textarea = textAreaRef.current;
     if (textarea) {
@@ -372,7 +376,7 @@ export function ChatInputBar({
             </div>
           )}
 
-          {showPrompts && (
+          {showPrompts && user?.preferences?.shortcut_enabled && (
             <div
               ref={suggestionsRef}
               className="text-sm absolute inset-x-0 top-0 w-full transform -translate-y-full"

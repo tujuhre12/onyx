@@ -135,7 +135,7 @@ export default function SidebarWrapper<T extends object>({
         <FunctionalHeader
           sidebarToggled={toggledSidebar}
           toggleSidebar={toggleSidebar}
-          page="assistants"
+          page="chat"
         />
         <div className="w-full flex">
           <div
