@@ -116,10 +116,10 @@ const AssistantCard: React.FC<{
                   <PopoverContent
                     className={`z-[10000] ${
                       activePopover === null ? "w-52" : "w-80"
-                    } p-4`}
+                    } p-2`}
                   >
                     {activePopover === null && (
-                      <div className="flex flex-col space-y-2">
+                      <div className="flex flex-col space-y-1">
                         <button
                           onClick={isOwnedByUser ? handleEdit : undefined}
                           className={`w-full flex items-center text-left px-2 py-1 rounded ${
