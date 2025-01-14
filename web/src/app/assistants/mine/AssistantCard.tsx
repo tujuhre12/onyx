@@ -279,7 +279,7 @@ const AssistantCard: React.FC<{
                       router.push(`/chat?assistantId=${persona.id}`);
                       closeModal();
                     }}
-                    className="hover:bg-neutral-100 px-2 py-1 gap-x-1 rounded border border-black flex items-center"
+                    className="hover:bg-neutral-100 hover:text-text px-2 py-1 gap-x-1 rounded border border-black flex items-center"
                   >
                     <FaHashtag size={12} className="flex-none" />
                     <span className="text-xs">Start Chat</span>
@@ -299,9 +299,12 @@ const AssistantCard: React.FC<{
                       await refreshUser();
                     }}
                     className="hover:bg-neutral-100 px-2 py-1 gap-x-1 rounded border border-black flex items-center"
+                    style={{ minWidth: "60px" }}
                   >
                     <PinnedIcon size={12} />
-                    <span className="text-xs">{pinned ? "Unpin" : "Pin"}</span>
+                    <span className="text-xs ml-1">
+                      {pinned ? "Unpin" : "Pin"}
+                    </span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
