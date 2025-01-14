@@ -215,32 +215,36 @@ const AssistantCard: React.FC<{
           <p className="text-black font-[350] mt-0 text-sm mb-1 line-clamp-2 h-[2.7em]">
             {persona.description || "\u00A0"}
           </p>
-          <div className="h-[52px] flex flex-col">
-            {persona.tools.length == 0 && (
-              <div className="mb-1 mt-1">
-                <div className="flex items-center">
+
+          <div className="flex flex-col h-[55px]">
+            <div className="mb-1 mt-1">
+              <div className="flex items-center">
+                {persona.tools.length > 0 && (
                   <>
-                    <span className="text-black text-xs mr-1">Labels:</span>
+                    {persona.tools.slice(0, 2).map((tool, index) => (
+                      <AssistantBadge key={index} text={tool.name} />
+                    ))}
+                    {persona.tools.length > 2 && (
+                      <AssistantBadge
+                        text={`+${persona.tools.length - 2} more`}
+                      />
+                    )}
                   </>
-                </div>
+                )}
               </div>
-            )}
+            </div>
 
             <div className="my-1">
-              <span className="flex items-center text-black text-xs">
-                {persona.owner?.email || persona.builtin_persona ? (
-                  <>
-                    By{" "}
-                    {persona.owner?.email ||
-                      (persona.builtin_persona ? "Onyx" : "Anonymous")}
-                    <span className="mx-2">•</span>
-                  </>
-                ) : null}
-                <HammerIcon size={12} className="inline mr-1" />
+              <span className="flex items-center text-black text-xs opacity-50">
+                By{" "}
+                {persona.owner?.email ||
+                  (persona.builtin_persona ? "Onyx" : "Anonymous")}
+                <span className="mx-2">•</span>
                 {persona.tools.length > 0 ? (
                   <>
                     {persona.tools.length}
-                    Action{persona.tools.length !== 1 ? "s" : ""}
+                    {" Action"}
+                    {persona.tools.length !== 1 ? "s" : ""}
                   </>
                 ) : (
                   "No Actions"
@@ -258,6 +262,12 @@ const AssistantCard: React.FC<{
                   </>
                 )}
               </span>
+            </div>
+
+            <div className="mb-1 flex flex-wrap">
+              {persona.document_sets.slice(0, 5).map((set, index) => (
+                <AssistantBadge key={index} text={set.name} />
+              ))}
             </div>
           </div>
           <div className="flex gap-2">

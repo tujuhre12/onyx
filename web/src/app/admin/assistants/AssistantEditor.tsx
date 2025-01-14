@@ -887,6 +887,7 @@ export function AssistantEditor({
                             <Tooltip>
                               <TooltipTrigger>
                                 <Checkbox
+                                  size="sm"
                                   id={`enabled_tools_map.${imageGenerationTool.id}`}
                                   checked={
                                     values.enabled_tools_map[
@@ -914,9 +915,12 @@ export function AssistantEditor({
                               )}
                             </Tooltip>
                           </TooltipProvider>
-                          <div className="ml-2">
+                          <div className="flex flex-col ml-2">
                             <span className="text-sm">
                               {imageGenerationTool.display_name}
+                            </span>
+                            <span className="text-xs text-subtle">
+                              Generate images with this tool
                             </span>
                           </div>
                         </div>
