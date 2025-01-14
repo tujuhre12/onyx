@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Persona } from "@/app/admin/assistants/interfaces";
 import { useRouter } from "next/navigation";
 
@@ -10,6 +10,7 @@ import { useAssistants } from "@/components/context/AssistantsContext";
 import { checkUserOwnsAssistant } from "@/lib/assistants/checkOwnership";
 import { useUser } from "@/components/user/UserProvider";
 import { Button } from "@/components/ui/button";
+import { useLabels } from "@/lib/hooks";
 
 export const AssistantBadgeSelector = ({
   text,
@@ -36,7 +37,7 @@ export const AssistantBadgeSelector = ({
 
 export enum AssistantFilter {
   AdminCreated = "Admin",
-  UserCreated = "User-created", // Add this
+  UserCreated = "User-created",
   Pinned = "Pinned",
   Private = "Private",
   Public = "Public",
@@ -45,7 +46,7 @@ export enum AssistantFilter {
 
 const useAssistantFilter = () => {
   const [assistantFilters, setAssistantFilters] = useState<
-    Record<AssistantFilter, boolean>
+    Record<AssistantFilter | string, boolean>
   >({
     [AssistantFilter.Builtin]: false,
     [AssistantFilter.AdminCreated]: false,
@@ -55,14 +56,14 @@ const useAssistantFilter = () => {
     [AssistantFilter.UserCreated]: false,
   });
 
-  const toggleAssistantFilter = (filter: AssistantFilter) => {
+  const toggleAssistantFilter = (filter: AssistantFilter | string) => {
     setAssistantFilters((prevFilters) => ({
       ...prevFilters,
       [filter]: !prevFilters[filter],
     }));
   };
 
-  return { assistantFilters, toggleAssistantFilter };
+  return { assistantFilters, toggleAssistantFilter, setAssistantFilters };
 };
 
 export default function AssistantModal({
@@ -73,11 +74,27 @@ export default function AssistantModal({
   const [showAllFeaturedAssistants, setShowAllFeaturedAssistants] =
     useState(false);
   const { assistants, visibleAssistants, pinnedAssistants } = useAssistants();
-  const { assistantFilters, toggleAssistantFilter } = useAssistantFilter();
+  const { assistantFilters, toggleAssistantFilter, setAssistantFilters } =
+    useAssistantFilter();
   const router = useRouter();
   const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  const { data: labels } = useLabels();
+
+  useEffect(() => {
+    if (labels) {
+      const labelFilters = labels.reduce(
+        (acc, label) => {
+          acc[`label_${label.id}`] = false;
+          return acc;
+        },
+        {} as Record<string, boolean>
+      );
+      setAssistantFilters((prev) => ({ ...prev, ...labelFilters }));
+    }
+  }, [labels, setAssistantFilters]);
 
   const memoizedCurrentlyVisibleAssistants = useMemo(() => {
     return assistants.filter((assistant) => {
@@ -102,6 +119,16 @@ export default function AssistantModal({
       const userCreatedFilter =
         !assistantFilters[AssistantFilter.UserCreated] || isOwnedByUser;
 
+      const labelFilters =
+        labels?.filter((label) => assistantFilters[`label_${label.id}`]) || [];
+      const labelFilter =
+        labelFilters.length === 0 ||
+        labelFilters.some((label) =>
+          assistant.labels?.some(
+            (assistantLabel) => assistantLabel.id === label.id
+          )
+        );
+
       return (
         nameMatches &&
         publicFilter &&
@@ -109,10 +136,11 @@ export default function AssistantModal({
         pinnedFilter &&
         adminCreatedFilter &&
         builtinFilter &&
-        userCreatedFilter
+        userCreatedFilter &&
+        labelFilter
       );
     });
-  }, [assistants, searchQuery, assistantFilters, pinnedAssistants]);
+  }, [assistants, searchQuery, assistantFilters, pinnedAssistants, labels]);
 
   const featuredAssistants = [
     ...memoizedCurrentlyVisibleAssistants.filter(
@@ -178,7 +206,7 @@ export default function AssistantModal({
               </div>
             </button>
           </div>
-          <div className="px-2 flex py-2 items-center gap-x-2 mb-2">
+          <div className="px-2 flex py-2 items-center gap-x-2 mb-2 flex-wrap">
             <AssistantBadgeSelector
               text="Public"
               selected={assistantFilters[AssistantFilter.Public] ?? false}
@@ -210,6 +238,14 @@ export default function AssistantModal({
                 toggleAssistantFilter(AssistantFilter.Builtin)
               }
             />
+            {labels?.map((label) => (
+              <AssistantBadgeSelector
+                key={label.id}
+                text={label.name}
+                selected={assistantFilters[`label_${label.id}`] ?? false}
+                toggleFilter={() => toggleAssistantFilter(`label_${label.id}`)}
+              />
+            ))}
           </div>
           <div className="w-full border-t border-neutral-200" />
         </div>
