@@ -50,12 +50,9 @@ export const AssistantBadge = ({
 }) => {
   return (
     <div
-      className={`h-4 px-1.5 py-1 bg-[#e6e3dd]/50 rounded-lg justify-center items-center gap-1 inline-flex ${className}`}
+      className={`h-4 px-1.5 py-1 text-[10px]  bg-[#e6e3dd]/50 rounded-lg justify-center items-center gap-1 inline-flex ${className}`}
     >
-      <FiSearch size={10} />
-      <div className="text-[#4a4a4a] text-[10px] font-normal leading-[8px]">
-        {text}
-      </div>
+      <div className="text-[#4a4a4a] font-normal leading-[8px]">{text}</div>
     </div>
   );
 };
@@ -219,14 +216,14 @@ const AssistantCard: React.FC<{
           <div className="flex flex-col h-[55px]">
             <div className="mb-1 mt-1">
               <div className="flex items-center">
-                {persona.tools.length > 0 && (
+                {persona.labels && persona.labels.length > 0 && (
                   <>
-                    {persona.tools.slice(0, 2).map((tool, index) => (
-                      <AssistantBadge key={index} text={tool.name} />
+                    {persona.labels.slice(0, 2).map((label, index) => (
+                      <AssistantBadge key={index} text={label.name} />
                     ))}
-                    {persona.tools.length > 2 && (
+                    {persona.labels.length > 2 && (
                       <AssistantBadge
-                        text={`+${persona.tools.length - 2} more`}
+                        text={`+${persona.labels.length - 2} more`}
                       />
                     )}
                   </>
@@ -266,7 +263,11 @@ const AssistantCard: React.FC<{
 
             <div className="mb-1 flex flex-wrap">
               {persona.document_sets.slice(0, 5).map((set, index) => (
-                <AssistantBadge key={index} text={set.name} />
+                <AssistantBadge
+                  className="!text-base"
+                  key={index}
+                  text={set.name}
+                />
               ))}
             </div>
           </div>

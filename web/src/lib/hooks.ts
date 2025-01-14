@@ -19,7 +19,7 @@ import { ChatSession } from "@/app/chat/interfaces";
 import { AllUsersResponse } from "./types";
 import { Credential } from "./connectors/credentials";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
-import { PersonaCategory } from "@/app/admin/assistants/interfaces";
+import { PersonaLabel } from "@/app/admin/assistants/interfaces";
 import {
   LLMProvider,
   LLMProviderDescriptor,
@@ -122,16 +122,16 @@ export const useBasicConnectorStatus = () => {
   };
 };
 
-export const useCategories = () => {
+export const useLabels = () => {
   const { mutate } = useSWRConfig();
-  const swrResponse = useSWR<PersonaCategory[]>(
-    "/api/persona/categories",
+  const swrResponse = useSWR<PersonaLabel[]>(
+    "/api/persona/labels",
     errorHandlingFetcher
   );
 
   return {
     ...swrResponse,
-    refreshCategories: () => mutate("/api/persona/categories"),
+    refreshLabels: () => mutate("/api/persona/labels"),
   };
 };
 

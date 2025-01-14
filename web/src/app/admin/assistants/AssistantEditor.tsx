@@ -18,7 +18,7 @@ import {
 } from "@/components/admin/connectors/Field";
 
 import { usePopup } from "@/components/admin/connectors/Popup";
-import { getDisplayNameForModel, useCategories } from "@/lib/hooks";
+import { getDisplayNameForModel, useLabels } from "@/lib/hooks";
 import { DocumentSetSelectable } from "@/components/documentSet/DocumentSetSelectable";
 import { addAssistantToList } from "@/lib/assistants/updateAssistantPreferences";
 import { checkLLMSupportsImageInput, destructureValue } from "@/lib/llm/utils";
@@ -38,35 +38,32 @@ import { FiInfo, FiRefreshCcw } from "react-icons/fi";
 import * as Yup from "yup";
 import CollapsibleSection from "./CollapsibleSection";
 import { SuccessfulPersonaUpdateRedirectType } from "./enums";
-import { Persona, PersonaCategory, StarterMessage } from "./interfaces";
+import { Persona, PersonaLabel, StarterMessage } from "./interfaces";
 import {
-  createPersonaCategory,
+  createPersonaLabel,
   createPersona,
-  deletePersonaCategory,
-  updatePersonaCategory,
+  deletePersonaLabel,
+  updatePersonaLabel,
   updatePersona,
 } from "./lib";
-import { Popover } from "@/components/popover/Popover";
 import {
   CameraIcon,
   NewChatIcon,
-  PlusIcon,
   SwapIcon,
   TrashIcon,
 } from "@/components/icons/icons";
-import { AdvancedOptionsToggle } from "@/components/AdvancedOptionsToggle";
 import { buildImgUrl } from "@/app/chat/files/images/utils";
 import { LlmList } from "@/components/llm/LLMList";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { debounce } from "lodash";
 import { FullLLMProvider } from "../configuration/llm/interfaces";
 import StarterMessagesList from "./StarterMessageList";
-import { Input } from "@/components/ui/input";
-import { CategoryCard } from "./CategoryCard";
+import { LabelCard } from "./LabelCard";
 import { Switch } from "@/components/ui/switch";
 import { generateIdenticon } from "@/components/assistants/AssistantIcon";
 import { BackButton } from "@/components/BackButton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
@@ -118,7 +115,7 @@ export function AssistantEditor({
   const router = useRouter();
 
   const { popup, setPopup } = usePopup();
-  const { data: categories, refreshCategories } = useCategories();
+  const { data: labels, refreshLabels } = useLabels();
 
   const colorOptions = [
     "#FF6FBF",
@@ -134,7 +131,7 @@ export function AssistantEditor({
 
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [hasEditedStarterMessage, setHasEditedStarterMessage] = useState(false);
-  const [showPersonaCategory, setShowPersonaCategory] = useState(!admin);
+  const [showPersonaLabel, setShowPersonaLabel] = useState(!admin);
 
   // state to persist across formik reformatting
   const [defautIconColor, _setDeafultIconColor] = useState(
@@ -232,10 +229,11 @@ export function AssistantEditor({
     icon_color: existingPersona?.icon_color ?? defautIconColor,
     icon_shape: existingPersona?.icon_shape ?? defaultIconShape,
     uploaded_image: null,
-    category_id: existingPersona?.category_id ?? null,
+    labels: existingPersona?.labels ?? null,
 
     // EE Only
     groups: existingPersona?.groups ?? [],
+    label_ids: existingPersona?.labels?.map((label) => label.id) ?? [],
   };
 
   interface AssistantPrompt {
@@ -326,9 +324,9 @@ export function AssistantEditor({
             icon_color: Yup.string(),
             icon_shape: Yup.number(),
             uploaded_image: Yup.mixed().nullable(),
-            category_id: Yup.number().nullable(),
             // EE Only
             groups: Yup.array().of(Yup.number()),
+            label_ids: Yup.array().of(Yup.number()),
           })
           .test(
             "system-prompt-or-task-prompt",
@@ -411,6 +409,7 @@ export function AssistantEditor({
               groups,
               tool_ids: enabledTools,
               remove_image: removePersonaImage,
+              label_ids: values.label_ids,
             });
           } else {
             [promptResponse, personaResponse] = await createPersona({
@@ -424,6 +423,7 @@ export function AssistantEditor({
                 user && !checkUserIsNoAuthUser(user.id) ? [user.id] : undefined,
               groups,
               tool_ids: enabledTools,
+              label_ids: values.label_ids,
             });
           }
 
@@ -592,7 +592,6 @@ export function AssistantEditor({
                         removePersonaImage) && (
                         <Button
                           type="button"
-                          variant="outline"
                           className="text-xs"
                           size="sm"
                           onClick={(e) => {
@@ -679,6 +678,55 @@ export function AssistantEditor({
                 data-testid="assistant-instructions-input"
                 className="[&_textarea]:placeholder:text-text-muted/50"
               />
+
+              {labels && labels.length > 0 && (
+                <div className="my-4 w-full max-w-4xl">
+                  <Separator />
+                  <div className="flex gap-x-2 items-center mt-4 ">
+                    <div className="block font-medium text-sm">Labels</div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <FiInfo size={12} />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" align="center">
+                          Group similar assistants together by category
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <p
+                    className="text-sm text-subtle"
+                    style={{ color: "rgb(113, 114, 121)" }}
+                  >
+                    Select labels to categorize this assistant
+                  </p>
+                  <div className="flex flex-col gap-2 mt-3">
+                    {labels.map((label) => (
+                      <div key={label.id} className="flex items-center">
+                        <Checkbox
+                          id={`label-${label.id}`}
+                          checked={values.label_ids.includes(label.id)}
+                          onCheckedChange={(checked) => {
+                            const newLabelIds = checked
+                              ? [...values.label_ids, label.id]
+                              : values.label_ids.filter(
+                                  (id: number) => id !== label.id
+                                );
+                            setFieldValue("label_ids", newLabelIds);
+                          }}
+                        />
+                        <label
+                          htmlFor={`label-${label.id}`}
+                          className="ml-2 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {label.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {llmProviders.length > 0 && (
                 <>
@@ -1085,177 +1133,225 @@ export function AssistantEditor({
                 </div>
               </div>
 
-              <>
-                {categories && categories.length > 0 && (
-                  <div className="my-2">
-                    <div className="flex gap-x-2 items-center">
-                      <div className="block font-medium text-base">
-                        Category
-                      </div>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <FiInfo size={12} />
-                          </TooltipTrigger>
-                          <TooltipContent side="top" align="center">
-                            Group similar assistants together by category
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+              {admin && (
+                <div className="my-4 max-w-4xl">
+                  <Separator />
+                  <div className="flex gap-x-2 items-center mt-4 mb-2">
+                    <div className="block font-medium text-sm">
+                      Create New Label
                     </div>
-                    <SelectorFormField
-                      includeReset
-                      name="category_id"
-                      options={categories.map((category) => ({
-                        name: category.name,
-                        value: category.id,
-                      }))}
-                    />
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <FiInfo size={12} />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" align="center">
+                          Create a new category to group similar assistants
+                          together
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
-                )}
+                  <SubLabel>Add a new label to categorize assistants</SubLabel>
+                  <div className="grid grid-cols-[1fr,2fr,auto] gap-4 mt-2">
+                    <TextFormField
+                      fontSize="sm"
+                      name="newLabelName"
+                      label="Label Name"
+                      placeholder="Development"
+                    />
+                    <TextFormField
+                      fontSize="sm"
+                      name="newLabelDescription"
+                      label="Label Description"
+                      placeholder="Assistants for software development"
+                    />
+                    <div className="flex items-end">
+                      <Button
+                        type="button"
+                        onClick={async () => {
+                          const name = values.newLabelName;
+                          const description = values.newLabelDescription;
+                          if (!name || !description) return;
 
-                {admin && (
-                  <>
-                    <div className="my-2">
-                      <div className="flex gap-x-2 items-center mb-2">
-                        <div className="block font-medium text-base">
-                          Create New Category
-                        </div>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <FiInfo size={12} />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" align="center">
-                              Create a new category to group similar assistants
-                              together
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-
-                      <div className="grid grid-cols-[1fr,3fr,auto] gap-4">
-                        <TextFormField
-                          fontSize="sm"
-                          name="newCategoryName"
-                          label="Category Name"
-                          placeholder="Development"
-                        />
-                        <TextFormField
-                          fontSize="sm"
-                          name="newCategoryDescription"
-                          label="Category Description"
-                          placeholder="Assistants for software development"
-                        />
-
-                        <div className="flex items-end">
-                          <Button
-                            type="button"
-                            onClick={async () => {
-                              const name = values.newCategoryName;
-                              const description = values.newCategoryDescription;
-                              if (!name || !description) return;
-
-                              try {
-                                const response = await createPersonaCategory(
-                                  name,
-                                  description
-                                );
-                                if (response.ok) {
-                                  setPopup({
-                                    message: `Category "${name}" created successfully`,
-                                    type: "success",
-                                  });
-                                } else {
-                                  throw new Error(await response.text());
-                                }
-                              } catch (error) {
-                                setPopup({
-                                  message: `Failed to create category - ${error}`,
-                                  type: "error",
-                                });
-                              }
-
-                              await refreshCategories();
-
-                              setFieldValue("newCategoryName", "");
-                              setFieldValue("newCategoryDescription", "");
-                            }}
-                          >
-                            Create
-                          </Button>
-                        </div>
-                      </div>
+                          try {
+                            const response = await createPersonaLabel(
+                              name,
+                              description
+                            );
+                            if (response.ok) {
+                              setPopup({
+                                message: `Label "${name}" created successfully`,
+                                type: "success",
+                              });
+                              await refreshLabels();
+                              setFieldValue("newLabelName", "");
+                              setFieldValue("newLabelDescription", "");
+                            } else {
+                              throw new Error(await response.text());
+                            }
+                          } catch (error) {
+                            setPopup({
+                              message: `Failed to create category - ${error}`,
+                              type: "error",
+                            });
+                          }
+                        }}
+                      >
+                        Create
+                      </Button>
                     </div>
+                  </div>
+                </div>
+              )}
 
-                    {categories && categories.length > 0 && (
-                      <div className="my-2 w-full">
-                        <div className="flex gap-x-2 items-center mb-2">
-                          <div className="block font-medium text-base">
-                            Manage categories
-                          </div>
-                          <TooltipProvider delayDuration={0}>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <FiInfo size={12} />
-                              </TooltipTrigger>
-                              <TooltipContent side="top" align="center">
-                                Manage existing categories or create new ones to
-                                group similar assistants
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+              {admin && labels && labels.length > 0 && (
+                <div className="my-4 max-w-4xl">
+                  <Separator />
+                  <div className="flex gap-x-2 items-center mt-4 mb-2">
+                    <div className="block font-medium text-sm">
+                      Manage Labels
+                    </div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <FiInfo size={12} />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" align="center">
+                          Manage existing labels or create new ones to group
+                          similar assistants
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <SubLabel>Edit or delete existing labels</SubLabel>
+                  <div className="grid grid-cols-1 gap-2 mt-2">
+                    {labels.map((label: PersonaLabel) => (
+                      <div
+                        key={label.id}
+                        className="flex items-center justify-between bg-background-50 p-2 rounded-md"
+                      >
+                        <div className="flex-grow mr-4 flex items-center gap-2">
+                          <Input
+                            value={
+                              values.editLabelId === label.id
+                                ? values.editLabelName
+                                : label.name
+                            }
+                            onChange={(e) =>
+                              setFieldValue("editLabelName", e.target.value)
+                            }
+                            className="font-medium w-1/3"
+                            readOnly={values.editLabelId !== label.id}
+                            onFocus={() => {
+                              if (values.editLabelId !== label.id) {
+                                setFieldValue("editLabelId", label.id);
+                                setFieldValue("editLabelName", label.name);
+                                setFieldValue(
+                                  "editLabelDescription",
+                                  label.description
+                                );
+                              }
+                            }}
+                          />
+                          <Input
+                            value={
+                              values.editLabelId === label.id
+                                ? values.editLabelDescription
+                                : label.description
+                            }
+                            onChange={(e) =>
+                              setFieldValue(
+                                "editLabelDescription",
+                                e.target.value
+                              )
+                            }
+                            className="text-sm text-muted-foreground w-2/3"
+                            readOnly={values.editLabelId !== label.id}
+                            onFocus={() => {
+                              if (values.editLabelId !== label.id) {
+                                setFieldValue("editLabelId", label.id);
+                                setFieldValue("editLabelName", label.name);
+                                setFieldValue(
+                                  "editLabelDescription",
+                                  label.description
+                                );
+                              }
+                            }}
+                          />
                         </div>
-                        <div className="gap-4 w-full flex-wrap flex">
-                          {categories &&
-                            categories.map((category: PersonaCategory) => (
-                              <CategoryCard
-                                setPopup={setPopup}
-                                key={category.id}
-                                category={category}
-                                onUpdate={async (id, name, description) => {
-                                  const response = await updatePersonaCategory(
-                                    id,
-                                    name,
-                                    description
+                        <div className="flex gap-2">
+                          {values.editLabelId === label.id ? (
+                            <>
+                              <Button
+                                onClick={async () => {
+                                  const response = await updatePersonaLabel(
+                                    label.id,
+                                    values.editLabelName,
+                                    values.editLabelDescription
                                   );
                                   if (response?.ok) {
                                     setPopup({
-                                      message: `Category "${name}" updated successfully`,
+                                      message: `Label "${values.editLabelName}" updated successfully`,
                                       type: "success",
                                     });
+                                    await refreshLabels();
+                                    setFieldValue("editLabelId", null);
                                   } else {
                                     setPopup({
-                                      message: `Failed to update category - ${await response.text()}`,
+                                      message: `Failed to update label - ${await response.text()}`,
                                       type: "error",
                                     });
                                   }
                                 }}
-                                onDelete={async (id) => {
-                                  const response = await deletePersonaCategory(
-                                    id
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() =>
+                                  setFieldValue("editLabelId", null)
+                                }
+                              >
+                                Cancel
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              onClick={async () => {
+                                if (
+                                  confirm(
+                                    `Are you sure you want to delete the label "${label.name}"?`
+                                  )
+                                ) {
+                                  const response = await deletePersonaLabel(
+                                    label.id
                                   );
                                   if (response?.ok) {
                                     setPopup({
-                                      message: `Category deleted successfully`,
+                                      message: `Label deleted successfully`,
                                       type: "success",
                                     });
+                                    await refreshLabels();
                                   } else {
                                     setPopup({
-                                      message: `Failed to delete category - ${await response.text()}`,
+                                      message: `Failed to delete label - ${await response.text()}`,
                                       type: "error",
                                     });
                                   }
-                                }}
-                                refreshCategories={refreshCategories}
-                              />
-                            ))}
+                                }
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          )}
                         </div>
                       </div>
-                    )}
-                  </>
-                )}
-              </>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="max-w-4xl w-full">
                 <IsPublicGroupSelector

@@ -23,16 +23,16 @@ from onyx.db.engine import get_session
 from onyx.db.models import StarterMessageModel as StarterMessage
 from onyx.db.models import User
 from onyx.db.notification import create_notification
-from onyx.db.persona import create_assistant_category
+from onyx.db.persona import create_assistant_label
 from onyx.db.persona import create_update_persona
-from onyx.db.persona import delete_persona_category
-from onyx.db.persona import get_assistant_categories
+from onyx.db.persona import delete_persona_label
+from onyx.db.persona import get_assistant_labels
 from onyx.db.persona import get_persona_by_id
 from onyx.db.persona import get_personas_for_user
 from onyx.db.persona import mark_persona_as_deleted
 from onyx.db.persona import mark_persona_as_not_deleted
 from onyx.db.persona import update_all_personas_display_priority
-from onyx.db.persona import update_persona_category
+from onyx.db.persona import update_persona_label
 from onyx.db.persona import update_persona_public_status
 from onyx.db.persona import update_persona_shared_users
 from onyx.db.persona import update_persona_visibility
@@ -44,8 +44,8 @@ from onyx.secondary_llm_flows.starter_message_creation import (
 from onyx.server.features.persona.models import CreatePersonaRequest
 from onyx.server.features.persona.models import GenerateStarterMessageRequest
 from onyx.server.features.persona.models import ImageGenerationToolStatus
-from onyx.server.features.persona.models import PersonaCategoryCreate
-from onyx.server.features.persona.models import PersonaCategoryResponse
+from onyx.server.features.persona.models import PersonaLabelCreate
+from onyx.server.features.persona.models import PersonaLabelResponse
 from onyx.server.features.persona.models import PersonaSharedNotificationData
 from onyx.server.features.persona.models import PersonaSnapshot
 from onyx.server.features.persona.models import PromptTemplateResponse
@@ -214,57 +214,57 @@ def update_persona(
     )
 
 
-class PersonaCategoryPatchRequest(BaseModel):
-    category_description: str
-    category_name: str
+class PersonaLabelPatchRequest(BaseModel):
+    label_description: str
+    label_name: str
 
 
-@basic_router.get("/categories")
-def get_categories(
+@basic_router.get("/labels")
+def get_labels(
     db: Session = Depends(get_session),
     _: User | None = Depends(current_user),
-) -> list[PersonaCategoryResponse]:
+) -> list[PersonaLabelResponse]:
     return [
-        PersonaCategoryResponse.from_model(category)
-        for category in get_assistant_categories(db_session=db)
+        PersonaLabelResponse.from_model(label)
+        for label in get_assistant_labels(db_session=db)
     ]
 
 
-@admin_router.post("/categories")
-def create_category(
-    category: PersonaCategoryCreate,
+@admin_router.post("/labels")
+def create_label(
+    label: PersonaLabelCreate,
     db: Session = Depends(get_session),
     _: User | None = Depends(current_admin_user),
-) -> PersonaCategoryResponse:
-    """Create a new assistant category"""
-    category_model = create_assistant_category(
-        name=category.name, description=category.description, db_session=db
+) -> PersonaLabelResponse:
+    """Create a new assistant label"""
+    label_model = create_assistant_label(
+        name=label.name, description=label.description, db_session=db
     )
-    return PersonaCategoryResponse.from_model(category_model)
+    return PersonaLabelResponse.from_model(label_model)
 
 
-@admin_router.patch("/category/{category_id}")
-def patch_persona_category(
-    category_id: int,
-    persona_category_patch_request: PersonaCategoryPatchRequest,
+@admin_router.patch("/label/{label_id}")
+def patch_persona_label(
+    label_id: int,
+    persona_label_patch_request: PersonaLabelPatchRequest,
     _: User | None = Depends(current_admin_user),
     db_session: Session = Depends(get_session),
 ) -> None:
-    update_persona_category(
-        category_id=category_id,
-        category_description=persona_category_patch_request.category_description,
-        category_name=persona_category_patch_request.category_name,
+    update_persona_label(
+        label_id=label_id,
+        label_description=persona_label_patch_request.label_description,
+        label_name=persona_label_patch_request.label_name,
         db_session=db_session,
     )
 
 
-@admin_router.delete("/category/{category_id}")
-def delete_category(
-    category_id: int,
+@admin_router.delete("/label/{label_id}")
+def delete_label(
+    label_id: int,
     _: User | None = Depends(current_admin_user),
     db_session: Session = Depends(get_session),
 ) -> None:
-    delete_persona_category(category_id=category_id, db_session=db_session)
+    delete_persona_label(label_id=label_id, db_session=db_session)
 
 
 class PersonaShareRequest(BaseModel):
