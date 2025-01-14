@@ -1192,61 +1192,43 @@ export function AssistantEditor({
                     </TooltipProvider>
                   </div>
                   <SubLabel>Edit or delete existing labels</SubLabel>
-                  <div className="grid grid-cols-1 gap-2 mt-2">
+                  <div className="grid grid-cols-1 gap-4 mt-2">
                     {labels.map((label: PersonaLabel) => (
                       <div
                         key={label.id}
-                        className="flex items-center justify-between bg-background-50 p-2 rounded-md"
+                        className="grid grid-cols-[1fr,2fr,auto] gap-4 items-end"
                       >
-                        <div className="flex-grow mr-4 flex items-center gap-2">
-                          <Input
-                            value={
-                              values.editLabelId === label.id
-                                ? values.editLabelName
-                                : label.name
-                            }
-                            onChange={(e) =>
-                              setFieldValue("editLabelName", e.target.value)
-                            }
-                            className="font-medium w-1/3"
-                            readOnly={values.editLabelId !== label.id}
-                            onFocus={() => {
-                              if (values.editLabelId !== label.id) {
-                                setFieldValue("editLabelId", label.id);
-                                setFieldValue("editLabelName", label.name);
-                                setFieldValue(
-                                  "editLabelDescription",
-                                  label.description
-                                );
-                              }
-                            }}
-                          />
-                          <Input
-                            value={
-                              values.editLabelId === label.id
-                                ? values.editLabelDescription
-                                : label.description
-                            }
-                            onChange={(e) =>
-                              setFieldValue(
-                                "editLabelDescription",
-                                e.target.value
-                              )
-                            }
-                            className="text-sm text-muted-foreground w-2/3"
-                            readOnly={values.editLabelId !== label.id}
-                            onFocus={() => {
-                              if (values.editLabelId !== label.id) {
-                                setFieldValue("editLabelId", label.id);
-                                setFieldValue("editLabelName", label.name);
-                                setFieldValue(
-                                  "editLabelDescription",
-                                  label.description
-                                );
-                              }
-                            }}
-                          />
-                        </div>
+                        <TextFormField
+                          fontSize="sm"
+                          name={`editLabelName_${label.id}`}
+                          label="Label Name"
+                          value={
+                            values.editLabelId === label.id
+                              ? values.editLabelName
+                              : label.name
+                          }
+                          onChange={(e) => {
+                            setFieldValue("editLabelId", label.id);
+                            setFieldValue("editLabelName", e.target.value);
+                          }}
+                        />
+                        <TextFormField
+                          fontSize="sm"
+                          name={`editLabelDescription_${label.id}`}
+                          label="Label Description"
+                          value={
+                            values.editLabelId === label.id
+                              ? values.editLabelDescription
+                              : label.description
+                          }
+                          onChange={(e) => {
+                            setFieldValue("editLabelId", label.id);
+                            setFieldValue(
+                              "editLabelDescription",
+                              e.target.value
+                            );
+                          }}
+                        />
                         <div className="flex gap-2">
                           {values.editLabelId === label.id ? (
                             <>
@@ -1284,34 +1266,49 @@ export function AssistantEditor({
                               </Button>
                             </>
                           ) : (
-                            <Button
-                              variant="outline"
-                              onClick={async () => {
-                                if (
-                                  confirm(
-                                    `Are you sure you want to delete the label "${label.name}"?`
-                                  )
-                                ) {
-                                  const response = await deletePersonaLabel(
-                                    label.id
+                            <>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setFieldValue("editLabelId", label.id);
+                                  setFieldValue("editLabelName", label.name);
+                                  setFieldValue(
+                                    "editLabelDescription",
+                                    label.description
                                   );
-                                  if (response?.ok) {
-                                    setPopup({
-                                      message: `Label deleted successfully`,
-                                      type: "success",
-                                    });
-                                    await refreshLabels();
-                                  } else {
-                                    setPopup({
-                                      message: `Failed to delete label - ${await response.text()}`,
-                                      type: "error",
-                                    });
+                                }}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={async () => {
+                                  if (
+                                    confirm(
+                                      `Are you sure you want to delete the label "${label.name}"?`
+                                    )
+                                  ) {
+                                    const response = await deletePersonaLabel(
+                                      label.id
+                                    );
+                                    if (response?.ok) {
+                                      setPopup({
+                                        message: `Label deleted successfully`,
+                                        type: "success",
+                                      });
+                                      await refreshLabels();
+                                    } else {
+                                      setPopup({
+                                        message: `Failed to delete label - ${await response.text()}`,
+                                        type: "error",
+                                      });
+                                    }
                                   }
-                                }
-                              }}
-                            >
-                              Delete
-                            </Button>
+                                }}
+                              >
+                                Delete
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>

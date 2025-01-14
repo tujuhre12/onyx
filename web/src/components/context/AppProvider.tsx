@@ -5,6 +5,9 @@ import { SettingsProvider } from "../settings/SettingsProvider";
 import { AssistantsProvider } from "./AssistantsContext";
 import { Persona } from "@/app/admin/assistants/interfaces";
 import { User } from "@/lib/types";
+import { fetchChatData } from "@/lib/chat/fetchChatData";
+import { ChatProvider } from "./ChatContext";
+import { redirect } from "next/navigation";
 
 interface AppProviderProps {
   children: React.ReactNode;
@@ -15,7 +18,7 @@ interface AppProviderProps {
   hasImageCompatibleModel: boolean;
 }
 
-export const AppProvider = ({
+export const AppProvider = async ({
   children,
   user,
   settings,
@@ -23,17 +26,56 @@ export const AppProvider = ({
   hasAnyConnectors,
   hasImageCompatibleModel,
 }: AppProviderProps) => {
+  const data = await fetchChatData({});
+  if ("redirect" in data) {
+    redirect(data.redirect);
+  }
+
+  const {
+    chatSessions,
+    availableSources,
+    documentSets,
+    tags,
+    llmProviders,
+    folders,
+    openedFolders,
+    toggleSidebar,
+    defaultAssistantId,
+    shouldShowWelcomeModal,
+    ccPairs,
+    inputPrompts,
+  } = data;
+
   return (
     <UserProvider user={user}>
       <ProviderContextProvider>
         <SettingsProvider settings={settings}>
-          <AssistantsProvider
-            initialAssistants={assistants}
-            hasAnyConnectors={hasAnyConnectors}
-            hasImageCompatibleModel={hasImageCompatibleModel}
+          <ChatProvider
+            value={{
+              inputPrompts,
+              chatSessions,
+              toggledSidebar: toggleSidebar,
+              availableSources,
+              ccPairs,
+              documentSets,
+              tags,
+              availableDocumentSets: documentSets,
+              availableTags: tags,
+              llmProviders,
+              folders,
+              openedFolders,
+              shouldShowWelcomeModal,
+              defaultAssistantId,
+            }}
           >
-            {children}
-          </AssistantsProvider>
+            <AssistantsProvider
+              initialAssistants={assistants}
+              hasAnyConnectors={hasAnyConnectors}
+              hasImageCompatibleModel={hasImageCompatibleModel}
+            >
+              {children}
+            </AssistantsProvider>
+          </ChatProvider>
         </SettingsProvider>
       </ProviderContextProvider>
     </UserProvider>

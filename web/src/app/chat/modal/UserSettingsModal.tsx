@@ -32,7 +32,7 @@ export function UserSettingsModal({
 }: {
   setPopup: (popupSpec: PopupSpec | null) => void;
   llmProviders: LLMProviderDescriptor[];
-  setLlmOverride: Dispatch<SetStateAction<LlmOverride>>;
+  setLlmOverride?: Dispatch<SetStateAction<LlmOverride>>;
   onClose: () => void;
   defaultModel: string | null;
 }) {
@@ -126,7 +126,7 @@ export function UserSettingsModal({
       const response = await setUserDefaultModel(defaultModel);
 
       if (response.ok) {
-        if (defaultModel) {
+        if (defaultModel && setLlmOverride) {
           setLlmOverride(destructureValue(defaultModel));
         }
         setPopup({
