@@ -3,6 +3,7 @@ from typing import Any
 
 from onyx.configs.app_configs import LLM_MODEL_UPDATE_API_URL
 from onyx.configs.constants import OnyxCeleryPriority
+from onyx.configs.constants import OnyxCeleryQueues
 from onyx.configs.constants import OnyxCeleryTask
 from shared_configs.configs import MULTI_TENANT
 
@@ -74,6 +75,16 @@ tasks_to_schedule = [
         "options": {
             "priority": OnyxCeleryPriority.MEDIUM,
             "expires": BEAT_EXPIRES_DEFAULT,
+        },
+    },
+    {
+        "name": "monitor-background-processes",
+        "task": OnyxCeleryTask.MONITOR_BACKGROUND_PROCESSES,
+        "schedule": timedelta(minutes=5),
+        "options": {
+            "priority": OnyxCeleryPriority.LOW,
+            "expires": BEAT_EXPIRES_DEFAULT,
+            "queue": OnyxCeleryQueues.MONITORING,
         },
     },
     {
