@@ -46,7 +46,7 @@ def get_random_chunks_from_doc_sets(
     return cleanup_chunks(chunks)
 
 
-def parse_categories(content: str) -> List[str]:
+def parse_categories(content: str) -> List[str | None]:
     """
     Parses the JSON array of categories from the LLM response.
     """
@@ -128,7 +128,7 @@ def generate_starter_messages(
         isinstance(params, list) and "response_format" in params
     )
 
-    categories: List[str | None] = []
+    categories: list[str | None] = []
 
     if generation_count > 1:
         # Generate categories
