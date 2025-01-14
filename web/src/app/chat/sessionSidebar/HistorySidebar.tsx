@@ -71,7 +71,7 @@ interface HistorySidebarProps {
   backgroundToggled?: boolean;
   assistants: Persona[];
   currentAssistantId?: number | null;
-  setShowAssistantsModal?: (show: boolean) => void;
+  setShowAssistantsModal: (show: boolean) => void;
 }
 
 interface SortableAssistantProps {

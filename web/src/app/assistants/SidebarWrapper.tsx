@@ -19,6 +19,7 @@ import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { useChatContext } from "@/components/context/ChatContext";
 import { HistorySidebar } from "../chat/sessionSidebar/HistorySidebar";
 import { useAssistants } from "@/components/context/AssistantsContext";
+import AssistantModal from "./mine/AssistantModal";
 
 interface SidebarWrapperProps<T extends object> {
   initiallyToggled: boolean;
@@ -68,6 +69,7 @@ export default function SidebarWrapper<T extends object>({
     mobile: settings?.isMobile,
   });
 
+  const [showAssistantsModal, setShowAssistantsModal] = useState(false);
   const router = useRouter();
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -89,6 +91,9 @@ export default function SidebarWrapper<T extends object>({
 
   return (
     <div className="flex relative overflow-x-hidden overscroll-contain flex-col w-full h-screen">
+      {showAssistantsModal && (
+        <AssistantModal hideModal={() => setShowAssistantsModal(false)} />
+      )}
       <div
         ref={sidebarElementRef}
         className={`
@@ -111,6 +116,7 @@ export default function SidebarWrapper<T extends object>({
         <div className="w-full relative">
           {" "}
           <HistorySidebar
+            setShowAssistantsModal={setShowAssistantsModal}
             assistants={assistants}
             page={"chat"}
             explicitlyUntoggle={explicitlyUntoggle}
