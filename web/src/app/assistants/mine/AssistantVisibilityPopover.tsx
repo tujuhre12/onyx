@@ -39,7 +39,7 @@ export function AssistantVisibilityPopover({
   const [selectedUsers, setSelectedUsers] = useState<MinimalUserSnapshot[]>([]);
 
   const assistantName = assistant.name;
-  const sharedUsersWithoutOwner = assistant.users.filter(
+  const sharedUsersWithoutOwner = (assistant.users || [])?.filter(
     (u: MinimalUserSnapshot) => u.id !== assistant.owner?.id
   );
 

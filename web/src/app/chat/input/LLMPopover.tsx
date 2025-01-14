@@ -121,21 +121,6 @@ export default function LLMPopover({
                   }`}
                   onClick={() => updateLLMOverride(destructureValue(value))}
                 >
-                  <div className="relative flex-shrink-0">
-                    <div
-                      className={`w-4 h-4 rounded-full border ${
-                        currentLlm === name
-                          ? "border-gray-700"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      {currentLlm === name && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-2 h-2 rounded-full bg-gray-700"></div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
                   {icon({ size: 16, className: "flex-none my-auto " })}
                   <span className="line-clamp-1 ">
                     {getDisplayNameForModel(name)}

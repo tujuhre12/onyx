@@ -62,7 +62,9 @@ export function FilterPopup({
           ? "bg-gray-100 text-gray-900"
           : "text-gray-600 hover:bg-gray-50"
       }`}
-      onClick={() => setSelectedFilter(category)}
+      onClick={() => {
+        setSelectedFilter(category);
+      }}
     >
       {icon}
       <span className="text-sm font-medium">{label}</span>

@@ -11,6 +11,7 @@ interface UserPreferences {
   default_model: string | null;
   recent_assistants: number[];
   auto_scroll: boolean | null;
+  shortcut_enabled: boolean;
 }
 
 export enum UserRole {

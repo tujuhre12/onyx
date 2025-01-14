@@ -112,11 +112,11 @@ const AssistantCard: React.FC<{
                   </PopoverTrigger>
                   <PopoverContent
                     className={`z-[10000] ${
-                      activePopover === null ? "w-52" : "w-80"
+                      activePopover === null ? "w-40" : "w-80"
                     } p-2`}
                   >
                     {activePopover === null && (
-                      <div className="flex flex-col space-y-1">
+                      <div className="flex flex-col text-sm space-y-1">
                         <button
                           onClick={isOwnedByUser ? handleEdit : undefined}
                           className={`w-full flex items-center text-left px-2 py-1 rounded ${
@@ -126,7 +126,7 @@ const AssistantCard: React.FC<{
                           }`}
                           disabled={!isOwnedByUser}
                         >
-                          <FiEdit size={14} className="inline mr-2" />
+                          <FiEdit size={12} className="inline mr-2" />
                           Edit
                         </button>
                         {/* 
@@ -139,7 +139,7 @@ const AssistantCard: React.FC<{
                           }`}
                           disabled={!isOwnedByUser}
                         >
-                          <FiShare2 size={14} className="inline mr-2" />
+                          <FiShare2 size={12} className="inline mr-2" />
                           Share
                         </button> */}
 
@@ -161,7 +161,7 @@ const AssistantCard: React.FC<{
                           }`}
                           disabled={!isOwnedByUser}
                         >
-                          <FiBarChart size={14} className="inline mr-2" />
+                          <FiBarChart size={12} className="inline mr-2" />
                           Stats
                         </button>
                         <button
@@ -173,7 +173,7 @@ const AssistantCard: React.FC<{
                           }`}
                           disabled={!isOwnedByUser}
                         >
-                          <FiTrash size={14} className="inline mr-2" />
+                          <FiTrash size={12} className="inline mr-2" />
                           Delete
                         </button>
                       </div>

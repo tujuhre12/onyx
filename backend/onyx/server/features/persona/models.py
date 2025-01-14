@@ -25,6 +25,7 @@ class GenerateStarterMessageRequest(BaseModel):
     description: str
     instructions: str
     document_set_ids: list[int]
+    generation_count: int
 
 
 class CreatePersonaRequest(BaseModel):

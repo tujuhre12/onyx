@@ -151,6 +151,7 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     # if specified, controls the assistants that are shown to the user + their order
     # if not specified, all assistants are shown
     auto_scroll: Mapped[bool] = mapped_column(Boolean, default=True)
+    shortcut_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     chosen_assistants: Mapped[list[int] | None] = mapped_column(
         postgresql.JSONB(), nullable=True, default=None
     )
@@ -1383,12 +1384,10 @@ class StarterMessage(TypedDict):
     """NOTE: is a `TypedDict` so it can be used as a type hint for a JSONB column
     in Postgres"""
 
-    name: str
     message: str
 
 
 class StarterMessageModel(BaseModel):
-    name: str
     message: str
 
 
