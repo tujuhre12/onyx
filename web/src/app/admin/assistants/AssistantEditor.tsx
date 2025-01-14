@@ -290,9 +290,11 @@ export function AssistantEditor({
           }
         `}
       </style>
-      <div className="absolute top-4 left-4">
-        <BackButton />
-      </div>
+      {!admin && (
+        <div className="absolute top-4 left-4">
+          <BackButton />
+        </div>
+      )}
       {popup}
       <Formik
         enableReinitialize={true}

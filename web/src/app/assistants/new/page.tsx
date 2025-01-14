@@ -21,8 +21,6 @@ export default async function Page() {
     body = (
       <div className="w-full py-8">
         <div className="px-32">
-          <BackButton />
-
           <div className="mx-auto container">
             <CardSection className="!border-none !bg-transparent !ring-none">
               <AssistantEditor
