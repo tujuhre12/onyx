@@ -1098,12 +1098,11 @@ export function AssistantEditor({
                   }}
                 />
               </div>
-              <Separator className="max-w-4xl" />
 
               {admin && (
-                <div className="my-4 max-w-4xl">
+                <div className="max-w-4xl">
                   <Separator />
-                  <div className="flex gap-x-2 items-center mt-4 mb-2">
+                  <div className="flex gap-x-2 items-center mt-4">
                     <div className="block font-medium text-sm">
                       Create New Label
                     </div>
@@ -1173,9 +1172,9 @@ export function AssistantEditor({
               )}
 
               {admin && labels && labels.length > 0 && (
-                <div className="my-4 max-w-4xl">
+                <div className=" max-w-4xl">
                   <Separator />
-                  <div className="flex gap-x-2 items-center mt-4 mb-2">
+                  <div className="flex gap-x-2 items-center  mb-2">
                     <div className="block font-medium text-sm">
                       Manage Labels
                     </div>
@@ -1268,20 +1267,7 @@ export function AssistantEditor({
                           ) : (
                             <>
                               <Button
-                                variant="outline"
-                                onClick={() => {
-                                  setFieldValue("editLabelId", label.id);
-                                  setFieldValue("editLabelName", label.name);
-                                  setFieldValue(
-                                    "editLabelDescription",
-                                    label.description
-                                  );
-                                }}
-                              >
-                                Edit
-                              </Button>
-                              <Button
-                                variant="outline"
+                                variant="destructive"
                                 onClick={async () => {
                                   if (
                                     confirm(
@@ -1317,6 +1303,7 @@ export function AssistantEditor({
                 </div>
               )}
 
+              <Separator />
               <AdvancedOptionsToggle
                 showAdvancedOptions={showAdvancedOptions}
                 setShowAdvancedOptions={setShowAdvancedOptions}
@@ -1333,7 +1320,7 @@ export function AssistantEditor({
                       Control who can access and use this assistant
                     </SubLabel>
 
-                    <div className="flex items-center mb-4">
+                    <div className="flex items-center">
                       <Switch
                         size="md"
                         checked={values.is_public}
@@ -1350,14 +1337,14 @@ export function AssistantEditor({
                       </span>
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-4">
+                    <p className="text-sm text-text-dark">
                       {values.is_public &&
                         "Anyone from your organization can view and use this assistant"}
                     </p>
 
                     {!values.is_public && (
                       <>
-                        <div className="mb-4">
+                        <div className="mt-4">
                           <Label small>Share with Users and Groups</Label>
                           <SubLabel>
                             Select users and groups to share this assistant with
@@ -1410,7 +1397,7 @@ export function AssistantEditor({
                             }}
                           />
                         </div>
-                        <div className="flex flex-wrap gap-2 mb-4">
+                        <div className="flex flex-wrap gap-2 mt-4">
                           {values.selectedUsers.map(
                             (user: MinimalUserSnapshot) => (
                               <SourceChip
@@ -1493,46 +1480,51 @@ export function AssistantEditor({
                   <Separator />
 
                   <div className="flex flex-col gap-y-4">
-                    <TextFormField
-                      small={true}
-                      name="num_chunks"
-                      label="Number of Context Documents"
-                      placeholder="Defaults to 10"
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "" || /^[0-9]+$/.test(value)) {
-                          setFieldValue("num_chunks", value);
-                        }
-                      }}
-                    />
+                    <div className="flex flex-col gap-y-4">
+                      <h3 className="font-medium text-sm">Knowledge Options</h3>
+                      <div className="flex flex-col gap-y-4 ml-4">
+                        <TextFormField
+                          small={true}
+                          name="num_chunks"
+                          label="Number of Context Documents"
+                          placeholder="Defaults to 10"
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === "" || /^[0-9]+$/.test(value)) {
+                              setFieldValue("num_chunks", value);
+                            }
+                          }}
+                        />
 
-                    <TextFormField
-                      width="max-w-xl"
-                      type="date"
-                      small
-                      subtext="Documents prior to this date will not be ignored."
-                      label="[Optional] Knowledge Cutoff Date"
-                      value={values.search_start_date}
-                      name="search_start_date"
-                    />
+                        <TextFormField
+                          width="max-w-xl"
+                          type="date"
+                          small
+                          subtext="Documents prior to this date will not be ignored."
+                          label="Knowledge Cutoff Date"
+                          value={values.search_start_date}
+                          name="search_start_date"
+                        />
 
-                    <BooleanFormField
-                      small
-                      removeIndent
-                      alignTop
-                      name="llm_relevance_filter"
-                      label="AI Relevance Filter"
-                      subtext="If enabled, the LLM will filter out documents that are not useful for answering the user query prior to generating a response. This typically improves the quality of the response but incurs slightly higher cost."
-                    />
+                        <BooleanFormField
+                          small
+                          removeIndent
+                          alignTop
+                          name="llm_relevance_filter"
+                          label="AI Relevance Filter"
+                          subtext="If enabled, the LLM will filter out documents that are not useful for answering the user query prior to generating a response. This typically improves the quality of the response but incurs slightly higher cost."
+                        />
 
-                    <BooleanFormField
-                      small
-                      removeIndent
-                      alignTop
-                      name="include_citations"
-                      label="Citations"
-                      subtext="Response will include citations ([1], [2], etc.) for documents referenced by the LLM. In general, we recommend to leave this enabled in order to increase trust in the LLM answer."
-                    />
+                        <BooleanFormField
+                          small
+                          removeIndent
+                          alignTop
+                          name="include_citations"
+                          label="Citations"
+                          subtext="Response will include citations ([1], [2], etc.) for documents referenced by the LLM. In general, we recommend to leave this enabled in order to increase trust in the LLM answer."
+                        />
+                      </div>
+                    </div>
                   </div>
                   <Separator />
 
