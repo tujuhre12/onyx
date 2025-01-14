@@ -13,6 +13,7 @@ from onyx.db.input_prompt import insert_input_prompt
 from onyx.db.input_prompt import remove_input_prompt
 from onyx.db.input_prompt import remove_public_input_prompt
 from onyx.db.input_prompt import update_input_prompt
+from onyx.db.models import InputPrompt__User
 from onyx.db.models import User
 from onyx.server.features.input_prompt.models import CreateInputPromptRequest
 from onyx.server.features.input_prompt.models import InputPromptSnapshot
@@ -28,7 +29,7 @@ admin_router = APIRouter(prefix="/admin/input_prompt")
 @basic_router.get("")
 def list_input_prompts(
     user: User | None = Depends(current_user),
-    include_public: bool = False,
+    include_public: bool = True,
     db_session: Session = Depends(get_session),
 ) -> list[InputPromptSnapshot]:
     user_prompts = fetch_input_prompts_by_user(
@@ -50,6 +51,7 @@ def get_input_prompt(
         user_id=user.id if user is not None else None,
         db_session=db_session,
     )
+
     return InputPromptSnapshot.from_model(input_prompt=input_prompt)
 
 
@@ -66,6 +68,14 @@ def create_input_prompt(
         user=user,
         db_session=db_session,
     )
+
+    if user is not None:
+        input_prompt_user = InputPrompt__User(
+            input_prompt_id=input_prompt.id, user_id=user.id
+        )
+        db_session.add(input_prompt_user)
+        db_session.commit()
+
     return InputPromptSnapshot.from_model(input_prompt)
 
 

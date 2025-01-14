@@ -23,6 +23,8 @@ import PostHogPageView from "./PostHogPageView";
 import Script from "next/script";
 import { LogoType } from "@/components/logo/Logo";
 import { Hanken_Grotesk } from "next/font/google";
+import { fetchChatData } from "@/lib/chat/fetchChatData";
+import { redirect } from "next/navigation";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -72,7 +74,7 @@ export default async function RootLayout({
   const productGating =
     combinedSettings?.settings.product_gating ?? GatingType.NONE;
 
-  const getPageContent = (content: React.ReactNode) => (
+  const getPageContent = async (content: React.ReactNode) => (
     <html lang="en" className={`${inter.variable} ${hankenGrotesk.variable}`}>
       <head>
         <meta
@@ -191,11 +193,17 @@ export default async function RootLayout({
     );
   }
 
+  const data = await fetchChatData({});
+  if ("redirect" in data) {
+    redirect(data.redirect);
+  }
+
   const { assistants, hasAnyConnectors, hasImageCompatibleModel } =
     assistantsData;
 
   return getPageContent(
     <AppProvider
+      data={data}
       user={user}
       settings={combinedSettings}
       assistants={assistants}

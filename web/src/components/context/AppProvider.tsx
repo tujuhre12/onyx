@@ -16,21 +16,18 @@ interface AppProviderProps {
   assistants: Persona[];
   hasAnyConnectors: boolean;
   hasImageCompatibleModel: boolean;
+  data: any;
 }
 
-export const AppProvider = async ({
+export const AppProvider = ({
   children,
   user,
   settings,
   assistants,
   hasAnyConnectors,
   hasImageCompatibleModel,
+  data,
 }: AppProviderProps) => {
-  const data = await fetchChatData({});
-  if ("redirect" in data) {
-    redirect(data.redirect);
-  }
-
   const {
     chatSessions,
     availableSources,

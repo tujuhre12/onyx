@@ -26,7 +26,7 @@ import { Persona } from "@/app/admin/assistants/interfaces";
 import { useUser } from "@/components/user/UserProvider";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { checkUserOwnsAssistant } from "@/lib/assistants/utils";
-import { toggleAssistantPinnedStatus } from "@/lib/assistants/updateAssistantPreferences";
+import { toggleAssistantPinnedStatus } from "@/lib/assistants/pinnedAssistants";
 import {
   Tooltip,
   TooltipContent,
@@ -297,7 +297,11 @@ const AssistantCard: React.FC<{
                 <TooltipTrigger asChild>
                   <button
                     onClick={async () => {
-                      await toggleAssistantPinnedStatus(persona.id, !pinned);
+                      await toggleAssistantPinnedStatus(
+                        user?.preferences.pinned_assistants || [],
+                        persona.id,
+                        !pinned
+                      );
                       await refreshUser();
                     }}
                     className="hover:bg-neutral-100 px-2 py-1 gap-x-1 rounded border border-black flex items-center"
