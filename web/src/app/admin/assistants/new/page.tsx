@@ -28,10 +28,5 @@ export default async function Page() {
     );
   }
 
-  return (
-    <div className="w-full">
-      <BackButton />
-      {body}
-    </div>
-  );
+  return <div className="w-full">{body}</div>;
 }

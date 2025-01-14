@@ -42,7 +42,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   return (
     <div className="w-full">
-      <BackButton />
       <AdminPageTitle title="Edit Assistant" icon={<RobotIcon size={32} />} />
       {body}
     </div>
