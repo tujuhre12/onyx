@@ -52,6 +52,7 @@ import {
 } from "./lib";
 import {
   CameraIcon,
+  GroupsIconSkeleton,
   NewChatIcon,
   SwapIcon,
   TrashIcon,
@@ -86,6 +87,8 @@ import { Badge } from "@/components/ui/badge";
 import { SourceChip } from "@/app/chat/input/ChatInputBar";
 import { GroupIcon, UserIcon } from "lucide-react";
 import { LLMSelector } from "@/components/llm/LLMSelector";
+import useSWR from "swr";
+import { errorHandlingFetcher } from "@/lib/fetcher";
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
@@ -320,9 +323,14 @@ export function AssistantEditor({
   const [isRequestSuccessful, setIsRequestSuccessful] = useState(false);
 
   const { data: userGroups } = useUserGroups();
-  const { data: allUsers } = useUsers() as {
-    data: MinimalUserSnapshot[] | undefined;
-  };
+  // const { data: allUsers } = useUsers() as {
+  //   data: MinimalUserSnapshot[] | undefined;
+  // };
+
+  const { data: users } = useSWR<MinimalUserSnapshot[]>(
+    "/api/users",
+    errorHandlingFetcher
+  );
 
   const mapUsersToMinimalSnapshot = (users: any): MinimalUserSnapshot[] => {
     if (!users || !Array.isArray(users.users)) return [];
@@ -947,11 +955,20 @@ export function AssistantEditor({
                                     ]
                                   }
                                   onCheckedChange={() => {
-                                    toggleToolInValues(imageGenerationTool.id);
+                                    if (
+                                      currentLLMSupportsImageOutput &&
+                                      isImageGenerationAvailable
+                                    ) {
+                                      toggleToolInValues(
+                                        imageGenerationTool.id
+                                      );
+                                    }
                                   }}
-                                  disabled={
+                                  className={
                                     !currentLLMSupportsImageOutput ||
                                     !isImageGenerationAvailable
+                                      ? "opacity-50 cursor-not-allowed"
+                                      : ""
                                   }
                                 />
                               </TooltipTrigger>
@@ -1350,7 +1367,7 @@ export function AssistantEditor({
                           </SubLabel>
                           <SearchMultiSelectDropdown
                             options={[
-                              ...(Array.isArray(allUsers) ? allUsers : [])
+                              ...(Array.isArray(users) ? users : [])
                                 .filter(
                                   (u: MinimalUserSnapshot) =>
                                     !values.selectedUsers.some(
@@ -1396,13 +1413,12 @@ export function AssistantEditor({
                             }}
                           />
                         </div>
-
                         <div className="flex flex-wrap gap-2 mb-4">
                           {values.selectedUsers.map(
                             (user: MinimalUserSnapshot) => (
                               <SourceChip
                                 key={user.id}
-                                onClick={() => {
+                                onRemove={() => {
                                   setFieldValue(
                                     "selectedUsers",
                                     values.selectedUsers.filter(
@@ -1412,7 +1428,7 @@ export function AssistantEditor({
                                   );
                                 }}
                                 title={user.email}
-                                icon={<UserIcon />}
+                                icon={<UserIcon size={12} />}
                               />
                             )
                           )}
@@ -1432,7 +1448,7 @@ export function AssistantEditor({
                                     )
                                   );
                                 }}
-                                icon={<GroupIcon />}
+                                icon={<GroupsIconSkeleton size={12} />}
                               />
                             ) : null;
                           })}

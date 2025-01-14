@@ -157,6 +157,7 @@ export interface FilterManager {
     availableDocumentSets: string[],
     availableTags: Tag[]
   ) => void;
+  clearFilters: () => void;
 }
 
 export function useFilters(): FilterManager {
@@ -198,6 +199,13 @@ export function useFilters(): FilterManager {
 
     const queryString = params.toString();
     return queryString ? `&${queryString}` : "";
+  };
+
+  const clearFilters = () => {
+    setTimeRange(null);
+    setSelectedSources([]);
+    setSelectedDocumentSets([]);
+    setSelectedTags([]);
   };
 
   function buildFiltersFromQueryString(
@@ -259,6 +267,7 @@ export function useFilters(): FilterManager {
   }
 
   return {
+    clearFilters,
     timeRange,
     setTimeRange,
     selectedSources,

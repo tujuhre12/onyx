@@ -233,10 +233,11 @@ const AssistantCard: React.FC<{
 
             <div className="my-1">
               <span className="flex items-center text-black text-xs opacity-50">
-                By{" "}
-                {persona.owner?.email ||
-                  (persona.builtin_persona ? "Onyx" : "Anonymous")}
-                <span className="mx-2">•</span>
+                {(persona.owner?.email || persona.builtin_persona) && "By "}
+                {persona.owner?.email || (persona.builtin_persona && "Onyx")}
+                {(persona.owner?.email || persona.builtin_persona) && (
+                  <span className="mx-2">•</span>
+                )}
                 {persona.tools.length > 0 ? (
                   <>
                     {persona.tools.length}
@@ -300,12 +301,10 @@ const AssistantCard: React.FC<{
                       await refreshUser();
                     }}
                     className="hover:bg-neutral-100 px-2 py-1 gap-x-1 rounded border border-black flex items-center"
-                    style={{ width: "70px" }}
+                    style={{ width: "65px" }}
                   >
                     <PinnedIcon size={12} />
-                    <span className="text-xs ml-1">
-                      {pinned ? "Unpin" : "Pin"}
-                    </span>
+                    <p className="text-xs">{pinned ? "Unpin" : "Pin"}</p>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>

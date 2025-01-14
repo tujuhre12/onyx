@@ -1856,26 +1856,24 @@ export function ChatPage({
   useSendMessageToParent();
 
   useEffect(() => {
-    if (noAssistants) {
-      return;
+    if (liveAssistant) {
+      const hasSearchTool = liveAssistant.tools.some(
+        (tool) => tool.in_code_tool_id === "SearchTool"
+      );
+      setRetrievalEnabled(hasSearchTool);
+      if (!hasSearchTool) {
+        filterManager.clearFilters();
+      }
     }
-    const includes = checkAnyAssistantHasSearch(
-      messageHistory,
-      availableAssistants,
-      liveAssistant
-    );
-    setRetrievalEnabled(includes);
-  }, [messageHistory, availableAssistants, liveAssistant]);
+  }, [liveAssistant]);
 
   const [retrievalEnabled, setRetrievalEnabled] = useState(() => {
-    if (noAssistants) {
-      return false;
+    if (liveAssistant) {
+      return liveAssistant.tools.some(
+        (tool) => tool.in_code_tool_id === "SearchTool"
+      );
     }
-    return checkAnyAssistantHasSearch(
-      messageHistory,
-      availableAssistants,
-      liveAssistant
-    );
+    return false;
   });
 
   useEffect(() => {
@@ -2763,6 +2761,7 @@ export function ChatPage({
                               removeDocs={() => {
                                 clearSelectedDocuments();
                               }}
+                              retrievalEnabled={retrievalEnabled}
                               showConfigureAPIKey={() =>
                                 setShowApiKeyModal(true)
                               }

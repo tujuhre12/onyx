@@ -108,9 +108,11 @@ interface ChatInputBarProps {
   availableSources: SourceMetadata[];
   availableDocumentSets: DocumentSet[];
   availableTags: Tag[];
+  retrievalEnabled: boolean;
 }
 
 export function ChatInputBar({
+  retrievalEnabled,
   removeDocs,
   toggleDocumentSidebar,
   filterManager,
@@ -436,7 +438,7 @@ export function ChatInputBar({
             "
           >
             {alternativeAssistant && (
-              <div className="flex flex-wrap gap-x-2 px-2 pt-1.5 w-full">
+              <div className="flex bg-background flex-wrap gap-x-2 px-2 pt-1.5 w-full">
                 <div
                   ref={interactionsRef}
                   className="p-2 rounded-t-lg items-center flex w-full"
@@ -673,20 +675,22 @@ export function ChatInputBar({
                 currentAssistant={selectedAssistant}
               />
 
-              <FilterPopup
-                availableSources={availableSources}
-                availableDocumentSets={availableDocumentSets}
-                availableTags={availableTags}
-                filterManager={filterManager}
-                trigger={
-                  <ChatInputOption
-                    flexPriority="stiff"
-                    name="Filters"
-                    Icon={FiFilter}
-                    tooltipContent="Filter your search"
-                  />
-                }
-              />
+              {retrievalEnabled && (
+                <FilterPopup
+                  availableSources={availableSources}
+                  availableDocumentSets={availableDocumentSets}
+                  availableTags={availableTags}
+                  filterManager={filterManager}
+                  trigger={
+                    <ChatInputOption
+                      flexPriority="stiff"
+                      name="Filters"
+                      Icon={FiFilter}
+                      tooltipContent="Filter your search"
+                    />
+                  }
+                />
+              )}
             </div>
 
             <div className="absolute bottom-2.5 mobile:right-4 desktop:right-10">
