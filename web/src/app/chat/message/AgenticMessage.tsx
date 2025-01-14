@@ -20,13 +20,11 @@ import React, {
 } from "react";
 import ReactMarkdown from "react-markdown";
 import { OnyxDocument, FilteredOnyxDocument } from "@/lib/search/interfaces";
-import { SearchSummary } from "./SearchSummary";
 
 import { SkippedSearch } from "./SkippedSearch";
 import remarkGfm from "remark-gfm";
 import { CopyButton } from "@/components/CopyButton";
 import {
-  ChatFileType,
   FileDescriptor,
   SubQuestionDetail,
   ToolCallMetadata,
@@ -36,10 +34,7 @@ import {
   SEARCH_TOOL_NAME,
   INTERNET_SEARCH_TOOL_NAME,
 } from "../tools/constants";
-import { ToolRunDisplay } from "../tools/ToolRunningAnimation";
 import { Hoverable, HoverableIcon } from "@/components/Hoverable";
-import { DocumentPreview } from "../files/documents/DocumentPreview";
-import { InMessageImage } from "../files/images/InMessageImage";
 import { CodeBlock } from "./CodeBlock";
 import rehypePrism from "rehype-prism-plus";
 
@@ -54,39 +49,19 @@ import {
   TooltipGroup,
 } from "@/components/tooltip/CustomTooltip";
 import { ValidSources } from "@/lib/types";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useMouseTracking } from "./hooks";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
-import GeneratingImageDisplay from "../tools/GeneratingImageDisplay";
 import RegenerateOption from "../RegenerateOption";
 import { LlmOverride } from "@/lib/hooks";
 import { ContinueGenerating } from "./ContinueMessage";
 import { MemoizedAnchor, MemoizedParagraph } from "./MemoizedTextComponents";
 import { extractCodeText, preprocessLaTeX } from "./codeUtils";
-import ToolResult from "../../../components/tools/ToolResult";
-import CsvContent from "../../../components/tools/CSVContent";
-import SourceCard, {
-  SeeMoreBlock,
-} from "@/components/chat_search/sources/SourceCard";
 
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import FiltersDisplay from "../input/FilterDisplay";
 import SubQuestionsDisplay from "./SubQuestionsDisplay";
-import DocumentsDisplay from "./DocumentsDisplay";
 import SubQuestionProgress from "./SubQuestionProgress";
-
-const TOOLS_WITH_CUSTOM_HANDLING = [
-  SEARCH_TOOL_NAME,
-  INTERNET_SEARCH_TOOL_NAME,
-  IMAGE_GENERATION_TOOL_NAME,
-];
 
 export const AgenticMessage = ({
   regenerate,
