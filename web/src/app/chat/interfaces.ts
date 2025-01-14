@@ -152,7 +152,7 @@ export interface InputPrompt {
   prompt: string;
   content: string;
   active: boolean;
-  is_public: string;
+  is_public: boolean;
 }
 
 export interface EditPromptModalProps {

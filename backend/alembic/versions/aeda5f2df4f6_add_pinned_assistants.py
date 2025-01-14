@@ -20,6 +20,7 @@ def upgrade() -> None:
     op.add_column(
         "user", sa.Column("pinned_assistants", postgresql.JSONB(), nullable=True)
     )
+    op.execute('UPDATE "user" SET pinned_assistants = chosen_assistants')
 
 
 def downgrade() -> None:

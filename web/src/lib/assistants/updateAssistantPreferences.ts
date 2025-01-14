@@ -1,3 +1,5 @@
+"use client";
+
 export async function updateUserAssistantList(
   chosenAssistants: number[]
 ): Promise<boolean> {
@@ -27,38 +29,6 @@ export async function updateAssistantVisibility(
 
   return response.ok;
 }
-
-export const reorderPinnedAssistants = async (
-  assistantIds: number[]
-): Promise<boolean> => {
-  const response = await fetch(`/api/user/pinned-assistants`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ ordered_assistant_ids: assistantIds }),
-  });
-  return response.ok;
-};
-
-export const toggleAssistantPinnedStatus = async (
-  assistantId: number,
-  isPinned: boolean
-) => {
-  const response = await fetch(
-    `/api/user/pinned-assistants/${assistantId}?pinned=${isPinned}`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        assistant_id: assistantId,
-      }),
-    }
-  );
-  return response;
-};
 
 export async function removeAssistantFromList(
   assistantId: number

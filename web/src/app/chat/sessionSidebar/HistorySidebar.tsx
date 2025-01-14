@@ -32,7 +32,7 @@ import { DragEndEvent } from "@dnd-kit/core";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { buildChatUrl } from "../lib";
-import { toggleAssistantPinnedStatus } from "@/lib/assistants/updateAssistantPreferences";
+import { toggleAssistantPinnedStatus } from "@/lib/assistants/pinnedAssistants";
 import { useUser } from "@/components/user/UserProvider";
 import { DragHandle } from "@/components/table/DragHandle";
 import {
@@ -51,9 +51,8 @@ import {
 } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { reorderPinnedAssistants } from "@/lib/assistants/updateAssistantPreferences";
-import { CircleIcon, CircleX, TextIcon } from "lucide-react";
-import { FaPage4 } from "react-icons/fa";
+import { reorderPinnedAssistants } from "@/lib/assistants/pinnedAssistants";
+import { CircleX } from "lucide-react";
 
 interface HistorySidebarProps {
   page: pageType;
@@ -346,7 +345,11 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                       }}
                       onUnpin={async (e: React.MouseEvent) => {
                         e.stopPropagation();
-                        await toggleAssistantPinnedStatus(assistant.id, false);
+                        await toggleAssistantPinnedStatus(
+                          pinnedAssistants.map((a) => a.id),
+                          assistant.id,
+                          false
+                        );
                         await refreshUser();
                         await refreshAssistants();
                       }}

@@ -41,12 +41,19 @@ export default function InputPrompts() {
       if (response.ok) {
         const data = await response.json();
         setInputPrompts(data);
+        console.log("INPUT PROMPTS");
+        console.log(data);
       } else {
+        console.log("INPUT PROMPTS ERROR");
         throw new Error("Failed to fetch prompt shortcuts");
       }
     } catch (error) {
       setPopup({ message: "Failed to fetch prompt shortcuts", type: "error" });
     }
+  };
+
+  const isPromptPublic = (prompt: InputPrompt): boolean => {
+    return prompt.is_public;
   };
 
   const handleEdit = (
@@ -55,7 +62,9 @@ export default function InputPrompts() {
   ) => {
     setInputPrompts((prevPrompts) =>
       prevPrompts.map((prompt) =>
-        prompt.id === promptId ? { ...prompt, ...updatedFields } : prompt
+        prompt.id === promptId && !isPromptPublic(prompt)
+          ? { ...prompt, ...updatedFields }
+          : prompt
       )
     );
     setEditingPromptId(promptId);
@@ -63,7 +72,7 @@ export default function InputPrompts() {
 
   const handleSave = async (promptId: number) => {
     const promptToUpdate = inputPrompts.find((p) => p.id === promptId);
-    if (!promptToUpdate) return;
+    if (!promptToUpdate || isPromptPublic(promptToUpdate)) return;
 
     try {
       const response = await fetch(`/api/input_prompt/${promptId}`, {
@@ -84,6 +93,9 @@ export default function InputPrompts() {
   };
 
   const handleDelete = async (id: number) => {
+    const promptToDelete = inputPrompts.find((p) => p.id === id);
+    if (!promptToDelete || isPromptPublic(promptToDelete)) return;
+
     try {
       const response = await fetch(`/api/input_prompt/${id}`, {
         method: "DELETE",
@@ -144,14 +156,15 @@ export default function InputPrompts() {
         </TableHeader>
         <TableBody>
           {inputPrompts.map((prompt) => (
-            <TableRow className=" fltart" key={prompt.id}>
+            <TableRow className="fltart" key={prompt.id}>
               <TableCell className="">
                 <Textarea
                   value={prompt.prompt}
                   onChange={(e) =>
                     handleEdit(prompt.id, { prompt: e.target.value })
                   }
-                  className="min-h-[80px]  mb-auto resize-none"
+                  className="min-h-[80px] mb-auto resize-none"
+                  disabled={isPromptPublic(prompt)}
                 />
               </TableCell>
               <TableCell>
@@ -161,38 +174,43 @@ export default function InputPrompts() {
                     handleEdit(prompt.id, { content: e.target.value })
                   }
                   className="min-h-[80px]"
+                  disabled={isPromptPublic(prompt)}
                 />
               </TableCell>
               <TableCell>
                 <div className="flex space-x-2">
-                  {editingPromptId === prompt.id ? (
+                  {!isPromptPublic(prompt) && (
                     <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSave(prompt.id)}
-                      >
-                        <FiCheck size={14} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setEditingPromptId(null);
-                          fetchInputPrompts(); // Revert changes
-                        }}
-                      >
-                        <FiX size={14} />
-                      </Button>
+                      {editingPromptId === prompt.id ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSave(prompt.id)}
+                          >
+                            <FiCheck size={14} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingPromptId(null);
+                              fetchInputPrompts(); // Revert changes
+                            }}
+                          >
+                            <FiX size={14} />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(prompt.id)}
+                        >
+                          <TrashIcon size={14} />
+                        </Button>
+                      )}
                     </>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(prompt.id)}
-                    >
-                      <TrashIcon size={14} />
-                    </Button>
                   )}
                 </div>
               </TableCell>

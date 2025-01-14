@@ -38,14 +38,16 @@ def upgrade() -> None:
     op.create_table(
         "inputprompt__user",
         sa.Column("input_prompt_id", sa.Integer(), nullable=False),
-        sa.Column("user_id", sa.Integer(), nullable=False),
+        sa.Column(
+            "user_id", fastapi_users_db_sqlalchemy.generics.GUID(), nullable=False
+        ),
         sa.ForeignKeyConstraint(
             ["input_prompt_id"],
             ["inputprompt.id"],
         ),
         sa.ForeignKeyConstraint(
             ["user_id"],
-            ["inputprompt.id"],
+            ["user.id"],
         ),
         sa.PrimaryKeyConstraint("input_prompt_id", "user_id"),
     )
