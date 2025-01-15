@@ -1548,7 +1548,6 @@ export function ChatPage({
                     []),
                   initialFetchDetails.assistant_message_id!,
                 ],
-                sub_questions: sub_questions,
                 latestChildMessageId: initialFetchDetails.assistant_message_id,
               },
               {
@@ -1568,6 +1567,7 @@ export function ChatPage({
                 stackTrace: stackTrace,
                 overridden_model: finalMessage?.overridden_model,
                 stopReason: stopReason,
+                sub_questions: sub_questions,
               },
             ]);
           }
@@ -2562,10 +2562,11 @@ export function ChatPage({
                                     {langgraphEnabled ? (
                                       <AgenticMessage
                                         subQuestions={
-                                          message.sub_questions &&
-                                          message.sub_questions.length > 0
-                                            ? message.sub_questions
-                                            : parentMessage?.sub_questions || []
+                                          message.sub_questions || []
+                                          // &&
+                                          // message.sub_questions.length > 0
+                                          //   ? message.sub_questions
+                                          //   : parentMessage?.sub_questions || []
                                         }
                                         docs={
                                           message?.documents &&
