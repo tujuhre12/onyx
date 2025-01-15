@@ -46,7 +46,6 @@ from httpx_oauth.integrations.fastapi import OAuth2AuthorizeCallback
 from httpx_oauth.oauth2 import BaseOAuth2
 from httpx_oauth.oauth2 import OAuth2Token
 from pydantic import BaseModel
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from onyx.auth.api_key import get_hashed_api_key_from_request
@@ -372,8 +371,6 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
             except exceptions.UserNotExists:
                 try:
-                    # Set the search path for the current session
-                    await db_session.execute(text(f'SET search_path = "{tenant_id}"'))
                     # Attempt to get user by email
                     user = await self.get_by_email(account_email)
                     if not associate_by_email:
@@ -398,9 +395,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                     # OAuth account creation happens in the correct tenant schema
 
                     # Add OAuth account
-                    await db_session.execute(text(f'SET search_path = "{tenant_id}"'))
                     await self.user_db.add_oauth_account(user, oauth_account_dict)
-
                     await self.on_after_register(user, request)
 
             else:
