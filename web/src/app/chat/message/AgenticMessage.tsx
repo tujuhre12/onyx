@@ -214,6 +214,12 @@ export const AgenticMessage = ({
   };
 
   useEffect(() => {
+    if (!isGenerating) {
+      setStreamedContent(finalContent as string);
+    }
+  }, [content]);
+
+  useEffect(() => {
     if (isGenerating || streamedContent.length < 5) {
       if (streamingAllowed && typeof finalContent === "string") {
         streamContent(finalContent);
@@ -309,7 +315,12 @@ export const AgenticMessage = ({
     (props: any) => (
       <MemoizedAnchor
         updatePresentingDocument={setPresentingDocument!}
-        docs={subQuestions?.[0]?.context_docs?.top_documents || docs}
+        docs={
+          subQuestions?.[0]?.context_docs?.top_documents &&
+          subQuestions?.[0]?.context_docs?.top_documents.length
+            ? subQuestions?.[0]?.context_docs?.top_documents
+            : docs
+        }
         subQuestions={subQuestions || []}
         openQuestion={openQuestion}
       >
