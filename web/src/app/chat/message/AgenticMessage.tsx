@@ -62,8 +62,11 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import SubQuestionsDisplay from "./SubQuestionsDisplay";
 import SubQuestionProgress from "./SubQuestionProgress";
+import { Button } from "@/components/ui/button";
 
 export const AgenticMessage = ({
+  secondLevelAssistantMessage,
+  secondLevelGenerating,
   isGenerating,
   regenerate,
   overriddenModel,
@@ -96,6 +99,8 @@ export const AgenticMessage = ({
   index,
   subQuestions,
 }: {
+  secondLevelGenerating: boolean;
+  secondLevelAssistantMessage?: string;
   isGenerating: boolean;
   subQuestions: SubQuestionDetail[] | null;
   index?: number;
@@ -155,7 +160,7 @@ export const AgenticMessage = ({
     // Turn {{number}} into citation in content
     content = content.replace(/\{\{(\d+)\}\}/g, (match, p1) => {
       const citationNumber = parseInt(p1, 10);
-      return `[${citationNumber}]`;
+      return `[[${citationNumber}]]()`;
     });
 
     // Add newlines after ]] or ) if there's text immediately following
@@ -166,7 +171,14 @@ export const AgenticMessage = ({
       (!isComplete && !toolCallGenerating ? " [*]() " : "")
     );
   };
-  const finalContent = processContent(content as string);
+  const alternativeContent = secondLevelAssistantMessage
+    ? (processContent(content as string) as string)
+    : undefined;
+  const finalContent = processContent(
+    (secondLevelAssistantMessage
+      ? secondLevelAssistantMessage
+      : content) as string
+  );
 
   const [streamingAllowed, setStreamingAllowed] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
@@ -206,6 +218,8 @@ export const AgenticMessage = ({
       setStreamedContent(finalContent as string);
     }
   }, [finalContent, streamingAllowed, isGenerating]);
+
+  const [isViewingInitialAnswer, setIsViewingInitialAnswer] = useState(false);
 
   const [isRegenerateHovered, setIsRegenerateHovered] = useState(false);
   const [isRegenerateDropdownVisible, setIsRegenerateDropdownVisible] =
@@ -308,6 +322,19 @@ export const AgenticMessage = ({
     [anchorCallback, paragraphCallback, streamedContent]
   );
 
+  const renderedAlternativeMarkdown = useMemo(() => {
+    return (
+      <ReactMarkdown
+        className="prose max-w-full text-base"
+        components={markdownComponents}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[[rehypePrism, { ignoreMissing: true }], rehypeKatex]}
+      >
+        {alternativeContent}
+      </ReactMarkdown>
+    );
+  }, [alternativeContent, markdownComponents]);
+
   const renderedMarkdown = useMemo(() => {
     return (
       <ReactMarkdown
@@ -391,7 +418,9 @@ export const AgenticMessage = ({
                         <div className="px-4">
                           {typeof content === "string" ? (
                             <div className="overflow-x-visible !text-sm max-w-content-max">
-                              {renderedMarkdown}
+                              {isViewingInitialAnswer
+                                ? renderedAlternativeMarkdown
+                                : renderedMarkdown}
                             </div>
                           ) : (
                             content
@@ -402,7 +431,21 @@ export const AgenticMessage = ({
                   ) : isComplete ? null : (
                     <></>
                   )}
-
+                  {secondLevelAssistantMessage &&
+                    (isViewingInitialAnswer ? (
+                      <Button onClick={() => setIsViewingInitialAnswer(false)}>
+                        See final answer
+                      </Button>
+                    ) : (
+                      <Button onClick={() => setIsViewingInitialAnswer(true)}>
+                        See initial answer
+                      </Button>
+                    ))}
+                  {secondLevelGenerating && (
+                    <div>
+                      <div>Generating second level answer</div>
+                    </div>
+                  )}
                   {handleFeedback &&
                     (isActive ? (
                       <div

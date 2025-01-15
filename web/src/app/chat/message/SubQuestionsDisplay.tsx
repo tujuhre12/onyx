@@ -206,7 +206,7 @@ const SubQuestionDisplay: React.FC<{
             />
           </div>
           <div
-            className={`overflow-hidden transition-all duration-500 ease-in-out ${
+            className={` transition-all duration-500 ease-in-out ${
               toggled ? "max-h-[1000px]" : "max-h-0"
             }`}
           >
@@ -219,7 +219,9 @@ const SubQuestionDisplay: React.FC<{
                 <div className="pl-0 pb-2">
                   <div className="mb-4 flex flex-col gap-2">
                     <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                      Searching
+                      {subQuestion.is_complete
+                        ? "Search Results"
+                        : "Searching..."}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {subQuestion.sub_queries?.map((query, queryIndex) => (
@@ -370,7 +372,6 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
           documents={documents}
         />
       )}
-      asd
     </div>
   );
 };

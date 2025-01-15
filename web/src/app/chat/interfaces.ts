@@ -102,6 +102,7 @@ export interface Message {
   overridden_model?: string;
   stopReason?: StreamStopReason | null;
   sub_questions?: SubQuestionDetail[] | null;
+  second_level_generating?: boolean;
 }
 
 export interface BackendChatSession {

@@ -97,7 +97,7 @@ export const SourceChip2 = ({
           </div>
         </TooltipTrigger>
         {includeTooltip && (
-          <TooltipContent>
+          <TooltipContent className="z-[2000000]">
             <p>{title}</p>
           </TooltipContent>
         )}
