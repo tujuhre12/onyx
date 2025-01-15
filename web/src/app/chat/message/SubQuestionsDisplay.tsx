@@ -19,6 +19,7 @@ import { ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
 import { useStreamingMessages } from "./StreamingMessages";
 
 interface SubQuestionsDisplayProps {
+  isGenerating: boolean;
   subQuestions: SubQuestionDetail[];
   documents: OnyxDocument[];
   toggleDocumentSelection: () => void;
@@ -291,6 +292,7 @@ const SubQuestionDisplay: React.FC<{
 };
 
 const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
+  isGenerating,
   subQuestions,
   allowStreaming,
   documents,
@@ -328,30 +330,32 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
       `}</style>
       <div className="relative">
         {/* {subQuestions.map((subQuestion, index) => ( */}
-        {dynamicSubQuestions.map((subQuestion, index) => (
-          // {dynamicSubQuestions.map((subQuestion, index) => (
-          <SubQuestionDisplay
-            key={index}
-            subQuestion={subQuestion}
-            documents={documents}
-            isLast={index === subQuestions.length - 1}
-            isFirst={index === 0}
-            setPresentingDocument={setPresentingDocument}
-            unToggle={
-              subQuestion?.sub_queries == undefined ||
-              subQuestion?.sub_queries.length == 0 ||
-              (subQuestion?.sub_queries?.length > 0 &&
-                (subQuestion.answer == undefined ||
-                  subQuestion.answer.length > 3))
-              //   subQuestion == undefined &&
-              //   subQuestion.answer != undefined &&
-              //   !(
-              //     dynamicSubQuestions[index + 1] != undefined ||
-              //     dynamicSubQuestions[index + 1]?.sub_queries?.length! > 0
-              //   )
-            }
-          />
-        ))}
+        {(isGenerating ? dynamicSubQuestions : subQuestions).map(
+          (subQuestion, index) => (
+            // {dynamicSubQuestions.map((subQuestion, index) => (
+            <SubQuestionDisplay
+              key={index}
+              subQuestion={subQuestion}
+              documents={documents}
+              isLast={index === subQuestions.length - 1}
+              isFirst={index === 0}
+              setPresentingDocument={setPresentingDocument}
+              unToggle={
+                subQuestion?.sub_queries == undefined ||
+                subQuestion?.sub_queries.length == 0 ||
+                (subQuestion?.sub_queries?.length > 0 &&
+                  (subQuestion.answer == undefined ||
+                    subQuestion.answer.length > 3))
+                //   subQuestion == undefined &&
+                //   subQuestion.answer != undefined &&
+                //   !(
+                //     dynamicSubQuestions[index + 1] != undefined ||
+                //     dynamicSubQuestions[index + 1]?.sub_queries?.length! > 0
+                //   )
+              }
+            />
+          )
+        )}
         {dynamicSubQuestions.length < subQuestions.length && (
           <div className="flex items-center justify-center py-4">
             <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>

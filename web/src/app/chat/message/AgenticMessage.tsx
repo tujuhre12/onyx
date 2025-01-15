@@ -64,6 +64,7 @@ import SubQuestionsDisplay from "./SubQuestionsDisplay";
 import SubQuestionProgress from "./SubQuestionProgress";
 
 export const AgenticMessage = ({
+  isGenerating,
   regenerate,
   overriddenModel,
   selectedMessageForDocDisplay,
@@ -95,6 +96,7 @@ export const AgenticMessage = ({
   index,
   subQuestions,
 }: {
+  isGenerating: boolean;
   subQuestions: SubQuestionDetail[] | null;
   index?: number;
   selectedMessageForDocDisplay?: number | null;
@@ -171,7 +173,6 @@ export const AgenticMessage = ({
   const streamIndexRef = useRef(0);
 
   const allowStreaming = () => {
-    console.log("ALLOW STREAMING has been called");
     setStreamingAllowed(true);
   };
 
@@ -197,11 +198,14 @@ export const AgenticMessage = ({
   };
 
   useEffect(() => {
-    if (streamingAllowed && typeof finalContent === "string") {
-      // if streamIndexRef.current = 0; // Reset the index
-      streamContent(finalContent);
+    if (isGenerating) {
+      if (streamingAllowed && typeof finalContent === "string") {
+        streamContent(finalContent);
+      }
+    } else {
+      setStreamedContent(finalContent as string);
     }
-  }, [finalContent, streamingAllowed]);
+  }, [finalContent, streamingAllowed, isGenerating]);
 
   const [isRegenerateHovered, setIsRegenerateHovered] = useState(false);
   const [isRegenerateDropdownVisible, setIsRegenerateDropdownVisible] =
@@ -363,6 +367,7 @@ export const AgenticMessage = ({
 
                   {subQuestions && subQuestions.length > 0 && (
                     <SubQuestionsDisplay
+                      isGenerating={isGenerating}
                       allowStreaming={allowStreaming}
                       subQuestions={subQuestions}
                       documents={docs || []}
@@ -372,7 +377,7 @@ export const AgenticMessage = ({
                     />
                   )}
 
-                  <SubQuestionProgress subQuestions={subQuestions || []} />
+                  {/* {is_generating &&<SubQuestionProgress subQuestions={subQuestions || []} />} */}
 
                   {(content || files) && streamingAllowed ? (
                     <>

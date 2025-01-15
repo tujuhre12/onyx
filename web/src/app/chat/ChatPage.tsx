@@ -1262,6 +1262,7 @@ export function ChatPage({
     let stackTrace: string | null = null;
 
     let sub_questions: SubQuestionDetail[] = [];
+    let is_generating: boolean = false;
 
     let finalMessage: BackendMessage | null = null;
     let toolCall: ToolCallMetadata | null = null;
@@ -1420,9 +1421,8 @@ export function ChatPage({
                 sub_questions,
                 packet as StreamStopInfo
               );
-              console.log("PACKET INFO");
-              console.log(sub_questions);
             } else if (Object.hasOwn(packet, "sub_question")) {
+              is_generating = true;
               sub_questions = constructSubQuestions(
                 sub_questions,
                 packet as SubQuestionPiece
@@ -1450,9 +1450,9 @@ export function ChatPage({
               answer += (packet as AnswerPiecePacket).answer_piece;
             } else if (
               Object.hasOwn(packet, "top_documents") &&
-              Object.hasOwn(packet, "level_question_nr")
+              Object.hasOwn(packet, "level_question_nr") &&
+              (packet as DocumentsResponse).level_question_nr !== undefined
             ) {
-              console.log("PACKET INFO");
               const documentsResponse = packet as DocumentsResponse;
               sub_questions = constructSubQuestions(
                 sub_questions,
@@ -1551,6 +1551,7 @@ export function ChatPage({
                 latestChildMessageId: initialFetchDetails.assistant_message_id,
               },
               {
+                is_generating: is_generating,
                 messageId: initialFetchDetails.assistant_message_id!,
                 message: error || answer,
                 type: error ? "error" : "assistant",
@@ -2559,8 +2560,12 @@ export function ChatPage({
                                         : null
                                     }
                                   >
-                                    {langgraphEnabled ? (
+                                    {message.sub_questions &&
+                                    message.sub_questions.length > 0 ? (
                                       <AgenticMessage
+                                        isGenerating={
+                                          message.is_generating || false
+                                        }
                                         subQuestions={
                                           message.sub_questions || []
                                           // &&
@@ -2947,6 +2952,7 @@ export function ChatPage({
                                 return (
                                   <div key={messageReactComponentKey}>
                                     <AgenticMessage
+                                      isGenerating={false}
                                       subQuestions={message.sub_questions || []}
                                       currentPersona={liveAssistant}
                                       messageId={message.messageId}

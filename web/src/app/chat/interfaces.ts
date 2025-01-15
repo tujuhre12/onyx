@@ -83,6 +83,7 @@ export interface SearchSession {
 }
 
 export interface Message {
+  is_generating?: boolean;
   messageId: number;
   message: string;
   type: "user" | "assistant" | "system" | "error";
