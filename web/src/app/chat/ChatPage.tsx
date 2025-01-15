@@ -124,6 +124,7 @@ import { AgenticMessage } from "./message/AgenticMessage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { object } from "yup";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -1262,8 +1263,9 @@ export function ChatPage({
     let stackTrace: string | null = null;
 
     let sub_questions: SubQuestionDetail[] = [];
+    let second_level_sub_questions: SubQuestionDetail[] = [];
     let is_generating: boolean = false;
-
+    let second_level_generating: boolean = false;
     let finalMessage: BackendMessage | null = null;
     let toolCall: ToolCallMetadata | null = null;
 
@@ -1411,6 +1413,12 @@ export function ChatPage({
               }
               return prevState;
             });
+
+            if (Object.hasOwn(packet, "level")) {
+              if ((packet as any).level === 1) {
+                second_level_generating = true;
+              }
+            }
 
             // Continuously refine the sub_questions based on the packets that we receive
             if (
@@ -1570,6 +1578,7 @@ export function ChatPage({
                 overridden_model: finalMessage?.overridden_model,
                 stopReason: stopReason,
                 sub_questions: sub_questions,
+                second_level_generating: second_level_generating,
               },
             ]);
           }
@@ -2550,6 +2559,14 @@ export function ChatPage({
                                 ) {
                                   return <></>;
                                 }
+                                if (parentMessage?.type == "assistant") {
+                                  return <></>;
+                                }
+
+                                const secondLevelAssistantMessage =
+                                  messageHistory[i + 1]?.type === "assistant"
+                                    ? messageHistory[i + 1]?.message
+                                    : undefined;
 
                                 return (
                                   <div
@@ -2564,6 +2581,13 @@ export function ChatPage({
                                     {message.sub_questions &&
                                     message.sub_questions.length > 0 ? (
                                       <AgenticMessage
+                                        secondLevelGenerating={
+                                          message.second_level_generating ||
+                                          false
+                                        }
+                                        secondLevelAssistantMessage={
+                                          secondLevelAssistantMessage
+                                        }
                                         isGenerating={
                                           message.is_generating || false
                                         }
