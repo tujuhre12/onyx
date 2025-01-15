@@ -961,7 +961,7 @@ def refined_sub_question_creation(state: MainState) -> FollowUpSubQuestionsUpdat
     response = merge_content(*streamed_tokens)
 
     if isinstance(response, str):
-        parsed_response = response.split("\n")
+        parsed_response = [q for q in response.split("\n") if q.strip() != ""]
     else:
         raise ValueError("LLM response is not a string")
 

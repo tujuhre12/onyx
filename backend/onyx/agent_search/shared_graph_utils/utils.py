@@ -251,7 +251,9 @@ def dispatch_separated(
             sub_question_parts = content.split(sep)
             _dispatch_nonempty(sub_question_parts[0], dispatch_event, num)
             num += 1
-            _dispatch_nonempty("".join(sub_question_parts[1:]), dispatch_event, num)
+            _dispatch_nonempty(
+                "".join(sub_question_parts[1:]).strip(), dispatch_event, num
+            )
         else:
             _dispatch_nonempty(content, dispatch_event, num)
         streamed_tokens.append(content)
