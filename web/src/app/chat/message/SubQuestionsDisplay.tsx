@@ -393,7 +393,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
           </div>
         )}
       </div>
-      {memoizedSubQuestions.length > 0 && (
+      {documents.length > 0 && (
         <SourcesDisplay
           toggleDocumentSelection={toggleDocumentSelection}
           documents={documents}

@@ -25,6 +25,7 @@ export const MemoizedAnchor = memo(
     updatePresentingDocument: (doc: OnyxDocument) => void;
     children: React.ReactNode;
   }): JSX.Element => {
+    return <></>;
     const value = children?.toString();
     if (value?.startsWith("[") && value?.endsWith("]")) {
       const match = value.match(/\[(D|Q)?(\d+)\]/);
