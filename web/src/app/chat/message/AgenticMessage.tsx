@@ -64,6 +64,7 @@ import "katex/dist/katex.min.css";
 import SubQuestionsDisplay from "./SubQuestionsDisplay";
 import SubQuestionProgress from "./SubQuestionProgress";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/Spinner";
 
 export const AgenticMessage = ({
   secondLevelAssistantMessage,
@@ -446,37 +447,32 @@ export const AgenticMessage = ({
                   ) : isComplete ? null : (
                     <></>
                   )}
-                  {secondLevelAssistantMessage &&
-                    (isViewingInitialAnswer ? (
-                      <Button onClick={() => setIsViewingInitialAnswer(false)}>
-                        See final answer
-                      </Button>
-                    ) : (
-                      <Button onClick={() => setIsViewingInitialAnswer(true)}>
-                        See initial answer
-                      </Button>
-                    ))}
-
-                  {secondLevelGenerating && (
-                    <>
-                      <div className="flex mt-2 justify-start">
-                        <div className="text-transparent bg-clip-text bg-gradient-to-r from-[#2178FE] via-[#EDB6DD] to-[#FF6910] font-semibold py-2 flex items-center">
-                          Enhancing response
-                          <span className="ml-1 flex">
-                            <span className="text-[#FF6910]  animate-bounce mx-0.5">
-                              .
-                            </span>
-                            <span className="text-[#FF6910]  animate-bounce mx-0.5 delay-100">
-                              .
-                            </span>
-                            <span className="text-[#FF6910] animate-bounce mx-0.5 delay-200">
-                              .
-                            </span>
-                          </span>
-                        </div>
-                      </div>
-                    </>
+                  {secondLevelAssistantMessage && (
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setIsViewingInitialAnswer(!isViewingInitialAnswer)
+                      }
+                      className="mt-4 mb-2"
+                    >
+                      {isViewingInitialAnswer
+                        ? "See final answer"
+                        : "See initial answer"}
+                    </Button>
                   )}
+
+                  {secondLevelGenerating &&
+                    streamedContent.length ==
+                      (finalContent as string).length && (
+                      <div className="flex items-center mt-4 space-x-2">
+                        <span className="text-sm font-medium text-primary">
+                          Enhancing response
+                          <span className="animate-bounce mx-0.5">.</span>
+                          <span className="animate-bounce mx-0.5">.</span>
+                          <span className="animate-bounce mx-0.5">.</span>
+                        </span>
+                      </div>
+                    )}
 
                   {handleFeedback &&
                     (isActive ? (

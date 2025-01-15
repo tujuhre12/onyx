@@ -122,15 +122,17 @@ export const useStreamingMessages = (
         const p = progressRef.current[i];
         const dynSQ = dynamicSubQuestionsRef.current[i];
 
-        // If we haven't typed the entire question yet, type one more char
-        if (!p.questionDone && sq.question) {
+        // If we haven't typed the entire question yet, or even if we have, try to type one more char
+        if (sq.question) {
           const nextIndex = p.questionCharIndex + 1;
-          dynSQ.question = sq.question.slice(0, nextIndex);
-          p.questionCharIndex = nextIndex;
-          if (nextIndex >= sq.question.length) {
-            p.questionDone = true;
+          if (nextIndex <= sq.question.length) {
+            dynSQ.question = sq.question.slice(0, nextIndex);
+            p.questionCharIndex = nextIndex;
+            if (nextIndex >= sq.question.length) {
+              p.questionDone = true;
+            }
+            didStreamQuestion = true;
           }
-          didStreamQuestion = true;
         }
       }
 
@@ -251,7 +253,14 @@ export const useStreamingMessages = (
                 // If you want, you can check if this is the last subquestion
                 // and call allowStreaming() or do some final logic.
 
-                if (i === subQuestions.length - 1) {
+                if (
+                  sq.level_question_nr ===
+                  Math.max(
+                    ...subQuestions
+                      .filter((q) => q.level === 0)
+                      .map((q) => q.level_question_nr)
+                  )
+                ) {
                   allowStreaming();
                 }
               }
