@@ -231,6 +231,13 @@ def parse_question_id(question_id: str) -> tuple[int, int]:
     return int(level), int(question_nr)
 
 
+def _dispatch_nonempty(
+    content: str, dispatch_event: Callable[[str, int], None], num: int
+) -> None:
+    if content != "":
+        dispatch_event(content, num)
+
+
 def dispatch_separated(
     token_itr: Iterator[BaseMessage],
     dispatch_event: Callable[[str, int], None],
@@ -241,12 +248,12 @@ def dispatch_separated(
     for message in token_itr:
         content = cast(str, message.content)
         if sep in content:
-            for sub_question_part in content.split(sep):
-                dispatch_event(sub_question_part, num)
-                num += 1
-            num -= 1  # fencepost; extra increment at end of loop
+            sub_question_parts = content.split(sep)
+            _dispatch_nonempty(sub_question_parts[0], dispatch_event, num)
+            num += 1
+            _dispatch_nonempty("".join(sub_question_parts[1:]), dispatch_event, num)
         else:
-            dispatch_event(content, num)
+            _dispatch_nonempty(content, dispatch_event, num)
         streamed_tokens.append(content)
 
     return streamed_tokens
