@@ -1469,17 +1469,21 @@ export function ChatPage({
             } else if (
               Object.hasOwn(packet, "top_documents") &&
               Object.hasOwn(packet, "level_question_nr") &&
-              (packet as DocumentsResponse).level_question_nr !== undefined
+              (packet as DocumentsResponse).level_question_nr
             ) {
-              console.log("DOCS RESPONSE");
               const documentsResponse = packet as DocumentsResponse;
               sub_questions = constructSubQuestions(
                 sub_questions,
                 documentsResponse
               );
+
+              if (documentsResponse.level_question_nr === 0) {
+                documents = (packet as DocumentsResponse).top_documents;
+              }
             } else if (Object.hasOwn(packet, "top_documents")) {
               documents = (packet as DocumentInfoPacket).top_documents;
               retrievalType = RetrievalType.Search;
+
               if (documents && documents.length > 0) {
                 // point to the latest message (we don't know the messageId yet, which is why
                 // we have to use -1)
