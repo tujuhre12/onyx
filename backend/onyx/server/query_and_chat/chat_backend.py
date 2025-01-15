@@ -182,14 +182,6 @@ def get_chat_session(
         msg = translate_db_message_to_chat_message_detail(message)
         print(msg)
 
-    for message in session_messages:
-        print("-----")
-        print(message.message_type)
-        print(message.message)
-        print(f"{len(message.sub_questions)} sub questions:")
-        for sub_question in message.sub_questions:
-            print(sub_question.sub_question)
-
     return ChatSessionDetailResponse(
         chat_session_id=session_id,
         description=chat_session.description,
