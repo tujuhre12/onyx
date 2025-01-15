@@ -794,15 +794,18 @@ def stream_chat_message_objects(
             db_session=db_session,
         )
 
-        # any files to associate with the AI message e.g. dall-e generated images
-        sub_queries = {}
+        # reference_db_search_docs = None
+        # qa_docs_response = None
+        # # any files to associate with the AI message e.g. dall-e generated images
+        # ai_message_files = []
+        # dropped_indices = None
+        # tool_result = None
 
         # TODO: different channels for stored info when it's coming from the agent flow
         info_by_subq: dict[tuple[int, int], AnswerPostInfo] = defaultdict(
             lambda: AnswerPostInfo(ai_message_files=[])
         )
         for packet in answer.processed_streamed_output:
-            print(type(packet))
             if isinstance(packet, ToolResponse):
                 level, level_question_nr = (
                     (packet.level, packet.level_question_nr)
@@ -810,7 +813,6 @@ def stream_chat_message_objects(
                     else BASIC_KEY
                 )
                 info = info_by_subq[(level, level_question_nr)]
-
                 # TODO: don't need to dedupe here when we do it in agent flow
                 if packet.id == SEARCH_RESPONSE_SUMMARY_ID:
                     (
