@@ -2597,8 +2597,12 @@ export function ChatPage({
                                           false
                                         }
                                         secondLevelAssistantMessage={
-                                          message.second_level_message ||
-                                          secondLevelAssistantMessage
+                                          (message.second_level_message &&
+                                          message.second_level_message.length >
+                                            0
+                                            ? message.second_level_message
+                                            : secondLevelAssistantMessage) ||
+                                          undefined
                                         }
                                         isGenerating={
                                           message.is_generating || false

@@ -170,7 +170,7 @@ export const AgenticMessage = ({
     //   return `[[D${citationNumber}]]()`;
     // });
     // Add newlines after ]] or ) if there's text immediately following
-    content = content.replace(/(\]\]|\))((?!\s|\n|\[|\(|$).)/g, "$1\n$2");
+    // content = content.replace(/(\]\]|\))((?!\s|\n|\[|\(|$).)/g, "$1\n$2");
 
     return (
       preprocessLaTeX(content) +
@@ -451,7 +451,7 @@ export const AgenticMessage = ({
                       </Button>
                     ))}
 
-                  {true && (
+                  {secondLevelGenerating && (
                     <>
                       <div className="flex mt-2 justify-start">
                         <div className="text-transparent bg-clip-text bg-gradient-to-r from-[#2178FE] via-[#EDB6DD] to-[#FF6910] font-semibold py-2 flex items-center">
