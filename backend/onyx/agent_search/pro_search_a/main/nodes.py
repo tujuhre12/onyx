@@ -747,12 +747,25 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     else:
         base_prompt = REVISED_RAG_PROMPT_NO_SUB_QUESTIONS
 
+    model = state["fast_llm"]
+    relevant_docs = format_docs(combined_documents)
+    relevant_docs = trim_prompt_piece(
+        model.config,
+        relevant_docs,
+        base_prompt
+        + question
+        + sub_question_answer_str
+        + relevant_docs
+        + initial_answer
+        + persona_specification,
+    )
+
     msg = [
         HumanMessage(
             content=base_prompt.format(
                 question=question,
                 answered_sub_questions=sub_question_answer_str,
-                relevant_docs=format_docs(combined_documents),
+                relevant_docs=relevant_docs,
                 initial_answer=initial_answer,
                 persona_specification=persona_specification,
             )
@@ -760,7 +773,6 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     ]
 
     # Grader
-    model = state["fast_llm"]
 
     streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
     for message in model.stream(msg):
