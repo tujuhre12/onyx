@@ -384,10 +384,8 @@ async def get_async_session_with_tenant(
         raise ValueError("Invalid tenant ID")
 
     async with AsyncSessionLocal() as session:
-        # 2. Store tenant_id in the *sync* session’s info dict
         session.sync_session.info["tenant_id"] = tenant_id
 
-        # Optionally set idle_in_transaction_session_timeout for this session
         if POSTGRES_IDLE_SESSIONS_TIMEOUT:
             await session.execute(
                 text(
