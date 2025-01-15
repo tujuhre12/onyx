@@ -37,6 +37,7 @@ from onyx.agent_search.shared_graph_utils.models import CombinedAgentMetrics
 from onyx.agent_search.shared_graph_utils.models import Entity
 from onyx.agent_search.shared_graph_utils.models import EntityRelationshipTermExtraction
 from onyx.agent_search.shared_graph_utils.models import InitialAgentResultStats
+from onyx.agent_search.shared_graph_utils.models import QueryResult
 from onyx.agent_search.shared_graph_utils.models import (
     QuestionAnswerResults,
 )
@@ -72,6 +73,7 @@ from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import SubQuestionPiece
 from onyx.db.chat import log_agent_metrics
 from onyx.db.chat import log_agent_sub_question_results
+from onyx.tools.models import SearchQueryInfo
 from onyx.tools.models import ToolCallKickoff
 from onyx.tools.tool_implementations.search.search_tool import yield_search_responses
 from onyx.utils.logger import setup_logger
@@ -240,6 +242,17 @@ def _calculate_initial_agent_stats(
     return initial_agent_result_stats
 
 
+def _get_query_info(results: list[QueryResult]) -> SearchQueryInfo:
+    # Use the query info from the base document retrieval
+    # TODO: see if this is the right way to do this
+    query_infos = [
+        result.query_info for result in results if result.query_info is not None
+    ]
+    if len(query_infos) == 0:
+        raise ValueError("No query info found")
+    return query_infos[0]
+
+
 def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     now_start = datetime.now()
 
@@ -274,18 +287,13 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
 
     else:
         # Use the query info from the base document retrieval
-        query_infos = [
-            result.query_info
-            for result in state["original_question_retrieval_results"]
-            if result.query_info is not None
-        ]
-        if len(query_infos) == 0:
-            raise ValueError("No query info found")
+        query_info = _get_query_info(state["original_question_retrieval_results"])
+
         for tool_response in yield_search_responses(
             query=question,
             reranked_sections=relevant_docs,
             final_context_sections=relevant_docs,
-            search_query_info=query_infos[0],
+            search_query_info=query_info,
             get_section_relevance=lambda: None,  # TODO: add relevance
             search_tool=state["search_tool"],
         ):
@@ -681,6 +689,26 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     revised_documents = state["refined_documents"]
 
     combined_documents = dedup_inference_sections(initial_documents, revised_documents)
+
+    query_info = _get_query_info(state["original_question_retrieval_results"])
+    # stream refined answer docs
+    for tool_response in yield_search_responses(
+        query=question,
+        reranked_sections=combined_documents,
+        final_context_sections=combined_documents,
+        search_query_info=query_info,
+        get_section_relevance=lambda: None,  # TODO: add relevance
+        search_tool=state["search_tool"],
+    ):
+        dispatch_custom_event(
+            "tool_response",
+            ExtendedToolResponse(
+                id=tool_response.id,
+                response=tool_response.response,
+                level=1,
+                level_question_nr=0,  # 0, 0 is the base question
+            ),
+        )
 
     if len(initial_documents) > 0:
         revision_doc_effectiveness = len(combined_documents) / len(initial_documents)

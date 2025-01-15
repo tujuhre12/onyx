@@ -1018,6 +1018,7 @@ def stream_chat_message_objects(
         agent_answers = answer.llm_answer_by_level()
         while next_level in agent_answers:
             next_answer = agent_answers[next_level]
+            info = info_by_subq[(next_level, AGENT_SEARCH_INITIAL_KEY[1])]
             next_answer_message = create_new_chat_message(
                 chat_session_id=chat_session_id,
                 parent_message=prev_message,
