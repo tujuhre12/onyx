@@ -1430,11 +1430,13 @@ class StarterMessage(TypedDict):
     """NOTE: is a `TypedDict` so it can be used as a type hint for a JSONB column
     in Postgres"""
 
+    name: str
     message: str
 
 
 class StarterMessageModel(BaseModel):
     message: str
+    name: str
 
 
 class Persona__PersonaLabel(Base):
