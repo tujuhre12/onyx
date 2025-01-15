@@ -225,6 +225,9 @@ export const constructSubQuestions = (
   if (!newDetail) {
     return subQuestions;
   }
+  if (newDetail.level_question_nr == 0) {
+    return subQuestions;
+  }
 
   const updatedSubQuestions = [...subQuestions];
   // .filter(
