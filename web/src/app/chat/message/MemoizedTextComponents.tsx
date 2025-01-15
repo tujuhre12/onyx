@@ -25,8 +25,8 @@ export const MemoizedAnchor = memo(
     updatePresentingDocument: (doc: OnyxDocument) => void;
     children: React.ReactNode;
   }): JSX.Element => {
-    return <></>;
     const value = children?.toString();
+    // return <></>
     if (value?.startsWith("[") && value?.endsWith("]")) {
       const match = value.match(/\[(D|Q)?(\d+)\]/);
       console.log("match", match);
@@ -44,7 +44,12 @@ export const MemoizedAnchor = memo(
           : undefined;
 
         if (!associatedDoc && !associatedSubQuestion) {
-          return <>{children}</>;
+          return (
+            <>
+              [{docs?.length}]{isSubQuestion ? "Q" : "D"}
+              {children}
+            </>
+          );
         }
 
         let icon: React.ReactNode = null;
