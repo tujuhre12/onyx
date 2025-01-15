@@ -10,6 +10,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.messages import merge_message_runs
 
+from onyx.agent_search.shared_graph_utils.agent_prompt_ops import trim_prompt_piece
 from onyx.agent_search.pro_search_b.answer_initial_sub_question.states import (
     AnswerQuestionOutput,
 )
@@ -496,13 +497,15 @@ def entity_term_extraction_llm(state: MainState) -> EntityTermExtractionUpdate:
     # start with the entity/term/extraction
 
     doc_context = format_docs(relevant_docs)
+    fast_llm = state["fast_llm"]
+    doc_context = trim_prompt_piece(fast_llm.config, doc_context, ENTITY_TERM_PROMPT + question)
 
     msg = [
         HumanMessage(
             content=ENTITY_TERM_PROMPT.format(question=question, context=doc_context),
         )
     ]
-    fast_llm = state["fast_llm"]
+    
     # Grader
     llm_response_list = list(
         fast_llm.stream(

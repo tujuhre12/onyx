@@ -31,6 +31,7 @@ from onyx.agent_search.pro_search_a.main.states import MainOutput
 from onyx.agent_search.pro_search_a.main.states import MainState
 from onyx.agent_search.pro_search_a.main.states import RefinedAnswerUpdate
 from onyx.agent_search.pro_search_a.main.states import RequireRefinedAnswerUpdate
+from onyx.agent_search.shared_graph_utils.agent_prompt_ops import trim_prompt_piece
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.models import CombinedAgentMetrics
 from onyx.agent_search.shared_graph_utils.models import Entity
@@ -478,6 +479,7 @@ def entity_term_extraction_llm(state: MainState) -> EntityTermExtractionUpdate:
 
     doc_context = format_docs(relevant_docs)
 
+    doc_context = trim_prompt_piece(state["fast_llm"].config, doc_context, ENTITY_TERM_PROMPT + question)
     msg = [
         HumanMessage(
             content=ENTITY_TERM_PROMPT.format(question=question, context=doc_context),

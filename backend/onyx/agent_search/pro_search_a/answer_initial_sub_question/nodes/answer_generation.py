@@ -53,14 +53,16 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
 
         logger.debug(f"Number of verified retrieval docs: {len(docs)}")
 
+        fast_llm = state["subgraph_fast_llm"]
         msg = build_sub_question_answer_prompt(
             question=question,
             original_question=state["subgraph_config"].search_request.query,
             docs=docs,
             persona_specification=persona_specification,
+            config = fast_llm.config,
         )
 
-        fast_llm = state["subgraph_fast_llm"]
+        
         response: list[str | list[str | dict[str, Any]]] = []
         for message in fast_llm.stream(
             prompt=msg,
