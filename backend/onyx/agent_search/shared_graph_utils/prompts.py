@@ -252,7 +252,7 @@ DEEP_DECOMPOSE_PROMPT = """ \n
     were not directly answerable. Also, some entities, relationships and terms are givenm to you so that
     you have an idea of how the avaiolable data looks like.
 
-    Your role is to generate 3-5 new sub-questions that would help to answer the initial question,
+    Your role is to generate 2-4 new sub-questions that would help to answer the initial question,
     considering:
 
     1) The initial question
@@ -413,8 +413,8 @@ SUB_QUESTION_EXPLANATION_RANKER_PROMPT = """-------
 
 
 INITIAL_DECOMPOSITION_PROMPT_QUESTIONS = """
-If you think it is helpful, please decompose an initial user question into 2 or 4 appropriate sub-questions that help to
-answer the original question. The purpose for this decomposition is to
+If you think it is helpful, please decompose an initial user question into no more than 3 appropriate sub-questions that help to
+answer the original question. The purpose for this decomposition may be to
   1) isolate individual entities (i.e., 'compare sales of company A and company B' -> ['what are sales for company A',
      'what are sales for company B')]
   2) clarify or disambiguate ambiguous terms (i.e., 'what is our success with company A' -> ['what are our sales with company A',
@@ -423,6 +423,7 @@ answer the original question. The purpose for this decomposition is to
     familiar with the entity, then you can decompose the question into sub-questions that are more specific to components
      (i.e., 'what do we do to improve scalability of product X', 'what do we to to improve scalability of product X',
      'what do we do to improve stability of product X', ...])
+  4) research an area that could really help to answer the question. (But clarifications or disambiguations are more important.)
 
 If you think that a decomposition is not needed or helpful, please just return an empty string. That is ok too.
 
@@ -566,7 +567,7 @@ IMPORTANT RULES:
  - If the information is empty or irrelevant, just say "I don't know".
  - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
 
-Remember to provide inline citations of documentsin the format [D1], [D2], [D3], etc., and  [Q1], [Q2],... if
+Remember to provide inline citations of documents in the format [D1], [D2], [D3], etc., and  [Q1], [Q2],... if
 you want to cite the answer to a sub-question. If you have multiple citations, please cite for example
 as [D1][Q3], or [D2][D4], etc. Feel free to cite documents in addition to the sub-questions!
 Proper citations are important for the final answer to be verifiable! \n\n\n
@@ -641,6 +642,11 @@ IMPORTANT RULES:
  specify that the information is not conclusive and why.
 
 Again, you should be sure that the answer is supported by the information provided!
+
+Remember to provide inline citations of documents in the format [D1], [D2], [D3], etc., and  [Q1], [Q2],... if
+you want to cite the answer to a sub-question. If you have multiple citations, please cite for example
+as [D1][Q3], or [D2][D4], etc. Feel free to cite documents in addition to the sub-questions!
+Proper citations are important for the final answer to be verifiable! \n\n\n
 
 Try to keep your answer concise. But also highlight uncertainties you may have should there be substantial ones,
 or assumptions you made.

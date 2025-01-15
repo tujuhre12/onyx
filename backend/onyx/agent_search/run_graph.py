@@ -294,6 +294,12 @@ def run_graph(
                         if not start_of_next_section.strip().startswith("["):
                             citation_potential[level][level_question_nr] = False
 
+                            start_of_new_section_object = _set_combined_token_value(
+                                start_of_next_section, parsed_object
+                            )
+
+                            yield start_of_new_section_object
+
             elif isinstance(parsed_object, ExtendedToolResponse):
                 if parsed_object.id == "search_response_summary":
                     level = parsed_object.level
@@ -412,8 +418,8 @@ if __name__ == "__main__":
     primary_llm, fast_llm = get_default_llms()
     search_request = SearchRequest(
         # query="what can you do with gitlab?",
-        # query="What are the guiding principles behind the development of cockroachDB?",
-        query="What are the temperatures in Munich, Hawaii, and New York?",
+        query="What are the guiding principles behind the development of cockroachDB?",
+        # query="What are the temperatures in Munich, Hawaii, and New York?",
     )
     # Joachim custom persona
 
