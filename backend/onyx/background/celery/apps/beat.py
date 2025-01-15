@@ -137,7 +137,7 @@ class DynamicTenantScheduler(PersistentScheduler):
             if task_name.startswith("cloud"):
                 continue
 
-            if "-" in task_name:
+            if "_" in task_name:
                 # example: "check-for-condition-tenant_12345678-abcd-efgh-ijkl-12345678"
                 # -> "12345678-abcd-efgh-ijkl-12345678"
                 current_tenants.add(task_name.split("_")[-1])
