@@ -14,7 +14,6 @@ from onyx.server.features.tool.models import ToolSnapshot
 from onyx.server.models import MinimalUserSnapshot
 from onyx.utils.logger import setup_logger
 
-# from onyx.server.features.persona.models import PersonaLabelSnapshot
 
 logger = setup_logger()
 

@@ -392,15 +392,9 @@ def build_assistant_prompts(
     user: User | None = Depends(current_user),
 ) -> list[StarterMessage]:
     try:
-        print(
-            "Generating starter messages for user: %s", user.id if user else "Anonymous"
-        )
-        print(
-            "Number of messages to generate: %s",
-            generate_persona_prompt_request.generation_count,
-        )
         logger.info(
-            "Generating starter messages for user: %s", user.id if user else "Anonymous"
+            f"Generating {generate_persona_prompt_request.generation_count} starter messages"
+            f" for user: {user.id if user else 'Anonymous'}",
         )
         starter_messages = generate_starter_messages(
             name=generate_persona_prompt_request.name,
@@ -411,7 +405,6 @@ def build_assistant_prompts(
             db_session=db_session,
             user=user,
         )
-        print("Generated starter messages length: %s", len(starter_messages))
         return starter_messages
     except Exception as e:
         logger.exception("Failed to generate starter messages")

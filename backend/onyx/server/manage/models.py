@@ -76,8 +76,6 @@ class UserInfo(BaseModel):
         organization_name: str | None = None,
         is_anonymous_user: bool | None = None,
     ) -> "UserInfo":
-        print("user.pinned_assistants", user.pinned_assistants)
-        print("user.pinned_assistants", user.pinned_assistants)
         return cls(
             id=str(user.id),
             email=user.email,

@@ -24,7 +24,6 @@ export function UserProvider({
   children: React.ReactNode;
   user: User | null;
 }) {
-  console.log(user);
   const [upToDateUser, setUpToDateUser] = useState<User | null>(user);
 
   const posthog = usePostHog();

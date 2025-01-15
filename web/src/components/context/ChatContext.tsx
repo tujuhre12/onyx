@@ -85,7 +85,6 @@ export const ChatProvider: React.FC<{
     const response = await fetch("/api/input_prompt");
     if (!response.ok) throw new Error("Failed to fetch input prompts");
     const inputPrompts = await response.json();
-    console.log("inputPrompts", inputPrompts);
     setInputPrompts(inputPrompts);
   };
 

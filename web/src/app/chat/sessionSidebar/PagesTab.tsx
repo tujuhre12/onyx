@@ -269,7 +269,6 @@ export function PagesTab({
           draggable
           onDragStart={(e) => {
             setIsDraggingSessionId(chat.id);
-            console.log("dragging");
             e.dataTransfer.setData("text/plain", chat.id);
           }}
           onDragEnd={() => setIsDraggingSessionId(null)}

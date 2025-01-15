@@ -397,7 +397,6 @@ export function ChatPage({
   );
 
   const [isReady, setIsReady] = useState(false);
-  console.log(assistants);
 
   useEffect(() => {
     Prism.highlightAll();

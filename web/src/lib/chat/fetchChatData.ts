@@ -90,8 +90,7 @@ export async function fetchChatData(searchParams: {
   const tagsResponse = results[5] as Response | null;
   const llmProviders = (results[6] || []) as LLMProviderDescriptor[];
   const foldersResponse = results[7] as Response | null;
-  // console.log("results[8]");
-  // console.log(results[8]);
+
   let inputPrompts: InputPrompt[] = [];
   if (results[8] instanceof Response && results[8].ok) {
     inputPrompts = await results[8].json();

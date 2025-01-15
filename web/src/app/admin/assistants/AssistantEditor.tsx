@@ -1143,21 +1143,6 @@ export function AssistantEditor({
                     } else {
                       const { modelName, provider, name } =
                         destructureValue(selected);
-
-                      console.log(values);
-                      console.log("model name:", modelName);
-                      console.log("provider:", provider);
-                      console.log("name:", name);
-
-                      console.log(
-                        values.llm_model_version_override
-                          ? structureValue(
-                              values.llm_model_provider_override,
-                              "",
-                              values.llm_model_version_override
-                            )
-                          : null
-                      );
                       if (modelName && name) {
                         setFieldValue("llm_model_version_override", modelName);
                         setFieldValue("llm_model_provider_override", name);
@@ -1517,7 +1502,6 @@ export function AssistantEditor({
 
               <div className="mt-12 gap-x-2 w-full  justify-end flex">
                 <Button
-                  onClick={() => console.log(values)}
                   type="submit"
                   disabled={isSubmitting || isRequestSuccessful}
                 >

@@ -209,7 +209,6 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
 
             // Ensure we're sending the correct IDs to the API
             const reorderedIds = newOrder.map((a: Persona) => a.id);
-            console.log("reorderedIds", reorderedIds);
             reorderPinnedAssistants(reorderedIds);
 
             return newOrder;

@@ -87,7 +87,6 @@ def patch_input_prompt(
     db_session: Session = Depends(get_session),
 ) -> InputPromptSnapshot:
     try:
-        print("update_input_prompt_request", update_input_prompt_request)
         updated_input_prompt = update_input_prompt(
             user=user,
             input_prompt_id=input_prompt_id,
@@ -96,7 +95,6 @@ def patch_input_prompt(
             active=update_input_prompt_request.active,
             db_session=db_session,
         )
-        print("updated_input_prompt", updated_input_prompt)
     except ValueError as e:
         error_msg = "Error occurred while updated input prompt"
         logger.warn(f"{error_msg}. Stack trace: {e}")

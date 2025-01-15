@@ -44,8 +44,6 @@ export const LLMSelector: React.FC<LLMSelectorProps> = ({
     ? destructureValue(currentLlm)
     : null;
 
-  console.log(llmOptions);
-
   const currentLlmName = destructuredCurrentValue?.modelName;
 
   return (
