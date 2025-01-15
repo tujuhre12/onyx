@@ -149,6 +149,13 @@ export const AgenticMessage = ({
         return preprocessLaTeX(content);
       }
     }
+
+    // Turn {{number}} into citation in content
+    content = content.replace(/\{\{(\d+)\}\}/g, (match, p1) => {
+      const citationNumber = parseInt(p1, 10);
+      return `[${citationNumber}]`;
+    });
+
     // Add newlines after ]] or ) if there's text immediately following
     content = content.replace(/(\]\]|\))((?!\s|\n|\[|\(|$).)/g, "$1\n$2");
 
