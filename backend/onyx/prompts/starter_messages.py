@@ -37,7 +37,7 @@ Do not provide any additional text or explanation and be extremely concise
 
 def format_persona_starter_message_prompt(
     name: str, description: str, instructions: str, category: str | None = None
-):
+) -> str:
     category_prompt = f"**Category**: {category}" if category else ""
     return PERSONA_STARTER_MESSAGE_CREATION_PROMPT.format(
         category_prompt=category_prompt,

@@ -222,7 +222,7 @@ def fetch_input_prompts_by_user(
 
     # If no user is logged in, get all prompts (public and private)
     if user_id is None and AUTH_TYPE == AuthType.DISABLED:
-        query = query.where(True)  # This will select all prompts
+        query = query.where(True)  # type: ignore
 
     # If no user is logged in but we want to include public prompts
     elif include_public:
