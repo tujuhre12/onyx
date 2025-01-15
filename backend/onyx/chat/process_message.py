@@ -1,8 +1,10 @@
 import traceback
 from collections.abc import Callable
 from collections.abc import Iterator
+from collections import defaultdict
 from functools import partial
 from typing import cast
+from typing import TypedDict
 
 from sqlalchemy.orm import Session
 
@@ -37,6 +39,7 @@ from onyx.configs.chat_configs import MAX_CHUNKS_FED_TO_CHAT
 from onyx.configs.constants import MessageType
 from onyx.configs.constants import MilestoneRecordType
 from onyx.configs.constants import NO_AUTH_USER_ID
+from onyx.configs.constants import BASIC_KEY
 from onyx.context.search.enums import LLMEvaluationType
 from onyx.context.search.enums import OptionalSearchSetting
 from onyx.context.search.enums import QueryFlow
@@ -297,6 +300,17 @@ ChatPacket = (
     | ProSearchPacket
 )
 ChatPacketStream = Iterator[ChatPacket]
+
+from dataclasses import dataclass
+# can't store a DbSearchDoc in a Pydantic BaseModel
+@dataclass
+class AnswerPostInfo():
+    ai_message_files: list[FileDescriptor] 
+    qa_docs_response: QADocsResponse | None = None
+    reference_db_search_docs: list[DbSearchDoc] | None = None
+    dropped_indices: list[int] | None = None
+    tool_result: ToolCallFinalResult | None = None
+    message_specific_citations: MessageSpecificCitations | None = None
 
 
 def stream_chat_message_objects(
@@ -769,21 +783,27 @@ def stream_chat_message_objects(
             db_session=db_session,
         )
 
-        reference_db_search_docs = None
-        qa_docs_response = None
-        # any files to associate with the AI message e.g. dall-e generated images
-        ai_message_files = []
-        dropped_indices = None
-        tool_result = None
+        # reference_db_search_docs = None
+        # qa_docs_response = None
+        # # any files to associate with the AI message e.g. dall-e generated images
+        # ai_message_files = []
+        # dropped_indices = None
+        # tool_result = None
 
+
+
+        # TODO: different channels for stored info when it's coming from the agent flow
+        info_by_subq: dict[tuple[int, int], AnswerPostInfo] = defaultdict(lambda: AnswerPostInfo(ai_message_files=[]))
         for packet in answer.processed_streamed_output:
             if isinstance(packet, ToolResponse):
+                level, level_question_nr = (packet.level, packet.level_question_nr) if isinstance(packet, ExtendedToolResponse) else BASIC_KEY
+                info = info_by_subq[(level, level_question_nr)]
                 # TODO: don't need to dedupe here when we do it in agent flow
                 if packet.id == SEARCH_RESPONSE_SUMMARY_ID:
                     (
-                        qa_docs_response,
-                        reference_db_search_docs,
-                        dropped_indices,
+                        info.qa_docs_response,
+                        info.reference_db_search_docs,
+                        info.dropped_indices,
                     ) = _handle_search_tool_response_summary(
                         packet=packet,
                         db_session=db_session,
@@ -795,11 +815,11 @@ def stream_chat_message_objects(
                             else False
                         ),
                     )
-                    yield qa_docs_response
+                    yield info.qa_docs_response
                 elif packet.id == SECTION_RELEVANCE_LIST_ID:
                     relevance_sections = packet.response
 
-                    if reference_db_search_docs is None:
+                    if info.reference_db_search_docs is None:
                         logger.warning(
                             "No reference docs found for relevance filtering"
                         )
@@ -809,15 +829,15 @@ def stream_chat_message_objects(
                         relevance_sections=relevance_sections,
                         items=[
                             translate_db_search_doc_to_server_search_doc(doc)
-                            for doc in reference_db_search_docs
+                            for doc in info.reference_db_search_docs
                         ],
                     )
 
-                    if dropped_indices:
+                    if info.dropped_indices:
                         llm_indices = drop_llm_indices(
                             llm_indices=llm_indices,
-                            search_docs=reference_db_search_docs,
-                            dropped_indices=dropped_indices,
+                            search_docs=info.reference_db_search_docs,
+                            dropped_indices=info.dropped_indices,
                         )
 
                     yield LLMRelevanceFilterResponse(
@@ -842,22 +862,24 @@ def stream_chat_message_objects(
                         ],
                         tenant_id=tenant_id,
                     )
-                    ai_message_files = [
-                        FileDescriptor(id=str(file_id), type=ChatFileType.IMAGE)
-                        for file_id in file_ids
-                    ]
+                    info.ai_message_files.extend(
+                        [
+                            FileDescriptor(id=str(file_id), type=ChatFileType.IMAGE)
+                            for file_id in file_ids
+                        ]
+                    )
                     yield FileChatDisplay(
                         file_ids=[str(file_id) for file_id in file_ids]
                     )
                 elif packet.id == INTERNET_SEARCH_RESPONSE_ID:
                     (
-                        qa_docs_response,
-                        reference_db_search_docs,
+                        info.qa_docs_response,
+                        info.reference_db_search_docs,
                     ) = _handle_internet_search_tool_response_summary(
                         packet=packet,
                         db_session=db_session,
                     )
-                    yield qa_docs_response
+                    yield info.qa_docs_response
                 elif packet.id == CUSTOM_TOOL_RESPONSE_ID:
                     custom_tool_response = cast(CustomToolCallSummary, packet.response)
 
@@ -866,7 +888,7 @@ def stream_chat_message_objects(
                         or custom_tool_response.response_type == "csv"
                     ):
                         file_ids = custom_tool_response.tool_result.file_ids
-                        ai_message_files.extend(
+                        info.ai_message_files.extend(
                             [
                                 FileDescriptor(
                                     id=str(file_id),
@@ -895,7 +917,9 @@ def stream_chat_message_objects(
                     yield packet
             else:
                 if isinstance(packet, ToolCallFinalResult):
-                    tool_result = packet
+                    level, level_question_nr = (packet.level, packet.level_question_nr) if packet.level is not None and packet.level_question_nr is not None else BASIC_KEY
+                    info = info_by_subq[(level, level_question_nr)]
+                    info.tool_result = packet
                 yield cast(ChatPacket, packet)
         logger.debug("Reached end of stream")
     except ValueError as e:
@@ -922,47 +946,77 @@ def stream_chat_message_objects(
 
     # Post-LLM answer processing
     try:
-        logger.debug("Post-LLM answer processing")
-        message_specific_citations: MessageSpecificCitations | None = None
-        if reference_db_search_docs:
-            message_specific_citations = _translate_citations(
-                citations_list=answer.citations,
-                db_docs=reference_db_search_docs,
-            )
-            if not answer.is_cancelled():
-                yield AllCitations(citations=answer.citations)
-
-        # Saving Gen AI answer and responding with message info
         tool_name_to_tool_id: dict[str, int] = {}
         for tool_id, tool_list in tool_dict.items():
             for tool in tool_list:
                 tool_name_to_tool_id[tool.name] = tool_id
 
+        
+        subq_citations = answer.citations_by_subquestion()
+        for pair in subq_citations:
+            level, level_question_nr = pair
+            info = info_by_subq[(level, level_question_nr)]
+            logger.debug("Post-LLM answer processing")
+            if info.reference_db_search_docs:
+                info.message_specific_citations = _translate_citations(
+                    citations_list=subq_citations[pair],
+                    db_docs=info.reference_db_search_docs,
+                )
+
+            #TODO: AllCitations should contain subq info?
+            if not answer.is_cancelled():
+                yield AllCitations(citations=subq_citations[pair])
+
+        # Saving Gen AI answer and responding with message info
+
+        info = info_by_subq[BASIC_KEY]
         gen_ai_response_message = partial_response(
             message=answer.llm_answer,
             rephrased_query=(
-                qa_docs_response.rephrased_query if qa_docs_response else None
+                info.qa_docs_response.rephrased_query if info.qa_docs_response else None
             ),
-            reference_docs=reference_db_search_docs,
-            files=ai_message_files,
+            reference_docs=info.reference_db_search_docs,
+            files=info.ai_message_files,
             token_count=len(llm_tokenizer_encode_func(answer.llm_answer)),
             citations=(
-                message_specific_citations.citation_map
-                if message_specific_citations
+                info.message_specific_citations.citation_map
+                if info.message_specific_citations
                 else None
             ),
             error=None,
             tool_call=(
                 ToolCall(
-                    tool_id=tool_name_to_tool_id[tool_result.tool_name],
-                    tool_name=tool_result.tool_name,
-                    tool_arguments=tool_result.tool_args,
-                    tool_result=tool_result.tool_result,
+                    tool_id=tool_name_to_tool_id[info.tool_result.tool_name],
+                    tool_name=info.tool_result.tool_name,
+                    tool_arguments=info.tool_result.tool_args,
+                    tool_result=info.tool_result.tool_result,
                 )
-                if tool_result
+                if info.tool_result
                 else None
             ),
         )
+
+        # TODO: add answers for levels >= 1, where each level has the previous as its parent. Use
+        # the answer_by_level method in answer.py to get the answers for each level
+        next_level = 1
+        prev_message = gen_ai_response_message
+        agent_answers = answer.llm_answer_by_level()
+        while next_level in agent_answers:
+            next_answer = agent_answers[next_level]
+            next_answer_message = create_new_chat_message(
+                chat_session_id=chat_session_id,
+                parent_message=prev_message,
+                message=next_answer,
+                prompt_id=None,
+                token_count=len(llm_tokenizer_encode_func(next_answer)),
+                message_type=MessageType.ASSISTANT,
+                db_session=db_session,
+                files=info.ai_message_files,
+                reference_docs=info.reference_db_search_docs, 
+                citations=info.message_specific_citations.citation_map if info.message_specific_citations else None,
+            )
+            next_level += 1
+            prev_message = next_answer_message
 
         logger.debug("Committing messages")
         db_session.commit()  # actually save user / assistant message

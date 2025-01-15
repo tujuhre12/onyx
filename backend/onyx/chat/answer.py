@@ -1,5 +1,7 @@
 from collections.abc import Callable
+from collections import defaultdict
 from uuid import uuid4
+from onyx.configs.constants import BASIC_KEY
 
 from langchain.schema.messages import BaseMessage
 from langchain_core.messages import AIMessageChunk
@@ -307,20 +309,45 @@ class Answer:
     def llm_answer(self) -> str:
         answer = ""
         for packet in self.processed_streamed_output:
-            if (isinstance(packet, OnyxAnswerPiece) and packet.answer_piece) or (isinstance(packet, AgentAnswerPiece) and packet.answer_piece and packet.answer_type == "agent_level_answer"):
+            # handle basic answer flow, plus level 0 agent answer flow
+            # since level 0 is the first answer the user sees and therefore the
+            # child message of the user message in the db (so it is handled 
+            # like a basic flow answer)
+            if (isinstance(packet, OnyxAnswerPiece) and packet.answer_piece)\
+            or (isinstance(packet, AgentAnswerPiece) and packet.answer_piece and 
+             packet.answer_type == "agent_level_answer" and packet.level == 0):
                 answer += packet.answer_piece
             
 
         return answer
+    
+    def llm_answer_by_level(self) -> dict[int, str]:
+        answer_by_level: dict[int, str] = defaultdict(str)
+        for packet in self.processed_streamed_output:
+            if isinstance(packet, AgentAnswerPiece) and packet.answer_piece and packet.answer_type == "agent_level_answer":
+                answer_by_level[packet.level] += packet.answer_piece
+            elif (isinstance(packet, OnyxAnswerPiece) and packet.answer_piece):
+                answer_by_level[BASIC_KEY[0]] += packet.answer_piece
+        return answer_by_level
 
     @property
     def citations(self) -> list[CitationInfo]:
         citations: list[CitationInfo] = []
         for packet in self.processed_streamed_output:
-            if isinstance(packet, CitationInfo):
+            if isinstance(packet, CitationInfo) and packet.level is None:
                 citations.append(packet)
 
         return citations
+    
+    def citations_by_subquestion(self) -> dict[tuple[int, int], list[CitationInfo]]:
+        citations_by_subquestion: dict[tuple[int, int], list[CitationInfo]] = defaultdict(list)
+        for packet in self.processed_streamed_output:
+            if isinstance(packet, CitationInfo):
+                if packet.level_question_nr is not None and packet.level is not None:
+                    citations_by_subquestion[(packet.level, packet.level_question_nr)].append(packet)
+                elif packet.level is None:
+                    citations_by_subquestion[BASIC_KEY].append(packet)
+        return citations_by_subquestion
 
     def is_cancelled(self) -> bool:
         if self._is_cancelled:

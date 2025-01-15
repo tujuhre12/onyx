@@ -41,6 +41,9 @@ class ToolCallFinalResult(ToolCallKickoff):
     tool_result: Any = (
         None  # we would like to use JSON_ro, but can't due to its recursive nature
     )
+    # agentic additions; only need to set during agentic tool calls
+    level: int | None = None
+    level_question_nr: int | None = None
 
 
 class DynamicSchemaInfo(BaseModel):

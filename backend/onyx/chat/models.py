@@ -120,6 +120,8 @@ class OnyxAnswerPiece(BaseModel):
 class CitationInfo(BaseModel):
     citation_num: int
     document_id: str
+    level: int | None = None
+    level_question_nr: int | None = None
 
 
 class AllCitations(BaseModel):
