@@ -200,12 +200,17 @@ const SubQuestionDisplay: React.FC<{
       <div
         className={`absolute left-[5px] ${
           isFirst ? "top-[9px]" : "top-0"
-        } bottom-0 w-[2px]  bg-neutral-200  ${
-          isLast && !toggled ? "h-4" : "h-full"
-        }`}
+        } bottom-0 w-[2px]  bg-neutral-200  
+      
+        
+        ${isLast && !toggled ? "h-4" : "h-full"}`}
       />
       <div ref={questionRef} className="flex items-start pb-4">
         <div
+          //
+          // className={`absolute left-0 w-3 h-3 rounded-full mt-[9px] z-10 ${
+          //   subQuestion.is_complete ? "bg-red-200" : "bg-blue-200"
+          // }`}
           className={`absolute left-0 w-3 h-3 rounded-full mt-[9px] z-10 ${
             subQuestion.answer
               ? "bg-neutral-700"
