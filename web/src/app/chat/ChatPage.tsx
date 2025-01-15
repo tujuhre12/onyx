@@ -1250,6 +1250,7 @@ export function ChatPage({
     let messageUpdates: Message[] | null = null;
 
     let answer = "";
+    let second_level_answer = "";
 
     const stopReason: StreamStopReason | null = null;
     let query: string | null = null;
@@ -1455,7 +1456,16 @@ export function ChatPage({
                 ...subQ,
                 is_generating: false,
               }));
-              answer += (packet as AnswerPiecePacket).answer_piece;
+
+              if (
+                Object.hasOwn(packet, "level") &&
+                (packet as any).level === 1
+              ) {
+                second_level_answer += (packet as AnswerPiecePacket)
+                  .answer_piece;
+              } else {
+                answer += (packet as AnswerPiecePacket).answer_piece;
+              }
             } else if (
               Object.hasOwn(packet, "top_documents") &&
               Object.hasOwn(packet, "level_question_nr") &&
@@ -1563,6 +1573,7 @@ export function ChatPage({
                 is_generating: is_generating,
                 messageId: initialFetchDetails.assistant_message_id!,
                 message: error || answer,
+                second_level_message: second_level_answer,
                 type: error ? "error" : "assistant",
                 retrievalType,
                 query: finalMessage?.rephrased_query || query,
@@ -2586,6 +2597,7 @@ export function ChatPage({
                                           false
                                         }
                                         secondLevelAssistantMessage={
+                                          message.second_level_message ||
                                           secondLevelAssistantMessage
                                         }
                                         isGenerating={

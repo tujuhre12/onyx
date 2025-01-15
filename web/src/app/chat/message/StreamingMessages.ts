@@ -250,6 +250,10 @@ export const useStreamingMessages = (
 
                 // If you want, you can check if this is the last subquestion
                 // and call allowStreaming() or do some final logic.
+
+                if (i === subQuestions.length - 1) {
+                  allowStreaming();
+                }
               }
             }
             break;
