@@ -43,13 +43,14 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
       <div className="flex items-center px-4">
         <div className="text-black text-base font-medium">Sources</div>
       </div>
-      {displayedDocuments.length}
+
       <div className="grid grid-cols-2 gap-4 px-4">
         {displayedDocuments.map((doc, index) => (
           <div key={index} onClick={() => openDocument(doc, () => {})}>
             <SourceCard document={doc} />
           </div>
         ))}
+
         {hasMoreDocuments && (
           <button
             onClick={toggleDocumentSelection}
