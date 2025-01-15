@@ -41,10 +41,9 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   return (
     <div className="w-full max-w-[562px] py-4 flex flex-col gap-4">
       <div className="flex items-center px-4">
-        <div className="text-black text-base font-medium font-['KH Teka TRIAL']">
-          Sources
-        </div>
+        <div className="text-black text-base font-medium">Sources</div>
       </div>
+      {displayedDocuments.length}
       <div className="grid grid-cols-2 gap-4 px-4">
         {displayedDocuments.map((doc, index) => (
           <div key={index} onClick={() => openDocument(doc, () => {})}>

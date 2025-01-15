@@ -384,7 +384,7 @@ export const AgenticMessage = ({
                       {/* <FileDisplay files={files || []} /> */}
                       <div className="w-full  py-4 flex flex-col gap-4">
                         <div className="flex items-center px-4">
-                          <div className="text-black text-base font-medium font-['KH Teka TRIAL']">
+                          <div className="text-black text-base font-medium">
                             Answer
                           </div>
                         </div>
