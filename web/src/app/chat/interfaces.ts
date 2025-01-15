@@ -102,7 +102,10 @@ export interface Message {
   overridden_model?: string;
   stopReason?: StreamStopReason | null;
   sub_questions?: SubQuestionDetail[] | null;
+
+  // Streaming only
   second_level_generating?: boolean;
+  second_level_message?: string;
 }
 
 export interface BackendChatSession {
@@ -197,9 +200,13 @@ export interface PromptData {
 /**
  * // Start of Selection
  */
-export interface SubQuestionDetail {
+
+export interface BaseQuestionIdentifier {
   level: number;
   level_question_nr: number;
+}
+
+export interface SubQuestionDetail extends BaseQuestionIdentifier {
   question: string;
   answer: string;
   sub_queries?: SubQueryDetail[] | null;

@@ -1,7 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { FiSearch } from "react-icons/fi";
 import { OnyxDocument } from "@/lib/search/interfaces";
-import { SubQuestionDetail } from "../interfaces";
+import { BaseQuestionIdentifier, SubQuestionDetail } from "../interfaces";
 import { SourceChip2 } from "../input/ChatInputBar";
 import { ResultIcon } from "@/components/chat_search/sources/SourceCard";
 import { openDocument } from "@/lib/search/utils";
@@ -19,6 +25,7 @@ import { ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
 import { useStreamingMessages } from "./StreamingMessages";
 
 interface SubQuestionsDisplayProps {
+  currentlyOpenQuestion?: BaseQuestionIdentifier | null;
   isGenerating: boolean;
   subQuestions: SubQuestionDetail[];
   documents: OnyxDocument[];
@@ -29,6 +36,7 @@ interface SubQuestionsDisplayProps {
 }
 
 const SubQuestionDisplay: React.FC<{
+  currentlyOpen: boolean;
   subQuestion: SubQuestionDetail;
   documents: OnyxDocument[];
   isLast: boolean;
@@ -36,6 +44,7 @@ const SubQuestionDisplay: React.FC<{
   isFirst: boolean;
   setPresentingDocument: (document: OnyxDocument) => void;
 }> = ({
+  currentlyOpen,
   subQuestion,
   documents,
   isLast,
@@ -149,6 +158,19 @@ const SubQuestionDisplay: React.FC<{
     }
     return () => clearTimeout(timer);
   }, [toggled]);
+  const questionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (currentlyOpen) {
+      setToggled(true);
+      if (questionRef.current) {
+        questionRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }
+  }, [currentlyOpen]);
 
   const renderedMarkdown = useMemo(() => {
     return (
@@ -182,7 +204,7 @@ const SubQuestionDisplay: React.FC<{
           isLast && !toggled ? "h-4" : "h-full"
         }`}
       />
-      <div className="flex items-start pb-4">
+      <div ref={questionRef} className="flex items-start pb-4">
         <div
           className={`absolute left-0 w-3 h-3 rounded-full mt-[9px] z-10 ${
             subQuestion.answer
@@ -297,6 +319,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   isGenerating,
   subQuestions,
   allowStreaming,
+  currentlyOpenQuestion,
   documents,
   toggleDocumentSelection,
   setPresentingDocument,
@@ -338,6 +361,11 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
         {memoizedSubQuestions.map((subQuestion, index) => (
           // {dynamicSubQuestions.map((subQuestion, index) => (
           <SubQuestionDisplay
+            currentlyOpen={
+              currentlyOpenQuestion?.level === subQuestion.level &&
+              currentlyOpenQuestion?.level_question_nr ===
+                subQuestion.level_question_nr
+            }
             key={index}
             subQuestion={subQuestion}
             documents={documents}
@@ -365,7 +393,6 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
           </div>
         )}
       </div>
-      {memoizedSubQuestions.length}
       {memoizedSubQuestions.length > 0 && (
         <SourcesDisplay
           toggleDocumentSelection={toggleDocumentSelection}
