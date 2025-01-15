@@ -117,6 +117,15 @@ def initial_sub_question_creation(state: MainState) -> BaseDecompUpdate:
     # Get the rewritten queries in a defined format
     model = state["fast_llm"]
 
+    # Send the initial question as a subquestion with number 0
+    dispatch_custom_event(
+        "decomp_qs",
+        SubQuestionPiece(
+            sub_question=question,
+            level=0,
+            level_question_nr=0,
+        ),
+    )
     # dispatches custom events for subquestion tokens, adding in subquestion ids.
     streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(0))
 
