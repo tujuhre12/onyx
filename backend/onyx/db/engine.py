@@ -356,7 +356,9 @@ async def get_current_tenant_id(request: Request) -> str:
 
 # Listen for events on the synchronous Session class
 @event.listens_for(Session, "after_begin")
-def _set_search_path(session: Session, transaction, connection, *args, **kwargs):
+def _set_search_path(
+    session: Session, transaction: Any, connection: Any, *args: Any, **kwargs: Any
+) -> None:
     """Every time a new transaction is started,
     set the search_path from the session's info."""
     tenant_id = session.info.get("tenant_id")
@@ -365,7 +367,7 @@ def _set_search_path(session: Session, transaction, connection, *args, **kwargs)
 
 
 engine = get_sqlalchemy_async_engine()
-AsyncSessionLocal = sessionmaker(
+AsyncSessionLocal = sessionmaker(  # type: ignore
     bind=engine,
     class_=AsyncSession,
     expire_on_commit=False,
