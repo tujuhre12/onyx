@@ -377,9 +377,9 @@ export const AgenticMessage = ({
                     />
                   )}
 
-                  {/* {is_generating &&<SubQuestionProgress subQuestions={subQuestions || []} />} */}
+                  <SubQuestionProgress subQuestions={subQuestions || []} />
 
-                  {(content || files) && streamingAllowed ? (
+                  {(content || files) && (streamingAllowed || !isGenerating) ? (
                     <>
                       {/* <FileDisplay files={files || []} /> */}
                       <div className="w-full  py-4 flex flex-col gap-4">
