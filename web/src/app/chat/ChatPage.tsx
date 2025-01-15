@@ -1453,6 +1453,7 @@ export function ChatPage({
               Object.hasOwn(packet, "level_question_nr") &&
               (packet as DocumentsResponse).level_question_nr !== undefined
             ) {
+              console.log("DOCS RESPONSE");
               const documentsResponse = packet as DocumentsResponse;
               sub_questions = constructSubQuestions(
                 sub_questions,
