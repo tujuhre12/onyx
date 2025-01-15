@@ -266,6 +266,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     relevant_docs = dedup_inference_sections(
         sub_question_docs, all_original_question_documents
     )
+    decomp_questions = []
 
     if len(relevant_docs) == 0:
         dispatch_custom_event(
@@ -315,7 +316,6 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
         decomp_answer_results = state["decomp_answer_results"]
 
         good_qa_list: list[str] = []
-        decomp_questions = []
 
         sub_question_nr = 1
 
