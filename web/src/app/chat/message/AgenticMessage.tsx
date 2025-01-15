@@ -25,6 +25,7 @@ import { SkippedSearch } from "./SkippedSearch";
 import remarkGfm from "remark-gfm";
 import { CopyButton } from "@/components/CopyButton";
 import {
+  BaseQuestionIdentifier,
   FileDescriptor,
   SubQuestionDetail,
   ToolCallMetadata,
@@ -99,7 +100,7 @@ export const AgenticMessage = ({
   index,
   subQuestions,
 }: {
-  secondLevelGenerating: boolean;
+  secondLevelGenerating?: boolean;
   secondLevelAssistantMessage?: string;
   isGenerating: boolean;
   subQuestions: SubQuestionDetail[] | null;
@@ -163,6 +164,11 @@ export const AgenticMessage = ({
       return `[[${citationNumber}]]()`;
     });
 
+    // Convert [Dnumber] to [[Dnumber]]() in content
+    // content = content.replace(/\[D(\d+)\]/g, (match, p1) => {
+    //   const citationNumber = parseInt(p1, 10);
+    //   return `[[D${citationNumber}]]()`;
+    // });
     // Add newlines after ]] or ) if there's text immediately following
     content = content.replace(/(\]\]|\))((?!\s|\n|\[|\(|$).)/g, "$1\n$2");
 
@@ -174,6 +180,7 @@ export const AgenticMessage = ({
   const alternativeContent = secondLevelAssistantMessage
     ? (processContent(content as string) as string)
     : undefined;
+
   const finalContent = processContent(
     (secondLevelAssistantMessage
       ? secondLevelAssistantMessage
@@ -189,10 +196,7 @@ export const AgenticMessage = ({
   };
 
   const streamContent = (content: string) => {
-    console.log("streamContent called, current index:", streamIndexRef.current);
-
     if (content.length === 0) {
-      console.log("finalContent is empty");
       return;
     }
 
@@ -200,7 +204,7 @@ export const AgenticMessage = ({
       if (streamIndexRef.current < content.length) {
         setStreamedContent(content.slice(0, streamIndexRef.current + 1));
         streamIndexRef.current++;
-        setTimeout(streamNextChar, 30);
+        setTimeout(streamNextChar, 1);
       } else {
         console.log("Streaming completed");
       }
@@ -210,7 +214,7 @@ export const AgenticMessage = ({
   };
 
   useEffect(() => {
-    if (isGenerating) {
+    if (isGenerating || streamedContent.length < 5) {
       if (streamingAllowed && typeof finalContent === "string") {
         streamContent(finalContent);
       }
@@ -284,12 +288,30 @@ export const AgenticMessage = ({
     ),
     []
   );
+  const [currentlyOpenQuestion, setCurrentlyOpenQuestion] =
+    useState<BaseQuestionIdentifier | null>(null);
+
+  const openQuestion = useCallback(
+    (question: SubQuestionDetail) => {
+      setCurrentlyOpenQuestion({
+        level: question.level,
+        level_question_nr: question.level_question_nr,
+      });
+      setTimeout(() => {
+        console.log("closing question");
+        setCurrentlyOpenQuestion(null);
+      }, 1000);
+    },
+    [currentlyOpenQuestion]
+  );
 
   const anchorCallback = useCallback(
     (props: any) => (
       <MemoizedAnchor
         updatePresentingDocument={setPresentingDocument!}
         docs={subQuestions?.[0]?.context_docs?.top_documents || docs}
+        subQuestions={subQuestions || []}
+        openQuestion={openQuestion}
       >
         {props.children}
       </MemoizedAnchor>
@@ -374,26 +396,9 @@ export const AgenticMessage = ({
             <div className="w-full">
               <div className="max-w-message-max break-words">
                 <div className="w-full desktop:ml-4">
-                  <div className="max-w-message-max break-words">
-                    {!toolCall || toolCall.tool_name === SEARCH_TOOL_NAME ? (
-                      <>
-                        {handleForceSearch &&
-                          content &&
-                          query === undefined &&
-                          !hasDocs &&
-                          !retrievalDisabled && (
-                            <div className="mb-1">
-                              <SkippedSearch
-                                handleForceSearch={handleForceSearch}
-                              />
-                            </div>
-                          )}
-                      </>
-                    ) : null}
-                  </div>
-
                   {subQuestions && subQuestions.length > 0 && (
                     <SubQuestionsDisplay
+                      currentlyOpenQuestion={currentlyOpenQuestion}
                       isGenerating={isGenerating}
                       allowStreaming={allowStreaming}
                       subQuestions={subQuestions}
@@ -404,7 +409,10 @@ export const AgenticMessage = ({
                     />
                   )}
 
-                  <SubQuestionProgress subQuestions={subQuestions || []} />
+                  {/* <SubQuestionProgress subQuestions={subQuestions || []} /> */}
+                  {/* {streamingAllowed
+                    ? "Streaming allowed"
+                    : "Streaming not allowed"} */}
 
                   {(content || files) && (streamingAllowed || !isGenerating) ? (
                     <>
@@ -415,6 +423,7 @@ export const AgenticMessage = ({
                             Answer
                           </div>
                         </div>
+
                         <div className="px-4">
                           {typeof content === "string" ? (
                             <div className="overflow-x-visible !text-sm max-w-content-max">
@@ -441,11 +450,28 @@ export const AgenticMessage = ({
                         See initial answer
                       </Button>
                     ))}
-                  {secondLevelGenerating && (
-                    <div>
-                      <div>Generating second level answer</div>
-                    </div>
+
+                  {true && (
+                    <>
+                      <div className="flex mt-2 justify-start">
+                        <div className="text-transparent bg-clip-text bg-gradient-to-r from-[#2178FE] via-[#EDB6DD] to-[#FF6910] font-semibold py-2 flex items-center">
+                          Enhancing response
+                          <span className="ml-1 flex">
+                            <span className="text-[#FF6910]  animate-bounce mx-0.5">
+                              .
+                            </span>
+                            <span className="text-[#FF6910]  animate-bounce mx-0.5 delay-100">
+                              .
+                            </span>
+                            <span className="text-[#FF6910] animate-bounce mx-0.5 delay-200">
+                              .
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    </>
                   )}
+
                   {handleFeedback &&
                     (isActive ? (
                       <div

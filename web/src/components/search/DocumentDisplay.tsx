@@ -23,6 +23,7 @@ import TextView from "../chat_search/TextView";
 import { SearchResultIcon } from "../SearchResultIcon";
 import { ValidSources } from "@/lib/types";
 import { openDocument } from "@/lib/search/utils";
+import { SubQuestionDetail } from "@/app/chat/interfaces";
 
 export const buildDocumentSummaryDisplay = (
   matchHighlights: string[],
@@ -459,6 +460,35 @@ export function CompactDocumentCard({
               Updated {new Date(document.updated_at).toLocaleDateString()}
             </span>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function CompactQuestionCard({
+  question,
+  openQuestion,
+}: {
+  question: SubQuestionDetail;
+  openQuestion: (question: SubQuestionDetail) => void;
+}) {
+  return (
+    <div
+      onClick={() => openQuestion(question)}
+      className="max-w-[250px] gap-y-0 cursor-pointer pb-0 pt-0 mt-0 flex gap-y-0 flex-col content-start items-start gap-0"
+    >
+      <div className="text-sm !pb-0 !mb-0 font-semibold flex items-center gap-x-1 text-text-900 pt-0 mt-0 truncate w-full">
+        {`Q${question.level}.${question.level_question_nr}`}
+      </div>
+      <div className="text-xs mb-0 text-gray-600 line-clamp-2">
+        {question.question}
+      </div>
+      {question.is_complete !== undefined && (
+        <div className="flex mt-0 pt-0 items-center justify-between w-full">
+          <span className="text-xs text-gray-500">
+            {question.is_complete ? "Completed" : "In progress"}
+          </span>
         </div>
       )}
     </div>
