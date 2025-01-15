@@ -674,7 +674,7 @@ Lastly, here is the question I want you to answer based on the information above
 Answer:"""
 
 # sub_question_answer_str is empty
-REVISED_RAG_PROMPT_NO_SUB_QUESTIONS = """{sub_question_answer_str}\n
+REVISED_RAG_PROMPT_NO_SUB_QUESTIONS = """{answered_sub_questions}\n
 {persona_specification}
 Use the information provided below - and only the
 provided information - to answer the provided question.
