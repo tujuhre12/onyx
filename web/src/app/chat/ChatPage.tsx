@@ -1452,6 +1452,7 @@ export function ChatPage({
               Object.hasOwn(packet, "top_documents") &&
               Object.hasOwn(packet, "level_question_nr")
             ) {
+              console.log("PACKET INFO");
               const documentsResponse = packet as DocumentsResponse;
               sub_questions = constructSubQuestions(
                 sub_questions,
