@@ -1,10 +1,10 @@
 import traceback
+from collections import defaultdict
 from collections.abc import Callable
 from collections.abc import Iterator
-from collections import defaultdict
+from dataclasses import dataclass
 from functools import partial
 from typing import cast
-from typing import TypedDict
 
 from sqlalchemy.orm import Session
 
@@ -18,6 +18,7 @@ from onyx.chat.models import CitationConfig
 from onyx.chat.models import CitationInfo
 from onyx.chat.models import CustomToolResponse
 from onyx.chat.models import DocumentPruningConfig
+from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import FileChatDisplay
 from onyx.chat.models import FinalUsedContextDocsResponse
 from onyx.chat.models import LLMRelevanceFilterResponse
@@ -28,7 +29,6 @@ from onyx.chat.models import OnyxContexts
 from onyx.chat.models import PromptConfig
 from onyx.chat.models import ProSearchConfig
 from onyx.chat.models import ProSearchPacket
-from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import QADocsResponse
 from onyx.chat.models import StreamingError
 from onyx.chat.models import StreamStopInfo
@@ -36,10 +36,11 @@ from onyx.chat.models import StreamStopReason
 from onyx.configs.chat_configs import CHAT_TARGET_CHUNK_PERCENTAGE
 from onyx.configs.chat_configs import DISABLE_LLM_CHOOSE_SEARCH
 from onyx.configs.chat_configs import MAX_CHUNKS_FED_TO_CHAT
+from onyx.configs.constants import AGENT_SEARCH_INITIAL_KEY
+from onyx.configs.constants import BASIC_KEY
 from onyx.configs.constants import MessageType
 from onyx.configs.constants import MilestoneRecordType
 from onyx.configs.constants import NO_AUTH_USER_ID
-from onyx.configs.constants import BASIC_KEY
 from onyx.context.search.enums import LLMEvaluationType
 from onyx.context.search.enums import OptionalSearchSetting
 from onyx.context.search.enums import QueryFlow
@@ -174,7 +175,9 @@ def _handle_search_tool_response_summary(
         top_docs = chunks_or_sections_to_search_docs(response_sumary.top_sections)
 
         deduped_docs = top_docs
-        if dedupe_docs and not is_extended: # Extended tool responses are already deduped
+        if (
+            dedupe_docs and not is_extended
+        ):  # Extended tool responses are already deduped
             deduped_docs, dropped_inds = dedupe_documents(top_docs)
 
         reference_db_search_docs = [
@@ -301,11 +304,11 @@ ChatPacket = (
 )
 ChatPacketStream = Iterator[ChatPacket]
 
-from dataclasses import dataclass
+
 # can't store a DbSearchDoc in a Pydantic BaseModel
 @dataclass
-class AnswerPostInfo():
-    ai_message_files: list[FileDescriptor] 
+class AnswerPostInfo:
+    ai_message_files: list[FileDescriptor]
     qa_docs_response: QADocsResponse | None = None
     reference_db_search_docs: list[DbSearchDoc] | None = None
     dropped_indices: list[int] | None = None
@@ -790,13 +793,17 @@ def stream_chat_message_objects(
         # dropped_indices = None
         # tool_result = None
 
-
-
         # TODO: different channels for stored info when it's coming from the agent flow
-        info_by_subq: dict[tuple[int, int], AnswerPostInfo] = defaultdict(lambda: AnswerPostInfo(ai_message_files=[]))
+        info_by_subq: dict[tuple[int, int], AnswerPostInfo] = defaultdict(
+            lambda: AnswerPostInfo(ai_message_files=[])
+        )
         for packet in answer.processed_streamed_output:
             if isinstance(packet, ToolResponse):
-                level, level_question_nr = (packet.level, packet.level_question_nr) if isinstance(packet, ExtendedToolResponse) else BASIC_KEY
+                level, level_question_nr = (
+                    (packet.level, packet.level_question_nr)
+                    if isinstance(packet, ExtendedToolResponse)
+                    else BASIC_KEY
+                )
                 info = info_by_subq[(level, level_question_nr)]
                 # TODO: don't need to dedupe here when we do it in agent flow
                 if packet.id == SEARCH_RESPONSE_SUMMARY_ID:
@@ -917,7 +924,12 @@ def stream_chat_message_objects(
                     yield packet
             else:
                 if isinstance(packet, ToolCallFinalResult):
-                    level, level_question_nr = (packet.level, packet.level_question_nr) if packet.level is not None and packet.level_question_nr is not None else BASIC_KEY
+                    level, level_question_nr = (
+                        (packet.level, packet.level_question_nr)
+                        if packet.level is not None
+                        and packet.level_question_nr is not None
+                        else BASIC_KEY
+                    )
                     info = info_by_subq[(level, level_question_nr)]
                     info.tool_result = packet
                 yield cast(ChatPacket, packet)
@@ -951,7 +963,6 @@ def stream_chat_message_objects(
             for tool in tool_list:
                 tool_name_to_tool_id[tool.name] = tool_id
 
-        
         subq_citations = answer.citations_by_subquestion()
         for pair in subq_citations:
             level, level_question_nr = pair
@@ -963,13 +974,17 @@ def stream_chat_message_objects(
                     db_docs=info.reference_db_search_docs,
                 )
 
-            #TODO: AllCitations should contain subq info?
+            # TODO: AllCitations should contain subq info?
             if not answer.is_cancelled():
                 yield AllCitations(citations=subq_citations[pair])
 
         # Saving Gen AI answer and responding with message info
 
-        info = info_by_subq[BASIC_KEY]
+        info = (
+            info_by_subq[BASIC_KEY]
+            if BASIC_KEY in info_by_subq
+            else info_by_subq[AGENT_SEARCH_INITIAL_KEY]
+        )
         gen_ai_response_message = partial_response(
             message=answer.llm_answer,
             rephrased_query=(
@@ -1012,8 +1027,10 @@ def stream_chat_message_objects(
                 message_type=MessageType.ASSISTANT,
                 db_session=db_session,
                 files=info.ai_message_files,
-                reference_docs=info.reference_db_search_docs, 
-                citations=info.message_specific_citations.citation_map if info.message_specific_citations else None,
+                reference_docs=info.reference_db_search_docs,
+                citations=info.message_specific_citations.citation_map
+                if info.message_specific_citations
+                else None,
             )
             next_level += 1
             prev_message = next_answer_message
