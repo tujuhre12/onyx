@@ -243,7 +243,7 @@ def dispatch_separated(
     dispatch_event: Callable[[str, int], None],
     sep: str = "\n",
 ) -> list[str | list[str | dict[str, Any]]]:
-    num = 0
+    num = 1
     streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
     for message in token_itr:
         content = cast(str, message.content)

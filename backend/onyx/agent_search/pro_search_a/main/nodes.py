@@ -86,7 +86,7 @@ def _dispatch_subquestion(level: int) -> Callable[[str, int], None]:
             SubQuestionPiece(
                 sub_question=sub_question_part,
                 level=level,
-                level_question_nr=num + 1,
+                level_question_nr=num,
             ),
         )
 
@@ -479,7 +479,9 @@ def entity_term_extraction_llm(state: MainState) -> EntityTermExtractionUpdate:
 
     doc_context = format_docs(relevant_docs)
 
-    doc_context = trim_prompt_piece(state["fast_llm"].config, doc_context, ENTITY_TERM_PROMPT + question)
+    doc_context = trim_prompt_piece(
+        state["fast_llm"].config, doc_context, ENTITY_TERM_PROMPT + question
+    )
     msg = [
         HumanMessage(
             content=ENTITY_TERM_PROMPT.format(question=question, context=doc_context),

@@ -38,7 +38,7 @@ def parallelize_initial_sub_question_answering(
                 AnswerQuestionInput(
                     **extract_core_fields_for_subgraph(state),
                     question=question,
-                    question_id=make_question_id(0, question_nr),
+                    question_id=make_question_id(0, question_nr + 1),
                 ),
             )
             for question_nr, question in enumerate(state["initial_decomp_questions"])

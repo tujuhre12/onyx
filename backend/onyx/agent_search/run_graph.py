@@ -12,10 +12,14 @@ from sqlalchemy.orm import Session
 from onyx.agent_search.basic.graph_builder import basic_graph_builder
 from onyx.agent_search.basic.states import BasicInput
 from onyx.agent_search.models import AgentDocumentCitations
-from onyx.agent_search.pro_search_b.main.graph_builder import main_graph_builder as main_graph_builder_b
-from onyx.agent_search.pro_search_b.main.states import MainInput as MainInput_b
-from onyx.agent_search.pro_search_a.main.graph_builder import main_graph_builder as main_graph_builder_a
+from onyx.agent_search.pro_search_a.main.graph_builder import (
+    main_graph_builder as main_graph_builder_a,
+)
 from onyx.agent_search.pro_search_a.main.states import MainInput as MainInput_a
+from onyx.agent_search.pro_search_b.main.graph_builder import (
+    main_graph_builder as main_graph_builder_b,
+)
+from onyx.agent_search.pro_search_b.main.states import MainInput as MainInput_b
 from onyx.agent_search.shared_graph_utils.utils import get_test_config
 from onyx.chat.llm_response_handler import LLMResponseHandlerManager
 from onyx.chat.models import AgentAnswerPiece
@@ -127,7 +131,6 @@ def run_graph(
     compiled_graph: CompiledStateGraph,
     input: BasicInput | MainInput_a | MainInput_b,
 ) -> AnswerStream:
-
     agent_document_citations: dict[int, dict[int, list[AgentDocumentCitations]]] = {}
     agent_question_citations_used_docs: defaultdict[
         int, defaultdict[int, list[str]]
@@ -331,7 +334,9 @@ def run_graph(
 # TODO: call this once on startup, TBD where and if it should be gated based
 # on dev mode or not
 def load_compiled_graph(graph_name: str) -> CompiledStateGraph:
-    main_graph_builder = main_graph_builder_a if graph_name == "a" else main_graph_builder_b
+    main_graph_builder = (
+        main_graph_builder_a if graph_name == "a" else main_graph_builder_b
+    )
     global _COMPILED_GRAPH
     if _COMPILED_GRAPH is None:
         graph = main_graph_builder()
@@ -370,9 +375,8 @@ def run_main_graph(
         tool_name="agent_search_0",
         tool_args={"query": config.search_request.query},
     )
-    yield from run_graph(
-        compiled_graph, input
-    )
+    yield from run_graph(compiled_graph, input)
+
 
 def run_basic_graph(
     last_llm_call: LLMCall | None,
@@ -408,7 +412,8 @@ if __name__ == "__main__":
     primary_llm, fast_llm = get_default_llms()
     search_request = SearchRequest(
         # query="what can you do with gitlab?",
-        query="What are the guiding principles behind the development of cockroachDB?",
+        # query="What are the guiding principles behind the development of cockroachDB?",
+        query="What are the temperatures in Munich, Hawaii, and New York?",
     )
     # Joachim custom persona
 
@@ -434,34 +439,41 @@ if __name__ == "__main__":
                 fast_llm=fast_llm,
                 db_session=db_session,
                 search_tool=search_tool,
-                )
+            )
         # with open("output.txt", "w") as f:
         tool_responses: list = []
-        for output in run_graph(
-            compiled_graph, input
-        ):
+        for output in run_graph(compiled_graph, input):
             # pass
 
             if isinstance(output, ToolCallKickoff):
                 pass
-            elif isinstance(output, ToolResponse):
+            elif isinstance(output, ExtendedToolResponse):
                 tool_responses.append(output.response)
+                logger.info(
+                    f"   ---- ET {output.level} - {output.level_question_nr} |  "
+                )
+            elif isinstance(output, SubQueryPiece):
+                logger.info(
+                    f"Sq {output.level} - {output.level_question_nr} - {output.sub_query} | "
+                )
             elif isinstance(output, SubQuestionPiece):
-                logger.debug(
+                logger.info(
                     f"SQ {output.level} - {output.level_question_nr} - {output.sub_question} | "
                 )
             elif (
                 isinstance(output, AgentAnswerPiece)
                 and output.answer_type == "agent_sub_answer"
             ):
-                logger.debug(
+                logger.info(
                     f"   ---- SA {output.level} - {output.level_question_nr} {output.answer_piece} | "
                 )
             elif (
                 isinstance(output, AgentAnswerPiece)
                 and output.answer_type == "agent_level_answer"
             ):
-                logger.debug(f"   ---------- FA {output.answer_piece} | ")
+                logger.info(
+                    f"   ---------- FA {output.level} - {output.level_question_nr}  {output.answer_piece} | "
+                )
 
         # for tool_response in tool_responses:
         #    logger.debug(tool_response)
