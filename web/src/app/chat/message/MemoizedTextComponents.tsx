@@ -44,13 +44,7 @@ export const MemoizedAnchor = memo(
           : undefined;
 
         if (!associatedDoc && !associatedSubQuestion) {
-          return (
-            <>
-              [{docs?.length}]{isSubQuestion ? "Q" : "D"}
-              asdfafsd
-              {children}
-            </>
-          );
+          return <>{children}</>;
         }
 
         let icon: React.ReactNode = null;
