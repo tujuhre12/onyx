@@ -1,4 +1,5 @@
 import asyncio
+from asyncio import AbstractEventLoop
 from collections import defaultdict
 from collections.abc import AsyncIterable
 from collections.abc import Iterable
@@ -91,25 +92,43 @@ def _parse_agent_event(
     return None
 
 
+async def tear_down(event_loop: AbstractEventLoop) -> None:
+    # Collect all tasks and cancel those that are not 'done'.
+    tasks = asyncio.all_tasks(event_loop)
+    for task in tasks:
+        task.cancel()
+
+    # Wait for all tasks to complete, ignoring any CancelledErrors
+    try:
+        await asyncio.wait(tasks)
+    except asyncio.exceptions.CancelledError:
+        pass
+
+
 def _manage_async_event_streaming(
     compiled_graph: CompiledStateGraph,
     graph_input: MainInput_a | MainInput_b | BasicInput,
 ) -> Iterable[StreamEvent]:
-    async def _run_async_event_stream() -> AsyncIterable[StreamEvent]:
-        async for event in compiled_graph.astream_events(
-            input=graph_input,
-            # debug=True,
-            # indicating v2 here deserves further scrutiny
-            version="v2",
-        ):
-            yield event
+    async def _run_async_event_stream(
+        loop: AbstractEventLoop,
+    ) -> AsyncIterable[StreamEvent]:
+        try:
+            async for event in compiled_graph.astream_events(
+                input=graph_input,
+                # debug=True,
+                # indicating v2 here deserves further scrutiny
+                version="v2",
+            ):
+                yield event
+        finally:
+            await tear_down(loop)
 
     # This might be able to be simplified
     def _yield_async_to_sync() -> Iterable[StreamEvent]:
         loop = asyncio.new_event_loop()
         try:
             # Get the async generator
-            async_gen = _run_async_event_stream()
+            async_gen = _run_async_event_stream(loop)
             # Convert to AsyncIterator
             async_iter = async_gen.__aiter__()
             while True:
