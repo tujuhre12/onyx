@@ -1497,16 +1497,23 @@ export function ChatPage({
                 tool_result: (packet as ToolCallMetadata).tool_result,
               };
 
-              if (!toolCall.tool_result || toolCall.tool_result == undefined) {
-                updateChatState("toolBuilding", frozenSessionId);
-              } else {
-                updateChatState("streaming", frozenSessionId);
-              }
+              if (!toolCall.tool_name.includes("agent")) {
+                if (
+                  !toolCall.tool_result ||
+                  toolCall.tool_result == undefined
+                ) {
+                  updateChatState("toolBuilding", frozenSessionId);
+                } else {
+                  updateChatState("streaming", frozenSessionId);
+                }
 
-              // This will be consolidated in upcoming tool calls udpate,
-              // but for now, we need to set query as early as possible
-              if (toolCall.tool_name == SEARCH_TOOL_NAME) {
-                query = toolCall.tool_args["query"];
+                // This will be consolidated in upcoming tool calls udpate,
+                // but for now, we need to set query as early as possible
+                if (toolCall.tool_name == SEARCH_TOOL_NAME) {
+                  query = toolCall.tool_args["query"];
+                }
+              } else {
+                toolCall = null;
               }
             } else if (Object.hasOwn(packet, "file_ids")) {
               aiMessageImages = (packet as FileChatDisplay).file_ids.map(
@@ -1813,15 +1820,15 @@ export function ChatPage({
       ? settings?.enterpriseSettings?.auto_scroll || false
       : user?.preferences?.auto_scroll!;
 
-  useScrollonStream({
-    chatState: currentSessionChatState,
-    scrollableDivRef,
-    scrollDist,
-    endDivRef,
-    debounceNumber,
-    mobile: settings?.isMobile,
-    enableAutoScroll: autoScrollEnabled,
-  });
+  // useScrollonStream({
+  //   chatState: currentSessionChatState,
+  //   scrollableDivRef,
+  //   scrollDist,
+  //   endDivRef,
+  //   debounceNumber,
+  //   mobile: settings?.isMobile,
+  //   enableAutoScroll: autoScrollEnabled,
+  // });
 
   // Virtualization + Scrolling related effects and functions
   const scrollInitialized = useRef(false);
@@ -2092,7 +2099,7 @@ export function ChatPage({
         <Card className="w-72 shadow-lg bg-gray-100 dark:bg-gray-800">
           <CardHeader className="pb-2">
             <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              Langgraph Settings
+              Pro Search
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -2107,7 +2114,7 @@ export function ChatPage({
                 htmlFor="langgraph-toggle"
                 className="text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                Enable Langgraph
+                Enable Pro Search
               </Label>
             </div>
           </CardContent>
@@ -2597,7 +2604,9 @@ export function ChatPage({
                                     message.sub_questions.length > 0 ? (
                                       <AgenticMessage
                                         secondLevelGenerating={
-                                          message.second_level_generating ||
+                                          (message.second_level_generating &&
+                                            currentSessionChatState !==
+                                              "input") ||
                                           false
                                         }
                                         secondLevelAssistantMessage={

@@ -169,10 +169,10 @@ export const AgenticMessage = ({
     content = content.replace(/\]\](?!\()/g, "]]()");
 
     // Turn {{number}} into [[Qnumber]] citation in content
-    content = content.replace(/\{\{(\d+)\}\}/g, (match, p1) => {
-      const questionNumber = parseInt(p1, 10);
-      return `[[Q${questionNumber}]]()`;
-    });
+    // content = content.replace(/\{\{(\d+)\}\}/g, (match, p1) => {
+    //   const questionNumber = parseInt(p1, 10);
+    //   return `[[Q${questionNumber}]]()`;
+    // });
 
     return (
       preprocessLaTeX(content) +
@@ -204,9 +204,9 @@ export const AgenticMessage = ({
 
     const streamNextChar = () => {
       if (streamIndexRef.current < content.length) {
-        setStreamedContent(content.slice(0, streamIndexRef.current + 1));
-        streamIndexRef.current++;
-        setTimeout(streamNextChar, 1);
+        setStreamedContent(content.slice(0, streamIndexRef.current + 8));
+        streamIndexRef.current += 8;
+        setTimeout(streamNextChar, 10);
       } else {
         console.log("Streaming completed");
       }
@@ -448,7 +448,7 @@ export const AgenticMessage = ({
                   ) : isComplete ? null : (
                     <></>
                   )}
-                  {secondLevelAssistantMessage && (
+                  {secondLevelAssistantMessage && !secondLevelGenerating && (
                     <Button
                       variant="outline"
                       onClick={() =>
