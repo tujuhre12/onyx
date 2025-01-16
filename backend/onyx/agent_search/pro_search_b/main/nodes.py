@@ -10,7 +10,6 @@ from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.messages import merge_message_runs
 
-from onyx.agent_search.shared_graph_utils.agent_prompt_ops import trim_prompt_piece
 from onyx.agent_search.pro_search_b.answer_initial_sub_question.states import (
     AnswerQuestionOutput,
 )
@@ -28,6 +27,7 @@ from onyx.agent_search.pro_search_b.main.states import MainOutput
 from onyx.agent_search.pro_search_b.main.states import MainState
 from onyx.agent_search.pro_search_b.main.states import RefinedAnswerUpdate
 from onyx.agent_search.pro_search_b.main.states import RequireRefinedAnswerUpdate
+from onyx.agent_search.shared_graph_utils.agent_prompt_ops import trim_prompt_piece
 from onyx.agent_search.shared_graph_utils.models import AgentAdditionalMetrics
 from onyx.agent_search.shared_graph_utils.models import AgentBaseMetrics
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
@@ -62,7 +62,9 @@ from onyx.agent_search.shared_graph_utils.prompts import REVISED_RAG_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import (
     REVISED_RAG_PROMPT_NO_SUB_QUESTIONS,
 )
-from onyx.agent_search.shared_graph_utils.prompts import SUB_QUESTION_ANSWER_TEMPLATE
+from onyx.agent_search.shared_graph_utils.prompts import (
+    SUB_QUESTION_ANSWER_TEMPLATE_REVISED,
+)
 from onyx.agent_search.shared_graph_utils.prompts import (
     SUB_QUESTION_SEARCH_RESULTS_TEMPLATE,
 )
@@ -498,14 +500,16 @@ def entity_term_extraction_llm(state: MainState) -> EntityTermExtractionUpdate:
 
     doc_context = format_docs(relevant_docs)
     fast_llm = state["fast_llm"]
-    doc_context = trim_prompt_piece(fast_llm.config, doc_context, ENTITY_TERM_PROMPT + question)
+    doc_context = trim_prompt_piece(
+        fast_llm.config, doc_context, ENTITY_TERM_PROMPT + question
+    )
 
     msg = [
         HumanMessage(
             content=ENTITY_TERM_PROMPT.format(question=question, context=doc_context),
         )
     ]
-    
+
     # Grader
     llm_response_list = list(
         fast_llm.stream(
@@ -717,8 +721,9 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
             and decomp_answer_result.answer != "I don't know"
         ):
             good_qa_list.append(
-                SUB_QUESTION_ANSWER_TEMPLATE.format(
+                SUB_QUESTION_ANSWER_TEMPLATE_REVISED.format(
                     sub_question=decomp_answer_result.question,
+                    level_type="revised" if question_level == 1 else "initial",
                     sub_answer=decomp_answer_result.answer,
                 )
             )
