@@ -193,17 +193,11 @@ export default async function RootLayout({
     );
   }
 
-  const data = await fetchChatData({});
-  if ("redirect" in data) {
-    redirect(data.redirect);
-  }
-
   const { assistants, hasAnyConnectors, hasImageCompatibleModel } =
     assistantsData;
 
   return getPageContent(
     <AppProvider
-      data={data}
       user={user}
       settings={combinedSettings}
       assistants={assistants}

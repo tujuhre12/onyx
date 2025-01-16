@@ -16,7 +16,6 @@ interface AppProviderProps {
   assistants: Persona[];
   hasAnyConnectors: boolean;
   hasImageCompatibleModel: boolean;
-  data: any;
 }
 
 export const AppProvider = ({
@@ -26,53 +25,18 @@ export const AppProvider = ({
   assistants,
   hasAnyConnectors,
   hasImageCompatibleModel,
-  data,
 }: AppProviderProps) => {
-  const {
-    chatSessions,
-    availableSources,
-    documentSets,
-    tags,
-    llmProviders,
-    folders,
-    openedFolders,
-    toggleSidebar,
-    defaultAssistantId,
-    shouldShowWelcomeModal,
-    ccPairs,
-    inputPrompts,
-  } = data;
-
   return (
     <UserProvider user={user}>
       <ProviderContextProvider>
         <SettingsProvider settings={settings}>
-          <ChatProvider
-            value={{
-              inputPrompts,
-              chatSessions,
-              toggledSidebar: toggleSidebar,
-              availableSources,
-              ccPairs,
-              documentSets,
-              tags,
-              availableDocumentSets: documentSets,
-              availableTags: tags,
-              llmProviders,
-              folders,
-              openedFolders,
-              shouldShowWelcomeModal,
-              defaultAssistantId,
-            }}
+          <AssistantsProvider
+            initialAssistants={assistants}
+            hasAnyConnectors={hasAnyConnectors}
+            hasImageCompatibleModel={hasImageCompatibleModel}
           >
-            <AssistantsProvider
-              initialAssistants={assistants}
-              hasAnyConnectors={hasAnyConnectors}
-              hasImageCompatibleModel={hasImageCompatibleModel}
-            >
-              {children}
-            </AssistantsProvider>
-          </ChatProvider>
+            {children}
+          </AssistantsProvider>
         </SettingsProvider>
       </ProviderContextProvider>
     </UserProvider>

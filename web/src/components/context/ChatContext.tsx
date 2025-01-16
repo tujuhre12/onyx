@@ -62,7 +62,6 @@ export const ChatProvider: React.FC<{
         return folder;
       })
     );
-    console.log("reordered folders", folders);
   };
 
   const refreshChatSessions = async () => {

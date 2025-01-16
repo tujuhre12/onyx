@@ -112,7 +112,9 @@ export async function fetchChatData(searchParams: {
       : fullUrl;
 
     if (!NEXT_PUBLIC_ENABLE_CHROME_EXTENSION) {
-      return redirect(`/auth/login?next=${encodeURIComponent(redirectUrl)}`);
+      return {
+        redirect: `/auth/login?next=${encodeURIComponent(redirectUrl)}`,
+      };
     }
   }
 
