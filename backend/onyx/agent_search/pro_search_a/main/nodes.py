@@ -321,6 +321,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
 
         for decomp_answer_result in decomp_answer_results:
             decomp_questions.append(decomp_answer_result.question)
+            _, question_nr = parse_question_id(decomp_answer_result.question_id)
             if (
                 decomp_answer_result.quality.lower().startswith("yes")
                 and len(decomp_answer_result.answer) > 0
@@ -333,7 +334,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
                         sub_question_nr=sub_question_nr,
                     )
                 )
-                sub_question_nr += 1
+            sub_question_nr += 1
 
         if len(good_qa_list) > 0:
             sub_question_answer_str = "\n\n------\n\n".join(good_qa_list)
@@ -726,6 +727,8 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     initial_good_sub_questions: list[str] = []
     new_revised_good_sub_questions: list[str] = []
 
+    sub_question_nr = 1
+
     for decomp_answer_result in decomp_answer_results:
         question_level, question_nr = parse_question_id(
             decomp_answer_result.question_id
@@ -741,13 +744,15 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
                 SUB_QUESTION_ANSWER_TEMPLATE.format(
                     sub_question=decomp_answer_result.question,
                     sub_answer=decomp_answer_result.answer,
-                    sub_question_nr=question_nr,
+                    sub_question_nr=sub_question_nr,
                 )
             )
             if question_level == 0:
                 initial_good_sub_questions.append(decomp_answer_result.question)
             else:
                 new_revised_good_sub_questions.append(decomp_answer_result.question)
+
+        sub_question_nr += 1
 
     initial_good_sub_questions = list(set(initial_good_sub_questions))
     new_revised_good_sub_questions = list(set(new_revised_good_sub_questions))
