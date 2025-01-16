@@ -478,11 +478,24 @@ export const AgenticMessage = ({
                           <span className="bg-gradient-to-tr from-[#2178FE] via-[#EDB6DD] to-[#FF6910] text-transparent bg-clip-text">
                             Enhancing response
                           </span>
-
-                          <span className="animate-bounce mx-0.5">.</span>
-                          <span className="animate-bounce mx-0.5">.</span>
-                          <span className="animate-bounce mx-0.5">.</span>
-                          <span className="animate-bounce mx-0.5">.</span>
+                          <span
+                            className="animate-bounce mx-0.5 inline-block bg-[#FF6910]"
+                            style={{ animationDelay: "0.1s" }}
+                          >
+                            .
+                          </span>
+                          <span
+                            className="animate-bounce mx-0.5 inline-block bg-[#FF6910]"
+                            style={{ animationDelay: "0.2s" }}
+                          >
+                            .
+                          </span>
+                          <span
+                            className="animate-bounce mx-0.5 inline-block bg-[#FF6910]"
+                            style={{ animationDelay: "0.3s" }}
+                          >
+                            .
+                          </span>
                         </span>
                       </div>
                     )}
