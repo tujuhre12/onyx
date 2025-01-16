@@ -135,6 +135,12 @@ class RedisConnectorExternalGroupSync:
     ) -> int | None:
         pass
 
+    def reset(self) -> None:
+        self.redis.delete(self.generator_progress_key)
+        self.redis.delete(self.generator_complete_key)
+        self.redis.delete(self.taskset_key)
+        self.redis.delete(self.fence_key)
+
     @staticmethod
     def remove_from_taskset(id: int, task_id: str, r: redis.Redis) -> None:
         taskset_key = f"{RedisConnectorExternalGroupSync.TASKSET_PREFIX}_{id}"

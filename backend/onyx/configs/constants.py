@@ -294,6 +294,7 @@ class OnyxRedisLocks:
 
 class OnyxRedisSignals:
     VALIDATE_INDEXING_FENCES = "signal:validate_indexing_fences"
+    VALIDATE_EXTERNAL_GROUP_SYNC_FENCES = "signal:validate_external_group_sync_fences"
 
 
 class OnyxCeleryPriority(int, Enum):
