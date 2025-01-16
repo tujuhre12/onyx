@@ -69,7 +69,6 @@ BASE_RAG_PROMPT_v2 = (
 
     Please remember to provide inline citations in the format [[D1]](), [[D2]](), [[D3]](), etc.
     Proper citations are very important to the user!\n\n\n
-    Please remember to provide inline citations in the format [[D1]](), [[D2]](), [[D3]](), etc.\n\n\n
 
     For your general information, here is the ultimate motivation:
     \n--\n {original_question} \n--\n
@@ -709,8 +708,6 @@ Remember to provide inline citations of documents in the format [[D1]](), [[D2]]
 you want to cite the answer to a sub-question. If you have multiple citations, please cite for example
 as [[D1]]()[[Q3]](), or [[D2]]()[[D4]](), etc. Feel free to cite sub-questions in addition to documents, but make sure that you
 have docuemnt citations ([[D7]]() etc.) if possible!
-
-Make sure you incldue the "()" at the end of each citation.
 
 Again, you should be sure that the answer is supported by the information provided!
 
