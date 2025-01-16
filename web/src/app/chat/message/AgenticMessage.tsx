@@ -100,7 +100,9 @@ export const AgenticMessage = ({
   setPresentingDocument,
   index,
   subQuestions,
+  agenticDocs,
 }: {
+  agenticDocs?: OnyxDocument[] | null;
   secondLevelGenerating?: boolean;
   secondLevelAssistantMessage?: string;
   isGenerating: boolean;
@@ -323,14 +325,14 @@ export const AgenticMessage = ({
     (props: any) => (
       <MemoizedAnchor
         updatePresentingDocument={setPresentingDocument!}
-        docs={docs}
+        docs={isViewingInitialAnswer ? agenticDocs : docs}
         subQuestions={subQuestions || []}
         openQuestion={openQuestion}
       >
         {props.children}
       </MemoizedAnchor>
     ),
-    [docs]
+    [docs, agenticDocs, isViewingInitialAnswer]
   );
 
   const currentMessageInd = messageId
@@ -416,7 +418,7 @@ export const AgenticMessage = ({
                       isGenerating={isGenerating}
                       allowStreaming={allowStreaming}
                       subQuestions={subQuestions}
-                      documents={docs || []}
+                      documents={isViewingInitialAnswer ? docs! : agenticDocs!}
                       toggleDocumentSelection={toggleDocumentSelection!}
                       setPresentingDocument={setPresentingDocument!}
                       unToggle={false}

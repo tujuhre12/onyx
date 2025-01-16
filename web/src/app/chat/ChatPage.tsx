@@ -2590,6 +2590,11 @@ export function ChatPage({
                                     ? messageHistory[i + 1]?.message
                                     : undefined;
 
+                                const agenticDocs =
+                                  messageHistory[i + 1]?.type === "assistant"
+                                    ? messageHistory[i + 1]?.documents
+                                    : undefined;
+
                                 return (
                                   <div
                                     id={`message-${message.messageId}`}
@@ -2627,6 +2632,7 @@ export function ChatPage({
                                           //   ? message.sub_questions
                                           //   : parentMessage?.sub_questions || []
                                         }
+                                        agenticDocs={agenticDocs}
                                         docs={
                                           message?.documents &&
                                           message?.documents.length > 0
