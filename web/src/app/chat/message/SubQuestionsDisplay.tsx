@@ -28,7 +28,7 @@ interface SubQuestionsDisplayProps {
   currentlyOpenQuestion?: BaseQuestionIdentifier | null;
   isGenerating: boolean;
   subQuestions: SubQuestionDetail[];
-  documents: OnyxDocument[];
+  documents?: OnyxDocument[];
   toggleDocumentSelection: () => void;
   setPresentingDocument: (document: OnyxDocument) => void;
   unToggle: boolean;
@@ -38,7 +38,7 @@ interface SubQuestionsDisplayProps {
 const SubQuestionDisplay: React.FC<{
   currentlyOpen: boolean;
   subQuestion: SubQuestionDetail;
-  documents: OnyxDocument[];
+  documents?: OnyxDocument[];
   isLast: boolean;
   unToggle: boolean;
   isFirst: boolean;
@@ -203,7 +203,7 @@ const SubQuestionDisplay: React.FC<{
     subQuestion.context_docs?.top_documents &&
     subQuestion.context_docs?.top_documents.length > 0
       ? subQuestion.context_docs?.top_documents
-      : documents.filter((doc) =>
+      : (documents || []).filter((doc) =>
           subQuestion.context_docs?.top_documents?.some(
             (contextDoc) => contextDoc.document_id === doc.document_id
           )
