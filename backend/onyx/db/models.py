@@ -1563,7 +1563,6 @@ class PersonaLabel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String, unique=True)
-    description: Mapped[str | None] = mapped_column(String, nullable=True)
     personas: Mapped[list["Persona"]] = relationship(
         "Persona",
         secondary=Persona__PersonaLabel.__table__,

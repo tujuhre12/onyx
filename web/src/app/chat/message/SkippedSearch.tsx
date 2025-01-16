@@ -8,7 +8,7 @@ export function SkippedSearch({
   handleForceSearch: () => void;
 }) {
   return (
-    <div className="flex w-full text-sm !pt-0 p-1">
+    <div className="flex w-full text-sm !pt-0 px-1">
       <div className="flex w-full mb-auto">
         <FiBook className="mobile:hidden my-auto flex-none mr-2" size={14} />
         <div className="my-auto flex w-full items-center justify-between cursor-default">
@@ -25,7 +25,7 @@ export function SkippedSearch({
             <>
               <BasicClickable
                 onClick={handleForceSearch}
-                className="ml-auto mr-4 text-xs mobile:hidden bg-background/80 rounded-md px-2 py-1 cursor-pointer"
+                className="ml-auto mr-4 -my-1 text-xs mobile:hidden bg-background/80 rounded-md px-2 py-1 cursor-pointer"
               >
                 Force search?
               </BasicClickable>

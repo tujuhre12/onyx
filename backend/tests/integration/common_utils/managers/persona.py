@@ -219,14 +219,13 @@ class PersonaManager:
 class PersonaLabelManager:
     @staticmethod
     def create(
-        category: DATestPersonaLabel,
+        label: DATestPersonaLabel,
         user_performing_action: DATestUser | None = None,
     ) -> DATestPersonaLabel:
         response = requests.post(
-            f"{API_SERVER_URL}/admin/persona/categories",
+            f"{API_SERVER_URL}/persona/labels",
             json={
-                "name": category.name,
-                "description": category.description,
+                "name": label.name,
             },
             headers=user_performing_action.headers
             if user_performing_action
@@ -234,47 +233,46 @@ class PersonaLabelManager:
         )
         response.raise_for_status()
         response_data = response.json()
-        category.id = response_data["id"]
-        return category
+        label.id = response_data["id"]
+        return label
 
     @staticmethod
     def get_all(
         user_performing_action: DATestUser | None = None,
     ) -> list[DATestPersonaLabel]:
         response = requests.get(
-            f"{API_SERVER_URL}/persona/categories",
+            f"{API_SERVER_URL}/persona/labels",
             headers=user_performing_action.headers
             if user_performing_action
             else GENERAL_HEADERS,
         )
         response.raise_for_status()
-        return [DATestPersonaLabel(**category) for category in response.json()]
+        return [DATestPersonaLabel(**label) for label in response.json()]
 
     @staticmethod
     def update(
-        category: DATestPersonaLabel,
+        label: DATestPersonaLabel,
         user_performing_action: DATestUser | None = None,
     ) -> DATestPersonaLabel:
         response = requests.patch(
-            f"{API_SERVER_URL}/admin/persona/category/{category.id}",
+            f"{API_SERVER_URL}/admin/persona/label/{label.id}",
             json={
-                "category_name": category.name,
-                "category_description": category.description,
+                "label_name": label.name,
             },
             headers=user_performing_action.headers
             if user_performing_action
             else GENERAL_HEADERS,
         )
         response.raise_for_status()
-        return category
+        return label
 
     @staticmethod
     def delete(
-        category: DATestPersonaLabel,
+        label: DATestPersonaLabel,
         user_performing_action: DATestUser | None = None,
     ) -> bool:
         response = requests.delete(
-            f"{API_SERVER_URL}/admin/persona/category/{category.id}",
+            f"{API_SERVER_URL}/admin/persona/label/{label.id}",
             headers=user_performing_action.headers
             if user_performing_action
             else GENERAL_HEADERS,
@@ -283,14 +281,11 @@ class PersonaLabelManager:
 
     @staticmethod
     def verify(
-        category: DATestPersonaLabel,
+        label: DATestPersonaLabel,
         user_performing_action: DATestUser | None = None,
     ) -> bool:
-        all_categories = PersonaLabelManager.get_all(user_performing_action)
-        for fetched_category in all_categories:
-            if fetched_category.id == category.id:
-                return (
-                    fetched_category.name == category.name
-                    and fetched_category.description == category.description
-                )
+        all_labels = PersonaLabelManager.get_all(user_performing_action)
+        for fetched_label in all_labels:
+            if fetched_label.id == label.id:
+                return fetched_label.name == label.name
         return False

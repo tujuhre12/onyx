@@ -146,32 +146,27 @@ class ImageGenerationToolStatus(BaseModel):
 
 class PersonaLabelCreate(BaseModel):
     name: str
-    description: str
 
 
 class PersonaLabelResponse(BaseModel):
     id: int
     name: str
-    description: str | None
 
     @classmethod
     def from_model(cls, category: PersonaLabel) -> "PersonaLabelResponse":
         return PersonaLabelResponse(
             id=category.id,
             name=category.name,
-            description=category.description,
         )
 
 
 class PersonaLabelSnapshot(BaseModel):
     id: int
     name: str
-    description: str | None
 
     @classmethod
     def from_model(cls, label: PersonaLabel) -> "PersonaLabelSnapshot":
         return PersonaLabelSnapshot(
             id=label.id,
             name=label.name,
-            description=label.description,
         )

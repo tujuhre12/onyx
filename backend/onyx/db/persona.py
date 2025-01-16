@@ -831,10 +831,8 @@ def get_assistant_labels(db_session: Session) -> list[PersonaLabel]:
     return db_session.query(PersonaLabel).all()
 
 
-def create_assistant_label(
-    db_session: Session, name: str, description: str
-) -> PersonaLabel:
-    label = PersonaLabel(name=name, description=description)
+def create_assistant_label(db_session: Session, name: str) -> PersonaLabel:
+    label = PersonaLabel(name=name)
     db_session.add(label)
     db_session.commit()
     return label
@@ -842,7 +840,6 @@ def create_assistant_label(
 
 def update_persona_label(
     label_id: int,
-    label_description: str,
     label_name: str,
     db_session: Session,
 ) -> None:
@@ -851,7 +848,6 @@ def update_persona_label(
     )
     if persona_label is None:
         raise ValueError(f"Persona label with ID {label_id} does not exist")
-    persona_label.description = label_description
     persona_label.name = label_name
     db_session.commit()
 

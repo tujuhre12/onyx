@@ -340,6 +340,11 @@ export const DefaultDropdown = forwardRef<HTMLDivElement, DefaultDropdownProps>(
     const selectedOption = options.find((option) => option.value === selected);
     const [isOpen, setIsOpen] = useState(false);
 
+    const handleSelect = (value: any) => {
+      onSelect(value);
+      setIsOpen(false);
+    };
+
     const Content = (
       <div
         className={`
@@ -381,9 +386,7 @@ export const DefaultDropdown = forwardRef<HTMLDivElement, DefaultDropdownProps>(
           <DefaultDropdownElement
             key={-1}
             name="Default"
-            onSelect={() => {
-              onSelect(null);
-            }}
+            onSelect={() => handleSelect(null)}
             isSelected={selected === null}
           />
         )}
@@ -394,7 +397,7 @@ export const DefaultDropdown = forwardRef<HTMLDivElement, DefaultDropdownProps>(
               key={option.value}
               name={option.name}
               description={option.description}
-              onSelect={() => onSelect(option.value)}
+              onSelect={() => handleSelect(option.value)}
               isSelected={isSelected}
               icon={option.icon}
             />

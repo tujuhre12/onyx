@@ -20,6 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SourceChip } from "../input/ChatInputBar";
 
 export default function InputPrompts() {
   const [inputPrompts, setInputPrompts] = useState<InputPrompt[]>([]);
@@ -218,11 +219,9 @@ export default function InputPrompts() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="mb-2 font-semibold">
-                    {prompt.prompt}
-                    <span className="font-normal">
-                      {isPromptPublic(prompt) ? " (built-in)" : ""}
-                    </span>
+                  <div className="mb-2  flex gap-x-2 ">
+                    <p className="font-semibold">{prompt.prompt}</p>
+                    {isPromptPublic(prompt) && <SourceChip title="Built-in" />}
                   </div>
                 </TooltipTrigger>
                 {isPromptPublic(prompt) && (
@@ -267,7 +266,10 @@ export default function InputPrompts() {
       <div className="flex justify-between items-start mb-6">
         <div className="flex flex-col gap-2">
           <Title>Prompt Shortcuts</Title>
-          <Text>Manage and customize prompt shortcuts for your assistants</Text>
+          <Text>
+            Manage and customize prompt shortcuts for your assistants. Use your
+            prompt shortcuts by starting a new message “/” in chat
+          </Text>
         </div>
       </div>
 

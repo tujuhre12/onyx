@@ -110,13 +110,13 @@ function updatePrompt({
   });
 }
 
-export const createPersonaLabel = (name: string, description: string) => {
+export const createPersonaLabel = (name: string) => {
   return fetch("/api/persona/labels", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ name, description }),
+    body: JSON.stringify({ name }),
   });
 };
 
@@ -131,9 +131,8 @@ export const deletePersonaLabel = (labelId: number) => {
 
 export const updatePersonaLabel = (
   id: number,
-  name: string,
-  description: string
-) => {
+  name: string
+): Promise<Response> => {
   return fetch(`/api/admin/persona/label/${id}`, {
     method: "PATCH",
     headers: {
@@ -141,7 +140,6 @@ export const updatePersonaLabel = (
     },
     body: JSON.stringify({
       label_name: name,
-      label_description: description,
     }),
   });
 };

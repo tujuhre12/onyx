@@ -44,7 +44,6 @@ class DATestUser(BaseModel):
 class DATestPersonaLabel(BaseModel):
     id: int | None = None
     name: str
-    description: str | None
 
 
 class DATestCredential(BaseModel):

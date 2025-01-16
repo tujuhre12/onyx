@@ -129,9 +129,14 @@ export const useLabels = () => {
     errorHandlingFetcher
   );
 
+  const refreshLabels = async () => {
+    const updatedLabels = await mutate("/api/persona/labels");
+    return updatedLabels;
+  };
+
   return {
     ...swrResponse,
-    refreshLabels: () => mutate("/api/persona/labels"),
+    refreshLabels,
   };
 };
 

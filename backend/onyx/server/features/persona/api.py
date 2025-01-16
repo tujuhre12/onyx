@@ -215,7 +215,6 @@ def update_persona(
 
 
 class PersonaLabelPatchRequest(BaseModel):
-    label_description: str
     label_name: str
 
 
@@ -237,9 +236,7 @@ def create_label(
     _: User | None = Depends(current_user),
 ) -> PersonaLabelResponse:
     """Create a new assistant label"""
-    label_model = create_assistant_label(
-        name=label.name, description=label.description, db_session=db
-    )
+    label_model = create_assistant_label(name=label.name, db_session=db)
     return PersonaLabelResponse.from_model(label_model)
 
 
@@ -252,7 +249,6 @@ def patch_persona_label(
 ) -> None:
     update_persona_label(
         label_id=label_id,
-        label_description=persona_label_patch_request.label_description,
         label_name=persona_label_patch_request.label_name,
         db_session=db_session,
     )

@@ -44,7 +44,7 @@ export const SourceChip = ({
   onClick,
   truncateTitle = true,
 }: {
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   title: string;
   onRemove?: () => void;
   onClick?: () => void;
@@ -287,7 +287,7 @@ export function ChatInputBar({
         (tabbingIconIndex == filteredPrompts.length && showPrompts)
       ) {
         if (showPrompts) {
-          window.open("/prompts", "_self");
+          window.open("/chat/input-prompts", "_self");
         } else {
           window.open("/assistants/new", "_self");
         }
@@ -410,7 +410,7 @@ export function ChatInputBar({
                     tabbingIconIndex == filteredPrompts.length &&
                     "bg-background-dark/75"
                   } px-3 flex gap-x-1 py-2 w-full rounded-lg items-center hover:bg-background-dark/90 cursor-pointer`}
-                  href="/prompts"
+                  href="/chat/input-prompts"
                 >
                   <FiPlus size={17} />
                   <p>Create a new prompt</p>

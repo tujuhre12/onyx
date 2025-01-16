@@ -785,8 +785,19 @@ export function AssistantEditor({
                 <div className="mt-3">
                   <SearchMultiSelectDropdown
                     onCreateLabel={async (name: string) => {
-                      await createPersonaLabel(name, "");
-                      await refreshLabels();
+                      await createPersonaLabel(name);
+                      const currentLabels = await refreshLabels();
+
+                      setTimeout(() => {
+                        const newLabelId = currentLabels.find(
+                          (l: { name: string }) => l.name === name
+                        )?.id;
+                        const updatedLabelIds = [
+                          ...values.label_ids,
+                          newLabelId as number,
+                        ];
+                        setFieldValue("label_ids", updatedLabelIds);
+                      }, 300);
                     }}
                     options={Array.from(
                       new Set(labels.map((label) => label.name))
@@ -1190,12 +1201,6 @@ export function AssistantEditor({
                           onChange={(e) => {
                             setFieldValue("editLabelId", label.id);
                             setFieldValue("editLabelName", e.target.value);
-                            if (!values.editLabelDescription) {
-                              setFieldValue(
-                                "editLabelDescription",
-                                label.description
-                              );
-                            }
                           }}
                         />
                         <div className="flex gap-2">
@@ -1207,7 +1212,6 @@ export function AssistantEditor({
                                     values.editLabelName || label.name;
                                   const response = await updatePersonaLabel(
                                     label.id,
-                                    updatedName,
                                     updatedName
                                   );
                                   if (response?.ok) {

@@ -14,7 +14,7 @@ import { PopupSpec } from "@/components/admin/connectors/Popup";
 
 interface LabelCardProps {
   label: PersonaLabel;
-  onUpdate: (id: number, name: string, description: string) => void;
+  onUpdate: (id: number, name: string) => void;
   onDelete: (id: number) => void;
   refreshLabels: () => Promise<void>;
   setPopup: (popup: PopupSpec) => void;
@@ -28,11 +28,10 @@ export function LabelCard({
 }: LabelCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(label.name);
-  const [description, setDescription] = useState(label.description);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onUpdate(label.id, name, description);
+    await onUpdate(label.id, name);
     await refreshLabels();
     setIsEditing(false);
   };
@@ -56,17 +55,6 @@ export function LabelCard({
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="w-full">
-        {isEditing ? (
-          <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="resize-none w-full"
-          />
-        ) : (
-          <p className="text-sm text-gray-600">{label.description}</p>
-        )}
-      </CardContent>
       <CardFooter className="flex justify-end space-x-2">
         {isEditing ? (
           <>

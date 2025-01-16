@@ -50,5 +50,4 @@ export interface Persona {
 export interface PersonaLabel {
   id: number;
   name: string;
-  description: string;
 }

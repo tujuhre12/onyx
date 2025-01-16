@@ -3,7 +3,12 @@ import crypto from "crypto";
 import { Persona } from "@/app/admin/assistants/interfaces";
 import { CustomTooltip } from "../tooltip/CustomTooltip";
 import { buildImgUrl } from "@/app/chat/files/images/utils";
-import { OnyxIcon } from "../icons/icons";
+import {
+  ArtAsistantIcon,
+  OnyxIcon,
+  GeneralAssistantIcon,
+  SearchAssistantIcon,
+} from "../icons/icons";
 import {
   Tooltip,
   TooltipContent,
@@ -123,7 +128,13 @@ export function AssistantIcon({
       <Tooltip>
         <TooltipTrigger asChild>
           <div className={className}>
-            {assistant.uploaded_image_id ? (
+            {assistant.id == -3 ? (
+              <ArtAsistantIcon size={dimension} />
+            ) : assistant.id == 0 ? (
+              <SearchAssistantIcon size={dimension} />
+            ) : assistant.id == -1 ? (
+              <GeneralAssistantIcon size={dimension} />
+            ) : assistant.uploaded_image_id ? (
               <img
                 alt={assistant.name}
                 src={buildImgUrl(assistant.uploaded_image_id)}
