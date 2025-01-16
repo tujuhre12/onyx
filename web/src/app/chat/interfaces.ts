@@ -105,6 +105,7 @@ export interface Message {
 
   // Streaming only
   second_level_generating?: boolean;
+  agentic_docs?: OnyxDocument[] | null;
   second_level_message?: string;
 }
 
