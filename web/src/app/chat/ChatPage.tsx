@@ -1260,6 +1260,7 @@ export function ChatPage({
         : RetrievalType.None;
     let documents: OnyxDocument[] = selectedDocuments;
     let aiMessageImages: FileDescriptor[] | null = null;
+    let agenticDocs: OnyxDocument[] | null = null;
     let error: string | null = null;
     let stackTrace: string | null = null;
 
@@ -1479,6 +1480,8 @@ export function ChatPage({
 
               if (documentsResponse.level_question_nr === 0) {
                 documents = (packet as DocumentsResponse).top_documents;
+              } else if (documentsResponse.level_question_nr === 1) {
+                agenticDocs = (packet as DocumentsResponse).top_documents;
               }
             } else if (Object.hasOwn(packet, "top_documents")) {
               documents = (packet as DocumentInfoPacket).top_documents;
@@ -1601,6 +1604,7 @@ export function ChatPage({
                 stopReason: stopReason,
                 sub_questions: sub_questions,
                 second_level_generating: second_level_generating,
+                agentic_docs: agenticDocs,
               },
             ]);
           }
@@ -2632,7 +2636,9 @@ export function ChatPage({
                                           //   ? message.sub_questions
                                           //   : parentMessage?.sub_questions || []
                                         }
-                                        agenticDocs={agenticDocs}
+                                        agenticDocs={
+                                          message.agentic_docs || agenticDocs
+                                        }
                                         docs={
                                           message?.documents &&
                                           message?.documents.length > 0
