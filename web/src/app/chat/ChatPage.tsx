@@ -1470,7 +1470,7 @@ export function ChatPage({
             } else if (
               Object.hasOwn(packet, "top_documents") &&
               Object.hasOwn(packet, "level_question_nr") &&
-              (packet as DocumentsResponse).level_question_nr
+              (packet as DocumentsResponse).level_question_nr != undefined
             ) {
               const documentsResponse = packet as DocumentsResponse;
               sub_questions = constructSubQuestions(
@@ -1478,9 +1478,15 @@ export function ChatPage({
                 documentsResponse
               );
 
-              if (documentsResponse.level_question_nr === 0) {
+              if (
+                documentsResponse.level_question_nr === 0 &&
+                documentsResponse.level == 0
+              ) {
                 documents = (packet as DocumentsResponse).top_documents;
-              } else if (documentsResponse.level_question_nr === 1) {
+              } else if (
+                documentsResponse.level_question_nr === 0 &&
+                documentsResponse.level == 1
+              ) {
                 agenticDocs = (packet as DocumentsResponse).top_documents;
               }
             } else if (Object.hasOwn(packet, "top_documents")) {
