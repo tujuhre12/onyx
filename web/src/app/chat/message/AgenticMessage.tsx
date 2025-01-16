@@ -325,7 +325,7 @@ export const AgenticMessage = ({
     (props: any) => (
       <MemoizedAnchor
         updatePresentingDocument={setPresentingDocument!}
-        docs={isViewingInitialAnswer ? agenticDocs : docs}
+        docs={isViewingInitialAnswer ? docs : agenticDocs}
         subQuestions={subQuestions || []}
         openQuestion={openQuestion}
       >
@@ -418,7 +418,7 @@ export const AgenticMessage = ({
                       isGenerating={isGenerating}
                       allowStreaming={allowStreaming}
                       subQuestions={subQuestions}
-                      documents={isViewingInitialAnswer ? agenticDocs! : docs!}
+                      documents={isViewingInitialAnswer ? docs! : agenticDocs!}
                       toggleDocumentSelection={toggleDocumentSelection!}
                       setPresentingDocument={setPresentingDocument!}
                       unToggle={false}
