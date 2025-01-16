@@ -37,6 +37,7 @@ interface SubQuestionsDisplayProps {
 
 const SubQuestionDisplay: React.FC<{
   currentlyOpen: boolean;
+  currentlyClosed: boolean;
   subQuestion: SubQuestionDetail;
   documents?: OnyxDocument[];
   isLast: boolean;
@@ -45,6 +46,7 @@ const SubQuestionDisplay: React.FC<{
   setPresentingDocument: (document: OnyxDocument) => void;
 }> = ({
   currentlyOpen,
+  currentlyClosed,
   subQuestion,
   documents,
   isLast,
@@ -177,6 +179,7 @@ const SubQuestionDisplay: React.FC<{
   useEffect(() => {
     if (currentlyOpen) {
       setToggled(true);
+      setAnalysisToggled(true);
       if (questionRef.current) {
         questionRef.current.scrollIntoView({
           behavior: "smooth",
@@ -185,6 +188,12 @@ const SubQuestionDisplay: React.FC<{
       }
     }
   }, [currentlyOpen]);
+
+  useEffect(() => {
+    if (currentlyClosed) {
+      setToggled(false);
+    }
+  }, [currentlyClosed]);
 
   const renderedMarkdown = useMemo(() => {
     return (
@@ -384,6 +393,15 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
               currentlyOpenQuestion?.level === subQuestion.level &&
               currentlyOpenQuestion?.level_question_nr ===
                 subQuestion.level_question_nr
+            }
+            currentlyClosed={
+              currentlyOpenQuestion != null &&
+              currentlyOpenQuestion != undefined &&
+              !(
+                currentlyOpenQuestion.level === subQuestion.level &&
+                currentlyOpenQuestion.level_question_nr ===
+                  subQuestion.level_question_nr
+              )
             }
             key={index}
             subQuestion={subQuestion}
