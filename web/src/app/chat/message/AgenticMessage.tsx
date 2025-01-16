@@ -423,8 +423,10 @@ export const AgenticMessage = ({
                       subQuestions={subQuestions}
                       documents={
                         isViewingInitialAnswer || (!agenticDocs && docs)
-                          ? (docs || agenticDocs)!
-                          : (agenticDocs || docs)!
+                          ? (docs && docs.length > 0 ? docs : agenticDocs)!
+                          : (agenticDocs && agenticDocs.length > 0
+                              ? agenticDocs
+                              : docs)!
                       }
                       toggleDocumentSelection={toggleDocumentSelection!}
                       setPresentingDocument={setPresentingDocument!}
