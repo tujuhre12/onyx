@@ -1,19 +1,16 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React from "react";
 import { Option } from "@/components/Dropdown";
 import { generateRandomIconShape } from "@/lib/assistantIconUtils";
 import { CCPairBasicInfo, DocumentSet, User, UserGroup } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { IsPublicGroupSelector } from "@/components/IsPublicGroupSelector";
 import { ArrayHelpers, FieldArray, Form, Formik, FormikProps } from "formik";
 
 import {
   BooleanFormField,
   Label,
-  SelectorFormField,
   TextFormField,
 } from "@/components/admin/connectors/Field";
 
@@ -38,16 +35,11 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { FiInfo, FiRefreshCcw, FiUsers } from "react-icons/fi";
+import { FiInfo } from "react-icons/fi";
 import * as Yup from "yup";
 import CollapsibleSection from "./CollapsibleSection";
 import { SuccessfulPersonaUpdateRedirectType } from "./enums";
-import {
-  Persona,
-  PersonaLabel,
-  StarterMessage,
-  StarterMessageBase,
-} from "./interfaces";
+import { Persona, PersonaLabel, StarterMessage } from "./interfaces";
 import {
   createPersonaLabel,
   createPersona,
@@ -67,30 +59,20 @@ import { useAssistants } from "@/components/context/AssistantsContext";
 import { debounce } from "lodash";
 import { FullLLMProvider } from "../configuration/llm/interfaces";
 import StarterMessagesList from "./StarterMessageList";
-import { LabelCard } from "./LabelCard";
+
 import { Switch } from "@/components/ui/switch";
 import { generateIdenticon } from "@/components/assistants/AssistantIcon";
 import { BackButton } from "@/components/BackButton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { AdvancedOptionsToggle } from "@/components/AdvancedOptionsToggle";
-import { AssistantVisibilityPopover } from "@/app/assistants/mine/AssistantVisibilityPopover";
 import { MinimalUserSnapshot } from "@/lib/types";
 import { useUserGroups } from "@/lib/hooks";
-import { useUsers } from "@/lib/hooks";
-import { AllUsersResponse } from "@/lib/types";
-// import { Badge } from "@/components/ui/Badge";
-// import {
-//   addUsersToAssistantSharedList,
-//   shareAssistantWithGroups,
-// } from "@/lib/assistants/shareAssistant";
 import {
   SearchMultiSelectDropdown,
   Option as DropdownOption,
 } from "@/components/Dropdown";
-import { Badge } from "@/components/ui/badge";
 import { SourceChip } from "@/app/chat/input/ChatInputBar";
-import { GroupIcon, TagIcon, UserIcon } from "lucide-react";
+import { TagIcon, UserIcon } from "lucide-react";
 import { LLMSelector } from "@/components/llm/LLMSelector";
 import useSWR from "swr";
 import { errorHandlingFetcher } from "@/lib/fetcher";
@@ -916,8 +898,7 @@ export function AssistantEditor({
                                     <TooltipContent side="top" align="center">
                                       <p className="bg-background-900 max-w-[200px] text-sm rounded-lg p-1.5 text-white">
                                         To use the Knowledge Action, you need to
-                                        have at least one Connector-Credential
-                                        pair configured.
+                                        have at least one Connector configured.
                                       </p>
                                     </TooltipContent>
                                   )}
@@ -1141,7 +1122,6 @@ export function AssistantEditor({
                         )
                       : null
                   }
-                  userDefault={user?.preferences?.default_model || null}
                   requiresImageGeneration={
                     imageGenerationTool
                       ? values.enabled_tools_map[imageGenerationTool.id]
