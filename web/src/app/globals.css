@@ -460,6 +460,10 @@ code[class*="language-"] {
   font-weight: theme("fontWeight.token-bold");
 }
 
+nextjs-portal {
+  display: none !important;
+}
+
 .code-line .token.italic {
   font-style: theme("fontStyle.token-italic");
 }
