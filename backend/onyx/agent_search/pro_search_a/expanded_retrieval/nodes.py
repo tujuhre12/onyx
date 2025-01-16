@@ -36,6 +36,7 @@ from onyx.agent_search.pro_search_a.expanded_retrieval.states import (
     QueryExpansionUpdate,
 )
 from onyx.agent_search.pro_search_a.expanded_retrieval.states import RetrievalInput
+from onyx.agent_search.shared_graph_utils.agent_prompt_ops import trim_prompt_piece
 from onyx.agent_search.shared_graph_utils.calculations import get_fit_scores
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.models import QueryResult
@@ -156,6 +157,7 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
                     final_filters=response.final_filters,
                     recency_bias_multiplier=response.recency_bias_multiplier,
                 )
+                break
 
     retrieved_docs = retrieved_docs[:AGENT_MAX_QUERY_RETRIEVAL_RESULTS]
     pre_rerank_docs = retrieved_docs
@@ -225,6 +227,12 @@ def doc_verification(state: DocVerificationInput) -> DocVerificationUpdate:
     doc_to_verify = state["doc_to_verify"]
     document_content = doc_to_verify.combined_content
 
+    fast_llm = state["subgraph_fast_llm"]
+
+    document_content = trim_prompt_piece(
+        fast_llm.config, document_content, VERIFIER_PROMPT + question
+    )
+
     msg = [
         HumanMessage(
             content=VERIFIER_PROMPT.format(
@@ -232,8 +240,6 @@ def doc_verification(state: DocVerificationInput) -> DocVerificationUpdate:
             )
         )
     ]
-
-    fast_llm = state["subgraph_fast_llm"]
 
     response = fast_llm.invoke(msg)
 

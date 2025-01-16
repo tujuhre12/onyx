@@ -355,18 +355,26 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
         else:
             base_prompt = INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS
 
+        model = state["fast_llm"]
+
+        doc_context = format_docs(relevant_docs)
+        doc_context = trim_prompt_piece(
+            model.config,
+            doc_context,
+            base_prompt + sub_question_answer_str + persona_specification,
+        )
+
         msg = [
             HumanMessage(
                 content=base_prompt.format(
                     question=question,
                     answered_sub_questions=sub_question_answer_str,
-                    relevant_docs=format_docs(relevant_docs),
+                    relevant_docs=doc_context,
                     persona_specification=persona_specification,
                 )
             )
         ]
 
-        model = state["fast_llm"]
         streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
         for message in model.stream(msg):
             # TODO: in principle, the answer here COULD contain images, but we don't support that yet
@@ -579,17 +587,23 @@ def generate_initial_base_search_only_answer(
     question = state["config"].search_request.query
     original_question_docs = state["all_original_question_documents"]
 
+    model = state["fast_llm"]
+
+    doc_context = format_docs(original_question_docs)
+    doc_context = trim_prompt_piece(
+        model.config, doc_context, INITIAL_RAG_BASE_PROMPT + question
+    )
+
     msg = [
         HumanMessage(
             content=INITIAL_RAG_BASE_PROMPT.format(
                 question=question,
-                context=format_docs(original_question_docs),
+                context=doc_context,
             )
         )
     ]
 
     # Grader
-    model = state["fast_llm"]
     response = model.invoke(msg)
     answer = response.pretty_repr()
 
