@@ -79,8 +79,8 @@ const SubQuestionDisplay: React.FC<{
     }
     // Add newlines after ]] or ) if there's text immediately following
     content = content.replace(/(\]\]|\))((?!\s|\n|\[|\(|$).)/g, "$1\n$2");
-    // Add () after ]] if not present
 
+    // Add () after ]] if not present
     content = content.replace(/\]\](?!\()/g, "]]()");
 
     // Turn {{number}} into [[Qnumber]] citation in content
