@@ -69,7 +69,6 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
         {displayedDocuments.map((doc, index) => (
           <div
             key={index}
-            onClick={() => openDocument(doc, () => {})}
             className={`transition-opacity duration-300 ${
               index < visibleCards ? "opacity-100" : "opacity-0"
             }`}
