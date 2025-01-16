@@ -79,6 +79,7 @@ export const MemoizedAnchor = memo(
             }}
           >
             <h4>Debug Info:</h4>
+            {children}
             <p>document length: {docs?.length}</p>
             <p>question length: {subQuestions?.length}</p>
             <p>document_info: {JSON.stringify(associatedDoc)}</p>
