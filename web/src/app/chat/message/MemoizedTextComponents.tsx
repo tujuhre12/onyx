@@ -69,22 +69,37 @@ export const MemoizedAnchor = memo(
         }
 
         return (
-          <MemoizedLink
-            updatePresentingDocument={updatePresentingDocument}
-            document={
-              associatedDoc
-                ? {
-                    ...associatedDoc,
-                    icon,
-                    link: associatedDoc.link,
-                  }
-                : undefined
-            }
-            question={associatedSubQuestion}
-            openQuestion={openQuestion}
+          <div
+            className="debug-info"
+            style={{
+              backgroundColor: "#f0f0f0",
+              padding: "10px",
+              border: "1px solid #ccc",
+              margin: "5px 0",
+            }}
           >
-            {children}
-          </MemoizedLink>
+            <h4>Debug Info:</h4>
+            <p>document length: {docs?.length}</p>
+            <p>question length: {subQuestions?.length}</p>
+            <p>document_info: {JSON.stringify(associatedDoc)}</p>
+            <p>question_info: {JSON.stringify(associatedSubQuestion)}</p>
+          </div>
+          // <MemoizedLink
+          //   updatePresentingDocument={updatePresentingDocument}
+          //   document={
+          //     associatedDoc
+          //       ? {
+          //           ...associatedDoc,
+          //           icon,
+          //           link: associatedDoc.link,
+          //         }
+          //       : undefined
+          //   }
+          //   question={associatedSubQuestion}
+          //   openQuestion={openQuestion}
+          // >
+          //   {children}
+          // </MemoizedLink>
         );
       }
     }
