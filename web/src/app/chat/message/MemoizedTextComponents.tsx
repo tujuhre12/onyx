@@ -47,14 +47,14 @@ export const MemoizedAnchor = memo(
         if (!associatedDoc && !associatedSubQuestion) {
           return (
             <>
-              {children}
-              {/* No associated docs or subquestions.
+              {/* {children} */}
+              No associated docs or subquestions.
               <div className="text-sm text-gray-600">
                 <p>Number of questions: {subQuestions?.length}</p>
                 <p>Number of docs: {docs?.length}</p>
                 <p>{children}</p>
                 <p>index: {index}</p>
-              </div> */}
+              </div>
             </>
           );
         }
