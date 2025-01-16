@@ -10,6 +10,7 @@ import { SourceIcon } from "@/components/SourceIcon";
 import { WebResultIcon } from "@/components/WebResultIcon";
 import { SubQuestionDetail } from "../interfaces";
 import { ValidSources } from "@/lib/types";
+import { AnyNaptrRecord } from "dns";
 
 export const MemoizedAnchor = memo(
   ({
@@ -67,19 +68,34 @@ export const MemoizedAnchor = memo(
             />
           );
         }
+        const associatedDocInfo = associatedDoc
+          ? {
+              ...associatedDoc,
+              icon: icon as any,
+              link: associatedDoc.link,
+            }
+          : undefined;
 
         return (
+          // <div
+          //   className="debug-info"
+          //   style={{
+          //     backgroundColor: "#f0f0f0",
+          //     padding: "10px",
+          //     border: "1px solid #ccc",
+          //     margin: "5px 0",
+          //   }}
+          // >
+          //   <h4>Debug Info:</h4>
+          //   {children}
+          //   <p>document length: {docs?.length}</p>
+          //   <p>question length: {subQuestions?.length}</p>
+          //   <p>document_info: {JSON.stringify(associatedDoc)}</p>
+          //   <p>question_info: {JSON.stringify(associatedSubQuestion)}</p>
+          // </div>
           <MemoizedLink
             updatePresentingDocument={updatePresentingDocument}
-            document={
-              associatedDoc
-                ? {
-                    ...associatedDoc,
-                    icon,
-                    link: associatedDoc.link,
-                  }
-                : undefined
-            }
+            document={associatedDocInfo}
             question={associatedSubQuestion}
             openQuestion={openQuestion}
           >
@@ -117,7 +133,7 @@ export const MemoizedLink = memo(
         : undefined;
 
     const documentCardProps: DocumentCardProps | undefined =
-      document && document.link && updatePresentingDocument
+      document && updatePresentingDocument
         ? {
             url: document.link,
             icon: document.icon as unknown as React.ReactNode,
