@@ -168,8 +168,8 @@ export const AgenticMessage = ({
     // Add () after ]] if not present
     content = content.replace(/\]\](?!\()/g, "]]()");
 
-    // Turn [Qn] into citation in content
-    content = content.replace(/\[Q(\d+)\]/g, (match, p1) => {
+    // Turn {{number}} into [[Qnumber]] citation in content
+    content = content.replace(/\{\{(\d+)\}\}/g, (match, p1) => {
       const questionNumber = parseInt(p1, 10);
       return `[[Q${questionNumber}]]()`;
     });
@@ -467,7 +467,11 @@ export const AgenticMessage = ({
                       (finalContent as string).length && (
                       <div className="flex items-center mt-4 space-x-2">
                         <span className="text-sm font-medium text-primary">
-                          Enhancing response
+                          <span className="bg-gradient-to-tr from-[#2178FE] via-[#EDB6DD] to-[#FF6910] text-transparent bg-clip-text">
+                            Enhancing response
+                          </span>
+
+                          <span className="animate-bounce mx-0.5">.</span>
                           <span className="animate-bounce mx-0.5">.</span>
                           <span className="animate-bounce mx-0.5">.</span>
                           <span className="animate-bounce mx-0.5">.</span>
