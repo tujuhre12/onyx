@@ -165,13 +165,14 @@ export const AgenticMessage = ({
       return `[[${citationNumber}]]()`;
     });
 
-    // Convert [Dnumber] to [[Dnumber]]() in content
-    // content = content.replace(/\[D(\d+)\]/g, (match, p1) => {
-    //   const citationNumber = parseInt(p1, 10);
-    //   return `[[D${citationNumber}]]()`;
-    // });
-    // Add newlines after ]] or ) if there's text immediately following
-    // content = content.replace(/(\]\]|\))((?!\s|\n|\[|\(|$).)/g, "$1\n$2");
+    // Add () after ]] if not present
+    content = content.replace(/\]\](?!\()/g, "]]()");
+
+    // Turn [Qn] into citation in content
+    content = content.replace(/\[Q(\d+)\]/g, (match, p1) => {
+      const questionNumber = parseInt(p1, 10);
+      return `[[Q${questionNumber}]]()`;
+    });
 
     return (
       preprocessLaTeX(content) +
