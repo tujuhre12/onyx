@@ -710,6 +710,8 @@ you want to cite the answer to a sub-question. If you have multiple citations, p
 as [[D1]]()[[Q3]](), or [[D2]]()[[D4]](), etc. Feel free to cite sub-questions in addition to documents, but make sure that you
 have docuemnt citations ([[D7]]() etc.) if possible!
 
+Make sure you incldue the "()" at the end of each citation.
+
 Again, you should be sure that the answer is supported by the information provided!
 
 Try to keep your answer concise. But also highlight uncertainties you may have should there be substantial ones,
