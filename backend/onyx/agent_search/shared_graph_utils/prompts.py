@@ -502,6 +502,11 @@ SUB_QUESTION_ANSWER_TEMPLATE = """
     Sub-Question: Q{sub_question_nr}\n  Sub-Question:\n  - \n{sub_question}\n  --\nAnswer:\n  -\n {sub_answer}\n\n
     """
 
+SUB_QUESTION_ANSWER_TEMPLATE_REVISED = """
+    Sub-Question: Q{sub_question_nr}\n  Type: {level_type}\n Sub-Question:\n
+- \n{sub_question}\n  --\nAnswer:\n  -\n {sub_answer}\n\n
+    """
+
 SUB_QUESTION_SEARCH_RESULTS_TEMPLATE = """
     Sub-Question: Q{sub_question_nr}\n  Sub-Question:\n  - \n{sub_question}\n  --\nRelevant Documents:\n
     -\n {formatted_sub_question_docs}\n\n
@@ -632,7 +637,10 @@ provided information - to answer the provided question.
 The information provided below consists of:
     1) an initial answer that was given but found to be lacking in some way.
     2) a number of answered sub-questions - these are very important(!) and definitely should be
-    considered to answer the question.
+    considered to answer the question. Note that the sub-questions have a type, 'initial' and 'revised'. The 'initial'
+     ones were available for the initial answer, and the 'revised' were not. So please use the 'revised' sub-questions in
+     particular to update/extend/correct the initial answer!
+    information from the revised sub-questions
     3) a number of documents that were also deemed relevant for the question.
 
 IMPORTANT RULES:
