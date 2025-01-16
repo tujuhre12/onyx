@@ -276,11 +276,13 @@ def validate_indexing_fence(
             mark_attempt_failed(
                 payload.index_attempt_id,
                 db_session,
-                "validate_indexing_fence - Canceling index attempt due to missing celery tasks",
+                "validate_indexing_fence - Canceling index attempt due to missing celery tasks: "
+                f"index_attempt={payload.index_attempt_id}",
             )
         except Exception:
             logger.exception(
-                "validate_indexing_fence - Exception while marking index attempt as failed."
+                "validate_indexing_fence - Exception while marking index attempt as failed: "
+                f"index_attempt={payload.index_attempt_id}",
             )
 
     redis_connector_index.reset()

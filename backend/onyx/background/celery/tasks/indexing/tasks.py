@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import sys
 import time
@@ -633,7 +634,8 @@ def connector_indexing_proxy_task(
     task_logger.info(
         f"Indexing watchdog - starting: attempt={index_attempt_id} "
         f"cc_pair={cc_pair_id} "
-        f"search_settings={search_settings_id}"
+        f"search_settings={search_settings_id} "
+        f"mp_start_method={multiprocessing.get_start_method()}"
     )
 
     if not self.request.id:
