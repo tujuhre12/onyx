@@ -2099,7 +2099,7 @@ export function ChatPage({
         <Card className="w-72 shadow-lg bg-gray-100 dark:bg-gray-800">
           <CardHeader className="pb-2">
             <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              Pro Search
+              Agent Search
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -2114,7 +2114,7 @@ export function ChatPage({
                 htmlFor="langgraph-toggle"
                 className="text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                Enable Pro Search
+                Enable Agent Search
               </Label>
             </div>
           </CardContent>
