@@ -185,8 +185,19 @@ export const useStreamingMessages = (
                 });
               }
 
+              // Update previous dynamic subqueries if they're shorter than current subqueries
+              for (let j = 0; j < p.subQueryIndex; j++) {
+                if (
+                  dynSQ.sub_queries![j].query.length <
+                  subQueries[j].query.length
+                ) {
+                  dynSQ.sub_queries![j].query = subQueries[j].query;
+                }
+              }
+
               const dynSubQ = dynSQ.sub_queries![p.subQueryIndex];
               const nextIndex = p.subQueryCharIndex + 1;
+
               dynSubQ.query = currentSubQ.query.slice(0, nextIndex);
               p.subQueryCharIndex = nextIndex;
 
