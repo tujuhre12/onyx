@@ -81,6 +81,27 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
+def _remove_document_citations(text: str) -> str:
+    """
+    Removes citation expressions of format '[[D1]]()' from text.
+    The number after D can vary.
+
+    Args:
+        text: Input text containing citations
+
+    Returns:
+        Text with citations removed
+    """
+    # Pattern explanation:
+    # \[\[D\d+\]\]\(\)  matches:
+    #   \[\[ - literal [[ characters
+    #   D    - literal D character
+    #   \d+  - one or more digits
+    #   \]\] - literal ]] characters
+    #   \(\) - literal () characters
+    return re.sub(r"\[\[(?:D|Q)\d+\]\]\(\)", "", text)
+
+
 def _dispatch_subquestion(level: int) -> Callable[[str, int], None]:
     def _helper(sub_question_part: str, num: int) -> None:
         dispatch_custom_event(
@@ -369,8 +390,10 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
             HumanMessage(
                 content=base_prompt.format(
                     question=question,
-                    answered_sub_questions=sub_question_answer_str,
-                    relevant_docs=doc_context,
+                    answered_sub_questions=_remove_document_citations(
+                        sub_question_answer_str
+                    ),
+                    relevant_docs=format_docs(relevant_docs),
                     persona_specification=persona_specification,
                 )
             )
@@ -685,11 +708,16 @@ def refined_answer_decision(state: MainState) -> RequireRefinedAnswerUpdate:
         f"--------{now_end}--{now_end - now_start}--------REFINED ANSWER DECISION END---"
     )
 
-    if not state["config"].allow_refinement or True:
-        return RequireRefinedAnswerUpdate(require_refined_answer=True)
+    if "?" in state["config"].search_request.query:
+        decision = False
+    else:
+        decision = True
+
+    if not state["config"].allow_refinement:
+        return RequireRefinedAnswerUpdate(require_refined_answer=decision)
 
     else:
-        return RequireRefinedAnswerUpdate(require_refined_answer=False)
+        return RequireRefinedAnswerUpdate(require_refined_answer=not decision)
 
 
 def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
@@ -820,9 +848,11 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
         HumanMessage(
             content=base_prompt.format(
                 question=question,
-                answered_sub_questions=sub_question_answer_str,
+                answered_sub_questions=_remove_document_citations(
+                    sub_question_answer_str
+                ),
                 relevant_docs=relevant_docs,
-                initial_answer=initial_answer,
+                initial_answer=_remove_document_citations(initial_answer),
                 persona_specification=persona_specification,
             )
         )
