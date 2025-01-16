@@ -479,18 +479,21 @@ export function CompactQuestionCard({
       className="max-w-[250px] gap-y-0 cursor-pointer pb-0 pt-0 mt-0 flex gap-y-0 flex-col content-start items-start gap-0"
     >
       <div className="text-sm !pb-0 !mb-0 font-semibold flex items-center gap-x-1 text-text-900 pt-0 mt-0 truncate w-full">
-        {`Q${question.level}.${question.level_question_nr}`}
+        Question
       </div>
       <div className="text-xs mb-0 text-gray-600 line-clamp-2">
         {question.question}
       </div>
-      {question.is_complete !== undefined && (
-        <div className="flex mt-0 pt-0 items-center justify-between w-full">
+      <div className="flex mt-0 pt-0 items-center justify-between w-full">
+        <span className="text-xs text-gray-500">
+          {question.context_docs?.top_documents.length || 0} context docs
+        </span>
+        {question.sub_queries && (
           <span className="text-xs text-gray-500">
-            {question.is_complete ? "Completed" : "In progress"}
+            {question.sub_queries.length} subqueries
           </span>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
