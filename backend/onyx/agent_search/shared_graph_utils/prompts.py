@@ -56,7 +56,8 @@ BASE_RAG_PROMPT_v2 = """ \n
     Make sure that you keep all relevant information, specifically as it concerns to the ultimate goal.
     (But keep other details as well.)
 
-    Please remember to provide inline citations in the format [D1], [D2], [D3], etc.\n\n\n
+    Please remember to provide inline citations in the format [[D1]](), [[D2]](), [[D3]](), etc.
+    Proper citations are very important to the user!\n\n\n
 
     For your general information, here is the ultimate motivation:
     \n--\n {original_question} \n--\n
@@ -523,9 +524,9 @@ IMPORTANT RULES:
  - If the information is empty or irrelevant, just say "I don't know".
  - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
 
-Please provide inline citations of documentsin the format [D1], [D2], [D3], etc.,  If you have multiple citations,
-please cite for example as [D1][Q3], or [D2][D4], etc. Feel free to cite documents in addition to the sub-questions!
-Proper citations are important for the final answer to be verifiable! \n\n\n
+Please provide inline citations of documentsin the format [[D1]](), [[D2]](), [[D3]](), etc.,  If you have multiple citations,
+please cite for example as [[D1]]()[[D3]](), or [[D2]]()[[D4]](), etc. Feel free to cite documents in addition
+to the sub-questions! Proper citations are important for the final answer to be verifiable! \n\n\n
 
 Again, you should be sure that the answer is supported by the information provided!
 
@@ -567,9 +568,9 @@ IMPORTANT RULES:
  - If the information is empty or irrelevant, just say "I don't know".
  - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
 
-Remember to provide inline citations of documents in the format [D1], [D2], [D3], etc., and  [Q1], [Q2],... if
+Remember to provide inline citations of documents in the format [[D1]](), [[D2]](), [[D3]](), etc., and  [[Q1]](), [[Q2]](),... if
 you want to cite the answer to a sub-question. If you have multiple citations, please cite for example
-as [D1][Q3], or [D2][D4], etc. Feel free to cite documents in addition to the sub-questions!
+as [[D1]]()[[Q3]](), or [[D2]]()[[D4]](), etc. Feel free to cite documents in addition to the sub-questions!
 Proper citations are important for the final answer to be verifiable! \n\n\n
 
 Again, you should be sure that the answer is supported by the information provided!
@@ -643,9 +644,9 @@ IMPORTANT RULES:
 
 Again, you should be sure that the answer is supported by the information provided!
 
-Remember to provide inline citations of documents in the format [D1], [D2], [D3], etc., and  [Q1], [Q2],... if
+Remember to provide inline citations of documents in the format [[D1]](), [[D2]](), [[D3]](), etc., and [[Q1]](), [[Q2]](),... if
 you want to cite the answer to a sub-question. If you have multiple citations, please cite for example
-as [D1][Q3], or [D2][D4], etc. Feel free to cite documents in addition to the sub-questions!
+as [[D1]]()[[Q3]](), or [[D2]]()[[D4]](), etc. Feel free to cite documents in addition to the sub-questions!
 Proper citations are important for the final answer to be verifiable! \n\n\n
 
 Try to keep your answer concise. But also highlight uncertainties you may have should there be substantial ones,
