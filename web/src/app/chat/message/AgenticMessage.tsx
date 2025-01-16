@@ -328,7 +328,15 @@ export const AgenticMessage = ({
     (props: any) => (
       <MemoizedAnchor
         updatePresentingDocument={setPresentingDocument!}
-        docs={isViewingInitialAnswer ? docs : agenticDocs}
+        docs={
+          isViewingInitialAnswer
+            ? docs && docs.length > 0
+              ? docs
+              : agenticDocs
+            : agenticDocs && agenticDocs.length > 0
+              ? agenticDocs
+              : docs
+        }
         subQuestions={subQuestions || []}
         openQuestion={openQuestion}
       >
