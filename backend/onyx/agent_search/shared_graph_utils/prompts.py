@@ -649,6 +649,9 @@ IMPORTANT RULES:
  - If the information is empty or irrelevant, just say "I don't know".
  - If the information is relevant but not fully conclusive, provide and answer to the extent you can but also
  specify that the information is not conclusive and why.
+- Ignore the exisiting citations within the answered sub-questions, like [[D1]]()... and [[Q2]]()!
+The citations you will need to use will need to refer to the documents and sub-questions that you are explicitly
+presented with below!
 
 Again, you should be sure that the answer is supported by the information provided!
 
