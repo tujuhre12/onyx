@@ -44,7 +44,16 @@ export const MemoizedAnchor = memo(
           : undefined;
 
         if (!associatedDoc && !associatedSubQuestion) {
-          return <>{children}</>;
+          return (
+            <>
+              [This has no associated doc or subquestion.]
+              <div className="text-sm text-gray-600">
+                <p>Number of questions: {subQuestions?.length}</p>
+                <p>Number of docs: {docs?.length}</p>
+              </div>
+              {children}
+            </>
+          );
         }
 
         let icon: React.ReactNode = null;
