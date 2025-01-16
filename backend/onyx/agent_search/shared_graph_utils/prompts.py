@@ -574,6 +574,8 @@ you want to cite the answer to a sub-question. If you have multiple citations, p
 as [[D1]]()[[Q3]](), or [[D2]]()[[D4]](), etc. Feel free to cite documents in addition to the sub-questions!
 Proper citations are important for the final answer to be verifiable! \n\n\n
 
+Make sure you incldue the "()" at the end of each citation.
+
 Again, you should be sure that the answer is supported by the information provided!
 
 Try to keep your answer concise. But also highlight uncertainties you may have should there be substantial ones,
