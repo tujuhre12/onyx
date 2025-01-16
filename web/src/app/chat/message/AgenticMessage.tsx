@@ -472,35 +472,35 @@ export const AgenticMessage = ({
                     </Button>
                   )}
 
-                  {secondLevelGenerating &&
-                    streamedContent.length ==
-                      (finalContent as string).length && (
-                      <div className="flex items-center mt-4 space-x-2">
-                        <span className="text-sm font-medium text-primary">
-                          <span className="bg-gradient-to-tr from-[#2178FE] via-[#EDB6DD] to-[#FF6910] text-transparent bg-clip-text">
-                            Enhancing response
-                          </span>
-                          <span
-                            className="animate-bounce mx-0.5 inline-block text-[#FF6910]"
-                            style={{ animationDelay: "0.1s" }}
-                          >
-                            .
-                          </span>
-                          <span
-                            className="animate-bounce mx-0.5 inline-block text-[#FF6910]"
-                            style={{ animationDelay: "0.2s" }}
-                          >
-                            .
-                          </span>
-                          <span
-                            className="animate-bounce mx-0.5 inline-block text-[#FF6910]"
-                            style={{ animationDelay: "0.3s" }}
-                          >
-                            .
-                          </span>
+                  {secondLevelGenerating && (
+                    // streamedContent.length ==
+                    //   (finalContent as string).length &&
+                    <div className="flex items-center mt-4 space-x-2">
+                      <span className="text-sm font-medium text-primary">
+                        <span className="bg-gradient-to-tr from-[#2178FE] via-[#EDB6DD] to-[#FF6910] text-transparent bg-clip-text">
+                          Enhancing response
                         </span>
-                      </div>
-                    )}
+                        <span
+                          className="animate-bounce mx-0.5 inline-block text-[#FF6910]"
+                          style={{ animationDelay: "0.1s" }}
+                        >
+                          .
+                        </span>
+                        <span
+                          className="animate-bounce mx-0.5 inline-block text-[#FF6910]"
+                          style={{ animationDelay: "0.2s" }}
+                        >
+                          .
+                        </span>
+                        <span
+                          className="animate-bounce mx-0.5 inline-block text-[#FF6910]"
+                          style={{ animationDelay: "0.3s" }}
+                        >
+                          .
+                        </span>
+                      </span>
+                    </div>
+                  )}
 
                   {handleFeedback &&
                     (isActive ? (
