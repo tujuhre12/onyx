@@ -246,6 +246,7 @@ export const AgenticMessage = ({
   const [isRegenerateHovered, setIsRegenerateHovered] = useState(false);
   const [isRegenerateDropdownVisible, setIsRegenerateDropdownVisible] =
     useState(false);
+
   const { isHovering, trackedElementRef, hoverElementRef } = useMouseTracking();
 
   const settings = useContext(SettingsContext);
@@ -420,17 +421,19 @@ export const AgenticMessage = ({
                       isGenerating={isGenerating}
                       allowStreaming={allowStreaming}
                       subQuestions={subQuestions}
-                      documents={isViewingInitialAnswer ? docs! : agenticDocs!}
+                      documents={
+                        isViewingInitialAnswer || (!agenticDocs && docs)
+                          ? docs!
+                          : agenticDocs!
+                      }
                       toggleDocumentSelection={toggleDocumentSelection!}
                       setPresentingDocument={setPresentingDocument!}
                       unToggle={false}
                     />
                   )}
 
+                  {/* For debugging purposes */}
                   {/* <SubQuestionProgress subQuestions={subQuestions || []} /> */}
-                  {/* {streamingAllowed
-                    ? "Streaming allowed"
-                    : "Streaming not allowed"} */}
 
                   {(content || files) && (streamingAllowed || !isGenerating) ? (
                     <>
