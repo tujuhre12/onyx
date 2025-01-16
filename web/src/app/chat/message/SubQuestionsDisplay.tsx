@@ -412,7 +412,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
           </div>
         )}
       </div>
-      {documents.length > 0 && (
+      {documents && documents.length > 0 && (
         <SourcesDisplay
           animateEntrance={true}
           toggleDocumentSelection={toggleDocumentSelection}
