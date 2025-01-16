@@ -190,6 +190,7 @@ export const AgenticMessage = ({
   );
 
   const [streamingAllowed, setStreamingAllowed] = useState(false);
+  const [isCurrentlyGenerating, setIsCurrentlyGenerating] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
   const streamIndexRef = useRef(0);
 
@@ -204,10 +205,11 @@ export const AgenticMessage = ({
 
     const streamNextChar = () => {
       if (streamIndexRef.current < content.length) {
-        setStreamedContent(content.slice(0, streamIndexRef.current + 8));
+        setStreamedContent(content.slice(0, streamIndexRef.current + 4));
         streamIndexRef.current += 8;
         setTimeout(streamNextChar, 10);
       } else {
+        setIsCurrentlyGenerating(false);
         console.log("Streaming completed");
       }
     };
@@ -218,6 +220,10 @@ export const AgenticMessage = ({
   useEffect(() => {
     if (!isGenerating) {
       setStreamedContent(finalContent as string);
+    } else if (
+      (processContent(content) as string).length > streamedContent.length
+    ) {
+      setIsCurrentlyGenerating(true);
     }
   }, [content]);
 
