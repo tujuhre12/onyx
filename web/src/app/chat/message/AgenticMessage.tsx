@@ -206,11 +206,11 @@ export const AgenticMessage = ({
     }
 
     const streamNextChar = () => {
-      if (streamIndexRef.current < content.length) {
+      if (streamIndexRef.current - 8 < content.length) {
         setStreamedContent(
-          content.slice(0, Math.min(4, streamIndexRef.current) + 4)
+          content.slice(0, Math.max(12, streamIndexRef.current))
         );
-        streamIndexRef.current += 8;
+        streamIndexRef.current += 1;
         setTimeout(streamNextChar, 10);
       } else {
         setIsCurrentlyGenerating(false);
@@ -481,19 +481,19 @@ export const AgenticMessage = ({
                             Enhancing response
                           </span>
                           <span
-                            className="animate-bounce mx-0.5 inline-block bg-[#FF6910]"
+                            className="animate-bounce mx-0.5 inline-block text-[#FF6910]"
                             style={{ animationDelay: "0.1s" }}
                           >
                             .
                           </span>
                           <span
-                            className="animate-bounce mx-0.5 inline-block bg-[#FF6910]"
+                            className="animate-bounce mx-0.5 inline-block text-[#FF6910]"
                             style={{ animationDelay: "0.2s" }}
                           >
                             .
                           </span>
                           <span
-                            className="animate-bounce mx-0.5 inline-block bg-[#FF6910]"
+                            className="animate-bounce mx-0.5 inline-block text-[#FF6910]"
                             style={{ animationDelay: "0.3s" }}
                           >
                             .
