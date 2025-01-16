@@ -79,17 +79,12 @@ const SubQuestionDisplay: React.FC<{
     }
     // Add newlines after ]] or ) if there's text immediately following
     content = content.replace(/(\]\]|\))((?!\s|\n|\[|\(|$).)/g, "$1\n$2");
-    // Turn {{number}} into citation in content
-    content = content.replace(/\{\{(\d+)\}\}/g, (match, p1) => {
-      const citationNumber = parseInt(p1, 10);
-      return `[[${citationNumber}]]()`;
-    });
-
     // Add () after ]] if not present
+
     content = content.replace(/\]\](?!\()/g, "]]()");
 
-    // Turn [Qn] into citation in content
-    content = content.replace(/\[Q(\d+)\]/g, (match, p1) => {
+    // Turn {{number}} into [[Qnumber]] citation in content
+    content = content.replace(/\{\{(\d+)\}\}/g, (match, p1) => {
       const questionNumber = parseInt(p1, 10);
       return `[[Q${questionNumber}]]()`;
     });
