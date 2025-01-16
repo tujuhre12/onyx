@@ -207,7 +207,9 @@ export const AgenticMessage = ({
 
     const streamNextChar = () => {
       if (streamIndexRef.current < content.length) {
-        setStreamedContent(content.slice(0, streamIndexRef.current + 4));
+        setStreamedContent(
+          content.slice(0, Math.min(4, streamIndexRef.current) + 4)
+        );
         streamIndexRef.current += 8;
         setTimeout(streamNextChar, 10);
       } else {
