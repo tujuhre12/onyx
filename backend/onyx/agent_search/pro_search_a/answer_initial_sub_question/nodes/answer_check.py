@@ -7,10 +7,16 @@ from onyx.agent_search.pro_search_a.answer_initial_sub_question.states import (
 from onyx.agent_search.pro_search_a.answer_initial_sub_question.states import (
     QACheckUpdate,
 )
+from onyx.agent_search.shared_graph_utils.prompts import SUB_CHECK_NO
 from onyx.agent_search.shared_graph_utils.prompts import SUB_CHECK_PROMPT
+from onyx.agent_search.shared_graph_utils.prompts import UNKNOWN_ANSWER
 
 
 def answer_check(state: AnswerQuestionState) -> QACheckUpdate:
+    if state["answer"] == UNKNOWN_ANSWER:
+        return QACheckUpdate(
+            answer_quality=SUB_CHECK_NO,
+        )
     msg = [
         HumanMessage(
             content=SUB_CHECK_PROMPT.format(

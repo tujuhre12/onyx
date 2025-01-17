@@ -79,8 +79,11 @@ BASE_RAG_PROMPT_v2 = (
     """
 )
 
+SUB_CHECK_YES = "yes"
+SUB_CHECK_NO = "no"
 
-SUB_CHECK_PROMPT = """
+SUB_CHECK_PROMPT = (
+    """
     Your task is to see whether a given answer addresses a given question.
     Please do not use any internal knowledge you may have - just focus on whether the answer
     as given seems to largely address the question as given, or at least addresses part of the question.
@@ -92,7 +95,9 @@ SUB_CHECK_PROMPT = """
     \n ------- \n
     {base_answer}
     \n ------- \n
-    Does the suggested answer address the question? Please answer with yes or no:"""
+    Does the suggested answer address the question? Please answer with """
+    + f'"{SUB_CHECK_YES}" or "{SUB_CHECK_NO}".'
+)
 
 
 BASE_CHECK_PROMPT = """ \n
