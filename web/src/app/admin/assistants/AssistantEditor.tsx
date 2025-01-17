@@ -882,7 +882,7 @@ export function AssistantEditor({
                                       <Switch
                                         checked={
                                           values.enabled_tools_map[
-                                            imageGenerationTool.id
+                                            searchTool.id
                                           ]
                                         }
                                         size="sm"
