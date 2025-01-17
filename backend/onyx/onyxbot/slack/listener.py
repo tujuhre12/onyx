@@ -195,7 +195,7 @@ class SlackbotHandler:
         # If the tokens are missing or empty, close the socket client and remove them.
         if not slack_bot_tokens:
             logger.debug(
-                f"No Slack bot tokens found for tenant={tenant_id}, app={bot.id}"
+                f"No Slack bot tokens found for tenant={tenant_id}, bot {bot.id}"
             )
             if tenant_bot_pair in self.socket_clients:
                 asyncio.run(self.socket_clients[tenant_bot_pair].close())
@@ -210,7 +210,7 @@ class SlackbotHandler:
         if not tokens_exist or tokens_changed:
             if tokens_exist:
                 logger.info(
-                    f"Slack Bot tokens changed for tenant={tenant_id}, app={bot.id}; reconnecting"
+                    f"Slack Bot tokens changed for tenant={tenant_id}, bot {bot.id}; reconnecting"
                 )
             else:
                 # Warm up the model if needed
