@@ -68,6 +68,7 @@ from onyx.agent_search.shared_graph_utils.prompts import (
 from onyx.agent_search.shared_graph_utils.prompts import (
     SUB_QUESTION_SEARCH_RESULTS_TEMPLATE,
 )
+from onyx.agent_search.shared_graph_utils.prompts import UNKNOWN_ANSWER
 from onyx.agent_search.shared_graph_utils.utils import dispatch_separated
 from onyx.agent_search.shared_graph_utils.utils import format_docs
 from onyx.agent_search.shared_graph_utils.utils import format_docs_content_flat
@@ -271,18 +272,24 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
         sub_question_docs, all_original_question_documents
     )
 
+    initial_agent_stats = InitialAgentResultStats(
+        sub_questions={},
+        original_question={},
+        agent_effectiveness={},
+    )
+    decomp_questions = []
     if len(relevant_docs) == 0:
         dispatch_custom_event(
             "initial_agent_answer",
             AgentAnswerPiece(
-                answer_piece="I don't know",
+                answer_piece=UNKNOWN_ANSWER,
                 level=0,
                 level_question_nr=0,
                 answer_type="agent_level_answer",
             ),
         )
 
-        answer = "I don't know"
+        answer = UNKNOWN_ANSWER
 
     else:
         # Use the query info from the base document retrieval
@@ -319,7 +326,6 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
         decomp_answer_results = state["decomp_answer_results"]
 
         good_qa_list: list[str] = []
-        decomp_questions = []
 
         sub_question_nr = 1
 
@@ -718,7 +724,7 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
         if (
             decomp_answer_result.quality.lower().startswith("yes")
             and len(decomp_answer_result.answer) > 0
-            and decomp_answer_result.answer != "I don't know"
+            and decomp_answer_result.answer != UNKNOWN_ANSWER
         ):
             good_qa_list.append(
                 SUB_QUESTION_ANSWER_TEMPLATE_REVISED.format(

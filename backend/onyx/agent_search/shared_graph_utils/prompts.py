@@ -1,3 +1,5 @@
+UNKNOWN_ANSWER = "I don't know"
+
 REWRITE_PROMPT_MULTI_ORIGINAL = """ \n
     Please convert an initial user question into a 2-3 more appropriate short and pointed search queries for retrievel from a
     document store. Particularly, try to think about resolving ambiguities and make the search queries more specific,
@@ -23,14 +25,17 @@ REWRITE_PROMPT_MULTI = """ \n
     Formulate the sample documents separated by '--' (Do not say 'Document 1: ...', just write the text): """
 
 # The prompt is only used if there is no persona prompt, so the placeholder is ''
-BASE_RAG_PROMPT = """ \n
+BASE_RAG_PROMPT = (
+    """ \n
     {persona_specification}
     Use the context provided below - and only the
     provided context - to answer the given question. (Note that the answer is in service of anserwing a broader
     question, given below as 'motivation'.)
 
     Again, only use the provided context and do not use your internal knowledge! If you cannot answer the
-    question based on the context, say "I don't know". It is a matter of life and death that you do NOT
+    question based on the context, say """
+    + f'"{UNKNOWN_ANSWER}"'
+    + """. It is a matter of life and death that you do NOT
     use your internal knowledge, just the provided information!
 
     Make sure that you keep all relevant information, specifically as it concerns to the ultimate goal.
@@ -43,14 +48,18 @@ BASE_RAG_PROMPT = """ \n
     And here is the question I want you to answer based on the context above (with the motivation in mind):
     \n--\n {question} \n--\n
     """
+)
 
-BASE_RAG_PROMPT_v2 = """ \n
+BASE_RAG_PROMPT_v2 = (
+    """ \n
     Use the context provided below - and only the
     provided context - to answer the given question. (Note that the answer is in service of answering a broader
     question, given below as 'motivation'.)
 
     Again, only use the provided context and do not use your internal knowledge! If you cannot answer the
-    question based on the context, say "I don't know". It is a matter of life and death that you do NOT
+    question based on the context, say """
+    + f'"{UNKNOWN_ANSWER}"'
+    + """. It is a matter of life and death that you do NOT
     use your internal knowledge, just the provided information!
 
     Make sure that you keep all relevant information, specifically as it concerns to the ultimate goal.
@@ -68,6 +77,7 @@ BASE_RAG_PROMPT_v2 = """ \n
     Here is the context:
     \n\n\n--\n {context} \n--\n
     """
+)
 
 
 SUB_CHECK_PROMPT = """
@@ -156,18 +166,24 @@ REWRITE_PROMPT_SINGLE = """ \n
 
     Formulate the query: """
 
-MODIFIED_RAG_PROMPT = """You are an assistant for question-answering tasks. Use the context provided below
-    - and only this context - to answer the question. If you don't know the answer, just say "I don't know".
+MODIFIED_RAG_PROMPT = (
+    """You are an assistant for question-answering tasks. Use the context provided below
+    - and only this context - to answer the question. If you don't know the answer, just say """
+    + f'"{UNKNOWN_ANSWER}"'
+    + """.
     Use three sentences maximum and keep the answer concise.
     Pay also particular attention to the sub-questions and their answers, at least it may enrich the answer.
     Again, only use the provided context and do not use your internal knowledge! If you cannot answer the
-    question based on the context, say "I don't know". It is a matter of life and death that you do NOT
+    question based on the context, say """
+    + f'"{UNKNOWN_ANSWER}"'
+    + """. It is a matter of life and death that you do NOT
     use your internal knowledge, just the provided information!
 
     \nQuestion: {question}
     \nContext: {combined_context} \n
 
     Answer:"""
+)
 
 ORIG_DEEP_DECOMPOSE_PROMPT = """ \n
     An initial user question needs to be answered. An initial answer has been provided but it wasn't quite
@@ -462,7 +478,8 @@ INITIAL_DECOMPOSITION_PROMPT = """ \n
     Answer:
     """
 
-INITIAL_RAG_BASE_PROMPT = """ \n
+INITIAL_RAG_BASE_PROMPT = (
+    """ \n
 You are an assistant for question-answering tasks. Use the information provided below - and only the
 provided information - to answer the provided question.
 
@@ -471,7 +488,9 @@ The information provided below consists ofa number of documents that were deemed
 IMPORTANT RULES:
 - If you cannot reliably answer the question solely using the provided information, say that you cannot reliably answer.
 You may give some additional facts you learned, but do not try to invent an answer.
-- If the information is empty or irrelevant, just say "I don't know".
+- If the information is empty or irrelevant, just say """
+    + f'"{UNKNOWN_ANSWER}"'
+    + """.
 - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
 
 Try to keep your answer concise.
@@ -483,6 +502,7 @@ Here is the contextual information from the document store:
 And here is the question I want you to answer based on the context above (with the motivation in mind):
 \n--\n {question} \n--\n
 Answer:"""
+)
 
 
 ### ANSWER GENERATION PROMPTS
@@ -512,7 +532,8 @@ SUB_QUESTION_SEARCH_RESULTS_TEMPLATE = """
     -\n {formatted_sub_question_docs}\n\n
     """
 
-INITIAL_RAG_PROMPT_SUB_QUESTION_SEARCH = """ \n
+INITIAL_RAG_PROMPT_SUB_QUESTION_SEARCH = (
+    """ \n
 {persona_specification}
 
 Use the information provided below - and only the
@@ -526,7 +547,9 @@ The information provided below consists of:
 IMPORTANT RULES:
  - If you cannot reliably answer the question solely using the provided information, say that you cannot reliably answer.
  You may give some additional facts you learned, but do not try to invent an answer.
- - If the information is empty or irrelevant, just say "I don't know".
+ - If the information is empty or irrelevant, just say """
+    + f'"{UNKNOWN_ANSWER}"'
+    + """.
  - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
 
 Please provide inline citations of documentsin the format [[D1]](), [[D2]](), [[D3]](), etc.,  If you have multiple citations,
@@ -554,9 +577,11 @@ And here is the question I want you to answer based on the information above:
 {question}
 \n--\n\n
 Answer:"""
+)
 
 
-INITIAL_RAG_PROMPT = """ \n
+INITIAL_RAG_PROMPT = (
+    """ \n
 {persona_specification}
 
 Use the information provided below - and only the
@@ -570,7 +595,9 @@ The information provided below consists of:
 IMPORTANT RULES:
  - If you cannot reliably answer the question solely using the provided information, say that you cannot reliably answer.
  You may give some additional facts you learned, but do not try to invent an answer.
- - If the information is empty or irrelevant, just say "I don't know".
+ - If the information is empty or irrelevant, just say """
+    + f'"{UNKNOWN_ANSWER}"'
+    + """.
  - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
 
 Remember to provide inline citations of documents in the format [[D1]](), [[D2]](), [[D3]](), etc., and  [[Q1]](), [[Q2]](),... if
@@ -599,9 +626,11 @@ And here is the question I want you to answer based on the information above:
 {question}
 \n--\n\n
 Answer:"""
+)
 
 # sub_question_answer_str is empty
-INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS = """{answered_sub_questions}
+INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS = (
+    """{answered_sub_questions}
 {persona_specification}
 Use the information provided below
 - and only the provided information - to answer the provided question.
@@ -610,7 +639,9 @@ The information provided below consists of a number of documents that were deeme
 IMPORTANT RULES:
  - If you cannot reliably answer the question solely using the provided information, say that you cannot reliably answer.
  You may give some  additional facts you learned, but do not try to invent an answer.
- - If the information is irrelevant, just say "I don't know".
+ - If the information is irrelevant, just say """
+    + f'"{UNKNOWN_ANSWER}"'
+    + """.
  - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
 
 Again, you should be sure that the answer is supported by the information provided!
@@ -628,8 +659,10 @@ And here is the question I want you to answer based on the context above
 \n--\n
 
 Answer:"""
+)
 
-REVISED_RAG_PROMPT = """\n
+REVISED_RAG_PROMPT = (
+    """\n
 {persona_specification}
 Use the information provided below - and only the
 provided information - to answer the provided question.
@@ -646,7 +679,9 @@ The information provided below consists of:
 IMPORTANT RULES:
  - If you cannot reliably answer the question solely using the provided information, say that you cannot reliably answer.
  You may give some additional facts you learned, but do not try to invent an answer.
- - If the information is empty or irrelevant, just say "I don't know".
+ - If the information is empty or irrelevant, just say """
+    + f'"{UNKNOWN_ANSWER}"'
+    + """.
  - If the information is relevant but not fully conclusive, provide and answer to the extent you can but also
  specify that the information is not conclusive and why.
 - Ignore the exisiting citations within the answered sub-questions, like [[D1]]()... and [[Q2]]()!
@@ -684,9 +719,11 @@ Lastly, here is the question I want you to answer based on the information above
 {question}
 \n--\n\n
 Answer:"""
+)
 
 # sub_question_answer_str is empty
-REVISED_RAG_PROMPT_NO_SUB_QUESTIONS = """{answered_sub_questions}\n
+REVISED_RAG_PROMPT_NO_SUB_QUESTIONS = (
+    """{answered_sub_questions}\n
 {persona_specification}
 Use the information provided below - and only the
 provided information - to answer the provided question.
@@ -698,7 +735,9 @@ The information provided below consists of:
 IMPORTANT RULES:
  - If you cannot reliably answer the question solely using the provided information, say that you cannot reliably answer.
  You may give some additional facts you learned, but do not try to invent an answer.
- - If the information is empty or irrelevant, just say "I don't know".
+ - If the information is empty or irrelevant, just say """
+    + f'"{UNKNOWN_ANSWER}"'
+    + """.
  - If the information is relevant but not fully conclusive, provide and answer to the extent you can but also
  specify that the information is not conclusive and why.
 
@@ -724,6 +763,7 @@ Lastly, here is the question I want you to answer based on the information above
 {question}
 \n--\n\n
 Answer:"""
+)
 
 
 ENTITY_TERM_PROMPT = """ \n

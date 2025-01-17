@@ -15,9 +15,12 @@ from onyx.agent_search.shared_graph_utils.agent_prompt_ops import (
 )
 from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_DEFAULT
 from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_PERSONA
+from onyx.agent_search.shared_graph_utils.prompts import UNKNOWN_ANSWER
 from onyx.agent_search.shared_graph_utils.utils import get_persona_prompt
 from onyx.agent_search.shared_graph_utils.utils import parse_question_id
-from onyx.chat.models import AgentAnswerPiece, StreamStopInfo, StreamStopReason
+from onyx.chat.models import AgentAnswerPiece
+from onyx.chat.models import StreamStopInfo
+from onyx.chat.models import StreamStopReason
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -33,16 +36,16 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
     persona_prompt = get_persona_prompt(state["subgraph_config"].search_request.persona)
 
     if len(docs) == 0:
+        answer_str = UNKNOWN_ANSWER
         dispatch_custom_event(
             "sub_answers",
             AgentAnswerPiece(
-                answer_piece="I don't know",
+                answer_piece=answer_str,
                 level=level,
                 level_question_nr=question_nr,
                 answer_type="agent_sub_answer",
             ),
         )
-        answer_str = "I don't know"
     else:
         if len(persona_prompt) > 0:
             persona_specification = ASSISTANT_SYSTEM_PROMPT_DEFAULT
@@ -59,10 +62,9 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
             original_question=state["subgraph_config"].search_request.query,
             docs=docs,
             persona_specification=persona_specification,
-            config = fast_llm.config,
+            config=fast_llm.config,
         )
 
-        
         response: list[str | list[str | dict[str, Any]]] = []
         for message in fast_llm.stream(
             prompt=msg,
@@ -86,7 +88,11 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
 
         answer_str = merge_message_runs(response, chunk_separator="")[0].content
 
-    stop_event = StreamStopInfo(stop_reason=StreamStopReason.FINISHED, level=level, level_question_nr=question_nr)
+    stop_event = StreamStopInfo(
+        stop_reason=StreamStopReason.FINISHED,
+        level=level,
+        level_question_nr=question_nr,
+    )
     dispatch_custom_event("sub_answer_finished", stop_event)
 
     return QAGenerationUpdate(
