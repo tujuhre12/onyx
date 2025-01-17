@@ -8,8 +8,9 @@ from typing import cast
 from langchain_core.callbacks.manager import dispatch_custom_event
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
-from langchain_core.messages import merge_message_runs
+from langchain_core.runnables.config import RunnableConfig
 
+from onyx.agent_search.models import ProSearchConfig
 from onyx.agent_search.pro_search_a.answer_initial_sub_question.states import (
     AnswerQuestionOutput,
 )
@@ -117,15 +118,18 @@ def _dispatch_subquestion(level: int) -> Callable[[str, int], None]:
     return _helper
 
 
-def initial_sub_question_creation(state: MainState) -> BaseDecompUpdate:
+def initial_sub_question_creation(
+    state: MainState, config: RunnableConfig
+) -> BaseDecompUpdate:
     now_start = datetime.now()
 
     logger.debug(f"--------{now_start}--------BASE DECOMP START---")
 
-    question = state["config"].search_request.query
-    state["db_session"]
-    chat_session_id = state["config"].chat_session_id
-    primary_message_id = state["config"].message_id
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+
+    question = pro_search_config.search_request.query
+    chat_session_id = pro_search_config.chat_session_id
+    primary_message_id = pro_search_config.message_id
 
     if not chat_session_id or not primary_message_id:
         raise ValueError(
@@ -139,7 +143,7 @@ def initial_sub_question_creation(state: MainState) -> BaseDecompUpdate:
     ]
 
     # Get the rewritten queries in a defined format
-    model = state["fast_llm"]
+    model = pro_search_config.fast_llm
 
     # Send the initial question as a subquestion with number 0
     dispatch_custom_event(
@@ -275,13 +279,16 @@ def _get_query_info(results: list[QueryResult]) -> SearchQueryInfo:
     return query_infos[0]
 
 
-def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
+def generate_initial_answer(
+    state: MainState, config: RunnableConfig
+) -> InitialAnswerUpdate:
     now_start = datetime.now()
 
     logger.debug(f"--------{now_start}--------GENERATE INITIAL---")
 
-    question = state["config"].search_request.query
-    persona_prompt = get_persona_prompt(state["config"].search_request.persona)
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    question = pro_search_config.search_request.query
+    persona_prompt = get_persona_prompt(pro_search_config.search_request.persona)
     sub_question_docs = state["documents"]
     all_original_question_documents = state["all_original_question_documents"]
 
@@ -318,7 +325,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
             final_context_sections=relevant_docs,
             search_query_info=query_info,
             get_section_relevance=lambda: None,  # TODO: add relevance
-            search_tool=state["search_tool"],
+            search_tool=pro_search_config.search_tool,
         ):
             dispatch_custom_event(
                 "tool_response",
@@ -364,7 +371,6 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
             sub_question_answer_str = ""
 
         # Determine which persona-specification prompt to use
-
         if len(persona_prompt) > 0:
             persona_specification = ASSISTANT_SYSTEM_PROMPT_DEFAULT
         else:
@@ -378,7 +384,7 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
         else:
             base_prompt = INITIAL_RAG_PROMPT_NO_SUB_QUESTIONS
 
-        model = state["fast_llm"]
+        model = pro_search_config.fast_llm
 
         doc_context = format_docs(relevant_docs)
         doc_context = trim_prompt_piece(
@@ -475,160 +481,84 @@ def generate_initial_answer(state: MainState) -> InitialAnswerUpdate:
     )
 
 
-def initial_answer_quality_check(state: MainState) -> InitialAnswerQualityUpdate:
-    """
-    Check whether the final output satisfies the original user question
+def initial_answer_quality_check(
+    state: MainState, config: RunnableConfig
+) -> InitialAnswerQualityUpdate:
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    if not pro_search_config.allow_refinement:
+        return InitialAnswerQualityUpdate(initial_answer_quality=True)
 
-    Args:
-        state (messages): The current state
-
-    Returns:
-        InitialAnswerQualityUpdate
-    """
-
-    now_start = datetime.now()
-
-    logger.debug(
-        f"--------{now_start}--------Checking for base answer validity - for not set True/False manually"
-    )
-
-    verdict = True
-
-    now_end = datetime.now()
-
-    logger.debug(
-        f"--------{now_end}--{now_end - now_start}--------INITIAL ANSWER QUALITY CHECK END---"
-    )
-
-    return InitialAnswerQualityUpdate(initial_answer_quality=verdict)
+    # TODO: implement actual quality check
+    return InitialAnswerQualityUpdate(initial_answer_quality=True)
 
 
-def entity_term_extraction_llm(state: MainState) -> EntityTermExtractionUpdate:
-    now_start = datetime.now()
+def entity_term_extraction_llm(
+    state: MainState, config: RunnableConfig
+) -> EntityTermExtractionUpdate:
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    question = pro_search_config.search_request.query
+    base_answer = state["initial_answer"]
 
-    logger.debug(f"--------{now_start}--------GENERATE ENTITIES & TERMS---")
-
-    if not state["config"].allow_refinement:
-        return EntityTermExtractionUpdate(
-            entity_retlation_term_extractions=EntityRelationshipTermExtraction(
-                entities=[],
-                relationships=[],
-                terms=[],
-            )
-        )
-
-    # first four lines duplicates from generate_initial_answer
-    question = state["config"].search_request.query
-    sub_question_docs = state["documents"]
-    all_original_question_documents = state["all_original_question_documents"]
-    relevant_docs = dedup_inference_sections(
-        sub_question_docs, all_original_question_documents
-    )
-
-    # start with the entity/term/extraction
-
-    doc_context = format_docs(relevant_docs)
-
-    doc_context = trim_prompt_piece(
-        state["fast_llm"].config, doc_context, ENTITY_TERM_PROMPT + question
-    )
     msg = [
         HumanMessage(
-            content=ENTITY_TERM_PROMPT.format(question=question, context=doc_context),
+            content=ENTITY_TERM_PROMPT.format(
+                question=question,
+                base_answer=base_answer,
+            ),
         )
     ]
-    fast_llm = state["fast_llm"]
+
     # Grader
-    llm_response_list = list(
-        fast_llm.stream(
-            prompt=msg,
+    model = pro_search_config.fast_llm
+    response = model.invoke(msg)
+    answer = response.pretty_repr()
+
+    try:
+        entity_term_extraction = json.loads(answer)
+        entity_term_extraction = EntityRelationshipTermExtraction(
+            entities=[
+                Entity(**entity) for entity in entity_term_extraction["entities"]
+            ],
+            relationships=[
+                Relationship(**relationship)
+                for relationship in entity_term_extraction["relationships"]
+            ],
+            terms=[Term(**term) for term in entity_term_extraction["terms"]],
         )
-    )
-    llm_response = merge_message_runs(llm_response_list, chunk_separator="")[0].content
-
-    cleaned_response = re.sub(r"```json\n|\n```", "", llm_response)
-    parsed_response = json.loads(cleaned_response)
-
-    entities = []
-    relationships = []
-    terms = []
-    for entity in parsed_response.get("retrieved_entities_relationships", {}).get(
-        "entities", {}
-    ):
-        entity_name = entity.get("entity_name", "")
-        entity_type = entity.get("entity_type", "")
-        entities.append(Entity(entity_name=entity_name, entity_type=entity_type))
-
-    for relationship in parsed_response.get("retrieved_entities_relationships", {}).get(
-        "relationships", {}
-    ):
-        relationship_name = relationship.get("relationship_name", "")
-        relationship_type = relationship.get("relationship_type", "")
-        relationship_entities = relationship.get("relationship_entities", [])
-        relationships.append(
-            Relationship(
-                relationship_name=relationship_name,
-                relationship_type=relationship_type,
-                relationship_entities=relationship_entities,
-            )
+    except Exception as e:
+        logger.error(f"Error parsing entity term extraction: {e}")
+        entity_term_extraction = EntityRelationshipTermExtraction(
+            entities=[], relationships=[], terms=[]
         )
-
-    for term in parsed_response.get("retrieved_entities_relationships", {}).get(
-        "terms", {}
-    ):
-        term_name = term.get("term_name", "")
-        term_type = term.get("term_type", "")
-        term_similar_to = term.get("term_similar_to", [])
-        terms.append(
-            Term(
-                term_name=term_name,
-                term_type=term_type,
-                term_similar_to=term_similar_to,
-            )
-        )
-
-    now_end = datetime.now()
-
-    logger.debug(
-        f"--------{now_end}--{now_end - now_start}--------ENTITY TERM EXTRACTION END---"
-    )
 
     return EntityTermExtractionUpdate(
-        entity_retlation_term_extractions=EntityRelationshipTermExtraction(
-            entities=entities,
-            relationships=relationships,
-            terms=terms,
-        )
+        entity_retlation_term_extractions=entity_term_extraction,
     )
 
 
 def generate_initial_base_search_only_answer(
     state: MainState,
+    config: RunnableConfig,
 ) -> InitialAnswerBASEUpdate:
     now_start = datetime.now()
 
     logger.debug(f"--------{now_start}--------GENERATE INITIAL BASE ANSWER---")
 
-    question = state["config"].search_request.query
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    question = pro_search_config.search_request.query
     original_question_docs = state["all_original_question_documents"]
-
-    model = state["fast_llm"]
-
-    doc_context = format_docs(original_question_docs)
-    doc_context = trim_prompt_piece(
-        model.config, doc_context, INITIAL_RAG_BASE_PROMPT + question
-    )
 
     msg = [
         HumanMessage(
             content=INITIAL_RAG_BASE_PROMPT.format(
                 question=question,
-                context=doc_context,
+                context=format_docs(original_question_docs),
             )
         )
     ]
 
     # Grader
+    model = pro_search_config.fast_llm
     response = model.invoke(msg)
     answer = response.pretty_repr()
 
@@ -698,127 +628,32 @@ def ingest_initial_base_retrieval(
     )
 
 
-def refined_answer_decision(state: MainState) -> RequireRefinedAnswerUpdate:
-    now_start = datetime.now()
+def refined_answer_decision(
+    state: MainState, config: RunnableConfig
+) -> RequireRefinedAnswerUpdate:
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    if not pro_search_config.allow_refinement:
+        return RequireRefinedAnswerUpdate(require_refined_answer=False)
 
-    logger.debug(f"--------{now_start}--------REFINED ANSWER DECISION---")
+    # TODO: implement actual decision logic
+    return RequireRefinedAnswerUpdate(require_refined_answer=True)
 
-    now_end = datetime.now()
 
-    logger.debug(
-        f"--------{now_end}--{now_end - now_start}--------REFINED ANSWER DECISION END---"
+def generate_refined_answer(
+    state: MainState, config: RunnableConfig
+) -> RefinedAnswerUpdate:
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    question = pro_search_config.search_request.query
+    persona_prompt = get_persona_prompt(pro_search_config.search_request.persona)
+    base_answer = state["initial_answer"]
+    sub_question_docs = state["documents"]
+    all_original_question_documents = state["all_original_question_documents"]
+
+    relevant_docs = dedup_inference_sections(
+        sub_question_docs, all_original_question_documents
     )
-
-    if "?" in state["config"].search_request.query:
-        decision = False
-    else:
-        decision = True
-
-    if not state["config"].allow_refinement:
-        return RequireRefinedAnswerUpdate(require_refined_answer=decision)
-
-    else:
-        return RequireRefinedAnswerUpdate(require_refined_answer=not decision)
-
-
-def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
-    now_start = datetime.now()
-
-    logger.debug(f"--------{now_start}--------GENERATE REFINED ANSWER---")
-
-    question = state["config"].search_request.query
-    persona_prompt = get_persona_prompt(state["config"].search_request.persona)
-
-    initial_documents = state["documents"]
-    revised_documents = state["refined_documents"]
-
-    combined_documents = dedup_inference_sections(initial_documents, revised_documents)
-
-    query_info = _get_query_info(state["original_question_retrieval_results"])
-    # stream refined answer docs
-    for tool_response in yield_search_responses(
-        query=question,
-        reranked_sections=combined_documents,
-        final_context_sections=combined_documents,
-        search_query_info=query_info,
-        get_section_relevance=lambda: None,  # TODO: add relevance
-        search_tool=state["search_tool"],
-    ):
-        dispatch_custom_event(
-            "tool_response",
-            ExtendedToolResponse(
-                id=tool_response.id,
-                response=tool_response.response,
-                level=1,
-                level_question_nr=0,  # 0, 0 is the base question
-            ),
-        )
-
-    if len(initial_documents) > 0:
-        revision_doc_effectiveness = len(combined_documents) / len(initial_documents)
-    elif len(revised_documents) == 0:
-        revision_doc_effectiveness = 0.0
-    else:
-        revision_doc_effectiveness = 10.0
-
-    decomp_answer_results = state["decomp_answer_results"]
-    # revised_answer_results = state["refined_decomp_answer_results"]
-
-    good_qa_list: list[str] = []
-    decomp_questions = []
-
-    initial_good_sub_questions: list[str] = []
-    new_revised_good_sub_questions: list[str] = []
-
-    sub_question_nr = 1
-
-    for decomp_answer_result in decomp_answer_results:
-        question_level, question_nr = parse_question_id(
-            decomp_answer_result.question_id
-        )
-
-        decomp_questions.append(decomp_answer_result.question)
-        if (
-            decomp_answer_result.quality.lower().startswith("yes")
-            and len(decomp_answer_result.answer) > 0
-            and decomp_answer_result.answer != UNKNOWN_ANSWER
-        ):
-            good_qa_list.append(
-                SUB_QUESTION_ANSWER_TEMPLATE.format(
-                    sub_question=decomp_answer_result.question,
-                    sub_answer=decomp_answer_result.answer,
-                    sub_question_nr=sub_question_nr,
-                )
-            )
-            if question_level == 0:
-                initial_good_sub_questions.append(decomp_answer_result.question)
-            else:
-                new_revised_good_sub_questions.append(decomp_answer_result.question)
-
-        sub_question_nr += 1
-
-    initial_good_sub_questions = list(set(initial_good_sub_questions))
-    new_revised_good_sub_questions = list(set(new_revised_good_sub_questions))
-    total_good_sub_questions = list(
-        set(initial_good_sub_questions + new_revised_good_sub_questions)
-    )
-    if len(initial_good_sub_questions) > 0:
-        revision_question_efficiency: float = len(total_good_sub_questions) / len(
-            initial_good_sub_questions
-        )
-    elif len(new_revised_good_sub_questions) > 0:
-        revision_question_efficiency = 10.0
-    else:
-        revision_question_efficiency = 1.0
-
-    sub_question_answer_str = "\n\n------\n\n".join(list(set(good_qa_list)))
-
-    # original answer
-
-    initial_answer = state["initial_answer"]
 
     # Determine which persona-specification prompt to use
-
     if len(persona_prompt) > 0:
         persona_specification = ASSISTANT_SYSTEM_PROMPT_DEFAULT
     else:
@@ -826,40 +661,51 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
             persona_prompt=persona_prompt
         )
 
+    # Get the refined sub-questions and their answers
+    refined_sub_questions = state["refined_sub_questions"]
+
+    good_qa_list: list[str] = []
+    new_revised_good_sub_questions: list[str] = []
+
+    sub_question_nr = 1
+    for refined_sub_question in refined_sub_questions.values():
+        if refined_sub_question.answered:
+            good_qa_list.append(
+                SUB_QUESTION_ANSWER_TEMPLATE.format(
+                    sub_question=refined_sub_question.sub_question,
+                    sub_answer=refined_sub_question.answer,
+                    sub_question_nr=sub_question_nr,
+                )
+            )
+            new_revised_good_sub_questions.append(refined_sub_question.sub_question)
+            sub_question_nr += 1
+
+    if len(good_qa_list) > 0:
+        sub_question_answer_str = "\n\n------\n\n".join(good_qa_list)
+    else:
+        sub_question_answer_str = ""
+
     # Determine which base prompt to use given the sub-question information
     if len(good_qa_list) > 0:
         base_prompt = REVISED_RAG_PROMPT
     else:
         base_prompt = REVISED_RAG_PROMPT_NO_SUB_QUESTIONS
 
-    model = state["fast_llm"]
-    relevant_docs = format_docs(combined_documents)
-    relevant_docs = trim_prompt_piece(
-        model.config,
-        relevant_docs,
-        base_prompt
-        + question
-        + sub_question_answer_str
-        + relevant_docs
-        + initial_answer
-        + persona_specification,
-    )
-
     msg = [
         HumanMessage(
             content=base_prompt.format(
                 question=question,
+                initial_answer=base_answer,
                 answered_sub_questions=_remove_document_citations(
                     sub_question_answer_str
                 ),
-                relevant_docs=relevant_docs,
-                initial_answer=_remove_document_citations(initial_answer),
+                relevant_docs=format_docs(relevant_docs),
                 persona_specification=persona_specification,
             )
         )
     ]
 
-    # Grader
+    model = pro_search_config.fast_llm
 
     streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
     for message in model.stream(msg):
@@ -883,121 +729,45 @@ def generate_refined_answer(state: MainState) -> RefinedAnswerUpdate:
     response = merge_content(*streamed_tokens)
     answer = cast(str, response)
 
-    # refined_agent_stats = _calculate_refined_agent_stats(
-    #     state["decomp_answer_results"], state["original_question_retrieval_stats"]
+    # new_revised_good_sub_questions_str = "\n".join(
+    #     list(set(new_revised_good_sub_questions))
     # )
 
-    initial_good_sub_questions_str = "\n".join(list(set(initial_good_sub_questions)))
-    new_revised_good_sub_questions_str = "\n".join(
-        list(set(new_revised_good_sub_questions))
-    )
-
     refined_agent_stats = RefinedAgentStats(
-        revision_doc_efficiency=revision_doc_effectiveness,
-        revision_question_efficiency=revision_question_efficiency,
-    )
-
-    logger.debug(
-        f"\n\n---INITIAL ANSWER START---\n\n Answer:\n Agent: {initial_answer}"
-    )
-    logger.debug("-" * 10)
-    logger.debug(f"\n\n---REVISED AGENT ANSWER START---\n\n Answer:\n Agent: {answer}")
-
-    logger.debug("-" * 100)
-    logger.debug(f"\n\nINITAL Sub-Questions\n\n{initial_good_sub_questions_str}\n\n")
-    logger.debug("-" * 10)
-    logger.debug(
-        f"\n\nNEW REVISED Sub-Questions\n\n{new_revised_good_sub_questions_str}\n\n"
-    )
-
-    logger.debug("-" * 100)
-
-    logger.debug(
-        f"\n\nINITAL & REVISED Sub-Questions & Answers:\n\n{sub_question_answer_str}\n\nStas:\n\n"
-    )
-
-    logger.debug("-" * 100)
-
-    if state["initial_agent_stats"]:
-        initial_doc_boost_factor = state["initial_agent_stats"].agent_effectiveness.get(
-            "utilized_chunk_ratio", "--"
-        )
-        initial_support_boost_factor = state[
-            "initial_agent_stats"
-        ].agent_effectiveness.get("support_ratio", "--")
-        num_initial_verified_docs = state["initial_agent_stats"].original_question.get(
-            "num_verified_documents", "--"
-        )
-        initial_verified_docs_avg_score = state[
-            "initial_agent_stats"
-        ].original_question.get("verified_avg_score", "--")
-        initial_sub_questions_verified_docs = state[
-            "initial_agent_stats"
-        ].sub_questions.get("num_verified_documents", "--")
-
-        logger.debug("INITIAL AGENT STATS")
-        logger.debug(f"Document Boost Factor: {initial_doc_boost_factor}")
-        logger.debug(f"Support Boost Factor: {initial_support_boost_factor}")
-        logger.debug(f"Originally Verified Docs: {num_initial_verified_docs}")
-        logger.debug(
-            f"Originally Verified Docs Avg Score: {initial_verified_docs_avg_score}"
-        )
-        logger.debug(
-            f"Sub-Questions Verified Docs: {initial_sub_questions_verified_docs}"
-        )
-    if refined_agent_stats:
-        logger.debug("-" * 10)
-        logger.debug("REFINED AGENT STATS")
-        logger.debug(
-            f"Revision Doc Factor: {refined_agent_stats.revision_doc_efficiency}"
-        )
-        logger.debug(
-            f"Revision Question Factor: {refined_agent_stats.revision_question_efficiency}"
-        )
-
-    now_end = datetime.now()
-
-    logger.debug(
-        f"--------{now_end}--{now_end - now_start}--------INITIAL AGENT ANSWER  END---\n\n"
+        revision_doc_efficiency=1.0,  # TODO: calculate this
+        revision_question_efficiency=1.0,  # TODO: calculate this
     )
 
     agent_refined_end_time = datetime.now()
-    if state["agent_refined_start_time"]:
-        agent_refined_duration = (
-            agent_refined_end_time - state["agent_refined_start_time"]
-        ).total_seconds()
-    else:
-        agent_refined_duration = None
-
     agent_refined_metrics = AgentRefinedMetrics(
         refined_doc_boost_factor=refined_agent_stats.revision_doc_efficiency,
         refined_question_boost_factor=refined_agent_stats.revision_question_efficiency,
-        duration__s=agent_refined_duration,
-    )
-
-    now_end = datetime.now()
-
-    logger.debug(
-        f"--------{now_end}--{now_end - now_start}--------REFINED ANSWER UPDATE END---"
+        duration__s=(
+            agent_refined_end_time - state["agent_refined_start_time"]
+        ).total_seconds()
+        if state["agent_refined_start_time"]
+        else None,
     )
 
     return RefinedAnswerUpdate(
         refined_answer=answer,
-        refined_answer_quality=True,  # TODO: replace this with the actual check value
         refined_agent_stats=refined_agent_stats,
+        refined_answer_quality=True,  # TODO: replace this with actual check
         agent_refined_end_time=agent_refined_end_time,
         agent_refined_metrics=agent_refined_metrics,
     )
 
 
-def refined_sub_question_creation(state: MainState) -> FollowUpSubQuestionsUpdate:
-    """ """
+def refined_sub_question_creation(
+    state: MainState, config: RunnableConfig
+) -> FollowUpSubQuestionsUpdate:
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
     dispatch_custom_event(
-        "start_refined_answer_creation",
+        "tool_response",
         ToolCallKickoff(
             tool_name="agent_search_1",
             tool_args={
-                "query": state["config"].search_request.query,
+                "query": pro_search_config.search_request.query,
                 "answer": state["initial_answer"],
             },
         ),
@@ -1009,7 +779,7 @@ def refined_sub_question_creation(state: MainState) -> FollowUpSubQuestionsUpdat
 
     agent_refined_start_time = datetime.now()
 
-    question = state["config"].search_request.query
+    question = pro_search_config.search_request.query
     base_answer = state["initial_answer"]
 
     # get the entity term extraction dict and properly format it
@@ -1042,7 +812,7 @@ def refined_sub_question_creation(state: MainState) -> FollowUpSubQuestionsUpdat
     ]
 
     # Grader
-    model = state["fast_llm"]
+    model = pro_search_config.fast_llm
 
     streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(1))
     response = merge_content(*streamed_tokens)
@@ -1102,14 +872,14 @@ def ingest_refined_answers(
     )
 
 
-def agent_logging(state: MainState) -> MainOutput:
+def agent_logging(state: MainState, config: RunnableConfig) -> MainOutput:
     now_start = datetime.now()
 
-    logger.debug(f"--------{now_start}--------LOGGING NODE---")
+    logger.debug(f"--------{now_start}--------LOGGING NODE START---")
 
     agent_start_time = state["agent_start_time"]
     agent_base_end_time = state["agent_base_end_time"]
-    agent_refined_start_time = state["agent_refined_start_time"] or None
+    agent_refined_start_time = state["agent_refined_start_time"]
     agent_refined_end_time = state["agent_refined_end_time"] or None
     agent_end_time = agent_refined_end_time or agent_base_end_time
 
@@ -1143,47 +913,34 @@ def agent_logging(state: MainState) -> MainOutput:
         additional_metrics=AgentAdditionalMetrics(),
     )
 
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
     persona_id = None
-    if state["config"].search_request.persona:
-        persona_id = state["config"].search_request.persona.id
-
-    user_id = None
-    if "user" in state and state["user"]:
-        user_id = state["user"].id
+    if pro_search_config.search_request.persona:
+        persona_id = pro_search_config.search_request.persona.id
 
     # log the agent metrics
-    log_agent_metrics(
-        db_session=state["db_session"],
-        user_id=user_id,
-        persona_id=persona_id,
-        agent_type=agent_type,
-        start_time=agent_start_time,
-        agent_metrics=combined_agent_metrics,
-    )
+    if pro_search_config.db_session:
+        log_agent_metrics(
+            db_session=pro_search_config.db_session,
+            user_id=None,  # TODO: get user ID from somewhere if needed
+            persona_id=persona_id,
+            agent_type=agent_type,
+            start_time=agent_start_time,
+            agent_metrics=combined_agent_metrics,
+        )
 
-    if state["config"].use_persistence:
+    if pro_search_config.use_persistence and pro_search_config.db_session:
         # Persist the sub-answer in the database
-        db_session = state["db_session"]
-        chat_session_id = state["config"].chat_session_id
-        primary_message_id = state["config"].message_id
+        chat_session_id = pro_search_config.chat_session_id
+        primary_message_id = pro_search_config.message_id
         sub_question_answer_results = state["decomp_answer_results"]
 
         log_agent_sub_question_results(
-            db_session=db_session,
+            db_session=pro_search_config.db_session,
             chat_session_id=chat_session_id,
             primary_message_id=primary_message_id,
             sub_question_answer_results=sub_question_answer_results,
         )
-
-        # if chat_session_id is not None and primary_message_id is not None and sub_question_id is not None:
-        #     create_sub_answer(
-        #         db_session=db_session,
-        #         chat_session_id=chat_session_id,
-        #         primary_message_id=primary_message_id,
-        #         sub_question_id=sub_question_id,
-        #         answer=answer_str,
-        # #     )
-        # pass
 
     main_output = MainOutput()
 

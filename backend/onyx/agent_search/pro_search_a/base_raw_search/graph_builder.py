@@ -25,12 +25,12 @@ def base_raw_search_graph_builder() -> StateGraph:
 
     ### Add nodes ###
 
-    expanded_retrieval = expanded_retrieval_graph_builder().compile()
     graph.add_node(
         node="generate_raw_search_data",
         action=generate_raw_search_data,
     )
 
+    expanded_retrieval = expanded_retrieval_graph_builder().compile()
     graph.add_node(
         node="expanded_retrieval_base_search",
         action=expanded_retrieval,

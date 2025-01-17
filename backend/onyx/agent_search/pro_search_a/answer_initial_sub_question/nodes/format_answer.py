@@ -1,3 +1,5 @@
+from langchain_core.runnables.config import RunnableConfig
+
 from onyx.agent_search.pro_search_a.answer_initial_sub_question.states import (
     AnswerQuestionOutput,
 )
@@ -9,7 +11,9 @@ from onyx.agent_search.shared_graph_utils.models import (
 )
 
 
-def format_answer(state: AnswerQuestionState) -> AnswerQuestionOutput:
+def format_answer(
+    state: AnswerQuestionState, config: RunnableConfig
+) -> AnswerQuestionOutput:
     return AnswerQuestionOutput(
         answer_results=[
             QuestionAnswerResults(

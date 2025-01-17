@@ -12,6 +12,7 @@ from onyx.llm.chat_llm import LLM
 
 
 class BasicInput(TypedDict):
+    base_question: str
     last_llm_call: LLMCall | None
     llm: LLM
     answer_style_config: AnswerStyleConfig

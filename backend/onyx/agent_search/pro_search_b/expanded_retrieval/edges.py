@@ -2,7 +2,6 @@ from collections.abc import Hashable
 
 from langgraph.types import Send
 
-from onyx.agent_search.core_state import in_subgraph_extract_core_fields
 from onyx.agent_search.pro_search_b.expanded_retrieval.nodes import RetrievalInput
 from onyx.agent_search.pro_search_b.expanded_retrieval.states import (
     ExpandedRetrievalState,
@@ -19,7 +18,6 @@ def parallel_retrieval_edge(state: ExpandedRetrievalState) -> list[Send | Hashab
             RetrievalInput(
                 query_to_retrieve=query,
                 question=question,
-                **in_subgraph_extract_core_fields(state),
                 base_search=False,
                 sub_question_id=state.get("sub_question_id"),
             ),

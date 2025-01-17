@@ -114,15 +114,11 @@ if __name__ == "__main__":
         )
         inputs = AnswerQuestionInput(
             question="what can you do with onyx?",
-            subgraph_fast_llm=fast_llm,
-            subgraph_primary_llm=primary_llm,
-            subgraph_config=pro_search_config,
-            subgraph_search_tool=search_tool,
-            subgraph_db_session=db_session,
             question_id="0_0",
         )
         for thing in compiled_graph.stream(
             input=inputs,
+            config={"configurable": {"config": pro_search_config}},
             # debug=True,
             # subgraphs=True,
         ):

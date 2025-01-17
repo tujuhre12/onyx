@@ -1,3 +1,5 @@
+from langchain_core.runnables.config import RunnableConfig
+
 from onyx.agent_search.pro_search_a.answer_initial_sub_question.states import (
     RetrievalIngestionUpdate,
 )
@@ -7,7 +9,9 @@ from onyx.agent_search.pro_search_a.expanded_retrieval.states import (
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 
 
-def ingest_retrieval(state: ExpandedRetrievalOutput) -> RetrievalIngestionUpdate:
+def ingest_retrieval(
+    state: ExpandedRetrievalOutput, config: RunnableConfig
+) -> RetrievalIngestionUpdate:
     sub_question_retrieval_stats = state[
         "expanded_retrieval_result"
     ].sub_question_retrieval_stats
