@@ -352,11 +352,11 @@ class SlackbotHandler:
             return
 
         # Close all socket clients for this tenant
-        for (t_id, slack_bot_id), client in list(self.socket_clients.items()):
-            if t_id == tenant_id:
+        for (tenant_id, slack_bot_id), client in list(self.socket_clients.items()):
+            if tenant_id == tenant_id:
                 asyncio.run(client.close())
-                del self.socket_clients[(t_id, slack_bot_id)]
-                del self.slack_bot_tokens[(t_id, slack_bot_id)]
+                del self.socket_clients[(tenant_id, slack_bot_id)]
+                del self.slack_bot_tokens[(tenant_id, slack_bot_id)]
                 logger.info(
                     f"Stopped SocketModeClient for tenant: {tenant_id}, app: {slack_bot_id}"
                 )
