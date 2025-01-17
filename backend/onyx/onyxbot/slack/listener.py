@@ -161,7 +161,7 @@ class SlackbotHandler:
                 self.acquire_tenants()
 
                 # After we finish acquiring and managing Slack bots,
-                # set the gauge to the number of *active* tenants (those with Slack bots).
+                # set the gauge to the number of active tenants (those with Slack bots).
                 active_tenants_gauge.labels(namespace=POD_NAMESPACE, pod=POD_NAME).set(
                     len(self.tenant_ids)
                 )
@@ -195,7 +195,7 @@ class SlackbotHandler:
         # If the tokens are missing or empty, close the socket client and remove them.
         if not slack_bot_tokens:
             logger.debug(
-                f"No Slack bot tokens found for tenant={tenant_id}, bot={bot.id}"
+                f"No Slack bot tokens found for tenant={tenant_id}, app={bot.id}"
             )
             if tenant_bot_pair in self.socket_clients:
                 asyncio.run(self.socket_clients[tenant_bot_pair].close())
@@ -210,7 +210,7 @@ class SlackbotHandler:
         if not tokens_exist or tokens_changed:
             if tokens_exist:
                 logger.info(
-                    f"Slack Bot tokens changed for tenant={tenant_id}, bot={bot.id}; reconnecting"
+                    f"Slack Bot tokens changed for tenant={tenant_id}, app={bot.id}; reconnecting"
                 )
             else:
                 # Warm up the model if needed
@@ -239,9 +239,7 @@ class SlackbotHandler:
         """
         all_tenants = get_all_tenant_ids()
 
-        #
-        # 1) Try to acquire locks for new tenants that we are not yet handling
-        #
+        # 1) Try to acquire locks for new tenants
         for tenant_id in all_tenants:
             if (
                 DISALLOWED_SLACK_BOT_TENANT_LIST is not None
@@ -283,11 +281,11 @@ class SlackbotHandler:
             )
             try:
                 with get_session_with_tenant(tenant_id) as db_session:
-                    bots = []
+                    bots: list[SlackBot] = []
                     try:
-                        bots = fetch_slack_bots(db_session=db_session)
+                        bots = list(fetch_slack_bots(db_session=db_session))
                     except KvKeyNotFoundError:
-                        # Means no Slack Bot tokens stored
+                        # No Slackbot tokens, pass
                         pass
                     except Exception as e:
                         logger.exception(
@@ -304,19 +302,15 @@ class SlackbotHandler:
                                 bot=bot,
                             )
                     else:
-                        # No Slack bots => release lock immediately (unless in dev mode)
-                        if not DEV_MODE:
-                            redis_client.delete(OnyxRedisLocks.SLACK_BOT_LOCK)
-                            logger.debug(
-                                f"No Slack bots for tenant {tenant_id}; lock released."
-                            )
+                        # If no Slack bots, release lock immediately
+                        redis_client.delete(OnyxRedisLocks.SLACK_BOT_LOCK)
+                        logger.debug(
+                            f"No Slack bots for tenant {tenant_id}; lock released."
+                        )
             finally:
                 CURRENT_TENANT_ID_CONTEXTVAR.reset(token)
 
-        #
-        # 2) Re-check tenants we already handle to see if they still have Slack bots.
-        #    If they don’t, remove them from active set, close sockets, and release lock.
-        #
+        # 2) Make sure tenants we're handling still have Slack bots
         for tenant_id in list(self.tenant_ids):
             token = CURRENT_TENANT_ID_CONTEXTVAR.set(
                 tenant_id or POSTGRES_DEFAULT_SCHEMA
@@ -325,16 +319,15 @@ class SlackbotHandler:
                 with get_session_with_tenant(tenant_id) as db_session:
                     # Attempt to fetch Slack bots
                     try:
-                        bots = fetch_slack_bots(db_session=db_session)
+                        bots = list(fetch_slack_bots(db_session=db_session))
                     except KvKeyNotFoundError:
-                        # Means no Slack Bot tokens at all
+                        # No Slackbot tokens, pass (and remove below)
                         bots = []
                     except Exception as e:
                         logger.exception(f"Error handling tenant {tenant_id}: {e}")
                         bots = []
 
                     if not bots:
-                        # Tenant no longer has Slack bots => remove from active set
                         logger.info(
                             f"Tenant {tenant_id} no longer has Slack bots. Removing."
                         )
@@ -365,7 +358,7 @@ class SlackbotHandler:
                 del self.socket_clients[(t_id, slack_bot_id)]
                 del self.slack_bot_tokens[(t_id, slack_bot_id)]
                 logger.info(
-                    f"Stopped SocketModeClient for tenant: {tenant_id}, bot: {slack_bot_id}"
+                    f"Stopped SocketModeClient for tenant: {tenant_id}, app: {slack_bot_id}"
                 )
 
         # Remove from active set
@@ -391,7 +384,7 @@ class SlackbotHandler:
         self, slack_bot_id: int, tenant_id: str | None, slack_bot_tokens: SlackBotTokens
     ) -> None:
         logger.info(
-            f"Starting socket client for tenant: {tenant_id}, bot: {slack_bot_id}"
+            f"Starting socket client for tenant: {tenant_id}, app: {slack_bot_id}"
         )
         socket_client: TenantSocketModeClient = _get_socket_client(
             slack_bot_tokens, tenant_id, slack_bot_id
@@ -403,14 +396,14 @@ class SlackbotHandler:
 
         # Establish a WebSocket connection
         logger.info(
-            f"Connecting socket client for tenant: {tenant_id}, bot: {slack_bot_id}"
+            f"Connecting socket client for tenant: {tenant_id}, app: {slack_bot_id}"
         )
         socket_client.connect()
         self.socket_clients[tenant_id, slack_bot_id] = socket_client
         # Ensure tenant is tracked as active
         self.tenant_ids.add(tenant_id)
         logger.info(
-            f"Started SocketModeClient for tenant: {tenant_id}, bot: {slack_bot_id}"
+            f"Started SocketModeClient for tenant: {tenant_id}, app: {slack_bot_id}"
         )
 
     def stop_socket_clients(self) -> None:
@@ -418,7 +411,7 @@ class SlackbotHandler:
         for (tenant_id, slack_bot_id), client in list(self.socket_clients.items()):
             asyncio.run(client.close())
             logger.info(
-                f"Stopped SocketModeClient for tenant: {tenant_id}, bot: {slack_bot_id}"
+                f"Stopped SocketModeClient for tenant: {tenant_id}, app: {slack_bot_id}"
             )
 
     def shutdown(self, signum: int | None, frame: FrameType | None) -> None:
