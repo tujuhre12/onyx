@@ -301,7 +301,7 @@ class SlackbotHandler:
                                 tenant_id=tenant_id,
                                 bot=bot,
                             )
-                    else:
+                    elif not DEV_MODE:
                         # If no Slack bots, release lock immediately
                         redis_client.delete(OnyxRedisLocks.SLACK_BOT_LOCK)
                         logger.debug(
@@ -394,7 +394,7 @@ class SlackbotHandler:
         process_slack_event = create_process_slack_event()
         socket_client.socket_mode_request_listeners.append(process_slack_event)  # type: ignore
 
-        # Establish a WebSocket connection
+        # Establish a WebSocket connection to the Socket Mode servers
         logger.info(
             f"Connecting socket client for tenant: {tenant_id}, app: {slack_bot_id}"
         )
@@ -436,7 +436,7 @@ class SlackbotHandler:
             except Exception as e:
                 logger.error(f"Error releasing lock for tenant {tenant_id}: {e}")
 
-        # Wait for background threads to finish
+        # Wait for background threads to finish (with a timeout)
         logger.info("Waiting for background threads to finish...")
         self.acquire_thread.join(timeout=5)
         self.heartbeat_thread.join(timeout=5)
