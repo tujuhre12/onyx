@@ -10,7 +10,6 @@ from langchain_core.messages import merge_message_runs
 from langgraph.types import Command
 from langgraph.types import Send
 
-from onyx.agent_search.core_state import in_subgraph_extract_core_fields
 from onyx.agent_search.pro_search_b.expanded_retrieval.models import (
     ExpandedRetrievalResult,
 )
@@ -202,7 +201,6 @@ def verification_kickoff(
                     question=verification_question,
                     base_search=False,
                     sub_question_id=sub_question_id,
-                    **in_subgraph_extract_core_fields(state),
                 ),
             )
             for doc in documents

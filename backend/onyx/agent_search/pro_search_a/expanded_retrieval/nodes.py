@@ -7,10 +7,11 @@ import numpy as np
 from langchain_core.callbacks.manager import dispatch_custom_event
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_message_runs
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.types import Command
 from langgraph.types import Send
 
-from onyx.agent_search.core_state import in_subgraph_extract_core_fields
+from onyx.agent_search.models import ProSearchConfig
 from onyx.agent_search.pro_search_a.expanded_retrieval.models import (
     ExpandedRetrievalResult,
 )
@@ -55,7 +56,6 @@ from onyx.context.search.models import SearchRequest
 from onyx.context.search.pipeline import retrieval_preprocessing
 from onyx.context.search.postprocessing.postprocessing import rerank_sections
 from onyx.db.engine import get_session_context_manager
-from onyx.llm.interfaces import LLM
 from onyx.tools.models import SearchQueryInfo
 from onyx.tools.tool_implementations.search.search_tool import (
     SEARCH_RESPONSE_SUMMARY_ID,
@@ -82,14 +82,16 @@ def dispatch_subquery(level: int, question_nr: int) -> Callable[[str, int], None
     return helper
 
 
-def expand_queries(state: ExpandedRetrievalInput) -> QueryExpansionUpdate:
+def expand_queries(
+    state: ExpandedRetrievalInput, config: RunnableConfig
+) -> QueryExpansionUpdate:
     # Sometimes we want to expand the original question, sometimes we want to expand a sub-question.
     # When we are running this node on the original question, no question is explictly passed in.
     # Instead, we use the original question from the search request.
-    question = state.get("question", state["subgraph_config"].search_request.query)
-    llm: LLM = state["subgraph_fast_llm"]
-    state["subgraph_db_session"]
-    chat_session_id = state["subgraph_config"].chat_session_id
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    question = state.get("question", pro_search_config.search_request.query)
+    llm = pro_search_config.fast_llm
+    chat_session_id = pro_search_config.chat_session_id
     sub_question_id = state.get("sub_question_id")
     if sub_question_id is None:
         level, question_nr = 0, 0
@@ -118,19 +120,21 @@ def expand_queries(state: ExpandedRetrievalInput) -> QueryExpansionUpdate:
     )
 
 
-def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
+def doc_retrieval(state: RetrievalInput, config: RunnableConfig) -> DocRetrievalUpdate:
     """
     Retrieve documents
 
     Args:
         state (RetrievalInput): Primary state + the query to retrieve
+        config (RunnableConfig): Configuration containing ProSearchConfig
 
     Updates:
         expanded_retrieval_results: list[ExpandedRetrievalResult]
         retrieved_documents: list[InferenceSection]
     """
     query_to_retrieve = state["query_to_retrieve"]
-    search_tool = state["subgraph_search_tool"]
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    search_tool = pro_search_config.search_tool
 
     retrieved_docs: list[InferenceSection] = []
     if not query_to_retrieve.strip():
@@ -188,10 +192,12 @@ def doc_retrieval(state: RetrievalInput) -> DocRetrievalUpdate:
 
 def verification_kickoff(
     state: ExpandedRetrievalState,
+    config: RunnableConfig,
 ) -> Command[Literal["doc_verification"]]:
     documents = state["retrieved_documents"]
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
     verification_question = state.get(
-        "question", state["subgraph_config"].search_request.query
+        "question", pro_search_config.search_request.query
     )
     sub_question_id = state.get("sub_question_id")
     return Command(
@@ -204,7 +210,6 @@ def verification_kickoff(
                     question=verification_question,
                     base_search=False,
                     sub_question_id=sub_question_id,
-                    **in_subgraph_extract_core_fields(state),
                 ),
             )
             for doc in documents
@@ -212,12 +217,15 @@ def verification_kickoff(
     )
 
 
-def doc_verification(state: DocVerificationInput) -> DocVerificationUpdate:
+def doc_verification(
+    state: DocVerificationInput, config: RunnableConfig
+) -> DocVerificationUpdate:
     """
     Check whether the document is relevant for the original user question
 
     Args:
         state (DocVerificationInput): The current state
+        config (RunnableConfig): Configuration containing ProSearchConfig
 
     Updates:
         verified_documents: list[InferenceSection]
@@ -227,7 +235,8 @@ def doc_verification(state: DocVerificationInput) -> DocVerificationUpdate:
     doc_to_verify = state["doc_to_verify"]
     document_content = doc_to_verify.combined_content
 
-    fast_llm = state["subgraph_fast_llm"]
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    fast_llm = pro_search_config.fast_llm
 
     document_content = trim_prompt_piece(
         fast_llm.config, document_content, VERIFIER_PROMPT + question
@@ -252,18 +261,21 @@ def doc_verification(state: DocVerificationInput) -> DocVerificationUpdate:
     )
 
 
-def doc_reranking(state: ExpandedRetrievalState) -> DocRerankingUpdate:
+def doc_reranking(
+    state: ExpandedRetrievalState, config: RunnableConfig
+) -> DocRerankingUpdate:
     verified_documents = state["verified_documents"]
 
     # Rerank post retrieval and verification. First, create a search query
     # then create the list of reranked sections
 
-    question = state.get("question", state["subgraph_config"].search_request.query)
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    question = state.get("question", pro_search_config.search_request.query)
     with get_session_context_manager() as db_session:
         _search_query = retrieval_preprocessing(
             search_request=SearchRequest(query=question),
-            user=state["subgraph_search_tool"].user,  # bit of a hack
-            llm=state["subgraph_fast_llm"],
+            user=pro_search_config.search_tool.user,  # bit of a hack
+            llm=pro_search_config.fast_llm,
             db_session=db_session,
         )
 
@@ -366,7 +378,9 @@ def _calculate_sub_question_retrieval_stats(
     return chunk_stats
 
 
-def format_results(state: ExpandedRetrievalState) -> ExpandedRetrievalUpdate:
+def format_results(
+    state: ExpandedRetrievalState, config: RunnableConfig
+) -> ExpandedRetrievalUpdate:
     level, question_nr = parse_question_id(state.get("sub_question_id") or "0_0")
     query_infos = [
         result.query_info
@@ -376,6 +390,7 @@ def format_results(state: ExpandedRetrievalState) -> ExpandedRetrievalUpdate:
     if len(query_infos) == 0:
         raise ValueError("No query info found")
 
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
     # main question docs will be sent later after aggregation and deduping with sub-question docs
     if not (level == 0 and question_nr == 0):
         for tool_response in yield_search_responses(
@@ -386,7 +401,7 @@ def format_results(state: ExpandedRetrievalState) -> ExpandedRetrievalUpdate:
             final_context_sections=state["reranked_documents"],
             search_query_info=query_infos[0],  # TODO: handle differing query infos?
             get_section_relevance=lambda: None,  # TODO: add relevance
-            search_tool=state["subgraph_search_tool"],
+            search_tool=pro_search_config.search_tool,
         ):
             dispatch_custom_event(
                 "tool_response",

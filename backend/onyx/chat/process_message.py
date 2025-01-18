@@ -8,6 +8,7 @@ from typing import cast
 
 from sqlalchemy.orm import Session
 
+from onyx.agent_search.models import ProSearchConfig
 from onyx.chat.answer import Answer
 from onyx.chat.chat_utils import create_chat_chain
 from onyx.chat.chat_utils import create_temporary_persona
@@ -27,7 +28,6 @@ from onyx.chat.models import MessageSpecificCitations
 from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import OnyxContexts
 from onyx.chat.models import PromptConfig
-from onyx.chat.models import ProSearchConfig
 from onyx.chat.models import ProSearchPacket
 from onyx.chat.models import QADocsResponse
 from onyx.chat.models import StreamingError
@@ -747,12 +747,22 @@ def stream_chat_message_objects(
             # TODO: Since we're deleting the current main path in Answer,
             # we should construct this unconditionally inside Answer instead
             # Leaving it here for the time being to avoid breaking changes
+            search_tools = [tool for tool in tools if isinstance(tool, SearchTool)]
+            if len(search_tools) == 0:
+                raise ValueError("No search tool found")
+            elif len(search_tools) > 1:
+                # TODO: handle multiple search tools
+                raise ValueError("Multiple search tools found")
+            search_tool = search_tools[0]
             pro_search_config = (
                 ProSearchConfig(
                     search_request=search_request,
                     chat_session_id=chat_session_id,
                     message_id=reserved_message_id,
                     message_history=message_history,
+                    primary_llm=llm,
+                    fast_llm=fast_llm,
+                    search_tool=search_tool,
                 )
                 if new_msg_req.use_pro_search
                 else None

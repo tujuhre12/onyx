@@ -111,15 +111,11 @@ if __name__ == "__main__":
         inputs = ExpandedRetrievalInput(
             question="what can you do with onyx?",
             base_search=False,
-            subgraph_fast_llm=fast_llm,
-            subgraph_primary_llm=primary_llm,
-            subgraph_db_session=db_session,
-            subgraph_config=pro_search_config,
-            subgraph_search_tool=search_tool,
             sub_question_id=None,
         )
         for thing in compiled_graph.stream(
             input=inputs,
+            config={"configurable": {"config": pro_search_config}},
             # debug=True,
             subgraphs=True,
         ):

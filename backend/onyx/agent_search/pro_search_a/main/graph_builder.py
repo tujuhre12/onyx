@@ -182,12 +182,12 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
     )
 
     graph.add_conditional_edges(
-        source="refined_sub_question_creation",    #DONE
+        source="refined_sub_question_creation",  # DONE
         path=parallelize_refined_sub_question_answering,
         path_map=["answer_refined_question"],
     )
     graph.add_edge(
-        start_key="answer_refined_question", # HERE
+        start_key="answer_refined_question",  # HERE
         end_key="ingest_refined_answers",
     )
 
@@ -247,16 +247,11 @@ if __name__ == "__main__":
             db_session, primary_llm, fast_llm, search_request
         )
 
-        inputs = MainInput(
-            primary_llm=primary_llm,
-            fast_llm=fast_llm,
-            db_session=db_session,
-            config=pro_search_config,
-            search_tool=search_tool,
-        )
+        inputs = MainInput()
 
         for thing in compiled_graph.stream(
             input=inputs,
+            config={"configurable": {"config": pro_search_config}},
             # stream_mode="debug",
             # debug=True,
             subgraphs=True,

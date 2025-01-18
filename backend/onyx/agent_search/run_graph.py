@@ -7,10 +7,10 @@ from typing import cast
 
 from langchain_core.runnables.schema import StreamEvent
 from langgraph.graph.state import CompiledStateGraph
-from sqlalchemy.orm import Session
 
 from onyx.agent_search.basic.graph_builder import basic_graph_builder
 from onyx.agent_search.basic.states import BasicInput
+from onyx.agent_search.models import ProSearchConfig
 from onyx.agent_search.pro_search_a.main.graph_builder import (
     main_graph_builder as main_graph_builder_a,
 )
@@ -26,7 +26,6 @@ from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import ExtendedToolResponse
-from onyx.chat.models import ProSearchConfig
 from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import SubQueryPiece
 from onyx.chat.models import SubQuestionPiece
@@ -36,7 +35,6 @@ from onyx.configs.dev_configs import GRAPH_NAME
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
 from onyx.llm.interfaces import LLM
-from onyx.tools.tool_implementations.search.search_tool import SearchTool
 from onyx.tools.tool_runner import ToolCallKickoff
 from onyx.utils.logger import setup_logger
 
@@ -104,14 +102,17 @@ async def tear_down(event_loop: AbstractEventLoop) -> None:
 
 def _manage_async_event_streaming(
     compiled_graph: CompiledStateGraph,
+    config: ProSearchConfig | None,
     graph_input: MainInput_a | MainInput_b | BasicInput,
 ) -> Iterable[StreamEvent]:
     async def _run_async_event_stream(
         loop: AbstractEventLoop,
     ) -> AsyncIterable[StreamEvent]:
         try:
+            message_id = config.message_id if config else None
             async for event in compiled_graph.astream_events(
                 input=graph_input,
+                config={"metadata": {"config": config, "thread_id": str(message_id)}},
                 # debug=True,
                 # indicating v2 here deserves further scrutiny
                 version="v2",
@@ -145,10 +146,12 @@ def _manage_async_event_streaming(
 
 def run_graph(
     compiled_graph: CompiledStateGraph,
+    config: ProSearchConfig | None,
     input: BasicInput | MainInput_a | MainInput_b,
 ) -> AnswerStream:
+    input["base_question"] = config.search_request.query if config else ""
     for event in _manage_async_event_streaming(
-        compiled_graph=compiled_graph, graph_input=input
+        compiled_graph=compiled_graph, config=config, graph_input=input
     ):
         if not (parsed_object := _parse_agent_event(event)):
             continue
@@ -171,38 +174,23 @@ def load_compiled_graph(graph_name: str) -> CompiledStateGraph:
 
 def run_main_graph(
     config: ProSearchConfig,
-    search_tool: SearchTool,
-    primary_llm: LLM,
-    fast_llm: LLM,
-    db_session: Session,
     graph_name: str = "a",
 ) -> AnswerStream:
     compiled_graph = load_compiled_graph(graph_name)
     if graph_name == "a":
-        input = MainInput_a(
-            config=config,
-            primary_llm=primary_llm,
-            fast_llm=fast_llm,
-            db_session=db_session,
-            search_tool=search_tool,
-        )
+        input = MainInput_a()
     else:
-        input = MainInput_b(
-            config=config,
-            primary_llm=primary_llm,
-            fast_llm=fast_llm,
-            db_session=db_session,
-            search_tool=search_tool,
-        )
+        input = MainInput_b()
 
     # Agent search is not a Tool per se, but this is helpful for the frontend
     yield ToolCallKickoff(
         tool_name="agent_search_0",
         tool_args={"query": config.search_request.query},
     )
-    yield from run_graph(compiled_graph, input)
+    yield from run_graph(compiled_graph, config, input)
 
 
+# TODO: unify input types, especially prosearchconfig
 def run_basic_graph(
     last_llm_call: LLMCall | None,
     primary_llm: LLM,
@@ -211,14 +199,16 @@ def run_basic_graph(
 ) -> AnswerStream:
     graph = basic_graph_builder()
     compiled_graph = graph.compile()
+    # TODO: unify basic input
     input = BasicInput(
+        base_question="",
         last_llm_call=last_llm_call,
         llm=primary_llm,
         answer_style_config=answer_style_config,
         response_handler_manager=response_handler_manager,
         calls=0,
     )
-    return run_graph(compiled_graph, input)
+    return run_graph(compiled_graph, None, input)
 
 
 if __name__ == "__main__":
@@ -250,24 +240,12 @@ if __name__ == "__main__":
         config.use_persistence = True
 
         if GRAPH_NAME == "a":
-            input = MainInput_a(
-                config=config,
-                primary_llm=primary_llm,
-                fast_llm=fast_llm,
-                db_session=db_session,
-                search_tool=search_tool,
-            )
+            input = MainInput_a()
         else:
-            input = MainInput_b(
-                config=config,
-                primary_llm=primary_llm,
-                fast_llm=fast_llm,
-                db_session=db_session,
-                search_tool=search_tool,
-            )
+            input = MainInput_b()
         # with open("output.txt", "w") as f:
         tool_responses: list = []
-        for output in run_graph(compiled_graph, input):
+        for output in run_graph(compiled_graph, config, input):
             # pass
 
             if isinstance(output, ToolCallKickoff):

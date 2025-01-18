@@ -13,12 +13,12 @@ from uuid import UUID
 from langchain_core.messages import BaseMessage
 from sqlalchemy.orm import Session
 
+from onyx.agent_search.models import ProSearchConfig
 from onyx.agent_search.shared_graph_utils.models import EntityRelationshipTermExtraction
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationConfig
 from onyx.chat.models import DocumentPruningConfig
 from onyx.chat.models import PromptConfig
-from onyx.chat.models import ProSearchConfig
 from onyx.configs.chat_configs import CHAT_TARGET_CHUNK_PERCENTAGE
 from onyx.configs.chat_configs import MAX_CHUNKS_FED_TO_CHAT
 from onyx.configs.constants import DEFAULT_PERSONA_ID
@@ -210,6 +210,9 @@ def get_test_config(
         # chat_session_id=UUID("d1acd613-2692-4bc3-9d65-c6d3da62e58e"),  # Evan
         message_id=1,
         use_persistence=True,
+        primary_llm=primary_llm,
+        fast_llm=fast_llm,
+        search_tool=search_tool,
     )
 
     return config, search_tool

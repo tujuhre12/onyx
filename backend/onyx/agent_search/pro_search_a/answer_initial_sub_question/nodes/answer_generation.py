@@ -1,9 +1,12 @@
 import datetime
 from typing import Any
+from typing import cast
 
 from langchain_core.callbacks.manager import dispatch_custom_event
 from langchain_core.messages import merge_message_runs
+from langchain_core.runnables.config import RunnableConfig
 
+from onyx.agent_search.models import ProSearchConfig
 from onyx.agent_search.pro_search_a.answer_initial_sub_question.states import (
     AnswerQuestionState,
 )
@@ -26,14 +29,17 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
+def answer_generation(
+    state: AnswerQuestionState, config: RunnableConfig
+) -> QAGenerationUpdate:
     now_start = datetime.datetime.now()
     logger.debug(f"--------{now_start}--------START ANSWER GENERATION---")
 
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
     question = state["question"]
     docs = state["documents"]
     level, question_nr = parse_question_id(state["question_id"])
-    persona_prompt = get_persona_prompt(state["subgraph_config"].search_request.persona)
+    persona_prompt = get_persona_prompt(pro_search_config.search_request.persona)
 
     if len(docs) == 0:
         answer_str = UNKNOWN_ANSWER
@@ -56,10 +62,10 @@ def answer_generation(state: AnswerQuestionState) -> QAGenerationUpdate:
 
         logger.debug(f"Number of verified retrieval docs: {len(docs)}")
 
-        fast_llm = state["subgraph_fast_llm"]
+        fast_llm = pro_search_config.fast_llm
         msg = build_sub_question_answer_prompt(
             question=question,
-            original_question=state["subgraph_config"].search_request.query,
+            original_question=pro_search_config.search_request.query,
             docs=docs,
             persona_specification=persona_specification,
             config=fast_llm.config,

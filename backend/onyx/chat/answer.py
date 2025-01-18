@@ -1,24 +1,23 @@
-from collections.abc import Callable
 from collections import defaultdict
+from collections.abc import Callable
 from uuid import uuid4
-from onyx.configs.constants import BASIC_KEY
 
 from langchain.schema.messages import BaseMessage
 from langchain_core.messages import AIMessageChunk
 from langchain_core.messages import ToolCall
 from sqlalchemy.orm import Session
 
+from onyx.agent_search.models import ProSearchConfig
 from onyx.agent_search.run_graph import run_basic_graph
 from onyx.agent_search.run_graph import run_main_graph
 from onyx.chat.llm_response_handler import LLMResponseHandlerManager
+from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationInfo
 from onyx.chat.models import OnyxAnswerPiece
-from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import PromptConfig
-from onyx.chat.models import ProSearchConfig
 from onyx.chat.prompt_builder.build import AnswerPromptBuilder
 from onyx.chat.prompt_builder.build import default_build_system_message
 from onyx.chat.prompt_builder.build import default_build_user_message
@@ -31,6 +30,7 @@ from onyx.chat.stream_processing.utils import (
 )
 from onyx.chat.tool_handling.tool_response_handler import get_tool_by_name
 from onyx.chat.tool_handling.tool_response_handler import ToolResponseHandler
+from onyx.configs.constants import BASIC_KEY
 from onyx.file_store.utils import InMemoryChatFile
 from onyx.llm.interfaces import LLM
 from onyx.llm.models import PreviousMessage
@@ -216,14 +216,7 @@ class Answer:
         if self.pro_search_config:
             if self.pro_search_config.search_request is None:
                 raise ValueError("Search request must be provided for pro search")
-            search_tools = [tool for tool in self.tools if isinstance(tool, SearchTool)]
-            if len(search_tools) == 0:
-                raise ValueError("No search tool found")
-            elif len(search_tools) > 1:
-                # TODO: handle multiple search tools
-                raise ValueError("Multiple search tools found")
 
-            search_tool = search_tools[0]
             if self.db_session is None:
                 raise ValueError("db_session must be provided for pro search")
             if self.fast_llm is None:
@@ -231,10 +224,6 @@ class Answer:
 
             stream = run_main_graph(
                 config=self.pro_search_config,
-                primary_llm=self.llm,
-                fast_llm=self.fast_llm,
-                search_tool=search_tool,
-                db_session=self.db_session,
             )
         else:
             stream = run_basic_graph(
@@ -311,22 +300,28 @@ class Answer:
         for packet in self.processed_streamed_output:
             # handle basic answer flow, plus level 0 agent answer flow
             # since level 0 is the first answer the user sees and therefore the
-            # child message of the user message in the db (so it is handled 
+            # child message of the user message in the db (so it is handled
             # like a basic flow answer)
-            if (isinstance(packet, OnyxAnswerPiece) and packet.answer_piece)\
-            or (isinstance(packet, AgentAnswerPiece) and packet.answer_piece and 
-             packet.answer_type == "agent_level_answer" and packet.level == 0):
+            if (isinstance(packet, OnyxAnswerPiece) and packet.answer_piece) or (
+                isinstance(packet, AgentAnswerPiece)
+                and packet.answer_piece
+                and packet.answer_type == "agent_level_answer"
+                and packet.level == 0
+            ):
                 answer += packet.answer_piece
-            
 
         return answer
-    
+
     def llm_answer_by_level(self) -> dict[int, str]:
         answer_by_level: dict[int, str] = defaultdict(str)
         for packet in self.processed_streamed_output:
-            if isinstance(packet, AgentAnswerPiece) and packet.answer_piece and packet.answer_type == "agent_level_answer":
+            if (
+                isinstance(packet, AgentAnswerPiece)
+                and packet.answer_piece
+                and packet.answer_type == "agent_level_answer"
+            ):
                 answer_by_level[packet.level] += packet.answer_piece
-            elif (isinstance(packet, OnyxAnswerPiece) and packet.answer_piece):
+            elif isinstance(packet, OnyxAnswerPiece) and packet.answer_piece:
                 answer_by_level[BASIC_KEY[0]] += packet.answer_piece
         return answer_by_level
 
@@ -338,13 +333,17 @@ class Answer:
                 citations.append(packet)
 
         return citations
-    
+
     def citations_by_subquestion(self) -> dict[tuple[int, int], list[CitationInfo]]:
-        citations_by_subquestion: dict[tuple[int, int], list[CitationInfo]] = defaultdict(list)
+        citations_by_subquestion: dict[
+            tuple[int, int], list[CitationInfo]
+        ] = defaultdict(list)
         for packet in self.processed_streamed_output:
             if isinstance(packet, CitationInfo):
                 if packet.level_question_nr is not None and packet.level is not None:
-                    citations_by_subquestion[(packet.level, packet.level_question_nr)].append(packet)
+                    citations_by_subquestion[
+                        (packet.level, packet.level_question_nr)
+                    ].append(packet)
                 elif packet.level is None:
                     citations_by_subquestion[BASIC_KEY].append(packet)
         return citations_by_subquestion
