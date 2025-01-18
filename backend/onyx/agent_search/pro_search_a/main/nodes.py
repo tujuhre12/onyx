@@ -54,6 +54,9 @@ from onyx.agent_search.shared_graph_utils.prompts import ENTITY_TERM_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import (
     INITIAL_DECOMPOSITION_PROMPT_QUESTIONS,
 )
+from onyx.agent_search.shared_graph_utils.prompts import (
+    INITIAL_DECOMPOSITION_PROMPT_QUESTIONS_AFTER_SEARCH,
+)
 from onyx.agent_search.shared_graph_utils.prompts import INITIAL_RAG_BASE_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import INITIAL_RAG_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import (
@@ -74,10 +77,16 @@ from onyx.agent_search.shared_graph_utils.utils import parse_question_id
 from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import SubQuestionPiece
+from onyx.context.search.models import InferenceSection
 from onyx.db.chat import log_agent_metrics
 from onyx.db.chat import log_agent_sub_question_results
+from onyx.db.engine import get_session_context_manager
 from onyx.tools.models import SearchQueryInfo
 from onyx.tools.models import ToolCallKickoff
+from onyx.tools.tool_implementations.search.search_tool import (
+    SEARCH_RESPONSE_SUMMARY_ID,
+)
+from onyx.tools.tool_implementations.search.search_tool import SearchResponseSummary
 from onyx.tools.tool_implementations.search.search_tool import yield_search_responses
 from onyx.utils.logger import setup_logger
 
@@ -117,72 +126,6 @@ def _dispatch_subquestion(level: int) -> Callable[[str, int], None]:
         )
 
     return _helper
-
-
-def initial_sub_question_creation(
-    state: MainState, config: RunnableConfig
-) -> BaseDecompUpdate:
-    now_start = datetime.now()
-
-    logger.debug(f"--------{now_start}--------BASE DECOMP START---")
-
-    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
-    question = pro_search_config.search_request.query
-    chat_session_id = pro_search_config.chat_session_id
-    primary_message_id = pro_search_config.message_id
-
-    if not chat_session_id or not primary_message_id:
-        raise ValueError(
-            "chat_session_id and message_id must be provided for agent search"
-        )
-    agent_start_time = datetime.now()
-    msg = [
-        HumanMessage(
-            content=INITIAL_DECOMPOSITION_PROMPT_QUESTIONS.format(question=question),
-        )
-    ]
-
-    # Get the rewritten queries in a defined format
-    model = pro_search_config.fast_llm
-
-    # Send the initial question as a subquestion with number 0
-    dispatch_custom_event(
-        "decomp_qs",
-        SubQuestionPiece(
-            sub_question=question,
-            level=0,
-            level_question_nr=0,
-        ),
-    )
-    # dispatches custom events for subquestion tokens, adding in subquestion ids.
-    streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(0))
-
-    response = merge_content(*streamed_tokens)
-
-    # this call should only return strings. Commenting out for efficiency
-    # assert [type(tok) == str for tok in streamed_tokens]
-
-    # use no-op cast() instead of str() which runs code
-    # list_of_subquestions = clean_and_parse_list_string(cast(str, response))
-    list_of_subqs = cast(str, response).split("\n")
-
-    decomp_list: list[str] = [sq.strip() for sq in list_of_subqs if sq.strip() != ""]
-
-    now_end = datetime.now()
-
-    logger.debug(f"--------{now_end}--{now_end - now_start}--------BASE DECOMP END---")
-
-    return BaseDecompUpdate(
-        initial_decomp_questions=decomp_list,
-        agent_start_time=agent_start_time,
-        agent_refined_start_time=None,
-        agent_refined_end_time=None,
-        agent_refined_metrics=AgentRefinedMetrics(
-            refined_doc_boost_factor=None,
-            refined_question_boost_factor=None,
-            duration__s=None,
-        ),
-    )
 
 
 def _calculate_initial_agent_stats(
@@ -277,6 +220,106 @@ def _get_query_info(results: list[QueryResult]) -> SearchQueryInfo:
     if len(query_infos) == 0:
         raise ValueError("No query info found")
     return query_infos[0]
+
+
+def initial_sub_question_creation(
+    state: MainState, config: RunnableConfig
+) -> BaseDecompUpdate:
+    now_start = datetime.now()
+
+    logger.debug(f"--------{now_start}--------BASE DECOMP START---")
+
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    question = pro_search_config.search_request.query
+    chat_session_id = pro_search_config.chat_session_id
+    primary_message_id = pro_search_config.message_id
+    perform_initial_search = pro_search_config.perform_initial_search
+
+    if not chat_session_id or not primary_message_id:
+        raise ValueError(
+            "chat_session_id and message_id must be provided for agent search"
+        )
+    agent_start_time = datetime.now()
+
+    # Initial search to inform decomposition. Just get top 3 fits
+
+    if perform_initial_search:
+        search_tool = pro_search_config.search_tool
+        retrieved_docs: list[InferenceSection] = []
+
+        # new db session to avoid concurrency issues
+        with get_session_context_manager() as db_session:
+            for tool_response in search_tool.run(
+                query=question,
+                force_no_rerank=True,
+                alternate_db_session=db_session,
+            ):
+                # get retrieved docs to send to the rest of the graph
+                if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
+                    response = cast(SearchResponseSummary, tool_response.response)
+                    retrieved_docs = response.top_sections
+                    break
+
+        sample_doc_str = "\n\n".join(
+            [doc.combined_content for _, doc in enumerate(retrieved_docs[:3])]
+        )
+
+        decomposition_prompt = (
+            INITIAL_DECOMPOSITION_PROMPT_QUESTIONS_AFTER_SEARCH.format(
+                question=question, sample_doc_str=sample_doc_str
+            )
+        )
+
+    else:
+        decomposition_prompt = INITIAL_DECOMPOSITION_PROMPT_QUESTIONS.format(
+            question=question
+        )
+
+    # Start decomposition
+
+    msg = [HumanMessage(content=decomposition_prompt)]
+
+    # Get the rewritten queries in a defined format
+    model = pro_search_config.fast_llm
+
+    # Send the initial question as a subquestion with number 0
+    dispatch_custom_event(
+        "decomp_qs",
+        SubQuestionPiece(
+            sub_question=question,
+            level=0,
+            level_question_nr=0,
+        ),
+    )
+    # dispatches custom events for subquestion tokens, adding in subquestion ids.
+    streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(0))
+
+    deomposition_response = merge_content(*streamed_tokens)
+
+    # this call should only return strings. Commenting out for efficiency
+    # assert [type(tok) == str for tok in streamed_tokens]
+
+    # use no-op cast() instead of str() which runs code
+    # list_of_subquestions = clean_and_parse_list_string(cast(str, response))
+    list_of_subqs = cast(str, deomposition_response).split("\n")
+
+    decomp_list: list[str] = [sq.strip() for sq in list_of_subqs if sq.strip() != ""]
+
+    now_end = datetime.now()
+
+    logger.debug(f"--------{now_end}--{now_end - now_start}--------BASE DECOMP END---")
+
+    return BaseDecompUpdate(
+        initial_decomp_questions=decomp_list,
+        agent_start_time=agent_start_time,
+        agent_refined_start_time=None,
+        agent_refined_end_time=None,
+        agent_refined_metrics=AgentRefinedMetrics(
+            refined_doc_boost_factor=None,
+            refined_question_boost_factor=None,
+            duration__s=None,
+        ),
+    )
 
 
 def generate_initial_answer(

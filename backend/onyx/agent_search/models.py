@@ -36,6 +36,9 @@ class ProSearchConfig:
     # The database session for the Pro Search
     db_session: Session | None = None
 
+    # Whether to perform initial search to inform decomposition
+    perform_initial_search: bool = False
+
     # Whether to allow creation of refinement questions (and entity extraction, etc.)
     allow_refinement: bool = False
 

@@ -460,6 +460,44 @@ Please formulate your answer as a newline-separated list of questions like so:
 
 Answer:"""
 
+INITIAL_DECOMPOSITION_PROMPT_QUESTIONS_AFTER_SEARCH = """
+If you think it is helpful, please decompose an initial user question into no more than 3 appropriate sub-questions that help to
+answer the original question. The purpose for this decomposition may be to
+  1) isolate individual entities (i.e., 'compare sales of company A and company B' -> ['what are sales for company A',
+     'what are sales for company B')]
+  2) clarify or disambiguate ambiguous terms (i.e., 'what is our success with company A' -> ['what are our sales with company A',
+      'what is our market share with company A', 'is company A a reference customer for us', etc.])
+  3) if a term or a metric is essentially clear, but it could relate to various components of an entity and you are generally
+    familiar with the entity, then you can decompose the question into sub-questions that are more specific to components
+     (i.e., 'what do we do to improve scalability of product X', 'what do we to to improve scalability of product X',
+     'what do we do to improve stability of product X', ...])
+  4) research an area that could really help to answer the question. (But clarifications or disambiguations are more important.)
+
+Here are some other ruleds:
+
+1) To give you some context, you will see below also some documents that relate to the question. Please only
+use this information to learn what the question is approximately asking about, but do not focus on the details
+to construct the sub-questions.
+2) If you think that a decomposition is not needed or helpful, please just return an empty string. That is very muchok too.
+
+Here are the sampple docs to give you some context:
+-------
+{sample_doc_str}
+-------
+
+And here is the initial question that you should think about decomposing:
+-------
+{question}
+-------
+
+
+Please formulate your answer as a newline-separated list of questions like so:
+ <sub-question>
+ <sub-question>
+ <sub-question>
+
+Answer:"""
+
 INITIAL_DECOMPOSITION_PROMPT = """ \n
     Please decompose an initial user question into 2 or 3 appropriate sub-questions that help to
     answer the original question. The purpose for this decomposition is to isolate individulal entities

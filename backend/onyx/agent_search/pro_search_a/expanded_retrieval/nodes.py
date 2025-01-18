@@ -32,7 +32,6 @@ from onyx.agent_search.pro_search_a.expanded_retrieval.states import (
 from onyx.agent_search.pro_search_a.expanded_retrieval.states import (
     ExpandedRetrievalUpdate,
 )
-from onyx.agent_search.pro_search_a.expanded_retrieval.states import InferenceSection
 from onyx.agent_search.pro_search_a.expanded_retrieval.states import (
     QueryExpansionUpdate,
 )
@@ -52,6 +51,7 @@ from onyx.configs.dev_configs import AGENT_MAX_QUERY_RETRIEVAL_RESULTS
 from onyx.configs.dev_configs import AGENT_RERANKING_MAX_QUERY_RETRIEVAL_RESULTS
 from onyx.configs.dev_configs import AGENT_RERANKING_STATS
 from onyx.configs.dev_configs import AGENT_RETRIEVAL_STATS
+from onyx.context.search.models import InferenceSection
 from onyx.context.search.models import SearchRequest
 from onyx.context.search.pipeline import retrieval_preprocessing
 from onyx.context.search.postprocessing.postprocessing import rerank_sections
