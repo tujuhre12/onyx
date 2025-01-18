@@ -57,8 +57,8 @@ class BasicCreateChatMessageRequest(ChunkContext):
     # https://platform.openai.com/docs/guides/structured-outputs/introduction
     structured_response_format: dict | None = None
 
-    # If True, uses pro search instead of basic search
-    use_pro_search: bool = False
+    # If True, uses agentic search instead of basic search
+    use_agentic_search: bool = False
 
 
 class BasicCreateChatMessageWithHistoryRequest(ChunkContext):
@@ -129,7 +129,7 @@ class OneShotQARequest(ChunkContext):
     skip_gen_ai_answer_generation: bool = False
 
     # If True, uses pro search instead of basic search
-    use_pro_search: bool = False
+    use_agentic_search: bool = False
 
     @model_validator(mode="after")
     def check_persona_fields(self) -> "OneShotQARequest":

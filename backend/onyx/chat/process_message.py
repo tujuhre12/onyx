@@ -755,21 +755,18 @@ def stream_chat_message_objects(
             # TODO: handle multiple search tools
             raise ValueError("Multiple search tools found")
         search_tool = search_tools[0]
-        pro_search_config = (
-            ProSearchConfig(
-                use_agentic_search=new_msg_req.use_pro_search,
-                search_request=search_request,
-                chat_session_id=chat_session_id,
-                message_id=reserved_message_id,
-                message_history=message_history,
-                primary_llm=llm,
-                fast_llm=fast_llm,
-                search_tool=search_tool,
-                structured_response_format=new_msg_req.structured_response_format,
-            )
-            if new_msg_req.use_pro_search
-            else None
+        pro_search_config = ProSearchConfig(
+            use_agentic_search=new_msg_req.use_agentic_search,
+            search_request=search_request,
+            chat_session_id=chat_session_id,
+            message_id=reserved_message_id,
+            message_history=message_history,
+            primary_llm=llm,
+            fast_llm=fast_llm,
+            search_tool=search_tool,
+            structured_response_format=new_msg_req.structured_response_format,
         )
+
         # TODO: add previous messages, answer style config, tools, etc.
 
         # LLM prompt building, response capturing, etc.

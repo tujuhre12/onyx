@@ -48,7 +48,7 @@ def prepare_chat_message_request(
     retrieval_details: RetrievalDetails | None,
     rerank_settings: RerankingDetails | None,
     db_session: Session,
-    use_pro_search: bool = False,
+    use_agentic_search: bool = False,
 ) -> CreateChatMessageRequest:
     # Typically used for one shot flows like SlackBot or non-chat API endpoint use cases
     new_chat_session = create_chat_session(
@@ -73,7 +73,7 @@ def prepare_chat_message_request(
         search_doc_ids=None,
         retrieval_options=retrieval_details,
         rerank_settings=rerank_settings,
-        use_pro_search=use_pro_search,
+        use_agentic_search=use_agentic_search,
     )
 
 
