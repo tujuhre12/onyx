@@ -20,5 +20,5 @@ def generate_raw_search_data(
     return ExpandedRetrievalInput(
         question=pro_search_config.search_request.query,
         base_search=True,
-        sub_question_id="oogabooga",  # This graph is always and only used for the original question
+        sub_question_id=None,  # This graph is always and only used for the original question
     )

@@ -227,7 +227,7 @@ if __name__ == "__main__":
     primary_llm, fast_llm = get_default_llms()
     search_request = SearchRequest(
         # query="what can you do with gitlab?",
-        query="What are the guiding principles behind the development of cockroachDB?",
+        query="What are the guiding principles behind the development of cockroachDB",
         # query="What are the temperatures in Munich, Hawaii, and New York?",
     )
     # Joachim custom persona

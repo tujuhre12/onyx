@@ -1,9 +1,11 @@
 from typing import TypedDict
 
 from onyx.agent_search.core_state import CoreState
-from onyx.agent_search.core_state import SubgraphCoreState
 from onyx.agent_search.pro_search_a.expanded_retrieval.models import (
     ExpandedRetrievalResult,
+)
+from onyx.agent_search.pro_search_a.expanded_retrieval.states import (
+    ExpandedRetrievalInput,
 )
 
 
@@ -13,7 +15,7 @@ from onyx.agent_search.pro_search_a.expanded_retrieval.models import (
 ## Graph Input State
 
 
-class BaseRawSearchInput(CoreState, SubgraphCoreState):
+class BaseRawSearchInput(CoreState):
     pass
 
 
@@ -37,6 +39,7 @@ class BaseRawSearchOutput(TypedDict):
 
 class BaseRawSearchState(
     BaseRawSearchInput,
+    ExpandedRetrievalInput,
     BaseRawSearchOutput,
 ):
     pass

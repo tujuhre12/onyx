@@ -161,7 +161,7 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
     )
 
     graph.add_edge(
-        start_key=["ingest_initial_sub_question_answers", "ingest_initial_retrieval"],
+        start_key="generate_initial_answer",
         end_key="entity_term_extraction_llm",
     )
 
