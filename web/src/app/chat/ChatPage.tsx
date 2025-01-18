@@ -432,7 +432,9 @@ export function ChatPage({
 
       // if switching from one chat to another, then need to scroll again
       // if we're creating a brand new chat, then don't need to scroll
-      if (chatSessionIdRef.current !== null) {
+      // we must always set this to true once we animate a new chat session. Thi sis
+      // handled
+      if (chatSessionIdRef.current !== null && chatSessionIdRef.current) {
         setHasPerformedInitialScroll(false);
       }
     }
@@ -460,7 +462,8 @@ export function ChatPage({
       }
       const shouldScrollToBottom =
         visibleRange.get(existingChatSessionId) === undefined ||
-        visibleRange.get(existingChatSessionId)?.end == 0;
+        visibleRange.get(existingChatSessionId)?.end == 0 ||
+        visibleRange.get(existingChatSessionId)?.end == BUFFER_COUNT;
 
       clearSelectedDocuments();
       setIsFetchingChatMessages(true);
@@ -507,6 +510,8 @@ export function ChatPage({
         } else if (isChatSessionSwitch && autoScrollEnabled) {
           clientScrollToBottom(true);
         }
+      } else {
+        setHasPerformedInitialScroll(true);
       }
 
       setIsFetchingChatMessages(false);
@@ -918,14 +923,16 @@ export function ChatPage({
 
     setTimeout(() => {
       if (!endDivRef.current || !scrollableDivRef.current) {
-        console.error("endDivRef or scrollableDivRef not found");
+        console.log("endDivRef or scrollableDivRef not found");
         return;
       }
 
       const rect = endDivRef.current.getBoundingClientRect();
       const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
 
-      if (isVisible) return;
+      if (isVisible) {
+        return;
+      }
 
       // Check if all messages are currently rendered
       if (currentVisibleRange.end < messageHistory.length) {
@@ -945,15 +952,12 @@ export function ChatPage({
           endDivRef.current?.scrollIntoView({
             behavior: fast ? "auto" : "smooth",
           });
-          setHasPerformedInitialScroll(true);
         }, 100);
       } else {
         // If all messages are already rendered, scroll immediately
         endDivRef.current.scrollIntoView({
           behavior: fast ? "auto" : "smooth",
         });
-
-        setHasPerformedInitialScroll(true);
       }
     }, 50);
 
