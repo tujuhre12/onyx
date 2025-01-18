@@ -74,8 +74,8 @@ class BasicCreateChatMessageWithHistoryRequest(ChunkContext):
     # only works if using an OpenAI model. See the following for more details:
     # https://platform.openai.com/docs/guides/structured-outputs/introduction
     structured_response_format: dict | None = None
-    # If True, uses pro search instead of basic search
-    use_pro_search: bool = False
+    # If True, uses agentic search instead of basic search
+    use_agentic_search: bool = False
 
 
 class SimpleDoc(BaseModel):

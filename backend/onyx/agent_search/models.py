@@ -42,6 +42,8 @@ class ProSearchConfig:
     # Message history for the current chat session
     message_history: list[PreviousMessage] | None = None
 
+    structured_response_format: dict | None = None
+
 
 class AgentDocumentCitations(BaseModel):
     document_id: str

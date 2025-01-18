@@ -1,4 +1,7 @@
+from typing import cast
+
 from langchain_core.callbacks.manager import dispatch_custom_event
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.graph import END
 from langgraph.graph import START
 from langgraph.graph import StateGraph
@@ -7,10 +10,12 @@ from onyx.agent_search.basic.states import BasicInput
 from onyx.agent_search.basic.states import BasicOutput
 from onyx.agent_search.basic.states import BasicState
 from onyx.agent_search.basic.states import BasicStateUpdate
-from onyx.tools.tool_implementations.search.search_tool import SearchTool
+from onyx.agent_search.models import ProSearchConfig
 from onyx.chat.stream_processing.utils import (
     map_document_id_order,
 )
+from onyx.tools.tool_implementations.search.search_tool import SearchTool
+
 
 def basic_graph_builder() -> StateGraph:
     graph = StateGraph(
@@ -45,12 +50,13 @@ def should_continue(state: BasicState) -> str:
     )
 
 
-def get_response(state: BasicState) -> BasicStateUpdate:
-    llm = state["llm"]
+def get_response(state: BasicState, config: RunnableConfig) -> BasicStateUpdate:
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    llm = pro_search_config.primary_llm
     current_llm_call = state["last_llm_call"]
     if current_llm_call is None:
         raise ValueError("last_llm_call is None")
-    answer_style_config = state["answer_style_config"]
+    structured_response_format = pro_search_config.structured_response_format
     response_handler_manager = state["response_handler_manager"]
     # DEBUG: good breakpoint
     stream = llm.stream(
@@ -63,7 +69,7 @@ def get_response(state: BasicState) -> BasicStateUpdate:
             if current_llm_call.tools and current_llm_call.force_use_tool.force_use
             else None
         ),
-        structured_response_format=answer_style_config.structured_response_format,
+        structured_response_format=structured_response_format,
     )
 
     for response in response_handler_manager.handle_llm_response(stream):
@@ -72,7 +78,6 @@ def get_response(state: BasicState) -> BasicStateUpdate:
             response,
         )
 
-
     next_call = response_handler_manager.next_llm_call(current_llm_call)
     if next_call is not None:
         final_search_results, displayed_search_results = SearchTool.get_search_result(
@@ -80,11 +85,14 @@ def get_response(state: BasicState) -> BasicStateUpdate:
         ) or ([], [])
     else:
         final_search_results, displayed_search_results = [], []
-        
-    response_handler_manager.answer_handler.update((
-        final_search_results, 
-        map_document_id_order(final_search_results), 
-        map_document_id_order(displayed_search_results)))
+
+    response_handler_manager.answer_handler.update(
+        (
+            final_search_results,
+            map_document_id_order(final_search_results),
+            map_document_id_order(displayed_search_results),
+        )
+    )
     return BasicStateUpdate(
         last_llm_call=next_call,
         calls=state["calls"] + 1,

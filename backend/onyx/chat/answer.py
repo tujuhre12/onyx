@@ -52,6 +52,7 @@ class Answer:
         llm: LLM,
         prompt_config: PromptConfig,
         force_use_tool: ForceUseTool,
+        pro_search_config: ProSearchConfig,
         # must be the same length as `docs`. If None, all docs are considered "relevant"
         message_history: list[PreviousMessage] | None = None,
         single_message_history: str | None = None,
@@ -67,7 +68,6 @@ class Answer:
         return_contexts: bool = False,
         skip_gen_ai_answer_generation: bool = False,
         is_connected: Callable[[], bool] | None = None,
-        pro_search_config: ProSearchConfig | None = None,
         fast_llm: LLM | None = None,
         db_session: Session | None = None,
     ) -> None:
@@ -213,7 +213,7 @@ class Answer:
         # In langgraph, whether we do the basic thing (call llm stream) or pro search
         # is based on a flag in the pro search config
 
-        if self.pro_search_config:
+        if self.pro_search_config.use_agentic_search:
             if self.pro_search_config.search_request is None:
                 raise ValueError("Search request must be provided for pro search")
 
@@ -227,9 +227,8 @@ class Answer:
             )
         else:
             stream = run_basic_graph(
+                config=self.pro_search_config,
                 last_llm_call=current_llm_call,
-                primary_llm=self.llm,
-                answer_style_config=self.answer_style_config,
                 response_handler_manager=response_handler_manager,
             )
 

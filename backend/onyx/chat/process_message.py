@@ -349,6 +349,7 @@ def stream_chat_message_objects(
     new_msg_req.chunks_above = 0
     new_msg_req.chunks_below = 0
 
+    llm = None
     try:
         user_id = user.id if user is not None else None
 
@@ -720,54 +721,56 @@ def stream_chat_message_objects(
 
         search_request = None
         pro_search_config = None
-        if new_msg_req.use_pro_search:
-            search_request = SearchRequest(
-                query=final_msg.message,
-                evaluation_type=(
-                    LLMEvaluationType.BASIC
-                    if persona.llm_relevance_filter
-                    else LLMEvaluationType.SKIP
-                ),
-                human_selected_filters=(
-                    retrieval_options.filters if retrieval_options else None
-                ),
-                persona=persona,
-                offset=(retrieval_options.offset if retrieval_options else None),
-                limit=retrieval_options.limit if retrieval_options else None,
-                rerank_settings=new_msg_req.rerank_settings,
-                chunks_above=new_msg_req.chunks_above,
-                chunks_below=new_msg_req.chunks_below,
-                full_doc=new_msg_req.full_doc,
-                enable_auto_detect_filters=(
-                    retrieval_options.enable_auto_detect_filters
-                    if retrieval_options
-                    else None
-                ),
-            )
-            # TODO: Since we're deleting the current main path in Answer,
-            # we should construct this unconditionally inside Answer instead
-            # Leaving it here for the time being to avoid breaking changes
-            search_tools = [tool for tool in tools if isinstance(tool, SearchTool)]
-            if len(search_tools) == 0:
-                raise ValueError("No search tool found")
-            elif len(search_tools) > 1:
-                # TODO: handle multiple search tools
-                raise ValueError("Multiple search tools found")
-            search_tool = search_tools[0]
-            pro_search_config = (
-                ProSearchConfig(
-                    search_request=search_request,
-                    chat_session_id=chat_session_id,
-                    message_id=reserved_message_id,
-                    message_history=message_history,
-                    primary_llm=llm,
-                    fast_llm=fast_llm,
-                    search_tool=search_tool,
-                )
-                if new_msg_req.use_pro_search
+
+        search_request = SearchRequest(
+            query=final_msg.message,
+            evaluation_type=(
+                LLMEvaluationType.BASIC
+                if persona.llm_relevance_filter
+                else LLMEvaluationType.SKIP
+            ),
+            human_selected_filters=(
+                retrieval_options.filters if retrieval_options else None
+            ),
+            persona=persona,
+            offset=(retrieval_options.offset if retrieval_options else None),
+            limit=retrieval_options.limit if retrieval_options else None,
+            rerank_settings=new_msg_req.rerank_settings,
+            chunks_above=new_msg_req.chunks_above,
+            chunks_below=new_msg_req.chunks_below,
+            full_doc=new_msg_req.full_doc,
+            enable_auto_detect_filters=(
+                retrieval_options.enable_auto_detect_filters
+                if retrieval_options
                 else None
+            ),
+        )
+        # TODO: Since we're deleting the current main path in Answer,
+        # we should construct this unconditionally inside Answer instead
+        # Leaving it here for the time being to avoid breaking changes
+        search_tools = [tool for tool in tools if isinstance(tool, SearchTool)]
+        if len(search_tools) == 0:
+            raise ValueError("No search tool found")
+        elif len(search_tools) > 1:
+            # TODO: handle multiple search tools
+            raise ValueError("Multiple search tools found")
+        search_tool = search_tools[0]
+        pro_search_config = (
+            ProSearchConfig(
+                use_agentic_search=new_msg_req.use_pro_search,
+                search_request=search_request,
+                chat_session_id=chat_session_id,
+                message_id=reserved_message_id,
+                message_history=message_history,
+                primary_llm=llm,
+                fast_llm=fast_llm,
+                search_tool=search_tool,
+                structured_response_format=new_msg_req.structured_response_format,
             )
-            # TODO: add previous messages, answer style config, tools, etc.
+            if new_msg_req.use_pro_search
+            else None
+        )
+        # TODO: add previous messages, answer style config, tools, etc.
 
         # LLM prompt building, response capturing, etc.
         answer = Answer(
@@ -957,12 +960,15 @@ def stream_chat_message_objects(
 
         error_msg = str(e)
         stack_trace = traceback.format_exc()
-        client_error_msg = litellm_exception_to_error_msg(e, llm)
-        if llm.config.api_key and len(llm.config.api_key) > 2:
-            error_msg = error_msg.replace(llm.config.api_key, "[REDACTED_API_KEY]")
-            stack_trace = stack_trace.replace(llm.config.api_key, "[REDACTED_API_KEY]")
+        if llm:
+            client_error_msg = litellm_exception_to_error_msg(e, llm)
+            if llm.config.api_key and len(llm.config.api_key) > 2:
+                error_msg = error_msg.replace(llm.config.api_key, "[REDACTED_API_KEY]")
+                stack_trace = stack_trace.replace(
+                    llm.config.api_key, "[REDACTED_API_KEY]"
+                )
 
-        yield StreamingError(error=client_error_msg, stack_trace=stack_trace)
+            yield StreamingError(error=client_error_msg, stack_trace=stack_trace)
         db_session.rollback()
         return
 

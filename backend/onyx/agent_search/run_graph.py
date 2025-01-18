@@ -24,7 +24,6 @@ from onyx.chat.llm_response_handler import LLMResponseHandlerManager
 from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
-from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import SubQueryPiece
@@ -34,7 +33,6 @@ from onyx.chat.prompt_builder.build import LLMCall
 from onyx.configs.dev_configs import GRAPH_NAME
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
-from onyx.llm.interfaces import LLM
 from onyx.tools.tool_runner import ToolCallKickoff
 from onyx.utils.logger import setup_logger
 
@@ -192,9 +190,8 @@ def run_main_graph(
 
 # TODO: unify input types, especially prosearchconfig
 def run_basic_graph(
+    config: ProSearchConfig,
     last_llm_call: LLMCall | None,
-    primary_llm: LLM,
-    answer_style_config: AnswerStyleConfig,
     response_handler_manager: LLMResponseHandlerManager,
 ) -> AnswerStream:
     graph = basic_graph_builder()
@@ -203,8 +200,6 @@ def run_basic_graph(
     input = BasicInput(
         base_question="",
         last_llm_call=last_llm_call,
-        llm=primary_llm,
-        answer_style_config=answer_style_config,
         response_handler_manager=response_handler_manager,
         calls=0,
     )

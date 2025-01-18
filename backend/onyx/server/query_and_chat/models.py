@@ -127,7 +127,7 @@ class CreateChatMessageRequest(ChunkContext):
 
     # If true, ignores most of the search options and uses pro search instead.
     # TODO: decide how many of the above options we want to pass through to pro search
-    use_pro_search: bool = False
+    use_agentic_search: bool = False
 
     @model_validator(mode="after")
     def check_search_doc_ids_or_retrieval_options(self) -> "CreateChatMessageRequest":
