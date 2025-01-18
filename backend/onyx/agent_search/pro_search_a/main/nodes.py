@@ -4,13 +4,16 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 from typing import cast
+from typing import Literal
 
 from langchain_core.callbacks.manager import dispatch_custom_event
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.messages import merge_message_runs
 from langchain_core.runnables import RunnableConfig
+from langgraph.types import Command
 
+from onyx.agent_search.core_state import CoreState
 from onyx.agent_search.models import ProSearchConfig
 from onyx.agent_search.pro_search_a.answer_initial_sub_question.states import (
     AnswerQuestionOutput,
@@ -33,6 +36,7 @@ from onyx.agent_search.pro_search_a.main.states import MainOutput
 from onyx.agent_search.pro_search_a.main.states import MainState
 from onyx.agent_search.pro_search_a.main.states import RefinedAnswerUpdate
 from onyx.agent_search.pro_search_a.main.states import RequireRefinedAnswerUpdate
+from onyx.agent_search.pro_search_a.main.states import RoutingDecision
 from onyx.agent_search.shared_graph_utils.agent_prompt_ops import trim_prompt_piece
 from onyx.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agent_search.shared_graph_utils.models import CombinedAgentMetrics
@@ -47,9 +51,14 @@ from onyx.agent_search.shared_graph_utils.models import RefinedAgentStats
 from onyx.agent_search.shared_graph_utils.models import Relationship
 from onyx.agent_search.shared_graph_utils.models import Term
 from onyx.agent_search.shared_graph_utils.operators import dedup_inference_sections
+from onyx.agent_search.shared_graph_utils.prompts import AGENT_DECISION_PROMPT
+from onyx.agent_search.shared_graph_utils.prompts import (
+    AGENT_DECISION_PROMPT_AFTER_SEARCH,
+)
 from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_DEFAULT
 from onyx.agent_search.shared_graph_utils.prompts import ASSISTANT_SYSTEM_PROMPT_PERSONA
 from onyx.agent_search.shared_graph_utils.prompts import DEEP_DECOMPOSE_PROMPT
+from onyx.agent_search.shared_graph_utils.prompts import DIRECT_LLM_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import ENTITY_TERM_PROMPT
 from onyx.agent_search.shared_graph_utils.prompts import (
     INITIAL_DECOMPOSITION_PROMPT_QUESTIONS,
@@ -222,28 +231,18 @@ def _get_query_info(results: list[QueryResult]) -> SearchQueryInfo:
     return query_infos[0]
 
 
-def initial_sub_question_creation(
-    state: MainState, config: RunnableConfig
-) -> BaseDecompUpdate:
+def agent_path_decision(state: MainState, config: RunnableConfig) -> RoutingDecision:
     now_start = datetime.now()
-
-    logger.debug(f"--------{now_start}--------BASE DECOMP START---")
 
     pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
     question = pro_search_config.search_request.query
-    chat_session_id = pro_search_config.chat_session_id
-    primary_message_id = pro_search_config.message_id
-    perform_initial_search = pro_search_config.perform_initial_search
+    perform_initial_search_path_decision = (
+        pro_search_config.perform_initial_search_path_decision
+    )
 
-    if not chat_session_id or not primary_message_id:
-        raise ValueError(
-            "chat_session_id and message_id must be provided for agent search"
-        )
-    agent_start_time = datetime.now()
+    logger.debug(f"--------{now_start}--------DECIDING TO SEARCH OR GO TO LLM---")
 
-    # Initial search to inform decomposition. Just get top 3 fits
-
-    if perform_initial_search:
+    if perform_initial_search_path_decision:
         search_tool = pro_search_config.search_tool
         retrieved_docs: list[InferenceSection] = []
 
@@ -263,6 +262,163 @@ def initial_sub_question_creation(
         sample_doc_str = "\n\n".join(
             [doc.combined_content for _, doc in enumerate(retrieved_docs[:3])]
         )
+
+        agent_decision_prompt = AGENT_DECISION_PROMPT_AFTER_SEARCH.format(
+            question=question, sample_doc_str=sample_doc_str
+        )
+
+    else:
+        sample_doc_str = ""
+        agent_decision_prompt = AGENT_DECISION_PROMPT.format(question=question)
+
+    msg = [HumanMessage(content=agent_decision_prompt)]
+
+    # Get the rewritten queries in a defined format
+    model = pro_search_config.fast_llm
+
+    # dispatches custom events for subquestion tokens, adding in subquestion ids.
+    streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(0))
+
+    decision_response = str(merge_content(*streamed_tokens))
+
+    if "research" in decision_response.lower():
+        routing = "agent_search"
+    else:
+        routing = "LLM"
+
+    now_end = datetime.now()
+
+    logger.debug(
+        f"--------{now_end}--{now_end - now_start}--------DECIDING TO SEARCH OR GO TO LLM END---"
+    )
+
+    return RoutingDecision(
+        # Decide which route to take
+        routing=routing,
+        sample_doc_str=sample_doc_str,
+        log_messages=[f"Path decision: {routing},  Time taken: {now_end - now_start}"],
+    )
+
+
+def agent_path_routing(
+    state: MainState,
+) -> Command[Literal["agent_search_start", "LLM"]]:
+    routing = state.get("routing", "agent_search")
+
+    if routing == "agent_search":
+        agent_path = "agent_search_start"
+    else:
+        agent_path = "LLM"
+
+    return Command(
+        # state update
+        update={"log_messages": [f"Path routing: {agent_path}"]},
+        # control flow
+        goto=agent_path,
+    )
+
+
+def direct_llm_handling(
+    state: MainState, config: RunnableConfig
+) -> InitialAnswerUpdate:
+    now_start = datetime.now()
+
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    question = pro_search_config.search_request.query
+    persona_prompt = get_persona_prompt(pro_search_config.search_request.persona)
+
+    if len(persona_prompt) == 0:
+        persona_specification = ASSISTANT_SYSTEM_PROMPT_DEFAULT
+    else:
+        persona_specification = ASSISTANT_SYSTEM_PROMPT_PERSONA.format(
+            persona_prompt=persona_prompt
+        )
+
+    logger.debug(f"--------{now_start}--------LLM HANDLING START---")
+
+    model = pro_search_config.fast_llm
+
+    msg = [
+        HumanMessage(
+            content=DIRECT_LLM_PROMPT.format(
+                persona_specification=persona_specification, question=question
+            )
+        )
+    ]
+
+    streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(0))
+    merge_content(*streamed_tokens)
+
+    now_end = datetime.now()
+
+    logger.debug(f"--------{now_end}--{now_end - now_start}--------LLM HANDLING END---")
+
+    return InitialAnswerUpdate(
+        initial_answer="",
+        initial_agent_stats=None,
+        generated_sub_questions=[],
+        agent_base_end_time=now_end,
+        agent_base_metrics=None,
+        log_messages=[f"LLM handling: {now_end - now_start}"],
+    )
+
+
+def agent_search_start(state: CoreState) -> CoreState:
+    return CoreState(
+        log_messages=["Agent search start"],
+    )
+
+
+def initial_sub_question_creation(
+    state: MainState, config: RunnableConfig
+) -> BaseDecompUpdate:
+    now_start = datetime.now()
+
+    logger.debug(f"--------{now_start}--------BASE DECOMP START---")
+
+    pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    question = pro_search_config.search_request.query
+    chat_session_id = pro_search_config.chat_session_id
+    primary_message_id = pro_search_config.message_id
+    perform_initial_search_decomposition = (
+        pro_search_config.perform_initial_search_decomposition
+    )
+    perform_initial_search_path_decision = (
+        pro_search_config.perform_initial_search_path_decision
+    )
+
+    # Use the initial search results to inform the decomposition
+    sample_doc_str = state.get("sample_doc_str", "")
+
+    if not chat_session_id or not primary_message_id:
+        raise ValueError(
+            "chat_session_id and message_id must be provided for agent search"
+        )
+    agent_start_time = datetime.now()
+
+    # Initial search to inform decomposition. Just get top 3 fits
+
+    if perform_initial_search_decomposition:
+        if not perform_initial_search_path_decision:
+            search_tool = pro_search_config.search_tool
+            retrieved_docs: list[InferenceSection] = []
+
+            # new db session to avoid concurrency issues
+            with get_session_context_manager() as db_session:
+                for tool_response in search_tool.run(
+                    query=question,
+                    force_no_rerank=True,
+                    alternate_db_session=db_session,
+                ):
+                    # get retrieved docs to send to the rest of the graph
+                    if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
+                        response = cast(SearchResponseSummary, tool_response.response)
+                        retrieved_docs = response.top_sections
+                        break
+
+            sample_doc_str = "\n\n".join(
+                [doc.combined_content for _, doc in enumerate(retrieved_docs[:3])]
+            )
 
         decomposition_prompt = (
             INITIAL_DECOMPOSITION_PROMPT_QUESTIONS_AFTER_SEARCH.format(
@@ -415,7 +571,7 @@ def generate_initial_answer(
 
         # Determine which persona-specification prompt to use
 
-        if len(persona_prompt) > 0:
+        if len(persona_prompt) == 0:
             persona_specification = ASSISTANT_SYSTEM_PROMPT_DEFAULT
         else:
             persona_specification = ASSISTANT_SYSTEM_PROMPT_PERSONA.format(
@@ -522,6 +678,7 @@ def generate_initial_answer(
         generated_sub_questions=decomp_questions,
         agent_base_end_time=agent_base_end_time,
         agent_base_metrics=agent_base_metrics,
+        log_messages=[f"Initial answer generation: {now_end - now_start}"],
     )
 
 
@@ -880,7 +1037,7 @@ def generate_refined_answer(
 
     # Determine which persona-specification prompt to use
 
-    if len(persona_prompt) > 0:
+    if len(persona_prompt) == 0:
         persona_specification = ASSISTANT_SYSTEM_PROMPT_DEFAULT
     else:
         persona_specification = ASSISTANT_SYSTEM_PROMPT_PERSONA.format(

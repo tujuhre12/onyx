@@ -19,6 +19,10 @@ from onyx.agent_search.pro_search_a.main.edges import (
     parallelize_refined_sub_question_answering,
 )
 from onyx.agent_search.pro_search_a.main.nodes import agent_logging
+from onyx.agent_search.pro_search_a.main.nodes import agent_path_decision
+from onyx.agent_search.pro_search_a.main.nodes import agent_path_routing
+from onyx.agent_search.pro_search_a.main.nodes import agent_search_start
+from onyx.agent_search.pro_search_a.main.nodes import direct_llm_handling
 from onyx.agent_search.pro_search_a.main.nodes import entity_term_extraction_llm
 from onyx.agent_search.pro_search_a.main.nodes import generate_initial_answer
 from onyx.agent_search.pro_search_a.main.nodes import generate_refined_answer
@@ -45,6 +49,26 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
     graph = StateGraph(
         state_schema=MainState,
         input=MainInput,
+    )
+
+    graph.add_node(
+        node="agent_path_decision",
+        action=agent_path_decision,
+    )
+
+    graph.add_node(
+        node="agent_path_routing",
+        action=agent_path_routing,
+    )
+
+    graph.add_node(
+        node="LLM",
+        action=direct_llm_handling,
+    )
+
+    graph.add_node(
+        node="agent_search_start",
+        action=agent_search_start,
     )
 
     graph.add_node(
@@ -134,7 +158,27 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
 
     ### Add edges ###
 
-    graph.add_edge(start_key=START, end_key="base_raw_search_subgraph")
+    # raph.add_edge(start_key=START, end_key="base_raw_search_subgraph")
+
+    graph.add_edge(
+        start_key=START,
+        end_key="agent_path_decision",
+    )
+
+    graph.add_edge(
+        start_key="agent_path_decision",
+        end_key="agent_path_routing",
+    )
+
+    graph.add_edge(
+        start_key="agent_search_start",
+        end_key="base_raw_search_subgraph",
+    )
+
+    graph.add_edge(
+        start_key="agent_search_start",
+        end_key="initial_sub_question_creation",
+    )
 
     graph.add_edge(
         start_key="base_raw_search_subgraph",
@@ -142,9 +186,15 @@ def main_graph_builder(test_mode: bool = False) -> StateGraph:
     )
 
     graph.add_edge(
-        start_key=START,
-        end_key="initial_sub_question_creation",
+        start_key="LLM",
+        end_key=END,
     )
+
+    # graph.add_edge(
+    #     start_key=START,
+    #     end_key="initial_sub_question_creation",
+    # )
+
     graph.add_conditional_edges(
         source="initial_sub_question_creation",
         path=parallelize_initial_sub_question_answering,

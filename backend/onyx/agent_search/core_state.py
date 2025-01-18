@@ -16,3 +16,5 @@ class SubgraphCoreState(TypedDict, total=False):
     """
     This is the core state that is shared across all subgraphs.
     """
+
+    log_messages: Annotated[list[str], add]

@@ -42,6 +42,15 @@ class BaseDecompUpdateBase(TypedDict):
     initial_decomp_questions: list[str]
 
 
+class RoutingDecisionBase(TypedDict):
+    routing: str
+    sample_doc_str: str
+
+
+class RoutingDecision(RoutingDecisionBase):
+    log_messages: list[str]
+
+
 class BaseDecompUpdate(
     RefinedAgentStartStats, RefinedAgentEndStats, BaseDecompUpdateBase
 ):
@@ -52,12 +61,16 @@ class InitialAnswerBASEUpdate(TypedDict):
     initial_base_answer: str
 
 
-class InitialAnswerUpdate(TypedDict):
+class InitialAnswerUpdateBase(TypedDict):
     initial_answer: str
     initial_agent_stats: InitialAgentResultStats | None
     generated_sub_questions: list[str]
     agent_base_end_time: datetime
-    agent_base_metrics: AgentBaseMetrics
+    agent_base_metrics: AgentBaseMetrics | None
+
+
+class InitialAnswerUpdate(InitialAnswerUpdateBase):
+    log_messages: list[str]
 
 
 class RefinedAnswerUpdateBase(TypedDict):
@@ -127,7 +140,7 @@ class MainState(
     # This includes the core state
     MainInput,
     BaseDecompUpdateBase,
-    InitialAnswerUpdate,
+    InitialAnswerUpdateBase,
     InitialAnswerBASEUpdate,
     DecompAnswersUpdate,
     ExpandedRetrievalUpdate,
@@ -139,6 +152,7 @@ class MainState(
     RefinedAnswerUpdateBase,
     RefinedAgentStartStats,
     RefinedAgentEndStats,
+    RoutingDecisionBase,
 ):
     # expanded_retrieval_result: Annotated[list[ExpandedRetrievalResult], add]
     base_raw_search_result: Annotated[list[ExpandedRetrievalResult], add]

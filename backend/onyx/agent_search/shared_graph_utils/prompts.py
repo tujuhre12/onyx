@@ -548,6 +548,58 @@ Answer:"""
 )
 
 
+AGENT_DECISION_PROMPT = """
+You are an large language model assistant helping users address their information needs. You are tasked with deciding
+whether to use a thorough agent search ('research') of a document store to answer a question or request, or whether you want to
+address the question or request yourself as an LLM.
+
+Here are some rules:
+- If you think that a thorough search through a document store will help answer the question
+or address the request, you should choose the 'research' option.
+- If the question asks you do do somethng ('please create...', 'write for me...', etc.), you should choose the 'LLM' option.
+- If you think the question is very general and does not refer to a contents of a document store, you should choose
+the 'LLM' option.
+- Otherwise, you should choose the 'research' option.
+
+Here is the initial question:
+-------
+{question}
+-------
+
+Please decide whether to use the agent search or the LLM to answer the question. Choose from two choices,
+'agent search' or 'LLM'.
+
+Answer:"""
+
+AGENT_DECISION_PROMPT_AFTER_SEARCH = """
+You are an large language model assistant helping users address their information needs.  You are given an initial question
+or request and very few sample of documents that a preliminary and fast search from a document store returned.
+You are tasked with deciding whether to use a thorough agent search ('research') of the document store to answer a question
+or request, or whether you want to address the question or request yourself as an LLM.
+
+Here are some rules:
+- If based on the retrieved documents you think there may be useful information in the document
+store to answer or materially help with the request, you should choose the 'research' option.
+- If you think that the retrieved document do not help to answer the question or do not help with the request, AND
+you know the answer/can handle the request, you should choose the 'LLM' option.
+- If the question asks you do do somethng ('please create...', 'write for me...', etc.), you should choose the 'LLM' option.
+- If in doubt, choose the 'research' option.
+
+Here is the initial question:
+-------
+{question}
+-------
+
+Here is the sample of documents that were retrieved from a document store:
+-------
+{sample_doc_str}
+-------
+
+Please decide whether to use the agent search ('research') or the LLM to answer the question. Choose from two choices,
+'research' or 'LLM'.
+
+Answer:"""
+
 ### ANSWER GENERATION PROMPTS
 
 # Persona specification
@@ -622,6 +674,15 @@ And here is the question I want you to answer based on the information above:
 Answer:"""
 )
 
+
+DIRECT_LLM_PROMPT = """ \n
+{persona_specification}
+
+Please answer the following question/address the request:
+\n--\n
+{question}
+\n--\n\n
+Answer:"""
 
 INITIAL_RAG_PROMPT = (
     """ \n

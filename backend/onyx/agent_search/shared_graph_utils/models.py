@@ -107,6 +107,6 @@ class QuestionAnswerResults(BaseModel):
 
 class CombinedAgentMetrics(BaseModel):
     timings: AgentTimings
-    base_metrics: AgentBaseMetrics
+    base_metrics: AgentBaseMetrics | None
     refined_metrics: AgentRefinedMetrics
     additional_metrics: AgentAdditionalMetrics

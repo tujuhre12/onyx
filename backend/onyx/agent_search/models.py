@@ -37,7 +37,10 @@ class ProSearchConfig:
     db_session: Session | None = None
 
     # Whether to perform initial search to inform decomposition
-    perform_initial_search: bool = False
+    perform_initial_search_path_decision: bool = False
+
+    # Whether to perform initial search to inform decomposition
+    perform_initial_search_decomposition: bool = False
 
     # Whether to allow creation of refinement questions (and entity extraction, etc.)
     allow_refinement: bool = False
