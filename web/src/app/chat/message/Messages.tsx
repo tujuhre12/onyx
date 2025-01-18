@@ -524,7 +524,7 @@ export const AIMessage = ({
                         className={`
                         flex md:flex-row gap-x-0.5 mt-1
                         transition-transform duration-300 ease-in-out
-                        transform opacity-100 translate-y-0"
+                        transform opacity-100 "
                   `}
                       >
                         <TooltipGroup>
@@ -605,10 +605,6 @@ export const AIMessage = ({
                             settings?.isMobile) &&
                           "!opacity-100"
                         }
-                        translate-y-2 ${
-                          (isHovering || settings?.isMobile) && "!translate-y-0"
-                        }
-                        transition-transform duration-300 ease-in-out 
                         flex md:flex-row gap-x-0.5 bg-background-125/40 -mx-1.5 p-1.5 rounded-lg
                         `}
                       >

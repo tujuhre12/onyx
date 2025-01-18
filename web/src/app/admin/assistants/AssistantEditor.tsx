@@ -66,7 +66,7 @@ import {
   Option as DropdownOption,
 } from "@/components/Dropdown";
 import { SourceChip } from "@/app/chat/input/ChatInputBar";
-import { TagIcon, UserIcon } from "lucide-react";
+import { TagIcon, UserIcon, XIcon } from "lucide-react";
 import { LLMSelector } from "@/components/llm/LLMSelector";
 import useSWR from "swr";
 import { errorHandlingFetcher } from "@/lib/fetcher";
@@ -764,7 +764,7 @@ export function AssistantEditor({
                 </p>
                 <div className="mt-3">
                   <SearchMultiSelectDropdown
-                    onCreateLabel={async (name: string) => {
+                    onCreate={async (name: string) => {
                       await createLabel(name);
                       const currentLabels = await refreshLabels();
 
@@ -794,28 +794,46 @@ export function AssistantEditor({
                       setFieldValue("label_ids", newLabelIds);
                     }}
                     itemComponent={({ option }) => (
-                      <div
-                        className="flex items-center px-4 py-2.5 text-sm hover:bg-hover cursor-pointer"
-                        onClick={() => {
-                          const label = labels.find(
-                            (l) => l.name === option.value
-                          );
-                          if (label) {
-                            const isSelected = values.label_ids.includes(
-                              label.id
+                      <div className="flex items-center justify-between px-4 py-3 text-sm hover:bg-hover cursor-pointer border-b border-border last:border-b-0">
+                        <div
+                          className="flex-grow"
+                          onClick={() => {
+                            const label = labels.find(
+                              (l) => l.name === option.value
                             );
-                            const newLabelIds = isSelected
-                              ? values.label_ids.filter(
-                                  (id: number) => id !== label.id
-                                )
-                              : [...values.label_ids, label.id];
-                            setFieldValue("label_ids", newLabelIds);
-                          }
-                        }}
-                      >
-                        <span className="text-sm font-medium leading-none">
-                          {option.name}
-                        </span>
+                            if (label) {
+                              const isSelected = values.label_ids.includes(
+                                label.id
+                              );
+                              const newLabelIds = isSelected
+                                ? values.label_ids.filter(
+                                    (id: number) => id !== label.id
+                                  )
+                                : [...values.label_ids, label.id];
+                              setFieldValue("label_ids", newLabelIds);
+                            }
+                          }}
+                        >
+                          <span className="font-normal leading-none">
+                            {option.name}
+                          </span>
+                        </div>
+                        {admin && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const label = labels.find(
+                                (l) => l.name === option.value
+                              );
+                              if (label) {
+                                deleteLabel(label.id);
+                              }
+                            }}
+                            className="ml-2 p-1 hover:bg-background-hover rounded"
+                          >
+                            <XIcon size={12} />
+                          </button>
+                        )}
                       </div>
                     )}
                   />
@@ -1091,6 +1109,7 @@ export function AssistantEditor({
                         <React.Fragment key={tool.id}>
                           <div className="flex items-center content-start mb-2">
                             <Checkbox
+                              size="sm"
                               id={`enabled_tools_map.${tool.id}`}
                               checked={values.enabled_tools_map[tool.id]}
                               onCheckedChange={() => {
