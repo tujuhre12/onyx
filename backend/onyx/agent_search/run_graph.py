@@ -144,7 +144,7 @@ def _manage_async_event_streaming(
 
 def run_graph(
     compiled_graph: CompiledStateGraph,
-    config: ProSearchConfig | None,
+    config: ProSearchConfig,
     input: BasicInput | MainInput_a | MainInput_b,
 ) -> AnswerStream:
     input["base_question"] = config.search_request.query if config else ""
@@ -203,7 +203,7 @@ def run_basic_graph(
         response_handler_manager=response_handler_manager,
         calls=0,
     )
-    return run_graph(compiled_graph, None, input)
+    return run_graph(compiled_graph, config, input)
 
 
 if __name__ == "__main__":

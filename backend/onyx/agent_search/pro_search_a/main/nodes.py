@@ -276,12 +276,10 @@ def agent_path_decision(state: MainState, config: RunnableConfig) -> RoutingDeci
     # Get the rewritten queries in a defined format
     model = pro_search_config.fast_llm
 
-    # dispatches custom events for subquestion tokens, adding in subquestion ids.
-    streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(0))
+    # no need to stream this
+    resp = model.invoke(msg)
 
-    decision_response = str(merge_content(*streamed_tokens))
-
-    if "research" in decision_response.lower():
+    if isinstance(resp.content, str) and "research" in resp.content.lower():
         routing = "agent_search"
     else:
         routing = "LLM"
@@ -346,15 +344,35 @@ def direct_llm_handling(
         )
     ]
 
-    streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(0))
-    merge_content(*streamed_tokens)
+    streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
+
+    for message in model.stream(msg):
+        # TODO: in principle, the answer here COULD contain images, but we don't support that yet
+        content = message.content
+        if not isinstance(content, str):
+            raise ValueError(
+                f"Expected content to be a string, but got {type(content)}"
+            )
+        dispatch_custom_event(
+            "initial_agent_answer",
+            AgentAnswerPiece(
+                answer_piece=content,
+                level=0,
+                level_question_nr=0,
+                answer_type="agent_level_answer",
+            ),
+        )
+        streamed_tokens.append(content)
+
+    response = merge_content(*streamed_tokens)
+    answer = cast(str, response)
 
     now_end = datetime.now()
 
     logger.debug(f"--------{now_end}--{now_end - now_start}--------LLM HANDLING END---")
 
     return InitialAnswerUpdate(
-        initial_answer="",
+        initial_answer=answer,
         initial_agent_stats=None,
         generated_sub_questions=[],
         agent_base_end_time=now_end,

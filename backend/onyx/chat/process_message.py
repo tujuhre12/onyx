@@ -719,9 +719,6 @@ def stream_chat_message_objects(
             PreviousMessage.from_chat_message(msg, files) for msg in history_msgs
         ]
 
-        search_request = None
-        pro_search_config = None
-
         search_request = SearchRequest(
             query=final_msg.message,
             evaluation_type=(

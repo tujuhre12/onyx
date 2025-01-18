@@ -567,7 +567,7 @@ Here is the initial question:
 -------
 
 Please decide whether to use the agent search or the LLM to answer the question. Choose from two choices,
-'agent search' or 'LLM'.
+'research' or 'LLM'.
 
 Answer:"""
 
