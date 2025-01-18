@@ -704,10 +704,10 @@ IMPORTANT RULES:
     + """.
  - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
 
-Remember to provide inline citations of documents in the format [[D1]](), [[D2]](), [[D3]](), etc., and  [[Q1]](), [[Q2]](),... if
+Remember to provide inline citations of documents in the format [[D1]](), [[D2]](), [[D3]](), etc., and [[Q1]](), [[Q2]](),... if
 you want to cite the answer to a sub-question. If you have multiple citations, please cite for example
-as [[D1]]()[[Q3]](), or [[D2]]()[[D4]](), etc. Feel free to cite documents in addition to the sub-questions!
-Proper citations are important for the final answer to be verifiable! \n\n\n
+as [[D1]]()[[Q3]](), or [[D2]]()[[D4]](), etc. Feel free to cite sub-questions in addition to documents, but make sure that you
+have docuemnt citations ([[D7]]() etc.) if possible!
 
 Again, you should be sure that the answer is supported by the information provided!
 
@@ -749,6 +749,8 @@ IMPORTANT RULES:
  - If the information is relevant but not fully conclusive, specify that the information is not conclusive and say why.
 
 Again, you should be sure that the answer is supported by the information provided!
+
+Remember to provide inline citations of documents in the format [[D1]](), [[D2]](), [[D3]](), etc.!
 
 Try to keep your answer concise.
 
@@ -796,7 +798,8 @@ Again, you should be sure that the answer is supported by the information provid
 
 Remember to provide inline citations of documents in the format [[D1]](), [[D2]](), [[D3]](), etc., and [[Q1]](), [[Q2]](),... if
 you want to cite the answer to a sub-question. If you have multiple citations, please cite for example
-as [[D1]]()[[Q3]](), or [[D2]]()[[D4]](), etc. Feel free to cite documents in addition to the sub-questions!
+as [[D1]]()[[Q3]](), or [[D2]]()[[D4]](), etc. Feel free to cite sub-questions in addition to documents, but make sure that you
+have docuemnt citations ([[D7]]() etc.) if possible!
 Proper citations are important for the final answer to be verifiable! \n\n\n
 
 Try to keep your answer concise. But also highlight uncertainties you may have should there be substantial ones,
@@ -846,6 +849,8 @@ IMPORTANT RULES:
  specify that the information is not conclusive and why.
 
 Again, you should be sure that the answer is supported by the information provided!
+
+Remember to provide inline citations of documents in the format [[D1]](), [[D2]](), [[D3]](), etc.
 
 Try to keep your answer concise. But also highlight uncertainties you may have should there be substantial ones,
 or assumptions you made.
