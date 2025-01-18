@@ -1,4 +1,6 @@
-UNKNOWN_ANSWER = "I don't know"
+UNKNOWN_ANSWER = "I do not have enough information to answer this question"
+
+NO_RECOVERED_DOCS = "No relevant documents recovered"
 
 REWRITE_PROMPT_MULTI_ORIGINAL = """ \n
     Please convert an initial user question into a 2-3 more appropriate short and pointed search queries for retrievel from a
@@ -173,16 +175,14 @@ REWRITE_PROMPT_SINGLE = """ \n
 
 MODIFIED_RAG_PROMPT = (
     """You are an assistant for question-answering tasks. Use the context provided below
-    - and only this context - to answer the question. If you don't know the answer, just say """
+    - and only this context - to answer the question. It is a matter of life and death that you do NOT
+    use your internal knowledge, just the provided information!
+    If you don't have enough infortmation to generate an answer, just say """
     + f'"{UNKNOWN_ANSWER}"'
     + """.
     Use three sentences maximum and keep the answer concise.
     Pay also particular attention to the sub-questions and their answers, at least it may enrich the answer.
-    Again, only use the provided context and do not use your internal knowledge! If you cannot answer the
-    question based on the context, say """
-    + f'"{UNKNOWN_ANSWER}"'
-    + """. It is a matter of life and death that you do NOT
-    use your internal knowledge, just the provided information!
+    Again, only use the provided context and do not use your internal knowledge!
 
     \nQuestion: {question}
     \nContext: {combined_context} \n
