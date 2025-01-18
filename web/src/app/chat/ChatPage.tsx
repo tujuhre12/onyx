@@ -2087,6 +2087,17 @@ export function ChatPage({
           </Modal>
         </div>
       )}
+      <div className="fixed pointer-events-none z-[100000000] inset-0 flex items-center justify-center text-default">
+        <div className="h-[400px] w-full flex items-center justify-center">
+          <div className="w-full max-w-md">
+            <div className="bg-background-100 rounded-lg shadow-lg p-6 text-center">
+              <div className="w-full relative">
+                {hasPerformedInitialScroll ? "HAS" : "NOT"}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {presentingDocument && (
         <TextView
@@ -2340,8 +2351,8 @@ export function ChatPage({
                               (settings?.enterpriseSettings
                                 ?.two_lines_for_chat_header
                                 ? "pt-20 "
-                                : "pt-8") +
-                              (hasPerformedInitialScroll ? "" : "invisible")
+                                : "pt-8 ") +
+                              (hasPerformedInitialScroll ? "" : " invisible")
                             }
                           >
                             {(messageHistory.length < BUFFER_COUNT
