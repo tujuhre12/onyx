@@ -197,14 +197,10 @@ export const AgenticMessage = ({
     );
   };
   const alternativeContent = secondLevelAssistantMessage
-    ? (processContent(content as string) as string)
+    ? (processContent(secondLevelAssistantMessage as string) as string)
     : undefined;
 
-  const finalContent = processContent(
-    (secondLevelAssistantMessage
-      ? secondLevelAssistantMessage
-      : content) as string
-  );
+  const finalContent = processContent(content);
 
   const [streamingAllowed, setStreamingAllowed] = useState(false);
   const [isCurrentlyGenerating, setIsCurrentlyGenerating] = useState(false);
@@ -516,7 +512,9 @@ export const AgenticMessage = ({
                             Answer
                           </div>
 
-                          {true && (
+                          {secondLevelSubquestions &&
+                          secondLevelSubquestions.length > 0 &&
+                          secondLevelGenerating ? (
                             // streamedContent.length ==
                             //   (finalContent as string).length &&
                             <Popover>
@@ -549,6 +547,21 @@ export const AgenticMessage = ({
                                 </div>
                               </PopoverContent>
                             </Popover>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                const viewInitialAnswer =
+                                  !isViewingInitialAnswer;
+                                setIsViewingInitialAnswer(viewInitialAnswer);
+                                setLiveUpdate(!viewInitialAnswer);
+                              }}
+                              className="mt-4 mb-2"
+                            >
+                              {isViewingInitialAnswer
+                                ? "See final answer"
+                                : "See initial answer"}
+                            </Button>
                           )}
                         </div>
 
@@ -567,20 +580,6 @@ export const AgenticMessage = ({
                     </>
                   ) : isComplete ? null : (
                     <></>
-                  )}
-
-                  {secondLevelAssistantMessage && !secondLevelGenerating && (
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        setIsViewingInitialAnswer(!isViewingInitialAnswer)
-                      }
-                      className="mt-4 mb-2"
-                    >
-                      {isViewingInitialAnswer
-                        ? "See final answer"
-                        : "See initial answer"}
-                    </Button>
                   )}
 
                   {handleFeedback &&
