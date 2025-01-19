@@ -940,8 +940,6 @@ def translate_db_message_to_chat_message_detail(
             chat_message.sub_questions
         ),
     )
-    print("DOCS")
-    print(chat_msg_detail.context_docs)
 
     return chat_msg_detail
 

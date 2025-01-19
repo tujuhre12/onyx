@@ -10,7 +10,9 @@ interface SourcesDisplayProps {
 }
 
 const SourceCard: React.FC<{ document: OnyxDocument }> = ({ document }) => {
-  const truncatedBlurb = document.blurb?.slice(0, 80) || "";
+  const truncatedtext = document.match_highlights[0]
+    ? document.match_highlights[0].slice(0, 80)
+    : document.blurb?.slice(0, 80) || "";
   const truncatedIdentifier = document.semantic_identifier?.slice(0, 30) || "";
 
   return (
@@ -19,8 +21,8 @@ const SourceCard: React.FC<{ document: OnyxDocument }> = ({ document }) => {
       className="w-[260px] h-[80px] p-3 bg-[#f1eee8] text-left hover:bg-[#ebe7de] cursor-pointer rounded-lg flex flex-col justify-between"
     >
       <div className="text-black text-xs line-clamp-2 font-medium leading-tight">
-        {truncatedBlurb}
-        {truncatedBlurb.length === 80 ? "..." : ""}
+        {truncatedtext}
+        {truncatedtext.length === 80 ? "..." : ""}
       </div>
       <div className="flex items-center gap-1">
         <ResultIcon doc={document} size={14} />
@@ -37,7 +39,7 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   toggleDocumentSelection,
   animateEntrance = false,
 }) => {
-  const displayedDocuments = documents.slice(0, 3);
+  const displayedDocuments = documents.slice(0, 5);
   const hasMoreDocuments = documents.length > 3;
   const [visibleCards, setVisibleCards] = useState<number>(0);
 
@@ -69,6 +71,7 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
         {displayedDocuments.map((doc, index) => (
           <div
             key={index}
+            onClick={() => openDocument(doc, () => {})}
             className={`transition-opacity duration-300 ${
               index < visibleCards ? "opacity-100" : "opacity-0"
             }`}

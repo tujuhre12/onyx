@@ -242,17 +242,17 @@ const SubQuestionDisplay: React.FC<{
         />
         <div className="ml-8 w-full">
           <div
-            className="flex items-center py-1 cursor-pointer"
+            className="flex items-start py-1 cursor-pointer"
             onClick={() => setToggled(!toggled)}
           >
-            <div className="text-black text-base font-medium leading-normal flex-grow">
+            <div className="text-black text-base font-medium leading-normal flex-grow pr-2">
               {subQuestion.question}
             </div>
             <ChevronDown
-              className={`transition-transform duration-500 ease-in-out ${
+              className={`mt-0.5 text-text-darker transition-transform duration-500 ease-in-out ${
                 toggled ? "rotate-180" : ""
               }`}
-              size={16}
+              size={20}
             />
           </div>
           <div

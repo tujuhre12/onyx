@@ -418,15 +418,19 @@ export const AgenticMessage = ({
   //   is_complete?: boolean;
   // }
 
-  const currentState = subQuestions?.[0]
-    ? !subQuestions[0].question
+  const secondLevelQuestions = subQuestions?.filter(
+    (subQuestion) => subQuestion.level === 1
+  );
+
+  const currentState = secondLevelQuestions?.[0]
+    ? !secondLevelQuestions[0].question
       ? StreamingPhase.WAITING
-      : subQuestions[0].sub_queries
+      : secondLevelQuestions[0].sub_queries
         ? StreamingPhase.SUB_QUERIES
-        : subQuestions[0].context_docs
+        : secondLevelQuestions[0].context_docs
           ? StreamingPhase.CONTEXT_DOCS
-          : subQuestions[0].answer
-            ? subQuestions[0].is_complete
+          : secondLevelQuestions[0].answer
+            ? secondLevelQuestions[0].is_complete
               ? StreamingPhase.COMPLETE
               : StreamingPhase.ANSWER
             : StreamingPhase.WAITING

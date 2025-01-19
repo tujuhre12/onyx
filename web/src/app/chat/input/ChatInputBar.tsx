@@ -34,6 +34,7 @@ import { getFormattedDateRangeString } from "@/lib/dateUtils";
 import { truncateString } from "@/lib/utils";
 import { buildImgUrl } from "../files/images/utils";
 import { useUser } from "@/components/user/UserProvider";
+import { AgenticToggle } from "./AgenticToggle";
 
 const MAX_INPUT_HEIGHT = 200;
 export const SourceChip2 = ({
@@ -720,7 +721,7 @@ export function ChatInputBar({
               </div>
             )}
 
-            <div className="flex items-center space-x-1 mr-12 px-4 pb-2">
+            <div className="flex items-center w-full space-x-1 mr-12 px-4 pb-2">
               <ChatInputOption
                 flexPriority="stiff"
                 name="File"
@@ -765,6 +766,11 @@ export function ChatInputBar({
                   }
                 />
               )}
+
+              <AgenticToggle
+                proSearchEnabled={proSearchEnabled}
+                setProSearchEnabled={setProSearchEnabled}
+              />
             </div>
 
             <div className="absolute bottom-2.5 mobile:right-4 desktop:right-10">
