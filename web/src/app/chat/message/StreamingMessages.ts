@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { SubQuestionDetail } from "../interfaces";
 
-enum SubQStreamingPhase {
+export enum StreamingPhase {
   WAITING = "waiting",
   SUB_QUERIES = "sub_queries",
   CONTEXT_DOCS = "context_docs",
@@ -9,13 +9,21 @@ enum SubQStreamingPhase {
   COMPLETE = "complete",
 }
 
+export const StreamingPhaseText: Record<StreamingPhase, string> = {
+  [StreamingPhase.WAITING]: "Extracting key terms",
+  [StreamingPhase.SUB_QUERIES]: "Identifying additional questions",
+  [StreamingPhase.CONTEXT_DOCS]: "Reading through more documents",
+  [StreamingPhase.ANSWER]: "Generating new refined answer",
+  [StreamingPhase.COMPLETE]: "Comparing results",
+};
+
 interface SubQuestionProgress {
   // Tracks if we're done with the high-level question
   questionDone: boolean;
   // How far we've typed in the question so far
   questionCharIndex: number;
   // Current streaming phase (subQueries → contextDocs → answer)
-  currentPhase: SubQStreamingPhase;
+  currentPhase: StreamingPhase;
   // Sub-query streaming progress
   subQueryIndex: number;
   subQueryCharIndex: number;
@@ -66,9 +74,7 @@ export const useStreamingMessages = (
           // For subquestion #0, start in SUB_QUERIES;
           // for others, start in WAITING until the previous subQ hits ANSWER/COMPLETE.
           currentPhase:
-            i === 0
-              ? SubQStreamingPhase.SUB_QUERIES
-              : SubQStreamingPhase.WAITING,
+            i === 0 ? StreamingPhase.SUB_QUERIES : StreamingPhase.WAITING,
           subQueryIndex: 0,
           subQueryCharIndex: 0,
           docIndex: 0,
@@ -140,7 +146,7 @@ export const useStreamingMessages = (
       // so subqueries/docs/answers don't block question streaming
       if (didStreamQuestion) {
         setDynamicSubQuestions([...dynamicSubQuestionsRef.current]);
-        setTimeout(loadNextPiece, 15);
+        setTimeout(loadNextPiece, 2);
         return;
       }
 
@@ -151,24 +157,24 @@ export const useStreamingMessages = (
         const p = progressRef.current[i];
 
         // If this subquestion is WAITING, see if we can transition
-        if (p.currentPhase === SubQStreamingPhase.WAITING) {
+        if (p.currentPhase === StreamingPhase.WAITING) {
           if (i === 0) {
             // subquestion #0 can start immediately
-            p.currentPhase = SubQStreamingPhase.SUB_QUERIES;
+            p.currentPhase = StreamingPhase.SUB_QUERIES;
           } else {
             // Others wait until subquestion #(i-1) is in ANSWER or COMPLETE
             const prevP = progressRef.current[i - 1];
             if (
-              prevP.currentPhase === SubQStreamingPhase.ANSWER ||
-              prevP.currentPhase === SubQStreamingPhase.COMPLETE
+              prevP.currentPhase === StreamingPhase.ANSWER ||
+              prevP.currentPhase === StreamingPhase.COMPLETE
             ) {
-              p.currentPhase = SubQStreamingPhase.SUB_QUERIES;
+              p.currentPhase = StreamingPhase.SUB_QUERIES;
             }
           }
         }
 
         switch (p.currentPhase) {
-          case SubQStreamingPhase.SUB_QUERIES: {
+          case StreamingPhase.SUB_QUERIES: {
             const subQueries = sq.sub_queries || [];
             const docs = sq.context_docs?.top_documents || [];
             const hasDocs = docs.length > 0;
@@ -208,19 +214,19 @@ export const useStreamingMessages = (
             } else if (hasDocs || hasAnswer) {
               // If we've typed all known subqueries, and we see docs or answer,
               // we move on to CONTEXT_DOCS
-              p.currentPhase = SubQStreamingPhase.CONTEXT_DOCS;
+              p.currentPhase = StreamingPhase.CONTEXT_DOCS;
               p.lastDocTimestamp = null; // reset doc timestamp
             }
             break;
           }
 
-          case SubQStreamingPhase.CONTEXT_DOCS: {
+          case StreamingPhase.CONTEXT_DOCS: {
             const docs = sq.context_docs?.top_documents || [];
             const hasAnswer = !!sq.answer?.length;
 
             // If we see an answer but no docs, jump to ANSWER
             if (hasAnswer && docs.length === 0) {
-              p.currentPhase = SubQStreamingPhase.ANSWER;
+              p.currentPhase = StreamingPhase.ANSWER;
               break;
             }
 
@@ -243,12 +249,12 @@ export const useStreamingMessages = (
               }
             } else if (hasAnswer) {
               // Once we've added all known docs and see an answer, move on
-              p.currentPhase = SubQStreamingPhase.ANSWER;
+              p.currentPhase = StreamingPhase.ANSWER;
             }
             break;
           }
 
-          case SubQStreamingPhase.ANSWER: {
+          case StreamingPhase.ANSWER: {
             const answerText = sq.answer || "";
 
             if (p.answerCharIndex < answerText.length) {
@@ -259,7 +265,7 @@ export const useStreamingMessages = (
               // If we typed the entire answer and we consider it "complete"
               if (nextIndex >= answerText.length && sq.is_complete) {
                 dynSQ.is_complete = true;
-                p.currentPhase = SubQStreamingPhase.COMPLETE;
+                p.currentPhase = StreamingPhase.COMPLETE;
 
                 // If you want, you can check if this is the last subquestion
                 // and call allowStreaming() or do some final logic.
@@ -279,8 +285,8 @@ export const useStreamingMessages = (
             break;
           }
 
-          case SubQStreamingPhase.COMPLETE:
-          case SubQStreamingPhase.WAITING:
+          case StreamingPhase.COMPLETE:
+          case StreamingPhase.WAITING:
           default:
             // No streaming needed in these phases
             break;
@@ -290,7 +296,7 @@ export const useStreamingMessages = (
       // Update UI
       setDynamicSubQuestions([...dynamicSubQuestionsRef.current]);
 
-      setTimeout(loadNextPiece, 5);
+      setTimeout(loadNextPiece, 2);
     }
 
     loadNextPiece();

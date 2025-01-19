@@ -125,6 +125,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { object } from "yup";
+import { LoadingAnimation } from "@/components/Loading";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -200,8 +201,7 @@ export function ChatPage({
   const enterpriseSettings = settings?.enterpriseSettings;
 
   const [documentSidebarToggled, setDocumentSidebarToggled] = useState(false);
-  const [filtersToggled, setFiltersToggled] = useState(false);
-  const [langgraphEnabled, setLanggraphEnabled] = useState(true);
+  const [proSearchEnabled, setProSearchEnabled] = useState(true);
 
   const [userSettingsToggled, setUserSettingsToggled] = useState(false);
 
@@ -1326,7 +1326,7 @@ export function ChatPage({
         systemPromptOverride:
           searchParams.get(SEARCH_PARAM_NAMES.SYSTEM_PROMPT) || undefined,
         useExistingUserMessage: isSeededChat,
-        useLanggraph: langgraphEnabled,
+        useLanggraph: proSearchEnabled,
       });
 
       const delay = (ms: number) => {
@@ -2104,32 +2104,6 @@ export function ChatPage({
   return (
     <>
       <HealthCheckBanner />
-
-      <div className="fixed right-4 top-20 z-50">
-        <Card className="w-72 shadow-lg bg-gray-100 dark:bg-gray-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              Agent Search
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center space-x-3">
-              <Switch
-                id="langgraph-toggle"
-                checked={langgraphEnabled}
-                onCheckedChange={setLanggraphEnabled}
-                className="data-[state=checked]:bg-gray-600"
-              />
-              <Label
-                htmlFor="langgraph-toggle"
-                className="text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Enable Agent Search
-              </Label>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {showApiKeyModal && !shouldShowWelcomeModal && (
         <ApiKeyModal
@@ -3134,6 +3108,8 @@ export function ChatPage({
                               </div>
                             )}
                             <ChatInputBar
+                              proSearchEnabled={proSearchEnabled}
+                              setProSearchEnabled={setProSearchEnabled}
                               toggleDocumentSidebar={toggleDocumentSidebar}
                               availableSources={sources}
                               availableDocumentSets={documentSets}

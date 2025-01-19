@@ -96,7 +96,7 @@ export const SourceChip2 = ({
             )}
           </div>
         </TooltipTrigger>
-        {includeTooltip && (
+        {includeTooltip && title.length > 50 && (
           <TooltipContent className="z-[2000000]">
             <p>{title}</p>
           </TooltipContent>
@@ -179,6 +179,8 @@ interface ChatInputBarProps {
   availableDocumentSets: DocumentSet[];
   availableTags: Tag[];
   retrievalEnabled: boolean;
+  proSearchEnabled: boolean;
+  setProSearchEnabled: (proSearchEnabled: boolean) => void;
 }
 
 export function ChatInputBar({
@@ -207,6 +209,8 @@ export function ChatInputBar({
   availableDocumentSets,
   availableTags,
   llmOverrideManager,
+  proSearchEnabled,
+  setProSearchEnabled,
 }: ChatInputBarProps) {
   const { user } = useUser();
   useEffect(() => {

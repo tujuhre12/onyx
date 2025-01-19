@@ -18,6 +18,11 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import ReactMarkdown from "react-markdown";
 import { OnyxDocument, FilteredOnyxDocument } from "@/lib/search/interfaces";
 
@@ -65,6 +70,8 @@ import SubQuestionsDisplay from "./SubQuestionsDisplay";
 import SubQuestionProgress from "./SubQuestionProgress";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/Spinner";
+import { LoadingAnimation } from "@/components/Loading";
+import { LoadingIndicator } from "react-select/dist/declarations/src/components/indicators";
 
 export const AgenticMessage = ({
   secondLevelAssistantMessage,
@@ -449,10 +456,46 @@ export const AgenticMessage = ({
                     <>
                       {/* <FileDisplay files={files || []} /> */}
                       <div className="w-full  py-4 flex flex-col gap-4">
-                        <div className="flex items-center px-4">
+                        <div className="flex items-center gap-x-2 px-4">
                           <div className="text-black text-base font-medium">
                             Answer
                           </div>
+
+                          {true && (
+                            // streamedContent.length ==
+                            //   (finalContent as string).length &&
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <div className="text-black flex line-clamp-1 items-center gap-x-1 loading-text text-base font-normal cursor-pointer">
+                                  Refining answer...
+                                  <span className="inline-block">
+                                    {" "}
+                                    <FiChevronRight
+                                      className="text-text-darker"
+                                      size={12}
+                                    />
+                                  </span>
+                                </div>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80">
+                                <div className="grid gap-4">
+                                  <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">
+                                      Refining...
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      The AI is currently refining the answer to
+                                      provide more accurate and detailed
+                                      information.
+                                    </p>
+                                    <Button size="sm" className="text-xs">
+                                      See Updates Live
+                                    </Button>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          )}
                         </div>
 
                         <div className="px-4">
@@ -471,6 +514,7 @@ export const AgenticMessage = ({
                   ) : isComplete ? null : (
                     <></>
                   )}
+
                   {secondLevelAssistantMessage && !secondLevelGenerating && (
                     <Button
                       variant="outline"
@@ -483,36 +527,6 @@ export const AgenticMessage = ({
                         ? "See final answer"
                         : "See initial answer"}
                     </Button>
-                  )}
-
-                  {secondLevelGenerating && (
-                    // streamedContent.length ==
-                    //   (finalContent as string).length &&
-                    <div className="flex items-center mt-4 space-x-2">
-                      <span className="text-sm font-medium text-primary">
-                        <span className="bg-gradient-to-tr from-[#2178FE] via-[#EDB6DD] to-[#FF6910] text-transparent bg-clip-text">
-                          Enhancing response
-                        </span>
-                        <span
-                          className="animate-bounce mx-0.5 inline-block text-[#FF6910]"
-                          style={{ animationDelay: "0.1s" }}
-                        >
-                          .
-                        </span>
-                        <span
-                          className="animate-bounce mx-0.5 inline-block text-[#FF6910]"
-                          style={{ animationDelay: "0.2s" }}
-                        >
-                          .
-                        </span>
-                        <span
-                          className="animate-bounce mx-0.5 inline-block text-[#FF6910]"
-                          style={{ animationDelay: "0.3s" }}
-                        >
-                          .
-                        </span>
-                      </span>
-                    </div>
                   )}
 
                   {handleFeedback &&

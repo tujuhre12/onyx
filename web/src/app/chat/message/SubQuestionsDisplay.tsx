@@ -256,83 +256,92 @@ const SubQuestionDisplay: React.FC<{
             />
           </div>
           <div
-            className={` transition-all duration-500 ease-in-out ${
+            className={` transition-all duration-100 ease-in-out ${
               toggled ? "max-h-[1000px]" : "max-h-0"
             }`}
           >
             {isVisible && (
               <div
-                className={`transform transition-all duration-500 ease-in-out origin-top ${
+                className={`transform transition-all duration-100 ease-in-out origin-top ${
                   toggled ? "scale-y-100 opacity-100" : "scale-y-95 opacity-0"
                 }`}
               >
                 <div className="pl-0 pb-2">
-                  <div className="mb-4 flex flex-col gap-2">
-                    <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                      {subQuestion.is_complete
-                        ? "Search Results"
-                        : "Searching..."}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {subQuestion.sub_queries?.map((query, queryIndex) => (
-                        <SourceChip2
-                          key={queryIndex}
-                          icon={<FiSearch size={10} />}
-                          title={query.query}
-                          includeTooltip
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mb-4 flex flex-col gap-2">
-                    <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                      {subQuestion.is_complete
-                        ? memoizedDocs?.length || 0 > 0
-                          ? `Read ${memoizedDocs?.length} documents`
-                          : "No docs found"
-                        : "Reading"}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {memoizedDocs.slice(0, 10).map((doc, docIndex) => {
-                        const truncatedIdentifier =
-                          doc.semantic_identifier?.slice(0, 20) || "";
-                        return (
-                          <SourceChip2
-                            includeAnimation
-                            onClick={() =>
-                              openDocument(doc, setPresentingDocument)
-                            }
-                            key={docIndex}
-                            icon={<ResultIcon doc={doc} size={10} />}
-                            title={`${truncatedIdentifier}${
-                              truncatedIdentifier.length === 20 ? "..." : ""
-                            }`}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <div
-                      className="text-[#4a4a4a] cursor-pointer items-center text-xs flex gap-x-1 font-medium leading-normal"
-                      onClick={() => setAnalysisToggled(!analysisToggled)}
-                    >
-                      {subQuestion.is_complete ? "Analysis" : "Analyzing..."}
-                      <ChevronDown
-                        className={`transition-transform duration-200 ${
-                          analysisToggled ? "" : "-rotate-90"
-                        }`}
-                        size={8}
-                      />
-                    </div>
-                    {analysisToggled && (
-                      <div className="flex flex-wrap gap-2">
-                        {renderedMarkdown}
+                  {(subQuestion.is_complete ||
+                    (subQuestion.sub_queries &&
+                      subQuestion.sub_queries.length > 0)) && (
+                    <div className="mb-4 flex flex-col gap-2">
+                      <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                        {subQuestion.is_complete
+                          ? "Search Results"
+                          : "Searching"}
                       </div>
-                    )}
-                  </div>
+                      <div className="flex flex-wrap gap-2">
+                        {subQuestion.sub_queries?.map((query, queryIndex) => (
+                          <SourceChip2
+                            key={queryIndex}
+                            icon={<FiSearch size={10} />}
+                            title={query.query}
+                            includeTooltip
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(subQuestion.is_complete || memoizedDocs.length > 0) && (
+                    <div className="mb-4 flex flex-col gap-2">
+                      <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                        {subQuestion.is_complete
+                          ? memoizedDocs?.length || 0 > 0
+                            ? `Read documents`
+                            : "No docs found"
+                          : "Reading"}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {memoizedDocs.slice(0, 10).map((doc, docIndex) => {
+                          const truncatedIdentifier =
+                            doc.semantic_identifier?.slice(0, 20) || "";
+                          return (
+                            <SourceChip2
+                              includeAnimation
+                              onClick={() =>
+                                openDocument(doc, setPresentingDocument)
+                              }
+                              key={docIndex}
+                              icon={<ResultIcon doc={doc} size={10} />}
+                              title={`${truncatedIdentifier}${
+                                truncatedIdentifier.length === 20 ? "..." : ""
+                              }`}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {(subQuestion.is_complete ||
+                    subQuestion.answer.length > 0) && (
+                    <div className="flex flex-col gap-2">
+                      <div
+                        className="text-[#4a4a4a] cursor-pointer items-center text-xs flex gap-x-1 font-medium leading-normal"
+                        onClick={() => setAnalysisToggled(!analysisToggled)}
+                      >
+                        {subQuestion.is_complete ? "Analysis" : "Analyzing"}
+                        <ChevronDown
+                          className={`transition-transform duration-200 ${
+                            analysisToggled ? "" : "-rotate-90"
+                          }`}
+                          size={8}
+                        />
+                      </div>
+                      {analysisToggled && (
+                        <div className="flex flex-wrap gap-2">
+                          {renderedMarkdown}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
