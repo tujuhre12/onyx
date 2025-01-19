@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { SubQuestionDetail } from "../interfaces";
 
+// Create a hook based on this that gets passed an argument which is one of the values of streamingPhase and updates the value it emits (based on streamingPhase text, BUT each phase must be displayed for at least 20 ms (so don't move onto next one until the previous one finished)
+
 export enum StreamingPhase {
   WAITING = "waiting",
   SUB_QUERIES = "sub_queries",

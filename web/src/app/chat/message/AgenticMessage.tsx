@@ -72,6 +72,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/Spinner";
 import { LoadingAnimation } from "@/components/Loading";
 import { LoadingIndicator } from "react-select/dist/declarations/src/components/indicators";
+import { StreamingPhase, StreamingPhaseText } from "./StreamingMessages";
 
 export const AgenticMessage = ({
   secondLevelAssistantMessage,
@@ -404,6 +405,49 @@ export const AgenticMessage = ({
     );
   }, [streamedContent, markdownComponents]);
 
+  // export interface BaseQuestionIdentifier {
+  //   level: number;
+  //   level_question_nr: number;
+  // }
+
+  // export interface SubQuestionDetail extends BaseQuestionIdentifier {
+  //   question: string;
+  //   answer: string;
+  //   sub_queries?: SubQueryDetail[] | null;
+  //   context_docs?: { top_documents: OnyxDocument[] } | null;
+  //   is_complete?: boolean;
+  // }
+
+  const currentState = subQuestions?.[0]
+    ? !subQuestions[0].question
+      ? StreamingPhase.WAITING
+      : subQuestions[0].sub_queries
+        ? StreamingPhase.SUB_QUERIES
+        : subQuestions[0].context_docs
+          ? StreamingPhase.CONTEXT_DOCS
+          : subQuestions[0].answer
+            ? subQuestions[0].is_complete
+              ? StreamingPhase.COMPLETE
+              : StreamingPhase.ANSWER
+            : StreamingPhase.WAITING
+    : StreamingPhase.WAITING;
+
+  // export enum StreamingPhase {
+  //   WAITING = "waiting",
+  //   SUB_QUERIES = "sub_queries",
+  //   CONTEXT_DOCS = "context_docs",
+  //   ANSWER = "answer",
+  //   COMPLETE = "complete",
+  // }
+
+  // export const StreamingPhaseText: Record<StreamingPhase, string> = {
+  //   [StreamingPhase.WAITING]: "Extracting key terms",
+  //   [StreamingPhase.SUB_QUERIES]: "Identifying additional questions",
+  //   [StreamingPhase.CONTEXT_DOCS]: "Reading through more documents",
+  //   [StreamingPhase.ANSWER]: "Generating new refined answer",
+  //   [StreamingPhase.COMPLETE]: "Comparing results",
+  // };
+
   const includeMessageSwitcher =
     currentMessageInd !== undefined &&
     onMessageSelection &&
@@ -479,16 +523,14 @@ export const AgenticMessage = ({
                               </PopoverTrigger>
                               <PopoverContent className="w-80">
                                 <div className="grid gap-4">
-                                  <div className="space-y-2">
+                                  <div
+                                    className="flex flex-col gapob
+                                  -y-4"
+                                  >
                                     <h4 className="font-medium leading-none">
-                                      Refining...
+                                      {StreamingPhaseText[currentState]}
                                     </h4>
-                                    <p className="text-sm text-muted-foreground">
-                                      The AI is currently refining the answer to
-                                      provide more accurate and detailed
-                                      information.
-                                    </p>
-                                    <Button size="sm" className="text-xs">
+                                    <Button size="xs" className="text-xs">
                                       See Updates Live
                                     </Button>
                                   </div>
