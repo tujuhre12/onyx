@@ -183,10 +183,12 @@ const SubQuestionDisplay: React.FC<{
       setToggled(true);
       setAnalysisToggled(true);
       if (questionRef.current) {
-        questionRef.current.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
+        setTimeout(() => {
+          questionRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 1000);
       }
     }
   }, [currentlyOpen]);
@@ -230,12 +232,12 @@ const SubQuestionDisplay: React.FC<{
         
         ${isLast && !toggled ? "h-4" : "h-full"}`}
       />
-      <div ref={questionRef} className="flex items-start pb-4">
+      <div
+        style={{ scrollMarginTop: "20px" }}
+        ref={questionRef}
+        className="flex items-start pb-4"
+      >
         <div
-          //
-          // className={`absolute left-0 w-3 h-3 rounded-full mt-[9px] z-10 ${
-          //   subQuestion.is_complete ? "bg-red-200" : "bg-blue-200"
-          // }`}
           className={`absolute left-0 w-3 h-3 rounded-full mt-[9px] z-10 ${
             subQuestion.answer
               ? "bg-neutral-700"
@@ -427,8 +429,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             documents={documents}
             isLast={
               index === subQuestions.length - 1 &&
-              !showSecondLevel &&
-              !memoizedSecondLevelQuestions
+              !(showSecondLevel && memoizedSecondLevelQuestions)
             }
             isFirst={index === 0}
             setPresentingDocument={setPresentingDocument}

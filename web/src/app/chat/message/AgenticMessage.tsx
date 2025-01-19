@@ -541,27 +541,30 @@ export const AgenticMessage = ({
                                     size="sm"
                                     className="w-full"
                                   >
-                                    See Live Updates
+                                    {liveUpdate
+                                      ? "Hide Live Updates"
+                                      : "See Live Updates"}
                                     <FiGlobe className="inline-block mr-2" />
                                   </Button>
                                 </div>
                               </PopoverContent>
                             </Popover>
                           ) : (
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                const viewInitialAnswer =
-                                  !isViewingInitialAnswer;
-                                setIsViewingInitialAnswer(viewInitialAnswer);
-                                setLiveUpdate(!viewInitialAnswer);
-                              }}
-                              className="mt-4 mb-2"
-                            >
-                              {isViewingInitialAnswer
-                                ? "See final answer"
-                                : "See initial answer"}
-                            </Button>
+                            secondLevelAssistantMessage && (
+                              <p
+                                onClick={() => {
+                                  const viewInitialAnswer =
+                                    !isViewingInitialAnswer;
+                                  setIsViewingInitialAnswer(viewInitialAnswer);
+                                  setLiveUpdate(!viewInitialAnswer);
+                                }}
+                                className="animate-pulse cursor-pointer text-text-darker"
+                              >
+                                {isViewingInitialAnswer
+                                  ? "See final answer"
+                                  : "See initial answer"}
+                              </p>
+                            )
                           )}
                         </div>
 
