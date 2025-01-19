@@ -762,6 +762,7 @@ def stream_chat_message_objects(
             fast_llm=fast_llm,
             search_tool=search_tool,
             structured_response_format=new_msg_req.structured_response_format,
+            db_session=db_session,
         )
 
         # TODO: add previous messages, answer style config, tools, etc.

@@ -941,6 +941,8 @@ def refined_answer_decision(
         f"--------{now_end}--{now_end - now_start}--------REFINED ANSWER DECISION END---"
     )
 
+    return RequireRefinedAnswerUpdate(require_refined_answer=True)
+
     pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
     if "?" in pro_search_config.search_request.query:
         decision = False
