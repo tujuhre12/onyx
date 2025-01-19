@@ -172,7 +172,12 @@ const SubQuestionDisplay: React.FC<{
   );
 
   useEffect(() => {
-    setToggled(!unToggle);
+    setTimeout(
+      () => {
+        setToggled(!unToggle);
+      },
+      unToggle ? 400 : 0
+    );
   }, [unToggle]);
 
   useEffect(() => {
@@ -203,7 +208,10 @@ const SubQuestionDisplay: React.FC<{
 
   useEffect(() => {
     if (currentlyClosed) {
-      setToggled(false);
+      console.log("TOGGLE");
+      setTimeout(() => {
+        setToggled(false);
+      }, 3000);
     }
   }, [currentlyClosed]);
 
@@ -395,9 +403,8 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
     ).length == 0;
 
   const overallAnswer =
-    overallAnswerGenerating &&
     memoizedSubQuestions.filter((subQuestion) => subQuestion?.answer).length ==
-      memoizedSubQuestions.length;
+    memoizedSubQuestions.length;
 
   return (
     <div className="w-full">
@@ -448,8 +455,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             isLast={
               index === subQuestions.length - 1 &&
               !(showSecondLevel && memoizedSecondLevelQuestions) &&
-              !overallAnswer &&
-              !pendingSubqueries
+              !overallAnswer
             }
             isFirst={index === 0}
             setPresentingDocument={setPresentingDocument}
@@ -491,7 +497,6 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
               documents={documents}
               isLast={
                 index === memoizedSecondLevelQuestions.length - 1 &&
-                !pendingSubqueries &&
                 !overallAnswer
               }
               isFirst={false}
@@ -512,22 +517,23 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             />
           ))}
 
-        {true ? (
-          <SubQuestionDisplay
-            currentlyOpen={false}
-            currentlyClosed={false}
-            subQuestion={null}
-            documents={documents}
-            isLast={false}
-            isFirst={false}
-            setPresentingDocument={setPresentingDocument}
-            unToggle={false}
-            temporaryDisplay={{
-              question: "Plotting",
-              tinyQuestion: "Plotting next step",
-            }}
-          />
-        ) : overallAnswer ? (
+        {false ? (
+          <></>
+        ) : // <SubQuestionDisplay
+        //   currentlyOpen={false}
+        //   currentlyClosed={false}
+        //   subQuestion={null}
+        //   documents={documents}
+        //   isLast={false}
+        //   isFirst={false}
+        //   setPresentingDocument={setPresentingDocument}
+        //   unToggle={false}
+        //   temporaryDisplay={{
+        //     question: "Plotting",
+        //     tinyQuestion: "Plotting next step",
+        //   }}
+        // />
+        overallAnswer ? (
           <SubQuestionDisplay
             currentlyOpen={false}
             currentlyClosed={false}
