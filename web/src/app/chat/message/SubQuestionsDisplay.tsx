@@ -22,7 +22,7 @@ import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./CodeBlock";
 import { ChevronDown } from "lucide-react";
-import { useStreamingMessages } from "./StreamingMessages";
+import { PHASE_MIN_MS, useStreamingMessages } from "./StreamingMessages";
 
 export interface TemporaryDisplay {
   question: string;
@@ -30,7 +30,6 @@ export interface TemporaryDisplay {
 }
 interface SubQuestionsDisplayProps {
   currentlyOpenQuestion?: BaseQuestionIdentifier | null;
-  isGenerating: boolean;
   subQuestions: SubQuestionDetail[];
   documents?: OnyxDocument[];
   toggleDocumentSelection: () => void;
@@ -52,6 +51,7 @@ const SubQuestionDisplay: React.FC<{
   isFirst: boolean;
   setPresentingDocument: (document: OnyxDocument) => void;
   temporaryDisplay?: TemporaryDisplay;
+  completed?: boolean;
 }> = ({
   currentlyOpen,
   currentlyClosed,
@@ -62,6 +62,7 @@ const SubQuestionDisplay: React.FC<{
   isFirst,
   temporaryDisplay,
   setPresentingDocument,
+  completed,
 }) => {
   const [analysisToggled, setAnalysisToggled] = useState(false);
   const [toggled, setToggled] = useState(false);
@@ -176,7 +177,7 @@ const SubQuestionDisplay: React.FC<{
       () => {
         setToggled(!unToggle);
       },
-      unToggle ? 400 : 0
+      unToggle ? PHASE_MIN_MS : 0
     );
   }, [unToggle]);
 
@@ -254,7 +255,7 @@ const SubQuestionDisplay: React.FC<{
       >
         <div
           className={`absolute left-0 w-3 h-3 rounded-full mt-[9px] z-10 ${
-            subQuestion?.answer
+            subQuestion?.answer || (temporaryDisplay && completed)
               ? "bg-neutral-700"
               : "bg-neutral-700 rotating-circle"
           }`}
@@ -269,7 +270,7 @@ const SubQuestionDisplay: React.FC<{
             </div>
             <ChevronDown
               className={`mt-0.5 text-text-darker transition-transform duration-500 ease-in-out ${
-                toggled && !temporaryDisplay ? "rotate-180" : ""
+                toggled ? "rotate-180" : ""
               }`}
               size={20}
             />
@@ -372,7 +373,6 @@ const SubQuestionDisplay: React.FC<{
 };
 
 const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
-  isGenerating,
   subQuestions,
   allowStreaming,
   currentlyOpenQuestion,
@@ -383,19 +383,22 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   showSecondLevel,
   overallAnswerGenerating,
 }) => {
-  const { dynamicSubQuestions } = useStreamingMessages(
-    subQuestions,
-    allowStreaming
-  );
+  const { dynamicSubQuestions } = useStreamingMessages(subQuestions, () => {});
   const { dynamicSubQuestions: dynamicSecondLevelQuestions } =
-    useStreamingMessages(secondLevelQuestions || [], allowStreaming);
+    useStreamingMessages(secondLevelQuestions || [], () => {});
   const memoizedSubQuestions = useMemo(() => {
     return true ? dynamicSubQuestions : subQuestions;
-  }, [isGenerating, dynamicSubQuestions, subQuestions]);
+  }, [overallAnswerGenerating, dynamicSubQuestions, subQuestions]);
 
   const memoizedSecondLevelQuestions = useMemo(() => {
-    return isGenerating ? dynamicSecondLevelQuestions : secondLevelQuestions;
-  }, [isGenerating, dynamicSecondLevelQuestions, secondLevelQuestions]);
+    return overallAnswerGenerating
+      ? dynamicSecondLevelQuestions
+      : secondLevelQuestions;
+  }, [
+    overallAnswerGenerating,
+    dynamicSecondLevelQuestions,
+    secondLevelQuestions,
+  ]);
 
   const pendingSubqueries =
     subQuestions.filter(
@@ -403,8 +406,16 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
     ).length == 0;
 
   const overallAnswer =
-    memoizedSubQuestions.filter((subQuestion) => subQuestion?.answer).length ==
-    memoizedSubQuestions.length;
+    memoizedSubQuestions.length > 0 &&
+    memoizedSubQuestions.filter(
+      (subQuestion) => subQuestion?.answer.length > 10
+    ).length == memoizedSubQuestions.length;
+
+  useEffect(() => {
+    if (overallAnswer) {
+      allowStreaming();
+    }
+  }, [overallAnswer]);
 
   return (
     <div className="w-full">
@@ -542,13 +553,15 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             isLast={false}
             isFirst={false}
             setPresentingDocument={setPresentingDocument}
-            unToggle={false}
+            unToggle={!overallAnswerGenerating}
+            completed={!overallAnswerGenerating}
             temporaryDisplay={{
               question: "Summarizing findings",
               tinyQuestion: "Combining results",
             }}
           />
         ) : null}
+        {/* {overallAnswerGenerating ? "not complete" : "complete"} */}
         {/* If we have no subqueries, but have subquestions, show the "thinking" */}
         {/* If we have subAnswers, but no overall answer, show hte otehr thinking */}
       </div>

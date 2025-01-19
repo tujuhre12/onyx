@@ -156,6 +156,7 @@ export const AgenticMessage = ({
   setStreamingAllowed?: (allowed: boolean) => void;
   streamingAllowed?: boolean;
 }) => {
+  const [allowStreaming, setAllowStreaming] = useState(false);
   const toolCallGenerating = toolCall && !toolCall.tool_result;
 
   const processContent = (content: string | JSX.Element) => {
@@ -444,8 +445,7 @@ export const AgenticMessage = ({
                       overallAnswerGenerating={finalContent.length < 12}
                       showSecondLevel={!isViewingInitialAnswer}
                       currentlyOpenQuestion={currentlyOpenQuestion}
-                      isGenerating={isGenerating}
-                      allowStreaming={() => {}}
+                      allowStreaming={() => setAllowStreaming(true)}
                       subQuestions={subQuestions}
                       secondLevelQuestions={secondLevelSubquestions || []}
                       documents={
@@ -464,7 +464,9 @@ export const AgenticMessage = ({
                   {/* For debugging purposes */}
                   {/* <SubQuestionProgress subQuestions={subQuestions || []} /> */}
 
-                  {(finalContent && finalContent.length > 8) ||
+                  {(allowStreaming &&
+                    finalContent &&
+                    finalContent.length > 8) ||
                   (files && files.length > 0) ? (
                     <>
                       {/* <FileDisplay files={files || []} /> */}

@@ -23,6 +23,7 @@ interface SubQuestionProgress {
   currentPhase: StreamingPhase;
   // Track when we started this phase
   phaseStartTime: number;
+  waitingTimeoutSet: boolean;
   subQueryIndex: number;
   subQueryCharIndex: number;
   docIndex: number;
@@ -38,7 +39,7 @@ const PHASES_ORDER: StreamingPhase[] = [
   StreamingPhase.COMPLETE,
 ];
 
-const PHASE_MIN_MS = 800; // Minimum phase duration in ms
+export const PHASE_MIN_MS = 800; // Minimum phase duration in ms
 
 function canTransition(p: SubQuestionProgress) {
   return Date.now() - p.phaseStartTime >= PHASE_MIN_MS;
@@ -135,9 +136,10 @@ export const useStreamingMessages = (
         progressRef.current[i] = {
           questionDone: false,
           questionCharIndex: 0,
+          waitingTimeoutSet: false,
           // Start subQ #0 in SUB_QUERIES immediately, others in WAITING
-          currentPhase:
-            i === 0 ? StreamingPhase.SUB_QUERIES : StreamingPhase.WAITING,
+          currentPhase: StreamingPhase.WAITING,
+          // i === 0 ? StreamingPhase.SUB_QUERIES : StreamingPhase.WAITING,
           // We set the phase start time right away
           phaseStartTime: Date.now(),
           subQueryIndex: 0,
@@ -222,7 +224,8 @@ export const useStreamingMessages = (
               prevP.currentPhase === StreamingPhase.COMPLETE
             ) {
               // Can only proceed if we've spent enough time in WAITING
-              if (canTransition(p)) {
+              if (canTransition(p) && !p.waitingTimeoutSet) {
+                p.waitingTimeoutSet = true;
                 setTimeout(() => {
                   p.currentPhase = StreamingPhase.SUB_QUERIES;
                   p.phaseStartTime = Date.now();
