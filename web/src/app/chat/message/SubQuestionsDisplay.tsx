@@ -544,8 +544,8 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             setPresentingDocument={setPresentingDocument}
             unToggle={false}
             temporaryDisplay={{
-              question: "Summarizing ",
-              tinyQuestion: "Summarizing answer",
+              question: "Summarizing findings",
+              tinyQuestion: "Combining results",
             }}
           />
         ) : null}
