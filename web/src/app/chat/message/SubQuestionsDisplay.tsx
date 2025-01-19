@@ -267,7 +267,7 @@ const SubQuestionDisplay: React.FC<{
             />
           </div>
           <div
-            className={` transition-all duration-100 ease-in-out ${
+            className={`transition-all duration-100 ease-in-out ${
               toggled ? "max-h-[1000px]" : "max-h-0"
             }`}
           >
@@ -346,8 +346,8 @@ const SubQuestionDisplay: React.FC<{
                     )}
                   </div>
                 ) : (
-                  <div className="pl-0 pb-2">
-                    <div className="mb-4 flex flex-col gap-2">
+                  <div className="pl-0">
+                    <div className="flex flex-col gap-2">
                       <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
                         {temporaryDisplay?.tinyQuestion}
                       </div>
@@ -512,7 +512,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             />
           ))}
 
-        {pendingSubqueries ? (
+        {true ? (
           <SubQuestionDisplay
             currentlyOpen={false}
             currentlyClosed={false}
