@@ -1438,10 +1438,10 @@ export function ChatPage({
               }
             }
 
-            // on initial message send, we insert a dummy system message
-            // set this as the parent here if no parent is set
             parentMessage =
               parentMessage || frozenMessageMap?.get(SYSTEM_MESSAGE_ID)!;
+            // on initial message send, we insert a dummy system message
+            // set this as the parent here if no parent is set
 
             const updateFn = (messages: Message[]) => {
               const replacementsMap = regenerationRequest
