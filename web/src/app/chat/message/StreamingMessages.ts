@@ -379,6 +379,7 @@ export const useStreamingMessages = (
               // If we've streamed the entire answer and it's considered "complete"
               if (nextIndex >= answerText.length && sq.is_complete) {
                 dynSQ.is_complete = true;
+
                 p.currentPhase = StreamingPhase.COMPLETE;
 
                 // Check if this is the last subquestion at level 0

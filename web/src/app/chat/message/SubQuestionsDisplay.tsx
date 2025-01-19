@@ -21,7 +21,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./CodeBlock";
-import { ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useStreamingMessages } from "./StreamingMessages";
 
 interface SubQuestionsDisplayProps {
@@ -270,27 +270,21 @@ const SubQuestionDisplay: React.FC<{
                 }`}
               >
                 <div className="pl-0 pb-2">
-                  {(subQuestion.is_complete ||
-                    (subQuestion.sub_queries &&
-                      subQuestion.sub_queries.length > 0)) && (
-                    <div className="mb-4 flex flex-col gap-2">
-                      <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                        {subQuestion.is_complete
-                          ? "Search Results"
-                          : "Searching"}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {subQuestion.sub_queries?.map((query, queryIndex) => (
-                          <SourceChip2
-                            key={queryIndex}
-                            icon={<FiSearch size={10} />}
-                            title={query.query}
-                            includeTooltip
-                          />
-                        ))}
-                      </div>
+                  <div className="mb-4 flex flex-col gap-2">
+                    <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                      {subQuestion.is_complete ? "Search Results" : "Searching"}
                     </div>
-                  )}
+                    <div className="flex flex-wrap gap-2">
+                      {subQuestion.sub_queries?.map((query, queryIndex) => (
+                        <SourceChip2
+                          key={queryIndex}
+                          icon={<FiSearch size={10} />}
+                          title={query.query}
+                          includeTooltip
+                        />
+                      ))}
+                    </div>
+                  </div>
 
                   {(subQuestion.is_complete || memoizedDocs.length > 0) && (
                     <div className="mb-4 flex flex-col gap-2">

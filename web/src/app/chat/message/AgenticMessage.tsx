@@ -506,7 +506,7 @@ export const AgenticMessage = ({
                   )}
 
                   {/* For debugging purposes */}
-                  <SubQuestionProgress subQuestions={subQuestions || []} />
+                  {/* <SubQuestionProgress subQuestions={subQuestions || []} /> */}
 
                   {(content || files) && (streamingAllowed || !isGenerating) ? (
                     <>
