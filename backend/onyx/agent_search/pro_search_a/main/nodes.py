@@ -85,6 +85,8 @@ from onyx.agent_search.shared_graph_utils.utils import make_question_id
 from onyx.agent_search.shared_graph_utils.utils import parse_question_id
 from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import ExtendedToolResponse
+from onyx.chat.models import StreamStopInfo
+from onyx.chat.models import StreamStopReason
 from onyx.chat.models import SubQuestionPiece
 from onyx.context.search.models import InferenceSection
 from onyx.db.chat import log_agent_metrics
@@ -467,6 +469,13 @@ def initial_sub_question_creation(
     )
     # dispatches custom events for subquestion tokens, adding in subquestion ids.
     streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(0))
+
+    stop_event = StreamStopInfo(
+        stop_reason=StreamStopReason.FINISHED,
+        stream_type="sub_questions",
+        level=0,
+    )
+    dispatch_custom_event("stream_finished", stop_event)
 
     deomposition_response = merge_content(*streamed_tokens)
 
@@ -1286,6 +1295,12 @@ def refined_sub_question_creation(
     model = pro_search_config.fast_llm
 
     streamed_tokens = dispatch_separated(model.stream(msg), _dispatch_subquestion(1))
+    stop_event = StreamStopInfo(
+        stop_reason=StreamStopReason.FINISHED,
+        stream_type="sub_questions",
+        level=1,
+    )
+    dispatch_custom_event("stream_finished", stop_event)
     response = merge_content(*streamed_tokens)
 
     if isinstance(response, str):

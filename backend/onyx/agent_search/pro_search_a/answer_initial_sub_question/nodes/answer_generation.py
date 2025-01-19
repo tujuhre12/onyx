@@ -96,10 +96,11 @@ def answer_generation(
 
     stop_event = StreamStopInfo(
         stop_reason=StreamStopReason.FINISHED,
+        stream_type="sub_answer",
         level=level,
         level_question_nr=question_nr,
     )
-    dispatch_custom_event("sub_answer_finished", stop_event)
+    dispatch_custom_event("stream_finished", stop_event)
 
     return QAGenerationUpdate(
         answer=answer_str,

@@ -70,7 +70,7 @@ def _parse_agent_event(
             return cast(SubQueryPiece, event["data"])
         elif event["name"] == "sub_answers":
             return cast(AgentAnswerPiece, event["data"])
-        elif event["name"] == "sub_answer_finished":
+        elif event["name"] == "stream_finished":
             return cast(StreamStopInfo, event["data"])
         elif event["name"] == "initial_agent_answer":
             return cast(AgentAnswerPiece, event["data"])
