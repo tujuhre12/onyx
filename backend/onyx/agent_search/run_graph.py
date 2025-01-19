@@ -148,6 +148,10 @@ def run_graph(
     input: BasicInput | MainInput_a | MainInput_b,
 ) -> AnswerStream:
     input["base_question"] = config.search_request.query if config else ""
+
+    config.perform_initial_search_path_decision = True
+    config.perform_initial_search_decomposition = True
+
     for event in _manage_async_event_streaming(
         compiled_graph=compiled_graph, config=config, graph_input=input
     ):
