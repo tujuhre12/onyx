@@ -21,7 +21,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./CodeBlock";
-import { ChevronDown } from "lucide-react";
+import { CheckIcon, ChevronDown } from "lucide-react";
 import { PHASE_MIN_MS, useStreamingMessages } from "./StreamingMessages";
 
 export interface TemporaryDisplay {
@@ -29,6 +29,7 @@ export interface TemporaryDisplay {
   tinyQuestion: string;
 }
 interface SubQuestionsDisplayProps {
+  finishedGenerating: boolean;
   currentlyOpenQuestion?: BaseQuestionIdentifier | null;
   subQuestions: SubQuestionDetail[];
   documents?: OnyxDocument[];
@@ -39,6 +40,12 @@ interface SubQuestionsDisplayProps {
   secondLevelQuestions?: SubQuestionDetail[];
   showSecondLevel?: boolean;
   overallAnswerGenerating?: boolean;
+}
+
+enum ToggleState {
+  Todo,
+  InProgress,
+  Done,
 }
 
 const SubQuestionDisplay: React.FC<{
@@ -65,6 +72,7 @@ const SubQuestionDisplay: React.FC<{
   completed,
 }) => {
   const [analysisToggled, setAnalysisToggled] = useState(false);
+  const [status, setStatus] = useState(ToggleState.Todo);
   const [toggled, setToggled] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -173,6 +181,35 @@ const SubQuestionDisplay: React.FC<{
   );
 
   useEffect(() => {
+    if (subQuestion?.is_complete) {
+      setStatus(ToggleState.Done);
+    } else {
+      // setStatus(ToggleState.Todo);
+    }
+  }, [subQuestion?.is_complete]);
+
+  useEffect(() => {
+    if (completed) {
+      setStatus(ToggleState.Done);
+      setToggled(true);
+      setIsVisible(true);
+    }
+  }, [completed]);
+
+  useEffect(() => {
+    if (unToggle) {
+      if (subQuestion?.answer) {
+        setStatus(ToggleState.Done);
+      } else {
+        // setStatus(ToggleState.Todo);
+      }
+    } else {
+      setStatus(ToggleState.InProgress);
+
+      // if (subQuestion?.is_complete) {
+      //   setStatus(ToggleState.Done);
+      // }
+    }
     setTimeout(
       () => {
         setToggled(!unToggle);
@@ -251,15 +288,21 @@ const SubQuestionDisplay: React.FC<{
       <div
         style={{ scrollMarginTop: "20px" }}
         ref={questionRef}
-        className="flex items-start pb-4"
+        className={`flex items-start ${!isLast ? "pb-4" : ""}`}
       >
         <div
           className={`absolute left-0 w-3 h-3 rounded-full mt-[9px] z-10 ${
-            subQuestion?.answer || (temporaryDisplay && completed)
-              ? "bg-neutral-700"
-              : "bg-neutral-700 rotating-circle"
+            status === ToggleState.Todo
+              ? "border-2 border-neutral-700 bg-background"
+              : status === ToggleState.InProgress
+                ? "bg-neutral-700 rotating-circle"
+                : "bg-neutral-700 flex items-center  justify-center"
           }`}
-        />
+        >
+          {status === ToggleState.Done && (
+            <CheckIcon className="m-auto text-white" size={8} />
+          )}
+        </div>
         <div className="ml-8 w-full">
           <div
             className="flex items-start py-1 cursor-pointer"
@@ -355,7 +398,7 @@ const SubQuestionDisplay: React.FC<{
                     )}
                   </div>
                 ) : (
-                  <div className="pl-0">
+                  <div className="bg-blaack pl-0">
                     <div className="flex flex-col gap-2">
                       <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
                         {temporaryDisplay?.tinyQuestion}
@@ -373,6 +416,7 @@ const SubQuestionDisplay: React.FC<{
 };
 
 const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
+  finishedGenerating,
   subQuestions,
   allowStreaming,
   currentlyOpenQuestion,
@@ -463,11 +507,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             key={index}
             subQuestion={subQuestion}
             documents={documents}
-            isLast={
-              index === subQuestions.length - 1 &&
-              !(showSecondLevel && memoizedSecondLevelQuestions) &&
-              !overallAnswer
-            }
+            isLast={false}
             isFirst={index === 0}
             setPresentingDocument={setPresentingDocument}
             unToggle={
@@ -506,10 +546,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
               key={index}
               subQuestion={subQuestion}
               documents={documents}
-              isLast={
-                index === memoizedSecondLevelQuestions.length - 1 &&
-                !overallAnswer
-              }
+              isLast={false}
               isFirst={false}
               setPresentingDocument={setPresentingDocument}
               unToggle={
@@ -544,16 +581,23 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
         //     tinyQuestion: "Plotting next step",
         //   }}
         // />
-        overallAnswer ? (
+        subQuestions.length > 0 ? (
           <SubQuestionDisplay
-            currentlyOpen={false}
-            currentlyClosed={false}
+            currentlyOpen={true}
+            currentlyClosed={true}
             subQuestion={null}
             documents={documents}
-            isLast={false}
+            isLast={true}
             isFirst={false}
             setPresentingDocument={setPresentingDocument}
-            unToggle={!overallAnswerGenerating}
+            unToggle={
+              !(
+                memoizedSubQuestions.length > 0 &&
+                memoizedSubQuestions.filter(
+                  (subQuestion) => subQuestion?.answer.length > 2
+                ).length == memoizedSubQuestions.length
+              ) || finishedGenerating!
+            }
             completed={!overallAnswerGenerating}
             temporaryDisplay={{
               question: "Summarizing findings",
@@ -561,7 +605,17 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             }}
           />
         ) : null}
-        {/* {overallAnswerGenerating ? "not complete" : "complete"} */}
+        {/* {!(
+          memoizedSubQuestions.length > 0 &&
+          memoizedSubQuestions.filter(
+            (subQuestion) => subQuestion?.answer.length > 2
+          ).length == memoizedSubQuestions.length
+        )
+          ? "memoized yes"
+          : "memoized no"}?
+        <br />
+        {finishedGenerating ? "finished" : "not finished"} */}
+
         {/* If we have no subqueries, but have subquestions, show the "thinking" */}
         {/* If we have subAnswers, but no overall answer, show hte otehr thinking */}
       </div>
@@ -571,6 +625,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
           animateEntrance={true}
           toggleDocumentSelection={toggleDocumentSelection}
           documents={documents}
+          threeCols={true}
         />
       )}
     </div>

@@ -8,6 +8,7 @@ interface SourcesDisplayProps {
   documents: OnyxDocument[];
   toggleDocumentSelection: () => void;
   animateEntrance?: boolean;
+  threeCols?: boolean;
 }
 
 const SourceCard: React.FC<{ document: OnyxDocument }> = ({ document }) => {
@@ -23,7 +24,7 @@ const SourceCard: React.FC<{ document: OnyxDocument }> = ({ document }) => {
   return (
     <button
       onClick={() => openDocument(document, () => {})}
-      className="w-[260px] h-[80px] p-3 bg-[#f1eee8] text-left hover:bg-[#ebe7de] cursor-pointer rounded-lg flex flex-col justify-between"
+      className="max-w-[260px] h-[80px] p-3 bg-[#f1eee8] text-left hover:bg-[#ebe7de] cursor-pointer rounded-lg flex flex-col justify-between"
     >
       <div className="text-black text-xs line-clamp-2 font-medium leading-tight">
         {/* {truncatedtext} */}
@@ -44,42 +45,51 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   documents,
   toggleDocumentSelection,
   animateEntrance = false,
+  threeCols = false,
 }) => {
   const displayedDocuments = documents.slice(0, 5);
   const hasMoreDocuments = documents.length > 3;
-  const [visibleCards, setVisibleCards] = useState<number>(0);
+  // const [visibleCards, setVisibleCards] = useState<number>(0);
 
-  useEffect(() => {
-    if (animateEntrance) {
-      const timer = setInterval(() => {
-        setVisibleCards((prev) => {
-          if (prev < displayedDocuments.length) {
-            return prev + 1;
-          }
-          clearInterval(timer);
-          return prev;
-        });
-      }, 140);
+  // useEffect(() => {
+  //   if (animateEntrance) {
+  //     const timer = setInterval(() => {
+  //       setVisibleCards((prev) => {
+  //         if (prev < displayedDocuments.length) {
+  //           return prev + 1;
+  //         }
+  //         clearInterval(timer);
+  //         return prev;
+  //       });
+  //     }, 140);
 
-      return () => clearInterval(timer);
-    } else {
-      setVisibleCards(displayedDocuments.length);
-    }
-  }, [animateEntrance, displayedDocuments.length]);
+  //     return () => clearInterval(timer);
+  //   } else {
+  //     setVisibleCards(displayedDocuments.length);
+  //   }
+  // }, [animateEntrance, displayedDocuments.length]);
 
   return (
-    <div className="w-full max-w-[562px] py-4 flex flex-col gap-4">
+    <div
+      className={`w-full  py-4 flex flex-col gap-4 ${
+        threeCols ? "" : "max-w-[562px]"
+      }`}
+    >
       <div className="flex items-center px-4">
         <div className="text-black text-base font-medium">Sources</div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 px-4">
+      <div
+        className={`grid  w-full ${
+          threeCols ? "grid-cols-3" : "grid-cols-2"
+        } gap-4 px-4`}
+      >
         {displayedDocuments.map((doc, index) => (
           <div
             key={index}
             onClick={() => openDocument(doc, () => {})}
             className={`transition-opacity duration-300 ${
-              index < visibleCards ? "opacity-100" : "opacity-0"
+              animateEntrance ? "opacity-100" : "opacity-100"
             }`}
           >
             <SourceCard document={doc} />
@@ -89,10 +99,8 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
         {hasMoreDocuments && (
           <button
             onClick={toggleDocumentSelection}
-            className={`w-[260px] h-[80px] p-3 bg-[#f1eee8] hover:bg-[#ebe7de] cursor-pointer rounded-lg flex flex-col items-start justify-between transition-opacity duration-300 ${
-              visibleCards === displayedDocuments.length
-                ? "opacity-100"
-                : "opacity-0"
+            className={`max-w-[260px] h-[80px] p-3 bg-[#f1eee8] hover:bg-[#ebe7de] cursor-pointer rounded-lg flex flex-col items-start justify-between transition-opacity duration-300 ${
+              animateEntrance ? "opacity-100" : "opacity-100"
             }`}
           >
             <div className="flex items-center gap-1">

@@ -442,7 +442,8 @@ export const AgenticMessage = ({
                 <div className="w-full desktop:ml-4">
                   {subQuestions && subQuestions.length > 0 && (
                     <SubQuestionsDisplay
-                      overallAnswerGenerating={finalContent.length < 12}
+                      finishedGenerating={finalContent.length > 8}
+                      overallAnswerGenerating={finalContent.length < 8}
                       showSecondLevel={!isViewingInitialAnswer}
                       currentlyOpenQuestion={currentlyOpenQuestion}
                       allowStreaming={() => setAllowStreaming(true)}
