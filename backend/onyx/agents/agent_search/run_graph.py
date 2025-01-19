@@ -14,7 +14,7 @@ from onyx.agents.agent_search.deep_search_a.main.graph_builder import (
     main_graph_builder as main_graph_builder_a,
 )
 from onyx.agents.agent_search.deep_search_a.main.states import MainInput as MainInput_a
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.utils import get_test_config
 from onyx.chat.llm_response_handler import LLMResponseHandlerManager
 from onyx.chat.models import AgentAnswerPiece
@@ -96,7 +96,7 @@ async def tear_down(event_loop: AbstractEventLoop) -> None:
 
 def _manage_async_event_streaming(
     compiled_graph: CompiledStateGraph,
-    config: ProSearchConfig | None,
+    config: AgentSearchConfig | None,
     graph_input: MainInput_a | BasicInput,
 ) -> Iterable[StreamEvent]:
     async def _run_async_event_stream(
@@ -140,7 +140,7 @@ def _manage_async_event_streaming(
 
 def run_graph(
     compiled_graph: CompiledStateGraph,
-    config: ProSearchConfig,
+    config: AgentSearchConfig,
     input: BasicInput | MainInput_a,
 ) -> AnswerStream:
     input["base_question"] = config.search_request.query if config else ""
@@ -171,7 +171,7 @@ def load_compiled_graph(graph_name: str) -> CompiledStateGraph:
 
 
 def run_main_graph(
-    config: ProSearchConfig,
+    config: AgentSearchConfig,
     graph_name: str = "a",
 ) -> AnswerStream:
     compiled_graph = load_compiled_graph(graph_name)
@@ -190,7 +190,7 @@ def run_main_graph(
 
 # TODO: unify input types, especially prosearchconfig
 def run_basic_graph(
-    config: ProSearchConfig,
+    config: AgentSearchConfig,
     last_llm_call: LLMCall | None,
     response_handler_manager: LLMResponseHandlerManager,
 ) -> AnswerStream:

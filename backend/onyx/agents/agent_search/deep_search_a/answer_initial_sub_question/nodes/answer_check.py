@@ -10,7 +10,7 @@ from onyx.agents.agent_search.deep_search_a.answer_initial_sub_question.states i
 from onyx.agents.agent_search.deep_search_a.answer_initial_sub_question.states import (
     QACheckUpdate,
 )
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.prompts import SUB_CHECK_NO
 from onyx.agents.agent_search.shared_graph_utils.prompts import SUB_CHECK_PROMPT
 from onyx.agents.agent_search.shared_graph_utils.prompts import UNKNOWN_ANSWER
@@ -30,7 +30,7 @@ def answer_check(state: AnswerQuestionState, config: RunnableConfig) -> QACheckU
         )
     ]
 
-    agent_searchch_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_searchch_config = cast(AgentSearchConfig, config["metadata"]["config"])
     fast_llm = agent_searchch_config.fast_llm
     response = list(
         fast_llm.stream(

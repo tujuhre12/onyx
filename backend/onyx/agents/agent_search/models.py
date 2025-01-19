@@ -11,9 +11,9 @@ from onyx.tools.tool_implementations.search.search_tool import SearchTool
 
 
 @dataclass
-class ProSearchConfig:
+class AgentSearchConfig:
     """
-    Configuration for the Pro Search feature.
+    Configuration for the Agent Search feature.
     """
 
     # The search request that was used to generate the Pro Search

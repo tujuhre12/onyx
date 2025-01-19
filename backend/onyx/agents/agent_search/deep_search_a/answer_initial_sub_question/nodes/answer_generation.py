@@ -12,7 +12,7 @@ from onyx.agents.agent_search.deep_search_a.answer_initial_sub_question.states i
 from onyx.agents.agent_search.deep_search_a.answer_initial_sub_question.states import (
     QAGenerationUpdate,
 )
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     build_sub_question_answer_prompt,
 )
@@ -39,7 +39,7 @@ def answer_generation(
     now_start = datetime.datetime.now()
     logger.debug(f"--------{now_start}--------START ANSWER GENERATION---")
 
-    agent_search_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_search_config = cast(AgentSearchConfig, config["metadata"]["config"])
     question = state["question"]
     docs = state["documents"]
     level, question_nr = parse_question_id(state["question_id"])

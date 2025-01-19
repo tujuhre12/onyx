@@ -7,7 +7,7 @@ from langchain_core.messages import AIMessageChunk
 from langchain_core.messages import ToolCall
 from sqlalchemy.orm import Session
 
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.run_graph import run_basic_graph
 from onyx.agents.agent_search.run_graph import run_main_graph
 from onyx.chat.llm_response_handler import LLMResponseHandlerManager
@@ -52,7 +52,7 @@ class Answer:
         llm: LLM,
         prompt_config: PromptConfig,
         force_use_tool: ForceUseTool,
-        pro_search_config: ProSearchConfig,
+        pro_search_config: AgentSearchConfig,
         # must be the same length as `docs`. If None, all docs are considered "relevant"
         message_history: list[PreviousMessage] | None = None,
         single_message_history: str | None = None,

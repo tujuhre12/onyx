@@ -11,7 +11,7 @@ from onyx.agents.agent_search.deep_search_a.main.operations import dispatch_subq
 from onyx.agents.agent_search.deep_search_a.main.operations import logger
 from onyx.agents.agent_search.deep_search_a.main.states import BaseDecompUpdate
 from onyx.agents.agent_search.deep_search_a.main.states import MainState
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.prompts import (
     INITIAL_DECOMPOSITION_PROMPT_QUESTIONS,
 )
@@ -19,6 +19,8 @@ from onyx.agents.agent_search.shared_graph_utils.prompts import (
     INITIAL_DECOMPOSITION_PROMPT_QUESTIONS_AFTER_SEARCH,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import dispatch_separated
+from onyx.chat.models import StreamStopInfo
+from onyx.chat.models import StreamStopReason
 from onyx.chat.models import SubQuestionPiece
 from onyx.context.search.models import InferenceSection
 from onyx.db.engine import get_session_context_manager
@@ -35,7 +37,7 @@ def initial_sub_question_creation(
 
     logger.debug(f"--------{now_start}--------BASE DECOMP START---")
 
-    agent_a_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     question = agent_a_config.search_request.query
     chat_session_id = agent_a_config.chat_session_id
     primary_message_id = agent_a_config.message_id
@@ -108,6 +110,13 @@ def initial_sub_question_creation(
     )
     # dispatches custom events for subquestion tokens, adding in subquestion ids.
     streamed_tokens = dispatch_separated(model.stream(msg), dispatch_subquestion(0))
+
+    stop_event = StreamStopInfo(
+        stop_reason=StreamStopReason.FINISHED,
+        stream_type="sub_questions",
+        level=0,
+    )
+    dispatch_custom_event("stream_finished", stop_event)
 
     deomposition_response = merge_content(*streamed_tokens)
 

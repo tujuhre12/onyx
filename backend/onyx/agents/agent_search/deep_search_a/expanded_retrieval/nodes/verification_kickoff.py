@@ -11,7 +11,7 @@ from onyx.agents.agent_search.deep_search_a.expanded_retrieval.states import (
 from onyx.agents.agent_search.deep_search_a.expanded_retrieval.states import (
     ExpandedRetrievalState,
 )
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 
 
 def verification_kickoff(
@@ -19,7 +19,7 @@ def verification_kickoff(
     config: RunnableConfig,
 ) -> Command[Literal["doc_verification"]]:
     documents = state["retrieved_documents"]
-    agent_a_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     verification_question = state.get("question", agent_a_config.search_request.query)
     sub_question_id = state.get("sub_question_id")
     return Command(

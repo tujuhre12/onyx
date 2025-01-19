@@ -13,7 +13,7 @@ from onyx.agents.agent_search.deep_search_a.expanded_retrieval.states import (
 from onyx.agents.agent_search.deep_search_a.expanded_retrieval.states import (
     QueryExpansionUpdate,
 )
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.prompts import (
     REWRITE_PROMPT_MULTI_ORIGINAL,
 )
@@ -27,7 +27,7 @@ def expand_queries(
     # Sometimes we want to expand the original question, sometimes we want to expand a sub-question.
     # When we are running this node on the original question, no question is explictly passed in.
     # Instead, we use the original question from the search request.
-    agent_a_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     question = state.get("question", agent_a_config.search_request.query)
     llm = agent_a_config.fast_llm
     chat_session_id = agent_a_config.chat_session_id

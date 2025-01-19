@@ -8,7 +8,7 @@ from onyx.agents.agent_search.deep_search_a.main.states import MainState
 from onyx.agents.agent_search.deep_search_a.main.states import (
     RequireRefinedAnswerUpdate,
 )
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 
 
 def refined_answer_decision(
@@ -18,11 +18,13 @@ def refined_answer_decision(
 
     logger.debug(f"--------{now_start}--------REFINED ANSWER DECISION---")
 
-    agent_a_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     if "?" in agent_a_config.search_request.query:
         decision = False
     else:
         decision = True
+
+    decision = True
 
     now_end = datetime.now()
 

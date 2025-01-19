@@ -13,7 +13,7 @@ from onyx.agents.agent_search.deep_search_a.main.states import (
     FollowUpSubQuestionsUpdate,
 )
 from onyx.agents.agent_search.deep_search_a.main.states import MainState
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.prompts import DEEP_DECOMPOSE_PROMPT
 from onyx.agents.agent_search.shared_graph_utils.utils import dispatch_separated
 from onyx.agents.agent_search.shared_graph_utils.utils import (
@@ -27,7 +27,7 @@ def refined_sub_question_creation(
     state: MainState, config: RunnableConfig
 ) -> FollowUpSubQuestionsUpdate:
     """ """
-    agent_a_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     dispatch_custom_event(
         "start_refined_answer_creation",
         ToolCallKickoff(

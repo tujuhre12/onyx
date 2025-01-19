@@ -8,7 +8,7 @@ from onyx.agents.agent_search.deep_search_a.main.models import AgentTimings
 from onyx.agents.agent_search.deep_search_a.main.operations import logger
 from onyx.agents.agent_search.deep_search_a.main.states import MainOutput
 from onyx.agents.agent_search.deep_search_a.main.states import MainState
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.models import CombinedAgentMetrics
 from onyx.db.chat import log_agent_metrics
 from onyx.db.chat import log_agent_sub_question_results
@@ -56,7 +56,7 @@ def agent_logging(state: MainState, config: RunnableConfig) -> MainOutput:
     )
 
     persona_id = None
-    agent_a_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     if agent_a_config.search_request.persona:
         persona_id = agent_a_config.search_request.persona.id
 

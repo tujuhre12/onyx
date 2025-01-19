@@ -13,7 +13,7 @@ from uuid import UUID
 from langchain_core.messages import BaseMessage
 from sqlalchemy.orm import Session
 
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.models import (
     EntityRelationshipTermExtraction,
 )
@@ -150,7 +150,7 @@ def generate_log_message(
 
 def get_test_config(
     db_session: Session, primary_llm: LLM, fast_llm: LLM, search_request: SearchRequest
-) -> tuple[ProSearchConfig, SearchTool]:
+) -> tuple[AgentSearchConfig, SearchTool]:
     persona = get_persona_by_id(DEFAULT_PERSONA_ID, None, db_session)
     document_pruning_config = DocumentPruningConfig(
         max_chunks=int(
@@ -205,7 +205,7 @@ def get_test_config(
         bypass_acl=search_tool_config.bypass_acl,
     )
 
-    config = ProSearchConfig(
+    config = AgentSearchConfig(
         search_request=search_request,
         # chat_session_id=UUID("123e4567-e89b-12d3-a456-426614174000"),
         chat_session_id=UUID("edda10d5-6cef-45d8-acfb-39317552a1f4"),  # Joachim

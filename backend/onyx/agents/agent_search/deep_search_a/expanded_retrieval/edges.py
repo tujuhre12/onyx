@@ -10,13 +10,13 @@ from onyx.agents.agent_search.deep_search_a.expanded_retrieval.states import (
 from onyx.agents.agent_search.deep_search_a.expanded_retrieval.states import (
     RetrievalInput,
 )
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 
 
 def parallel_retrieval_edge(
     state: ExpandedRetrievalState, config: RunnableConfig
 ) -> list[Send | Hashable]:
-    agent_a_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     question = state.get("question", agent_a_config.search_request.query)
 
     query_expansions = state.get("expanded_queries", []) + [question]

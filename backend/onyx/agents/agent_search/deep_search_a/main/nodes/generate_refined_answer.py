@@ -15,7 +15,7 @@ from onyx.agents.agent_search.deep_search_a.main.operations import (
 )
 from onyx.agents.agent_search.deep_search_a.main.states import MainState
 from onyx.agents.agent_search.deep_search_a.main.states import RefinedAnswerUpdate
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     trim_prompt_piece,
 )
@@ -52,7 +52,7 @@ def generate_refined_answer(
 
     logger.debug(f"--------{now_start}--------GENERATE REFINED ANSWER---")
 
-    agent_a_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     question = agent_a_config.search_request.query
     persona_prompt = get_persona_prompt(agent_a_config.search_request.persona)
 

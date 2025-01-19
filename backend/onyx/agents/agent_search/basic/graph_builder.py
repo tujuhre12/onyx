@@ -10,7 +10,7 @@ from onyx.agents.agent_search.basic.states import BasicInput
 from onyx.agents.agent_search.basic.states import BasicOutput
 from onyx.agents.agent_search.basic.states import BasicState
 from onyx.agents.agent_search.basic.states import BasicStateUpdate
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.chat.stream_processing.utils import (
     map_document_id_order,
 )
@@ -51,7 +51,7 @@ def should_continue(state: BasicState) -> str:
 
 
 def get_response(state: BasicState, config: RunnableConfig) -> BasicStateUpdate:
-    agent_a_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     llm = agent_a_config.primary_llm
     current_llm_call = state["last_llm_call"]
     if current_llm_call is None:

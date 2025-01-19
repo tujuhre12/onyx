@@ -9,7 +9,7 @@ from onyx.agents.agent_search.deep_search_a.expanded_retrieval.states import (
 from onyx.agents.agent_search.deep_search_a.expanded_retrieval.states import (
     ExpandedRetrievalState,
 )
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.calculations import get_fit_scores
 from onyx.agents.agent_search.shared_graph_utils.models import RetrievalFitStats
 from onyx.configs.dev_configs import AGENT_RERANKING_MAX_QUERY_RETRIEVAL_RESULTS
@@ -29,7 +29,7 @@ def doc_reranking(
     # Rerank post retrieval and verification. First, create a search query
     # then create the list of reranked sections
 
-    agent_a_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     question = state.get("question", agent_a_config.search_request.query)
     with get_session_context_manager() as db_session:
         _search_query = retrieval_preprocessing(

@@ -15,7 +15,7 @@ from onyx.agents.agent_search.deep_search_a.expanded_retrieval.states import (
 from onyx.agents.agent_search.deep_search_a.expanded_retrieval.states import (
     ExpandedRetrievalUpdate,
 )
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.models import AgentChunkStats
 from onyx.agents.agent_search.shared_graph_utils.utils import parse_question_id
 from onyx.chat.models import ExtendedToolResponse
@@ -34,7 +34,7 @@ def format_results(
     if len(query_infos) == 0:
         raise ValueError("No query info found")
 
-    agent_a_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     # main question docs will be sent later after aggregation and deduping with sub-question docs
     if not (level == 0 and question_nr == 0):
         if len(state["reranked_documents"]) > 0:

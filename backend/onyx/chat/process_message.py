@@ -8,7 +8,7 @@ from typing import cast
 
 from sqlalchemy.orm import Session
 
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.chat.answer import Answer
 from onyx.chat.chat_utils import create_chat_chain
 from onyx.chat.chat_utils import create_temporary_persona
@@ -752,7 +752,7 @@ def stream_chat_message_objects(
             # TODO: handle multiple search tools
             raise ValueError("Multiple search tools found")
         search_tool = search_tools[0]
-        pro_search_config = ProSearchConfig(
+        pro_search_config = AgentSearchConfig(
             use_agentic_search=new_msg_req.use_agentic_search,
             search_request=search_request,
             chat_session_id=chat_session_id,

@@ -9,7 +9,7 @@ from onyx.agents.agent_search.deep_search_a.expanded_retrieval.states import (
 from onyx.agents.agent_search.deep_search_a.expanded_retrieval.states import (
     RetrievalInput,
 )
-from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.calculations import get_fit_scores
 from onyx.agents.agent_search.shared_graph_utils.models import QueryResult
 from onyx.configs.dev_configs import AGENT_MAX_QUERY_RETRIEVAL_RESULTS
@@ -36,7 +36,7 @@ def doc_retrieval(state: RetrievalInput, config: RunnableConfig) -> DocRetrieval
         retrieved_documents: list[InferenceSection]
     """
     query_to_retrieve = state["query_to_retrieve"]
-    agent_a_config = cast(ProSearchConfig, config["metadata"]["config"])
+    agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     search_tool = agent_a_config.search_tool
 
     retrieved_docs: list[InferenceSection] = []
