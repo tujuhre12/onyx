@@ -381,6 +381,7 @@ export const useStreamingMessages = (
                 dynSQ.is_complete = true;
 
                 p.currentPhase = StreamingPhase.COMPLETE;
+                console.log("ANSWER COMPLETE");
 
                 // Check if this is the last subquestion at level 0
                 if (
@@ -392,7 +393,27 @@ export const useStreamingMessages = (
                         .map((q) => q.level_question_nr)
                     )
                 ) {
+                  console.log("ALLOW STREAMING");
+                  console.log(sq.level_question_nr);
+                  console.log(
+                    Math.max(
+                      ...subQuestions
+                        .filter((q) => q.level === 0)
+                        .map((q) => q.level_question_nr)
+                    )
+                  );
                   allowStreaming();
+                } else {
+                  console.log("ALLOW STREAMING");
+                  console.log(sq.level_question_nr);
+                  console.log(
+                    Math.max(
+                      ...subQuestions
+                        .filter((q) => q.level === 0)
+                        .map((q) => q.level_question_nr)
+                    )
+                  );
+                  console.log("DO NOT ALLOW STREAMING");
                 }
               }
             }

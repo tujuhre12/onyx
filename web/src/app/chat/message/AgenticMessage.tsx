@@ -115,6 +115,8 @@ export const AgenticMessage = ({
   subQuestions,
   agenticDocs,
   secondLevelSubquestions,
+  setStreamingAllowed,
+  streamingAllowed,
 }: {
   secondLevelSubquestions?: SubQuestionDetail[] | null;
   agenticDocs?: OnyxDocument[] | null;
@@ -151,6 +153,8 @@ export const AgenticMessage = ({
   overriddenModel?: string;
   regenerate?: (modelOverRide: LlmOverride) => Promise<void>;
   setPresentingDocument?: (document: OnyxDocument) => void;
+  setStreamingAllowed?: (allowed: boolean) => void;
+  streamingAllowed?: boolean;
 }) => {
   const toolCallGenerating = toolCall && !toolCall.tool_result;
 
@@ -201,58 +205,9 @@ export const AgenticMessage = ({
     : undefined;
   // console.log()
 
-  const finalContent = processContent(content);
+  const finalContent = processContent(content) as string;
 
   const [isPulsing, setIsPulsing] = useState(false);
-  const [streamingAllowed, setStreamingAllowed] = useState(false);
-  const [isCurrentlyGenerating, setIsCurrentlyGenerating] = useState(false);
-  const [streamedContent, setStreamedContent] = useState("");
-  const streamIndexRef = useRef(0);
-
-  const allowStreaming = () => {
-    setStreamingAllowed(true);
-  };
-
-  const streamContent = (content: string) => {
-    if (content.length === 0) {
-      return;
-    }
-
-    const streamNextChar = () => {
-      if (streamIndexRef.current - 8 < content.length) {
-        setStreamedContent(
-          content.slice(0, Math.max(12, streamIndexRef.current))
-        );
-        streamIndexRef.current += 1;
-        setTimeout(streamNextChar, 10);
-      } else {
-        setIsCurrentlyGenerating(false);
-        console.log("Streaming completed");
-      }
-    };
-
-    streamNextChar();
-  };
-
-  useEffect(() => {
-    if (!isGenerating) {
-      setStreamedContent(finalContent as string);
-    } else if (
-      (processContent(content) as string).length > streamedContent.length
-    ) {
-      setIsCurrentlyGenerating(true);
-    }
-  }, [content]);
-
-  useEffect(() => {
-    if (isGenerating || streamedContent.length < 5) {
-      if (streamingAllowed && typeof finalContent === "string") {
-        streamContent(finalContent);
-      }
-    } else {
-      setStreamedContent(finalContent as string);
-    }
-  }, [finalContent, streamingAllowed, isGenerating]);
 
   const [isViewingInitialAnswer, setIsViewingInitialAnswer] = useState(true);
 
@@ -376,7 +331,7 @@ export const AgenticMessage = ({
       a: anchorCallback,
       p: paragraphCallback,
       code: ({ node, className, children }: any) => {
-        const codeText = extractCodeText(node, streamedContent, children);
+        const codeText = extractCodeText(node, finalContent, children);
 
         return (
           <CodeBlock className={className} codeText={codeText}>
@@ -385,7 +340,7 @@ export const AgenticMessage = ({
         );
       },
     }),
-    [anchorCallback, paragraphCallback, streamedContent]
+    [anchorCallback, paragraphCallback, finalContent]
   );
 
   const renderedAlternativeMarkdown = useMemo(() => {
@@ -409,10 +364,10 @@ export const AgenticMessage = ({
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[[rehypePrism, { ignoreMissing: true }], rehypeKatex]}
       >
-        {streamedContent}
+        {finalContent}
       </ReactMarkdown>
     );
-  }, [streamedContent, markdownComponents]);
+  }, [finalContent, markdownComponents]);
 
   // export interface BaseQuestionIdentifier {
   //   level: number;
@@ -489,7 +444,7 @@ export const AgenticMessage = ({
                       showSecondLevel={!isViewingInitialAnswer}
                       currentlyOpenQuestion={currentlyOpenQuestion}
                       isGenerating={isGenerating}
-                      allowStreaming={allowStreaming}
+                      allowStreaming={() => {}}
                       subQuestions={subQuestions}
                       secondLevelQuestions={secondLevelSubquestions || []}
                       documents={
@@ -506,9 +461,10 @@ export const AgenticMessage = ({
                   )}
 
                   {/* For debugging purposes */}
-                  {/* <SubQuestionProgress subQuestions={subQuestions || []} /> */}
+                  <SubQuestionProgress subQuestions={subQuestions || []} />
 
-                  {(content || files) && (streamingAllowed || !isGenerating) ? (
+                  {(finalContent && finalContent.length > 8) ||
+                  (files && files.length > 0) ? (
                     <>
                       {/* <FileDisplay files={files || []} /> */}
                       <div className="w-full  py-4 flex flex-col gap-4">

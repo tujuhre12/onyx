@@ -197,6 +197,7 @@ export function ChatPage({
 
   const [documentSidebarToggled, setDocumentSidebarToggled] = useState(false);
   const [proSearchEnabled, setProSearchEnabled] = useState(true);
+  const [streamingAllowed, setStreamingAllowed] = useState(false);
 
   const [userSettingsToggled, setUserSettingsToggled] = useState(false);
 
@@ -406,7 +407,6 @@ export function ChatPage({
   );
 
   const [isReady, setIsReady] = useState(false);
-  console.log(assistants);
 
   useEffect(() => {
     Prism.highlightAll();
@@ -479,15 +479,11 @@ export function ChatPage({
       );
 
       const session = await response.json();
-      console.log(session);
       const chatSession = session as BackendChatSession;
       setSelectedAssistantFromId(chatSession.persona_id);
 
       const newMessageMap = processRawChatHistory(chatSession.messages);
       const newMessageHistory = buildLatestMessageChain(newMessageMap);
-
-      console.log("message history");
-      console.log(newMessageHistory);
 
       // Update message history except for edge where where
       // last message is an error and we're on a new chat.
@@ -2591,6 +2587,10 @@ export function ChatPage({
                                     {message.sub_questions &&
                                     message.sub_questions.length > 0 ? (
                                       <AgenticMessage
+                                        setStreamingAllowed={
+                                          setStreamingAllowed
+                                        }
+                                        streamingAllowed={streamingAllowed}
                                         secondLevelGenerating={
                                           (message.second_level_generating &&
                                             currentSessionChatState !==
