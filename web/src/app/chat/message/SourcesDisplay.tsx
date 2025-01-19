@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { OnyxDocument } from "@/lib/search/interfaces";
 import { ResultIcon } from "@/components/chat_search/sources/SourceCard";
 import { openDocument } from "@/lib/search/utils";
+import { buildDocumentSummaryDisplay } from "@/components/search/DocumentDisplay";
 
 interface SourcesDisplayProps {
   documents: OnyxDocument[];
@@ -14,6 +15,10 @@ const SourceCard: React.FC<{ document: OnyxDocument }> = ({ document }) => {
     ? document.match_highlights[0].slice(0, 80)
     : document.blurb?.slice(0, 80) || "";
   const truncatedIdentifier = document.semantic_identifier?.slice(0, 30) || "";
+  const documentSummary = buildDocumentSummaryDisplay(
+    document.match_highlights,
+    document.blurb
+  );
 
   return (
     <button
@@ -21,8 +26,9 @@ const SourceCard: React.FC<{ document: OnyxDocument }> = ({ document }) => {
       className="w-[260px] h-[80px] p-3 bg-[#f1eee8] text-left hover:bg-[#ebe7de] cursor-pointer rounded-lg flex flex-col justify-between"
     >
       <div className="text-black text-xs line-clamp-2 font-medium leading-tight">
-        {truncatedtext}
-        {truncatedtext.length === 80 ? "..." : ""}
+        {/* {truncatedtext} */}
+        {/* {truncatedtext.length === 80 ? "..." : ""} */}
+        {documentSummary}
       </div>
       <div className="flex items-center gap-1">
         <ResultIcon doc={document} size={14} />

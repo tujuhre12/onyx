@@ -2348,7 +2348,10 @@ export function ChatPage({
             ref={masterFlexboxRef}
             className="flex h-full w-full overflow-x-hidden"
           >
-            <div className="flex h-full relative px-2 flex-col w-full">
+            <div
+              id="scrollableContainer"
+              className="flex h-full relative px-2 flex-col w-full"
+            >
               {liveAssistant && (
                 <FunctionalHeader
                   toggleUserSettings={() => setUserSettingsToggled(true)}
@@ -2440,6 +2443,7 @@ export function ChatPage({
                               </div>
                             )}
                           <div
+                            style={{ overflowAnchor: "none" }}
                             key={currentSessionId()}
                             className={
                               "desktop:-ml-4 w-full mx-auto " +

@@ -199,9 +199,11 @@ export const AgenticMessage = ({
   const alternativeContent = secondLevelAssistantMessage
     ? (processContent(secondLevelAssistantMessage as string) as string)
     : undefined;
+  // console.log()
 
   const finalContent = processContent(content);
 
+  const [isPulsing, setIsPulsing] = useState(false);
   const [streamingAllowed, setStreamingAllowed] = useState(false);
   const [isCurrentlyGenerating, setIsCurrentlyGenerating] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
@@ -252,7 +254,7 @@ export const AgenticMessage = ({
     }
   }, [finalContent, streamingAllowed, isGenerating]);
 
-  const [isViewingInitialAnswer, setIsViewingInitialAnswer] = useState(false);
+  const [isViewingInitialAnswer, setIsViewingInitialAnswer] = useState(true);
 
   const [isRegenerateHovered, setIsRegenerateHovered] = useState(false);
   const [isRegenerateDropdownVisible, setIsRegenerateDropdownVisible] =
@@ -348,7 +350,11 @@ export const AgenticMessage = ({
               ? agenticDocs
               : docs
         }
-        subQuestions={subQuestions || []}
+        subQuestions={
+          isViewingInitialAnswer
+            ? subQuestions || []
+            : [...(subQuestions || []), ...(secondLevelSubquestions || [])]
+        }
         openQuestion={openQuestion}
       >
         {props.children}
@@ -420,7 +426,6 @@ export const AgenticMessage = ({
   //   context_docs?: { top_documents: OnyxDocument[] } | null;
   //   is_complete?: boolean;
   // }
-  const [liveUpdate, setLiveUpdate] = useState(false);
 
   const currentState = secondLevelSubquestions?.[0]
     ? secondLevelSubquestions[0].answer
@@ -481,7 +486,7 @@ export const AgenticMessage = ({
                 <div className="w-full desktop:ml-4">
                   {subQuestions && subQuestions.length > 0 && (
                     <SubQuestionsDisplay
-                      showSecondLevel={liveUpdate}
+                      showSecondLevel={!isViewingInitialAnswer}
                       currentlyOpenQuestion={currentlyOpenQuestion}
                       isGenerating={isGenerating}
                       allowStreaming={allowStreaming}
@@ -501,7 +506,7 @@ export const AgenticMessage = ({
                   )}
 
                   {/* For debugging purposes */}
-                  {/* <SubQuestionProgress subQuestions={subQuestions || []} /> */}
+                  <SubQuestionProgress subQuestions={subQuestions || []} />
 
                   {(content || files) && (streamingAllowed || !isGenerating) ? (
                     <>
@@ -537,11 +542,15 @@ export const AgenticMessage = ({
                                     additional context and analysis.
                                   </p>
                                   <Button
-                                    onClick={() => setLiveUpdate(!liveUpdate)}
+                                    onClick={() =>
+                                      setIsViewingInitialAnswer(
+                                        !isViewingInitialAnswer
+                                      )
+                                    }
                                     size="sm"
                                     className="w-full"
                                   >
-                                    {liveUpdate
+                                    {isViewingInitialAnswer
                                       ? "Hide Live Updates"
                                       : "See Live Updates"}
                                     <FiGlobe className="inline-block mr-2" />
@@ -556,9 +565,10 @@ export const AgenticMessage = ({
                                   const viewInitialAnswer =
                                     !isViewingInitialAnswer;
                                   setIsViewingInitialAnswer(viewInitialAnswer);
-                                  setLiveUpdate(!viewInitialAnswer);
                                 }}
-                                className="animate-pulse cursor-pointer text-text-darker"
+                                className={`${
+                                  isPulsing && "animate-pulse"
+                                } cursor-pointer text-text-darker`}
                               >
                                 {isViewingInitialAnswer
                                   ? "See final answer"
@@ -572,8 +582,8 @@ export const AgenticMessage = ({
                           {typeof content === "string" ? (
                             <div className="overflow-x-visible !text-sm max-w-content-max">
                               {isViewingInitialAnswer
-                                ? renderedAlternativeMarkdown
-                                : renderedMarkdown}
+                                ? renderedMarkdown
+                                : renderedAlternativeMarkdown}
                             </div>
                           ) : (
                             content
@@ -676,7 +686,7 @@ export const AgenticMessage = ({
                             (isHovering || settings?.isMobile) &&
                             "!translate-y-0"
                           }
-                          transition-transform duration-300 ease-in-out 
+                          transition-transform duration-300 ease-in-out
                           flex md:flex-row gap-x-0.5 bg-background-125/40 -mx-1.5 p-1.5 rounded-lg
                           `}
                       >

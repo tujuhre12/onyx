@@ -368,27 +368,28 @@ export const useStreamingMessages = (
 
           case StreamingPhase.ANSWER: {
             const answerText = sq.answer || "";
+            const remainingChars = answerText.length - p.answerCharIndex;
+            const charsToStream = Math.min(remainingChars, 10); // Stream up to 10 characters at a time
 
-            if (p.answerCharIndex < answerText.length) {
-              const nextIndex = p.answerCharIndex + 1;
+            if (charsToStream > 0) {
+              const nextIndex = p.answerCharIndex + charsToStream;
               dynSQ.answer = answerText.slice(0, nextIndex);
               p.answerCharIndex = nextIndex;
 
-              // If we typed the entire answer and we consider it "complete"
+              // If we've streamed the entire answer and it's considered "complete"
               if (nextIndex >= answerText.length && sq.is_complete) {
                 dynSQ.is_complete = true;
                 p.currentPhase = StreamingPhase.COMPLETE;
 
-                // If you want, you can check if this is the last subquestion
-                // and call allowStreaming() or do some final logic.
-
+                // Check if this is the last subquestion at level 0
                 if (
+                  sq.level === 0 &&
                   sq.level_question_nr ===
-                  Math.max(
-                    ...subQuestions
-                      .filter((q) => q.level === 0)
-                      .map((q) => q.level_question_nr)
-                  )
+                    Math.max(
+                      ...subQuestions
+                        .filter((q) => q.level === 0)
+                        .map((q) => q.level_question_nr)
+                    )
                 ) {
                   allowStreaming();
                 }

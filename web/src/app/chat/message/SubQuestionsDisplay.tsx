@@ -227,9 +227,8 @@ const SubQuestionDisplay: React.FC<{
       <div
         className={`absolute left-[5px] ${
           isFirst ? "top-[9px]" : "top-0"
-        } bottom-0 w-[2px]  bg-neutral-200  
-      
-        
+        } bottom-0 w-[2px]  bg-neutral-200
+
         ${isLast && !toggled ? "h-4" : "h-full"}`}
       />
       <div
