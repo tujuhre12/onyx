@@ -461,7 +461,7 @@ export const AgenticMessage = ({
                   )}
 
                   {/* For debugging purposes */}
-                  <SubQuestionProgress subQuestions={subQuestions || []} />
+                  {/* <SubQuestionProgress subQuestions={subQuestions || []} /> */}
 
                   {(finalContent && finalContent.length > 8) ||
                   (files && files.length > 0) ? (
