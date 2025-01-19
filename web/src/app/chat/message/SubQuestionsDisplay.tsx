@@ -24,6 +24,10 @@ import { CodeBlock } from "./CodeBlock";
 import { ChevronDown } from "lucide-react";
 import { useStreamingMessages } from "./StreamingMessages";
 
+export interface TemporaryDisplay {
+  question: string;
+  tinyQuestion: string;
+}
 interface SubQuestionsDisplayProps {
   currentlyOpenQuestion?: BaseQuestionIdentifier | null;
   isGenerating: boolean;
@@ -35,17 +39,19 @@ interface SubQuestionsDisplayProps {
   allowStreaming: () => void;
   secondLevelQuestions?: SubQuestionDetail[];
   showSecondLevel?: boolean;
+  overallAnswerGenerating?: boolean;
 }
 
 const SubQuestionDisplay: React.FC<{
   currentlyOpen: boolean;
   currentlyClosed: boolean;
-  subQuestion: SubQuestionDetail;
+  subQuestion: SubQuestionDetail | null;
   documents?: OnyxDocument[];
   isLast: boolean;
   unToggle: boolean;
   isFirst: boolean;
   setPresentingDocument: (document: OnyxDocument) => void;
+  temporaryDisplay?: TemporaryDisplay;
 }> = ({
   currentlyOpen,
   currentlyClosed,
@@ -54,6 +60,7 @@ const SubQuestionDisplay: React.FC<{
   isLast,
   unToggle,
   isFirst,
+  temporaryDisplay,
   setPresentingDocument,
 }) => {
   const [analysisToggled, setAnalysisToggled] = useState(false);
@@ -99,13 +106,14 @@ const SubQuestionDisplay: React.FC<{
     // });
 
     return (
-      preprocessLaTeX(content) + (!subQuestion.is_complete ? " [*]() " : "")
+      preprocessLaTeX(content) + (!subQuestion?.is_complete ? " [*]() " : "")
     );
   };
 
-  const finalContent = subQuestion.answer
-    ? (processContent(subQuestion.answer as string) as string)
-    : "";
+  const finalContent =
+    subQuestion && subQuestion.answer
+      ? (processContent(subQuestion.answer as string) as string)
+      : "";
 
   const paragraphCallback = useCallback(
     (props: any) => (
@@ -118,7 +126,7 @@ const SubQuestionDisplay: React.FC<{
     (props: any) => (
       <MemoizedAnchor
         updatePresentingDocument={setPresentingDocument!}
-        docs={subQuestion.context_docs?.top_documents || documents}
+        docs={subQuestion?.context_docs?.top_documents || documents}
       >
         {props.children}
       </MemoizedAnchor>
@@ -140,7 +148,7 @@ const SubQuestionDisplay: React.FC<{
       code: ({ node, className, children }: any) => {
         const codeText = extractCodeText(
           node,
-          subQuestion.answer as string,
+          subQuestion?.answer as string,
           children
         );
 
@@ -160,7 +168,7 @@ const SubQuestionDisplay: React.FC<{
         <ol className="text-sm leading-tight pl-4 mt-0 mb-2">{children}</ol>
       ),
     }),
-    [anchorCallback, paragraphCallback, textCallback, subQuestion.answer]
+    [anchorCallback, paragraphCallback, textCallback, subQuestion?.answer]
   );
 
   useEffect(() => {
@@ -213,11 +221,11 @@ const SubQuestionDisplay: React.FC<{
   }, [finalContent, markdownComponents]);
 
   const memoizedDocs =
-    subQuestion.context_docs?.top_documents &&
-    subQuestion.context_docs?.top_documents.length > 0
-      ? subQuestion.context_docs?.top_documents
+    subQuestion?.context_docs?.top_documents &&
+    subQuestion?.context_docs?.top_documents.length > 0
+      ? subQuestion?.context_docs?.top_documents
       : (documents || []).filter((doc) =>
-          subQuestion.context_docs?.top_documents?.some(
+          subQuestion?.context_docs?.top_documents?.some(
             (contextDoc) => contextDoc.document_id === doc.document_id
           )
         );
@@ -238,7 +246,7 @@ const SubQuestionDisplay: React.FC<{
       >
         <div
           className={`absolute left-0 w-3 h-3 rounded-full mt-[9px] z-10 ${
-            subQuestion.answer
+            subQuestion?.answer
               ? "bg-neutral-700"
               : "bg-neutral-700 rotating-circle"
           }`}
@@ -249,11 +257,11 @@ const SubQuestionDisplay: React.FC<{
             onClick={() => setToggled(!toggled)}
           >
             <div className="text-black text-base font-medium leading-normal flex-grow pr-2">
-              {subQuestion.question}
+              {subQuestion?.question || temporaryDisplay?.question}
             </div>
             <ChevronDown
               className={`mt-0.5 text-text-darker transition-transform duration-500 ease-in-out ${
-                toggled ? "rotate-180" : ""
+                toggled && !temporaryDisplay ? "rotate-180" : ""
               }`}
               size={20}
             />
@@ -269,77 +277,83 @@ const SubQuestionDisplay: React.FC<{
                   toggled ? "scale-y-100 opacity-100" : "scale-y-95 opacity-0"
                 }`}
               >
-                <div className="pl-0 pb-2">
-                  <div className="mb-4 flex flex-col gap-2">
-                    <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                      {subQuestion.is_complete ? "Search Results" : "Searching"}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {subQuestion.sub_queries?.map((query, queryIndex) => (
-                        <SourceChip2
-                          key={queryIndex}
-                          icon={<FiSearch size={10} />}
-                          title={query.query}
-                          includeTooltip
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {(subQuestion.is_complete || memoizedDocs.length > 0) && (
+                {subQuestion ? (
+                  <div className="pl-0 pb-2">
                     <div className="mb-4 flex flex-col gap-2">
                       <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                        {subQuestion.is_complete
-                          ? memoizedDocs?.length || 0 > 0
-                            ? `Read documents`
-                            : "No docs found"
-                          : "Reading"}
+                        Searching
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {memoizedDocs.slice(0, 10).map((doc, docIndex) => {
-                          const truncatedIdentifier =
-                            doc.semantic_identifier?.slice(0, 20) || "";
-                          return (
-                            <SourceChip2
-                              includeAnimation
-                              onClick={() =>
-                                openDocument(doc, setPresentingDocument)
-                              }
-                              key={docIndex}
-                              icon={<ResultIcon doc={doc} size={10} />}
-                              title={`${truncatedIdentifier}${
-                                truncatedIdentifier.length === 20 ? "..." : ""
-                              }`}
-                            />
-                          );
-                        })}
+                        {subQuestion?.sub_queries?.map((query, queryIndex) => (
+                          <SourceChip2
+                            key={queryIndex}
+                            icon={<FiSearch size={10} />}
+                            title={query.query}
+                            includeTooltip
+                          />
+                        ))}
                       </div>
                     </div>
-                  )}
 
-                  {(subQuestion.is_complete ||
-                    subQuestion.answer.length > 0) && (
-                    <div className="flex flex-col gap-2">
-                      <div
-                        className="text-[#4a4a4a] cursor-pointer items-center text-xs flex gap-x-1 font-medium leading-normal"
-                        onClick={() => setAnalysisToggled(!analysisToggled)}
-                      >
-                        {subQuestion.is_complete ? "Analysis" : "Analyzing"}
-                        <ChevronDown
-                          className={`transition-transform duration-200 ${
-                            analysisToggled ? "" : "-rotate-90"
-                          }`}
-                          size={8}
-                        />
-                      </div>
-                      {analysisToggled && (
-                        <div className="flex flex-wrap gap-2">
-                          {renderedMarkdown}
+                    {(subQuestion?.is_complete || memoizedDocs?.length > 0) && (
+                      <div className="mb-4 flex flex-col gap-2">
+                        <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                          Reading
                         </div>
-                      )}
+                        <div className="flex flex-wrap gap-2">
+                          {memoizedDocs.slice(0, 10).map((doc, docIndex) => {
+                            const truncatedIdentifier =
+                              doc.semantic_identifier?.slice(0, 20) || "";
+                            return (
+                              <SourceChip2
+                                includeAnimation
+                                onClick={() =>
+                                  openDocument(doc, setPresentingDocument)
+                                }
+                                key={docIndex}
+                                icon={<ResultIcon doc={doc} size={10} />}
+                                title={`${truncatedIdentifier}${
+                                  truncatedIdentifier.length === 20 ? "..." : ""
+                                }`}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {(subQuestion?.is_complete ||
+                      subQuestion?.answer?.length > 0) && (
+                      <div className="flex flex-col gap-2">
+                        <div
+                          className="text-[#4a4a4a] cursor-pointer items-center text-xs flex gap-x-1 font-medium leading-normal"
+                          onClick={() => setAnalysisToggled(!analysisToggled)}
+                        >
+                          Analyzing
+                          <ChevronDown
+                            className={`transition-transform duration-200 ${
+                              analysisToggled ? "" : "-rotate-90"
+                            }`}
+                            size={8}
+                          />
+                        </div>
+                        {analysisToggled && (
+                          <div className="flex flex-wrap gap-2">
+                            {renderedMarkdown}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="pl-0 pb-2">
+                    <div className="mb-4 flex flex-col gap-2">
+                      <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                        {temporaryDisplay?.tinyQuestion}
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -359,6 +373,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   setPresentingDocument,
   secondLevelQuestions,
   showSecondLevel,
+  overallAnswerGenerating,
 }) => {
   const { dynamicSubQuestions } = useStreamingMessages(
     subQuestions,
@@ -367,12 +382,22 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   const { dynamicSubQuestions: dynamicSecondLevelQuestions } =
     useStreamingMessages(secondLevelQuestions || [], allowStreaming);
   const memoizedSubQuestions = useMemo(() => {
-    return isGenerating ? dynamicSubQuestions : subQuestions;
+    return true ? dynamicSubQuestions : subQuestions;
   }, [isGenerating, dynamicSubQuestions, subQuestions]);
 
   const memoizedSecondLevelQuestions = useMemo(() => {
     return isGenerating ? dynamicSecondLevelQuestions : secondLevelQuestions;
   }, [isGenerating, dynamicSecondLevelQuestions, secondLevelQuestions]);
+
+  const pendingSubqueries =
+    subQuestions.filter(
+      (subQuestion) => (subQuestion?.sub_queries || [])?.length > 0
+    ).length == 0;
+
+  const overallAnswer =
+    overallAnswerGenerating &&
+    memoizedSubQuestions.filter((subQuestion) => subQuestion?.answer).length ==
+      memoizedSubQuestions.length;
 
   return (
     <div className="w-full">
@@ -422,7 +447,9 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             documents={documents}
             isLast={
               index === subQuestions.length - 1 &&
-              !(showSecondLevel && memoizedSecondLevelQuestions)
+              !(showSecondLevel && memoizedSecondLevelQuestions) &&
+              !overallAnswer &&
+              !pendingSubqueries
             }
             isFirst={index === 0}
             setPresentingDocument={setPresentingDocument}
@@ -462,7 +489,11 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
               key={index}
               subQuestion={subQuestion}
               documents={documents}
-              isLast={index === memoizedSecondLevelQuestions.length - 1}
+              isLast={
+                index === memoizedSecondLevelQuestions.length - 1 &&
+                !pendingSubqueries &&
+                !overallAnswer
+              }
               isFirst={false}
               setPresentingDocument={setPresentingDocument}
               unToggle={
@@ -480,7 +511,42 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
               }
             />
           ))}
+
+        {pendingSubqueries ? (
+          <SubQuestionDisplay
+            currentlyOpen={false}
+            currentlyClosed={false}
+            subQuestion={null}
+            documents={documents}
+            isLast={false}
+            isFirst={false}
+            setPresentingDocument={setPresentingDocument}
+            unToggle={false}
+            temporaryDisplay={{
+              question: "Plotting",
+              tinyQuestion: "Plotting next step",
+            }}
+          />
+        ) : overallAnswer ? (
+          <SubQuestionDisplay
+            currentlyOpen={false}
+            currentlyClosed={false}
+            subQuestion={null}
+            documents={documents}
+            isLast={false}
+            isFirst={false}
+            setPresentingDocument={setPresentingDocument}
+            unToggle={false}
+            temporaryDisplay={{
+              question: "Summarizing ",
+              tinyQuestion: "Summarizing answer",
+            }}
+          />
+        ) : null}
+        {/* If we have no subqueries, but have subquestions, show the "thinking" */}
+        {/* If we have subAnswers, but no overall answer, show hte otehr thinking */}
       </div>
+
       {documents && documents.length > 0 && (
         <SourcesDisplay
           animateEntrance={true}

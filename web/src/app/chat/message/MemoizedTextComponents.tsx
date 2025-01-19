@@ -30,7 +30,6 @@ export const MemoizedAnchor = memo(
     // return <></>
     if (value?.startsWith("[") && value?.endsWith("]")) {
       const match = value.match(/\[(D|Q)?(\d+)\]/);
-      console.log("match", match);
 
       if (match) {
         const isSubQuestion = match[1] === "Q";

@@ -441,6 +441,7 @@ export const AgenticMessage = ({
                 <div className="w-full desktop:ml-4">
                   {subQuestions && subQuestions.length > 0 && (
                     <SubQuestionsDisplay
+                      overallAnswerGenerating={finalContent.length < 12}
                       showSecondLevel={!isViewingInitialAnswer}
                       currentlyOpenQuestion={currentlyOpenQuestion}
                       isGenerating={isGenerating}
