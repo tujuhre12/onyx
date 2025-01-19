@@ -8,7 +8,7 @@ from typing import cast
 
 from sqlalchemy.orm import Session
 
-from onyx.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.models import ProSearchConfig
 from onyx.chat.answer import Answer
 from onyx.chat.chat_utils import create_chat_chain
 from onyx.chat.chat_utils import create_temporary_persona

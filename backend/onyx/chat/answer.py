@@ -7,9 +7,9 @@ from langchain_core.messages import AIMessageChunk
 from langchain_core.messages import ToolCall
 from sqlalchemy.orm import Session
 
-from onyx.agent_search.models import ProSearchConfig
-from onyx.agent_search.run_graph import run_basic_graph
-from onyx.agent_search.run_graph import run_main_graph
+from onyx.agents.agent_search.models import ProSearchConfig
+from onyx.agents.agent_search.run_graph import run_basic_graph
+from onyx.agents.agent_search.run_graph import run_main_graph
 from onyx.chat.llm_response_handler import LLMResponseHandlerManager
 from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import AnswerPacket

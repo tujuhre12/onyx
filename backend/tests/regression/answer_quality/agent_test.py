@@ -5,9 +5,9 @@ import os
 
 import yaml
 
-from onyx.agent_search.pro_search_a.main.graph_builder import main_graph_builder
-from onyx.agent_search.pro_search_a.main.states import MainInput
-from onyx.agent_search.shared_graph_utils.utils import get_test_config
+from onyx.agents.agent_search.deep_search_a.main.graph_builder import main_graph_builder
+from onyx.agents.agent_search.deep_search_a.main.states import MainInput
+from onyx.agents.agent_search.shared_graph_utils.utils import get_test_config
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
 from onyx.llm.factory import get_default_llms
