@@ -148,7 +148,7 @@ def run_graph(
     input: BasicInput | MainInput_a | MainInput_b,
 ) -> AnswerStream:
     input["base_question"] = config.search_request.query if config else ""
-
+    # TODO: add these to the environment
     config.perform_initial_search_path_decision = True
     config.perform_initial_search_decomposition = True
 

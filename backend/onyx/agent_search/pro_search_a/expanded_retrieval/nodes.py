@@ -393,12 +393,20 @@ def format_results(
     pro_search_config = cast(ProSearchConfig, config["metadata"]["config"])
     # main question docs will be sent later after aggregation and deduping with sub-question docs
     if not (level == 0 and question_nr == 0):
+        if len(state["reranked_documents"]) > 0:
+            stream_documents = state["reranked_documents"]
+        else:
+            # The sub-question is used as the last query. If no verified documents are found, stream
+            # the top 3 for that one. We may want to revisit this.
+            stream_documents = state["expanded_retrieval_results"][-1].search_results[
+                :3
+            ]
         for tool_response in yield_search_responses(
             query=state["question"],
             reranked_sections=state[
                 "retrieved_documents"
             ],  # TODO: rename params. this one is supposed to be the sections pre-merging
-            final_context_sections=state["reranked_documents"],
+            final_context_sections=stream_documents,
             search_query_info=query_infos[0],  # TODO: handle differing query infos?
             get_section_relevance=lambda: None,  # TODO: add relevance
             search_tool=pro_search_config.search_tool,

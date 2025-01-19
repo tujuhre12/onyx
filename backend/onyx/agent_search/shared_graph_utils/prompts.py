@@ -1,4 +1,4 @@
-UNKNOWN_ANSWER = "I do not have enough information to answer this question"
+UNKNOWN_ANSWER = "I do not have enough information to answer this question."
 
 NO_RECOVERED_DOCS = "No relevant documents recovered"
 
