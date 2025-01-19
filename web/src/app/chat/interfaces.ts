@@ -107,6 +107,7 @@ export interface Message {
   second_level_generating?: boolean;
   agentic_docs?: OnyxDocument[] | null;
   second_level_message?: string;
+  second_level_subquestions?: SubQuestionDetail[] | null;
 }
 
 export interface BackendChatSession {

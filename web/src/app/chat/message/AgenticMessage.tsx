@@ -72,7 +72,12 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/Spinner";
 import { LoadingAnimation } from "@/components/Loading";
 import { LoadingIndicator } from "react-select/dist/declarations/src/components/indicators";
-import { StreamingPhase, StreamingPhaseText } from "./StreamingMessages";
+import {
+  StreamingPhase,
+  StreamingPhaseText,
+  useStreamingMessages,
+  useOrderedPhases,
+} from "./StreamingMessages";
 
 export const AgenticMessage = ({
   secondLevelAssistantMessage,
@@ -109,7 +114,9 @@ export const AgenticMessage = ({
   index,
   subQuestions,
   agenticDocs,
+  secondLevelSubquestions,
 }: {
+  secondLevelSubquestions?: SubQuestionDetail[] | null;
   agenticDocs?: OnyxDocument[] | null;
   secondLevelGenerating?: boolean;
   secondLevelAssistantMessage?: string;
@@ -417,26 +424,24 @@ export const AgenticMessage = ({
   //   context_docs?: { top_documents: OnyxDocument[] } | null;
   //   is_complete?: boolean;
   // }
+  const [liveUpdate, setLiveUpdate] = useState(false);
 
-  const secondLevelQuestions = subQuestions?.filter(
-    (subQuestion) => subQuestion.level === 1
-  );
-
-  const currentState = secondLevelQuestions?.[0]
-    ? !secondLevelQuestions[0].question
-      ? StreamingPhase.WAITING
-      : secondLevelQuestions[0].sub_queries
-        ? StreamingPhase.SUB_QUERIES
-        : secondLevelQuestions[0].context_docs
-          ? StreamingPhase.CONTEXT_DOCS
-          : secondLevelQuestions[0].answer
-            ? secondLevelQuestions[0].is_complete
-              ? StreamingPhase.COMPLETE
-              : StreamingPhase.ANSWER
+  const currentState = secondLevelSubquestions?.[0]
+    ? secondLevelSubquestions[0].answer
+      ? secondLevelSubquestions[0].is_complete
+        ? StreamingPhase.COMPLETE
+        : StreamingPhase.ANSWER
+      : secondLevelSubquestions[0].context_docs
+        ? StreamingPhase.CONTEXT_DOCS
+        : secondLevelSubquestions[0].sub_queries
+          ? StreamingPhase.SUB_QUERIES
+          : secondLevelSubquestions[0].question
+            ? StreamingPhase.WAITING
             : StreamingPhase.WAITING
     : StreamingPhase.WAITING;
 
-  // export enum StreamingPhase {
+  const message = useOrderedPhases(currentState);
+  // export enum StreamingPhase {s
   //   WAITING = "waiting",
   //   SUB_QUERIES = "sub_queries",
   //   CONTEXT_DOCS = "context_docs",
@@ -480,10 +485,12 @@ export const AgenticMessage = ({
                 <div className="w-full desktop:ml-4">
                   {subQuestions && subQuestions.length > 0 && (
                     <SubQuestionsDisplay
+                      showSecondLevel={liveUpdate}
                       currentlyOpenQuestion={currentlyOpenQuestion}
                       isGenerating={isGenerating}
                       allowStreaming={allowStreaming}
                       subQuestions={subQuestions}
+                      secondLevelQuestions={secondLevelSubquestions || []}
                       documents={
                         isViewingInitialAnswer || (!agenticDocs && docs)
                           ? (docs && docs.length > 0 ? docs : agenticDocs)!
@@ -514,30 +521,31 @@ export const AgenticMessage = ({
                             //   (finalContent as string).length &&
                             <Popover>
                               <PopoverTrigger asChild>
-                                <div className="text-black flex line-clamp-1 items-center gap-x-1 loading-text text-base font-normal cursor-pointer">
+                                <div className="flex loading-text items-center gap-x-2 text-black text-sm font-medium cursor-pointer hover:text-blue-600 transition-colors duration-200">
                                   Refining answer...
-                                  <span className="inline-block">
-                                    {" "}
-                                    <FiChevronRight
-                                      className="text-text-darker"
-                                      size={12}
-                                    />
-                                  </span>
+                                  <FiChevronRight
+                                    className="inline-block text-text-darker"
+                                    size={16}
+                                  />
                                 </div>
                               </PopoverTrigger>
-                              <PopoverContent className="w-80">
-                                <div className="grid gap-4">
-                                  <div
-                                    className="flex flex-col gapob
-                                  -y-4"
+                              <PopoverContent className="w-80 p-4 bg-white shadow-lg rounded-md">
+                                <div className="space-y-4">
+                                  <p className="text-lg leading-none font-semibold text-gray-800">
+                                    {message}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    The answer is being refined based on
+                                    additional context and analysis.
+                                  </p>
+                                  <Button
+                                    onClick={() => setLiveUpdate(!liveUpdate)}
+                                    size="sm"
+                                    className="w-full"
                                   >
-                                    <h4 className="font-medium leading-none">
-                                      {StreamingPhaseText[currentState]}
-                                    </h4>
-                                    <Button size="xs" className="text-xs">
-                                      See Updates Live
-                                    </Button>
-                                  </div>
+                                    See Live Updates
+                                    <FiGlobe className="inline-block mr-2" />
+                                  </Button>
                                 </div>
                               </PopoverContent>
                             </Popover>

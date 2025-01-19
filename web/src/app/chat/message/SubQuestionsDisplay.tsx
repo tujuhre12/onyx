@@ -33,6 +33,8 @@ interface SubQuestionsDisplayProps {
   setPresentingDocument: (document: OnyxDocument) => void;
   unToggle: boolean;
   allowStreaming: () => void;
+  secondLevelQuestions?: SubQuestionDetail[];
+  showSecondLevel?: boolean;
 }
 
 const SubQuestionDisplay: React.FC<{
@@ -360,14 +362,22 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   documents,
   toggleDocumentSelection,
   setPresentingDocument,
+  secondLevelQuestions,
+  showSecondLevel,
 }) => {
   const { dynamicSubQuestions } = useStreamingMessages(
     subQuestions,
     allowStreaming
   );
+  const { dynamicSubQuestions: dynamicSecondLevelQuestions } =
+    useStreamingMessages(secondLevelQuestions || [], allowStreaming);
   const memoizedSubQuestions = useMemo(() => {
     return isGenerating ? dynamicSubQuestions : subQuestions;
   }, [isGenerating, dynamicSubQuestions, subQuestions]);
+
+  const memoizedSecondLevelQuestions = useMemo(() => {
+    return isGenerating ? dynamicSecondLevelQuestions : secondLevelQuestions;
+  }, [isGenerating, dynamicSecondLevelQuestions, secondLevelQuestions]);
 
   return (
     <div className="w-full">
@@ -415,7 +425,11 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             key={index}
             subQuestion={subQuestion}
             documents={documents}
-            isLast={index === subQuestions.length - 1}
+            isLast={
+              index === subQuestions.length - 1 &&
+              !showSecondLevel &&
+              !memoizedSecondLevelQuestions
+            }
             isFirst={index === 0}
             setPresentingDocument={setPresentingDocument}
             unToggle={
@@ -433,11 +447,45 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             }
           />
         ))}
-        {memoizedSubQuestions.length < subQuestions.length && (
-          <div className="flex items-center justify-center py-4">
-            <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-          </div>
-        )}
+        {showSecondLevel &&
+          memoizedSecondLevelQuestions &&
+          memoizedSecondLevelQuestions?.map((subQuestion, index) => (
+            <SubQuestionDisplay
+              currentlyOpen={
+                currentlyOpenQuestion?.level === subQuestion.level &&
+                currentlyOpenQuestion?.level_question_nr ===
+                  subQuestion.level_question_nr
+              }
+              currentlyClosed={
+                currentlyOpenQuestion != null &&
+                currentlyOpenQuestion != undefined &&
+                !(
+                  currentlyOpenQuestion.level === subQuestion.level &&
+                  currentlyOpenQuestion.level_question_nr ===
+                    subQuestion.level_question_nr
+                )
+              }
+              key={index}
+              subQuestion={subQuestion}
+              documents={documents}
+              isLast={index === memoizedSecondLevelQuestions.length - 1}
+              isFirst={false}
+              setPresentingDocument={setPresentingDocument}
+              unToggle={
+                subQuestion?.sub_queries == undefined ||
+                subQuestion?.sub_queries.length == 0 ||
+                (subQuestion?.sub_queries?.length > 0 &&
+                  (subQuestion.answer == undefined ||
+                    subQuestion.answer.length > 3))
+                //   subQuestion == undefined &&
+                //   subQuestion.answer != undefined &&
+                //   !(
+                //     dynamicSubQuestions[index + 1] != undefined ||
+                //     dynamicSubQuestions[index + 1]?.sub_queries?.length! > 0
+                //   )
+              }
+            />
+          ))}
       </div>
       {documents && documents.length > 0 && (
         <SourcesDisplay

@@ -36,6 +36,116 @@ interface SubQuestionProgress {
   answerCharIndex: number;
 }
 
+/**
+ * Hook that manages displaying the current phase text.
+ * Even if `phase` is updated rapidly from the outside,
+ * each phase will be shown for at least MIN_PHASE_DISPLAY_TIME (20ms)
+ * before updating to the next.
+ *
+ * @param phase        - the current streaming phase value
+ * @param subQuestions - the array of SubQuestionDetail (unused in this example,
+ *                       but included to show how you might incorporate them)
+ *
+ * @returns the text corresponding to the phase currently being displayed
+ */
+const PHASES_ORDER: StreamingPhase[] = [
+  StreamingPhase.WAITING,
+  StreamingPhase.SUB_QUERIES,
+  StreamingPhase.CONTEXT_DOCS,
+  StreamingPhase.ANSWER,
+  StreamingPhase.COMPLETE,
+];
+
+export function useOrderedPhases(externalPhase: StreamingPhase) {
+  // We'll keep a queue of phases we still need to display
+  const [phaseQueue, setPhaseQueue] = useState<StreamingPhase[]>([]);
+  // This is the phase currently shown on screen
+  const [displayedPhase, setDisplayedPhase] = useState<StreamingPhase>(
+    StreamingPhase.WAITING
+  );
+
+  // Keep track of when we last switched the displayedPhase
+  const lastDisplayTimestampRef = useRef<number>(Date.now());
+
+  /**
+   * Helper: find the index in PHASES_ORDER
+   */
+  const getPhaseIndex = (phase: StreamingPhase) => {
+    return PHASES_ORDER.indexOf(phase);
+  };
+
+  /**
+   * Add any missing phases in the correct order to the queue
+   * if externalPhase is ahead of our last queued item.
+   */
+  useEffect(() => {
+    setPhaseQueue((prevQueue) => {
+      // We'll figure out the highest-phase we've queued so far
+      const lastQueuedPhase =
+        prevQueue.length > 0 ? prevQueue[prevQueue.length - 1] : displayedPhase;
+
+      const lastQueuedIndex = getPhaseIndex(lastQueuedPhase);
+      const externalIndex = getPhaseIndex(externalPhase);
+
+      // If external is behind or the same as lastQueued, do nothing
+      if (externalIndex <= lastQueuedIndex) {
+        return prevQueue;
+      }
+
+      // Otherwise, gather the missing phases from just after lastQueued to the external index
+      const missingPhases: StreamingPhase[] = [];
+      for (let i = lastQueuedIndex + 1; i <= externalIndex; i++) {
+        missingPhases.push(PHASES_ORDER[i]);
+      }
+      return [...prevQueue, ...missingPhases];
+    });
+    // We only care about changes to externalPhase
+    // displayedPhase is covered in the queue-processing effect below
+  }, [externalPhase, displayedPhase]);
+
+  /**
+   * Process the queue in a frame loop, ensuring each item
+   * is shown for at least MIN_PHASE_DISPLAY_TIME ms.
+   */
+  useEffect(() => {
+    if (phaseQueue.length === 0) return;
+
+    let rafId: number;
+
+    const processQueue = () => {
+      const now = Date.now();
+      const elapsed = now - lastDisplayTimestampRef.current;
+
+      if (elapsed >= 1000) {
+        // We can move on to the next phase in the queue
+        setPhaseQueue((prevQueue) => {
+          if (prevQueue.length > 0) {
+            const [next, ...rest] = prevQueue;
+            // The first item in the queue is the next displayed
+            setDisplayedPhase(next);
+            lastDisplayTimestampRef.current = Date.now();
+            return rest;
+          }
+          return prevQueue;
+        });
+      }
+      // If not enough time has passed, keep waiting:
+      rafId = requestAnimationFrame(processQueue);
+    };
+
+    // Start checking
+    rafId = requestAnimationFrame(processQueue);
+
+    return () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+    };
+  }, [phaseQueue]);
+
+  return StreamingPhaseText[displayedPhase];
+}
+
 const DOC_DELAY_MS = 100;
 
 export const useStreamingMessages = (

@@ -2593,6 +2593,10 @@ export function ChatPage({
                                               "input") ||
                                           false
                                         }
+                                        secondLevelSubquestions={message.sub_questions?.filter(
+                                          (subQuestion) =>
+                                            subQuestion.level === 1
+                                        )}
                                         secondLevelAssistantMessage={
                                           (message.second_level_message &&
                                           message.second_level_message.length >
@@ -2605,7 +2609,10 @@ export function ChatPage({
                                           message.is_generating || false
                                         }
                                         subQuestions={
-                                          message.sub_questions || []
+                                          message.sub_questions?.filter(
+                                            (subQuestion) =>
+                                              subQuestion.level === 0
+                                          ) || []
                                           // &&
                                           // message.sub_questions.length > 0
                                           //   ? message.sub_questions
