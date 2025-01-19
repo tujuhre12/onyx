@@ -387,7 +387,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   const { dynamicSubQuestions: dynamicSecondLevelQuestions } =
     useStreamingMessages(secondLevelQuestions || [], () => {});
   const memoizedSubQuestions = useMemo(() => {
-    return true ? dynamicSubQuestions : subQuestions;
+    return overallAnswerGenerating ? dynamicSubQuestions : subQuestions;
   }, [overallAnswerGenerating, dynamicSubQuestions, subQuestions]);
 
   const memoizedSecondLevelQuestions = useMemo(() => {
