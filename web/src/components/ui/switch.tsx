@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import * as SwitchPrimitives from "@radix-ui/react-switch";
+import { useField, FieldInputProps } from "formik";
 
 import { cn } from "@/lib/utils";
 
@@ -10,8 +11,9 @@ const Switch = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> & {
     circleClassName?: string;
     size?: "sm" | "md" | "lg";
+    name?: string;
   }
->(({ circleClassName, className, size = "md", ...props }, ref) => {
+>(({ circleClassName, className, size = "md", name, ...props }, ref) => {
   const sizeClasses = {
     sm: "h-4 w-8",
     md: "h-5 w-10",
@@ -30,6 +32,15 @@ const Switch = React.forwardRef<
     lg: "data-[state=checked]:translate-x-6",
   };
 
+  const [field] = name
+    ? useField({ name, type: "checkbox" })
+    : [
+        {
+          value: props.checked,
+          onChange: props.onCheckedChange,
+        } as FieldInputProps<boolean>,
+      ];
+
   return (
     <SwitchPrimitives.Root
       className={cn(
@@ -38,6 +49,11 @@ const Switch = React.forwardRef<
         className
       )}
       {...props}
+      checked={field.value}
+      onCheckedChange={(checked) => {
+        field.onChange({ target: { name, checked } });
+        props.onCheckedChange?.(checked);
+      }}
       ref={ref}
     >
       <SwitchPrimitives.Thumb

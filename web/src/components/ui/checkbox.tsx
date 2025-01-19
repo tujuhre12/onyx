@@ -3,6 +3,7 @@
 import * as React from "react";
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
 import { Check } from "lucide-react";
+import { useField, FieldInputProps } from "formik";
 
 import { cn } from "@/lib/utils";
 
@@ -10,13 +11,23 @@ const Checkbox = React.forwardRef<
   React.ElementRef<typeof CheckboxPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root> & {
     size?: "sm" | "md" | "lg";
+    name?: string;
   }
->(({ className, size = "md", type = "button", ...props }, ref) => {
+>(({ className, size = "md", type = "button", name, ...props }, ref) => {
   const sizeClasses = {
     sm: "h-3 w-3",
     md: "h-4 w-4",
     lg: "h-5 w-5",
   };
+
+  const [field] = name
+    ? useField({ name, type: "checkbox" })
+    : [
+        {
+          value: props.checked,
+          onChange: props.onCheckedChange,
+        } as FieldInputProps<boolean>,
+      ];
 
   return (
     <CheckboxPrimitive.Root
@@ -28,6 +39,11 @@ const Checkbox = React.forwardRef<
         className
       )}
       {...props}
+      checked={field.value}
+      onCheckedChange={(checked) => {
+        field.onChange({ target: { name, checked } });
+        props.onCheckedChange?.(checked);
+      }}
     >
       <CheckboxPrimitive.Indicator
         className={cn("flex items-center justify-center text-current")}

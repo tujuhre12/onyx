@@ -144,8 +144,6 @@ export function AssistantEditor({
     "#6FFFFF",
   ];
 
-  const [showSearchTool, setShowSearchTool] = useState(false);
-
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   // state to persist across formik reformatting
@@ -787,14 +785,8 @@ export function AssistantEditor({
                                       }`}
                                     >
                                       <Switch
-                                        checked={
-                                          values.enabled_tools_map[
-                                            searchTool.id
-                                          ]
-                                        }
                                         size="sm"
                                         onCheckedChange={(checked) => {
-                                          setShowSearchTool(checked);
                                           setFieldValue("num_chunks", null);
                                           toggleToolInValues(searchTool.id);
                                         }}
@@ -828,7 +820,7 @@ export function AssistantEditor({
                   )}
                   {ccPairs.length > 0 &&
                     searchTool &&
-                    showSearchTool &&
+                    values.enabled_tools_map[searchTool.id] &&
                     !(user?.role != "admin" && documentSets.length === 0) && (
                       <CollapsibleSection>
                         <div className="mt-2">
@@ -979,6 +971,7 @@ export function AssistantEditor({
                             onCheckedChange={() => {
                               toggleToolInValues(internetSearchTool.id);
                             }}
+                            name={`enabled_tools_map.${internetSearchTool.id}`}
                           />
                           <div className="flex flex-col ml-2">
                             <span className="text-sm">
@@ -1072,6 +1065,7 @@ export function AssistantEditor({
                     <div className="min-h-[100px]">
                       <div className="flex items-center mb-2">
                         <Switch
+                          name="is_public"
                           size="md"
                           checked={values.is_public}
                           onCheckedChange={(checked) => {
