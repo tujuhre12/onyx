@@ -14,7 +14,7 @@ from onyx.agent_search.pro_search_a.expanded_retrieval.states import (
 ## Graph Input State
 
 
-class BaseRawSearchInput(TypedDict):
+class BaseRawSearchInput(ExpandedRetrievalInput):
     pass
 
 
@@ -38,7 +38,6 @@ class BaseRawSearchOutput(TypedDict):
 
 class BaseRawSearchState(
     BaseRawSearchInput,
-    ExpandedRetrievalInput,
     BaseRawSearchOutput,
 ):
     pass
