@@ -750,7 +750,7 @@ class VespaIndex(DocumentIndex):
         most_recent: bool = False,
     ) -> list[InferenceChunkUncleaned]:
         vespa_where_clauses = build_vespa_filters(filters, include_hidden=True)
-        
+
         if query is None and most_recent:
             # For most recent documents, sort by time in descending order
             yql = (

@@ -75,14 +75,11 @@ def admin_search(
     # If query is empty or whitespace, return most recent documents
     if not query.strip():
         matching_chunks = document_index.admin_retrieval(
-            query=None,
-            filters=final_filters,
-            most_recent=True
+            query=None, filters=final_filters, most_recent=True
         )
     else:
         matching_chunks = document_index.admin_retrieval(
-            query=query,
-            filters=final_filters
+            query=query, filters=final_filters
         )
 
     documents = chunks_or_sections_to_search_docs(matching_chunks)
