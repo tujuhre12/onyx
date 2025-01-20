@@ -88,22 +88,26 @@ jobs:
           cache-from: type=s3,prefix=cache/${{ github.repository }}/integration-tests/integration/,region=${{ env.RUNS_ON_AWS_REGION }},bucket=${{ env.RUNS_ON_S3_BUCKET_CACHE }}
           cache-to: type=s3,prefix=cache/${{ github.repository }}/integration-tests/integration/,region=${{ env.RUNS_ON_AWS_REGION }},bucket=${{ env.RUNS_ON_S3_BUCKET_CACHE }},mode=max
 
-      - name: Save Docker images
+      - name: Save and compress Docker images
         run: |
-          docker save onyxdotapp/onyx-web-server:test > web-server.tar
-          docker save onyxdotapp/onyx-backend:test > backend.tar
-          docker save onyxdotapp/onyx-model-server:test > model-server.tar
-          docker save onyxdotapp/onyx-integration:test > integration.tar
+          # Save and compress images in parallel
+          docker save onyxdotapp/onyx-web-server:test | gzip > web-server.tar.gz &
+          docker save onyxdotapp/onyx-backend:test | gzip > backend.tar.gz &
+          docker save onyxdotapp/onyx-model-server:test | gzip > model-server.tar.gz &
+          docker save onyxdotapp/onyx-integration:test | gzip > integration.tar.gz &
+          wait
 
       - name: Upload Docker images
         uses: actions/upload-artifact@v4
         with:
           name: docker-images
+          compression-level: 9  # Maximum compression
+          retention-days: 1     # Minimize storage
           path: |
-            web-server.tar
-            backend.tar
-            model-server.tar
-            integration.tar
+            web-server.tar.gz
+            backend.tar.gz
+            model-server.tar.gz
+            integration.tar.gz
 
   multi-tenant-tests:
     needs: build-images
@@ -119,10 +123,12 @@ jobs:
 
       - name: Load Docker images
         run: |
-          docker load < web-server.tar
-          docker load < backend.tar
-          docker load < model-server.tar
-          docker load < integration.tar
+          # Decompress and load images in parallel
+          gunzip -c web-server.tar.gz | docker load &
+          gunzip -c backend.tar.gz | docker load &
+          gunzip -c model-server.tar.gz | docker load &
+          gunzip -c integration.tar.gz | docker load &
+          wait
 
       - name: Start Docker containers for multi-tenant tests
         run: |
@@ -194,10 +200,12 @@ jobs:
 
       - name: Load Docker images
         run: |
-          docker load < web-server.tar
-          docker load < backend.tar
-          docker load < model-server.tar
-          docker load < integration.tar
+          # Decompress and load images in parallel
+          gunzip -c web-server.tar.gz | docker load &
+          gunzip -c backend.tar.gz | docker load &
+          gunzip -c model-server.tar.gz | docker load &
+          gunzip -c integration.tar.gz | docker load &
+          wait
 
       - name: Start Docker containers
         run: |
@@ -269,10 +277,12 @@ jobs:
 
       - name: Load Docker images
         run: |
-          docker load < web-server.tar
-          docker load < backend.tar
-          docker load < model-server.tar
-          docker load < integration.tar
+          # Decompress and load images in parallel
+          gunzip -c web-server.tar.gz | docker load &
+          gunzip -c backend.tar.gz | docker load &
+          gunzip -c model-server.tar.gz | docker load &
+          gunzip -c integration.tar.gz | docker load &
+          wait
 
       - name: Start Docker containers
         run: |
