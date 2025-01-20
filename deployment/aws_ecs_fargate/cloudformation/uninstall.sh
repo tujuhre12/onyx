@@ -23,7 +23,7 @@ delete_stack() {
 
   if [ "$stack_name" == "${ENVIRONMENT}-onyx-cluster" ]; then
       echo "Removing all objects and directories from the onyx config s3 bucket."
-      aws s3 rm "s3://${ENVIRONMENT}-${S3_BUCKET} --recursive"
+      aws s3 rm "s3://${ENVIRONMENT}-${S3_BUCKET}" --recursive
       sleep 5
   fi
 
