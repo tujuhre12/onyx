@@ -94,14 +94,13 @@ export function AgenticToggle({
             </h3>
           </div>
           <p className="text-xs text-gray-600 mb-2">
-            Agent Search uses advanced AI to improve search results, making them
-            more accurate and relevant to your needs.
+            Agent Search uses AI agents to break down questions and run deep
+            iterative research on promising pathways. Gives more thorough and
+            accurate responses but takes slightly longer.
           </p>
           <ul className="text-xs text-gray-600 list-disc list-inside">
-            <li>Better understanding of complex queries</li>
-            <li>Connects information across multiple documents</li>
-            <li>Improves over time based on usage</li>
-            <li>Reduces hallucinations in search results</li>
+            <li>Greater breadth and accuracy of search results</li>
+            <li>More comprehensive answers</li>
           </ul>
         </TooltipContent>
       </Tooltip>

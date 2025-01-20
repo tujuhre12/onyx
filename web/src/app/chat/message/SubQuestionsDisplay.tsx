@@ -658,7 +658,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
         {showSummarizing && (
           <SubQuestionDisplay
             currentlyOpen={true}
-            currentlyClosed={documents && documents.length > 0}
+            currentlyClosed={documents != null && documents.length > 0}
             subQuestion={null}
             documents={documents}
             isLast={true}
