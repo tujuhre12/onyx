@@ -320,7 +320,7 @@ const SubQuestionDisplay: React.FC<{
             </div>
             <ChevronDown
               className={`mt-0.5 text-text-darker transition-transform duration-500 ease-in-out ${
-                toggled ? "rotate-180" : ""
+                toggled ? "-rotate-90" : ""
               }`}
               size={20}
             />
@@ -407,21 +407,22 @@ const SubQuestionDisplay: React.FC<{
             )}
           </div>
 
-          {temporaryDisplay && status === ToggleState.InProgress && (
-            <div
-              className={`transform transition-all duration-100 ease-in-out origin-top ${
-                toggled ? "scale-y-100 opacity-100" : "scale-y-95 opacity-0"
-              }`}
-            >
-              <div className="bg-blaack pl-0">
-                <div className="flex flex-col gap-2">
-                  <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                    {temporaryDisplay?.tinyQuestion}
+          {temporaryDisplay &&
+            (status === ToggleState.InProgress || toggled) && (
+              <div
+                className={`transform transition-all duration-100 ease-in-out origin-top ${
+                  toggled ? "scale-y-100 opacity-100" : "scale-y-95 opacity-0"
+                }`}
+              >
+                <div className="bg-blaack pl-0">
+                  <div className="flex flex-col gap-2">
+                    <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                      {temporaryDisplay?.tinyQuestion}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
     </div>

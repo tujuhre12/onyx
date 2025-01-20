@@ -96,6 +96,7 @@ export function AgenticToggle({
             <li>Better understanding of complex queries</li>
             <li>Connects information across multiple documents</li>
             <li>Improves over time based on usage</li>
+            <li>Reduces hallucinations in search results</li>
           </ul>
         </TooltipContent>
       </Tooltip>
