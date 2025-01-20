@@ -248,5 +248,7 @@ def generate_initial_answer(
         generated_sub_questions=decomp_questions,
         agent_base_end_time=agent_base_end_time,
         agent_base_metrics=agent_base_metrics,
-        log_messages=[f"Initial answer generation: {now_end - now_start}"],
+        log_messages=[
+            f"{now_end} -- Main - Initial Answer generation,  Time taken: {now_end - now_start}"
+        ],
     )

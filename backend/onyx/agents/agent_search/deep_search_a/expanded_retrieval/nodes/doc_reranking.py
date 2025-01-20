@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import cast
 
 from langchain_core.runnables.config import RunnableConfig
@@ -24,6 +25,7 @@ from onyx.db.engine import get_session_context_manager
 def doc_reranking(
     state: ExpandedRetrievalState, config: RunnableConfig
 ) -> DocRerankingUpdate:
+    now_start = datetime.now()
     verified_documents = state["verified_documents"]
 
     # Rerank post retrieval and verification. First, create a search query
@@ -61,9 +63,13 @@ def doc_reranking(
 
     # TODO: stream deduped docs here, or decide to use search tool ranking/verification
 
+    now_end = datetime.now()
     return DocRerankingUpdate(
         reranked_documents=[
             doc for doc in reranked_documents if type(doc) == InferenceSection
         ][:AGENT_RERANKING_MAX_QUERY_RETRIEVAL_RESULTS],
         sub_question_retrieval_stats=fit_scores,
+        log_messages=[
+            f"{now_end} -- Expanded Retrieval - Reranking - Time taken: {now_end - now_start}"
+        ],
     )

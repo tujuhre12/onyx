@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from onyx.agents.agent_search.deep_search_a.answer_initial_sub_question.states import (
     AnswerQuestionOutput,
 )
@@ -10,6 +12,8 @@ from onyx.agents.agent_search.shared_graph_utils.models import (
 
 
 def format_answer(state: AnswerQuestionState) -> AnswerQuestionOutput:
+    datetime.now()
+    datetime.now()
     return AnswerQuestionOutput(
         answer_results=[
             QuestionAnswerResults(
@@ -21,5 +25,5 @@ def format_answer(state: AnswerQuestionState) -> AnswerQuestionOutput:
                 documents=state["documents"],
                 sub_question_retrieval_stats=state["sub_question_retrieval_stats"],
             )
-        ],
+        ]
     )

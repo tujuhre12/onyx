@@ -15,13 +15,21 @@ from onyx.context.search.models import InferenceSection
 
 
 ## Update States
-class QACheckUpdate(TypedDict):
+class QACheckUpdateBase(TypedDict):
     answer_quality: str
 
 
-class QAGenerationUpdate(TypedDict):
+class QACheckUpdate(QACheckUpdateBase):
+    log_messages: list[str]
+
+
+class QAGenerationUpdateBase(TypedDict):
     answer: str
     # answer_stat: AnswerStats
+
+
+class QAGenerationUpdate(QAGenerationUpdateBase):
+    log_messages: list[str]
 
 
 class RetrievalIngestionUpdate(TypedDict):
@@ -45,8 +53,8 @@ class AnswerQuestionInput(SubgraphCoreState):
 
 class AnswerQuestionState(
     AnswerQuestionInput,
-    QAGenerationUpdate,
-    QACheckUpdate,
+    QAGenerationUpdateBase,
+    QACheckUpdateBase,
     RetrievalIngestionUpdate,
 ):
     pass

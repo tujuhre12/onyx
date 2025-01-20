@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import cast
 
 from langchain_core.runnables.config import RunnableConfig
@@ -35,16 +36,21 @@ def doc_retrieval(state: RetrievalInput, config: RunnableConfig) -> DocRetrieval
         expanded_retrieval_results: list[ExpandedRetrievalResult]
         retrieved_documents: list[InferenceSection]
     """
+    now_start = datetime.now()
     query_to_retrieve = state["query_to_retrieve"]
     agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     search_tool = agent_a_config.search_tool
 
     retrieved_docs: list[InferenceSection] = []
     if not query_to_retrieve.strip():
+        now_end = datetime.now()
         logger.warning("Empty query, skipping retrieval")
         return DocRetrievalUpdate(
             expanded_retrieval_results=[],
             retrieved_documents=[],
+            log_messages=[
+                f"{now_end} -- Expanded Retrieval - Retrieval - Empty query - Time taken: {now_end - now_start}"
+            ],
         )
 
     query_info = None
@@ -87,7 +93,12 @@ def doc_retrieval(state: RetrievalInput, config: RunnableConfig) -> DocRetrieval
         stats=fit_scores,
         query_info=query_info,
     )
+
+    now_end = datetime.now()
     return DocRetrievalUpdate(
         expanded_retrieval_results=[expanded_retrieval_result],
         retrieved_documents=retrieved_docs,
+        log_messages=[
+            f"{now_end} -- Expanded Retrieval - Retrieval - Time taken: {now_end - now_start}"
+        ],
     )

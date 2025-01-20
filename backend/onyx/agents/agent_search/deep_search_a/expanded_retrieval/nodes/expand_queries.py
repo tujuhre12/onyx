@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import cast
 
 from langchain_core.messages import HumanMessage
@@ -27,6 +28,7 @@ def expand_queries(
     # Sometimes we want to expand the original question, sometimes we want to expand a sub-question.
     # When we are running this node on the original question, no question is explictly passed in.
     # Instead, we use the original question from the search request.
+    now_start = datetime.now()
     agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     question = state.get("question", agent_a_config.search_request.query)
     llm = agent_a_config.fast_llm
@@ -54,6 +56,10 @@ def expand_queries(
 
     rewritten_queries = llm_response.split("\n")
 
+    now_end = datetime.now()
     return QueryExpansionUpdate(
         expanded_queries=rewritten_queries,
+        log_messages=[
+            f"{now_end} -- Expanded Retrieval - Query expansion {level}-{question_nr}- Time taken: {now_end - now_start}"
+        ],
     )

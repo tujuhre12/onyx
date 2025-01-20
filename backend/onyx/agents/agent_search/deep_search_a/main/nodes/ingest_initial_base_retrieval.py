@@ -37,4 +37,7 @@ def ingest_initial_base_retrieval(
             "base_expanded_retrieval_result"
         ].all_documents,
         original_question_retrieval_stats=sub_question_retrieval_stats,
+        log_messages=[
+            f"{now_end} -- Main - Ingestion base retrieval,  Time taken: {now_end - now_start}"
+        ],
     )

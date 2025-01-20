@@ -89,27 +89,43 @@ class RefinedAnswerUpdate(RefinedAgentEndStats, RefinedAnswerUpdateBase):
     pass
 
 
-class InitialAnswerQualityUpdate(TypedDict):
+class InitialAnswerQualityUpdateBase(TypedDict):
     initial_answer_quality: bool
 
 
-class RequireRefinedAnswerUpdate(TypedDict):
+class InitialAnswerQualityUpdate(InitialAnswerQualityUpdateBase):
+    log_messages: list[str]
+
+
+class RequireRefinedAnswerUpdateBase(TypedDict):
     require_refined_answer: bool
 
 
-class DecompAnswersUpdate(TypedDict):
+class RequireRefinedAnswerUpdate(RequireRefinedAnswerUpdateBase):
+    log_messages: list[str]
+
+
+class DecompAnswersUpdateBase(TypedDict):
     documents: Annotated[list[InferenceSection], dedup_inference_sections]
     decomp_answer_results: Annotated[
         list[QuestionAnswerResults], dedup_question_answer_results
     ]
 
 
-class FollowUpDecompAnswersUpdate(TypedDict):
+class DecompAnswersUpdate(DecompAnswersUpdateBase):
+    log_messages: list[str]
+
+
+class FollowUpDecompAnswersUpdateBase(TypedDict):
     refined_documents: Annotated[list[InferenceSection], dedup_inference_sections]
     refined_decomp_answer_results: Annotated[list[QuestionAnswerResults], add]
 
 
-class ExpandedRetrievalUpdate(TypedDict):
+class FollowUpDecompAnswersUpdate(FollowUpDecompAnswersUpdateBase):
+    log_messages: list[str]
+
+
+class ExpandedRetrievalUpdateBase(TypedDict):
     all_original_question_documents: Annotated[
         list[InferenceSection], dedup_inference_sections
     ]
@@ -117,8 +133,16 @@ class ExpandedRetrievalUpdate(TypedDict):
     original_question_retrieval_stats: AgentChunkStats
 
 
-class EntityTermExtractionUpdate(TypedDict):
+class ExpandedRetrievalUpdate(ExpandedRetrievalUpdateBase):
+    log_messages: list[str]
+
+
+class EntityTermExtractionUpdateBase(TypedDict):
     entity_retlation_term_extractions: EntityRelationshipTermExtraction
+
+
+class EntityTermExtractionUpdate(EntityTermExtractionUpdateBase):
+    log_messages: list[str]
 
 
 class FollowUpSubQuestionsUpdateBase(TypedDict):
@@ -147,14 +171,14 @@ class MainState(
     MainInput,
     BaseDecompUpdateBase,
     InitialAnswerUpdateBase,
-    InitialAnswerBASEUpdate,
-    DecompAnswersUpdate,
-    ExpandedRetrievalUpdate,
-    EntityTermExtractionUpdate,
-    InitialAnswerQualityUpdate,
-    RequireRefinedAnswerUpdate,
+    # InitialAnswerBASEUpdate,
+    DecompAnswersUpdateBase,
+    ExpandedRetrievalUpdateBase,
+    EntityTermExtractionUpdateBase,
+    InitialAnswerQualityUpdateBase,
+    RequireRefinedAnswerUpdateBase,
     FollowUpSubQuestionsUpdateBase,
-    FollowUpDecompAnswersUpdate,
+    FollowUpDecompAnswersUpdateBase,
     RefinedAnswerUpdateBase,
     RefinedAgentStartStats,
     RefinedAgentEndStats,
@@ -168,4 +192,4 @@ class MainState(
 
 
 class MainOutput(TypedDict):
-    pass
+    log_messages: list[str]

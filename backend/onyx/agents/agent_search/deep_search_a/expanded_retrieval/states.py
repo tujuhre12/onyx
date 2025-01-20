@@ -28,22 +28,34 @@ class ExpandedRetrievalInput(SubgraphCoreState):
 ## Update/Return States
 
 
-class QueryExpansionUpdate(TypedDict):
+class QueryExpansionUpdateBase(TypedDict):
     expanded_queries: list[str]
+
+
+class QueryExpansionUpdate(QueryExpansionUpdateBase):
+    log_messages: list[str]
 
 
 class DocVerificationUpdate(TypedDict):
     verified_documents: Annotated[list[InferenceSection], dedup_inference_sections]
 
 
-class DocRetrievalUpdate(TypedDict):
+class DocRetrievalUpdateBase(TypedDict):
     expanded_retrieval_results: Annotated[list[QueryResult], add]
     retrieved_documents: Annotated[list[InferenceSection], dedup_inference_sections]
 
 
-class DocRerankingUpdate(TypedDict):
+class DocRetrievalUpdate(DocRetrievalUpdateBase):
+    log_messages: list[str]
+
+
+class DocRerankingUpdateBase(TypedDict):
     reranked_documents: Annotated[list[InferenceSection], dedup_inference_sections]
     sub_question_retrieval_stats: RetrievalFitStats | None
+
+
+class DocRerankingUpdate(DocRerankingUpdateBase):
+    log_messages: list[str]
 
 
 class ExpandedRetrievalUpdate(TypedDict):
@@ -53,9 +65,13 @@ class ExpandedRetrievalUpdate(TypedDict):
 ## Graph Output State
 
 
-class ExpandedRetrievalOutput(TypedDict):
+class ExpandedRetrievalOutputBase(TypedDict):
     expanded_retrieval_result: ExpandedRetrievalResult
     base_expanded_retrieval_result: ExpandedRetrievalResult
+
+
+class ExpandedRetrievalOutput(ExpandedRetrievalOutputBase):
+    log_messages: list[str]
 
 
 ## Graph State
@@ -64,11 +80,11 @@ class ExpandedRetrievalOutput(TypedDict):
 class ExpandedRetrievalState(
     # This includes the core state
     ExpandedRetrievalInput,
-    QueryExpansionUpdate,
-    DocRetrievalUpdate,
+    QueryExpansionUpdateBase,
+    DocRetrievalUpdateBase,
     DocVerificationUpdate,
-    DocRerankingUpdate,
-    ExpandedRetrievalOutput,
+    DocRerankingUpdateBase,
+    ExpandedRetrievalOutputBase,
 ):
     pass
 
