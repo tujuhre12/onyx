@@ -2,18 +2,20 @@
 
 import * as React from "react";
 import * as SwitchPrimitives from "@radix-ui/react-switch";
-import { useField, FieldInputProps } from "formik";
+import { useField } from "formik";
 
 import { cn } from "@/lib/utils";
 
-const Switch = React.forwardRef<
+interface BaseSwitchProps
+  extends React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> {
+  circleClassName?: string;
+  size?: "sm" | "md" | "lg";
+}
+
+export const Switch = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> & {
-    circleClassName?: string;
-    size?: "sm" | "md" | "lg";
-    name?: string;
-  }
->(({ circleClassName, className, size = "md", name, ...props }, ref) => {
+  BaseSwitchProps
+>(({ circleClassName, className, size = "md", ...props }, ref) => {
   const sizeClasses = {
     sm: "h-4 w-8",
     md: "h-5 w-10",
@@ -32,33 +34,26 @@ const Switch = React.forwardRef<
     lg: "data-[state=checked]:translate-x-6",
   };
 
-  const [field] = name
-    ? useField({ name, type: "checkbox" })
-    : [
-        {
-          value: props.checked,
-          onChange: props.onCheckedChange,
-        } as FieldInputProps<boolean>,
-      ];
-
   return (
     <SwitchPrimitives.Root
+      ref={ref}
       className={cn(
-        "peer inline-flex shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-neutral-900 data-[state=unchecked]:bg-neutral-200 dark:focus-visible:ring-neutral-300 dark:focus-visible:ring-offset-neutral-950 dark:data-[state=checked]:bg-neutral-50 dark:data-[state=unchecked]:bg-neutral-800",
+        "peer inline-flex shrink-0 cursor-pointer items-center rounded-full " +
+          "border-2 border-transparent transition-colors focus-visible:outline-none " +
+          "focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 " +
+          "focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 " +
+          "data-[state=checked]:bg-neutral-900 data-[state=unchecked]:bg-neutral-200 " +
+          "dark:focus-visible:ring-neutral-300 dark:focus-visible:ring-offset-neutral-950 " +
+          "dark:data-[state=checked]:bg-neutral-50 dark:data-[state=unchecked]:bg-neutral-800",
         sizeClasses[size],
         className
       )}
       {...props}
-      checked={field.value}
-      onCheckedChange={(checked) => {
-        field.onChange({ target: { name, checked } });
-        props.onCheckedChange?.(checked);
-      }}
-      ref={ref}
     >
       <SwitchPrimitives.Thumb
         className={cn(
-          "pointer-events-none block rounded-full bg-white shadow-lg ring-0 transition-transform data-[state=unchecked]:translate-x-0 dark:bg-neutral-950",
+          "pointer-events-none block rounded-full bg-white shadow-lg ring-0 transition-transform " +
+            "data-[state=unchecked]:translate-x-0 dark:bg-neutral-950",
           thumbSizeClasses[size],
           translateClasses[size],
           circleClassName
@@ -67,6 +62,30 @@ const Switch = React.forwardRef<
     </SwitchPrimitives.Root>
   );
 });
-Switch.displayName = SwitchPrimitives.Root.displayName;
 
-export { Switch };
+Switch.displayName = "Switch";
+
+interface SwitchFieldProps
+  extends Omit<BaseSwitchProps, "checked" | "onCheckedChange"> {
+  name: string;
+  onCheckedChange?: (checked: boolean) => void;
+}
+
+export const SwitchField: React.FC<SwitchFieldProps> = ({
+  name,
+  onCheckedChange,
+  ...props
+}) => {
+  const [field, , helpers] = useField<boolean>({ name, type: "checkbox" });
+
+  return (
+    <Switch
+      checked={field.value}
+      onCheckedChange={(checked) => {
+        helpers.setValue(Boolean(checked));
+        onCheckedChange?.(checked);
+      }}
+      {...props}
+    />
+  );
+};
