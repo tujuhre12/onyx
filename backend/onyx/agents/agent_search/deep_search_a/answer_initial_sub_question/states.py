@@ -35,6 +35,7 @@ class QAGenerationUpdate(QAGenerationUpdateBase):
 class RetrievalIngestionUpdate(TypedDict):
     expanded_retrieval_results: list[QueryResult]
     documents: Annotated[list[InferenceSection], dedup_inference_sections]
+    context_documents: Annotated[list[InferenceSection], dedup_inference_sections]
     sub_question_retrieval_stats: AgentChunkStats
 
 

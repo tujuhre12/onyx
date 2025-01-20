@@ -36,10 +36,11 @@ def format_results(
 
     agent_a_config = cast(AgentSearchConfig, config["metadata"]["config"])
     # main question docs will be sent later after aggregation and deduping with sub-question docs
+
+    stream_documents = state["reranked_documents"]
+
     if not (level == 0 and question_nr == 0):
-        if len(state["reranked_documents"]) > 0:
-            stream_documents = state["reranked_documents"]
-        else:
+        if len(state["reranked_documents"]) == 0:
             # The sub-question is used as the last query. If no verified documents are found, stream
             # the top 3 for that one. We may want to revisit this.
             stream_documents = state["expanded_retrieval_results"][-1].search_results[
@@ -77,7 +78,8 @@ def format_results(
     return ExpandedRetrievalUpdate(
         expanded_retrieval_result=ExpandedRetrievalResult(
             expanded_queries_results=state["expanded_retrieval_results"],
-            all_documents=state["reranked_documents"],
+            all_documents=stream_documents,
+            context_documents=state["reranked_documents"],
             sub_question_retrieval_stats=sub_question_retrieval_stats,
         ),
     )

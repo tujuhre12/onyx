@@ -215,6 +215,7 @@ def get_test_config(
         primary_llm=primary_llm,
         fast_llm=fast_llm,
         search_tool=search_tool,
+        db_session=db_session,
     )
 
     return config, search_tool

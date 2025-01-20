@@ -42,10 +42,11 @@ def answer_generation(
     agent_search_config = cast(AgentSearchConfig, config["metadata"]["config"])
     question = state["question"]
     docs = state["documents"]
+    context_docs = state["context_documents"]
     level, question_nr = parse_question_id(state["question_id"])
     persona_prompt = get_persona_prompt(agent_search_config.search_request.persona)
 
-    if len(docs) == 0:
+    if len(context_docs) == 0:
         answer_str = UNKNOWN_ANSWER
         dispatch_custom_event(
             "sub_answers",
@@ -110,6 +111,6 @@ def answer_generation(
     return QAGenerationUpdate(
         answer=answer_str,
         log_messages=[
-            f"{now_end} -- Answer generation SQ-{level} - Q{question_nr} - Time taken: {now_end - now_start}"
+            f"{now_end} -- Answer generation SQ-{level}-{question_nr} - Time taken: {now_end - now_start}"
         ],
     )
