@@ -116,9 +116,7 @@ export function Modal({
                   {icon && icon({ size: 30 })}
                 </h2>
               </div>
-              {!hideDividerForTitle && (
-                <Separator className={` ${!removePadding ? "mb-0" : ""}`} />
-              )}
+              {!hideDividerForTitle && <Separator />}
             </>
           )}
         </div>
