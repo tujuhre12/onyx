@@ -87,6 +87,7 @@ const sentryWebpackPluginOptions = {
   silent: !sentryEnabled, // Silence output when Sentry is disabled
   dryRun: !sentryEnabled, // Don't upload source maps when Sentry is disabled
   sourceMaps: {
+    deleteSourcemapsAfterUpload: true,
     include: ["./.next"],
     validate: false,
     urlPrefix: "~/_next",
