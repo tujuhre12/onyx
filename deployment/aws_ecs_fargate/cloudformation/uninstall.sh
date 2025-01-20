@@ -14,7 +14,9 @@ STACK_NAMES=(
   "${ENVIRONMENT}-onyx-vespaengine-service"
   "${ENVIRONMENT}-onyx-redis-service"
   "${ENVIRONMENT}-onyx-postgres-service"
+  "${ENVIRONMENT}-onyx-lambda-cron-restart-services"
   "${ENVIRONMENT}-onyx-cluster"
+  "${ENVIRONMENT}-onyx-acm"
   "${ENVIRONMENT}-onyx-efs"
   )
 
@@ -27,23 +29,29 @@ delete_stack() {
       sleep 5
   fi
 
-  echo "Deleting stack: $stack_name..."
-  aws cloudformation delete-stack \
-    --stack-name "$stack_name" \
-    --region "$AWS_REGION"
+  echo "Checking if stack $stack_name exists..."
+  if aws cloudformation describe-stacks --stack-name "$stack_name" --region "$AWS_REGION" > /dev/null 2>&1; then
+  	echo "Deleting stack: $stack_name..."
+  	aws cloudformation delete-stack \
+		--stack-name "$stack_name" \
+		--region "$AWS_REGION"
+	
+	echo "Waiting for stack $stack_name to be deleted..."
+	aws cloudformation wait stack-delete-complete \
+		--stack-name "$stack_name" \
+		--region "$AWS_REGION"
 
-  echo "Waiting for stack $stack_name to be deleted..."
-  aws cloudformation wait stack-delete-complete \
-    --stack-name "$stack_name" \
-    --region "$AWS_REGION"
-
-  if [ $? -eq 0 ]; then
-    echo "Stack $stack_name deleted successfully."
-    sleep 10
+	if [ $? -eq 0 ]; then
+		echo "Stack $stack_name deleted successfully."
+		sleep 10
+	else
+		echo "Failed to delete stack $stack_name. Exiting."
+		exit 1
+	fi
   else
-    echo "Failed to delete stack $stack_name. Exiting."
-    exit 1
-  fi
+	echo "Stack $stack_name does not exist, skipping."
+	return 0
+  fi	
 }
 
 for stack_name in "${STACK_NAMES[@]}"; do
