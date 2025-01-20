@@ -156,62 +156,53 @@ export const AgenticMessage = ({
   setStreamingAllowed?: (allowed: boolean) => void;
   streamingAllowed?: boolean;
 }) => {
-  const [allowStreaming, setAllowStreaming] = useState(false);
-  const toolCallGenerating = toolCall && !toolCall.tool_result;
+  const [streamedContent, setStreamedContent] = useState(
+    typeof content === "string" ? content : ""
+  );
 
-  const processContent = (content: string | JSX.Element) => {
-    if (typeof content !== "string") {
-      return content;
-    }
+  const [lastKnownContentLength, setLastKnownContentLength] = useState(0);
+
+  const [allowStreaming, setAllowStreaming] = useState(false);
+
+  const alternativeContent = secondLevelAssistantMessage || "";
+
+  const processContent = (incoming: string | JSX.Element) => {
+    if (typeof incoming !== "string") return incoming;
+
+    let processed = incoming;
 
     const codeBlockRegex = /```(\w*)\n[\s\S]*?```|```[\s\S]*?$/g;
-    const matches = content.match(codeBlockRegex);
-
+    const matches = processed.match(codeBlockRegex);
     if (matches) {
-      content = matches.reduce((acc, match) => {
+      processed = matches.reduce((acc, match) => {
         if (!match.match(/```\w+/)) {
           return acc.replace(match, match.replace("```", "```plaintext"));
         }
         return acc;
-      }, content);
+      }, processed);
 
       const lastMatch = matches[matches.length - 1];
       if (!lastMatch.endsWith("```")) {
-        return preprocessLaTeX(content);
+        processed = preprocessLaTeX(processed);
       }
     }
 
-    // Turn {{number}} into citation in content
-    content = content.replace(/\{\{(\d+)\}\}/g, (match, p1) => {
+    processed = processed.replace(/\{\{(\d+)\}\}/g, (match, p1) => {
       const citationNumber = parseInt(p1, 10);
       return `[[${citationNumber}]]()`;
     });
 
-    // Add () after ]] if not present
-    content = content.replace(/\]\](?!\()/g, "]]()");
+    processed = processed.replace(/\]\](?!\()/g, "]]()");
 
-    // Turn {{number}} into [[Qnumber]] citation in content
-    // content = content.replace(/\{\{(\d+)\}\}/g, (match, p1) => {
-    //   const questionNumber = parseInt(p1, 10);
-    //   return `[[Q${questionNumber}]]()`;
-    // });
-
-    return (
-      preprocessLaTeX(content) +
-      (!isComplete && !toolCallGenerating ? " [*]() " : "")
-    );
+    return processed;
   };
-  const alternativeContent = secondLevelAssistantMessage
-    ? (processContent(secondLevelAssistantMessage as string) as string)
-    : undefined;
-  // console.log()
 
   const finalContent = processContent(content) as string;
-
-  const [isPulsing, setIsPulsing] = useState(false);
+  const finalAlternativeContent = processContent(alternativeContent) as string;
 
   const [isViewingInitialAnswer, setIsViewingInitialAnswer] = useState(true);
 
+  const [isPulsing, setIsPulsing] = useState(false);
   const [isRegenerateHovered, setIsRegenerateHovered] = useState(false);
   const [isRegenerateDropdownVisible, setIsRegenerateDropdownVisible] =
     useState(false);
@@ -219,7 +210,6 @@ export const AgenticMessage = ({
   const { isHovering, trackedElementRef, hoverElementRef } = useMouseTracking();
 
   const settings = useContext(SettingsContext);
-  // this is needed to give Prism a chance to load
 
   const selectedDocumentIds =
     selectedDocuments?.map((document) => document.document_id) || [];
@@ -332,8 +322,7 @@ export const AgenticMessage = ({
       a: anchorCallback,
       p: paragraphCallback,
       code: ({ node, className, children }: any) => {
-        const codeText = extractCodeText(node, finalContent, children);
-
+        const codeText = extractCodeText(node, streamedContent, children);
         return (
           <CodeBlock className={className} codeText={codeText}>
             {children}
@@ -341,21 +330,35 @@ export const AgenticMessage = ({
         );
       },
     }),
-    [anchorCallback, paragraphCallback, finalContent]
+    [anchorCallback, paragraphCallback, streamedContent]
   );
 
   const renderedAlternativeMarkdown = useMemo(() => {
     return (
       <ReactMarkdown
         className="prose max-w-full text-base"
-        components={markdownComponents}
+        components={{
+          ...markdownComponents,
+          code: ({ node, className, children }: any) => {
+            const altCode = extractCodeText(
+              node,
+              finalAlternativeContent,
+              children
+            );
+            return (
+              <CodeBlock className={className} codeText={altCode}>
+                {children}
+              </CodeBlock>
+            );
+          },
+        }}
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[[rehypePrism, { ignoreMissing: true }], rehypeKatex]}
       >
-        {alternativeContent}
+        {finalAlternativeContent}
       </ReactMarkdown>
     );
-  }, [alternativeContent, markdownComponents]);
+  }, [markdownComponents, finalAlternativeContent]);
 
   const renderedMarkdown = useMemo(() => {
     return (
@@ -365,23 +368,10 @@ export const AgenticMessage = ({
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[[rehypePrism, { ignoreMissing: true }], rehypeKatex]}
       >
-        {finalContent}
+        {streamedContent}
       </ReactMarkdown>
     );
-  }, [finalContent, markdownComponents]);
-
-  // export interface BaseQuestionIdentifier {
-  //   level: number;
-  //   level_question_nr: number;
-  // }
-
-  // export interface SubQuestionDetail extends BaseQuestionIdentifier {
-  //   question: string;
-  //   answer: string;
-  //   sub_queries?: SubQueryDetail[] | null;
-  //   context_docs?: { top_documents: OnyxDocument[] } | null;
-  //   is_complete?: boolean;
-  // }
+  }, [streamedContent, markdownComponents]);
 
   const currentState = secondLevelSubquestions?.[0]
     ? secondLevelSubquestions[0].answer
@@ -398,27 +388,54 @@ export const AgenticMessage = ({
     : StreamingPhase.WAITING;
 
   const message = useOrderedPhases(currentState);
-  // export enum StreamingPhase {s
-  //   WAITING = "waiting",
-  //   SUB_QUERIES = "sub_queries",
-  //   CONTEXT_DOCS = "context_docs",
-  //   ANSWER = "answer",
-  //   COMPLETE = "complete",
-  // }
-
-  // export const StreamingPhaseText: Record<StreamingPhase, string> = {
-  //   [StreamingPhase.WAITING]: "Extracting key terms",
-  //   [StreamingPhase.SUB_QUERIES]: "Identifying additional questions",
-  //   [StreamingPhase.CONTEXT_DOCS]: "Reading through more documents",
-  //   [StreamingPhase.ANSWER]: "Generating new refined answer",
-  //   [StreamingPhase.COMPLETE]: "Comparing results",
-  // };
 
   const includeMessageSwitcher =
     currentMessageInd !== undefined &&
     onMessageSelection &&
     otherMessagesCanSwitchTo &&
     otherMessagesCanSwitchTo.length > 1;
+
+  useEffect(() => {
+    if (!allowStreaming) {
+      if (typeof content === "string") {
+        setStreamedContent(finalContent);
+        setLastKnownContentLength(finalContent.length);
+      }
+      return;
+    }
+
+    if (typeof finalContent !== "string") return;
+
+    let currentIndex = streamedContent.length;
+    let intervalId: NodeJS.Timeout | null = null;
+
+    if (finalContent.length > currentIndex) {
+      intervalId = setInterval(() => {
+        setStreamedContent((prev) => {
+          if (prev.length < finalContent.length) {
+            const nextLength = Math.min(prev.length + 5, finalContent.length);
+            return finalContent.slice(0, nextLength);
+          } else {
+            if (intervalId) clearInterval(intervalId);
+            return finalContent;
+          }
+        });
+      }, 5);
+    } else {
+      setStreamedContent(finalContent);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      setLastKnownContentLength(finalContent.length);
+    };
+  }, [
+    allowStreaming,
+    finalContent,
+    streamedContent,
+    content,
+    lastKnownContentLength,
+  ]);
 
   return (
     <div
@@ -463,7 +480,7 @@ export const AgenticMessage = ({
                   )}
 
                   {/* For debugging purposes */}
-                  {/* <SubQuestionProgress subQuestions={subQuestions || []} /> */}
+                  <SubQuestionProgress subQuestions={subQuestions || []} />
 
                   {(allowStreaming &&
                     finalContent &&
@@ -480,8 +497,6 @@ export const AgenticMessage = ({
                           {secondLevelSubquestions &&
                           secondLevelSubquestions.length > 0 &&
                           secondLevelGenerating ? (
-                            // streamedContent.length ==
-                            //   (finalContent as string).length &&
                             <Popover>
                               <PopoverTrigger asChild>
                                 <div className="flex loading-text items-center gap-x-2 text-black text-sm font-medium cursor-pointer hover:text-blue-600 transition-colors duration-200">

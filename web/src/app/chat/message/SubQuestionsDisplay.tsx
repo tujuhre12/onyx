@@ -220,7 +220,7 @@ const SubQuestionDisplay: React.FC<{
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (toggled) {
+    if (toggled && !temporaryDisplay) {
       setIsVisible(true);
     } else {
       timer = setTimeout(() => setIsVisible(false), 500);
@@ -291,19 +291,26 @@ const SubQuestionDisplay: React.FC<{
         className={`flex items-start ${!isLast ? "pb-4" : ""}`}
       >
         <div
-          className={`absolute left-0 w-3 h-3 rounded-full mt-[9px] z-10 ${
-            status === ToggleState.Todo
-              ? "border-2 border-neutral-700 bg-background"
-              : status === ToggleState.InProgress
-                ? "bg-neutral-700 rotating-circle"
-                : "bg-neutral-700 flex items-center  justify-center"
-          }`}
+          className={`absolute left-0 w-3 h-3 rounded-full mt-[9px] z-10 
+            bg-background border-2 border-background-900  "
+            ${
+              status === ToggleState.Todo
+                ? "border-2 border-background-900 bg-background"
+                : status === ToggleState.InProgress
+                  ? "bg-background border-2 border-background-900 rotating-border"
+                  : "bg-background-900 flex items-center  justify-center"
+            } 
+         `}
         >
           {status === ToggleState.Done && (
             <CheckIcon className="m-auto text-white" size={8} />
           )}
         </div>
-        <div className="ml-8 w-full">
+        <div
+          className={` w-full ${
+            status === ToggleState.InProgress ? "ml-5" : "ml-8"
+          }`}
+        >
           <div
             className="flex items-start py-1 cursor-pointer"
             onClick={() => setToggled(!toggled)}
@@ -323,92 +330,98 @@ const SubQuestionDisplay: React.FC<{
               toggled ? "max-h-[1000px]" : "max-h-0"
             }`}
           >
-            {isVisible && (
+            {isVisible && subQuestion && (
               <div
                 className={`transform transition-all duration-100 ease-in-out origin-top ${
                   toggled ? "scale-y-100 opacity-100" : "scale-y-95 opacity-0"
                 }`}
               >
-                {subQuestion ? (
-                  <div className="pl-0 pb-2">
+                <div className="pl-0 pb-2">
+                  <div className="mb-4 flex flex-col gap-2">
+                    <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                      Searching
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {subQuestion?.sub_queries?.map((query, queryIndex) => (
+                        <SourceChip2
+                          key={queryIndex}
+                          icon={<FiSearch size={10} />}
+                          title={query.query}
+                          includeTooltip
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {(subQuestion?.is_complete || memoizedDocs?.length > 0) && (
                     <div className="mb-4 flex flex-col gap-2">
                       <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                        Searching
+                        Reading
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {subQuestion?.sub_queries?.map((query, queryIndex) => (
-                          <SourceChip2
-                            key={queryIndex}
-                            icon={<FiSearch size={10} />}
-                            title={query.query}
-                            includeTooltip
-                          />
-                        ))}
+                        {memoizedDocs.slice(0, 10).map((doc, docIndex) => {
+                          const truncatedIdentifier =
+                            doc.semantic_identifier?.slice(0, 20) || "";
+                          return (
+                            <SourceChip2
+                              includeAnimation
+                              onClick={() =>
+                                openDocument(doc, setPresentingDocument)
+                              }
+                              key={docIndex}
+                              icon={<ResultIcon doc={doc} size={10} />}
+                              title={`${truncatedIdentifier}${
+                                truncatedIdentifier.length === 20 ? "..." : ""
+                              }`}
+                            />
+                          );
+                        })}
                       </div>
                     </div>
+                  )}
 
-                    {(subQuestion?.is_complete || memoizedDocs?.length > 0) && (
-                      <div className="mb-4 flex flex-col gap-2">
-                        <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                          Reading
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {memoizedDocs.slice(0, 10).map((doc, docIndex) => {
-                            const truncatedIdentifier =
-                              doc.semantic_identifier?.slice(0, 20) || "";
-                            return (
-                              <SourceChip2
-                                includeAnimation
-                                onClick={() =>
-                                  openDocument(doc, setPresentingDocument)
-                                }
-                                key={docIndex}
-                                icon={<ResultIcon doc={doc} size={10} />}
-                                title={`${truncatedIdentifier}${
-                                  truncatedIdentifier.length === 20 ? "..." : ""
-                                }`}
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {(subQuestion?.is_complete ||
-                      subQuestion?.answer?.length > 0) && (
-                      <div className="flex flex-col gap-2">
-                        <div
-                          className="text-[#4a4a4a] cursor-pointer items-center text-xs flex gap-x-1 font-medium leading-normal"
-                          onClick={() => setAnalysisToggled(!analysisToggled)}
-                        >
-                          Analyzing
-                          <ChevronDown
-                            className={`transition-transform duration-200 ${
-                              analysisToggled ? "" : "-rotate-90"
-                            }`}
-                            size={8}
-                          />
-                        </div>
-                        {analysisToggled && (
-                          <div className="flex flex-wrap gap-2">
-                            {renderedMarkdown}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-blaack pl-0">
+                  {(subQuestion?.is_complete ||
+                    subQuestion?.answer?.length > 0) && (
                     <div className="flex flex-col gap-2">
-                      <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
-                        {temporaryDisplay?.tinyQuestion}
+                      <div
+                        className="text-[#4a4a4a] cursor-pointer items-center text-xs flex gap-x-1 font-medium leading-normal"
+                        onClick={() => setAnalysisToggled(!analysisToggled)}
+                      >
+                        Analyzing
+                        <ChevronDown
+                          className={`transition-transform duration-200 ${
+                            analysisToggled ? "" : "-rotate-90"
+                          }`}
+                          size={8}
+                        />
                       </div>
+                      {analysisToggled && (
+                        <div className="flex flex-wrap gap-2">
+                          {renderedMarkdown}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
           </div>
+
+          {temporaryDisplay && status === ToggleState.InProgress && (
+            <div
+              className={`transform transition-all duration-100 ease-in-out origin-top ${
+                toggled ? "scale-y-100 opacity-100" : "scale-y-95 opacity-0"
+              }`}
+            >
+              <div className="bg-blaack pl-0">
+                <div className="flex flex-col gap-2">
+                  <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                    {temporaryDisplay?.tinyQuestion}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -456,10 +469,12 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
     ).length == memoizedSubQuestions.length;
 
   useEffect(() => {
-    if (overallAnswer) {
-      allowStreaming();
+    if (documents && documents.length > 0) {
+      setTimeout(() => {
+        allowStreaming();
+      }, 1500);
     }
-  }, [overallAnswer]);
+  }, [documents]);
 
   return (
     <div className="w-full">
@@ -483,6 +498,33 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
           border-top-color: #ffffff;
           border-radius: 50%;
           animation: rotate 1s linear infinite;
+        }
+        .rotating-border {
+          position: relative;
+          display: inline-block;
+        }
+
+        .rotating-border::after {
+          content: "";
+          position: absolute;
+          top: -2px;
+          left: -2px;
+          right: -2px;
+          bottom: -2px;
+          border: 2px solid transparent;
+          border-top-color: #aaa;
+          border-radius: 50%;
+          animation: rotateArc 1s linear infinite;
+          pointer-events: none;
+        }
+
+        @keyframes rotateArc {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
         }
       `}</style>
       <div className="relative">
