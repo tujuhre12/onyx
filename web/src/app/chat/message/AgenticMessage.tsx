@@ -396,34 +396,34 @@ export const AgenticMessage = ({
     otherMessagesCanSwitchTo.length > 1;
 
   useEffect(() => {
-    if (!allowStreaming) {
-      if (typeof content === "string") {
-        setStreamedContent(finalContent);
-        setLastKnownContentLength(finalContent.length);
-      }
-      return;
-    }
+    // if (!allowStreaming) {
+    //   if (typeof content === "string") {
+    //     setStreamedContent(finalContent);
+    //     setLastKnownContentLength(finalContent.length);
+    //   }
+    //   return;
+    // }
 
     if (typeof finalContent !== "string") return;
 
     let currentIndex = streamedContent.length;
     let intervalId: NodeJS.Timeout | null = null;
 
-    if (finalContent.length > currentIndex) {
-      intervalId = setInterval(() => {
-        setStreamedContent((prev) => {
-          if (prev.length < finalContent.length) {
-            const nextLength = Math.min(prev.length + 5, finalContent.length);
-            return finalContent.slice(0, nextLength);
-          } else {
-            if (intervalId) clearInterval(intervalId);
-            return finalContent;
-          }
-        });
-      }, 5);
-    } else {
-      setStreamedContent(finalContent);
-    }
+    // if (finalContent.length > currentIndex) {
+    intervalId = setInterval(() => {
+      setStreamedContent((prev) => {
+        if (prev.length < finalContent.length) {
+          const nextLength = Math.min(prev.length + 5, finalContent.length);
+          return finalContent.slice(0, nextLength);
+        } else {
+          if (intervalId) clearInterval(intervalId);
+          return finalContent;
+        }
+      });
+    }, 10);
+    // } else {
+    //   setStreamedContent(finalContent);
+    // }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
@@ -480,7 +480,7 @@ export const AgenticMessage = ({
                   )}
 
                   {/* For debugging purposes */}
-                  <SubQuestionProgress subQuestions={subQuestions || []} />
+                  {/* <SubQuestionProgress subQuestions={subQuestions || []} /> */}
 
                   {(allowStreaming &&
                     finalContent &&

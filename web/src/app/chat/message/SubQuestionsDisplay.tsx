@@ -468,6 +468,41 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
       (subQuestion) => subQuestion?.answer.length > 10
     ).length == memoizedSubQuestions.length;
 
+  const [streamedText, setStreamedText] = useState(
+    !overallAnswerGenerating ? "Summarizing findings" : ""
+  );
+  const [showSummarizing, setShowSummarizing] = useState(false);
+
+  useEffect(() => {
+    const allSubQuestionsAnswered =
+      memoizedSubQuestions.length > 0 &&
+      memoizedSubQuestions.every(
+        (subQuestion) => subQuestion?.question.length > 5
+      );
+
+    if (allSubQuestionsAnswered) {
+      setTimeout(() => {
+        setShowSummarizing(true);
+      }, 200);
+    }
+  }, [memoizedSubQuestions, finishedGenerating]);
+
+  useEffect(() => {
+    if (showSummarizing && streamedText !== "Summarizing findings") {
+      const fullText = "Summarizing findings";
+      let index = 0;
+
+      const streamInterval = setInterval(() => {
+        if (index <= fullText.length) {
+          setStreamedText(fullText.slice(0, index));
+          index++;
+        } else {
+          clearInterval(streamInterval);
+        }
+      }, 8);
+    }
+  }, [showSummarizing]);
+
   useEffect(() => {
     if (documents && documents.length > 0) {
       setTimeout(() => {
@@ -607,23 +642,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             />
           ))}
 
-        {false ? (
-          <></>
-        ) : // <SubQuestionDisplay
-        //   currentlyOpen={false}
-        //   currentlyClosed={false}
-        //   subQuestion={null}
-        //   documents={documents}
-        //   isLast={false}
-        //   isFirst={false}
-        //   setPresentingDocument={setPresentingDocument}
-        //   unToggle={false}
-        //   temporaryDisplay={{
-        //     question: "Plotting",
-        //     tinyQuestion: "Plotting next step",
-        //   }}
-        // />
-        subQuestions.length > 0 ? (
+        {showSummarizing && (
           <SubQuestionDisplay
             currentlyOpen={true}
             currentlyClosed={true}
@@ -642,21 +661,11 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             }
             completed={!overallAnswerGenerating}
             temporaryDisplay={{
-              question: "Summarizing findings",
+              question: streamedText,
               tinyQuestion: "Combining results",
             }}
           />
-        ) : null}
-        {/* {!(
-          memoizedSubQuestions.length > 0 &&
-          memoizedSubQuestions.filter(
-            (subQuestion) => subQuestion?.answer.length > 2
-          ).length == memoizedSubQuestions.length
-        )
-          ? "memoized yes"
-          : "memoized no"}?
-        <br />
-        {finishedGenerating ? "finished" : "not finished"} */}
+        )}
 
         {/* If we have no subqueries, but have subquestions, show the "thinking" */}
         {/* If we have subAnswers, but no overall answer, show hte otehr thinking */}
