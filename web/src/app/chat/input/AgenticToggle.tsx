@@ -51,7 +51,6 @@ export function AgenticToggle({
         <TooltipTrigger asChild>
           <button
             className={`ml-auto py-1.5
-            hover:bg-background-chat-hover
             rounded-lg
             group
             px-2  inline-flex items-center`}
@@ -61,23 +60,27 @@ export function AgenticToggle({
           >
             <div
               className={`
-                ${proSearchEnabled ? "border-text" : "border-[#D9D9D0]"}
-                 relative inline-flex h-[22px] w-10 items-center rounded-full transition-colors focus:outline-none border animate transition-all duration-200 border-[#D9D9D0] group-hover:border-[1px] group-hover:border-black `}
+                ${
+                  proSearchEnabled
+                    ? "border-[#D9D9D0] group-hover:border-black"
+                    : "border-[#D9D9D0] group-hover:border-black"
+                }
+                 relative inline-flex h-[16px] w-8 items-center rounded-full transition-colors focus:outline-none border animate transition-all duration-200 border-[#D9D9D0] group-hover:border-[1px]  `}
             >
               <span
                 className={`${
                   proSearchEnabled
-                    ? "bg-text translate-x-5"
-                    : "bg-[#64645E] translate-x-0.5"
-                } group-hover:bg-text inline-block h-[18px] w-[18px] scale-75 group-hover:scale-90 transform rounded-full transition-transform duration-200 ease-in-out`}
+                    ? "bg-agent translate-x-4 scale-75"
+                    : "bg-[#64645E] group-hover:bg-text translate-x-0.5 scale-75"
+                }  inline-block h-[12px] w-[12px]  group-hover:scale-90 transform rounded-full transition-transform duration-200 ease-in-out`}
               />
             </div>
             <span
-              className={`ml-2 text-sm font-normal flex items-center ${
-                proSearchEnabled ? "text-text" : "text-text-dark"
+              className={`ml-2 text-sm font-semibold flex items-center ${
+                proSearchEnabled ? "text-agent" : "text-text-dark"
               }`}
             >
-              Pro
+              Agent
             </span>
           </button>
         </TooltipTrigger>
@@ -86,10 +89,12 @@ export function AgenticToggle({
           className="w-72 p-4 bg-white rounded-lg shadow-lg border border-gray-200"
         >
           <div className="flex items-center space-x-2 mb-3">
-            <h3 className="text-sm font-semibold text-gray-900">Pro Search</h3>
+            <h3 className="text-sm font-semibold text-gray-900">
+              Agent Search
+            </h3>
           </div>
           <p className="text-xs text-gray-600 mb-2">
-            Pro Search uses advanced AI to improve search results, making them
+            Agent Search uses advanced AI to improve search results, making them
             more accurate and relevant to your needs.
           </p>
           <ul className="text-xs text-gray-600 list-disc list-inside">

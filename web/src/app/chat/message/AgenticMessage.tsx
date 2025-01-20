@@ -535,7 +535,8 @@ export const AgenticMessage = ({
                             </Popover>
                           ) : (
                             secondLevelAssistantMessage && (
-                              <p
+                              <Button
+                                variant="outline"
                                 onClick={() => {
                                   const viewInitialAnswer =
                                     !isViewingInitialAnswer;
@@ -543,12 +544,12 @@ export const AgenticMessage = ({
                                 }}
                                 className={`${
                                   isPulsing && "animate-pulse"
-                                } cursor-pointer text-text-darker`}
+                                } cursor-pointer `}
                               >
                                 {isViewingInitialAnswer
-                                  ? "See final answer"
-                                  : "See initial answer"}
-                              </p>
+                                  ? "See Refined Answer"
+                                  : "See Original Answer"}
+                              </Button>
                             )
                           )}
                         </div>

@@ -721,97 +721,99 @@ export function ChatInputBar({
               </div>
             )}
 
-            <div className="flex items-center w-full space-x-1 mr-12 px-4 pb-2">
-              <ChatInputOption
-                flexPriority="stiff"
-                name="File"
-                Icon={FiPlusCircle}
-                onClick={() => {
-                  const input = document.createElement("input");
-                  input.type = "file";
-                  input.multiple = true;
-                  input.onchange = (event: any) => {
-                    const files = Array.from(
-                      event?.target?.files || []
-                    ) as File[];
-                    if (files.length > 0) {
-                      handleFileUpload(files);
-                    }
-                  };
-                  input.click();
-                }}
-                tooltipContent={"Upload files"}
-              />
-
-              <LLMPopover
-                llmProviders={llmProviders}
-                llmOverrideManager={llmOverrideManager}
-                requiresImageGeneration={false}
-                currentAssistant={selectedAssistant}
-              />
-
-              {retrievalEnabled && (
-                <FilterPopup
-                  availableSources={availableSources}
-                  availableDocumentSets={availableDocumentSets}
-                  availableTags={availableTags}
-                  filterManager={filterManager}
-                  trigger={
-                    <ChatInputOption
-                      flexPriority="stiff"
-                      name="Filters"
-                      Icon={FiFilter}
-                      tooltipContent="Filter your search"
-                    />
-                  }
-                />
-              )}
-
-              <AgenticToggle
-                proSearchEnabled={proSearchEnabled}
-                setProSearchEnabled={setProSearchEnabled}
-              />
-            </div>
-
-            <div className="absolute bottom-2.5 mobile:right-4 desktop:right-10">
-              {chatState == "streaming" ||
-              chatState == "toolBuilding" ||
-              chatState == "loading" ? (
-                <button
-                  className={`cursor-pointer ${
-                    chatState != "streaming"
-                      ? "bg-background-400"
-                      : "bg-background-800"
-                  }  h-[28px] w-[28px] rounded-full`}
-                  onClick={stopGenerating}
-                  disabled={chatState != "streaming"}
-                >
-                  <StopGeneratingIcon
-                    size={10}
-                    className={`text-emphasis m-auto text-white flex-none
-                      }`}
-                  />
-                </button>
-              ) : (
-                <button
-                  className="cursor-pointer"
+            <div className="flex pr-4 pb-2 justify-between items-center w-full ">
+              <div className="space-x-1 flex  px-4 ">
+                <ChatInputOption
+                  flexPriority="stiff"
+                  name="File"
+                  Icon={FiPlusCircle}
                   onClick={() => {
-                    if (message) {
-                      onSubmit();
-                    }
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.multiple = true;
+                    input.onchange = (event: any) => {
+                      const files = Array.from(
+                        event?.target?.files || []
+                      ) as File[];
+                      if (files.length > 0) {
+                        handleFileUpload(files);
+                      }
+                    };
+                    input.click();
                   }}
-                  disabled={chatState != "input"}
-                >
-                  <SendIcon
-                    size={26}
-                    className={`text-emphasis text-white p-1 rounded-full  ${
-                      chatState == "input" && message
-                        ? "bg-submit-background"
-                        : "bg-disabled-submit-background"
-                    } `}
+                  tooltipContent={"Upload files"}
+                />
+
+                <LLMPopover
+                  llmProviders={llmProviders}
+                  llmOverrideManager={llmOverrideManager}
+                  requiresImageGeneration={false}
+                  currentAssistant={selectedAssistant}
+                />
+
+                {retrievalEnabled && (
+                  <FilterPopup
+                    availableSources={availableSources}
+                    availableDocumentSets={availableDocumentSets}
+                    availableTags={availableTags}
+                    filterManager={filterManager}
+                    trigger={
+                      <ChatInputOption
+                        flexPriority="stiff"
+                        name="Filters"
+                        Icon={FiFilter}
+                        tooltipContent="Filter your search"
+                      />
+                    }
                   />
-                </button>
-              )}
+                )}
+              </div>
+              <div className="flex items-center gap-x-2">
+                <AgenticToggle
+                  proSearchEnabled={proSearchEnabled}
+                  setProSearchEnabled={setProSearchEnabled}
+                />
+                <div className="flex items-center gap-x-2">
+                  {chatState == "streaming" ||
+                  chatState == "toolBuilding" ||
+                  chatState == "loading" ? (
+                    <button
+                      className={`cursor-pointer ${
+                        chatState != "streaming"
+                          ? "bg-background-400"
+                          : "bg-background-800"
+                      }  h-[28px] w-[28px] rounded-full`}
+                      onClick={stopGenerating}
+                      disabled={chatState != "streaming"}
+                    >
+                      <StopGeneratingIcon
+                        size={10}
+                        className={`text-emphasis m-auto text-white flex-none
+                      }`}
+                      />
+                    </button>
+                  ) : (
+                    <button
+                      className="cursor-pointer"
+                      onClick={() => {
+                        if (message) {
+                          onSubmit();
+                        }
+                      }}
+                      disabled={chatState != "input"}
+                    >
+                      <SendIcon
+                        size={26}
+                        className={`text-emphasis text-white p-1 rounded-full  ${
+                          chatState == "input" && message
+                            ? "bg-submit-background"
+                            : "bg-disabled-submit-background"
+                        } `}
+                      />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

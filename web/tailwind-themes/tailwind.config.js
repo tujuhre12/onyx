@@ -257,6 +257,8 @@ module.exports = {
         success: "var(--success)",
         alert: "var(--alert)",
         accent: "var(--accent)",
+        agent: "#6C6AD6",
+        // agent: "#FE8B09",
 
         // hover
         "hover-light": "#F1EEE8",

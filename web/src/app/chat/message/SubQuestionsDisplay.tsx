@@ -214,7 +214,7 @@ const SubQuestionDisplay: React.FC<{
       () => {
         setToggled(!unToggle);
       },
-      unToggle ? PHASE_MIN_MS : 0
+      unToggle ? PHASE_MIN_MS * 0.75 : 0
     );
   }, [unToggle]);
 
@@ -295,7 +295,7 @@ const SubQuestionDisplay: React.FC<{
             bg-background border-2 border-background-900  "
             ${
               status === ToggleState.Todo
-                ? "border-2 border-background-900 bg-background"
+                ? "border-4 border-background-900 bg-background"
                 : status === ToggleState.InProgress
                   ? "bg-background border-2 border-background-900 rotating-border"
                   : "bg-background-900 flex items-center  justify-center"
@@ -326,13 +326,13 @@ const SubQuestionDisplay: React.FC<{
             />
           </div>
           <div
-            className={`transition-all duration-100 ease-in-out ${
+            className={`transition-all duration-300 ease-in-out ${
               toggled ? "max-h-[1000px]" : "max-h-0"
             }`}
           >
             {isVisible && subQuestion && (
               <div
-                className={`transform transition-all duration-100 ease-in-out origin-top ${
+                className={`transform transition-all duration-300 ease-in-out origin-top ${
                   toggled ? "scale-y-100 opacity-100" : "scale-y-95 opacity-0"
                 }`}
               >
@@ -473,6 +473,18 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
     !overallAnswerGenerating ? "Summarizing findings" : ""
   );
   const [showSummarizing, setShowSummarizing] = useState(false);
+  const [canShowSummarizing, setCanShowSummarizing] = useState(false);
+
+  useEffect(() => {
+    if (
+      memoizedSubQuestions.length > 0 &&
+      memoizedSubQuestions.filter(
+        (subQuestion) => subQuestion?.answer.length > 2
+      ).length == memoizedSubQuestions.length
+    ) {
+      setTimeout(() => setCanShowSummarizing(true), PHASE_MIN_MS);
+    }
+  }, [memoizedSubQuestions]);
 
   useEffect(() => {
     const allSubQuestionsAnswered =
@@ -484,7 +496,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
     if (allSubQuestionsAnswered) {
       setTimeout(() => {
         setShowSummarizing(true);
-      }, 200);
+      }, PHASE_MIN_MS * 0.75);
     }
   }, [memoizedSubQuestions, finishedGenerating]);
 
@@ -646,20 +658,13 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
         {showSummarizing && (
           <SubQuestionDisplay
             currentlyOpen={true}
-            currentlyClosed={true}
+            currentlyClosed={documents && documents.length > 0}
             subQuestion={null}
             documents={documents}
             isLast={true}
             isFirst={false}
             setPresentingDocument={setPresentingDocument}
-            unToggle={
-              !(
-                memoizedSubQuestions.length > 0 &&
-                memoizedSubQuestions.filter(
-                  (subQuestion) => subQuestion?.answer.length > 2
-                ).length == memoizedSubQuestions.length
-              ) || finishedGenerating!
-            }
+            unToggle={!canShowSummarizing || finishedGenerating!}
             completed={!overallAnswerGenerating}
             temporaryDisplay={{
               question: streamedText,

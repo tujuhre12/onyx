@@ -267,7 +267,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
           {page == "chat" && (
             <div className="px-4 px-1 gap-y-1 flex-col text-text-history-sidebar-button flex gap-x-1.5 items-center items-center">
               <Link
-                className="w-full px-2 py-1  rounded-md items-center hover:bg-hover cursor-pointer transition-all duration-150 flex gap-x-2"
+                className="w-full px-2 py-1 group rounded-md items-center hover:bg-hover cursor-pointer transition-all duration-150 flex gap-x-2"
                 href={
                   `/${page}` +
                   (NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA &&
@@ -284,11 +284,8 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                   }
                 }}
               >
-                <NewChatIcon
-                  size={20}
-                  className="flex-none text-text-history-sidebar-button"
-                />
-                <p className="my-auto flex font-normal items-center text-base">
+                <NewChatIcon size={20} className="flex-none " />
+                <p className="my-auto flex font-normal items-center ">
                   Start New Chat
                 </p>
               </Link>
