@@ -1,0 +1,4 @@
+[
+    {"ParameterKey": "DomainName", "ParameterValue": "danswer.ai"},
+    {"ParameterKey": "Environment", "ParameterValue": "production"}
+]
