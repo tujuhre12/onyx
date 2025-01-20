@@ -65,10 +65,8 @@ export const Switch = React.forwardRef<
 
 Switch.displayName = "Switch";
 
-interface SwitchFieldProps
-  extends Omit<BaseSwitchProps, "checked" | "onCheckedChange"> {
+interface SwitchFieldProps extends Omit<BaseSwitchProps, "checked"> {
   name: string;
-  onCheckedChange?: (checked: boolean) => void;
 }
 
 export const SwitchField: React.FC<SwitchFieldProps> = ({
