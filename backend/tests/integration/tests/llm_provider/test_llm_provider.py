@@ -50,7 +50,7 @@ def test_create_llm_provider_without_display_model_names(
 
 
 def test_update_llm_provider_model_names(admin_user: DATestUser) -> None:
-    """Test updating an LLM provider's model_names"""
+    """Test updating an LLM provider's model_namesds"""
     # First create provider without model_names
     name = str(uuid.uuid4())
     response = requests.put(
