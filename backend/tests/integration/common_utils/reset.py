@@ -175,9 +175,11 @@ def reset_vespa(index_name: str | None = None) -> None:
         # swap to the correct default model
         check_index_swap(db_session)
 
-        # Ensure we have a valid index name
+        # Get search settings first
+        search_settings = get_current_search_settings(db_session)
+        
+        # Then handle index name
         if not index_name:
-            search_settings = get_current_search_settings(db_session)
             index_name = str(search_settings.index_name)
 
     success = setup_vespa(
