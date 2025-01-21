@@ -177,7 +177,7 @@ def reset_vespa(index_name: str | None = None) -> None:
 
         # Get search settings first
         search_settings = get_current_search_settings(db_session)
-        
+
         # Then handle index name
         if not index_name:
             index_name = str(search_settings.index_name)
