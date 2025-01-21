@@ -31,7 +31,7 @@ class UserManager:
     ) -> DATestUser:
         # Get worker ID for parallel execution
         worker_id = os.environ.get("PYTEST_XDIST_WORKER", "0")
-        
+
         if name is None:
             name = f"test{str(uuid4())}"
         else:

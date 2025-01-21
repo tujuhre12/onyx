@@ -235,7 +235,7 @@ def reset_postgres_multitenant(worker_id: str = "0") -> None:
         FROM information_schema.schemata
         WHERE schema_name LIKE %s
         """,
-        [f"tenant_%_{worker_id}"]
+        [f"tenant_%_{worker_id}"],
     )
     tenant_schemas = cur.fetchall()
 
@@ -269,7 +269,9 @@ def reset_vespa_multitenant(worker_id: str = "0") -> None:
             worker_index_name = f"{base_index_name}_{worker_id}"
 
         success = setup_vespa(
-            document_index=VespaIndex(index_name=str(worker_index_name), secondary_index_name=None),
+            document_index=VespaIndex(
+                index_name=str(worker_index_name), secondary_index_name=None
+            ),
             index_setting=IndexingSetting.from_db_model(search_settings),
             secondary_index_setting=None,
         )
@@ -310,7 +312,9 @@ def reset_all(schema_name: str | None = None) -> None:
     Args:
         schema_name: Optional schema name for parallel test execution.
     """
-    logger.info(f"Resetting Postgres{f' for schema {schema_name}' if schema_name else ''}...")
+    logger.info(
+        f"Resetting Postgres{f' for schema {schema_name}' if schema_name else ''}..."
+    )
     reset_postgres(database="postgres", config_name="alembic", setup_onyx=True)
     logger.info("Resetting Vespa...")
     # Use schema_name as index suffix if provided

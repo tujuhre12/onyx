@@ -121,6 +121,8 @@ def admin_user() -> DATestUser | None:
 @pytest.fixture(scope="session")
 def reset_multitenant() -> None:
     """Reset multitenant database and search indices once per test session.
-    Each worker gets its own schemas and indices, so we only need to reset once per worker."""
+    
+    Each worker gets its own schemas and indices, so we only need to reset once per worker.
+    """
     worker_id = os.environ.get("PYTEST_XDIST_WORKER", "0")
     reset_all_multitenant(worker_id=worker_id)

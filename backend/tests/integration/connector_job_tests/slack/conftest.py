@@ -28,9 +28,9 @@ def slack_test_setup() -> Generator[tuple[dict[str, Any], dict[str, Any]], None,
         private_channel,
         run_id,
     ) = SlackManager.get_and_provision_available_slack_channels(
-        slack_client=slack_client, 
+        slack_client=slack_client,
         admin_user_id=admin_user_id,
-        channel_prefix=f"test_{worker_id}"  # Make channels unique per worker
+        channel_prefix=f"test_{worker_id}",  # Make channels unique per worker
     )
 
     yield public_channel, private_channel

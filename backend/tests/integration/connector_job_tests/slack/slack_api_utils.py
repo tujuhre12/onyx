@@ -276,7 +276,7 @@ class SlackManager:
         test_id: str,
     ) -> None:
         """Clean up test channels.
-        
+
         Args:
             slack_client: Slack client to use
             test_id: The test run ID. For parallel tests, this includes the worker prefix.
