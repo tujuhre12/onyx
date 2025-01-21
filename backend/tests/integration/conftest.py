@@ -1,17 +1,14 @@
 import os
 from collections.abc import Generator
-from typing import Optional
 
 import pytest
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from onyx.db.engine import get_session_with_tenant
-from shared_configs.contextvars import CURRENT_TENANT_ID_CONTEXTVAR
-
 from onyx.auth.schemas import UserRole
-from onyx.db.engine import get_session_context_manager
+from onyx.db.engine import get_session_with_tenant
 from onyx.db.search_settings import get_current_search_settings
+from shared_configs.contextvars import CURRENT_TENANT_ID_CONTEXTVAR
 from tests.integration.common_utils.constants import GENERAL_HEADERS
 from tests.integration.common_utils.managers.user import build_email
 from tests.integration.common_utils.managers.user import DEFAULT_PASSWORD
@@ -81,7 +78,9 @@ def vespa_client(db_session: Session) -> vespa_fixture:
 @pytest.fixture(scope="session")
 def reset() -> None:
     """Reset database and search index once per test session.
-    Each worker gets its own schema and index, so we only need to reset once per worker."""
+    
+    Each worker gets its own schema and index, so we only need to reset once per worker.
+    """
     worker_id = os.environ.get("PYTEST_XDIST_WORKER", "0")
     schema_name = f"test_schema_{worker_id}"
     reset_all(schema_name=schema_name)

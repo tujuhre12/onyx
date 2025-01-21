@@ -176,9 +176,9 @@ class SlackManager:
 
     @staticmethod
     def get_and_provision_available_slack_channels(
-        slack_client: WebClient, 
+        slack_client: WebClient,
         admin_user_id: str,
-        channel_prefix: str | None = None
+        channel_prefix: str | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any], str]:
         run_id = str(uuid4())
         if channel_prefix:

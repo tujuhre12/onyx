@@ -167,7 +167,7 @@ def reset_postgres(
 
 def reset_vespa(index_name: str | None = None) -> None:
     """Wipe all data from the Vespa index.
-    
+
     Args:
         index_name: Optional index name for parallel test execution.
     """
@@ -214,7 +214,7 @@ def reset_vespa(index_name: str | None = None) -> None:
 
 def reset_postgres_multitenant(worker_id: str = "0") -> None:
     """Reset the Postgres database for all tenants in a multitenant setup.
-    
+
     Args:
         worker_id: The worker ID for parallel test execution. Used to namespace schemas.
     """
@@ -252,7 +252,7 @@ def reset_postgres_multitenant(worker_id: str = "0") -> None:
 
 def reset_vespa_multitenant(worker_id: str = "0") -> None:
     """Wipe all data from the Vespa index for all tenants.
-    
+
     Args:
         worker_id: The worker ID for parallel test execution. Used to namespace indices.
     """
@@ -306,7 +306,7 @@ def reset_vespa_multitenant(worker_id: str = "0") -> None:
 
 def reset_all(schema_name: str | None = None) -> None:
     """Reset both Postgres and Vespa.
-    
+
     Args:
         schema_name: Optional schema name for parallel test execution.
     """
@@ -325,7 +325,7 @@ def reset_all(schema_name: str | None = None) -> None:
 
 def reset_all_multitenant(worker_id: str = "0") -> None:
     """Reset both Postgres and Vespa for all tenants.
-    
+
     Args:
         worker_id: The worker ID for parallel test execution. Used to namespace schemas and indices.
     """
