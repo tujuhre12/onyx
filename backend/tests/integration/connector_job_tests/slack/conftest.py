@@ -20,7 +20,10 @@ def slack_test_setup() -> Generator[tuple[dict[str, Any], dict[str, Any]], None,
     admin_email = f"admin_{worker_id}@test.com"  # Match the email format from UserManager
     email_id_map = SlackManager.build_slack_user_email_id_map(slack_client)
     if admin_email not in email_id_map:
-        raise ValueError(f"Admin user with email {admin_email} not found in Slack. Available emails: {list(email_id_map.keys())}")
+        raise ValueError(
+            f"Admin user with email {admin_email} not found in Slack. "
+            f"Available emails: {list(email_id_map.keys())}"
+        )
     admin_user_id = email_id_map[admin_email]
 
     (
