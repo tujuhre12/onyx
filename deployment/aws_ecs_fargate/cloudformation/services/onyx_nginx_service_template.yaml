@@ -112,7 +112,7 @@ Resources:
           Command:
             - /bin/sh
             - -c
-            - dos2unix /etc/nginx/conf.d/run-nginx.sh && /etc/nginx/conf.d/run-nginx.sh app.conf.template
+            - dos2unix /etc/nginx/conf.d/run-nginx.sh && /etc/nginx/conf.d/run-nginx.sh app.conf.template.use-cloudtls
           Environment:
             - Name: EMAIL
               Value: ""
@@ -132,7 +132,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: /ecs/OnyxNginxTaskDefinition
+              awslogs-group: !Sub /ecs/${Environment}-OnyxNginxTaskDefinition
               mode: non-blocking
               awslogs-create-group: "true"
               max-buffer-size: 25m
