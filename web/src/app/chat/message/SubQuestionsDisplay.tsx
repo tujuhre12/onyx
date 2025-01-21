@@ -23,6 +23,7 @@ import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./CodeBlock";
 import { CheckIcon, ChevronDown } from "lucide-react";
 import { PHASE_MIN_MS, useStreamingMessages } from "./StreamingMessages";
+import { CirclingArrowIcon } from "@/components/icons/icons";
 
 export interface TemporaryDisplay {
   question: string;
@@ -182,7 +183,7 @@ const SubQuestionDisplay: React.FC<{
 
   useEffect(() => {
     if (subQuestion?.is_complete) {
-      setStatus(ToggleState.Done);
+      setTimeout(() => setStatus(ToggleState.Done), PHASE_MIN_MS);
     } else {
       // setStatus(ToggleState.Todo);
     }
@@ -190,8 +191,9 @@ const SubQuestionDisplay: React.FC<{
 
   useEffect(() => {
     if (completed) {
-      setStatus(ToggleState.Done);
+      setTimeout(() => setStatus(ToggleState.Done), PHASE_MIN_MS);
       setToggled(true);
+      console.log("COMPLETED SO IS TOGGLED");
       setIsVisible(true);
     }
   }, [completed]);
@@ -199,7 +201,7 @@ const SubQuestionDisplay: React.FC<{
   useEffect(() => {
     if (unToggle) {
       if (subQuestion?.answer) {
-        setStatus(ToggleState.Done);
+        setTimeout(() => setStatus(ToggleState.Done), PHASE_MIN_MS);
       } else {
         // setStatus(ToggleState.Todo);
       }
@@ -212,6 +214,9 @@ const SubQuestionDisplay: React.FC<{
     }
     setTimeout(
       () => {
+        if (!unToggle) {
+          console.log("NOT TOGGLED SO UPDATED");
+        }
         setToggled(!unToggle);
       },
       unToggle ? PHASE_MIN_MS * 0.75 : 0
@@ -231,6 +236,7 @@ const SubQuestionDisplay: React.FC<{
 
   useEffect(() => {
     if (currentlyOpen) {
+      console.log("CURRENLTY OPENED SO TOGGLED TO TRUE");
       setToggled(true);
       setAnalysisToggled(true);
       if (questionRef.current) {
@@ -246,10 +252,12 @@ const SubQuestionDisplay: React.FC<{
 
   useEffect(() => {
     if (currentlyClosed) {
-      console.log("TOGGLE");
-      setTimeout(() => {
-        setToggled(false);
-      }, 3000);
+      setTimeout(
+        () => {
+          setToggled(false);
+        },
+        temporaryDisplay ? 0 : 3000
+      );
     }
   }, [currentlyClosed]);
 
@@ -277,7 +285,7 @@ const SubQuestionDisplay: React.FC<{
         );
 
   return (
-    <div className="bg- relative">
+    <div className=" relative">
       <div
         className={`absolute left-[5px] ${
           isFirst ? "top-[9px]" : "top-0"
@@ -290,47 +298,31 @@ const SubQuestionDisplay: React.FC<{
         ref={questionRef}
         className={`flex items-start ${!isLast ? "pb-4" : ""}`}
       >
-        <div
-          className={`absolute  bg-background left-0 w-3 h-3 rounded-full top-[9px] z-10 
-
-         `}
-        >
-          {true ? (
-            <svg
-              className="animate-spin h-3 w-3 text-background-900"
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 14 14"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M7 1.5A5.5 5.5 0 1 1 1.5 7" />
-              <path d="M7 1.5A5.5 5.5 0 0 1 12.5 7" />
-              <path d="M12 3.5L12 7L9 7" />
-            </svg>
-          ) : status === ToggleState.Done ? (
-            <CheckIcon className="m-auto text-white" size={8} />
-          ) : null}
-        </div>
-        {/* <div
-          className={`absolute left-0 w-3 h-3 rounded-full mt-[9px] z-10 
-            bg-background border-2 border-background-900  "
+        {status != ToggleState.InProgress ? (
+          <div
+            className={`absolute left-0 w-3 h-3 rounded-full mt-[9px] z-10 
+            bg-background border-3 border-background-900  "
             ${
               status === ToggleState.Todo
                 ? "border-4 border-background-900 bg-background"
-                : status === ToggleState.InProgress
-                ? "bg-background border-2 border-background-900 rotating-border"
-                : "bg-background-900 flex items-center  justify-center"
+                : false
+                  ? "bg-background border-2 border-background-900 rotating-border"
+                  : "bg-background-900 flex items-center  justify-center"
             } 
          `}
-        >
-          {status === ToggleState.Done && (
-            <CheckIcon className="m-auto text-white" size={8} />
-          )}
-        </div> */}
+          >
+            {status === ToggleState.Done && (
+              <CheckIcon className="m-auto text-white" size={8} />
+            )}
+          </div>
+        ) : (
+          // {status === ToggleState.InProgress && (
+          <CirclingArrowIcon
+            size={12}
+            className="absolute bg-background rounded-full  z-[2000] left-0 mt-[9px] w-3 h-3 animate-spin"
+          />
+        )}
+
         <div
           className={` w-full ${
             status === ToggleState.InProgress ? "ml-5" : "ml-8"
@@ -441,7 +433,7 @@ const SubQuestionDisplay: React.FC<{
               >
                 <div className="bg-blaack pl-0">
                   <div className="flex flex-col gap-2">
-                    <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+                    <div className="leading-none text-[#4a4a4a] text-xs font-medium">
                       {temporaryDisplay?.tinyQuestion}
                     </div>
                   </div>
@@ -499,6 +491,16 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   );
   const [showSummarizing, setShowSummarizing] = useState(false);
   const [canShowSummarizing, setCanShowSummarizing] = useState(false);
+
+  const [shownDocuments, setShownDocuments] = useState(documents);
+
+  useEffect(() => {
+    if (documents && documents.length > 0) {
+      setTimeout(() => {
+        setShownDocuments(documents);
+      }, 1500);
+    }
+  }, [documents]);
 
   useEffect(() => {
     if (
@@ -682,7 +684,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
 
         {showSummarizing && (
           <SubQuestionDisplay
-            currentlyOpen={true}
+            currentlyOpen={false}
             currentlyClosed={documents != null && documents.length > 0}
             subQuestion={null}
             documents={documents}
@@ -702,11 +704,11 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
         {/* If we have subAnswers, but no overall answer, show hte otehr thinking */}
       </div>
 
-      {documents && documents.length > 0 && (
+      {shownDocuments && shownDocuments.length > 0 && (
         <SourcesDisplay
           animateEntrance={true}
           toggleDocumentSelection={toggleDocumentSelection}
-          documents={documents}
+          documents={shownDocuments}
           threeCols={true}
         />
       )}

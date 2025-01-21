@@ -137,6 +137,8 @@ export function AssistantIcon({
             ) : assistant.uploaded_image_id ? (
               <img
                 alt={assistant.name}
+                height={dimension}
+                width={dimension}
                 src={buildImgUrl(assistant.uploaded_image_id)}
                 loading="lazy"
                 className={`object-cover object-center rounded-sm transition-opacity duration-300 ${wrapperClass}`}
