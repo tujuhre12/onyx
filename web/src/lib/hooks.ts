@@ -1,29 +1,28 @@
 "use client";
 import {
   ConnectorIndexingStatus,
-  OAuthSlackCallbackResponse,
   DocumentBoostStatus,
   Tag,
   UserGroup,
   ConnectorStatus,
   CCPairBasicInfo,
+  ValidSources,
 } from "@/lib/types";
 import useSWR, { mutate, useSWRConfig } from "swr";
 import { errorHandlingFetcher } from "./fetcher";
 import { useContext, useEffect, useState } from "react";
 import { DateRangePickerValue } from "@/app/ee/admin/performance/DateRangeSelector";
-import { SourceMetadata } from "./search/interfaces";
+import { Filters, SourceMetadata } from "./search/interfaces";
 import { destructureValue, structureValue } from "./llm/utils";
 import { ChatSession } from "@/app/chat/interfaces";
 import { AllUsersResponse } from "./types";
 import { Credential } from "./connectors/credentials";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
-import { PersonaCategory } from "@/app/admin/assistants/interfaces";
-import {
-  LLMProvider,
-  LLMProviderDescriptor,
-} from "@/app/admin/configuration/llm/interfaces";
+import { PersonaLabel } from "@/app/admin/assistants/interfaces";
+import { LLMProviderDescriptor } from "@/app/admin/configuration/llm/interfaces";
 import { isAnthropic } from "@/app/admin/configuration/llm/interfaces";
+import { getSourceMetadata } from "./sources";
+import { AuthType, NEXT_PUBLIC_CLOUD_ENABLED } from "./constants";
 
 const CREDENTIAL_URL = "/api/manage/admin/credential";
 
@@ -119,16 +118,74 @@ export const useBasicConnectorStatus = () => {
   };
 };
 
-export const useCategories = () => {
+export const useLabels = () => {
   const { mutate } = useSWRConfig();
-  const swrResponse = useSWR<PersonaCategory[]>(
-    "/api/persona/categories",
+  const { data: labels, error } = useSWR<PersonaLabel[]>(
+    "/api/persona/labels",
     errorHandlingFetcher
   );
 
+  const refreshLabels = async () => {
+    return mutate("/api/persona/labels");
+  };
+
+  const createLabel = async (name: string) => {
+    const response = await fetch("/api/persona/labels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+
+    if (response.ok) {
+      const newLabel = await response.json();
+      mutate("/api/persona/labels", [...(labels || []), newLabel], false);
+    }
+
+    return response;
+  };
+
+  const updateLabel = async (id: number, name: string) => {
+    const response = await fetch(`/api/admin/persona/label/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label_name: name }),
+    });
+
+    if (response.ok) {
+      mutate(
+        "/api/persona/labels",
+        labels?.map((label) => (label.id === id ? { ...label, name } : label)),
+        false
+      );
+    }
+
+    return response;
+  };
+
+  const deleteLabel = async (id: number) => {
+    const response = await fetch(`/api/admin/persona/label/${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (response.ok) {
+      mutate(
+        "/api/persona/labels",
+        labels?.filter((label) => label.id !== id),
+        false
+      );
+    }
+
+    return response;
+  };
+
   return {
-    ...swrResponse,
-    refreshCategories: () => mutate("/api/persona/categories"),
+    labels,
+    error,
+    refreshLabels,
+    createLabel,
+    updateLabel,
+    deleteLabel,
   };
 };
 
@@ -147,6 +204,14 @@ export interface FilterManager {
   setSelectedDocumentSets: React.Dispatch<React.SetStateAction<string[]>>;
   selectedTags: Tag[];
   setSelectedTags: React.Dispatch<React.SetStateAction<Tag[]>>;
+  getFilterString: () => string;
+  buildFiltersFromQueryString: (
+    filterString: string,
+    availableSources: ValidSources[],
+    availableDocumentSets: string[],
+    availableTags: Tag[]
+  ) => void;
+  clearFilters: () => void;
 }
 
 export function useFilters(): FilterManager {
@@ -157,7 +222,106 @@ export function useFilters(): FilterManager {
   );
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
 
+  const getFilterString = () => {
+    const params = new URLSearchParams();
+
+    if (timeRange) {
+      params.set("from", timeRange.from.toISOString());
+      params.set("to", timeRange.to.toISOString());
+    }
+
+    if (selectedSources.length > 0) {
+      const sourcesParam = selectedSources
+        .map((source) => encodeURIComponent(source.internalName))
+        .join(",");
+      params.set("sources", sourcesParam);
+    }
+
+    if (selectedDocumentSets.length > 0) {
+      const docSetsParam = selectedDocumentSets
+        .map((ds) => encodeURIComponent(ds))
+        .join(",");
+      params.set("documentSets", docSetsParam);
+    }
+
+    if (selectedTags.length > 0) {
+      const tagsParam = selectedTags
+        .map((tag) => encodeURIComponent(tag.tag_value))
+        .join(",");
+      params.set("tags", tagsParam);
+    }
+
+    const queryString = params.toString();
+    return queryString ? `&${queryString}` : "";
+  };
+
+  const clearFilters = () => {
+    setTimeRange(null);
+    setSelectedSources([]);
+    setSelectedDocumentSets([]);
+    setSelectedTags([]);
+  };
+
+  function buildFiltersFromQueryString(
+    filterString: string,
+    availableSources: ValidSources[],
+    availableDocumentSets: string[],
+    availableTags: Tag[]
+  ): void {
+    const params = new URLSearchParams(filterString);
+
+    // Parse the "from" parameter as a DateRangePickerValue
+    let newTimeRange: DateRangePickerValue | null = null;
+    const fromParam = params.get("from");
+    const toParam = params.get("to");
+    if (fromParam && toParam) {
+      const fromDate = new Date(fromParam);
+      const toDate = new Date(toParam);
+      if (!isNaN(fromDate.getTime()) && !isNaN(toDate.getTime())) {
+        newTimeRange = { from: fromDate, to: toDate, selectValue: "" };
+      }
+    }
+
+    // Parse sources
+    const availableSourcesMetadata = availableSources.map(getSourceMetadata);
+    let newSelectedSources: SourceMetadata[] = [];
+    const sourcesParam = params.get("sources");
+    if (sourcesParam) {
+      const sourceNames = sourcesParam.split(",").map(decodeURIComponent);
+      newSelectedSources = availableSourcesMetadata.filter((source) =>
+        sourceNames.includes(source.internalName)
+      );
+    }
+
+    // Parse document sets
+    let newSelectedDocSets: string[] = [];
+    const docSetsParam = params.get("documentSets");
+    if (docSetsParam) {
+      const docSetNames = docSetsParam.split(",").map(decodeURIComponent);
+      newSelectedDocSets = availableDocumentSets.filter((ds) =>
+        docSetNames.includes(ds)
+      );
+    }
+
+    // Parse tags
+    let newSelectedTags: Tag[] = [];
+    const tagsParam = params.get("tags");
+    if (tagsParam) {
+      const tagValues = tagsParam.split(",").map(decodeURIComponent);
+      newSelectedTags = availableTags.filter((tag) =>
+        tagValues.includes(tag.tag_value)
+      );
+    }
+
+    // Update filter manager's values instead of returning
+    setTimeRange(newTimeRange);
+    setSelectedSources(newSelectedSources);
+    setSelectedDocumentSets(newSelectedDocSets);
+    setSelectedTags(newSelectedTags);
+  }
+
   return {
+    clearFilters,
     timeRange,
     setTimeRange,
     selectedSources,
@@ -166,6 +330,8 @@ export function useFilters(): FilterManager {
     setSelectedDocumentSets,
     selectedTags,
     setSelectedTags,
+    getFilterString,
+    buildFiltersFromQueryString,
   };
 }
 
@@ -282,6 +448,23 @@ export function useLlmOverride(
     temperature,
     updateTemperature,
   };
+}
+
+export function useAuthType(): AuthType | null {
+  const { data, error } = useSWR<{ auth_type: AuthType }>(
+    "/api/auth/type",
+    errorHandlingFetcher
+  );
+
+  if (NEXT_PUBLIC_CLOUD_ENABLED) {
+    return "cloud";
+  }
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data.auth_type;
 }
 
 /* 

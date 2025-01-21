@@ -17,6 +17,7 @@ APP_PORT = 8080
 # prefix from requests directed towards the API server. In these cases, set this to `/api`
 APP_API_PREFIX = os.environ.get("API_PREFIX", "")
 
+SKIP_WARM_UP = os.environ.get("SKIP_WARM_UP", "").lower() == "true"
 
 #####
 # User Facing Features Configs
@@ -90,6 +91,12 @@ OAUTH_CLIENT_SECRET = (
 )
 
 USER_AUTH_SECRET = os.environ.get("USER_AUTH_SECRET", "")
+
+# Duration (in seconds) for which the FastAPI Users JWT token remains valid in the user's browser.
+# By default, this is set to match the Redis expiry time for consistency.
+AUTH_COOKIE_EXPIRE_TIME_SECONDS = int(
+    os.environ.get("AUTH_COOKIE_EXPIRE_TIME_SECONDS") or 86400 * 7
+)  # 7 days
 
 # for basic auth
 REQUIRE_EMAIL_VERIFICATION = (
@@ -279,6 +286,11 @@ try:
     CELERY_WORKER_INDEXING_CONCURRENCY = int(env_value)
 except ValueError:
     CELERY_WORKER_INDEXING_CONCURRENCY = CELERY_WORKER_INDEXING_CONCURRENCY_DEFAULT
+
+# The maximum number of tasks that can be queued up to sync to Vespa in a single pass
+VESPA_SYNC_MAX_TASKS = 1024
+
+DB_YIELD_PER_DEFAULT = 64
 
 #####
 # Connector Configs
