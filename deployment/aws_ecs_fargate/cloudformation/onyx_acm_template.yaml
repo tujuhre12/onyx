@@ -9,13 +9,16 @@ Parameters:
   Environment:
     Type: String
     Default: production
+  ValidationMethod:
+    Type: String
+    Default: DNS
 
 Resources:
   Certificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
       DomainName: !Ref DomainName
-      ValidationMethod: DNS
+      ValidationMethod: !Ref ValidationMethod
       Tags:
         - Key: env
           Value: !Ref Environment

@@ -12,6 +12,15 @@ Parameters:
   ServiceName:
     Type: String
     Default: onyx-backend-api-server
+  TaskCpu:
+    Type: String
+    Default: "2048"
+  TaskMemory:
+    Type: String
+    Default: "4096"
+  TaskDesiredCount:
+    Type: Number
+    Default: 1
 
 Resources:
 
@@ -28,7 +37,7 @@ Resources:
       TaskDefinition: !Ref TaskDefinition
       ServiceName: !Sub ${Environment}-${ServiceName}-service
       SchedulingStrategy: REPLICA
-      DesiredCount: 1
+      DesiredCount: !Ref TaskDesiredCount
       AvailabilityZoneRebalancing: ENABLED
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -102,8 +111,8 @@ Resources:
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
-      Cpu: "1024"
-      Memory: "3072"
+      Cpu: !Ref TaskCpu
+      Memory: !Ref TaskMemory
       RuntimePlatform:
         CpuArchitecture: ARM64
         OperatingSystemFamily: LINUX
@@ -165,3 +174,43 @@ Resources:
               ValueFrom: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Environment}/postgres/user/password
           VolumesFrom: []
           SystemControls: []
+
+  ECSAutoScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: 5
+      MinCapacity: 1
+      ResourceId: !Sub
+        - "service/${ImportedCluster}/${Environment}-${ServiceName}-service"
+        - ImportedCluster: !ImportValue
+            'Fn::Sub': "${Environment}-onyx-cluster-ECSClusterName"
+          ServiceName: !Ref ServiceName
+          Environment: !Ref Environment
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  ECSAutoScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub ${Environment}-${ServiceName}-service-cpu-scaleout
+      ScalingTargetId: !Ref ECSAutoScalingTarget
+      PolicyType: TargetTrackingScaling
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 75
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleOutCooldown: 60
+        ScaleInCooldown: 60
+
+  ECSAutoScalingPolicyMemroy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub ${Environment}-${ServiceName}-service-mem-scaleout
+      ScalingTargetId: !Ref ECSAutoScalingTarget
+      PolicyType: TargetTrackingScaling
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 80
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageMemoryUtilization
+        ScaleOutCooldown: 60
+        ScaleInCooldown: 60

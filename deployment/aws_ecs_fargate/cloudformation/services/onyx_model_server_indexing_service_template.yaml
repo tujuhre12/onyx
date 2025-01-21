@@ -12,6 +12,15 @@ Parameters:
   ServiceName:
     Type: String
     Default: onyx-model-server-indexing
+  TaskCpu:
+    Type: String
+    Default: "2048"
+  TaskMemory:
+    Type: String
+    Default: "4096"
+  TaskDesiredCount:
+    Type: Number
+    Default: 1
 
 Resources:
 
@@ -28,7 +37,7 @@ Resources:
       TaskDefinition: !Ref TaskDefinition
       ServiceName: !Sub ${Environment}-${ServiceName}-service
       SchedulingStrategy: REPLICA
-      DesiredCount: 1
+      DesiredCount: !Ref TaskDesiredCount
       AvailabilityZoneRebalancing: ENABLED
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -102,8 +111,8 @@ Resources:
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
-      Cpu: "1024"
-      Memory: "3072"
+      Cpu: !Ref TaskCpu
+      Memory: !Ref TaskMemory
       RuntimePlatform:
         CpuArchitecture: ARM64
         OperatingSystemFamily: LINUX

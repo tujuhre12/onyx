@@ -10,7 +10,7 @@ Parameters:
       Default: vpc-098cfa79d637dabff
   HostedZoneId:
       Type: String
-      Default: Z0514693S8C8QL9LABTK
+      Default: ''
   DomainName:
       Type: String
       Default: demo.danswer.ai
@@ -28,6 +28,21 @@ Parameters:
   OnyxWebServerServiceName:
     Type: String
     Default: onyx-web-server-service
+  TaskCpu:
+    Type: String
+    Default: "512"
+  TaskMemory:
+    Type: String
+    Default: "1024"
+  TaskDesiredCount:
+    Type: Number
+    Default: 1
+
+Conditions:
+  CreateRoute53: !Not 
+    - !Equals 
+      - !Ref HostedZoneId
+      - ''
 
 Resources:
   ECSService:
@@ -44,7 +59,7 @@ Resources:
       TaskDefinition: !Ref TaskDefinition
       ServiceName: !Sub ${Environment}-${ServiceName}
       SchedulingStrategy: "REPLICA"
-      DesiredCount: 1
+      DesiredCount: !Ref TaskDesiredCount
       AvailabilityZoneRebalancing: "ENABLED"
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -170,8 +185,8 @@ Resources:
       PlacementConstraints: []
       RequiresCompatibilities:
         - FARGATE
-      Cpu: "512"
-      Memory: "1024"
+      Cpu: !Ref TaskCpu
+      Memory: !Ref TaskMemory
       EnableFaultInjection: false 
 
   SecurityGroup:
@@ -246,6 +261,7 @@ Resources:
 
   Route53Record:
     Type: AWS::Route53::RecordSet
+    Condition: CreateRoute53
     Properties:
       HostedZoneId: !Ref HostedZoneId
       Name: !Ref DomainName
@@ -261,3 +277,8 @@ Outputs:
     Value: !Ref "ECSService"
   ServiceDiscoveryService:
     Value: !Ref "ServiceDiscoveryService"
+  OutputOnyxLoadBalancerDNSName:
+    Description: LoadBalancer DNSName
+    Value: !GetAtt LoadBalancer.DNSName
+    Export:
+      Name: !Sub ${AWS::StackName}-OnyxLoadBalancerDNSName
