@@ -317,6 +317,29 @@ ONYX_CLOUD_TENANT_ID = "cloud"
 
 
 class OnyxCeleryTask:
+    CLOUD_CHECK_FOR_CONNECTOR_DELETION = (
+        f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_connector_deletion_task"
+    )
+    CLOUD_CHECK_FOR_VESPA_SYNC_TASK = (
+        f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_vespa_sync_task"
+    )
+    CLOUD_CHECK_FOR_INDEXING = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_indexing"
+    CLOUD_CHECK_FOR_PRUNING = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_pruning"
+    CLOUD_CHECK_FOR_DOC_PERMISSIONS_SYNC = (
+        f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_doc_permissions_sync"
+    )
+    CLOUD_CHECK_FOR_EXTERNAL_GROUP_SYNC = (
+        f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_external_group_sync"
+    )
+    CLOUD_FOR_LLM_MODEL_UPDATE = (
+        f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_llm_model_update"
+    )
+
+    CLOUD_MONITOR_VESPA_SYNC = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_monitor_vespa_sync"
+    CLOUD_MONITOR_BACKGROUND_PROCESSES = (
+        f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_monitor_background_processes"
+    )
+
     CHECK_FOR_CONNECTOR_DELETION = "check_for_connector_deletion_task"
     CHECK_FOR_VESPA_SYNC_TASK = "check_for_vespa_sync_task"
     CHECK_FOR_INDEXING = "check_for_indexing"
@@ -324,8 +347,10 @@ class OnyxCeleryTask:
     CHECK_FOR_DOC_PERMISSIONS_SYNC = "check_for_doc_permissions_sync"
     CHECK_FOR_EXTERNAL_GROUP_SYNC = "check_for_external_group_sync"
     CHECK_FOR_LLM_MODEL_UPDATE = "check_for_llm_model_update"
+
     MONITOR_VESPA_SYNC = "monitor_vespa_sync"
     MONITOR_BACKGROUND_PROCESSES = "monitor_background_processes"
+
     KOMBU_MESSAGE_CLEANUP_TASK = "kombu_message_cleanup_task"
     CONNECTOR_PERMISSION_SYNC_GENERATOR_TASK = (
         "connector_permission_sync_generator_task"
@@ -342,8 +367,6 @@ class OnyxCeleryTask:
     VESPA_METADATA_SYNC_TASK = "vespa_metadata_sync_task"
     CHECK_TTL_MANAGEMENT_TASK = "check_ttl_management_task"
     AUTOGENERATE_USAGE_REPORT_TASK = "autogenerate_usage_report_task"
-
-    CLOUD_CHECK_FOR_INDEXING = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_indexing"
 
 
 REDIS_SOCKET_KEEPALIVE_OPTIONS = {}
