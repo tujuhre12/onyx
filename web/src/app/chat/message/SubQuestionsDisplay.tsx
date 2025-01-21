@@ -60,6 +60,7 @@ const SubQuestionDisplay: React.FC<{
   setPresentingDocument: (document: OnyxDocument) => void;
   temporaryDisplay?: TemporaryDisplay;
   completed?: boolean;
+  initialStatus: ToggleState;
 }> = ({
   currentlyOpen,
   currentlyClosed,
@@ -71,9 +72,10 @@ const SubQuestionDisplay: React.FC<{
   temporaryDisplay,
   setPresentingDocument,
   completed,
+  initialStatus,
 }) => {
   const [analysisToggled, setAnalysisToggled] = useState(false);
-  const [status, setStatus] = useState(ToggleState.Todo);
+  const [status, setStatus] = useState(initialStatus);
   const [toggled, setToggled] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -316,18 +318,13 @@ const SubQuestionDisplay: React.FC<{
             )}
           </div>
         ) : (
-          // {status === ToggleState.InProgress && (
           <CirclingArrowIcon
             size={12}
-            className="absolute bg-background rounded-full  z-[2000] left-0 mt-[9px] w-3 h-3 animate-spin"
+            className="absolute bg-background   z-[2000] left-0 mt-[9px] w-3 h-3 animate-spin"
           />
         )}
 
-        <div
-          className={` w-full ${
-            status === ToggleState.InProgress ? "ml-5" : "ml-8"
-          }`}
-        >
+        <div className="ml-8 w-full">
           <div
             className="flex items-start py-1 cursor-pointer"
             onClick={() => setToggled(!toggled)}
@@ -489,8 +486,11 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   const [streamedText, setStreamedText] = useState(
     !overallAnswerGenerating ? "Summarizing findings" : ""
   );
-  const [showSummarizing, setShowSummarizing] = useState(false);
-  const [canShowSummarizing, setCanShowSummarizing] = useState(false);
+  const [showSummarizing, setShowSummarizing] = useState(
+    finishedGenerating && !overallAnswerGenerating
+  );
+  const [canShowSummarizing, setCanShowSummarizing] =
+    useState(finishedGenerating);
 
   const [shownDocuments, setShownDocuments] = useState(documents);
 
@@ -544,12 +544,12 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   }, [showSummarizing]);
 
   useEffect(() => {
-    if (documents && documents.length > 0) {
+    if (shownDocuments && shownDocuments.length > 0) {
       setTimeout(() => {
         allowStreaming();
       }, 1500);
     }
-  }, [documents]);
+  }, [shownDocuments]);
 
   return (
     <div className="w-full">
@@ -623,6 +623,9 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             }
             key={index}
             subQuestion={subQuestion}
+            initialStatus={
+              !finishedGenerating ? ToggleState.Todo : ToggleState.Done
+            }
             documents={documents}
             isLast={false}
             isFirst={index === 0}
@@ -646,6 +649,9 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
           memoizedSecondLevelQuestions &&
           memoizedSecondLevelQuestions?.map((subQuestion, index) => (
             <SubQuestionDisplay
+              initialStatus={
+                !finishedGenerating ? ToggleState.Todo : ToggleState.Done
+              }
               currentlyOpen={
                 currentlyOpenQuestion?.level === subQuestion.level &&
                 currentlyOpenQuestion?.level_question_nr ===
@@ -684,6 +690,9 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
 
         {showSummarizing && (
           <SubQuestionDisplay
+            initialStatus={
+              !finishedGenerating ? ToggleState.Todo : ToggleState.Done
+            }
             currentlyOpen={false}
             currentlyClosed={documents != null && documents.length > 0}
             subQuestion={null}

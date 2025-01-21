@@ -481,6 +481,13 @@ export const AgenticMessage = ({
                   {/* For debugging purposes */}
                   {/* <SubQuestionProgress subQuestions={subQuestions || []} /> */}
 
+                  {!allowStreaming ? "NOT ALLOW STREAMING" : "ALLOW STREAMING"}
+
+                  {!finalContent ? "NOT FINAL CONTENT" : "FINAL CONTENT"}
+                  {!((finalContent || "").length > 8)
+                    ? "NOT LONGER THAN 8"
+                    : "LONGER THAN 8"}
+
                   {(allowStreaming &&
                     finalContent &&
                     finalContent.length > 8) ||
