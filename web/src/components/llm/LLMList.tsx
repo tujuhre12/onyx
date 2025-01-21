@@ -6,6 +6,14 @@ import {
   LLMProviderDescriptor,
 } from "@/app/admin/configuration/llm/interfaces";
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { FiAlertTriangle } from "react-icons/fi";
+
 interface LlmListProps {
   llmProviders: LLMProviderDescriptor[];
   currentLlm: string;
@@ -13,7 +21,7 @@ interface LlmListProps {
   userDefault?: string | null;
   scrollable?: boolean;
   hideProviderIcon?: boolean;
-  requiresImageGeneration?: boolean;
+  imageFilesPresent?: boolean;
 }
 
 export const LlmList: React.FC<LlmListProps> = ({
@@ -22,7 +30,7 @@ export const LlmList: React.FC<LlmListProps> = ({
   onSelect,
   userDefault,
   scrollable,
-  requiresImageGeneration,
+  imageFilesPresent,
 }) => {
   const llmOptionsByProvider: {
     [provider: string]: {
@@ -31,6 +39,7 @@ export const LlmList: React.FC<LlmListProps> = ({
       icon: React.FC<{ size?: number; className?: string }>;
     }[];
   } = {};
+
   const uniqueModelNames = new Set<string>();
 
   llmProviders.forEach((llmProvider) => {
@@ -62,7 +71,9 @@ export const LlmList: React.FC<LlmListProps> = ({
 
   return (
     <div
-      className={`${scrollable ? "max-h-[200px] include-scrollbar" : "max-h-[300px]"} bg-background-175 flex flex-col gap-y-1 overflow-y-scroll`}
+      className={`${
+        scrollable ? "max-h-[200px] include-scrollbar" : "max-h-[300px]"
+      } bg-background-175 flex flex-col gap-y-1 overflow-y-scroll`}
     >
       {userDefault && (
         <button
@@ -79,25 +90,36 @@ export const LlmList: React.FC<LlmListProps> = ({
         </button>
       )}
 
-      {llmOptions.map(({ name, icon, value }, index) => {
-        if (!requiresImageGeneration || checkLLMSupportsImageInput(name)) {
-          return (
-            <button
-              type="button"
-              key={index}
-              className={`w-full py-1.5 flex  gap-x-2 px-2 text-sm ${
-                currentLlm == name
-                  ? "bg-background-200"
-                  : "bg-background hover:bg-background-100"
-              } text-left rounded`}
-              onClick={() => onSelect(value)}
-            >
-              {icon({ size: 16 })}
-              {getDisplayNameForModel(name)}
-            </button>
-          );
-        }
-      })}
+      {llmOptions.map(({ name, icon, value }, index) => (
+        <button
+          type="button"
+          key={index}
+          className={`w-full py-1.5 flex items-center justify-start  gap-x-2 px-2 text-sm ${
+            currentLlm == name
+              ? "bg-background-200"
+              : "bg-background hover:bg-background-100"
+          } text-left rounded`}
+          onClick={() => onSelect(value)}
+        >
+          {icon({ size: 16 })}
+          {getDisplayNameForModel(name)}
+          {imageFilesPresent && !checkLLMSupportsImageInput(name) && (
+            <TooltipProvider>
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger className="my-auto flex ites-center ml-auto">
+                  <FiAlertTriangle className="text-alert" size={16} />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">
+                    This LLM is not vision-capable and cannot process image
+                    files present in your chat session.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </button>
+      ))}
     </div>
   );
 };

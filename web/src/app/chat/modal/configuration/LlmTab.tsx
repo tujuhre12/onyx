@@ -8,7 +8,6 @@ import { destructureValue } from "@/lib/llm/utils";
 import { updateModelOverrideForChatSession } from "../../lib";
 import { GearIcon } from "@/components/icons/icons";
 import { LlmList } from "@/components/llm/LLMList";
-import { checkPersonaRequiresImageGeneration } from "@/app/admin/assistants/lib";
 
 interface LlmTabProps {
   llmOverrideManager: LlmOverrideManager;
@@ -16,7 +15,7 @@ interface LlmTabProps {
   openModelSettings: () => void;
   chatSessionId?: string;
   close: () => void;
-  currentAssistant: Persona;
+  imageFilesPresent: boolean;
 }
 
 export const LlmTab = forwardRef<HTMLDivElement, LlmTabProps>(
@@ -27,13 +26,10 @@ export const LlmTab = forwardRef<HTMLDivElement, LlmTabProps>(
       currentLlm,
       close,
       openModelSettings,
-      currentAssistant,
+      imageFilesPresent,
     },
     ref
   ) => {
-    const requiresImageGeneration =
-      checkPersonaRequiresImageGeneration(currentAssistant);
-
     const { llmProviders } = useChatContext();
     const { updateLLMOverride, temperature, updateTemperature } =
       llmOverrideManager;
@@ -70,9 +66,9 @@ export const LlmTab = forwardRef<HTMLDivElement, LlmTabProps>(
           </button>
         </div>
         <LlmList
-          requiresImageGeneration={requiresImageGeneration}
           llmProviders={llmProviders}
           currentLlm={currentLlm}
+          imageFilesPresent={imageFilesPresent}
           onSelect={(value: string | null) => {
             if (value == null) {
               return;
