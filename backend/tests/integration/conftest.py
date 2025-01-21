@@ -47,10 +47,10 @@ def db_session() -> Generator[Session, None, None]:
     # Get worker ID from pytest-xdist, default to '0' for single-process runs
     worker_id = os.environ.get("PYTEST_XDIST_WORKER", "0")
     schema_name = f"test_schema_{worker_id}"
-    
+
     # Set the schema name as the tenant ID for this session
     CURRENT_TENANT_ID_CONTEXTVAR.set(schema_name)
-    
+
     # Use existing tenant-aware session management
     with get_session_with_tenant(tenant_id=schema_name) as session:
         try:
@@ -65,20 +65,20 @@ def db_session() -> Generator[Session, None, None]:
 def vespa_client(db_session: Session) -> vespa_fixture:
     # Get worker ID for parallel execution
     worker_id = os.environ.get("PYTEST_XDIST_WORKER", "0")
-    
+
     # Get base index name from search settings
     search_settings = get_current_search_settings(db_session)
-    
+
     # Create worker-specific index name
     index_name = f"{search_settings.index_name}_{worker_id}"
-    
+
     return vespa_fixture(index_name=index_name)
 
 
 @pytest.fixture(scope="session")
 def reset() -> None:
     """Reset database and search index once per test session.
-    
+
     Each worker gets its own schema and index, so we only need to reset once per worker.
     """
     worker_id = os.environ.get("PYTEST_XDIST_WORKER", "0")
@@ -121,7 +121,7 @@ def admin_user() -> DATestUser | None:
 @pytest.fixture(scope="session")
 def reset_multitenant() -> None:
     """Reset multitenant database and search indices once per test session.
-    
+
     Each worker gets its own schemas and indices, so we only need to reset once per worker.
     """
     worker_id = os.environ.get("PYTEST_XDIST_WORKER", "0")

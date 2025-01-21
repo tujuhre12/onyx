@@ -15,9 +15,11 @@ from tests.integration.connector_job_tests.slack.slack_api_utils import SlackMan
 def slack_test_setup() -> Generator[tuple[dict[str, Any], dict[str, Any]], None, None]:
     # Get worker ID for parallel execution
     worker_id = os.environ.get("PYTEST_XDIST_WORKER", "0")
-    
+
     slack_client = SlackManager.get_slack_client(os.environ["SLACK_BOT_TOKEN"])
-    admin_email = f"admin_{worker_id}@test.com"  # Match the email format from UserManager
+    admin_email = (
+        f"admin_{worker_id}@test.com"  # Match the email format from UserManager
+    )
     email_id_map = SlackManager.build_slack_user_email_id_map(slack_client)
     if admin_email not in email_id_map:
         raise ValueError(
