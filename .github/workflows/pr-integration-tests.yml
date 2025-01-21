@@ -162,8 +162,9 @@ jobs:
             -e TEST_WEB_HOSTNAME=test-runner \
             -e AUTH_TYPE=cloud \
             -e MULTI_TENANT=true \
+            -e PYTEST_ADDOPTS="-n auto --dist=loadscope" \
             onyxdotapp/onyx-integration:test \
-            /app/tests/integration/multitenant_tests
+            pytest /app/tests/integration/multitenant_tests
         id: run_multitenant_tests
 
       - name: Save Docker logs
@@ -239,8 +240,9 @@ jobs:
             -e CONFLUENCE_USER_NAME=${CONFLUENCE_USER_NAME} \
             -e CONFLUENCE_ACCESS_TOKEN=${CONFLUENCE_ACCESS_TOKEN} \
             -e TEST_WEB_HOSTNAME=test-runner \
+            -e PYTEST_ADDOPTS="-n auto --dist=loadscope" \
             onyxdotapp/onyx-integration:test \
-            /app/tests/integration/tests
+            pytest /app/tests/integration/tests
         id: run_standard_tests
 
       - name: Save Docker logs
@@ -316,8 +318,9 @@ jobs:
             -e CONFLUENCE_USER_NAME=${CONFLUENCE_USER_NAME} \
             -e CONFLUENCE_ACCESS_TOKEN=${CONFLUENCE_ACCESS_TOKEN} \
             -e TEST_WEB_HOSTNAME=test-runner \
+            -e PYTEST_ADDOPTS="-n auto --dist=loadscope" \
             onyxdotapp/onyx-integration:test \
-            /app/tests/integration/connector_job_tests
+            pytest /app/tests/integration/connector_job_tests
         id: run_connector_tests
 
       - name: Save Docker logs
