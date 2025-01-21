@@ -76,7 +76,7 @@ export function AgenticToggle({
               />
             </div>
             <span
-              className={`ml-2 text-sm font-semibold flex items-center ${
+              className={`ml-2 text-sm font-[550] flex items-center ${
                 proSearchEnabled ? "text-agent" : "text-text-dark"
               }`}
             >

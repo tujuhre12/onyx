@@ -775,52 +775,54 @@ export function ChatInputBar({
                   />
                 )}
               </div>
-              <div className="flex items-center gap-x-2">
-                <AgenticToggle
-                  proSearchEnabled={proSearchEnabled}
-                  setProSearchEnabled={setProSearchEnabled}
-                />
+              {retrievalEnabled && (
                 <div className="flex items-center gap-x-2">
-                  {chatState == "streaming" ||
-                  chatState == "toolBuilding" ||
-                  chatState == "loading" ? (
-                    <button
-                      className={`cursor-pointer ${
-                        chatState != "streaming"
-                          ? "bg-background-400"
-                          : "bg-background-800"
-                      }  h-[28px] w-[28px] rounded-full`}
-                      onClick={stopGenerating}
-                      disabled={chatState != "streaming"}
-                    >
-                      <StopGeneratingIcon
-                        size={10}
-                        className={`text-emphasis m-auto text-white flex-none
+                  <AgenticToggle
+                    proSearchEnabled={proSearchEnabled}
+                    setProSearchEnabled={setProSearchEnabled}
+                  />
+                  <div className="flex items-center gap-x-2">
+                    {chatState == "streaming" ||
+                    chatState == "toolBuilding" ||
+                    chatState == "loading" ? (
+                      <button
+                        className={`cursor-pointer ${
+                          chatState != "streaming"
+                            ? "bg-background-400"
+                            : "bg-background-800"
+                        }  h-[28px] w-[28px] rounded-full`}
+                        onClick={stopGenerating}
+                        disabled={chatState != "streaming"}
+                      >
+                        <StopGeneratingIcon
+                          size={10}
+                          className={`text-emphasis m-auto text-white flex-none
                       }`}
-                      />
-                    </button>
-                  ) : (
-                    <button
-                      className="cursor-pointer"
-                      onClick={() => {
-                        if (message) {
-                          onSubmit();
-                        }
-                      }}
-                      disabled={chatState != "input"}
-                    >
-                      <SendIcon
-                        size={26}
-                        className={`text-emphasis text-white p-1 rounded-full  ${
-                          chatState == "input" && message
-                            ? "bg-submit-background"
-                            : "bg-disabled-submit-background"
-                        } `}
-                      />
-                    </button>
-                  )}
+                        />
+                      </button>
+                    ) : (
+                      <button
+                        className="cursor-pointer"
+                        onClick={() => {
+                          if (message) {
+                            onSubmit();
+                          }
+                        }}
+                        disabled={chatState != "input"}
+                      >
+                        <SendIcon
+                          size={26}
+                          className={`text-emphasis text-white p-1 rounded-full  ${
+                            chatState == "input" && message
+                              ? "bg-submit-background"
+                              : "bg-disabled-submit-background"
+                          } `}
+                        />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

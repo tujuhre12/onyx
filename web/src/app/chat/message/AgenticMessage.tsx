@@ -78,6 +78,7 @@ import {
   useStreamingMessages,
   useOrderedPhases,
 } from "./StreamingMessages";
+import { Badge } from "@/components/ui/badge";
 
 export const AgenticMessage = ({
   secondLevelAssistantMessage,
@@ -156,13 +157,11 @@ export const AgenticMessage = ({
   setStreamingAllowed?: (allowed: boolean) => void;
   streamingAllowed?: boolean;
 }) => {
-  const [streamedContent, setStreamedContent] = useState(
-    typeof content === "string" ? content : ""
-  );
+  const [streamedContent, setStreamedContent] = useState(content as string);
 
   const [lastKnownContentLength, setLastKnownContentLength] = useState(0);
 
-  const [allowStreaming, setAllowStreaming] = useState(false);
+  const [allowStreaming, setAllowStreaming] = useState(isComplete);
 
   const alternativeContent = secondLevelAssistantMessage || "";
 
@@ -535,21 +534,21 @@ export const AgenticMessage = ({
                             </Popover>
                           ) : (
                             secondLevelAssistantMessage && (
-                              <Button
-                                variant="outline"
+                              <Badge
+                                variant="agent"
                                 onClick={() => {
                                   const viewInitialAnswer =
                                     !isViewingInitialAnswer;
                                   setIsViewingInitialAnswer(viewInitialAnswer);
+                                  if (viewInitialAnswer) {
+                                    setIsViewingInitialAnswer(true);
+                                  }
                                 }}
-                                className={`${
-                                  isPulsing && "animate-pulse"
-                                } cursor-pointer `}
                               >
                                 {isViewingInitialAnswer
                                   ? "See Refined Answer"
                                   : "See Original Answer"}
-                              </Button>
+                              </Badge>
                             )
                           )}
                         </div>

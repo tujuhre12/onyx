@@ -17,7 +17,7 @@ export function WebResultIcon({
   return (
     <>
       {hostname == "docs.onyx.app" ? (
-        <OnyxIcon size={18} />
+        <OnyxIcon size={size} />
       ) : !error ? (
         <img
           className="my-0 rounded-full py-0"

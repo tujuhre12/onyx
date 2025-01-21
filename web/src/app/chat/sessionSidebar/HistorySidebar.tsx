@@ -243,7 +243,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             />
           </div>
           {page == "chat" && (
-            <div className="px-4 px-1 gap-y-1 flex-col text-text-history-sidebar-button flex gap-x-1.5 items-center items-center">
+            <div className="px-4 px-1 -mx-2 gap-y-1 flex-col text-text-history-sidebar-button flex gap-x-1.5 items-center items-center">
               <Link
                 className="w-full px-2 py-1 group rounded-md items-center hover:bg-hover cursor-pointer transition-all duration-150 flex gap-x-2"
                 href={
@@ -262,8 +262,11 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                   }
                 }}
               >
-                <NewChatIcon size={20} className="flex-none " />
-                <p className="my-auto flex font-normal items-center ">
+                <NewChatIcon
+                  size={20}
+                  className="flex-none text-agent-sidebar"
+                />
+                <p className="my-auto flex font-normal  text-agent-sidebar items-center ">
                   Start New Chat
                 </p>
               </Link>

@@ -291,21 +291,46 @@ const SubQuestionDisplay: React.FC<{
         className={`flex items-start ${!isLast ? "pb-4" : ""}`}
       >
         <div
+          className={`absolute  bg-background left-0 w-3 h-3 rounded-full top-[9px] z-10 
+
+         `}
+        >
+          {true ? (
+            <svg
+              className="animate-spin h-3 w-3 text-background-900"
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M7 1.5A5.5 5.5 0 1 1 1.5 7" />
+              <path d="M7 1.5A5.5 5.5 0 0 1 12.5 7" />
+              <path d="M12 3.5L12 7L9 7" />
+            </svg>
+          ) : status === ToggleState.Done ? (
+            <CheckIcon className="m-auto text-white" size={8} />
+          ) : null}
+        </div>
+        {/* <div
           className={`absolute left-0 w-3 h-3 rounded-full mt-[9px] z-10 
             bg-background border-2 border-background-900  "
             ${
               status === ToggleState.Todo
                 ? "border-4 border-background-900 bg-background"
                 : status === ToggleState.InProgress
-                  ? "bg-background border-2 border-background-900 rotating-border"
-                  : "bg-background-900 flex items-center  justify-center"
+                ? "bg-background border-2 border-background-900 rotating-border"
+                : "bg-background-900 flex items-center  justify-center"
             } 
          `}
         >
           {status === ToggleState.Done && (
             <CheckIcon className="m-auto text-white" size={8} />
           )}
-        </div>
+        </div> */}
         <div
           className={` w-full ${
             status === ToggleState.InProgress ? "ml-5" : "ml-8"
@@ -390,7 +415,7 @@ const SubQuestionDisplay: React.FC<{
                         Analyzing
                         <ChevronDown
                           className={`transition-transform duration-200 ${
-                            analysisToggled ? "" : "-rotate-90"
+                            !analysisToggled ? "" : "-rotate-90"
                           }`}
                           size={8}
                         />
