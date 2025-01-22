@@ -177,6 +177,10 @@ def _build_connector_start_latency_metric(
 
     start_latency = (recent_attempt.time_started - desired_start_time).total_seconds()
 
+    task_logger.info(
+        f"Calculated start latency for index attempt {recent_attempt.id}: {start_latency} seconds"
+    )
+
     return Metric(
         key=metric_key,
         name="connector_start_latency",
@@ -210,6 +214,9 @@ def _build_run_success_metrics(
             IndexingStatus.FAILED,
             IndexingStatus.CANCELED,
         ]:
+            task_logger.info(
+                f"Adding run success metric for index attempt {attempt.id} with status {attempt.status}"
+            )
             metrics.append(
                 Metric(
                     key=metric_key,
@@ -255,6 +262,7 @@ def _collect_connector_metrics(db_session: Session, redis_std: Redis) -> list[Me
         start_latency_metric = _build_connector_start_latency_metric(
             cc_pair, most_recent_attempt, second_most_recent_attempt, redis_std
         )
+        print(f"start_latency_metric: {start_latency_metric}")
         if start_latency_metric:
             metrics.append(start_latency_metric)
 
@@ -291,7 +299,7 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
             f"{sync_record.entity_id}:{sync_record.id}"
         )
         if _has_metric_been_emitted(redis_std, metric_key):
-            task_logger.debug(
+            task_logger.info(
                 f"Skipping metric for sync record {sync_record.id} "
                 "because it has already been emitted"
             )
@@ -311,11 +319,15 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
 
         if sync_speed is None:
             task_logger.error(
-                "Something went wrong with sync speed calculation. "
-                f"Sync record: {sync_record.id}"
+                f"Something went wrong with sync speed calculation. "
+                f"Sync record: {sync_record.id}, duration: {sync_duration_mins}, "
+                f"docs synced: {sync_record.num_docs_synced}"
             )
             continue
 
+        task_logger.info(
+            f"Calculated sync speed for record {sync_record.id}: {sync_speed} docs/min"
+        )
         metrics.append(
             Metric(
                 key=metric_key,
@@ -334,7 +346,7 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
             f":{sync_record.entity_id}:{sync_record.id}"
         )
         if _has_metric_been_emitted(redis_std, start_latency_key):
-            task_logger.debug(
+            task_logger.info(
                 f"Skipping start latency metric for sync record {sync_record.id} "
                 "because it has already been emitted"
             )
@@ -352,7 +364,7 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
             )
         else:
             # Skip other sync types
-            task_logger.debug(
+            task_logger.info(
                 f"Skipping sync record {sync_record.id} "
                 f"with type {sync_record.sync_type} "
                 f"and id {sync_record.entity_id} "
@@ -371,12 +383,15 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
         start_latency = (
             sync_record.sync_start_time - entity.time_last_modified_by_user
         ).total_seconds()
+        task_logger.info(
+            f"Calculated start latency for sync record {sync_record.id}: {start_latency} seconds"
+        )
         if start_latency < 0:
             task_logger.error(
                 f"Start latency is negative for sync record {sync_record.id} "
-                f"with type {sync_record.sync_type} and id {sync_record.entity_id}."
-                "This is likely because the entity was updated between the time the "
-                "time the sync finished and this job ran. Skipping."
+                f"with type {sync_record.sync_type} and id {sync_record.entity_id}. "
+                f"Sync start time: {sync_record.sync_start_time}, "
+                f"Entity last modified: {entity.time_last_modified_by_user}"
             )
             continue
 
