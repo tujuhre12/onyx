@@ -55,6 +55,7 @@ export const SourceChip2 = ({
   includeAnimation?: boolean;
 }) => {
   const [isNew, setIsNew] = useState(true);
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsNew(false), 300);
@@ -63,8 +64,15 @@ export const SourceChip2 = ({
 
   return (
     <TooltipProvider>
-      <Tooltip delayDuration={0}>
-        <TooltipTrigger>
+      <Tooltip
+        delayDuration={0}
+        open={isTooltipOpen}
+        onOpenChange={setIsTooltipOpen}
+      >
+        <TooltipTrigger
+          onMouseEnter={() => setIsTooltipOpen(true)}
+          onMouseLeave={() => setIsTooltipOpen(false)}
+        >
           <div
             onClick={onClick ? onClick : undefined}
             className={`
@@ -98,7 +106,10 @@ export const SourceChip2 = ({
           </div>
         </TooltipTrigger>
         {includeTooltip && title.length > 50 && (
-          <TooltipContent className="z-[2000000]">
+          <TooltipContent
+            className="!pointer-events-none z-[2000000]"
+            onMouseEnter={() => setIsTooltipOpen(false)}
+          >
             <p>{title}</p>
           </TooltipContent>
         )}

@@ -87,7 +87,7 @@ export const buildDocumentSummaryDisplay = (
             finalJSX[finalJSX.length - 1] = finalJSX[finalJSX.length - 1] + " ";
           }
           finalJSX.push(
-            <b key={index} className="text-default bg-highlight-text">
+            <b key={index} className="text-text font-bold">
               {currentText}
             </b>
           );

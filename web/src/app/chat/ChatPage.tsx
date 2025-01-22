@@ -789,6 +789,7 @@ export function ChatPage({
   // NOTE: -1 is a special designation that means the latest AI message
   const [selectedMessageForDocDisplay, setSelectedMessageForDocDisplay] =
     useState<number | null>(null);
+
   const { aiMessage } = selectedMessageForDocDisplay
     ? getHumanAndAIMessageFromMessageNumber(
         messageHistory,
@@ -2170,6 +2171,9 @@ export function ChatPage({
             title="Sources"
           >
             <DocumentResults
+              agenticMessage={
+                aiMessage?.sub_questions?.length! > 0 ? true : false
+              }
               setPresentingDocument={setPresentingDocument}
               modal={true}
               ref={innerSidebarElementRef}
@@ -2322,6 +2326,9 @@ export function ChatPage({
             `}
           >
             <DocumentResults
+              agenticMessage={
+                aiMessage?.sub_questions?.length! > 0 ? true : false
+              }
               setPresentingDocument={setPresentingDocument}
               modal={false}
               ref={innerSidebarElementRef}

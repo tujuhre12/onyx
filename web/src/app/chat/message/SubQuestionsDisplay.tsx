@@ -194,7 +194,7 @@ const SubQuestionDisplay: React.FC<{
   useEffect(() => {
     if (completed) {
       setTimeout(() => setStatus(ToggleState.Done), PHASE_MIN_MS);
-      setToggled(true);
+      // setToggled(true);
       console.log("COMPLETED SO IS TOGGLED");
       setIsVisible(true);
     }
