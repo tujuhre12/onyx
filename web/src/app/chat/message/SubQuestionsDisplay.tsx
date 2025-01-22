@@ -408,7 +408,7 @@ const SubQuestionDisplay: React.FC<{
                         Analyzing
                         <ChevronDown
                           className={`transition-transform duration-200 ${
-                            !analysisToggled ? "" : "-rotate-90"
+                            analysisToggled ? "" : "-rotate-90"
                           }`}
                           size={8}
                         />

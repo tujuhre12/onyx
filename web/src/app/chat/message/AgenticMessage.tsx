@@ -535,7 +535,8 @@ export const AgenticMessage = ({
                           ) : (
                             secondLevelAssistantMessage && (
                               <Badge
-                                className="cursor-pointer mt-[4px]"
+                                // NOTE: This is a hack to make the badge slightly higher
+                                className="cursor-pointer mt-[1px]"
                                 variant="agent"
                                 onClick={() => {
                                   const viewInitialAnswer =
