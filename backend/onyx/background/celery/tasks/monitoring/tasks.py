@@ -252,11 +252,9 @@ def _collect_connector_metrics(db_session: Session, redis_std: Redis) -> list[Me
         # Get all attempts in the last hour
         recent_attempts = (
             db_session.query(IndexAttempt)
-            .filter(
-                IndexAttempt.connector_credential_pair_id == cc_pair.id,
-                IndexAttempt.time_created >= one_hour_ago,
-            )
+            .filter(IndexAttempt.connector_credential_pair_id == cc_pair.id)
             .order_by(IndexAttempt.time_created.desc())
+            .limit(2)
             .all()
         )
         most_recent_attempt = recent_attempts[0] if recent_attempts else None
@@ -265,7 +263,10 @@ def _collect_connector_metrics(db_session: Session, redis_std: Redis) -> list[Me
         )
 
         # if no metric to emit, skip
-        if most_recent_attempt is None:
+        if (
+            most_recent_attempt is None
+            or one_hour_ago > most_recent_attempt.time_created
+        ):
             continue
 
         # Connector start latency
