@@ -5,7 +5,7 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
     // Capture unhandled exceptions and performance data
-    enableTracing: false,
+    enableTracing: true,
     integrations: [],
     tracesSampleRate: 0.1,
   });
