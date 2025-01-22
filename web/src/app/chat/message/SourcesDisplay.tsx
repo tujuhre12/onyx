@@ -80,9 +80,8 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
       }`}
     >
       <div className="flex items-center px-4">
-        <div className="text-black text-base font-medium">Sources</div>
+        <div className="text-black text-lg font-medium">Sources</div>
       </div>
-
       <div
         className={`grid  w-full ${
           threeCols ? "grid-cols-3" : "grid-cols-2"

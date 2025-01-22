@@ -489,7 +489,7 @@ export const AgenticMessage = ({
                       {/* <FileDisplay files={files || []} /> */}
                       <div className="w-full  py-4 flex flex-col gap-4">
                         <div className="flex items-center gap-x-2 px-4">
-                          <div className="text-black text-base font-medium">
+                          <div className="text-black text-lg font-medium">
                             Answer
                           </div>
 

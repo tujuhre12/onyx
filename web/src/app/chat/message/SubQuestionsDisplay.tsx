@@ -377,23 +377,29 @@ const SubQuestionDisplay: React.FC<{
                         Reading
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {memoizedDocs.slice(0, 10).map((doc, docIndex) => {
-                          const truncatedIdentifier =
-                            doc.semantic_identifier?.slice(0, 20) || "";
-                          return (
-                            <SourceChip2
-                              includeAnimation
-                              onClick={() =>
-                                openDocument(doc, setPresentingDocument)
-                              }
-                              key={docIndex}
-                              icon={<ResultIcon doc={doc} size={10} />}
-                              title={`${truncatedIdentifier}${
-                                truncatedIdentifier.length === 20 ? "..." : ""
-                              }`}
-                            />
-                          );
-                        })}
+                        {memoizedDocs.length > 0 ? (
+                          memoizedDocs.slice(0, 10).map((doc, docIndex) => {
+                            const truncatedIdentifier =
+                              doc.semantic_identifier?.slice(0, 20) || "";
+                            return (
+                              <SourceChip2
+                                includeAnimation
+                                onClick={() =>
+                                  openDocument(doc, setPresentingDocument)
+                                }
+                                key={docIndex}
+                                icon={<ResultIcon doc={doc} size={10} />}
+                                title={`${truncatedIdentifier}${
+                                  truncatedIdentifier.length === 20 ? "..." : ""
+                                }`}
+                              />
+                            );
+                          })
+                        ) : (
+                          <div className="text-black text-sm font-medium">
+                            No sources found
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
