@@ -162,6 +162,7 @@ def _build_connector_start_latency_metric(
     # Connector start latency
     # first run case - we should start as soon as it's created
     if not second_most_recent_attempt:
+        task_logger.info("No second most recent attempt, using connector creation time")
         desired_start_time = cc_pair.connector.time_created
     else:
         if not cc_pair.connector.refresh_freq:
@@ -171,9 +172,18 @@ def _build_connector_start_latency_metric(
             )
             return None
 
+        task_logger.info(
+            "Using second most recent attempt time: "
+            f"{second_most_recent_attempt.time_updated} with id: {second_most_recent_attempt.id}"
+        )
+        task_logger.info(
+            f"Using connector refresh freq: {cc_pair.connector.refresh_freq}"
+        )
         desired_start_time = second_most_recent_attempt.time_updated + timedelta(
             seconds=cc_pair.connector.refresh_freq
         )
+
+    task_logger.info(f"Desired start time: {desired_start_time}")
 
     start_latency = (recent_attempt.time_started - desired_start_time).total_seconds()
 
