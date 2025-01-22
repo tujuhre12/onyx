@@ -214,6 +214,7 @@ def document_by_cc_pair_cleanup_task(
 @shared_task(
     name=OnyxCeleryTask.CLOUD_BEAT_TASK_GENERATOR,
     trail=False,
+    bind=True,
 )
 def cloud_beat_task_generator(
     self: Task,
@@ -259,11 +260,11 @@ def cloud_beat_task_generator(
             "Soft time limit exceeded, task is being terminated gracefully."
         )
     except Exception:
-        task_logger.exception("Unexpected exception during cloud_generate_beat_tasks")
+        task_logger.exception("Unexpected exception during cloud_beat_task_generator")
     finally:
         if not lock_beat.owned():
             task_logger.error(
-                "cloud_generate_beat_tasks - Lock not owned on completion"
+                "cloud_beat_task_generator - Lock not owned on completion"
             )
             redis_lock_dump(lock_beat, redis_client)
         else:
@@ -271,7 +272,7 @@ def cloud_beat_task_generator(
 
     time_elapsed = time.monotonic() - time_start
     task_logger.info(
-        f"cloud_generate_beat_tasks finished: "
+        f"cloud_beat_task_generator finished: "
         f"task={task_name} "
         f"num_tenants={len(tenant_ids)} "
         f"elapsed={time_elapsed:.2f}"
