@@ -81,7 +81,7 @@ tasks_to_schedule = [
     {
         "name": "monitor-background-processes",
         "task": OnyxCeleryTask.MONITOR_BACKGROUND_PROCESSES,
-        "schedule": timedelta(seconds=5),
+        "schedule": timedelta(minutes=5),
         "options": {
             "priority": OnyxCeleryPriority.HIGH,
             "expires": BEAT_EXPIRES_DEFAULT,
