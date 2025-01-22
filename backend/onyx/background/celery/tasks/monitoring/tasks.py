@@ -262,7 +262,6 @@ def _collect_connector_metrics(db_session: Session, redis_std: Redis) -> list[Me
         start_latency_metric = _build_connector_start_latency_metric(
             cc_pair, most_recent_attempt, second_most_recent_attempt, redis_std
         )
-        print(f"start_latency_metric: {start_latency_metric}")
         if start_latency_metric:
             metrics.append(start_latency_metric)
 
