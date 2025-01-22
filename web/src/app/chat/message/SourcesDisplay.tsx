@@ -9,17 +9,20 @@ interface SourcesDisplayProps {
   toggleDocumentSelection: () => void;
   animateEntrance?: boolean;
   threeCols?: boolean;
+  hideDocumentDisplay?: boolean;
 }
 
-const SourceCard: React.FC<{ document: OnyxDocument }> = ({ document }) => {
+const SourceCard: React.FC<{
+  document: OnyxDocument;
+  hideDocumentDisplay?: boolean;
+}> = ({ document, hideDocumentDisplay = false }) => {
   const truncatedtext = document.match_highlights[0]
     ? document.match_highlights[0].slice(0, 80)
     : document.blurb?.slice(0, 80) || "";
   const truncatedIdentifier = document.semantic_identifier?.slice(0, 30) || "";
-  const documentSummary = buildDocumentSummaryDisplay(
-    document.match_highlights,
-    document.blurb
-  );
+  const documentSummary = hideDocumentDisplay
+    ? document.blurb
+    : buildDocumentSummaryDisplay(document.match_highlights, document.blurb);
 
   return (
     <button
@@ -46,6 +49,7 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   toggleDocumentSelection,
   animateEntrance = false,
   threeCols = false,
+  hideDocumentDisplay = false,
 }) => {
   const displayedDocuments = documents.slice(0, 5);
   const hasMoreDocuments = documents.length > 3;
@@ -92,7 +96,10 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
               animateEntrance ? "opacity-100" : "opacity-100"
             }`}
           >
-            <SourceCard document={doc} />
+            <SourceCard
+              hideDocumentDisplay={hideDocumentDisplay}
+              document={doc}
+            />
           </div>
         ))}
 

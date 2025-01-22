@@ -2453,8 +2453,7 @@ export function ChatPage({
                               (settings?.enterpriseSettings
                                 ?.two_lines_for_chat_header
                                 ? "pt-20 "
-                                : "pt-8") +
-                              (hasPerformedInitialScroll ? "" : "invisible")
+                                : "pt-4 ")
                             }
                           >
                             {(messageHistory.length < BUFFER_COUNT

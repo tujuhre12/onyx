@@ -395,13 +395,13 @@ export const AgenticMessage = ({
     otherMessagesCanSwitchTo.length > 1;
 
   useEffect(() => {
-    // if (!allowStreaming) {
-    //   if (typeof content === "string") {
-    //     setStreamedContent(finalContent);
-    //     setLastKnownContentLength(finalContent.length);
-    //   }
-    //   return;
-    // }
+    if (!allowStreaming) {
+      //   if (typeof content === "string") {
+      //     setStreamedContent(finalContent);
+      //     setLastKnownContentLength(finalContent.length);
+      //   }
+      return;
+    }
 
     if (typeof finalContent !== "string") return;
 
@@ -481,13 +481,6 @@ export const AgenticMessage = ({
                   {/* For debugging purposes */}
                   {/* <SubQuestionProgress subQuestions={subQuestions || []} /> */}
 
-                  {!allowStreaming ? "NOT ALLOW STREAMING" : "ALLOW STREAMING"}
-
-                  {!finalContent ? "NOT FINAL CONTENT" : "FINAL CONTENT"}
-                  {!((finalContent || "").length > 8)
-                    ? "NOT LONGER THAN 8"
-                    : "LONGER THAN 8"}
-
                   {(allowStreaming &&
                     finalContent &&
                     finalContent.length > 8) ||
@@ -532,8 +525,8 @@ export const AgenticMessage = ({
                                     className="w-full"
                                   >
                                     {isViewingInitialAnswer
-                                      ? "Hide Live Updates"
-                                      : "See Live Updates"}
+                                      ? "See Live Updates"
+                                      : "Hide Live Updates"}
                                     <FiGlobe className="inline-block mr-2" />
                                   </Button>
                                 </div>
@@ -542,6 +535,7 @@ export const AgenticMessage = ({
                           ) : (
                             secondLevelAssistantMessage && (
                               <Badge
+                                className="cursor-pointer mt-[4px]"
                                 variant="agent"
                                 onClick={() => {
                                   const viewInitialAnswer =

@@ -262,11 +262,8 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                   }
                 }}
               >
-                <NewChatIcon
-                  size={20}
-                  className="flex-none text-agent-sidebar"
-                />
-                <p className="my-auto flex font-normal  text-agent-sidebar items-center ">
+                <NewChatIcon size={20} className="flex-none" />
+                <p className="my-auto flex font-normal  items-center ">
                   Start New Chat
                 </p>
               </Link>

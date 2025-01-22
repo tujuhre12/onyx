@@ -260,7 +260,12 @@ module.exports = {
         success: "var(--success)",
         alert: "var(--alert)",
         accent: "var(--accent)",
-        agent: "#6C6AD6",
+        // -        agent: "#6C6AD6",
+        "agent-sidebar": "#BE5D0E",
+        agent: "#E47011",
+        // agent: "#FE8B09",
+
+        // agent: "#6C6AD6",
         // agent: "#FE8B09",
 
         // hover
