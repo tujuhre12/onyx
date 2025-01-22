@@ -295,6 +295,7 @@ class OnyxRedisLocks:
     ANONYMOUS_USER_ENABLED = "anonymous_user_enabled"
 
     CLOUD_CHECK_INDEXING_BEAT_LOCK = "da_lock:cloud_check_indexing_beat"
+    CLOUD_BEAT_TASK_GENERATOR_LOCK = "da_lock:cloud_beat_task_generator"
 
 
 class OnyxRedisSignals:
@@ -317,28 +318,9 @@ ONYX_CLOUD_TENANT_ID = "cloud"
 
 
 class OnyxCeleryTask:
-    CLOUD_CHECK_FOR_CONNECTOR_DELETION = (
-        f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_connector_deletion_task"
-    )
-    CLOUD_CHECK_FOR_VESPA_SYNC_TASK = (
-        f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_vespa_sync_task"
-    )
-    CLOUD_CHECK_FOR_INDEXING = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_indexing"
-    CLOUD_CHECK_FOR_PRUNING = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_pruning"
-    CLOUD_CHECK_FOR_DOC_PERMISSIONS_SYNC = (
-        f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_doc_permissions_sync"
-    )
-    CLOUD_CHECK_FOR_EXTERNAL_GROUP_SYNC = (
-        f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_external_group_sync"
-    )
-    CLOUD_FOR_LLM_MODEL_UPDATE = (
-        f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_llm_model_update"
-    )
+    DEFAULT = "celery"
 
-    CLOUD_MONITOR_VESPA_SYNC = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_monitor_vespa_sync"
-    CLOUD_MONITOR_BACKGROUND_PROCESSES = (
-        f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_monitor_background_processes"
-    )
+    CLOUD_BEAT_TASK_GENERATOR = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_generate_beat_tasks"
 
     CHECK_FOR_CONNECTOR_DELETION = "check_for_connector_deletion_task"
     CHECK_FOR_VESPA_SYNC_TASK = "check_for_vespa_sync_task"
