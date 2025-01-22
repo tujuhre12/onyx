@@ -216,9 +216,9 @@ const SubQuestionDisplay: React.FC<{
     }
     setTimeout(
       () => {
-        if (!unToggle) {
-          console.log("NOT TOGGLED SO UPDATED");
-        }
+        // if (!unToggle) {
+        //   console.log("NOT TOGGLED SO UPDATED");
+        // }
         setToggled(!unToggle);
       },
       unToggle ? PHASE_MIN_MS * 0.75 : 0
@@ -338,7 +338,7 @@ const SubQuestionDisplay: React.FC<{
             </div>
             <ChevronDown
               className={`mt-0.5 text-text-darker transition-transform duration-500 ease-in-out ${
-                toggled ? "" : "-rotate-180"
+                toggled ? "" : "-rotate-90"
               }`}
               size={20}
             />
@@ -436,7 +436,6 @@ const SubQuestionDisplay: React.FC<{
                   <div className="flex flex-col gap-2">
                     <div className="leading-none text-[#4a4a4a] text-xs font-medium">
                       {temporaryDisplay?.tinyQuestion}
-                      {toggled ? "Toggled" : "Not Toggled"}
                     </div>
                   </div>
                 </div>
