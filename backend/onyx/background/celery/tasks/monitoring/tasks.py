@@ -512,7 +512,7 @@ def cloud_check_alembic() -> bool | None:
 
             with get_session_with_tenant(tenant_id=POSTGRES_DEFAULT_SCHEMA) as session:
                 result = session.execute(
-                    text(f'SELECT * FROM "{tenant_id}".alembic.version LIMIT 1')
+                    text(f'SELECT * FROM "{tenant_id}".alembic_version LIMIT 1')
                 )
 
                 result_scalar: str | None = result.scalar_one_or_none()
