@@ -300,6 +300,8 @@ def validate_indexing_fences(
     )
 
     # validate all existing indexing jobs
+    # Use replica for this because the worst thing that happens
+    # is that we don't run the validation on this pass
     for key_bytes in r_replica.scan_iter(
         RedisConnectorIndex.FENCE_PREFIX + "*", count=SCAN_ITER_COUNT_DEFAULT
     ):
