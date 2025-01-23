@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from onyx.auth.schemas import UserRole
 from onyx.db.engine import get_session_context_manager
 from onyx.db.search_settings import get_current_search_settings
+from tests.integration.common_utils.constants import ADMIN_USER_NAME
 from tests.integration.common_utils.constants import GENERAL_HEADERS
 from tests.integration.common_utils.managers.user import build_email
 from tests.integration.common_utils.managers.user import DEFAULT_PASSWORD
@@ -56,20 +57,26 @@ def reset() -> None:
 @pytest.fixture
 def new_admin_user(reset: None) -> DATestUser | None:
     try:
-        return UserManager.create(name="admin_user")
+        return UserManager.create(name=ADMIN_USER_NAME)
     except Exception:
         return None
 
 
 @pytest.fixture
-def admin_user() -> DATestUser | None:
+def admin_user() -> DATestUser:
     try:
-        return UserManager.create(name="admin_user")
+        user = UserManager.create(name=ADMIN_USER_NAME)
+
+        # if there are other users for some reason, reset and try again
+        if user.role != UserRole.ADMIN:
+            reset_all()
+            user = UserManager.create(name=ADMIN_USER_NAME)
+        return user
     except Exception:
         pass
 
     try:
-        return UserManager.login_as_user(
+        user = UserManager.login_as_user(
             DATestUser(
                 id="",
                 email=build_email("admin_user"),
@@ -79,10 +86,14 @@ def admin_user() -> DATestUser | None:
                 is_active=True,
             )
         )
+        if user.role != UserRole.ADMIN:
+            reset_all()
+            user = UserManager.create(name=ADMIN_USER_NAME)
+            return user
     except Exception:
         pass
 
-    return None
+    raise RuntimeError("Failed to create or login as admin user")
 
 
 @pytest.fixture

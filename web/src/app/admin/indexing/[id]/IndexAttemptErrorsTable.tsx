@@ -1,22 +1,9 @@
 "use client";
 
 import { Modal } from "@/components/Modal";
-import { PageSelector } from "@/components/PageSelector";
 import { CheckmarkIcon, CopyIcon } from "@/components/icons/icons";
-import { localizeAndPrettify } from "@/lib/time";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-} from "@/components/ui/table";
-import Text from "@/components/ui/text";
 import { useState } from "react";
-import { IndexAttemptError } from "./types";
-import { TableHeader } from "@/components/ui/table";
 
-const NUM_IN_PAGE = 8;
 
 export function CustomModal({
   isVisible,
@@ -71,119 +58,5 @@ export function CustomModal({
         <div className="whitespace-pre-wrap">{content}</div>
       </div>
     </Modal>
-  );
-}
-
-export function IndexAttemptErrorsTable({
-  indexAttemptErrors,
-}: {
-  indexAttemptErrors: IndexAttemptError[];
-}) {
-  const [page, setPage] = useState(1);
-  const [modalData, setModalData] = useState<{
-    id: number | null;
-    title: string;
-    content: string;
-  } | null>(null);
-  const closeModal = () => setModalData(null);
-
-  return (
-    <>
-      {modalData && (
-        <CustomModal
-          isVisible={!!modalData}
-          onClose={closeModal}
-          title={modalData.title}
-          content={modalData.content}
-          showCopyButton
-        />
-      )}
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Timestamp</TableHead>
-            <TableHead>Batch Number</TableHead>
-            <TableHead>Document Summaries</TableHead>
-            <TableHead>Error Message</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {indexAttemptErrors
-            .slice(NUM_IN_PAGE * (page - 1), NUM_IN_PAGE * page)
-            .map((indexAttemptError) => {
-              return (
-                <TableRow key={indexAttemptError.id}>
-                  <TableCell>
-                    {indexAttemptError.time_created
-                      ? localizeAndPrettify(indexAttemptError.time_created)
-                      : "-"}
-                  </TableCell>
-                  <TableCell>{indexAttemptError.batch_number}</TableCell>
-                  <TableCell>
-                    {indexAttemptError.doc_summaries && (
-                      <div
-                        onClick={() =>
-                          setModalData({
-                            id: indexAttemptError.id,
-                            title: "Document Summaries",
-                            content: JSON.stringify(
-                              indexAttemptError.doc_summaries,
-                              null,
-                              2
-                            ),
-                          })
-                        }
-                        className="mt-2 text-link cursor-pointer select-none"
-                      >
-                        View Document Summaries
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <Text className="flex flex-wrap whitespace-normal">
-                        {indexAttemptError.error_msg || "-"}
-                      </Text>
-                      {indexAttemptError.traceback && (
-                        <div
-                          onClick={() =>
-                            setModalData({
-                              id: indexAttemptError.id,
-                              title: "Exception Traceback",
-                              content: indexAttemptError.traceback!,
-                            })
-                          }
-                          className="mt-2 text-link cursor-pointer select-none"
-                        >
-                          View Full Trace
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-        </TableBody>
-      </Table>
-      {indexAttemptErrors.length > NUM_IN_PAGE && (
-        <div className="mt-3 flex">
-          <div className="mx-auto">
-            <PageSelector
-              totalPages={Math.ceil(indexAttemptErrors.length / NUM_IN_PAGE)}
-              currentPage={page}
-              onPageChange={(newPage) => {
-                setPage(newPage);
-                window.scrollTo({
-                  top: 0,
-                  left: 0,
-                  behavior: "smooth",
-                });
-              }}
-            />
-          </div>
-        </div>
-      )}
-    </>
   );
 }

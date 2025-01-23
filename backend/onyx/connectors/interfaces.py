@@ -5,6 +5,8 @@ from typing import Any
 from pydantic import BaseModel
 
 from onyx.configs.constants import DocumentSource
+from onyx.connectors.models import ConnectorCheckpoint
+from onyx.connectors.models import ConnectorFailure
 from onyx.connectors.models import Document
 from onyx.connectors.models import SlimDocument
 from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
@@ -14,6 +16,9 @@ SecondsSinceUnixEpoch = float
 
 GenerateDocumentsOutput = Iterator[list[Document]]
 GenerateSlimDocumentOutput = Iterator[list[SlimDocument]]
+CheckpointOutput = Iterator[
+    tuple[Document | None, ConnectorCheckpoint, ConnectorFailure | None]
+]
 
 
 class BaseConnector(abc.ABC):
@@ -104,4 +109,15 @@ class OAuthConnector(BaseConnector):
 class EventConnector(BaseConnector):
     @abc.abstractmethod
     def handle_event(self, event: Any) -> GenerateDocumentsOutput:
+        raise NotImplementedError
+
+
+class CheckpointConnector(BaseConnector):
+    @abc.abstractmethod
+    def load_from_checkpoint(
+        self,
+        start: SecondsSinceUnixEpoch,
+        end: SecondsSinceUnixEpoch,
+        checkpoint: ConnectorCheckpoint,
+    ) -> CheckpointOutput:
         raise NotImplementedError

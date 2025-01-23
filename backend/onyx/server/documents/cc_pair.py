@@ -24,6 +24,7 @@ from onyx.background.celery.tasks.pruning.tasks import (
 from onyx.background.celery.versioned_apps.primary import app as primary_app
 from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import OnyxCeleryTask
+from onyx.background.indexing.models import IndexAttemptErrorPydantic
 from onyx.db.connector_credential_pair import add_credential_to_connector
 from onyx.db.connector_credential_pair import (
     get_connector_credential_pair_from_id_for_user,
@@ -39,7 +40,9 @@ from onyx.db.engine import get_current_tenant_id
 from onyx.db.engine import get_session
 from onyx.db.enums import AccessType
 from onyx.db.enums import ConnectorCredentialPairStatus
+from onyx.db.index_attempt import count_index_attempt_errors_for_cc_pair
 from onyx.db.index_attempt import count_index_attempts_for_connector
+from onyx.db.index_attempt import get_index_attempt_errors_for_cc_pair
 from onyx.db.index_attempt import get_latest_index_attempt_for_cc_pair_id
 from onyx.db.index_attempt import get_paginated_index_attempts_for_cc_pair_id
 from onyx.db.models import SearchSettings
@@ -544,6 +547,34 @@ def get_docs_sync_status(
         cc_pair_id=cc_pair_id,
     )
     return [DocumentSyncStatus.from_model(doc) for doc in all_docs_for_cc_pair]
+
+
+@router.get("/admin/cc-pair/{cc_pair_id}/errors")
+def get_cc_pair_indexing_errors(
+    cc_pair_id: int,
+    include_resolved: bool = Query(False),
+    page: int = Query(0, ge=0),
+    page_size: int = Query(10, ge=1, le=100),
+    _: User = Depends(current_curator_or_admin_user),
+    db_session: Session = Depends(get_session),
+) -> PaginatedReturn[IndexAttemptErrorPydantic]:
+    total_count = count_index_attempt_errors_for_cc_pair(
+        db_session=db_session,
+        cc_pair_id=cc_pair_id,
+        unresolved_only=not include_resolved,
+    )
+
+    index_attempt_errors = get_index_attempt_errors_for_cc_pair(
+        db_session=db_session,
+        cc_pair_id=cc_pair_id,
+        unresolved_only=not include_resolved,
+        page=page,
+        page_size=page_size,
+    )
+    return PaginatedReturn(
+        items=[IndexAttemptErrorPydantic.from_model(e) for e in index_attempt_errors],
+        total_items=total_count,
+    )
 
 
 @router.put("/connector/{connector_id}/credential/{credential_id}")
