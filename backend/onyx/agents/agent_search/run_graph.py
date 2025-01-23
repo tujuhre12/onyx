@@ -20,6 +20,7 @@ from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
 from onyx.chat.models import ExtendedToolResponse
+from onyx.chat.models import RefinedAnswerImprovement
 from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import SubQueryPiece
 from onyx.chat.models import SubQuestionPiece
@@ -76,6 +77,8 @@ def _parse_agent_event(
             return cast(ToolResponse, event["data"])
         elif event["name"] == "basic_response":
             return cast(AnswerPacket, event["data"])
+        elif event["name"] == "refined_answer_improvement":
+            return cast(RefinedAnswerImprovement, event["data"])
     return None
 
 
@@ -272,6 +275,8 @@ if __name__ == "__main__":
                 logger.info(
                     f"   ---------- FA {output.level} - {output.level_question_nr}  {output.answer_piece} | "
                 )
+            elif isinstance(output, RefinedAnswerImprovement):
+                logger.info(f"   ---------- RE {output.refined_answer_improvement} | ")
 
         # for tool_response in tool_responses:
         #    logger.debug(tool_response)
