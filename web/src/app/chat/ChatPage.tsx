@@ -272,10 +272,10 @@ export function ChatPage({
           (assistant) => assistant.id === existingChatSessionAssistantId
         )
       : defaultAssistantId !== undefined
-        ? availableAssistants.find(
-            (assistant) => assistant.id === defaultAssistantId
-          )
-        : undefined
+      ? availableAssistants.find(
+          (assistant) => assistant.id === defaultAssistantId
+        )
+      : undefined
   );
   // Gather default temperature settings
   const search_param_temperature = searchParams.get(
@@ -285,12 +285,12 @@ export function ChatPage({
   const defaultTemperature = search_param_temperature
     ? parseFloat(search_param_temperature)
     : selectedAssistant?.tools.some(
-          (tool) =>
-            tool.in_code_tool_id === SEARCH_TOOL_ID ||
-            tool.in_code_tool_id === INTERNET_SEARCH_TOOL_ID
-        )
-      ? 0
-      : 0.7;
+        (tool) =>
+          tool.in_code_tool_id === SEARCH_TOOL_ID ||
+          tool.in_code_tool_id === INTERNET_SEARCH_TOOL_ID
+      )
+    ? 0
+    : 0.7;
 
   const setSelectedAssistantFromId = (assistantId: number) => {
     // NOTE: also intentionally look through available assistants here, so that
@@ -1218,8 +1218,8 @@ export function ChatPage({
     const currentAssistantId = alternativeAssistantOverride
       ? alternativeAssistantOverride.id
       : alternativeAssistant
-        ? alternativeAssistant.id
-        : liveAssistant.id;
+      ? alternativeAssistant.id
+      : liveAssistant.id;
 
     resetInputBar();
     let messageUpdates: Message[] | null = null;
@@ -2576,6 +2576,10 @@ export function ChatPage({
                                 if (parentMessage?.type == "assistant") {
                                   return <></>;
                                 }
+                                const secondLevelMessage =
+                                  messageHistory[i + 1]?.type === "assistant"
+                                    ? messageHistory[i + 1]
+                                    : undefined;
 
                                 const secondLevelAssistantMessage =
                                   messageHistory[i + 1]?.type === "assistant"
@@ -2638,6 +2642,21 @@ export function ChatPage({
                                         agenticDocs={
                                           message.agentic_docs || agenticDocs
                                         }
+                                        toggleDocDisplay={(
+                                          agentic: boolean
+                                        ) => {
+                                          if (agentic) {
+                                            setSelectedMessageForDocDisplay(
+                                              message.messageId
+                                            );
+                                          } else {
+                                            setSelectedMessageForDocDisplay(
+                                              secondLevelMessage
+                                                ? secondLevelMessage.messageId
+                                                : null
+                                            );
+                                          }
+                                        }}
                                         docs={
                                           message?.documents &&
                                           message?.documents.length > 0
@@ -2776,27 +2795,6 @@ export function ChatPage({
                                                     currentAlternativeAssistant,
                                                 });
                                               }
-<<<<<<< HEAD
-                                              if (
-                                                previousMessage.messageId ===
-                                                null
-                                              ) {
-                                                setPopup({
-                                                  type: "error",
-                                                  message:
-                                                    "Cannot edit query of a pending message - please wait a few seconds and try again.",
-                                                });
-                                                return;
-                                              }
-
-                                              onSubmit({
-                                                messageIdToResend:
-                                                  previousMessage.messageId,
-                                                queryOverride: newQuery,
-                                                alternativeAssistantOverride:
-                                                  currentAlternativeAssistant,
-                                              });
-=======
                                             : undefined
                                         }
                                         handleShowRetrieved={(
@@ -2815,7 +2813,6 @@ export function ChatPage({
                                               setSelectedMessageForDocDisplay(
                                                 -1
                                               );
->>>>>>> 4f4cbfeeb (add agent search frontend)
                                             }
                                           }
                                         }}
