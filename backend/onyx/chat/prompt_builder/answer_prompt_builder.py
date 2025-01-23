@@ -83,6 +83,7 @@ class AnswerPromptBuilder:
         raw_user_query: str,
         raw_user_uploaded_files: list[InMemoryChatFile],
         single_message_history: str | None = None,
+        system_message: SystemMessage | None = None,
     ) -> None:
         self.max_tokens = compute_max_llm_input_tokens(llm_config)
 
@@ -100,7 +101,14 @@ class AnswerPromptBuilder:
             self.history_token_cnts,
         ) = translate_history_to_basemessages(message_history)
 
-        self.system_message_and_token_cnt: tuple[SystemMessage, int] | None = None
+        self.system_message_and_token_cnt: tuple[SystemMessage, int] | None = (
+            (
+                system_message,
+                check_message_tokens(system_message, self.llm_tokenizer_encode_func),
+            )
+            if system_message
+            else None
+        )
         self.user_message_and_token_cnt = (
             user_message,
             check_message_tokens(user_message, self.llm_tokenizer_encode_func),
