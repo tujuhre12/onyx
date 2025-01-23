@@ -19,6 +19,7 @@ from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
 from onyx.chat.models import ExtendedToolResponse
+from onyx.chat.models import RefinedAnswerImprovement
 from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import SubQueryPiece
 from onyx.chat.models import SubQuestionPiece
@@ -75,6 +76,8 @@ def _parse_agent_event(
             return cast(ToolResponse, event["data"])
         elif event["name"] == "basic_response":
             return cast(AnswerPacket, event["data"])
+        elif event["name"] == "refined_answer_improvement":
+            return cast(RefinedAnswerImprovement, event["data"])
     return None
 
 
@@ -132,7 +135,7 @@ def run_graph(
     input: BasicInput | MainInput_a,
 ) -> AnswerStream:
     # TODO: add these to the environment
-    config.perform_initial_search_path_decision = True
+    config.perform_initial_search_path_decision = False
     config.perform_initial_search_decomposition = True
     config.allow_refinement = True
 
@@ -218,7 +221,7 @@ if __name__ == "__main__":
         )
         # search_request.persona = get_persona_by_id(1, None, db_session)
         config.use_persistence = True
-        config.perform_initial_search_path_decision = True
+        config.perform_initial_search_path_decision = False
         config.perform_initial_search_decomposition = True
         if GRAPH_NAME == "a":
             input = MainInput_a(
@@ -262,6 +265,8 @@ if __name__ == "__main__":
                 logger.info(
                     f"   ---------- FA {output.level} - {output.level_question_nr}  {output.answer_piece} | "
                 )
+            elif isinstance(output, RefinedAnswerImprovement):
+                logger.info(f"   ---------- RE {output.refined_answer_improvement} | ")
 
         # for tool_response in tool_responses:
         #    logger.debug(tool_response)
