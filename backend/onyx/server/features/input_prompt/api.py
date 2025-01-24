@@ -32,6 +32,7 @@ def list_input_prompts(
     include_public: bool = True,
     db_session: Session = Depends(get_session),
 ) -> list[InputPromptSnapshot]:
+    print("FETCHING INPUT PROMPTS")
     user_prompts = fetch_input_prompts_by_user(
         user_id=user.id if user is not None else None,
         db_session=db_session,
