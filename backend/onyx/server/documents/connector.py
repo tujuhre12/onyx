@@ -396,20 +396,17 @@ def upload_files(
         for file in files:
             if file.content_type and file.content_type.startswith("application/zip"):
                 with zipfile.ZipFile(file.file, "r") as zf:
-                    print("INDEXING A ZIP FILE")
-
                     for file_info in zf.infolist():
-                        print(file_info.filename)
-                        if file_info.is_dir():
+                        # Skip directories and known macOS metadata entries
+                        if file_info.is_dir() or file_info.filename.startswith("."):
                             continue
+
                         sub_file_bytes = zf.read(file_info)
                         sub_file_name = f"{file.filename}/{file_info.filename}"
                         deduped_file_paths.append(sub_file_name)
 
                         # Determine the file type based on the file extension
-                        _, file_extension = os.path.splitext(file_info.filename)
                         mime_type, _ = mimetypes.guess_type(file_info.filename)
-
                         if mime_type is None:
                             mime_type = "application/octet-stream"
 
