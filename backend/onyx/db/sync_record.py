@@ -15,7 +15,7 @@ logger = setup_logger()
 
 def insert_sync_record(
     db_session: Session,
-    entity_id: int | None,
+    entity_id: int,
     sync_type: SyncType,
 ) -> SyncRecord:
     """Insert a new sync record into the database, cancelling any existing in-progress records.
