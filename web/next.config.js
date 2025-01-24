@@ -38,6 +38,14 @@ const nextConfig = {
       },
     ],
   },
+  // Add these options to optimize the build
+  swcMinify: true,
+  experimental: {
+    optimizeCss: true,
+    // Disable unnecessary features
+    scrollRestoration: false,
+    legacyBrowsers: false,
+  },
   async headers() {
     return [
       {
@@ -79,14 +87,17 @@ const sentryEnabled = Boolean(
   process.env.SENTRY_AUTH_TOKEN && process.env.NEXT_PUBLIC_SENTRY_DSN
 );
 
-// Sentry webpack plugin options
+// Modify the Sentry webpack plugin options
 const sentryWebpackPluginOptions = {
   org: process.env.SENTRY_ORG || "onyx",
   project: process.env.SENTRY_PROJECT || "data-plane-web",
   authToken: process.env.SENTRY_AUTH_TOKEN,
-  silent: !sentryEnabled, // Silence output when Sentry is disabled
-  dryRun: !sentryEnabled, // Don't upload source maps when Sentry is disabled
+  silent: !sentryEnabled,
+  dryRun: !sentryEnabled,
   sourceMaps: false,
+  // Add this option to disable source map generation
+  disableServerWebpackPlugin: true,
+  disableClientWebpackPlugin: true,
 };
 
 // Export the module with conditional Sentry configuration

@@ -18,6 +18,9 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
+# Increase Node.js memory limit for the build process
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 # pull in source code / package.json / package-lock.json
 COPY . .
 
