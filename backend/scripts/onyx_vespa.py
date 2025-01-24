@@ -26,18 +26,118 @@ Example: (gets docs for a given tenant id and connector id)
 """
 import argparse
 import json
+import os
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 
+from onyx.configs.constants import INDEX_SEPARATOR
+from onyx.context.search.models import IndexFilters
+from onyx.context.search.models import SearchRequest
 from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
 from onyx.db.engine import get_session_with_tenant
 from onyx.db.search_settings import get_current_search_settings
 from onyx.document_index.vespa.shared_utils.utils import get_vespa_http_client
+from onyx.document_index.vespa_constants import ACCESS_CONTROL_LIST
+from onyx.document_index.vespa_constants import DOC_UPDATED_AT
 from onyx.document_index.vespa_constants import DOCUMENT_ID_ENDPOINT
+from onyx.document_index.vespa_constants import DOCUMENT_SETS
+from onyx.document_index.vespa_constants import HIDDEN
+from onyx.document_index.vespa_constants import METADATA_LIST
 from onyx.document_index.vespa_constants import SEARCH_ENDPOINT
+from onyx.document_index.vespa_constants import SOURCE_TYPE
+from onyx.document_index.vespa_constants import TENANT_ID
 from onyx.document_index.vespa_constants import VESPA_APP_CONTAINER_URL
 from onyx.document_index.vespa_constants import VESPA_APPLICATION_ENDPOINT
+from onyx.utils.logger import setup_logger
+from shared_configs.configs import MULTI_TENANT
+
+logger = setup_logger()
+
+
+def build_vespa_filters(
+    filters: IndexFilters,
+    *,
+    include_hidden: bool = False,
+    remove_trailing_and: bool = False,
+) -> str:
+    def _build_or_filters(key: str, vals: list[str] | None) -> str:
+        if vals is None:
+            return ""
+
+        valid_vals = [val for val in vals if val]
+        if not key or not valid_vals:
+            return ""
+
+        eq_elems = [f'{key} contains "{elem}"' for elem in valid_vals]
+        or_clause = " or ".join(eq_elems)
+        return f"({or_clause})"
+
+    def _build_time_filter(
+        cutoff: datetime | None,
+        # Slightly over 3 Months, approximately 1 fiscal quarter
+        untimed_doc_cutoff: timedelta = timedelta(days=92),
+    ) -> str:
+        if not cutoff:
+            return ""
+
+        include_untimed = datetime.now(timezone.utc) - untimed_doc_cutoff > cutoff
+        cutoff_secs = int(cutoff.timestamp())
+
+        if include_untimed:
+            return f"!({DOC_UPDATED_AT} < {cutoff_secs})"
+        return f"({DOC_UPDATED_AT} >= {cutoff_secs})"
+
+    filter_str = ""
+    if not include_hidden:
+        filter_str += f"AND !({HIDDEN}=true) "
+
+    if filters.tenant_id and MULTI_TENANT:
+        filter_str += f'AND ({TENANT_ID} contains "{filters.tenant_id}") '
+
+    if filters.access_control_list is not None:
+        acl_str = _build_or_filters(ACCESS_CONTROL_LIST, filters.access_control_list)
+        if acl_str:
+            filter_str += f"AND {acl_str} "
+
+    source_strs = (
+        [s.value for s in filters.source_type] if filters.source_type else None
+    )
+    source_str = _build_or_filters(SOURCE_TYPE, source_strs)
+    if source_str:
+        filter_str += f"AND {source_str} "
+
+    tag_attributes = None
+    tags = filters.tags
+    if tags:
+        tag_attributes = [tag.tag_key + INDEX_SEPARATOR + tag.tag_value for tag in tags]
+    tag_str = _build_or_filters(METADATA_LIST, tag_attributes)
+    if tag_str:
+        filter_str += f"AND {tag_str} "
+
+    doc_set_str = _build_or_filters(DOCUMENT_SETS, filters.document_set)
+    if doc_set_str:
+        filter_str += f"AND {doc_set_str} "
+
+    time_filter = _build_time_filter(filters.time_cutoff)
+    if time_filter:
+        filter_str += f"AND {time_filter} "
+
+    if remove_trailing_and:
+        while filter_str.endswith(" and "):
+            filter_str = filter_str[:-5]
+        while filter_str.endswith("AND "):
+            filter_str = filter_str[:-4]
+
+    return filter_str.strip()
+
+
+# Set MULTI_TENANT environment variable
+os.environ["MULTI_TENANT"] = "True"
 
 
 # Print Vespa configuration URLs
@@ -90,21 +190,46 @@ def get_index_name(tenant_id: str, connector_id: int) -> str:
 
 
 # Perform a Vespa query using YQL syntax
-def query_vespa(yql: str) -> List[Dict[str, Any]]:
+def query_vespa(
+    yql: str, tenant_id: Optional[str] = None, limit: int = 10
+) -> List[Dict[str, Any]]:
+    filters = IndexFilters(tenant_id=tenant_id, access_control_list=[])
+    filter_string = build_vespa_filters(filters, remove_trailing_and=True)
+
+    # 1) Start with your original YQL (which already has `WHERE something`)
+    # 2) Append the filter string (which starts with AND)
+    # 3) Finally append "limit X"
+    # Example final: "select ... where true AND tenant_id='abc' AND !(hidden=true) limit 5"
+    full_yql = yql.strip()
+    if filter_string:
+        full_yql = f"{full_yql} {filter_string}"
+    full_yql = f"{full_yql} limit {limit}"
+
     params = {
-        "yql": yql,
+        "yql": full_yql,
         "timeout": "10s",
     }
+
+    # The rest can stay the same
+    search_request = SearchRequest(query="", filters=filters, limit=limit, offset=0)
+    params.update(search_request.model_dump())
+
+    print("FILTERS")
+    print(filters)
+    print("Vespa request parameters:")
+    print(json.dumps(params, indent=2))
+
     with get_vespa_http_client() as client:
         response = client.get(SEARCH_ENDPOINT, params=params)
         response.raise_for_status()
-        return response.json()["root"]["children"]
+        result = response.json()
+        return result.get("root", {}).get("children", [])
 
 
 # Get first N documents
 def get_first_n_documents(n: int = 10) -> List[Dict[str, Any]]:
-    yql = f"select * from sources * where true limit {n};"
-    return query_vespa(yql)
+    yql = "select * from sources * where true"
+    return query_vespa(yql, limit=n)
 
 
 # Pretty-print a list of documents
@@ -118,9 +243,12 @@ def print_documents(documents: List[Dict[str, Any]]) -> None:
 def get_documents_for_tenant_connector(
     tenant_id: str, connector_id: int, n: int = 10
 ) -> None:
-    get_index_name(tenant_id, connector_id)
-    documents = get_first_n_documents(n)
-    print(f"First {n} documents for tenant {tenant_id}, connector {connector_id}:")
+    index_name = get_index_name(tenant_id, connector_id)
+    yql = f"select * from sources {index_name} where true"
+    documents = query_vespa(yql, tenant_id, limit=n)
+    print(
+        f"First {len(documents)} documents for tenant {tenant_id}, connector {connector_id}:"
+    )
     print_documents(documents)
 
 
@@ -129,9 +257,9 @@ def search_documents(
     tenant_id: str, connector_id: int, query: str, n: int = 10
 ) -> None:
     index_name = get_index_name(tenant_id, connector_id)
-    yql = f"select * from sources {index_name} where userInput(@query) limit {n};"
-    documents = query_vespa(yql)
-    print(f"Search results for query '{query}':")
+    yql = f"select * from sources {index_name} where userInput(@query)"
+    documents = query_vespa(yql, tenant_id, limit=n)
+    print(f"Search results for query '{query}' in tenant {tenant_id}:")
     print_documents(documents)
 
 
@@ -161,35 +289,35 @@ def delete_document(tenant_id: str, connector_id: int, doc_id: str) -> None:
 
 
 # List documents from any source
-def list_documents(n: int = 10) -> None:
-    yql = f"select * from sources * where true limit {n};"
-    url = f"{VESPA_APP_CONTAINER_URL}/search/"
-    params = {
-        "yql": yql,
-        "timeout": "10s",
-    }
-    try:
-        with get_vespa_http_client() as client:
-            response = client.get(url, params=params)
-            response.raise_for_status()
-            documents = response.json()["root"]["children"]
-            print(f"First {n} documents:")
-            print_documents(documents)
-    except Exception as e:
-        print(f"Failed to list documents: {str(e)}")
+def list_documents(n: int = 10, tenant_id: Optional[str] = None):
+    yql = "select * from sources * where true"
+    if tenant_id:
+        yql += f" and tenant_id contains '{tenant_id}'"
+    print(f"Base YQL Query: {yql}")
+
+    # Let 'query_vespa' handle appending the "limit n" properly
+    documents = query_vespa(yql, tenant_id=tenant_id, limit=n)
+    print(f"Total documents found: {len(documents)}")
+    print(f"First {min(n, len(documents))} documents:")
+    for doc in documents[:n]:
+        print(json.dumps(doc, indent=2))
+        print("-" * 80)
 
 
 # Get and print ACLs for documents of a specific tenant and connector
 def get_document_acls(tenant_id: str, connector_id: int, n: int = 10) -> None:
     index_name = get_index_name(tenant_id, connector_id)
-    yql = f"select documentid, access_control_list from sources {index_name} where true limit {n};"
-    documents = query_vespa(yql)
-    print(f"ACLs for {n} documents from tenant {tenant_id}, connector {connector_id}:")
+    yql = f"select tenant_id, documentid, access_control_list from sources {index_name} where true"
+    documents = query_vespa(yql, tenant_id, limit=n)
+    print(
+        f"ACLs for {len(documents)} documents from tenant {tenant_id}, connector {connector_id}:"
+    )
     for doc in documents:
         print(f"Document ID: {doc['fields']['documentid']}")
         print(
             f"ACL: {json.dumps(doc['fields'].get('access_control_list', {}), indent=2)}"
         )
+        print(f"Tenant ID: {doc['fields']['tenant_id']}")
         print("-" * 80)
 
 
@@ -236,14 +364,7 @@ def main() -> None:
     elif args.action == "connect":
         check_vespa_connectivity()
     elif args.action == "list_docs":
-        # If tenant_id and connector_id are provided, list docs for that tenant/connector.
-        # Otherwise, list documents from any source.
-        if args.tenant_id and args.connector_id:
-            get_documents_for_tenant_connector(
-                args.tenant_id, args.connector_id, args.n
-            )
-        else:
-            list_documents(args.n)
+        list_documents(args.n, args.tenant_id)
     elif args.action == "search":
         if not args.query:
             parser.error("--query is required for search action")
