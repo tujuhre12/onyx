@@ -211,7 +211,7 @@ def fetch_input_prompts_by_user(
         query = query.where(or_(IPU.disabled.is_(None), IPU.disabled.is_(False)))
 
         if include_public:
-            # Return either user-owned or public prompts
+            # Return both user-owned and public prompts
             query = query.where(
                 or_(
                     InputPrompt.user_id == user_id,
@@ -231,10 +231,11 @@ def fetch_input_prompts_by_user(
             # Anonymous usage
             query = query.where(InputPrompt.is_public)
 
+        # Default to returning all prompts
+
     if active is not None:
         query = query.where(InputPrompt.active == active)
 
-    print(query)
     return list(db_session.scalars(query).all())
 
 
