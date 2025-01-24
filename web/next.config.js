@@ -38,11 +38,10 @@ const nextConfig = {
       },
     ],
   },
-  // Add these options to optimize the build
+  // Modify these options
   swcMinify: true,
   experimental: {
-    optimizeCss: true,
-    // Disable unnecessary features
+    // Remove the optimizeCss option
     scrollRestoration: false,
     legacyBrowsers: false,
   },

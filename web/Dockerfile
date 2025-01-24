@@ -24,8 +24,8 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 # pull in source code / package.json / package-lock.json
 COPY . .
 
-# Install dependencies
-RUN npm ci
+# Install dependencies including critters
+RUN npm ci && npm install critters
 
 # needed to get the `standalone` dir we expect later
 ENV NEXT_PRIVATE_STANDALONE=true
