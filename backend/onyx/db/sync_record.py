@@ -26,18 +26,38 @@ def insert_sync_record(
         sync_type: The type of sync operation
     """
     # If an existing in-progress sync record exists, mark as cancelled
-    existing_sync_record = fetch_latest_sync_record(
+    existing_in_progress_sync_record = fetch_latest_sync_record(
         db_session, entity_id, sync_type, sync_status=SyncStatus.IN_PROGRESS
     )
 
-    if existing_sync_record is not None:
+    if existing_in_progress_sync_record is not None:
         logger.info(
-            f"Cancelling existing in-progress sync record {existing_sync_record.id} "
+            f"Cancelling existing in-progress sync record {existing_in_progress_sync_record.id} "
             f"for entity_id={entity_id} sync_type={sync_type}"
         )
-        mark_sync_record_as_cancelled(db_session, existing_sync_record)
+        mark_sync_records_as_cancelled(db_session, entity_id, sync_type)
 
     return _create_sync_record(db_session, entity_id, sync_type)
+
+
+def mark_sync_records_as_cancelled(
+    db_session: Session,
+    entity_id: int | None,
+    sync_type: SyncType,
+) -> None:
+    stmt = (
+        update(SyncRecord)
+        .where(
+            and_(
+                SyncRecord.entity_id == entity_id,
+                SyncRecord.sync_type == sync_type,
+                SyncRecord.sync_status == SyncStatus.IN_PROGRESS,
+            )
+        )
+        .values(sync_status=SyncStatus.CANCELED)
+    )
+    db_session.execute(stmt)
+    db_session.commit()
 
 
 def _create_sync_record(
@@ -56,15 +76,6 @@ def _create_sync_record(
     db_session.add(sync_record)
     db_session.commit()
 
-    return sync_record
-
-
-def mark_sync_record_as_cancelled(
-    db_session: Session,
-    sync_record: SyncRecord,
-) -> SyncRecord:
-    sync_record.sync_status = SyncStatus.CANCELED
-    db_session.commit()
     return sync_record
 
 
