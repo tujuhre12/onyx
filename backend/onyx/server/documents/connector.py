@@ -1,5 +1,8 @@
+import mimetypes
 import os
 import uuid
+import zipfile
+from io import BytesIO
 from typing import cast
 
 from fastapi import APIRouter
@@ -389,7 +392,36 @@ def upload_files(
     try:
         file_store = get_default_file_store(db_session)
         deduped_file_paths = []
+
         for file in files:
+            if file.content_type and file.content_type.startswith("application/zip"):
+                with zipfile.ZipFile(file.file, "r") as zf:
+                    print("INDEXING A ZIP FILE")
+
+                    for file_info in zf.infolist():
+                        print(file_info.filename)
+                        if file_info.is_dir():
+                            continue
+                        sub_file_bytes = zf.read(file_info)
+                        sub_file_name = f"{file.filename}/{file_info.filename}"
+                        deduped_file_paths.append(sub_file_name)
+
+                        # Determine the file type based on the file extension
+                        _, file_extension = os.path.splitext(file_info.filename)
+                        mime_type, _ = mimetypes.guess_type(file_info.filename)
+
+                        if mime_type is None:
+                            mime_type = "application/octet-stream"
+
+                        file_store.save_file(
+                            file_name=sub_file_name,
+                            content=BytesIO(sub_file_bytes),
+                            display_name=file_info.filename,
+                            file_origin=FileOrigin.CONNECTOR,
+                            file_type=mime_type,
+                        )
+                continue
+
             file_path = os.path.join(str(uuid.uuid4()), cast(str, file.filename))
             deduped_file_paths.append(file_path)
             file_store.save_file(
