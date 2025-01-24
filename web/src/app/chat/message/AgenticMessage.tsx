@@ -67,20 +67,12 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import SubQuestionsDisplay from "./SubQuestionsDisplay";
-import SubQuestionProgress from "./SubQuestionProgress";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/Spinner";
-import { LoadingAnimation } from "@/components/Loading";
-import { LoadingIndicator } from "react-select/dist/declarations/src/components/indicators";
-import {
-  StreamingPhase,
-  StreamingPhaseText,
-  useStreamingMessages,
-  useOrderedPhases,
-} from "./StreamingMessages";
 import { Badge } from "@/components/ui/badge";
+import RefinemenetBadge, { NoNewAnswerMessage } from "../refinmentBadge";
+import SubQuestionProgress from "./SubQuestionProgress";
 
 export const AgenticMessage = ({
+  isImprovement,
   secondLevelAssistantMessage,
   secondLevelGenerating,
   isGenerating,
@@ -118,7 +110,9 @@ export const AgenticMessage = ({
   secondLevelSubquestions,
   setStreamingAllowed,
   streamingAllowed,
+  toggleDocDisplay,
 }: {
+  isImprovement?: boolean | null;
   secondLevelSubquestions?: SubQuestionDetail[] | null;
   agenticDocs?: OnyxDocument[] | null;
   secondLevelGenerating?: boolean;
@@ -156,6 +150,7 @@ export const AgenticMessage = ({
   setPresentingDocument?: (document: OnyxDocument) => void;
   setStreamingAllowed?: (allowed: boolean) => void;
   streamingAllowed?: boolean;
+  toggleDocDisplay?: (agentic: boolean) => void;
 }) => {
   const [streamedContent, setStreamedContent] = useState(content as string);
 
@@ -372,22 +367,6 @@ export const AgenticMessage = ({
     );
   }, [streamedContent, markdownComponents]);
 
-  const currentState = secondLevelSubquestions?.[0]
-    ? secondLevelSubquestions[0].answer
-      ? secondLevelSubquestions[0].is_complete
-        ? StreamingPhase.COMPLETE
-        : StreamingPhase.ANSWER
-      : secondLevelSubquestions[0].context_docs
-        ? StreamingPhase.CONTEXT_DOCS
-        : secondLevelSubquestions[0].sub_queries
-          ? StreamingPhase.SUB_QUERIES
-          : secondLevelSubquestions[0].question
-            ? StreamingPhase.WAITING
-            : StreamingPhase.WAITING
-    : StreamingPhase.WAITING;
-
-  const message = useOrderedPhases(currentState);
-
   const includeMessageSwitcher =
     currentMessageInd !== undefined &&
     onMessageSelection &&
@@ -480,7 +459,7 @@ export const AgenticMessage = ({
 
                   {/* For debugging purposes */}
                   {/* <SubQuestionProgress subQuestions={subQuestions || []} /> */}
-
+                  {/*  */}
                   {(allowStreaming &&
                     finalContent &&
                     finalContent.length > 8) ||
@@ -493,47 +472,22 @@ export const AgenticMessage = ({
                             Answer
                           </div>
 
-                          {secondLevelSubquestions &&
-                          secondLevelSubquestions.length > 0 &&
-                          secondLevelGenerating ? (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <div className="flex loading-text items-center gap-x-2 text-black text-sm font-medium cursor-pointer hover:text-blue-600 transition-colors duration-200">
-                                  Refining answer...
-                                  <FiChevronRight
-                                    className="inline-block text-text-darker"
-                                    size={16}
-                                  />
-                                </div>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-80 p-4 bg-white shadow-lg rounded-md">
-                                <div className="space-y-4">
-                                  <p className="text-lg leading-none font-semibold text-gray-800">
-                                    {message}
-                                  </p>
-                                  <p className="text-sm text-gray-600">
-                                    The answer is being refined based on
-                                    additional context and analysis.
-                                  </p>
-                                  <Button
-                                    onClick={() =>
-                                      setIsViewingInitialAnswer(
-                                        !isViewingInitialAnswer
-                                      )
-                                    }
-                                    size="sm"
-                                    className="w-full"
-                                  >
-                                    {isViewingInitialAnswer
-                                      ? "See Live Updates"
-                                      : "Hide Live Updates"}
-                                    <FiGlobe className="inline-block mr-2" />
-                                  </Button>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          ) : (
-                            secondLevelAssistantMessage && (
+                          {isImprovement == null &&
+                          subQuestions &&
+                          subQuestions.length > 0 ? (
+                            <RefinemenetBadge
+                              finished={!secondLevelGenerating}
+                              overallAnswer={secondLevelAssistantMessage || ""}
+                              secondLevelSubquestions={secondLevelSubquestions}
+                              toggleInitialAnswerVieinwg={() => {
+                                setIsViewingInitialAnswer(
+                                  !isViewingInitialAnswer
+                                );
+                              }}
+                              isViewingInitialAnswer={isViewingInitialAnswer}
+                            />
+                          ) : secondLevelAssistantMessage ? (
+                            isImprovement ? (
                               <Badge
                                 // NOTE: This is a hack to make the badge slightly higher
                                 className="cursor-pointer mt-[1px]"
@@ -542,6 +496,8 @@ export const AgenticMessage = ({
                                   const viewInitialAnswer =
                                     !isViewingInitialAnswer;
                                   setIsViewingInitialAnswer(viewInitialAnswer);
+                                  toggleDocDisplay &&
+                                    toggleDocDisplay(isViewingInitialAnswer);
                                   if (viewInitialAnswer) {
                                     setIsViewingInitialAnswer(true);
                                   }
@@ -551,7 +507,11 @@ export const AgenticMessage = ({
                                   ? "See Refined Answer"
                                   : "See Original Answer"}
                               </Badge>
+                            ) : (
+                              <NoNewAnswerMessage />
                             )
+                          ) : (
+                            <></>
                           )}
                         </div>
 
