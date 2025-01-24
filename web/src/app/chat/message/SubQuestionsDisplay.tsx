@@ -751,6 +751,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
 
       {shownDocuments && shownDocuments.length > 0 && (
         <SourcesDisplay
+          setPresentingDocument={setPresentingDocument}
           hideDocumentDisplay
           animateEntrance={true}
           toggleDocumentSelection={toggleDocumentSelection}

@@ -14,12 +14,14 @@ interface SourcesDisplayProps {
   animateEntrance?: boolean;
   threeCols?: boolean;
   hideDocumentDisplay?: boolean;
+  setPresentingDocument?: (document: OnyxDocument) => void;
 }
 
 const SourceCard: React.FC<{
   document: OnyxDocument;
   hideDocumentDisplay?: boolean;
-}> = ({ document, hideDocumentDisplay = false }) => {
+  setPresentingDocument?: (document: OnyxDocument) => void;
+}> = ({ document, hideDocumentDisplay = false, setPresentingDocument }) => {
   const truncatedtext = document.match_highlights[0]
     ? document.match_highlights[0].slice(0, 80)
     : document.blurb?.slice(0, 80) || "";
@@ -30,10 +32,10 @@ const SourceCard: React.FC<{
 
   return (
     <button
-      onClick={() => openDocument(document, () => {})}
-      className="max-w-[260px] h-[80px] p-3 bg-[#f1eee8] text-left hover:bg-[#ebe7de] cursor-pointer rounded-lg flex flex-col justify-between"
+      onClick={() => openDocument(document, setPresentingDocument)}
+      className="max-w-[260px] w-full overflow-hidden h-[80px] p-3 bg-[#f1eee8] text-left hover:bg-[#ebe7de] cursor-pointer rounded-lg flex flex-col justify-between"
     >
-      <div className="text-black text-xs line-clamp-2 font-medium leading-tight">
+      <div className="text-black text-xs line-clamp-2 break-all font-medium leading-tight">
         {/* {truncatedtext} */}
         {/* {truncatedtext.length === 80 ? "..." : ""} */}
         {documentSummary}
@@ -54,6 +56,7 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
   animateEntrance = false,
   threeCols = false,
   hideDocumentDisplay = false,
+  setPresentingDocument,
 }) => {
   const displayedDocuments = documents.slice(0, 5);
   const hasMoreDocuments = documents.length > 3;
@@ -100,6 +103,7 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
             }`}
           >
             <SourceCard
+              setPresentingDocument={setPresentingDocument}
               hideDocumentDisplay={hideDocumentDisplay}
               document={doc}
             />
