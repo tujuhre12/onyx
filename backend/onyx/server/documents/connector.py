@@ -413,7 +413,7 @@ def upload_files(
                         sub_file_name = os.path.join(str(uuid.uuid4()), file_info)
                         deduped_file_paths.append(sub_file_name)
 
-                        mime_type, _ = mimetypes.guess_type(file_info)
+                        mime_type, __ = mimetypes.guess_type(file_info)
                         if mime_type is None:
                             mime_type = "application/octet-stream"
 
