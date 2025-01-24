@@ -38,6 +38,7 @@ from onyx.redis.redis_pool import redis_lock_dump
 from onyx.utils.telemetry import optional_telemetry
 from onyx.utils.telemetry import RecordType
 
+
 _MONITORING_SOFT_TIME_LIMIT = 60 * 5  # 5 minutes
 _MONITORING_TIME_LIMIT = _MONITORING_SOFT_TIME_LIMIT + 60  # 6 minutes
 
@@ -459,6 +460,9 @@ def monitor_background_processes(self: Task, *, tenant_id: str | None) -> None:
             lambda: _collect_connector_metrics(db_session, redis_std),
             lambda: _collect_sync_metrics(db_session, redis_std),
         ]
+
+        # Queue Metrics: length of each queue
+
         # Collect and log each metric
         with get_session_with_tenant(tenant_id) as db_session:
             for metric_fn in metric_functions:
