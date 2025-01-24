@@ -228,7 +228,7 @@ def fetch_input_prompts_by_user(
             # If auth is disabled, return all prompts
             query = query.where(True)  # type: ignore
         elif include_public:
-            # If we need only public prompts while no user is logged in
+            # Anonymous usage
             query = query.where(InputPrompt.is_public)
 
     if active is not None:
