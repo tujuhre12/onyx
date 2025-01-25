@@ -221,7 +221,7 @@ if not MULTI_TENANT:
             {
                 "name": "monitor-background-processes",
                 "task": OnyxCeleryTask.MONITOR_BACKGROUND_PROCESSES,
-                "schedule": timedelta(minutes=5),
+                "schedule": timedelta(seconds=15),
                 "options": {
                     "priority": OnyxCeleryPriority.LOW,
                     "expires": BEAT_EXPIRES_DEFAULT,
