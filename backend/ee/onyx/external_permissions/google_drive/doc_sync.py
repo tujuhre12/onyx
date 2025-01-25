@@ -51,9 +51,18 @@ def _fetch_permissions_for_permission_ids(
 
     # If we found all permissions in cache, return them
     if len(permissions) == len(permission_ids):
+        print("FOUND PERMISSIONS IN THE CACHE")
         return permissions
 
     owner_email = permission_info.get("owner_email")
+    # Print debug information for testing
+    print("Debug information for testing:")
+    print(f"Credentials: {google_drive_connector.creds}")
+    print(f"Owner email: {owner_email}")
+    print(f"Primary admin email: {google_drive_connector.primary_admin_email}")
+    print(f"Document ID: {doc_id}")
+    print(f"Permission IDs: {permission_ids}")
+
     drive_service = get_drive_service(
         creds=google_drive_connector.creds,
         user_email=(owner_email or google_drive_connector.primary_admin_email),
@@ -74,6 +83,15 @@ def _fetch_permissions_for_permission_ids(
         permissions_for_doc_id.append(permission)
         _PERMISSION_ID_PERMISSION_MAP[permission["id"]] = permission
 
+    # Print fetched permissions for debugging
+    print("Fetched permissions:")
+    for permission in permissions_for_doc_id:
+        print(f"  ID: {permission['id']}")
+        print(f"  Email: {permission.get('emailAddress', 'N/A')}")
+        print(f"  Type: {permission['type']}")
+        print(f"  Domain: {permission.get('domain', 'N/A')}")
+        print("  ---")
+
     return permissions_for_doc_id
 
 
@@ -85,13 +103,18 @@ def _get_permissions_from_slim_doc(
 
     permissions_list = permission_info.get("permissions", [])
     if not permissions_list:
+        print("I AM MORE OR LESS FETCHING PERMISSIONS")
         if permission_ids := permission_info.get("permission_ids"):
+            print("IN THE FETCHING")
+
             permissions_list = _fetch_permissions_for_permission_ids(
                 google_drive_connector=google_drive_connector,
                 permission_ids=permission_ids,
                 permission_info=permission_info,
             )
         if not permissions_list:
+            print("PERMISSIONS NOT SCUCCSEFULLY FOUND")
+
             logger.warning(f"No permissions found for document {slim_doc.id}")
             return ExternalAccess(
                 external_user_emails=set(),

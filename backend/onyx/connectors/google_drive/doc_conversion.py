@@ -248,6 +248,10 @@ def build_slim_document(file: GoogleDriveFileType) -> SlimDocument | None:
     if file.get("mimeType") in [DRIVE_FOLDER_TYPE, DRIVE_SHORTCUT_TYPE]:
         return None
 
+    logger.info("NOM NOM")
+    logger.info("PEEERMISSSIONS")
+    logger.info(file.get("permissions"))
+
     return SlimDocument(
         id=file["webViewLink"],
         perm_sync_data={
