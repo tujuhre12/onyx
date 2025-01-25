@@ -34,6 +34,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel
 from sqlalchemy import and_
@@ -215,7 +216,7 @@ def query_vespa(
     full_yql = f"{full_yql} limit {limit}"
 
     params = {"yql": full_yql, "timeout": "10s"}
-    search_request = SearchRequest(query="", filters=filters, limit=limit, offset=0)
+    search_request = SearchRequest(query="", limit=limit, offset=0)
     params.update(search_request.model_dump())
 
     logger.info(f"Executing Vespa query: {full_yql}")
@@ -357,7 +358,7 @@ def get_chunk_ids_for_connector(
     cc_pair_id: int,
     index_name: str,
     filter_doc: DocumentFilter | None = None,
-) -> List[str]:
+) -> List[UUID]:
     # Return chunk IDs for a given connector.
     doc_id_to_new_chunk_cnt = get_document_and_chunk_counts(
         tenant_id, cc_pair_id, filter_doc
@@ -393,10 +394,10 @@ def get_document_acls(
     logger.info(
         f"Fetching document ACLs for tenant={tenant_id}, cc_pair_id={cc_pair_id}"
     )
-    chunk_ids = get_chunk_ids_for_connector(
+    chunk_ids: List[UUID] = get_chunk_ids_for_connector(
         tenant_id, cc_pair_id, index_name, filter_doc
     )
-    vespa_client = get_vespa_http_client(tenant_id)
+    vespa_client = get_vespa_http_client()
 
     target_ids = chunk_ids if n is None else chunk_ids[:n]
     logger.info(
@@ -404,7 +405,7 @@ def get_document_acls(
     )
     for doc_chunk_id in target_ids:
         document_url = (
-            f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{doc_chunk_id}"
+            f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{str(doc_chunk_id)}"
         )
         response = vespa_client.get(document_url)
         if response.status_code == 200:
