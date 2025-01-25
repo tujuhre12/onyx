@@ -4,6 +4,7 @@ from collections.abc import Callable
 from datetime import timedelta
 from itertools import islice
 from typing import Any
+from typing import Literal
 
 from celery import shared_task
 from celery import Task
@@ -190,50 +191,111 @@ def _build_connector_start_latency_metric(
         f"Start latency for index attempt {recent_attempt.id}: {start_latency:.2f}s "
         f"(desired: {desired_start_time}, actual: {recent_attempt.time_started})"
     )
+
+    job_id = build_job_id("connector", str(cc_pair.id), str(recent_attempt.id))
+
     return Metric(
         key=metric_key,
         name="connector_start_latency",
         value=start_latency,
-        tags={},
+        tags={
+            "job_id": job_id,
+            "connector_id": str(cc_pair.connector.id),
+            "source": str(cc_pair.connector.source),
+        },
     )
 
 
-def _build_run_success_metrics(
+def _build_connector_final_metrics(
     cc_pair: ConnectorCredentialPair,
     recent_attempts: list[IndexAttempt],
     redis_std: Redis,
 ) -> list[Metric]:
+    """
+    Emit final metrics for connector index attempts:
+      - Boolean success/fail metric
+      - If success, also emit:
+          * duration (seconds)
+          * doc_count
+      - If failed or canceled, skip the time-based metrics.
+    """
     metrics = []
     for attempt in recent_attempts:
-        metric_key = _CONNECTOR_INDEX_ATTEMPT_RUN_SUCCESS_KEY_FMT.format(
-            cc_pair_id=cc_pair.id,
-            index_attempt_id=attempt.id,
-        )
-
+        # We'll use a single Redis key for "final metrics" so we don't re-emit multiple times.
+        metric_key = f"connector_index_final_metrics:" f"{cc_pair.id}:{attempt.id}"
         if _has_metric_been_emitted(redis_std, metric_key):
             task_logger.info(
-                f"Skipping metric for connector {cc_pair.connector.id} "
-                f"index attempt {attempt.id} because it has already been "
-                "emitted"
+                f"Skipping final metrics for connector {cc_pair.connector.id} "
+                f"index attempt {attempt.id}, already emitted."
             )
             continue
 
-        if attempt.status in [
+        # We only emit final metrics if the attempt is in a terminal state
+        if attempt.status not in [
             IndexingStatus.SUCCESS,
             IndexingStatus.FAILED,
             IndexingStatus.CANCELED,
         ]:
-            task_logger.info(
-                f"Adding run success metric for index attempt {attempt.id} with status {attempt.status}"
+            # Not finished; skip
+            continue
+
+        job_id = build_job_id("connector", str(cc_pair.id), str(attempt.id))
+        success = attempt.status == IndexingStatus.SUCCESS
+        metrics.append(
+            Metric(
+                key=metric_key,  # We'll mark the same key for any final metrics
+                name="connector_run_succeeded",
+                value=success,
+                tags={
+                    "job_id": job_id,
+                    "connector_id": str(cc_pair.connector.id),
+                    "source": str(cc_pair.connector.source),
+                    "status": attempt.status.value,
+                },
             )
+        )
+
+        if success:
+            # Make sure we have valid time_started
+            if attempt.time_started and attempt.time_updated:
+                duration_seconds = (
+                    attempt.time_updated - attempt.time_started
+                ).total_seconds()
+                metrics.append(
+                    Metric(
+                        key=None,  # No need for a new key, or you can reuse the same if you prefer
+                        name="connector_index_duration_seconds",
+                        value=duration_seconds,
+                        tags={
+                            "job_id": job_id,
+                            "connector_id": str(cc_pair.connector.id),
+                            "source": str(cc_pair.connector.source),
+                        },
+                    )
+                )
+            else:
+                task_logger.warning(
+                    f"Index attempt {attempt.id} succeeded but has missing time fields "
+                    f"(time_started={attempt.time_started}, time_updated={attempt.time_updated})."
+                )
+
+            # For doc counts, choose whichever field is more relevant
+            doc_count = attempt.total_docs_indexed or 0
             metrics.append(
                 Metric(
-                    key=metric_key,
-                    name="connector_run_succeeded",
-                    value=attempt.status == IndexingStatus.SUCCESS,
-                    tags={"source": str(cc_pair.connector.source)},
+                    key=None,
+                    name="connector_index_doc_count",
+                    value=doc_count,
+                    tags={
+                        "job_id": job_id,
+                        "connector_id": str(cc_pair.connector.id),
+                        "source": str(cc_pair.connector.source),
+                    },
                 )
             )
+
+        # Mark them as emitted so we don't re-emit next time
+        _mark_metric_as_emitted(redis_std, metric_key)
 
     return metrics
 
@@ -279,146 +341,214 @@ def _collect_connector_metrics(db_session: Session, redis_std: Redis) -> list[Me
             metrics.append(start_latency_metric)
 
         # Connector run success/failure
-        run_success_metrics = _build_run_success_metrics(
+        final_metrics = _build_connector_final_metrics(
             cc_pair, recent_attempts, redis_std
         )
-        metrics.extend(run_success_metrics)
+        metrics.extend(final_metrics)
 
     return metrics
 
 
 def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]:
-    """Collect metrics about document set and group syncing speed"""
-    # NOTE: use get_db_current_time since the SyncRecord times are set based on DB time
+    """
+    Collect metrics for document set and group syncing:
+      - Success/failure status
+      - Start latency (always)
+      - Duration & doc count (only if success)
+      - Throughput (docs/min) (only if success)
+    """
     one_hour_ago = get_db_current_time(db_session) - timedelta(hours=1)
 
-    # Get all sync records from the last hour
+    # Get all sync records that ended in the last hour
     recent_sync_records = db_session.scalars(
         select(SyncRecord)
-        .where(SyncRecord.sync_start_time >= one_hour_ago)
-        .order_by(SyncRecord.sync_start_time.desc())
+        .where(SyncRecord.sync_end_time.isnot(None))
+        .where(SyncRecord.sync_end_time >= one_hour_ago)
+        .order_by(SyncRecord.sync_end_time.desc())
     ).all()
 
     metrics = []
-    for sync_record in recent_sync_records:
-        # Skip if no end time (sync still in progress)
-        if not sync_record.sync_end_time:
-            continue
 
-        # Check if we already emitted a metric for this sync record
-        metric_key = (
-            f"sync_speed:{sync_record.sync_type}:"
+    for sync_record in recent_sync_records:
+        # Build a job_id for correlation
+        job_id = build_job_id("sync_record", str(sync_record.id))
+
+        # 1) Emit a SUCCESS/FAIL boolean metric
+        #    Use a single Redis key to avoid re-emitting final metrics
+        final_metric_key = (
+            f"sync_final_metrics:{sync_record.sync_type}:"
             f"{sync_record.entity_id}:{sync_record.id}"
         )
-        if _has_metric_been_emitted(redis_std, metric_key):
-            task_logger.info(
-                f"Skipping metric for sync record {sync_record.id} "
-                "because it has already been emitted"
+        if not _has_metric_been_emitted(redis_std, final_metric_key):
+            # Evaluate success
+            sync_succeeded = sync_record.sync_status == "SUCCESS"
+
+            metrics.append(
+                Metric(
+                    key=final_metric_key,
+                    name="sync_run_succeeded",
+                    value=sync_succeeded,
+                    tags={
+                        "job_id": job_id,
+                        "sync_type": str(sync_record.sync_type),
+                        "status": str(sync_record.sync_status),
+                    },
+                )
             )
-            continue
 
-        # Calculate sync duration in minutes
-        sync_duration_mins = (
-            sync_record.sync_end_time - sync_record.sync_start_time
-        ).total_seconds() / 60.0
+            # If successful, emit additional metrics
+            if sync_succeeded:
+                # -- Duration (seconds) --
+                if sync_record.sync_end_time and sync_record.sync_start_time:
+                    duration_seconds = (
+                        sync_record.sync_end_time - sync_record.sync_start_time
+                    ).total_seconds()
+                else:
+                    task_logger.error(
+                        f"Invalid times for sync record {sync_record.id}: "
+                        f"start={sync_record.sync_start_time}, end={sync_record.sync_end_time}"
+                    )
+                    duration_seconds = None
 
-        # Calculate sync speed (docs/min) - avoid division by zero
-        sync_speed = (
-            sync_record.num_docs_synced / sync_duration_mins
-            if sync_duration_mins > 0
-            else None
-        )
+                # -- Doc count --
+                doc_count = sync_record.num_docs_synced or 0
 
-        if sync_speed is None:
-            task_logger.error(
-                f"Something went wrong with sync speed calculation. "
-                f"Sync record: {sync_record.id}, duration: {sync_duration_mins}, "
-                f"docs synced: {sync_record.num_docs_synced}"
-            )
-            continue
+                # -- Throughput (docs/min) --
+                sync_speed = None
+                if duration_seconds and duration_seconds > 0:
+                    duration_mins = duration_seconds / 60.0
+                    sync_speed = (
+                        doc_count / duration_mins if duration_mins > 0 else None
+                    )
 
-        task_logger.info(
-            f"Calculated sync speed for record {sync_record.id}: {sync_speed} docs/min"
-        )
-        metrics.append(
-            Metric(
-                key=metric_key,
-                name="sync_speed_docs_per_min",
-                value=sync_speed,
-                tags={
-                    "sync_type": str(sync_record.sync_type),
-                    "status": str(sync_record.sync_status),
-                },
-            )
-        )
+                # Emit duration, doc count, speed
+                if duration_seconds is not None:
+                    metrics.append(
+                        Metric(
+                            key=None,
+                            name="sync_duration_seconds",
+                            value=duration_seconds,
+                            tags={
+                                "job_id": job_id,
+                                "sync_type": str(sync_record.sync_type),
+                            },
+                        )
+                    )
 
-        # Add sync start latency metric
+                metrics.append(
+                    Metric(
+                        key=None,
+                        name="sync_doc_count",
+                        value=doc_count,
+                        tags={
+                            "job_id": job_id,
+                            "sync_type": str(sync_record.sync_type),
+                        },
+                    )
+                )
+
+                if sync_speed is not None:
+                    metrics.append(
+                        Metric(
+                            key=None,
+                            name="sync_speed_docs_per_min",
+                            value=sync_speed,
+                            tags={
+                                "job_id": job_id,
+                                "sync_type": str(sync_record.sync_type),
+                            },
+                        )
+                    )
+
+            # Mark final metrics as emitted so we don’t re-emit
+            _mark_metric_as_emitted(redis_std, final_metric_key)
+
+        # 2) Emit start latency *even if the sync failed*
         start_latency_key = (
             f"sync_start_latency:{sync_record.sync_type}"
             f":{sync_record.entity_id}:{sync_record.id}"
         )
-        if _has_metric_been_emitted(redis_std, start_latency_key):
-            task_logger.info(
-                f"Skipping start latency metric for sync record {sync_record.id} "
-                "because it has already been emitted"
-            )
-            continue
+        if not _has_metric_been_emitted(redis_std, start_latency_key):
+            # Get the entity's last update time based on sync type
+            entity: DocumentSet | UserGroup | None = None
+            if sync_record.sync_type == SyncType.DOCUMENT_SET:
+                entity = db_session.scalar(
+                    select(DocumentSet).where(DocumentSet.id == sync_record.entity_id)
+                )
+            elif sync_record.sync_type == SyncType.USER_GROUP:
+                entity = db_session.scalar(
+                    select(UserGroup).where(UserGroup.id == sync_record.entity_id)
+                )
+            else:
+                task_logger.info(
+                    f"Skipping sync record {sync_record.id} of type {sync_record.sync_type}."
+                )
+                continue
 
-        # Get the entity's last update time based on sync type
-        entity: DocumentSet | UserGroup | None = None
-        if sync_record.sync_type == SyncType.DOCUMENT_SET:
-            entity = db_session.scalar(
-                select(DocumentSet).where(DocumentSet.id == sync_record.entity_id)
-            )
-        elif sync_record.sync_type == SyncType.USER_GROUP:
-            entity = db_session.scalar(
-                select(UserGroup).where(UserGroup.id == sync_record.entity_id)
-            )
-        else:
-            # Skip other sync types
-            task_logger.info(
-                f"Skipping sync record {sync_record.id} "
-                f"with type {sync_record.sync_type} "
-                f"and id {sync_record.entity_id} "
-                "because it is not a document set or user group"
-            )
-            continue
+            if entity is None:
+                task_logger.error(
+                    f"Could not find entity for sync record {sync_record.id} "
+                    f"(type={sync_record.sync_type}, id={sync_record.entity_id})."
+                )
+                continue
 
-        if entity is None:
-            task_logger.error(
-                f"Could not find entity for sync record {sync_record.id} "
-                f"with type {sync_record.sync_type} and id {sync_record.entity_id}"
-            )
-            continue
+            # Calculate start latency in seconds:
+            #    (actual sync start) - (last modified time)
+            if entity.time_last_modified_by_user and sync_record.sync_start_time:
+                start_latency = (
+                    sync_record.sync_start_time - entity.time_last_modified_by_user
+                ).total_seconds()
 
-        # Calculate start latency in seconds
-        start_latency = (
-            sync_record.sync_start_time - entity.time_last_modified_by_user
-        ).total_seconds()
-        task_logger.info(
-            f"Calculated start latency for sync record {sync_record.id}: {start_latency} seconds"
-        )
-        if start_latency < 0:
-            task_logger.error(
-                f"Start latency is negative for sync record {sync_record.id} "
-                f"with type {sync_record.sync_type} and id {sync_record.entity_id}. "
-                f"Sync start time: {sync_record.sync_start_time}, "
-                f"Entity last modified: {entity.time_last_modified_by_user}"
-            )
-            continue
+                if start_latency < 0:
+                    task_logger.error(
+                        f"Negative start latency for sync record {sync_record.id} "
+                        f"(start={sync_record.sync_start_time}, entity_modified={entity.time_last_modified_by_user})"
+                    )
+                    continue
 
-        metrics.append(
-            Metric(
-                key=start_latency_key,
-                name="sync_start_latency_seconds",
-                value=start_latency,
-                tags={
-                    "sync_type": str(sync_record.sync_type),
-                },
-            )
-        )
+                metrics.append(
+                    Metric(
+                        key=start_latency_key,
+                        name="sync_start_latency_seconds",
+                        value=start_latency,
+                        tags={
+                            "job_id": job_id,
+                            "sync_type": str(sync_record.sync_type),
+                        },
+                    )
+                )
+
+                _mark_metric_as_emitted(redis_std, start_latency_key)
 
     return metrics
+
+
+def build_job_id(
+    job_type: Literal["connector", "sync_record"],
+    primary_id: str,
+    secondary_id: str | None = None,
+) -> str:
+    """
+    Build a structured job ID based on the type of metric or job.
+
+    Args:
+        job_type: The type of job (e.g., "connector" or "sync_record").
+        primary_id: The main identifier for the job (e.g., connector_id or sync_record_id).
+        secondary_id: An optional secondary identifier (e.g., attempt_id for connectors).
+
+    Returns:
+        A structured job ID string.
+    """
+    if job_type == "connector":
+        if secondary_id is None:
+            raise ValueError(
+                "secondary_id (attempt_id) is required for connector job_type"
+            )
+        return f"connector:{primary_id}:attempt:{secondary_id}"
+    elif job_type == "sync_record":
+        return f"sync_record:{primary_id}"
+    else:
+        raise ValueError(f"Unknown job_type: {job_type}")
 
 
 @shared_task(
