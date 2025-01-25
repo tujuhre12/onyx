@@ -144,6 +144,7 @@ export interface BackendMessage {
   // Keeping existing properties
   comments: any;
   parentMessageId: number | null;
+  refined_answer_improvement: boolean | null;
 }
 
 export interface MessageResponseIDInfo {
