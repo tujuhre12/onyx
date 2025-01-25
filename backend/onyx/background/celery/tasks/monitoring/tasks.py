@@ -526,17 +526,6 @@ def build_job_id(
     primary_id: str,
     secondary_id: str | None = None,
 ) -> str:
-    """
-    Build a structured job ID based on the type of metric or job.
-
-    Args:
-        job_type: The type of job (e.g., "connector" or "sync_record").
-        primary_id: The main identifier for the job (e.g., connector_id or sync_record_id).
-        secondary_id: An optional secondary identifier (e.g., attempt_id for connectors).
-
-    Returns:
-        A structured job ID string.
-    """
     if job_type == "connector":
         if secondary_id is None:
             raise ValueError(
