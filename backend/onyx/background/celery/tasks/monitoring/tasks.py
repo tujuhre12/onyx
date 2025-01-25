@@ -113,6 +113,7 @@ class Metric(BaseModel):
             }.items()
             if v is not None
         }
+        task_logger.info(f"Emitting metric: {data}")
         optional_telemetry(
             record_type=RecordType.METRIC,
             data=data,
@@ -300,49 +301,53 @@ def _build_connector_final_metrics(
 
 def _collect_connector_metrics(db_session: Session, redis_std: Redis) -> list[Metric]:
     """Collect metrics about connector runs from the past hour"""
-    # NOTE: use get_db_current_time since the IndexAttempt times are set based on DB time
     one_hour_ago = get_db_current_time(db_session) - timedelta(hours=1)
 
     # Get all connector credential pairs
     cc_pairs = db_session.scalars(select(ConnectorCredentialPair)).all()
-
+    # Might be more than one search setting, or just one
     active_search_settings = get_active_search_settings(db_session)
+
     metrics = []
 
-    for cc_pair, search_settings in zip(cc_pairs, active_search_settings):
-        recent_attempts = (
-            db_session.query(IndexAttempt)
-            .filter(
-                IndexAttempt.connector_credential_pair_id == cc_pair.id,
-                IndexAttempt.search_settings_id == search_settings.id,
+    # If you want to process each cc_pair against each search setting:
+    for cc_pair in cc_pairs:
+        for search_settings in active_search_settings:
+            recent_attempts = (
+                db_session.query(IndexAttempt)
+                .filter(
+                    IndexAttempt.connector_credential_pair_id == cc_pair.id,
+                    IndexAttempt.search_settings_id == search_settings.id,
+                )
+                .order_by(IndexAttempt.time_created.desc())
+                .limit(2)
+                .all()
             )
-            .order_by(IndexAttempt.time_created.desc())
-            .limit(2)
-            .all()
-        )
-        if not recent_attempts:
-            continue
 
-        most_recent_attempt = recent_attempts[0]
-        second_most_recent_attempt = (
-            recent_attempts[1] if len(recent_attempts) > 1 else None
-        )
+            if not recent_attempts:
+                continue
 
-        if one_hour_ago > most_recent_attempt.time_created:
-            continue
+            most_recent_attempt = recent_attempts[0]
+            second_most_recent_attempt = (
+                recent_attempts[1] if len(recent_attempts) > 1 else None
+            )
 
-        # Connector start latency
-        start_latency_metric = _build_connector_start_latency_metric(
-            cc_pair, most_recent_attempt, second_most_recent_attempt, redis_std
-        )
-        if start_latency_metric:
-            metrics.append(start_latency_metric)
+            if one_hour_ago > most_recent_attempt.time_created:
+                continue
 
-        # Connector run success/failure
-        final_metrics = _build_connector_final_metrics(
-            cc_pair, recent_attempts, redis_std
-        )
-        metrics.extend(final_metrics)
+            # Connector start latency
+            start_latency_metric = _build_connector_start_latency_metric(
+                cc_pair, most_recent_attempt, second_most_recent_attempt, redis_std
+            )
+
+            if start_latency_metric:
+                metrics.append(start_latency_metric)
+
+            # Connector run success/failure
+            final_metrics = _build_connector_final_metrics(
+                cc_pair, recent_attempts, redis_std
+            )
+            metrics.extend(final_metrics)
 
     return metrics
 
@@ -458,7 +463,7 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
                         )
                     )
 
-            # Mark final metrics as emitted so we don’t re-emit
+            # Mark final metrics as emitted so we don't re-emit
             _mark_metric_as_emitted(redis_std, final_metric_key)
 
         # 2) Emit start latency *even if the sync failed*
@@ -594,6 +599,7 @@ def monitor_background_processes(self: Task, *, tenant_id: str | None) -> None:
             "Soft time limit exceeded, task is being terminated gracefully."
         )
     except Exception as e:
+        task_logger.info(f"ERROR COLLECTING BACKGROUND PROCESS METRICS {e}")
         task_logger.exception("Error collecting background process metrics")
         raise e
     finally:
