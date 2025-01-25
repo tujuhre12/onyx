@@ -468,7 +468,7 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
         )
         if not _has_metric_been_emitted(redis_std, start_latency_key):
             # Get the entity's last update time based on sync type
-            entity: DocumentSet | UserGroup | None = None
+            entity: DocumentSet | UserGroup | ConnectorCredentialPair | None = None
             if sync_record.sync_type == SyncType.DOCUMENT_SET:
                 entity = db_session.scalar(
                     select(DocumentSet).where(DocumentSet.id == sync_record.entity_id)
