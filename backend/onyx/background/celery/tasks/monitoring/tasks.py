@@ -468,7 +468,7 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
         )
         if not _has_metric_been_emitted(redis_std, start_latency_key):
             # Get the entity's last update time based on sync type
-            entity: DocumentSet | UserGroup | ConnectorCredentialPair | None = None
+            entity: DocumentSet | UserGroup | None = None
             if sync_record.sync_type == SyncType.DOCUMENT_SET:
                 entity = db_session.scalar(
                     select(DocumentSet).where(DocumentSet.id == sync_record.entity_id)
@@ -476,12 +476,6 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
             elif sync_record.sync_type == SyncType.USER_GROUP:
                 entity = db_session.scalar(
                     select(UserGroup).where(UserGroup.id == sync_record.entity_id)
-                )
-            elif sync_record.sync_type == SyncType.CONNECTOR_DELETION:
-                entity = db_session.scalar(
-                    select(ConnectorCredentialPair).where(
-                        ConnectorCredentialPair.id == sync_record.entity_id
-                    )
                 )
             else:
                 task_logger.info(
@@ -528,7 +522,7 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
 
 
 def build_job_id(
-    job_type: Literal["connector", "sync_record", "connector_deletion"],
+    job_type: Literal["connector", "sync_record"],
     primary_id: str,
     secondary_id: str | None = None,
 ) -> str:
@@ -551,8 +545,6 @@ def build_job_id(
         return f"connector:{primary_id}:attempt:{secondary_id}"
     elif job_type == "sync_record":
         return f"sync_record:{primary_id}"
-    elif job_type == "connector_deletion":
-        return f"connector_deletion:{primary_id}"
 
 
 @shared_task(
