@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import cast
 
 from langchain_core.messages import HumanMessage
-from langchain_core.messages import merge_message_runs
 from langchain_core.runnables import RunnableConfig
 
 from onyx.agents.agent_search.deep_search_a.main.operations import logger
@@ -22,9 +21,6 @@ from onyx.agents.agent_search.shared_graph_utils.models import (
 )
 from onyx.agents.agent_search.shared_graph_utils.models import Relationship
 from onyx.agents.agent_search.shared_graph_utils.models import Term
-from onyx.agents.agent_search.shared_graph_utils.operators import (
-    dedup_inference_sections,
-)
 from onyx.agents.agent_search.shared_graph_utils.prompts import ENTITY_TERM_PROMPT
 from onyx.agents.agent_search.shared_graph_utils.utils import format_docs
 
@@ -40,7 +36,7 @@ def entity_term_extraction_llm(
     if not agent_a_config.allow_refinement:
         now_end = datetime.now()
         return EntityTermExtractionUpdate(
-            entity_retlation_term_extractions=EntityRelationshipTermExtraction(
+            entity_relation_term_extractions=EntityRelationshipTermExtraction(
                 entities=[],
                 relationships=[],
                 terms=[],
@@ -52,14 +48,10 @@ def entity_term_extraction_llm(
 
     # first four lines duplicates from generate_initial_answer
     question = agent_a_config.search_request.query
-    sub_question_docs = state.documents
-    all_original_question_documents = state.all_original_question_documents
-    relevant_docs = dedup_inference_sections(
-        sub_question_docs, all_original_question_documents
-    )
+    initial_search_docs = state.exploratory_search_results[:15]
 
     # start with the entity/term/extraction
-    doc_context = format_docs(relevant_docs)
+    doc_context = format_docs(initial_search_docs)
 
     doc_context = trim_prompt_piece(
         agent_a_config.fast_llm.config, doc_context, ENTITY_TERM_PROMPT + question
@@ -71,14 +63,11 @@ def entity_term_extraction_llm(
     ]
     fast_llm = agent_a_config.fast_llm
     # Grader
-    llm_response_list = list(
-        fast_llm.stream(
-            prompt=msg,
-        )
+    llm_response = fast_llm.invoke(
+        prompt=msg,
     )
-    llm_response = merge_message_runs(llm_response_list, chunk_separator="")[0].content
 
-    cleaned_response = re.sub(r"```json\n|\n```", "", llm_response)
+    cleaned_response = re.sub(r"```json\n|\n```", "", str(llm_response.content))
     parsed_response = json.loads(cleaned_response)
 
     entities = []
@@ -126,12 +115,12 @@ def entity_term_extraction_llm(
     )
 
     return EntityTermExtractionUpdate(
-        entity_retlation_term_extractions=EntityRelationshipTermExtraction(
+        entity_relation_term_extractions=EntityRelationshipTermExtraction(
             entities=entities,
             relationships=relationships,
             terms=terms,
         ),
         log_messages=[
-            f"{now_end} -- Main - ETR Extraction,  Time taken: {now_end - now_start}"
+            f"{now_start} -- Main - ETR Extraction,  Time taken: {now_end - now_start}"
         ],
     )

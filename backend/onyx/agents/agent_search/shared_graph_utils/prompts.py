@@ -91,6 +91,9 @@ BASE_RAG_PROMPT_v2 = (
 
     Here is the context:
     \n\n\n--\n {context} \n--\n
+    Please keep your answer brief and concise, and focus on facts and data.
+
+    Answer:
     """
 )
 
@@ -135,7 +138,7 @@ BASE_CHECK_PROMPT = """ \n
 VERIFIER_PROMPT = """
 You are supposed to judge whether a document text contains data or information that is potentially relevant
 for a question. It does not have to be fully relevant, but check whether it has some information that
-could help to address the question.
+would help - possibly in conjunction with other documents - to address the question.
 
 Here is a document text that you can take as a fact:
 --
@@ -144,8 +147,7 @@ DOCUMENT INFORMATION:
 --
 
 Do you think that this document text is useful and relevant to answer the following question?
-(Other documents may supply additional information, so do not worry if the provided information
-is not enough to answer the question, but it needs to be relevant to the question.)
+
 --
 QUESTION:
 {question}
@@ -288,6 +290,92 @@ DEEP_DECOMPOSE_PROMPT = """ \n
     the initial answer. Some other subquestions may have been suggested based on little knowledge, but they
     were not directly answerable. Also, some entities, relationships and terms are givenm to you so that
     you have an idea of how the avaiolable data looks like.
+
+    Your role is to generate 2-4 new sub-questions that would help to answer the initial question,
+    considering:
+
+    1) The initial question
+    2) The initial answer that was found to be unsatisfactory
+    3) The sub-questions that were answered
+    4) The sub-questions that were suggested but not answered
+    5) A sample of the TYPE of documents that may be in the databse in order to inform
+    you what type of entities, relationships, and terms you may want to consider asking about.
+    (But do not build the questions strictly on these documents! They are only examples!
+    Take the, as illustrations.)
+
+    The individual questions should be answerable by a good RAG system.
+    So a good idea would be to use the sub-questions to resolve ambiguities and/or to separate the
+    question for different entities that may be involved in the original question, but in a way that does
+    not duplicate questions that were already tried.
+
+    Additional Guidelines:
+    - The sub-questions should be specific to the question and provide richer context for the question,
+    resolve ambiguities, or address shortcoming of the initial answer
+    - Each sub-question - when answered - should be relevant for the answer to the original question
+    - The sub-questions should be free from comparisions, ambiguities,judgements, aggregations, or any
+    other complications that may require extra context.
+    - The sub-questions MUST have the full context of the original question so that it can be executed by
+    a RAG system independently without the original question available
+      (Example:
+        - initial question: "What is the capital of France?"
+        - bad sub-question: "What is the name of the river there?"
+        - good sub-question: "What is the name of the river that flows through Paris?"
+    - For each sub-question, please also provide a search term that can be used to retrieve relevant
+    documents from a document store.
+    - Consider specifically the sub-questions that were suggested but not answered. This is a sign that they are not
+    answerable with the available context, and you should not ask similar questions.
+    \n\n
+    Here is the initial question:
+    \n ------- \n
+    {question}
+    \n ------- \n
+    {history}
+
+    Here is the initial sub-optimal answer:
+    \n ------- \n
+    {base_answer}
+    \n ------- \n
+
+    Here are the sub-questions that were answered:
+    \n ------- \n
+    {answered_sub_questions}
+    \n ------- \n
+
+    Here are the sub-questions that were suggested but not answered:
+    \n ------- \n
+    {failed_sub_questions}
+    \n ------- \n
+
+    And here some reference documents that show you what type of entities, relationships,
+    and terms you may want to consider toask about as relevamt to your initial question.
+    \n ------- \n
+    {docs_str}
+    \n ------- \n
+
+   Please generate the list of good, fully contextualized sub-questions that would help to address the
+   main question.
+
+   Specifically pay attention also to the entities, relationships and terms extracted, as these indicate what type of
+   objects/relationships/terms you can ask about! Do not ask about entities, terms or relationships that are not
+   mentioned in the 'entities, relationships and terms' section.
+
+   Again, please find questions that are NOT overlapping too much with the already answered
+   sub-questions or those that already were suggested and failed.
+   In other words - what can we try in addition to what has been tried so far?
+
+   Generate the list of questions separated by one new line like this:
+<sub-question 1>
+<sub-question 2>
+<sub-question 3>
+   ...
+   """
+
+DEEP_DECOMPOSE_PROMPT_WITH_ENTITIES = """ \n
+    An initial user question needs to be answered. An initial answer has been provided but it wasn't quite
+    good enough. Also, some sub-questions had been answered and this information has been used to provide
+    the initial answer. Some other subquestions may have been suggested based on little knowledge, but they
+    were not directly answerable. Also, some entities, relationships and terms are given to you so that
+    you have an idea of how the available data looks like.
 
     Your role is to generate 2-4 new sub-questions that would help to answer the initial question,
     considering:
@@ -495,8 +583,10 @@ Here are some other ruleds:
 
 1) To give you some context, you will see below also some documents that relate to the question. Please only
 use this information to learn what the question is approximately asking about, but do not focus on the details
-to construct the sub-questions.
-2) If you think that a decomposition is not needed or helpful, please just return an empty string. That is very muchok too.
+to construct the sub-questions! Also, some of the entities, relationships and terms that are in the dataset may
+not be in these few documents, so DO NOT focusd too much on the documents when constructing the sub-questions! Decomposition and
+disambiguation are most important!
+2) If you think that a decomposition is not needed or helpful, please just return an empty string. That is very much ok too.
 
 Here are the sampple docs to give you some context:
 -------
@@ -514,6 +604,7 @@ Please formulate your answer as a newline-separated list of questions like so:
  <sub-question>
  <sub-question>
  <sub-question>
+ ...
 
 Answer:"""
 
@@ -755,6 +846,9 @@ And here is the question I want you to answer based on the information above:
 \n--\n
 {question}
 \n--\n\n
+
+Please keep your answer brief and concise, and focus on facts and data.
+
 Answer:"""
 )
 
@@ -794,6 +888,8 @@ And here is the question I want you to answer based on the context above
 \n--\n
 {question}
 \n--\n
+
+Please keep your answer brief and concise, and focus on facts and data.
 
 Answer:"""
 )
@@ -860,6 +956,9 @@ Lastly, here is the main question I want you to answer based on the information 
 \n--\n
 {question}
 \n--\n\n
+
+Please keep your answer brief and concise, and focus on facts and data.
+
 Answer:"""
 )
 
@@ -911,44 +1010,46 @@ Lastly, here is the question I want you to answer based on the information above
 \n--\n
 {question}
 \n--\n\n
+Please keep your answer brief and concise, and focus on facts and data.
+
 Answer:"""
 )
 
 
 ENTITY_TERM_PROMPT = """ \n
-    Based on the original question and the context retieved from a dataset, please generate a list of
-    entities (e.g. companies, organizations, industries, products, locations, etc.), terms and concepts
-    (e.g. sales, revenue, etc.) that are relevant for the question, plus their relations to each other.
+Based on the original question and some context retieved from a dataset, please generate a list of
+entities (e.g. companies, organizations, industries, products, locations, etc.), terms and concepts
+(e.g. sales, revenue, etc.) that are relevant for the question, plus their relations to each other.
 
-    \n\n
-    Here is the original question:
-    \n ------- \n
-    {question}
-    \n ------- \n
-   And here is the context retrieved:
-    \n ------- \n
-    {context}
-    \n ------- \n
+\n\n
+Here is the original question:
+\n ------- \n
+{question}
+\n ------- \n
+And here is the context retrieved:
+\n ------- \n
+{context}
+\n ------- \n
 
-    Please format your answer as a json object in the following format:
+Please format your answer as a json object in the following format:
 
-    {{"retrieved_entities_relationships": {{
-        "entities": [{{
-            "entity_name": <assign a name for the entity>,
-            "entity_type": <specify a short type name for the entity, such as 'company', 'location',...>
-        }}],
-        "relationships": [{{
-            "relationship_name": <assign a name for the relationship>,
-            "relationship_type": <specify a short type name for the relationship, such as 'sales_to', 'is_location_of',...>,
-            "relationship_entities": [<related entity name 1>, <related entity name 2>, ...]
-        }}],
-        "terms": [{{
-            "term_name": <assign a name for the term>,
-            "term_type": <specify a short type name for the term, such as 'revenue', 'market_share',...>,
-            "term_similar_to": <list terms that are similar to this term>
-        }}]
-    }}
-    }}
+{{"retrieved_entities_relationships": {{
+    "entities": [{{
+        "entity_name": <assign a name for the entity>,
+        "entity_type": <specify a short type name for the entity, such as 'company', 'location',...>
+    }}],
+    "relationships": [{{
+        "relationship_name": <assign a name for the relationship>,
+        "relationship_type": <specify a short type name for the relationship, such as 'sales_to', 'is_location_of',...>,
+        "relationship_entities": [<related entity name 1>, <related entity name 2>, ...]
+    }}],
+    "terms": [{{
+        "term_name": <assign a name for the term>,
+        "term_type": <specify a short type name for the term, such as 'revenue', 'market_share',...>,
+        "term_similar_to": <list terms that are similar to this term>
+    }}]
+}}
+}}
 
    """
 ANSWER_COMPARISON_PROMPT = """

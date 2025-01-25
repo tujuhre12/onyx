@@ -24,7 +24,7 @@ from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import SubQueryPiece
 from onyx.chat.models import SubQuestionPiece
 from onyx.chat.models import ToolResponse
-from onyx.configs.dev_configs import GRAPH_NAME
+from onyx.configs.agent_configs import GRAPH_NAME
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
 from onyx.tools.tool_runner import ToolCallKickoff
@@ -138,7 +138,7 @@ def run_graph(
     input: BasicInput | MainInput_a,
 ) -> AnswerStream:
     # TODO: add these to the environment
-    config.perform_initial_search_path_decision = False
+    # config.perform_initial_search_path_decision = False
     config.perform_initial_search_decomposition = True
     config.allow_refinement = True
 
@@ -212,7 +212,8 @@ if __name__ == "__main__":
         # query="What are the guiding principles behind the development of cockroachDB",
         # query="What are the temperatures in Munich, Hawaii, and New York?",
         # query="When was Washington born?",
-        query="What is Onyx?",
+        # query="What is Onyx?",
+        query="What is the difference between astronomy and astrology?",
     )
     # Joachim custom persona
 
@@ -222,7 +223,7 @@ if __name__ == "__main__":
         )
         # search_request.persona = get_persona_by_id(1, None, db_session)
         config.use_persistence = True
-        config.perform_initial_search_path_decision = False
+        # config.perform_initial_search_path_decision = False
         config.perform_initial_search_decomposition = True
         if GRAPH_NAME == "a":
             input = MainInput_a(

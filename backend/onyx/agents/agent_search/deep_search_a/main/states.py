@@ -56,6 +56,10 @@ class BaseDecompUpdate(RefinedAgentStartStats, RefinedAgentEndStats):
     initial_decomp_questions: list[str] = []
 
 
+class ExploratorySearchUpdate(LoggerUpdate):
+    exploratory_search_results: list[InferenceSection] = []
+
+
 class AnswerComparison(LoggerUpdate):
     refined_answer_improvement: bool = False
 
@@ -113,7 +117,7 @@ class ExpandedRetrievalUpdate(LoggerUpdate):
 
 
 class EntityTermExtractionUpdate(LoggerUpdate):
-    entity_retlation_term_extractions: EntityRelationshipTermExtraction = (
+    entity_relation_term_extractions: EntityRelationshipTermExtraction = (
         EntityRelationshipTermExtraction()
     )
 
@@ -154,6 +158,7 @@ class MainState(
     RefinedAgentEndStats,
     RoutingDecision,
     AnswerComparison,
+    ExploratorySearchUpdate,
 ):
     # expanded_retrieval_result: Annotated[list[ExpandedRetrievalResult], add]
     base_raw_search_result: Annotated[list[ExpandedRetrievalResult], add]
