@@ -212,12 +212,11 @@ def _build_connector_final_metrics(
     redis_std: Redis,
 ) -> list[Metric]:
     """
-    Emit final metrics for connector index attempts:
+    Final metrics for connector index attempts:
       - Boolean success/fail metric
-      - If success, also emit:
+      - If success, emit:
           * duration (seconds)
           * doc_count
-      - If failed or canceled, skip the time-based metrics.
     """
     metrics = []
     for attempt in recent_attempts:
@@ -274,8 +273,8 @@ def _build_connector_final_metrics(
                     )
                 )
             else:
-                task_logger.warning(
-                    f"Index attempt {attempt.id} succeeded but has missing time fields "
+                task_logger.error(
+                    f"Index attempt {attempt.id} succeeded but has missing time "
                     f"(time_started={attempt.time_started}, time_updated={attempt.time_updated})."
                 )
 
@@ -294,7 +293,6 @@ def _build_connector_final_metrics(
                 )
             )
 
-        # Mark them as emitted so we don't re-emit next time
         _mark_metric_as_emitted(redis_std, metric_key)
 
     return metrics
@@ -479,6 +477,12 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
                 entity = db_session.scalar(
                     select(UserGroup).where(UserGroup.id == sync_record.entity_id)
                 )
+            elif sync_record.sync_type == SyncType.CONNECTOR_DELETION:
+                entity = db_session.scalar(
+                    select(ConnectorCredentialPair).where(
+                        ConnectorCredentialPair.id == sync_record.entity_id
+                    )
+                )
             else:
                 task_logger.info(
                     f"Skipping sync record {sync_record.id} of type {sync_record.sync_type}."
@@ -524,7 +528,7 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
 
 
 def build_job_id(
-    job_type: Literal["connector", "sync_record"],
+    job_type: Literal["connector", "sync_record", "connector_deletion"],
     primary_id: str,
     secondary_id: str | None = None,
 ) -> str:
@@ -547,8 +551,8 @@ def build_job_id(
         return f"connector:{primary_id}:attempt:{secondary_id}"
     elif job_type == "sync_record":
         return f"sync_record:{primary_id}"
-    else:
-        raise ValueError(f"Unknown job_type: {job_type}")
+    elif job_type == "connector_deletion":
+        return f"connector_deletion:{primary_id}"
 
 
 @shared_task(
