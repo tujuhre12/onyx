@@ -24,6 +24,8 @@ COPY . .
 # Install dependencies
 RUN npm ci
 
+
+
 # needed to get the `standalone` dir we expect later
 ENV NEXT_PRIVATE_STANDALONE=true
 
@@ -78,7 +80,7 @@ ENV NEXT_PUBLIC_GTM_ENABLED=${NEXT_PUBLIC_GTM_ENABLED}
 ARG NEXT_PUBLIC_FORGOT_PASSWORD_ENABLED
 ENV NEXT_PUBLIC_FORGOT_PASSWORD_ENABLED=${NEXT_PUBLIC_FORGOT_PASSWORD_ENABLED}
 
-RUN npx next build
+RUN NODE_OPTIONS="--max-old-space-size=8192" npx next build
 
 # Step 2. Production image, copy all the files and run next
 FROM base AS runner
