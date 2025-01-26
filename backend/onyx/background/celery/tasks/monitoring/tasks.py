@@ -51,6 +51,12 @@ _CONNECTOR_INDEX_ATTEMPT_RUN_SUCCESS_KEY_FMT = (
     "monitoring_connector_index_attempt_run_success:{cc_pair_id}:{index_attempt_id}"
 )
 
+_FINAL_METRIC_KEY_FMT = "sync_final_metrics:{sync_type}:{entity_id}:{sync_record_id}"
+
+_SYNC_START_LATENCY_KEY_FMT = (
+    "sync_start_latency:{sync_type}:{entity_id}:{sync_record_id}"
+)
+
 
 def _mark_metric_as_emitted(redis_std: Redis, key: str) -> None:
     """Mark a metric as having been emitted by setting a Redis key with expiration"""
@@ -221,8 +227,10 @@ def _build_connector_final_metrics(
     """
     metrics = []
     for attempt in recent_attempts:
-        # We'll use a single Redis key for "final metrics" so we don't re-emit multiple times.
-        metric_key = f"connector_index_final_metrics:" f"{cc_pair.id}:{attempt.id}"
+        metric_key = _CONNECTOR_INDEX_ATTEMPT_RUN_SUCCESS_KEY_FMT.format(
+            cc_pair_id=cc_pair.id,
+            index_attempt_id=attempt.id,
+        )
         if _has_metric_been_emitted(redis_std, metric_key):
             task_logger.info(
                 f"Skipping final metrics for connector {cc_pair.connector.id} "
@@ -376,11 +384,12 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
         # Build a job_id for correlation
         job_id = build_job_id("sync_record", str(sync_record.id))
 
-        # 1) Emit a SUCCESS/FAIL boolean metric
+        # Emit a SUCCESS/FAIL boolean metric
         #    Use a single Redis key to avoid re-emitting final metrics
-        final_metric_key = (
-            f"sync_final_metrics:{sync_record.sync_type}:"
-            f"{sync_record.entity_id}:{sync_record.id}"
+        final_metric_key = _FINAL_METRIC_KEY_FMT.format(
+            sync_type=sync_record.sync_type,
+            entity_id=sync_record.entity_id,
+            sync_record_id=sync_record.id,
         )
         if not _has_metric_been_emitted(redis_std, final_metric_key):
             # Evaluate success
@@ -401,7 +410,6 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
 
             # If successful, emit additional metrics
             if sync_succeeded:
-                # -- Duration (seconds) --
                 if sync_record.sync_end_time and sync_record.sync_start_time:
                     duration_seconds = (
                         sync_record.sync_end_time - sync_record.sync_start_time
@@ -413,10 +421,8 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
                     )
                     duration_seconds = None
 
-                # -- Doc count --
                 doc_count = sync_record.num_docs_synced or 0
 
-                # -- Throughput (docs/min) --
                 sync_speed = None
                 if duration_seconds and duration_seconds > 0:
                     duration_mins = duration_seconds / 60.0
@@ -466,10 +472,11 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
             # Mark final metrics as emitted so we don't re-emit
             _mark_metric_as_emitted(redis_std, final_metric_key)
 
-        # 2) Emit start latency *even if the sync failed*
-        start_latency_key = (
-            f"sync_start_latency:{sync_record.sync_type}"
-            f":{sync_record.entity_id}:{sync_record.id}"
+        # Emit start latency
+        start_latency_key = _SYNC_START_LATENCY_KEY_FMT.format(
+            sync_type=sync_record.sync_type,
+            entity_id=sync_record.entity_id,
+            sync_record_id=sync_record.id,
         )
         if not _has_metric_been_emitted(redis_std, start_latency_key):
             # Get the entity's last update time based on sync type
@@ -581,8 +588,6 @@ def monitor_background_processes(self: Task, *, tenant_id: str | None) -> None:
             lambda: _collect_sync_metrics(db_session, redis_std),
         ]
 
-        # Queue Metrics: length of each queue
-
         # Collect and log each metric
         with get_session_with_tenant(tenant_id) as db_session:
             for metric_fn in metric_functions:
@@ -599,7 +604,6 @@ def monitor_background_processes(self: Task, *, tenant_id: str | None) -> None:
             "Soft time limit exceeded, task is being terminated gracefully."
         )
     except Exception as e:
-        task_logger.info(f"ERROR COLLECTING BACKGROUND PROCESS METRICS {e}")
         task_logger.exception("Error collecting background process metrics")
         raise e
     finally:
