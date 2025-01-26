@@ -26,7 +26,6 @@ Example:
 """
 import argparse
 import json
-import os
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
@@ -67,8 +66,6 @@ from shared_configs.configs import MULTI_TENANT
 from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA
 
 logger = setup_logger()
-
-os.environ["MULTI_TENANT"] = "True"
 
 
 class DocumentFilter(BaseModel):
