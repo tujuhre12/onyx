@@ -2184,7 +2184,12 @@ export function ChatPage({
           >
             <DocumentResults
               agenticMessage={
-                aiMessage?.sub_questions?.length! > 0 ? true : false
+                aiMessage?.sub_questions?.length! > 0 ||
+                messageHistory.find(
+                  (m) => m.messageId === aiMessage?.parentMessageId
+                )?.sub_questions?.length! > 0
+                  ? true
+                  : false
               }
               setPresentingDocument={setPresentingDocument}
               modal={true}
@@ -2339,7 +2344,12 @@ export function ChatPage({
           >
             <DocumentResults
               agenticMessage={
-                aiMessage?.sub_questions?.length! > 0 ? true : false
+                aiMessage?.sub_questions?.length! > 0 ||
+                messageHistory.find(
+                  (m) => m.messageId === aiMessage?.parentMessageId
+                )?.sub_questions?.length! > 0
+                  ? true
+                  : false
               }
               setPresentingDocument={setPresentingDocument}
               modal={false}
