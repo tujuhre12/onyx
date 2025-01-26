@@ -324,7 +324,7 @@ def get_document_and_chunk_counts(
     # Return a dict mapping each document ID to its chunk count for a given connector.
     with get_session_with_tenant(tenant_id=tenant_id) as session:
         doc_ids_data = (
-            session.query(DocumentByConnectorCredentialPair.id)
+            session.query(DocumentByConnectorCredentialPair.id, Document.link)
             .join(
                 ConnectorCredentialPair,
                 and_(
@@ -334,13 +334,18 @@ def get_document_and_chunk_counts(
                     == ConnectorCredentialPair.credential_id,
                 ),
             )
+            .join(Document, DocumentByConnectorCredentialPair.id == Document.id)
             .filter(ConnectorCredentialPair.id == cc_pair_id)
             .distinct()
             .all()
         )
-        doc_ids = [doc_id for (doc_id,) in doc_ids_data]
-        if filter_doc and filter_doc.link:
-            doc_ids = [did for did in doc_ids if filter_doc.link.lower() in did.lower()]
+        doc_ids = []
+        for doc_id, link in doc_ids_data:
+            if filter_doc and filter_doc.link:
+                if link and filter_doc.link.lower() in link.lower():
+                    doc_ids.append(doc_id)
+            else:
+                doc_ids.append(doc_id)
         chunk_counts_data = (
             session.query(Document.id, Document.chunk_count)
             .filter(Document.id.in_(doc_ids))
