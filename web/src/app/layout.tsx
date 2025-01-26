@@ -205,9 +205,9 @@ export default async function RootLayout({
     >
       <Suspense fallback={null}>
         <PostHogPageView />
+        <WebVitals />
+        {children}
       </Suspense>
-      {children}
-      {process.env.NEXT_PUBLIC_POSTHOG_KEY && <WebVitals />}
     </AppProvider>
   );
 }
