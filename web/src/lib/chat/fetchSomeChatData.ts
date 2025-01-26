@@ -43,7 +43,6 @@ interface FetchChatDataResult {
   toggleSidebar?: boolean;
   finalDocumentSidebarInitialWidth?: number;
   shouldShowWelcomeModal?: boolean;
-  shouldDisplaySourcesIncompleteModal?: boolean;
   userInputPrompts?: InputPrompt[];
 }
 
@@ -224,14 +223,6 @@ export async function fetchSomeChatData(
     result.shouldShowWelcomeModal =
       !hasCompletedWelcomeFlowSS(requestCookies) &&
       !hasAnyConnectors &&
-      (!user || user.role === "admin");
-
-    result.shouldDisplaySourcesIncompleteModal =
-      hasAnyConnectors &&
-      !result.shouldShowWelcomeModal &&
-      !result.ccPairs.some(
-        (ccPair) => ccPair.has_successful_run && ccPair.docs_indexed > 0
-      ) &&
       (!user || user.role === "admin");
   }
 
