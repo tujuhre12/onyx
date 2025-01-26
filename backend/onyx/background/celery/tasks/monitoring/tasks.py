@@ -27,6 +27,7 @@ from onyx.db.engine import get_all_tenant_ids
 from onyx.db.engine import get_db_current_time
 from onyx.db.engine import get_session_with_tenant
 from onyx.db.enums import IndexingStatus
+from onyx.db.enums import SyncStatus
 from onyx.db.enums import SyncType
 from onyx.db.models import ConnectorCredentialPair
 from onyx.db.models import DocumentSet
@@ -378,6 +379,10 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
         .order_by(SyncRecord.sync_end_time.desc())
     ).all()
 
+    task_logger.info(
+        f"Collecting sync metrics for {len(recent_sync_records)} sync records"
+    )
+
     metrics = []
 
     for sync_record in recent_sync_records:
@@ -393,7 +398,7 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
         )
         if not _has_metric_been_emitted(redis_std, final_metric_key):
             # Evaluate success
-            sync_succeeded = sync_record.sync_status == "SUCCESS"
+            sync_succeeded = sync_record.sync_status == SyncStatus.SUCCESS
 
             metrics.append(
                 Metric(
@@ -443,6 +448,10 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
                             },
                         )
                     )
+                else:
+                    task_logger.error(
+                        f"Invalid sync record {sync_record.id} with no duration"
+                    )
 
                 metrics.append(
                     Metric(
@@ -467,6 +476,10 @@ def _collect_sync_metrics(db_session: Session, redis_std: Redis) -> list[Metric]
                                 "sync_type": str(sync_record.sync_type),
                             },
                         )
+                    )
+                else:
+                    task_logger.error(
+                        f"Invalid sync record {sync_record.id} with no duration"
                     )
 
             # Mark final metrics as emitted so we don't re-emit
