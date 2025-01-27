@@ -26,9 +26,9 @@ from onyx.background.celery.celery_redis import celery_find_task
 from onyx.background.celery.celery_redis import celery_get_queue_length
 from onyx.background.celery.celery_redis import celery_get_unacked_task_ids
 from onyx.configs.app_configs import JOB_TIMEOUT
+from onyx.configs.constants import CELERY_GENERIC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import CELERY_PERMISSIONS_SYNC_LOCK_TIMEOUT
 from onyx.configs.constants import CELERY_TASK_WAIT_FOR_FENCE_TIMEOUT
-from onyx.configs.constants import CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import DANSWER_REDIS_FUNCTION_LOCK_PREFIX
 from onyx.configs.constants import DocumentSource
 from onyx.configs.constants import OnyxCeleryPriority
@@ -99,6 +99,7 @@ def _is_external_doc_permissions_sync_due(cc_pair: ConnectorCredentialPair) -> b
 
 @shared_task(
     name=OnyxCeleryTask.CHECK_FOR_DOC_PERMISSIONS_SYNC,
+    ignore_result=True,
     soft_time_limit=JOB_TIMEOUT,
     bind=True,
 )
@@ -110,7 +111,7 @@ def check_for_doc_permissions_sync(self: Task, *, tenant_id: str | None) -> bool
 
     lock_beat: RedisLock = r.lock(
         OnyxRedisLocks.CHECK_CONNECTOR_DOC_PERMISSIONS_SYNC_BEAT_LOCK,
-        timeout=CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT,
+        timeout=CELERY_GENERIC_BEAT_LOCK_TIMEOUT,
     )
 
     # these tasks should never overlap
@@ -127,6 +128,7 @@ def check_for_doc_permissions_sync(self: Task, *, tenant_id: str | None) -> bool
                 if _is_external_doc_permissions_sync_due(cc_pair):
                     cc_pair_ids_to_sync.append(cc_pair.id)
 
+        lock_beat.reacquire()
         for cc_pair_id in cc_pair_ids_to_sync:
             tasks_created = try_creating_permissions_sync_task(
                 self.app, cc_pair_id, r, tenant_id
@@ -139,14 +141,14 @@ def check_for_doc_permissions_sync(self: Task, *, tenant_id: str | None) -> bool
         # we want to run this less frequently than the overall task
         lock_beat.reacquire()
         if not r.exists(OnyxRedisSignals.VALIDATE_PERMISSION_SYNC_FENCES):
-            # clear any indexing fences that don't have associated celery tasks in progress
+            # clear any permission fences that don't have associated celery tasks in progress
             # tasks can be in the queue in redis, in reserved tasks (prefetched by the worker),
             # or be currently executing
             try:
                 validate_permission_sync_fences(tenant_id, r, r_celery, lock_beat)
             except Exception:
                 task_logger.exception(
-                    "Exception while validating external group sync fences"
+                    "Exception while validating permission sync fences"
                 )
 
             r.set(OnyxRedisSignals.VALIDATE_PERMISSION_SYNC_FENCES, 1, ex=60)
@@ -212,7 +214,7 @@ def try_creating_permissions_sync_task(
 
         # set a basic fence to start
         payload = RedisConnectorPermissionSyncPayload(
-            started=None, celery_task_id=result.id
+            submitted=datetime.now(timezone.utc), started=None, celery_task_id=result.id
         )
 
         redis_connector.permissions.set_fence(payload)
@@ -333,6 +335,7 @@ def connector_permission_sync_generator_task(
                 raise ValueError(f"No fence payload found: cc_pair={cc_pair_id}")
 
             new_payload = RedisConnectorPermissionSyncPayload(
+                submitted=payload.submitted,
                 started=datetime.now(timezone.utc),
                 celery_task_id=payload.celery_task_id,
             )
@@ -511,7 +514,7 @@ def validate_permission_sync_fence(
         return
 
     # for efficiency, we won't run validation until the queue is below a certain length
-    # since finding a task in O(n)
+    # since finding a task is O(n)
     queue_len = celery_get_queue_length(
         OnyxCeleryQueues.CONNECTOR_DOC_PERMISSIONS_SYNC, r_celery
     )
@@ -590,7 +593,7 @@ class PermissionSyncCallback(IndexingHeartbeatInterface):
 
             current_time = time.monotonic()
             if current_time - self.last_lock_monotonic >= (
-                CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT / 4
+                CELERY_GENERIC_BEAT_LOCK_TIMEOUT / 4
             ):
                 self.redis_lock.reacquire()
                 self.last_lock_reacquire = datetime.now(timezone.utc)

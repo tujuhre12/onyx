@@ -7,7 +7,7 @@ import {
   InputBarPreview,
   InputBarPreviewImageProvider,
 } from "../files/InputBarPreview";
-import { SendIcon } from "@/components/icons/icons";
+import { OpenAIIcon, SendIcon } from "@/components/icons/icons";
 import { HorizontalSourceSelector } from "@/components/search/filtering/HorizontalSourceSelector";
 import { Tag } from "@/lib/types";
 
@@ -94,7 +94,7 @@ export function SimplifiedChatInputBar({
               rounded-lg
               relative
               text-text-chatbar
-              bg-background-chatbar
+              bg-white
               [&:has(textarea:focus)]::ring-1
               [&:has(textarea:focus)]::ring-black
             "
@@ -146,7 +146,7 @@ export function SimplifiedChatInputBar({
                 resize-none
                 rounded-lg
                 border-0
-                bg-background-chatbar
+                bg-white
                 placeholder:text-text-chatbar-subtle
                 ${
                   textAreaRef.current &&

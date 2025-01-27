@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from redis.lock import Lock as RedisLock
 
 from onyx.access.models import DocExternalAccess
-from onyx.configs.constants import CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT
+from onyx.configs.constants import CELERY_GENERIC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import OnyxCeleryQueues
 from onyx.configs.constants import OnyxCeleryTask
@@ -17,6 +17,7 @@ from onyx.redis.redis_pool import SCAN_ITER_COUNT_DEFAULT
 
 
 class RedisConnectorPermissionSyncPayload(BaseModel):
+    submitted: datetime
     started: datetime | None
     celery_task_id: str | None
 
@@ -45,6 +46,7 @@ class RedisConnectorPermissionSync:
     # it's impossible to get the exact state of the system at a single point in time
     # so we need a signal with a TTL to bridge gaps in our checks
     ACTIVE_PREFIX = PREFIX + "_active"
+    ACTIVE_TTL = 3600
 
     def __init__(self, tenant_id: str | None, id: int, redis: redis.Redis) -> None:
         self.tenant_id: str | None = tenant_id
@@ -119,7 +121,7 @@ class RedisConnectorPermissionSync:
 
         The slack in timing is needed to avoid race conditions where simply checking
         the celery queue and task status could result in race conditions."""
-        self.redis.set(self.active_key, 0, ex=3600)
+        self.redis.set(self.active_key, 0, ex=self.ACTIVE_TTL)
 
     def active(self) -> bool:
         if self.redis.exists(self.active_key):
@@ -167,7 +169,7 @@ class RedisConnectorPermissionSync:
         for doc_perm in new_permissions:
             current_time = time.monotonic()
             if lock and current_time - last_lock_time >= (
-                CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT / 4
+                CELERY_GENERIC_BEAT_LOCK_TIMEOUT / 4
             ):
                 lock.reacquire()
                 last_lock_time = current_time

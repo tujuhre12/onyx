@@ -17,7 +17,7 @@ from redis.lock import Lock as RedisLock
 import onyx.background.celery.apps.app_base as app_base
 from onyx.background.celery.apps.app_base import task_logger
 from onyx.background.celery.celery_utils import celery_is_worker_primary
-from onyx.background.celery.tasks.indexing.tasks import (
+from onyx.background.celery.tasks.indexing.utils import (
     get_unfenced_index_attempt_ids,
 )
 from onyx.configs.constants import CELERY_PRIMARY_WORKER_LOCK_TIMEOUT
@@ -86,7 +86,7 @@ def on_worker_init(sender: Worker, **kwargs: Any) -> None:
 
     app_base.wait_for_redis(sender, **kwargs)
     app_base.wait_for_db(sender, **kwargs)
-    app_base.wait_for_vespa(sender, **kwargs)
+    app_base.wait_for_vespa_or_shutdown(sender, **kwargs)
 
     logger.info("Running as the primary celery worker.")
 

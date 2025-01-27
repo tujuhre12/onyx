@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from onyx.background.celery.apps.app_base import task_logger
 from onyx.configs.app_configs import JOB_TIMEOUT
-from onyx.configs.constants import CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT
+from onyx.configs.constants import CELERY_GENERIC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import OnyxCeleryTask
 from onyx.configs.constants import OnyxRedisLocks
 from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
@@ -33,6 +33,7 @@ class TaskDependencyError(RuntimeError):
 
 @shared_task(
     name=OnyxCeleryTask.CHECK_FOR_CONNECTOR_DELETION,
+    ignore_result=True,
     soft_time_limit=JOB_TIMEOUT,
     trail=False,
     bind=True,
@@ -44,7 +45,7 @@ def check_for_connector_deletion_task(
 
     lock_beat: RedisLock = r.lock(
         OnyxRedisLocks.CHECK_CONNECTOR_DELETION_BEAT_LOCK,
-        timeout=CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT,
+        timeout=CELERY_GENERIC_BEAT_LOCK_TIMEOUT,
     )
 
     # these tasks should never overlap
@@ -139,13 +140,6 @@ def try_generate_document_cc_pair_cleanup_tasks(
         submitted=datetime.now(timezone.utc),
     )
 
-    # create before setting fence to avoid race condition where the monitoring
-    # task updates the sync record before it is created
-    insert_sync_record(
-        db_session=db_session,
-        entity_id=cc_pair_id,
-        sync_type=SyncType.CONNECTOR_DELETION,
-    )
     redis_connector.delete.set_fence(fence_payload)
 
     try:
@@ -184,6 +178,13 @@ def try_generate_document_cc_pair_cleanup_tasks(
         )
         if tasks_generated is None:
             raise ValueError("RedisConnectorDeletion.generate_tasks returned None")
+
+        insert_sync_record(
+            db_session=db_session,
+            entity_id=cc_pair_id,
+            sync_type=SyncType.CONNECTOR_DELETION,
+        )
+
     except TaskDependencyError:
         redis_connector.delete.set_fence(None)
         raise

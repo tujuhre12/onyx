@@ -43,9 +43,9 @@ export default function LogoWithText({
       } z-[100] ml-2 mt-1 h-8 mb-auto shrink-0 flex gap-x-0 items-center text-xl`}
     >
       {toggleSidebar && page == "chat" ? (
-        <button
+        <div
           onClick={() => toggleSidebar()}
-          className="flex gap-x-2 items-center ml-0  desktop:hidden "
+          className="flex gap-x-2 items-center ml-0 cursor-pointer desktop:hidden "
         >
           {!toggled ? (
             <Logo className="desktop:hidden -my-2" height={24} width={24} />
@@ -63,7 +63,7 @@ export default function LogoWithText({
               toggled && "mobile:hidden"
             }`}
           />
-        </button>
+        </div>
       ) : (
         <div className="mr-1 invisible mb-auto h-6 w-6">
           <Logo height={24} width={24} />
@@ -104,8 +104,8 @@ export default function LogoWithText({
                 }}
               >
                 <NewChatIcon
-                  className="ml-2 flex-none text-text-700 hover:text-text-600 transition-colors duration-300"
-                  size={20}
+                  className="ml-2 flex-none text-text-700 hover:text-text-600 "
+                  size={24}
                 />
               </Link>
             </TooltipTrigger>
@@ -119,7 +119,7 @@ export default function LogoWithText({
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="mr-3  my-auto ml-auto"
+                className="mr-2  my-auto ml-auto"
                 onClick={() => {
                   toggleSidebar();
                   if (toggled) {

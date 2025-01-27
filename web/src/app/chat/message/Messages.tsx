@@ -9,8 +9,6 @@ import {
 } from "react-icons/fi";
 import { FeedbackType } from "../types";
 import React, {
-  memo,
-  ReactNode,
   useCallback,
   useContext,
   useEffect,
@@ -19,13 +17,12 @@ import React, {
   useState,
 } from "react";
 import ReactMarkdown from "react-markdown";
-import {
-  OnyxDocument,
-  FilteredOnyxDocument,
-  LoadedOnyxDocument,
-} from "@/lib/search/interfaces";
+import { OnyxDocument, FilteredOnyxDocument } from "@/lib/search/interfaces";
 import { SearchSummary } from "./SearchSummary";
-
+import {
+  markdownToHtml,
+  getMarkdownForSelection,
+} from "@/app/chat/message/codeUtils";
 import { SkippedSearch } from "./SkippedSearch";
 import remarkGfm from "remark-gfm";
 import { CopyButton } from "@/components/CopyButton";
@@ -41,12 +38,10 @@ import { DocumentPreview } from "../files/documents/DocumentPreview";
 import { InMessageImage } from "../files/images/InMessageImage";
 import { CodeBlock } from "./CodeBlock";
 import rehypePrism from "rehype-prism-plus";
-
 import "prismjs/themes/prism-tomorrow.css";
 import "./custom-code-styles.css";
 import { Persona } from "@/app/admin/assistants/interfaces";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
-
 import { LikeFeedback, DislikeFeedback } from "@/components/icons/icons";
 import {
   CustomTooltip,
@@ -72,7 +67,6 @@ import CsvContent from "../../../components/tools/CSVContent";
 import SourceCard, {
   SeeMoreBlock,
 } from "@/components/chat_search/sources/SourceCard";
-
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
@@ -111,7 +105,6 @@ function FileDisplay({
                 <div key={file.id} className="w-fit">
                   <DocumentPreview
                     fileName={file.name || file.id}
-                    maxWidth="max-w-64"
                     alignBubble={alignBubble}
                   />
                 </div>
@@ -169,7 +162,6 @@ function FileDisplay({
 export const AIMessage = ({
   regenerate,
   overriddenModel,
-  selectedMessageForDocDisplay,
   continueGenerating,
   shared,
   isActive,
@@ -177,7 +169,6 @@ export const AIMessage = ({
   alternativeAssistant,
   docs,
   messageId,
-  documentSelectionToggled,
   content,
   files,
   selectedDocuments,
@@ -187,7 +178,6 @@ export const AIMessage = ({
   isComplete,
   hasDocs,
   handleFeedback,
-  handleShowRetrieved,
   handleSearchQueryEdit,
   handleForceSearch,
   retrievalDisabled,
@@ -196,9 +186,9 @@ export const AIMessage = ({
   onMessageSelection,
   setPresentingDocument,
   index,
+  toggledDocumentSidebar,
 }: {
   index?: number;
-  selectedMessageForDocDisplay?: number | null;
   shared?: boolean;
   isActive?: boolean;
   continueGenerating?: () => void;
@@ -211,15 +201,14 @@ export const AIMessage = ({
   currentPersona: Persona;
   messageId: number | null;
   content: string | JSX.Element;
-  documentSelectionToggled?: boolean;
   files?: FileDescriptor[];
   query?: string;
   citedDocuments?: [string, OnyxDocument][] | null;
   toolCall?: ToolCallMetadata | null;
   isComplete?: boolean;
+  toggledDocumentSidebar?: boolean;
   hasDocs?: boolean;
   handleFeedback?: (feedbackType: FeedbackType) => void;
-  handleShowRetrieved?: (messageNumber: number | null) => void;
   handleSearchQueryEdit?: (query: string) => void;
   handleForceSearch?: () => void;
   retrievalDisabled?: boolean;
@@ -339,6 +328,21 @@ export const AIMessage = ({
     new Set((docs || []).map((doc) => doc.source_type))
   ).slice(0, 3);
 
+  const webSourceDomains: string[] = Array.from(
+    new Set(
+      docs
+        ?.filter((doc) => doc.source_type === "web")
+        .map((doc) => {
+          try {
+            const url = new URL(doc.link);
+            return `https://${url.hostname}`;
+          } catch {
+            return doc.link; // fallback to full link if parsing fails
+          }
+        }) || []
+    )
+  );
+
   const markdownComponents = useMemo(
     () => ({
       a: anchorCallback,
@@ -361,15 +365,32 @@ export const AIMessage = ({
   );
 
   const renderedMarkdown = useMemo(() => {
+    if (typeof finalContent !== "string") {
+      return finalContent;
+    }
+
+    // Create a hidden div with the HTML content for copying
+    const htmlContent = markdownToHtml(finalContent);
+
     return (
-      <ReactMarkdown
-        className="prose max-w-full text-base"
-        components={markdownComponents}
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[[rehypePrism, { ignoreMissing: true }], rehypeKatex]}
-      >
-        {finalContent as string}
-      </ReactMarkdown>
+      <>
+        <div
+          style={{
+            position: "absolute",
+            left: "-9999px",
+            display: "none",
+          }}
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+        />
+        <ReactMarkdown
+          className="prose max-w-full text-base"
+          components={markdownComponents}
+          remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={[[rehypePrism, { ignoreMissing: true }], rehypeKatex]}
+        >
+          {finalContent}
+        </ReactMarkdown>
+      </>
     );
   }, [finalContent, markdownComponents]);
 
@@ -393,13 +414,14 @@ export const AIMessage = ({
         <div className={`lg:mr-12 ${!shared && "mobile:ml-0 md:ml-8"}`}>
           <div className="flex">
             <AssistantIcon
-              size="small"
+              className="mobile:hidden"
+              size={24}
               assistant={alternativeAssistant || currentPersona}
             />
 
             <div className="w-full">
               <div className="max-w-message-max break-words">
-                <div className="w-full lg:ml-4">
+                <div className="w-full desktop:ml-4">
                   <div className="max-w-message-max break-words">
                     {!toolCall || toolCall.tool_name === SEARCH_TOOL_NAME ? (
                       <>
@@ -474,7 +496,7 @@ export const AIMessage = ({
                               docs.length > 0 &&
                               docs
                                 .slice(0, 2)
-                                .map((doc, ind) => (
+                                .map((doc: OnyxDocument, ind: number) => (
                                   <SourceCard
                                     doc={doc}
                                     key={ind}
@@ -484,13 +506,10 @@ export const AIMessage = ({
                                   />
                                 ))}
                             <SeeMoreBlock
-                              documentSelectionToggled={
-                                (documentSelectionToggled &&
-                                  selectedMessageForDocDisplay === messageId) ||
-                                false
-                              }
-                              toggleDocumentSelection={toggleDocumentSelection}
+                              toggled={toggledDocumentSidebar!}
+                              toggleDocumentSelection={toggleDocumentSelection!}
                               uniqueSources={uniqueSources}
+                              webSourceDomains={webSourceDomains}
                             />
                           </div>
                         </div>
@@ -503,7 +522,68 @@ export const AIMessage = ({
 
                         {typeof content === "string" ? (
                           <div className="overflow-x-visible max-w-content-max">
-                            {renderedMarkdown}
+                            <div
+                              contentEditable="true"
+                              suppressContentEditableWarning
+                              className="focus:outline-none cursor-text select-text"
+                              style={{
+                                MozUserModify: "read-only",
+                                WebkitUserModify: "read-only",
+                              }}
+                              onCopy={(e) => {
+                                e.preventDefault();
+                                const selection = window.getSelection();
+                                const selectedPlainText =
+                                  selection?.toString() || "";
+                                if (!selectedPlainText) {
+                                  // If no text is selected, copy the full content
+                                  const contentStr =
+                                    typeof content === "string"
+                                      ? content
+                                      : (
+                                          content as JSX.Element
+                                        ).props?.children?.toString() || "";
+                                  const clipboardItem = new ClipboardItem({
+                                    "text/html": new Blob(
+                                      [
+                                        typeof content === "string"
+                                          ? markdownToHtml(content)
+                                          : contentStr,
+                                      ],
+                                      { type: "text/html" }
+                                    ),
+                                    "text/plain": new Blob([contentStr], {
+                                      type: "text/plain",
+                                    }),
+                                  });
+                                  navigator.clipboard.write([clipboardItem]);
+                                  return;
+                                }
+
+                                const contentStr =
+                                  typeof content === "string"
+                                    ? content
+                                    : (
+                                        content as JSX.Element
+                                      ).props?.children?.toString() || "";
+                                const markdownText = getMarkdownForSelection(
+                                  contentStr,
+                                  selectedPlainText
+                                );
+                                const clipboardItem = new ClipboardItem({
+                                  "text/html": new Blob(
+                                    [markdownToHtml(markdownText)],
+                                    { type: "text/html" }
+                                  ),
+                                  "text/plain": new Blob([selectedPlainText], {
+                                    type: "text/plain",
+                                  }),
+                                });
+                                navigator.clipboard.write([clipboardItem]);
+                              }}
+                            >
+                              {renderedMarkdown}
+                            </div>
                           </div>
                         ) : (
                           content
@@ -520,7 +600,7 @@ export const AIMessage = ({
                         className={`
                         flex md:flex-row gap-x-0.5 mt-1
                         transition-transform duration-300 ease-in-out
-                        transform opacity-100 translate-y-0"
+                        transform opacity-100 "
                   `}
                       >
                         <TooltipGroup>
@@ -549,7 +629,16 @@ export const AIMessage = ({
                             )}
                           </div>
                           <CustomTooltip showTick line content="Copy">
-                            <CopyButton content={content.toString()} />
+                            <CopyButton
+                              content={
+                                typeof content === "string"
+                                  ? {
+                                      html: markdownToHtml(content),
+                                      plainText: content,
+                                    }
+                                  : content.toString()
+                              }
+                            />
                           </CustomTooltip>
                           <CustomTooltip showTick line content="Good response">
                             <HoverableIcon
@@ -601,10 +690,6 @@ export const AIMessage = ({
                             settings?.isMobile) &&
                           "!opacity-100"
                         }
-                        translate-y-2 ${
-                          (isHovering || settings?.isMobile) && "!translate-y-0"
-                        }
-                        transition-transform duration-300 ease-in-out 
                         flex md:flex-row gap-x-0.5 bg-background-125/40 -mx-1.5 p-1.5 rounded-lg
                         `}
                       >
@@ -634,7 +719,16 @@ export const AIMessage = ({
                             )}
                           </div>
                           <CustomTooltip showTick line content="Copy">
-                            <CopyButton content={content.toString()} />
+                            <CopyButton
+                              content={
+                                typeof content === "string"
+                                  ? {
+                                      html: markdownToHtml(content),
+                                      plainText: content,
+                                    }
+                                  : content.toString()
+                              }
+                            />
                           </CustomTooltip>
 
                           <CustomTooltip showTick line content="Good response">
@@ -796,7 +890,6 @@ export const HumanMessage = ({
                       border 
                       border-border 
                       rounded-lg 
-                      bg-background-emphasis
                       pb-2
                       [&:has(textarea:focus)]::ring-1
                       [&:has(textarea:focus)]::ring-black
@@ -812,7 +905,6 @@ export const HumanMessage = ({
                         border-0
                         rounded-lg 
                         overflow-y-hidden
-                        bg-background-emphasis 
                         whitespace-normal 
                         break-word
                         overscroll-contain
@@ -822,6 +914,7 @@ export const HumanMessage = ({
                         text-text-editing-message
                         pl-4
                         overflow-y-auto
+                        bg-background
                         pr-12 
                         py-4`}
                         aria-multiline
@@ -895,7 +988,7 @@ export const HumanMessage = ({
                   </div>
                 ) : typeof content === "string" ? (
                   <>
-                    <div className="ml-auto mr-1 my-auto">
+                    <div className="ml-auto flex items-center mr-1 h-fit my-auto">
                       {onEdit &&
                       isHovered &&
                       !isEditing &&

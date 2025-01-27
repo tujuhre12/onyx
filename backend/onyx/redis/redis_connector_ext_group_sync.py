@@ -11,6 +11,7 @@ from onyx.redis.redis_pool import SCAN_ITER_COUNT_DEFAULT
 
 
 class RedisConnectorExternalGroupSyncPayload(BaseModel):
+    submitted: datetime
     started: datetime | None
     celery_task_id: str | None
 

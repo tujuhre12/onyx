@@ -3,6 +3,7 @@ import { LoadedOnyxDocument, OnyxDocument } from "@/lib/search/interfaces";
 import React, { memo } from "react";
 import isEqual from "lodash/isEqual";
 import { SourceIcon } from "@/components/SourceIcon";
+import { WebResultIcon } from "@/components/WebResultIcon";
 
 export const MemoizedAnchor = memo(
   ({
@@ -19,22 +20,28 @@ export const MemoizedAnchor = memo(
       const match = value.match(/\[(\d+)\]/);
       if (match) {
         const index = parseInt(match[1], 10) - 1;
-        const associatedDoc = docs && docs[index];
+        const associatedDoc = docs?.[index];
+        if (!associatedDoc) {
+          return <a href={children as string}>{children}</a>;
+        }
 
-        const url = associatedDoc?.link
-          ? new URL(associatedDoc.link).origin + "/favicon.ico"
-          : "";
-
-        const icon =
-          (associatedDoc && (
-            <SourceIcon sourceType={associatedDoc?.source_type} iconSize={18} />
-          )) ||
-          null;
+        let icon: React.ReactNode = null;
+        if (associatedDoc.source_type === "web") {
+          icon = <WebResultIcon url={associatedDoc.link} />;
+        } else {
+          icon = (
+            <SourceIcon sourceType={associatedDoc.source_type} iconSize={18} />
+          );
+        }
 
         return (
           <MemoizedLink
             updatePresentingDocument={updatePresentingDocument}
-            document={{ ...associatedDoc, icon, url }}
+            document={{
+              ...associatedDoc,
+              icon,
+              url: associatedDoc.link,
+            }}
           >
             {children}
           </MemoizedLink>
@@ -70,9 +77,24 @@ export const MemoizedLink = memo((props: any) => {
     );
   }
 
+  const handleMouseDown = () => {
+    let url = rest.href || rest.children?.toString();
+    if (url && !url.startsWith("http://") && !url.startsWith("https://")) {
+      // Try to construct a valid URL
+      const httpsUrl = `https://${url}`;
+      try {
+        new URL(httpsUrl);
+        url = httpsUrl;
+      } catch {
+        // If not a valid URL, don't modify original url
+      }
+    }
+    window.open(url, "_blank");
+  };
+
   return (
     <a
-      onMouseDown={() => rest.href && window.open(rest.href, "_blank")}
+      onMouseDown={handleMouseDown}
       className="cursor-pointer text-link hover:text-link-hover"
     >
       {rest.children}

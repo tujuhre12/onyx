@@ -1,7 +1,6 @@
 "use client";
 import {
   ConnectorIndexingStatus,
-  OAuthSlackCallbackResponse,
   DocumentBoostStatus,
   Tag,
   UserGroup,
@@ -19,14 +18,11 @@ import { ChatSession } from "@/app/chat/interfaces";
 import { AllUsersResponse } from "./types";
 import { Credential } from "./connectors/credentials";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
-import { PersonaCategory } from "@/app/admin/assistants/interfaces";
-import {
-  LLMProvider,
-  LLMProviderDescriptor,
-} from "@/app/admin/configuration/llm/interfaces";
+import { PersonaLabel } from "@/app/admin/assistants/interfaces";
+import { LLMProviderDescriptor } from "@/app/admin/configuration/llm/interfaces";
 import { isAnthropic } from "@/app/admin/configuration/llm/interfaces";
 import { getSourceMetadata } from "./sources";
-import { buildFilters } from "./search/utils";
+import { AuthType, NEXT_PUBLIC_CLOUD_ENABLED } from "./constants";
 
 const CREDENTIAL_URL = "/api/manage/admin/credential";
 
@@ -114,7 +110,7 @@ export const useConnectorStatus = (refreshInterval = 30000) => {
 };
 
 export const useBasicConnectorStatus = () => {
-  const url = "/api/manage/admin/connector-status";
+  const url = "/api/manage/connector-status";
   const swrResponse = useSWR<CCPairBasicInfo[]>(url, errorHandlingFetcher);
   return {
     ...swrResponse,
@@ -122,16 +118,74 @@ export const useBasicConnectorStatus = () => {
   };
 };
 
-export const useCategories = () => {
+export const useLabels = () => {
   const { mutate } = useSWRConfig();
-  const swrResponse = useSWR<PersonaCategory[]>(
-    "/api/persona/categories",
+  const { data: labels, error } = useSWR<PersonaLabel[]>(
+    "/api/persona/labels",
     errorHandlingFetcher
   );
 
+  const refreshLabels = async () => {
+    return mutate("/api/persona/labels");
+  };
+
+  const createLabel = async (name: string) => {
+    const response = await fetch("/api/persona/labels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+
+    if (response.ok) {
+      const newLabel = await response.json();
+      mutate("/api/persona/labels", [...(labels || []), newLabel], false);
+    }
+
+    return response;
+  };
+
+  const updateLabel = async (id: number, name: string) => {
+    const response = await fetch(`/api/admin/persona/label/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label_name: name }),
+    });
+
+    if (response.ok) {
+      mutate(
+        "/api/persona/labels",
+        labels?.map((label) => (label.id === id ? { ...label, name } : label)),
+        false
+      );
+    }
+
+    return response;
+  };
+
+  const deleteLabel = async (id: number) => {
+    const response = await fetch(`/api/admin/persona/label/${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (response.ok) {
+      mutate(
+        "/api/persona/labels",
+        labels?.filter((label) => label.id !== id),
+        false
+      );
+    }
+
+    return response;
+  };
+
   return {
-    ...swrResponse,
-    refreshCategories: () => mutate("/api/persona/categories"),
+    labels,
+    error,
+    refreshLabels,
+    createLabel,
+    updateLabel,
+    deleteLabel,
   };
 };
 
@@ -157,6 +211,7 @@ export interface FilterManager {
     availableDocumentSets: string[],
     availableTags: Tag[]
   ) => void;
+  clearFilters: () => void;
 }
 
 export function useFilters(): FilterManager {
@@ -198,6 +253,13 @@ export function useFilters(): FilterManager {
 
     const queryString = params.toString();
     return queryString ? `&${queryString}` : "";
+  };
+
+  const clearFilters = () => {
+    setTimeRange(null);
+    setSelectedSources([]);
+    setSelectedDocumentSets([]);
+    setSelectedTags([]);
   };
 
   function buildFiltersFromQueryString(
@@ -259,6 +321,7 @@ export function useFilters(): FilterManager {
   }
 
   return {
+    clearFilters,
     timeRange,
     setTimeRange,
     selectedSources,
@@ -297,6 +360,8 @@ export interface LlmOverrideManager {
   temperature: number | null;
   updateTemperature: (temperature: number | null) => void;
   updateModelOverrideForChatSession: (chatSession?: ChatSession) => void;
+  imageFilesPresent: boolean;
+  updateImageFilesPresent: (present: boolean) => void;
 }
 export function useLlmOverride(
   llmProviders: LLMProviderDescriptor[],
@@ -319,6 +384,11 @@ export function useLlmOverride(
       }
     }
     return { name: "", provider: "", modelName: "" };
+  };
+  const [imageFilesPresent, setImageFilesPresent] = useState(false);
+
+  const updateImageFilesPresent = (present: boolean) => {
+    setImageFilesPresent(present);
   };
 
   const [globalDefault, setGlobalDefault] = useState<LlmOverride>(
@@ -384,7 +454,26 @@ export function useLlmOverride(
     setGlobalDefault,
     temperature,
     updateTemperature,
+    imageFilesPresent,
+    updateImageFilesPresent,
   };
+}
+
+export function useAuthType(): AuthType | null {
+  const { data, error } = useSWR<{ auth_type: AuthType }>(
+    "/api/auth/type",
+    errorHandlingFetcher
+  );
+
+  if (NEXT_PUBLIC_CLOUD_ENABLED) {
+    return "cloud";
+  }
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data.auth_type;
 }
 
 /* 
