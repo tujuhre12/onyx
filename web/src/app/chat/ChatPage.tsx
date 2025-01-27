@@ -113,7 +113,7 @@ import {
 import AssistantModal from "../assistants/mine/AssistantModal";
 import { getSourceMetadata } from "@/lib/sources";
 import { UserSettingsModal } from "./modal/UserSettingsModal";
-import { FilePicker } from "../my-documents/FilePicker";
+import { FilePickerModal } from "../my-documents/components/FilePicker";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -188,6 +188,7 @@ export function ChatPage({
   const settings = useContext(SettingsContext);
   const enterpriseSettings = settings?.enterpriseSettings;
 
+  const [viewingFilePicker, setViewingFilePicker] = useState(false);
   const [toggleDocSelection, setToggleDocSelection] = useState(false);
   const [documentSidebarToggled, setDocumentSidebarToggled] = useState(false);
 
@@ -2071,9 +2072,15 @@ export function ChatPage({
         />
       )}
       {toggleDocSelection && (
-        <Modal>
-          <FilePicker />
-        </Modal>
+        <FilePickerModal
+          buttonContent="Set as Context"
+          title="Attach Files and Folders "
+          isOpen={true}
+          onClose={() => setToggleDocSelection(false)}
+          onSave={() => {
+            setToggleDocSelection(false);
+          }}
+        />
       )}
 
       {retrievalEnabled && documentSidebarToggled && settings?.isMobile && (

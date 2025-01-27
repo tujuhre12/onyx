@@ -80,6 +80,7 @@ import { errorHandlingFetcher } from "@/lib/fetcher";
 import { DeleteEntityModal } from "@/components/modals/DeleteEntityModal";
 import { DeletePersonaButton } from "./[id]/DeletePersonaButton";
 import Title from "@/components/ui/title";
+import { FilePickerModal } from "@/app/my-documents/components/FilePicker";
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
@@ -144,6 +145,7 @@ export function AssistantEditor({
     "#6FFFFF",
   ];
 
+  const [filePickerModalOpen, setFilePickerModalOpen] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   // state to persist across formik reformatting
@@ -348,6 +350,19 @@ export function AssistantEditor({
         <div className="absolute top-4 left-4">
           <BackButton />
         </div>
+      )}
+      {filePickerModalOpen && (
+        <FilePickerModal
+          isOpen={filePickerModalOpen}
+          onClose={() => {
+            setFilePickerModalOpen(false);
+          }}
+          onSave={() => {
+            setFilePickerModalOpen(false);
+          }}
+          title="Add Documents to your Assistant"
+          buttonContent="Add to Assistant"
+        />
       )}
       {labelToDelete && (
         <DeleteEntityModal
@@ -746,6 +761,23 @@ export function AssistantEditor({
 
               <div className="w-full max-w-4xl">
                 <div className="flex flex-col">
+                  <Separator />
+                  <div className="flex gap-x-2 py-2 flex justify-start">
+                    <div>
+                      <div className="flex items-center gap-x-2">
+                        <p className="block font-medium text-sm">
+                          My Documents
+                        </p>
+                        <Button
+                          className="!p-.5 text-xs"
+                          type="button"
+                          onClick={() => setFilePickerModalOpen(true)}
+                        >
+                          Attach Files and Folders
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                   {searchTool && (
                     <>
                       <Separator />

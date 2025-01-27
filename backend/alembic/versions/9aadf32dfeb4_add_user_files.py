@@ -53,8 +53,24 @@ def upgrade() -> None:
         ),
     )
 
+    # Create persona__user_file table
+    op.create_table(
+        "persona__user_file",
+        sa.Column(
+            "persona_id", sa.Integer(), sa.ForeignKey("persona.id"), primary_key=True
+        ),
+        sa.Column(
+            "user_file_id",
+            sa.Integer(),
+            sa.ForeignKey("user_file.id"),
+            primary_key=True,
+        ),
+    )
+
 
 def downgrade() -> None:
+    # Drop the persona__user_file table
+    op.drop_table("persona__user_file")
     # Drop the user_file table
     op.drop_table("user_file")
     # Drop the user_folder table

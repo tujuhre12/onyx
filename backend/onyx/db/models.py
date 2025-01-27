@@ -1563,6 +1563,12 @@ class Persona(Base):
         secondary="persona__user_group",
         viewonly=True,
     )
+    # Relationship to UserFile
+    user_files: Mapped[list["UserFile"]] = relationship(
+        "UserFile",
+        secondary="persona__user_file",
+        back_populates="assistants",
+    )
     labels: Mapped[list["PersonaLabel"]] = relationship(
         "PersonaLabel",
         secondary=Persona__PersonaLabel.__table__,
@@ -1576,6 +1582,15 @@ class Persona(Base):
             unique=True,
             postgresql_where=(builtin_persona == True),  # noqa: E712
         ),
+    )
+
+
+class Persona__UserFile(Base):
+    __tablename__ = "persona__user_file"
+
+    persona_id: Mapped[int] = mapped_column(ForeignKey("persona.id"), primary_key=True)
+    user_file_id: Mapped[int] = mapped_column(
+        ForeignKey("user_file.id"), primary_key=True
     )
 
 
@@ -2070,6 +2085,11 @@ class UserFile(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id"), nullable=False)
+    assistants: Mapped[list["Persona"]] = relationship(
+        "Persona",
+        secondary=Persona__UserFile.__table__,
+        back_populates="user_files",
+    )
     parent_folder_id: Mapped[int | None] = mapped_column(
         ForeignKey("user_folder.id"), nullable=True
     )
