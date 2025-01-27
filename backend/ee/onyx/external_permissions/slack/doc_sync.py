@@ -53,7 +53,19 @@ def _fetch_channel_permissions(
     slack_client: WebClient,
     workspace_permissions: ExternalAccess,
     user_id_to_email_map: dict[str, str],
+    ignore_private_channels: bool = False,
 ) -> dict[str, ExternalAccess]:
+    """Fetch permissions for all channels.
+
+    Args:
+        slack_client: The Slack WebClient instance.
+        workspace_permissions: Base permissions for the workspace.
+        user_id_to_email_map: Mapping of Slack user IDs to email addresses.
+        ignore_private_channels: If True, skip fetching private channel permissions.
+
+    Returns:
+        A dictionary mapping channel IDs to their ExternalAccess permissions.
+    """
     channel_permissions = {}
     public_channels = get_channels(
         client=slack_client,
@@ -66,11 +78,12 @@ def _fetch_channel_permissions(
     for channel_id in public_channel_ids:
         channel_permissions[channel_id] = workspace_permissions
 
-    private_channels = get_channels(
-        client=slack_client,
-        get_public=False,
-        get_private=True,
-    )
+    if not ignore_private_channels:  # Only fetch private channels if not ignored
+        private_channels = get_channels(
+            client=slack_client,
+            get_public=False,
+            get_private=True,
+        )
     private_channel_ids = [
         channel["id"] for channel in private_channels if "id" in channel
     ]
@@ -132,10 +145,13 @@ def slack_doc_sync(
     workspace_permissions = _fetch_workspace_permissions(
         user_id_to_email_map=user_id_to_email_map,
     )
+    # Pass through ignore_private_channels from connector config
+    ignore_private_channels = cc_pair.connector.connector_specific_config.get("ignore_private_channels", False)
     channel_permissions = _fetch_channel_permissions(
         slack_client=slack_client,
         workspace_permissions=workspace_permissions,
         user_id_to_email_map=user_id_to_email_map,
+        ignore_private_channels=ignore_private_channels,
     )
 
     document_external_accesses = []

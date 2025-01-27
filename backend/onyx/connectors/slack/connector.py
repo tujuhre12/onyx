@@ -267,6 +267,7 @@ def _get_all_docs(
     oldest: str | None = None,
     latest: str | None = None,
     msg_filter_func: Callable[[MessageType], bool] = default_msg_filter,
+    ignore_private_channels: bool = False,  # Add parameter to function
 ) -> Generator[Document, None, None]:
     """Get all documents in the workspace, channel by channel"""
     slack_cleaner = SlackTextCleaner(client=client)
@@ -274,7 +275,10 @@ def _get_all_docs(
     # Cache to prevent refetching via API since users
     user_cache: dict[str, BasicExpertInfo | None] = {}
 
-    all_channels = get_channels(client)
+    all_channels = get_channels(
+        client=client,
+        get_private=not ignore_private_channels,  # Skip private channels if configured
+    )
     filtered_channels = filter_channels(
         all_channels, channels, channel_name_regex_enabled
     )
@@ -325,6 +329,7 @@ def _get_all_doc_ids(
     channels: list[str] | None = None,
     channel_name_regex_enabled: bool = False,
     msg_filter_func: Callable[[MessageType], bool] = default_msg_filter,
+    ignore_private_channels: bool = False,  # Add parameter to function
 ) -> GenerateSlimDocumentOutput:
     """
     Get all document ids in the workspace, channel by channel
@@ -332,7 +337,10 @@ def _get_all_doc_ids(
     This makes it an order of magnitude faster than get_all_docs
     """
 
-    all_channels = get_channels(client)
+    all_channels = get_channels(
+        client=client,
+        get_private=not ignore_private_channels,  # Skip private channels if configured
+    )
     filtered_channels = filter_channels(
         all_channels, channels, channel_name_regex_enabled
     )
@@ -368,6 +376,10 @@ def _get_all_doc_ids(
 
 
 class SlackPollConnector(PollConnector, SlimConnector):
+    """A connector for polling Slack channels and retrieving messages.
+
+    This connector allows configuring which channels to index and how to handle private channels.
+    """
     def __init__(
         self,
         channels: list[str] | None = None,
@@ -375,15 +387,28 @@ class SlackPollConnector(PollConnector, SlimConnector):
         # regexes, and will only index channels that fully match the regexes
         channel_regex_enabled: bool = False,
         batch_size: int = INDEX_BATCH_SIZE,
+        # if True, private channels will be ignored during indexing
+        ignore_private_channels: bool = False,
     ) -> None:
+        """Initialize the Slack connector.
+
+        Args:
+            channels: Optional list of channel names to index. If None, all accessible channels are indexed.
+            channel_regex_enabled: If True, treat channel names as regex patterns.
+            batch_size: Number of documents to process in each batch.
+            ignore_private_channels: If True, skip indexing private channels entirely.
+        """
         self.channels = channels
         self.channel_regex_enabled = channel_regex_enabled
         self.batch_size = batch_size
+        self.ignore_private_channels = ignore_private_channels
         self.client: WebClient | None = None
 
     def load_credentials(self, credentials: dict[str, Any]) -> dict[str, Any] | None:
         bot_token = credentials["slack_bot_token"]
         self.client = WebClient(token=bot_token)
+        # Update ignore_private_channels from credentials if provided
+        self.ignore_private_channels = bool(credentials.get("ignore_private_channels", self.ignore_private_channels))
         return None
 
     def retrieve_all_slim_documents(
@@ -398,6 +423,7 @@ class SlackPollConnector(PollConnector, SlimConnector):
             client=self.client,
             channels=self.channels,
             channel_name_regex_enabled=self.channel_regex_enabled,
+            ignore_private_channels=self.ignore_private_channels,
         )
 
     def poll_source(
@@ -416,6 +442,7 @@ class SlackPollConnector(PollConnector, SlimConnector):
             # retention
             oldest=str(start) if start else None,
             latest=str(end),
+            ignore_private_channels=self.ignore_private_channels,
         ):
             documents.append(document)
             if len(documents) >= self.batch_size:
