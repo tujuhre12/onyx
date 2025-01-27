@@ -86,6 +86,7 @@ export const SourceChip = ({
 );
 
 interface ChatInputBarProps {
+  toggleDocSelection: () => void;
   removeDocs: () => void;
   showConfigureAPIKey: () => void;
   selectedDocuments: OnyxDocument[];
@@ -112,6 +113,7 @@ interface ChatInputBarProps {
 }
 
 export function ChatInputBar({
+  toggleDocSelection,
   retrievalEnabled,
   removeDocs,
   toggleDocumentSidebar,

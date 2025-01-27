@@ -187,6 +187,7 @@ export function ChatPage({
   const settings = useContext(SettingsContext);
   const enterpriseSettings = settings?.enterpriseSettings;
 
+  const [toggleDocSelection, setToggleDocSelection] = useState(false);
   const [documentSidebarToggled, setDocumentSidebarToggled] = useState(false);
 
   const [userSettingsToggled, setUserSettingsToggled] = useState(false);
@@ -2750,6 +2751,9 @@ export function ChatPage({
                               </div>
                             )}
                             <ChatInputBar
+                              toggleDocSelection={() => {
+                                setToggleDocSelection(true);
+                              }}
                               toggleDocumentSidebar={toggleDocumentSidebar}
                               availableSources={sources}
                               availableDocumentSets={documentSets}
