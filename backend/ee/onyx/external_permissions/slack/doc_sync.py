@@ -146,7 +146,9 @@ def slack_doc_sync(
         user_id_to_email_map=user_id_to_email_map,
     )
     # Pass through ignore_private_channels from connector config
-    ignore_private_channels = cc_pair.connector.connector_specific_config.get("ignore_private_channels", False)
+    ignore_private_channels = cc_pair.connector.connector_specific_config.get(
+        "ignore_private_channels", False
+    )
     channel_permissions = _fetch_channel_permissions(
         slack_client=slack_client,
         workspace_permissions=workspace_permissions,

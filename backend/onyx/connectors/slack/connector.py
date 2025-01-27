@@ -380,6 +380,8 @@ class SlackPollConnector(PollConnector, SlimConnector):
 
     This connector allows configuring which channels to index and how to handle private channels.
     """
+
+
     def __init__(
         self,
         channels: list[str] | None = None,
@@ -408,7 +410,9 @@ class SlackPollConnector(PollConnector, SlimConnector):
         bot_token = credentials["slack_bot_token"]
         self.client = WebClient(token=bot_token)
         # Update ignore_private_channels from credentials if provided
-        self.ignore_private_channels = bool(credentials.get("ignore_private_channels", self.ignore_private_channels))
+        self.ignore_private_channels = bool(
+            credentials.get("ignore_private_channels", self.ignore_private_channels)
+        )
         return None
 
     def retrieve_all_slim_documents(
