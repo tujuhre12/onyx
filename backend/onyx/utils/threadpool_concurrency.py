@@ -5,15 +5,12 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from typing import Generic
 from typing import TypeVar
-from typing import TypeVarTuple
 
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
 
 R = TypeVar("R")
-
-Ts = TypeVarTuple("Ts")
 
 
 # Check https://github.com/python/typing/issues/1216 for why
