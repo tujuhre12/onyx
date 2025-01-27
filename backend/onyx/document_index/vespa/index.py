@@ -10,6 +10,7 @@ import zipfile
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timedelta
+from typing import Any
 from typing import BinaryIO
 from typing import cast
 from typing import List
@@ -523,6 +524,7 @@ class VespaIndex(DocumentIndex):
         index_name: str,
         fields: VespaDocumentFields,
         doc_id: str,
+        http_client: httpx.Client,
     ) -> None:
         """
         Update a single "chunk" (document) in Vespa using its chunk ID.
@@ -554,18 +556,17 @@ class VespaIndex(DocumentIndex):
 
         vespa_url = f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{doc_chunk_id}?create=true"
 
-        with get_vespa_http_client(http2=False) as http_client:
-            try:
-                resp = http_client.put(
-                    vespa_url,
-                    headers={"Content-Type": "application/json"},
-                    json=update_dict,
-                )
-                resp.raise_for_status()
-            except httpx.HTTPStatusError as e:
-                error_message = f"Failed to update doc chunk {doc_chunk_id} (doc_id={doc_id}). Details: {e.response.text}"
-                logger.error(error_message)
-                raise
+        try:
+            resp = http_client.put(
+                vespa_url,
+                headers={"Content-Type": "application/json"},
+                json=update_dict,
+            )
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            error_message = f"Failed to update doc chunk {doc_chunk_id} (doc_id={doc_id}). Details: {e.response.text}"
+            logger.error(error_message)
+            raise
 
     def update_single(
         self,
@@ -580,6 +581,8 @@ class VespaIndex(DocumentIndex):
         Handle other exceptions if you wish to implement retry behavior
         """
 
+        timings: dict[str, Any] = {}
+
         doc_chunk_count = 0
 
         index_names = [self.index_name]
@@ -588,6 +591,7 @@ class VespaIndex(DocumentIndex):
 
         with get_vespa_http_client(http2=False) as http_client:
             for index_name in index_names:
+                phase_start = time.monotonic()
                 with get_session_with_tenant(tenant_id=tenant_id) as db_session:
                     multipass_config = get_multipass_config(
                         db_session=db_session,
@@ -609,15 +613,20 @@ class VespaIndex(DocumentIndex):
                 )
 
                 doc_chunk_count += len(doc_chunk_ids)
+                timings["prep"] = time.monotonic() - phase_start
 
+                phase_start = time.monotonic()
+                chunk = 0
                 for doc_chunk_id in doc_chunk_ids:
-                    self.update_single_chunk(
-                        doc_chunk_id=doc_chunk_id,
-                        index_name=index_name,
-                        fields=fields,
-                        doc_id=doc_id,
-                    )
+                    chunk += 1
 
+                    phase_start = time.monotonic()
+                    self.update_single_chunk(
+                        doc_chunk_id, index_name, fields, doc_id, http_client
+                    )
+                    timings[f"chunk_{chunk}"] = time.monotonic() - phase_start
+
+        logger.debug(f"timings={timings}")
         return doc_chunk_count
 
     def delete_single(

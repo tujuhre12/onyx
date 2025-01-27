@@ -1164,10 +1164,9 @@ def vespa_metadata_sync_task(
                 f"doc={document_id} "
                 f"action=sync "
                 f"chunks={chunks_affected} "
-                f"elapsed={elapsed:.2f}"
+                f"elapsed={elapsed:.2f} "
+                f"debug_timings={timings}"
             )
-
-            task_logger.debug(f"doc={document_id} timings={timings}")
     except SoftTimeLimitExceeded:
         task_logger.info(f"SoftTimeLimitExceeded exception. doc={document_id}")
     except Exception as ex:
