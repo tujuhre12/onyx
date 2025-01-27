@@ -113,6 +113,7 @@ import {
 import AssistantModal from "../assistants/mine/AssistantModal";
 import { getSourceMetadata } from "@/lib/sources";
 import { UserSettingsModal } from "./modal/UserSettingsModal";
+import { FilePicker } from "../my-documents/FilePicker";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -2068,6 +2069,11 @@ export function ChatPage({
             setSettingsToggled(false);
           }}
         />
+      )}
+      {toggleDocSelection && (
+        <Modal>
+          <FilePicker />
+        </Modal>
       )}
 
       {retrievalEnabled && documentSidebarToggled && settings?.isMobile && (

@@ -662,18 +662,19 @@ export function ChatInputBar({
                   name="File"
                   Icon={FiPlusCircle}
                   onClick={() => {
-                    const input = document.createElement("input");
-                    input.type = "file";
-                    input.multiple = true;
-                    input.onchange = (event: any) => {
-                      const files = Array.from(
-                        event?.target?.files || []
-                      ) as File[];
-                      if (files.length > 0) {
-                        handleFileUpload(files);
-                      }
-                    };
-                    input.click();
+                    toggleDocSelection();
+                    // const input = document.createElement("input");
+                    // input.type = "file";
+                    // input.multiple = true;
+                    // input.onchange = (event: any) => {
+                    //   const files = Array.from(
+                    //     event?.target?.files || []
+                    //   ) as File[];
+                    //   if (files.length > 0) {
+                    //     handleFileUpload(files);
+                    //   }
+                    // };
+                    // input.click();
                   }}
                   tooltipContent={"Upload files"}
                 />
