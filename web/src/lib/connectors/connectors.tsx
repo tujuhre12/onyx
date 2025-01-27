@@ -568,6 +568,15 @@ Hint: Use the singular form of the object name (e.g., 'Opportunity' instead of '
 For example, specifying .*-support.* as a "channel" will cause the connector to include any channels with "-support" in the name.`,
         optional: true,
       },
+      {
+        type: "checkbox",
+        query: "Ignore private channels?",
+        label: "Ignore Private Channels",
+        name: "ignore_private_channels",
+        description: "If checked, private Slack channels will be ignored during indexing.",
+        optional: true,
+        default: false,
+      },
     ],
   },
   slab: {
