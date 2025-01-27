@@ -1,13 +1,15 @@
 from datetime import datetime
 
+from onyx.agents.agent_search.deep_search_a.initial_search_sq_subgraph.states import (
+    SearchSQState,
+)
 from onyx.agents.agent_search.deep_search_a.main.operations import logger
 from onyx.agents.agent_search.deep_search_a.main.states import (
     InitialAnswerQualityUpdate,
 )
-from onyx.agents.agent_search.deep_search_a.main.states import MainState
 
 
-def initial_answer_quality_check(state: MainState) -> InitialAnswerQualityUpdate:
+def initial_answer_quality_check(state: SearchSQState) -> InitialAnswerQualityUpdate:
     """
     Check whether the final output satisfies the original user question
 
@@ -35,6 +37,6 @@ def initial_answer_quality_check(state: MainState) -> InitialAnswerQualityUpdate
     return InitialAnswerQualityUpdate(
         initial_answer_quality=verdict,
         log_messages=[
-            f"{now_end} -- Main - Initial answer quality check,  Time taken: {now_end - now_start}"
+            f"{now_start} -- Main - Initial answer quality check,  Time taken: {now_end - now_start}"
         ],
     )

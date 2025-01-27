@@ -7,6 +7,9 @@ from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.runnables import RunnableConfig
 
+from onyx.agents.agent_search.deep_search_a.initial_search_sq_subgraph.states import (
+    SearchSQState,
+)
 from onyx.agents.agent_search.deep_search_a.main.models import AgentBaseMetrics
 from onyx.agents.agent_search.deep_search_a.main.operations import (
     calculate_initial_agent_stats,
@@ -17,7 +20,6 @@ from onyx.agents.agent_search.deep_search_a.main.operations import (
     remove_document_citations,
 )
 from onyx.agents.agent_search.deep_search_a.main.states import InitialAnswerUpdate
-from onyx.agents.agent_search.deep_search_a.main.states import MainState
 from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     build_history_prompt,
@@ -56,7 +58,7 @@ from onyx.tools.tool_implementations.search.search_tool import yield_search_resp
 
 
 def generate_initial_answer(
-    state: MainState, config: RunnableConfig
+    state: SearchSQState, config: RunnableConfig
 ) -> InitialAnswerUpdate:
     now_start = datetime.now()
 
@@ -265,6 +267,6 @@ def generate_initial_answer(
         agent_base_end_time=agent_base_end_time,
         agent_base_metrics=agent_base_metrics,
         log_messages=[
-            f"{now_end} -- Main - Initial Answer generation,  Time taken: {now_end - now_start}"
+            f"{now_start} -- Main - Initial Answer generation,  Time taken: {now_end - now_start}"
         ],
     )

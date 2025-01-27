@@ -18,10 +18,12 @@ def ingest_initial_base_retrieval(
     sub_question_retrieval_stats = (
         state.base_expanded_retrieval_result.sub_question_retrieval_stats
     )
-    if sub_question_retrieval_stats is None:
-        sub_question_retrieval_stats = AgentChunkStats()
-    else:
-        sub_question_retrieval_stats = sub_question_retrieval_stats
+    # if sub_question_retrieval_stats is None:
+    #     sub_question_retrieval_stats = AgentChunkStats()
+    # else:
+    #     sub_question_retrieval_stats = sub_question_retrieval_stats
+
+    sub_question_retrieval_stats = sub_question_retrieval_stats or AgentChunkStats()
 
     now_end = datetime.now()
 
@@ -34,6 +36,6 @@ def ingest_initial_base_retrieval(
         all_original_question_documents=state.base_expanded_retrieval_result.context_documents,
         original_question_retrieval_stats=sub_question_retrieval_stats,
         log_messages=[
-            f"{now_end} -- Main - Ingestion base retrieval,  Time taken: {now_end - now_start}"
+            f"{now_start} -- Main - Ingestion base retrieval,  Time taken: {now_end - now_start}"
         ],
     )
