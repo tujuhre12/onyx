@@ -380,8 +380,6 @@ class SlackPollConnector(PollConnector, SlimConnector):
 
     This connector allows configuring which channels to index and how to handle private channels.
     """
-
-
     def __init__(
         self,
         channels: list[str] | None = None,
