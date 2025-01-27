@@ -573,7 +573,8 @@ For example, specifying .*-support.* as a "channel" will cause the connector to 
         query: "Ignore private channels?",
         label: "Ignore Private Channels",
         name: "ignore_private_channels",
-        description: "If checked, private Slack channels will be ignored during indexing.",
+        description:
+          "If checked, private Slack channels will be ignored during indexing.",
         optional: true,
         default: false,
       },
