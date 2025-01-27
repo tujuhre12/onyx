@@ -102,12 +102,6 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
       setAllFiles(files);
 
       const tree = buildTree(folders, files);
-      console.log("tree");
-      console.log(tree);
-      console.log("allFiles");
-      console.log(files);
-      console.log("allFolders");
-      console.log(folders);
       setFileSystem(tree);
       setCurrentFolder(tree);
     };
@@ -145,15 +139,6 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
         ? prev.files.filter((id) => id !== fileId)
         : [...prev.files, fileId],
     }));
-    console.log("SHOULD ADD FILE ID");
-    console.log(fileId);
-    console.log(selectedItems);
-    console.log(selectedItems.files.includes(fileId));
-    console.log(
-      selectedItems.files.includes(fileId)
-        ? selectedItems.files.filter((id) => id !== fileId)
-        : [...selectedItems.files, fileId]
-    );
   };
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -169,9 +154,9 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
 
   if (!fileSystem || !currentFolder) return null;
 
-  console.log(fileSystem);
   return (
     <Modal
+      hideDividerForTitle
       onOutsideClick={onClose}
       className="max-w-4xl flex flex-col w-full !overflow-hidden h-[70vh]"
       title={title}
@@ -230,7 +215,7 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
                 {currentFolder.children.map((folder) => (
                   <div
                     key={folder.id}
-                    className={`rounded cursor-pointer hover:bg-gray-100 ${
+                    className={` ${
                       view === "grid"
                         ? "flex flex-col items-center"
                         : "flex items-center"

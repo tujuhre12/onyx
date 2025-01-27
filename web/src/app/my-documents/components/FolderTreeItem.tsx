@@ -35,6 +35,33 @@ export const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
   };
 
   return (
+    <a
+      className="from-[#F9F8F2] border border-border w-full to-[#F9F8F2]/30 border-0.5 border-border-300 hover:from-[#F9F8F2] hover:to-[#F9F8F2]/80 hover:border-border-200 text-md group relative flex cursor-pointer flex-col overflow-x-hidden text-ellipsis rounded-xl bg-gradient-to-b py-3 pl-5 pr-4 transition-all ease-in-out hover:shadow-sm "
+      onClick={() => setCurrentFolder(node)}
+    >
+      <div className="flex flex-1 flex-col">
+        <div className="flex">
+          <span className="text-truncate text-text-dark inline-block max-w-md">
+            {node.name}
+          </span>
+        </div>
+        <div className="text-text-500 mt-1 line-clamp-2 text-xs">
+          This folder contains 1000 files and describes the state of the company
+          {/* Add folder description or other details here */}
+        </div>
+      </div>
+      <div className="text-text-500 mt-1 flex justify-between text-xs">
+        &nbsp;
+        <span>
+          Updated <span data-state="closed">47 minutes ago</span>
+        </span>
+      </div>
+    </a>
+  );
+};
+
+{
+  /* Original implementation commented out
     <div
       className={` p-2 w-full ${
         view === "grid"
@@ -68,5 +95,5 @@ export const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
         </span>
       </div>
     </div>
-  );
-};
+    */
+}
