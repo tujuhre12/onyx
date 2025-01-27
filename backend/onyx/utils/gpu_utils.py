@@ -1,6 +1,7 @@
 import requests
 from retry import retry
 
+from onyx.natural_language_processing.search_nlp_models import build_model_server_url
 from onyx.utils.logger import setup_logger
 from shared_configs.configs import INDEXING_MODEL_SERVER_HOST
 from shared_configs.configs import INDEXING_MODEL_SERVER_PORT
@@ -13,12 +14,11 @@ logger = setup_logger()
 @retry(tries=5, delay=5)
 def gpu_status_request(indexing: bool = True) -> bool:
     if indexing:
-        model_server_url = f"{INDEXING_MODEL_SERVER_HOST}:{INDEXING_MODEL_SERVER_PORT}"
+        host, port = INDEXING_MODEL_SERVER_HOST, INDEXING_MODEL_SERVER_PORT
     else:
-        model_server_url = f"{MODEL_SERVER_HOST}:{MODEL_SERVER_PORT}"
+        host, port = MODEL_SERVER_HOST, MODEL_SERVER_PORT
 
-    if "http" not in model_server_url:
-        model_server_url = f"http://{model_server_url}"
+    model_server_url = build_model_server_url(host, port)
 
     try:
         response = requests.get(f"{model_server_url}/api/gpu-status", timeout=10)

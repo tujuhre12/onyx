@@ -72,6 +72,9 @@ class AgentSearchConfig:
 
     skip_gen_ai_answer_generation: bool = False
 
+    # Whether the user has enabled GPU reranking
+    gpu_enabled_reranking: bool = False
+
     @model_validator(mode="after")
     def validate_db_session(self) -> "AgentSearchConfig":
         if self.use_persistence and self.db_session is None:

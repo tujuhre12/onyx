@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from typing import Generic
 from typing import TypeVar
+from typing import TypeVarTuple
 
 from onyx.utils.logger import setup_logger
 
@@ -12,7 +13,12 @@ logger = setup_logger()
 
 R = TypeVar("R")
 
+Ts = TypeVarTuple("Ts")
 
+
+# Check https://github.com/python/typing/issues/1216 for why
+# we can't map return types of the given funcs to the output list
+# and why we can't match parameter types to function input types.
 def run_functions_tuples_in_parallel(
     functions_with_args: list[tuple[Callable, tuple]],
     allow_failures: bool = False,

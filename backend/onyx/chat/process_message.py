@@ -72,7 +72,9 @@ from onyx.db.engine import get_session_context_manager
 from onyx.db.milestone import check_multi_assistant_milestone
 from onyx.db.milestone import create_milestone_if_not_exists
 from onyx.db.milestone import update_user_assistant_milestone
+from onyx.db.models import ChatMessage
 from onyx.db.models import SearchDoc as DbSearchDoc
+from onyx.db.models import SearchSettings
 from onyx.db.models import ToolCall
 from onyx.db.models import User
 from onyx.db.persona import get_persona_by_id
@@ -135,12 +137,15 @@ from onyx.tools.tool_implementations.search.search_tool import (
 )
 from onyx.tools.tool_runner import ToolCallFinalResult
 from onyx.tools.utils import explicit_tool_calling_supported
+from onyx.utils.gpu_utils import gpu_status_request
 from onyx.utils.logger import setup_logger
 from onyx.utils.long_term_log import LongTermLogger
 from onyx.utils.telemetry import mt_cloud_telemetry
+from onyx.utils.threadpool_concurrency import run_functions_tuples_in_parallel
 from onyx.utils.timing import log_function_time
 from onyx.utils.timing import log_generator_function_time
 from shared_configs.contextvars import CURRENT_TENANT_ID_CONTEXTVAR
+
 
 logger = setup_logger()
 
@@ -460,14 +465,29 @@ def stream_chat_message_objects(
             Callable[[str], list[int]], llm_tokenizer.encode
         )
 
-        search_settings = get_current_search_settings(db_session)
+        # search_settings = get_current_search_settings(db_session)
+
+        # # Every chat Session begins with an empty root message
+        # root_message = get_or_create_root_message(
+        #     chat_session_id=chat_session_id, db_session=db_session
+        # )
+        (
+            search_settings,
+            root_message,
+            gpu_enabled_reranking,
+        ) = run_functions_tuples_in_parallel(
+            [
+                (get_current_search_settings, (db_session,)),
+                (get_or_create_root_message, (chat_session_id, db_session)),
+                (gpu_status_request, tuple()),
+            ]
+        )
+        search_settings = cast(SearchSettings, search_settings)
+        root_message = cast(ChatMessage, root_message)
+        gpu_enabled_reranking = cast(bool, gpu_enabled_reranking)
+
         document_index = get_default_document_index(
             primary_index_name=search_settings.index_name, secondary_index_name=None
-        )
-
-        # Every chat Session begins with an empty root message
-        root_message = get_or_create_root_message(
-            chat_session_id=chat_session_id, db_session=db_session
         )
 
         if parent_id is not None:
@@ -803,6 +823,7 @@ def stream_chat_message_objects(
             files=latest_query_files,
             structured_response_format=new_msg_req.structured_response_format,
             skip_gen_ai_answer_generation=new_msg_req.skip_gen_ai_answer_generation,
+            gpu_enabled_reranking=gpu_enabled_reranking,
         )
 
         # TODO: add previous messages, answer style config, tools, etc.
@@ -1096,6 +1117,7 @@ def stream_chat_message_objects(
         logger.debug("Committing messages")
         db_session.commit()  # actually save user / assistant message
 
+        # used in the runs api
         msg_detail_response = translate_db_message_to_chat_message_detail(
             gen_ai_response_message
         )

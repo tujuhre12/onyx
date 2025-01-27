@@ -269,6 +269,7 @@ class RerankingModel:
         model_server_url = build_model_server_url(model_server_host, model_server_port)
         self.rerank_server_endpoint = model_server_url + "/encoder/cross-encoder-scores"
         self.model_name = model_name
+        # provider_type = None for local reranking
         self.provider_type = provider_type
         self.api_key = api_key
         self.api_url = api_url

@@ -51,15 +51,21 @@ def doc_reranking(
         and _search_query.rerank_settings.num_rerank > 0
         and len(verified_documents) > 0
     ):
-        if len(verified_documents) > 1:
+        if (
+            not agent_a_config.gpu_enabled_reranking
+            and _search_query.rerank_settings.rerank_provider_type is None
+        ):
+            logger.warning("skipping local non-gpu reranking")
+            reranked_documents = verified_documents
+        elif len(verified_documents) <= 1:
+            num = "No" if len(verified_documents) == 0 else "One"
+            logger.warning(f"{num} verified document(s) found, skipping reranking")
+            reranked_documents = verified_documents
+        else:
             reranked_documents = rerank_sections(
                 _search_query,
                 verified_documents,
             )
-        else:
-            num = "No" if len(verified_documents) == 0 else "One"
-            logger.warning(f"{num} verified document(s) found, skipping reranking")
-            reranked_documents = verified_documents
     else:
         logger.warning("No reranking settings found, using unranked documents")
         reranked_documents = verified_documents
