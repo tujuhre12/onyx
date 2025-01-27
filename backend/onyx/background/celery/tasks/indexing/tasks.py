@@ -108,9 +108,10 @@ class IndexingCallback(IndexingHeartbeatInterface):
         return False
 
     def progress(self, tag: str, amount: int) -> None:
-        # rkuo: this shouldn't be necessary yet because we spawn the process this runs inside
-        # with daemon = True. It seems likely some indexing tasks will need to spawn other processes eventually
-        # so leave this code in until we're ready to test it.
+        # rkuo: the following commented code shouldn't be necessary yet
+        # because we spawn the process this runs inside with daemon = True.
+        # However, it seems likely some indexing tasks will need to spawn other
+        # processes eventually, so leave this code in until we're ready to test it.
 
         # if self.parent_pid:
         #     # check if the parent pid is alive so we aren't running as a zombie

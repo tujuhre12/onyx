@@ -32,7 +32,8 @@ class RedisConnectorIndex:
     TERMINATE_PREFIX = PREFIX + "_terminate"  # connectorindexing_terminate
 
     # used to signal the overall workflow is still active
-    # it's difficult to prevent
+    # it's impossible to get the exact state of the system at a single point in time
+    # so we need a signal with a TTL to bridge gaps in our checks
     ACTIVE_PREFIX = PREFIX + "_active"
 
     def __init__(

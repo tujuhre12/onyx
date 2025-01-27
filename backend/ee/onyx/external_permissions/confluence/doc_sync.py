@@ -13,6 +13,7 @@ from onyx.connectors.confluence.onyx_confluence import OnyxConfluence
 from onyx.connectors.confluence.utils import get_user_email_from_username__server
 from onyx.connectors.models import SlimDocument
 from onyx.db.models import ConnectorCredentialPair
+from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -334,7 +335,7 @@ def _fetch_all_page_restrictions(
 
 
 def confluence_doc_sync(
-    cc_pair: ConnectorCredentialPair,
+    cc_pair: ConnectorCredentialPair, callback: IndexingHeartbeatInterface | None
 ) -> list[DocExternalAccess]:
     """
     Adds the external permissions to the documents in postgres
@@ -359,6 +360,12 @@ def confluence_doc_sync(
     logger.debug("Fetching all slim documents from confluence")
     for doc_batch in confluence_connector.retrieve_all_slim_documents():
         logger.debug(f"Got {len(doc_batch)} slim documents from confluence")
+        if callback:
+            if callback.should_stop():
+                raise RuntimeError("confluence_doc_sync: Stop signal detected")
+
+            callback.progress("confluence_doc_sync", 1)
+
         slim_docs.extend(doc_batch)
 
     logger.debug("Fetching all page restrictions for space")

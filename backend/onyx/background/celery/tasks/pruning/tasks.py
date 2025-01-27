@@ -34,6 +34,7 @@ from onyx.db.enums import ConnectorCredentialPairStatus
 from onyx.db.models import ConnectorCredentialPair
 from onyx.redis.redis_connector import RedisConnector
 from onyx.redis.redis_pool import get_redis_client
+from onyx.utils.logger import LoggerContextVars
 from onyx.utils.logger import pruning_ctx
 from onyx.utils.logger import setup_logger
 
@@ -233,6 +234,8 @@ def connector_pruning_generator_task(
     """connector pruning task. For a cc pair, this task pulls all document IDs from the source
     and compares those IDs to locally stored documents and deletes all locally stored IDs missing
     from the most recently pulled document ID list"""
+
+    LoggerContextVars.reset()
 
     pruning_ctx_dict = pruning_ctx.get()
     pruning_ctx_dict["cc_pair_id"] = cc_pair_id
