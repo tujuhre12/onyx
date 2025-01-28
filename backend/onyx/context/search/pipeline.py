@@ -29,9 +29,9 @@ from onyx.context.search.utils import inference_section_from_chunks
 from onyx.context.search.utils import relevant_sections_to_indices
 from onyx.db.models import User
 from onyx.db.search_settings import get_current_search_settings
+from onyx.document_index.document_index_utils import get_multipass_config
 from onyx.document_index.factory import get_default_document_index
 from onyx.document_index.interfaces import VespaChunkRequest
-from onyx.document_index.vespa.indexing_utils import get_multipass_config
 from onyx.llm.interfaces import LLM
 from onyx.secondary_llm_flows.agentic_evaluation import evaluate_inference_section
 from onyx.utils.logger import setup_logger

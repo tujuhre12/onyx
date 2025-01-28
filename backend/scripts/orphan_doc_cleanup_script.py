@@ -5,7 +5,7 @@ import sys
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from onyx.document_index.vespa.indexing_utils import get_multipass_config
+from onyx.document_index.document_index_utils import get_multipass_config
 
 # makes it so `PYTHONPATH=.` is not required when running this script
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

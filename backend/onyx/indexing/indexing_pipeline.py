@@ -34,12 +34,12 @@ from onyx.db.models import Document as DBDocument
 from onyx.db.search_settings import get_current_search_settings
 from onyx.db.tag import create_or_add_document_tag
 from onyx.db.tag import create_or_add_document_tag_list
+from onyx.document_index.document_index_utils import (
+    get_multipass_config,
+)
 from onyx.document_index.interfaces import DocumentIndex
 from onyx.document_index.interfaces import DocumentMetadata
 from onyx.document_index.interfaces import IndexBatchParams
-from onyx.document_index.vespa.indexing_utils import (
-    get_multipass_config,
-)
 from onyx.indexing.chunker import Chunker
 from onyx.indexing.embedder import IndexingEmbedder
 from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface

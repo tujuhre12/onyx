@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 
 from onyx.db.search_settings import get_current_search_settings
+from onyx.document_index.document_index_utils import get_multipass_config
 from onyx.document_index.interfaces import DocumentIndex
 from onyx.document_index.vespa.index import VespaIndex
-from onyx.document_index.vespa.indexing_utils import get_multipass_config
 from shared_configs.configs import MULTI_TENANT
 
 

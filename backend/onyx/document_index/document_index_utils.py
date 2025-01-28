@@ -4,15 +4,57 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from onyx.configs.app_configs import ENABLE_MULTIPASS_INDEXING
+from onyx.db.models import SearchSettings
 from onyx.db.search_settings import get_current_search_settings
 from onyx.db.search_settings import get_secondary_search_settings
 from onyx.document_index.interfaces import EnrichedDocumentIndexingInfo
-from onyx.document_index.vespa.indexing_utils import get_multipass_config
 from onyx.indexing.models import DocMetadataAwareIndexChunk
+from onyx.indexing.models import EmbeddingProvider
+from onyx.indexing.models import MultipassConfig
 from shared_configs.configs import MULTI_TENANT
 
 DEFAULT_BATCH_SIZE = 30
 DEFAULT_INDEX_NAME = "danswer_chunk"
+
+
+def should_use_multipass(search_settings: SearchSettings | None) -> bool:
+    """
+    Determines whether multipass should be used based on the search settings
+    or the default config if settings are unavailable.
+    """
+    if search_settings is not None:
+        return search_settings.multipass_indexing
+    return ENABLE_MULTIPASS_INDEXING
+
+
+def can_use_large_chunks(multipass: bool, search_settings: SearchSettings) -> bool:
+    """
+    Given multipass usage and an embedder, decides whether large chunks are allowed
+    based on model/provider constraints.
+    """
+    # Only local models that support a larger context are from Nomic
+    # Cohere does not support larger contexts (they recommend not going above ~512 tokens)
+    return (
+        multipass
+        and search_settings.model_name.startswith("nomic-ai")
+        and search_settings.provider_type != EmbeddingProvider.COHERE
+    )
+
+
+def get_multipass_config(search_settings: SearchSettings) -> MultipassConfig:
+    """
+    Determines whether to enable multipass and large chunks by examining
+    the current search settings and the embedder configuration.
+    """
+    if not search_settings:
+        return MultipassConfig(multipass_indexing=False, enable_large_chunks=False)
+
+    multipass = should_use_multipass(search_settings)
+    enable_large_chunks = can_use_large_chunks(multipass, search_settings)
+    return MultipassConfig(
+        multipass_indexing=multipass, enable_large_chunks=enable_large_chunks
+    )
 
 
 def get_both_index_names(

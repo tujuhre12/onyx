@@ -24,9 +24,9 @@ from onyx.db.enums import AccessType
 from onyx.db.enums import ConnectorCredentialPairStatus
 from onyx.db.index_attempt import mock_successful_index_attempt
 from onyx.db.search_settings import get_current_search_settings
+from onyx.document_index.document_index_utils import get_multipass_config
 from onyx.document_index.factory import get_default_document_index
 from onyx.document_index.interfaces import IndexBatchParams
-from onyx.document_index.vespa.indexing_utils import get_multipass_config
 from onyx.document_index.vespa.shared_utils.utils import wait_for_vespa_with_timeout
 from onyx.indexing.indexing_pipeline import index_doc_batch_prepare
 from onyx.indexing.models import ChunkEmbedding

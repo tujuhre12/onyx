@@ -16,8 +16,8 @@ from onyx.configs.constants import DocumentSource
 from onyx.connectors.models import Document
 from onyx.db.engine import get_session_context_manager
 from onyx.db.search_settings import get_current_search_settings
+from onyx.document_index.document_index_utils import get_multipass_config
 from onyx.document_index.vespa.index import VespaIndex
-from onyx.document_index.vespa.indexing_utils import get_multipass_config
 from onyx.indexing.indexing_pipeline import IndexBatchParams
 from onyx.indexing.models import ChunkEmbedding
 from onyx.indexing.models import DocMetadataAwareIndexChunk
