@@ -580,6 +580,7 @@ class VespaIndex(DocumentIndex):
         function will complete with no errors or exceptions.
         Handle other exceptions if you wish to implement retry behavior
         """
+        start = time.monotonic()
 
         timings: dict[str, Any] = {}
 
@@ -589,8 +590,11 @@ class VespaIndex(DocumentIndex):
         if self.secondary_index_name:
             index_names.append(self.secondary_index_name)
 
+        index = 0
         with get_vespa_http_client(http2=False) as http_client:
             for index_name in index_names:
+                index += 1
+
                 phase_start = time.monotonic()
                 with get_session_with_tenant(tenant_id=tenant_id) as db_session:
                     multipass_config = get_multipass_config(
@@ -613,7 +617,7 @@ class VespaIndex(DocumentIndex):
                 )
 
                 doc_chunk_count += len(doc_chunk_ids)
-                timings["prep"] = time.monotonic() - phase_start
+                timings[f"prep_{index}"] = time.monotonic() - phase_start
 
                 phase_start = time.monotonic()
                 chunk = 0
@@ -624,9 +628,12 @@ class VespaIndex(DocumentIndex):
                     self.update_single_chunk(
                         doc_chunk_id, index_name, fields, doc_id, http_client
                     )
-                    timings[f"chunk_{chunk}"] = time.monotonic() - phase_start
+                    timings[f"chunk_{index}_{chunk}"] = time.monotonic() - phase_start
 
-        logger.debug(f"timings={timings}")
+        elapsed = time.monotonic() - start
+        logger.debug(
+            f"num_chunks={doc_chunk_count} elapsed={elapsed:.2f} timings={timings}"
+        )
         return doc_chunk_count
 
     def delete_single(
