@@ -597,6 +597,7 @@ class VespaIndex(DocumentIndex):
 
         index = 0
         with get_vespa_http_client(http2=False) as http_client:
+            timings["get_vespa_http_client_enter"] = time.monotonic() - start
             for (
                 index_name,
                 large_chunks_enabled,
@@ -618,10 +619,17 @@ class VespaIndex(DocumentIndex):
                     large_chunks_enabled=large_chunks_enabled,
                 )
 
+                if len(doc_chunk_ids) == 0:
+                    logger.warning(
+                        f"len(doc_chunk_ids) == 0: "
+                        f"tenant_id={tenant_id} "
+                        f"enriched_doc_infos={enriched_doc_infos} "
+                        f"large_chunks_enabled={large_chunks_enabled}"
+                    )
+
                 doc_chunk_count += len(doc_chunk_ids)
                 timings[f"prep_{index}"] = time.monotonic() - phase_start
 
-                phase_start = time.monotonic()
                 chunk = 0
                 for doc_chunk_id in doc_chunk_ids:
                     chunk += 1
@@ -631,6 +639,10 @@ class VespaIndex(DocumentIndex):
                         doc_chunk_id, index_name, fields, doc_id, http_client
                     )
                     timings[f"chunk_{index}_{chunk}"] = time.monotonic() - phase_start
+
+            phase_start = time.monotonic()
+
+        timings["get_vespa_http_client_exit"] = time.monotonic() - phase_start
 
         elapsed = time.monotonic() - start
         logger.debug(
