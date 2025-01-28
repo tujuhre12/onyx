@@ -611,6 +611,7 @@ class VespaIndex(DocumentIndex):
                 index += 1
 
                 phase_start = time.monotonic()
+
                 enriched_doc_infos = VespaIndex.enrich_basic_chunk_info(
                     index_name=index_name,
                     http_client=http_client,

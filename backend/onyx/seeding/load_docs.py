@@ -3,6 +3,7 @@ import json
 import os
 from typing import cast
 
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from onyx.access.models import default_public_access
@@ -23,6 +24,7 @@ from onyx.db.document import check_docs_exist
 from onyx.db.enums import AccessType
 from onyx.db.enums import ConnectorCredentialPairStatus
 from onyx.db.index_attempt import mock_successful_index_attempt
+from onyx.db.models import Document as DbDocument
 from onyx.db.search_settings import get_current_search_settings
 from onyx.document_index.document_index_utils import get_multipass_config
 from onyx.document_index.factory import get_default_document_index
@@ -60,6 +62,7 @@ def _create_indexable_chunks(
             doc_updated_at=None,
             primary_owners=[],
             secondary_owners=[],
+            chunk_count=1,
         )
         if preprocessed_doc["chunk_ind"] == 0:
             ids_to_documents[document.id] = document
@@ -244,5 +247,13 @@ def seed_initial_documents(
         docs_indexed=len(docs),
         db_session=db_session,
     )
+
+    # Since we bypass the indexing flow, we need to manually update the chunk count
+    for doc in docs:
+        db_session.execute(
+            update(DbDocument)
+            .where(DbDocument.id == doc.id)
+            .values(chunk_count=doc.chunk_count)
+        )
 
     kv_store.store(KV_DOCUMENTS_SEEDED_KEY, True)
