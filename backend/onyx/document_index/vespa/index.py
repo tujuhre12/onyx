@@ -633,6 +633,13 @@ class VespaIndex(DocumentIndex):
                         f"enriched_doc_infos={enriched_doc_infos} "
                         f"large_chunks_enabled={large_chunks_enabled}"
                     )
+                    logger.warning(
+                        "Document chunk info:\n"
+                        f"Enriched doc info: {enriched_doc_infos}\n"
+                        f"Doc chunk ids: {doc_chunk_ids}\n"
+                        f"Document ID: {doc_id}"
+                        f"Tenant_id: {tenant_id}"
+                    )
 
                 doc_chunk_count += len(doc_chunk_ids)
                 timings[f"prep_{index}"] = time.monotonic() - phase_start
