@@ -19,7 +19,7 @@ def create_user_files(
     for file_path, file in zip(upload_response.file_paths, files):
         new_file = UserFile(
             user_id=user.id if user else None,
-            parent_folder_id=folder_id if folder_id != -1 else None,
+            folder_id=folder_id if folder_id != -1 else None,
             file_id=file_path,
             document_id=file_path,
             name=file.filename,

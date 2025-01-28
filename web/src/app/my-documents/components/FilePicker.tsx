@@ -23,7 +23,9 @@ const IconButton: React.FC<{
   active: boolean;
 }> = ({ icon: Icon, onClick, active }) => (
   <button
-    className={`p-2 rounded ${active ? "bg-gray-200" : "hover:bg-gray-100"}`}
+    className={`p-2 flex-none h-10 w-10 flex items-center justify-center rounded ${
+      active ? "bg-gray-200" : "hover:bg-gray-100"
+    }`}
     onClick={onClick}
   >
     <Icon />
@@ -164,26 +166,7 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
       <div className="flex w-full items-center flex-col h-full">
         <div className="grid  h-full grid-cols-2 overflow-y-hidden w-full">
           <div className="w-full pb-4 px-4 border-r overflow-y-auto">
-            <div className="flex justify-between items-center mb-2">
-              <Breadcrumb
-                currentFolder={currentFolder}
-                setCurrentFolder={setCurrentFolder}
-                rootFolder={fileSystem}
-              />
-              <div className="flex space-x-2">
-                <IconButton
-                  icon={ListIcon}
-                  onClick={() => setView("list")}
-                  active={view === "list"}
-                />
-                <IconButton
-                  icon={GridIcon}
-                  onClick={() => setView("grid")}
-                  active={view === "grid"}
-                />
-              </div>
-            </div>
-            <div className="mb-4">
+            <div className="mb-4 justify-between flex gap-x-2 w-full">
               <div className="relative">
                 <input
                   type="text"
@@ -205,6 +188,19 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
                     />
                   </svg>
                 </div>
+              </div>
+
+              <div className="flex space-x-2">
+                <IconButton
+                  icon={ListIcon}
+                  onClick={() => setView("list")}
+                  active={view === "list"}
+                />
+                <IconButton
+                  icon={GridIcon}
+                  onClick={() => setView("grid")}
+                  active={view === "grid"}
+                />
               </div>
             </div>
 

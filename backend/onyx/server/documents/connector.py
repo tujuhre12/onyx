@@ -933,81 +933,21 @@ def connector_run_once(
     connector_id = run_info.connector_id
     specified_credential_ids = run_info.credential_ids
 
-    try:
-        possible_credential_ids = get_connector_credential_ids(
-            run_info.connector_id, db_session
-        )
-    except ValueError:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Connector by id {connector_id} does not exist.",
-        )
-
     if not specified_credential_ids:
-        credential_ids = possible_credential_ids
-    else:
-        if set(specified_credential_ids).issubset(set(possible_credential_ids)):
-            credential_ids = specified_credential_ids
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail="Not all specified credentials are associated with connector",
-            )
-
-    if not credential_ids:
         raise HTTPException(
-            status_code=400,
-            detail="Connector has no valid credentials, cannot create index attempts.",
+            status_code=400, detail="No credentials specified for indexing"
         )
 
-    # Prevents index attempts for cc pairs that already have an index attempt currently running
-    skipped_credentials = [
-        credential_id
-        for credential_id in credential_ids
-        if get_index_attempts_for_cc_pair(
-            cc_pair_identifier=ConnectorCredentialPairIdentifier(
-                connector_id=run_info.connector_id,
-                credential_id=credential_id,
-            ),
-            only_current=True,
-            db_session=db_session,
-            disinclude_finished=True,
+    try:
+        num_triggers = trigger_indexing_for_cc_pair(
+            specified_credential_ids,
+            connector_id,
+            run_info.from_beginning,
+            tenant_id,
+            db_session,
         )
-    ]
-
-    connector_credential_pairs = [
-        get_connector_credential_pair(
-            db_session=db_session,
-            connector_id=connector_id,
-            credential_id=credential_id,
-        )
-        for credential_id in credential_ids
-        if credential_id not in skipped_credentials
-    ]
-
-    num_triggers = 0
-    for cc_pair in connector_credential_pairs:
-        if cc_pair is not None:
-            indexing_mode = IndexingMode.UPDATE
-            if run_info.from_beginning:
-                indexing_mode = IndexingMode.REINDEX
-
-            mark_ccpair_with_indexing_trigger(cc_pair.id, indexing_mode, db_session)
-            num_triggers += 1
-
-            logger.info(
-                f"connector_run_once - marking cc_pair with indexing trigger: "
-                f"connector={run_info.connector_id} "
-                f"cc_pair={cc_pair.id} "
-                f"indexing_trigger={indexing_mode}"
-            )
-
-    # run the beat task to pick up the triggers immediately
-    primary_app.send_task(
-        OnyxCeleryTask.CHECK_FOR_INDEXING,
-        priority=OnyxCeleryPriority.HIGH,
-        kwargs={"tenant_id": tenant_id},
-    )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     msg = f"Marked {num_triggers} index attempts with indexing triggers."
     return StatusResponse(
@@ -1179,3 +1119,82 @@ def get_basic_connector_indexing_status(
         for cc_pair in cc_pairs
         if cc_pair.connector.source != DocumentSource.INGESTION_API
     ]
+
+
+def trigger_indexing_for_cc_pair(
+    specified_credential_ids: list[int],
+    connector_id: int,
+    from_beginning: bool,
+    tenant_id: str,
+    db_session: Session,
+) -> int:
+    try:
+        possible_credential_ids = get_connector_credential_ids(connector_id, db_session)
+    except ValueError as e:
+        raise ValueError(f"Connector by id {connector_id} does not exist: {str(e)}")
+
+    if not specified_credential_ids:
+        credential_ids = possible_credential_ids
+    else:
+        if set(specified_credential_ids).issubset(set(possible_credential_ids)):
+            credential_ids = specified_credential_ids
+        else:
+            raise ValueError(
+                "Not all specified credentials are associated with connector"
+            )
+
+    if not credential_ids:
+        raise ValueError(
+            "Connector has no valid credentials, cannot create index attempts."
+        )
+
+    # Prevents index attempts for cc pairs that already have an index attempt currently running
+    skipped_credentials = [
+        credential_id
+        for credential_id in credential_ids
+        if get_index_attempts_for_cc_pair(
+            cc_pair_identifier=ConnectorCredentialPairIdentifier(
+                connector_id=connector_id,
+                credential_id=credential_id,
+            ),
+            only_current=True,
+            db_session=db_session,
+            disinclude_finished=True,
+        )
+    ]
+
+    connector_credential_pairs = [
+        get_connector_credential_pair(
+            db_session=db_session,
+            connector_id=connector_id,
+            credential_id=credential_id,
+        )
+        for credential_id in credential_ids
+        if credential_id not in skipped_credentials
+    ]
+
+    num_triggers = 0
+    for cc_pair in connector_credential_pairs:
+        if cc_pair is not None:
+            indexing_mode = IndexingMode.UPDATE
+            if from_beginning:
+                indexing_mode = IndexingMode.REINDEX
+
+            mark_ccpair_with_indexing_trigger(cc_pair.id, indexing_mode, db_session)
+            num_triggers += 1
+
+            logger.info(
+                f"connector_run_once - marking cc_pair with indexing trigger: "
+                f"connector={connector_id} "
+                f"cc_pair={cc_pair.id} "
+                f"indexing_trigger={indexing_mode}"
+            )
+
+    # run the beat task to pick up the triggers immediately
+    primary_app.send_task(
+        OnyxCeleryTask.CHECK_FOR_INDEXING,
+        priority=OnyxCeleryPriority.HIGH,
+        kwargs={"tenant_id": tenant_id},
+    )
+
+    return num_triggers

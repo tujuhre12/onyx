@@ -1,3 +1,4 @@
+import time
 from typing import List
 
 from fastapi import APIRouter
@@ -10,16 +11,23 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from onyx.auth.users import current_user
+from onyx.configs.constants import DocumentSource
+from onyx.connectors.models import InputType
+from onyx.db.connector import create_connector
+from onyx.db.connector_credential_pair import add_credential_to_connector
+from onyx.db.credentials import create_credential
 from onyx.db.engine import get_session
+from onyx.db.enums import AccessType
 from onyx.db.models import User
 from onyx.db.models import UserFile
 from onyx.db.models import UserFolder
 from onyx.db.user_documents import create_user_files
+from onyx.server.documents.models import ConnectorBase
+from onyx.server.documents.models import CredentialBase
 from onyx.server.documents.models import FileUploadResponse
 from onyx.server.user_documents.models import FileResponse
 from onyx.server.user_documents.models import FileSystemResponse
 from onyx.server.user_documents.models import FolderDetailResponse
-from onyx.server.user_documents.models import FolderFullDetailResponse
 from onyx.server.user_documents.models import FolderResponse
 from onyx.server.user_documents.models import MessageResponse
 
@@ -28,7 +36,6 @@ router = APIRouter()
 
 class FolderCreationRequest(BaseModel):
     name: str
-    parent_id: int | None = None
 
 
 @router.post("/user/folder")
@@ -39,7 +46,6 @@ def create_folder(
 ) -> FolderDetailResponse:
     new_folder = UserFolder(
         user_id=user.id if user else None,
-        parent_id=None if request.parent_id == -1 else request.parent_id,
         name=request.name,
     )
     db_session.add(new_folder)
@@ -47,8 +53,6 @@ def create_folder(
     return FolderDetailResponse(
         id=new_folder.id,
         name=new_folder.name,
-        parent_id=new_folder.parent_id,
-        children=[],
         files=[],
     )
 
@@ -70,62 +74,21 @@ def get_folder(
     folder_id: int,
     user: User | None = Depends(current_user),
     db_session: Session = Depends(get_session),
-) -> FolderFullDetailResponse:
+) -> FolderDetailResponse:
     user_id = user.id if user else None
-    if folder_id == -1:
-        children = (
-            db_session.query(UserFolder)
-            .filter(UserFolder.user_id == user_id, UserFolder.parent_id.is_(None))
-            .all()
-        )
-        files = (
-            db_session.query(UserFile)
-            .filter(UserFile.user_id == user_id, UserFile.parent_folder_id.is_(None))
-            .all()
-        )
-        return FolderFullDetailResponse(
-            name="Default Folder",
-            parent_id=None,
-            id=-1,
-            children=[FolderResponse.from_model(child).dict() for child in children],
-            files=[FileResponse.from_model(file).dict() for file in files],
-            parents=[],
-        )
-    else:
-        folder = (
-            db_session.query(UserFolder)
-            .filter(UserFolder.id == folder_id, UserFolder.user_id == user_id)
-            .first()
-        )
-        if not folder:
-            raise HTTPException(status_code=404, detail="Folder not found")
+    folder = (
+        db_session.query(UserFolder)
+        .filter(UserFolder.id == folder_id, UserFolder.user_id == user_id)
+        .first()
+    )
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
 
-        parents: List[FolderResponse] = []
-        current_folder = folder
-        while current_folder.parent_id is not None:
-            parent = (
-                db_session.query(UserFolder)
-                .filter(UserFolder.id == current_folder.parent_id)
-                .first()
-            )
-            if parent:
-                parents.insert(
-                    0,
-                    FolderResponse.from_model(parent).dict(),
-                )
-                current_folder = parent
-            else:
-                break
-        return FolderFullDetailResponse(
-            name=folder.name,
-            parent_id=folder.parent_id,
-            id=folder.id,
-            children=[
-                FolderResponse.from_model(child).dict() for child in folder.children
-            ],
-            files=[FileResponse.from_model(file).dict() for file in folder.files],
-            parents=parents,
-        )
+    return FolderDetailResponse(
+        id=folder.id,
+        name=folder.name,
+        files=[FileResponse.from_model(file) for file in folder.files],
+    )
 
 
 @router.post("/user/file/upload")
@@ -138,6 +101,43 @@ def upload_user_files(
     file_upload_response = FileUploadResponse(
         file_paths=create_user_files(files, folder_id, user, db_session).file_paths
     )
+    for path in file_upload_response.file_paths:
+        connector_base = ConnectorBase(
+            name=f"UserFile-{int(time.time())}",
+            source=DocumentSource.FILE,
+            input_type=InputType.LOAD_STATE,
+            connector_specific_config={
+                "file_locations": [path],
+            },
+            refresh_freq=None,
+            prune_freq=None,
+            indexing_start=None,
+        )
+        connector = create_connector(
+            db_session=db_session,
+            connector_data=connector_base,
+        )
+
+        credential_info = CredentialBase(
+            credential_json={},
+            admin_public=True,
+            source=DocumentSource.FILE,
+            curator_public=True,
+            groups=[],
+            name=f"UserFileCredential-{int(time.time())}",
+        )
+        credential = create_credential(credential_info, user, db_session)
+
+        add_credential_to_connector(
+            db_session=db_session,
+            user=user,
+            connector_id=connector.id,
+            credential_id=credential.id,
+            cc_pair_name=f"UserFileCCPair-{int(time.time())}",
+            access_type=AccessType.PUBLIC,
+            auto_sync_options=None,
+            groups=[],
+        )
 
     # TODO: functional document indexing
     # trigger_document_indexing(db_session, user.id)
@@ -166,8 +166,6 @@ def update_folder(
     return FolderDetailResponse(
         id=folder.id,
         name=folder.name,
-        parent_id=folder.parent_id,
-        children=[FolderResponse.from_model(child) for child in folder.children],
         files=[FileResponse.from_model(file) for file in folder.files],
     )
 
@@ -191,30 +189,6 @@ def delete_folder(
     return MessageResponse(message="Folder deleted successfully")
 
 
-class FolderMoveRequest(BaseModel):
-    folder_id: int
-    new_parent_id: int | None
-
-
-@router.put("/user/folder/{folder_id}/move")
-def move_folder(
-    request: FolderMoveRequest,
-    user: User = Depends(current_user),
-    db_session: Session = Depends(get_session),
-) -> FolderResponse:
-    user_id = user.id if user else None
-    folder = (
-        db_session.query(UserFolder)
-        .filter(UserFolder.id == request.folder_id, UserFolder.user_id == user_id)
-        .first()
-    )
-    if not folder:
-        raise HTTPException(status_code=404, detail="Folder not found")
-    folder.parent_id = request.new_parent_id
-    db_session.commit()
-    return FolderResponse.from_model(folder)
-
-
 @router.delete("/user/file/{file_id}")
 def delete_file(
     file_id: int,
@@ -236,7 +210,7 @@ def delete_file(
 
 class FileMoveRequest(BaseModel):
     file_id: int
-    new_parent_id: int | None
+    new_folder_id: int | None
 
 
 @router.put("/user/file/{file_id}/move")
@@ -253,7 +227,7 @@ def move_file(
     )
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
-    file.parent_folder_id = request.new_parent_id
+    file.folder_id = request.new_folder_id
     db_session.commit()
     return FileResponse.from_model(file)
 

@@ -6,27 +6,34 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { usePopup } from "@/components/admin/connectors/Popup";
 import { FolderActions } from "./FolderActions";
-import { FolderBreadcrumb } from "./FolderBreadcrumb";
 import { FolderContents } from "./FolderContents";
 import TextView from "@/components/chat_search/TextView";
-import { Button } from "@/components/ui/button";
-import { MinimalOnyxDocument } from "@/lib/search/interfaces";
+
 import { PageSelector } from "@/components/PageSelector";
+import { MinimalOnyxDocument } from "@/lib/search/interfaces";
 
 interface FolderResponse {
-  children: { name: string; id: number }[];
-  files: { name: string; document_id: string; id: number }[];
-  parents: { name: string; id: number }[];
-  name: string;
   id: number;
+  name: string;
+}
+
+interface FileResponse {
+  id: number;
+  name: string;
   document_id: string;
+  folder_id: number | null;
+}
+
+interface FolderContentsResponse {
+  folders: FolderResponse[];
+  files: FileResponse[];
 }
 
 export default function MyDocuments() {
-  const [currentFolder, setCurrentFolder] = useState<number>(-1);
-  const [folderContents, setFolderContents] = useState<FolderResponse | null>(
-    null
-  );
+  const [currentFolder, setCurrentFolder] = useState<number | null>(null);
+  const [folderContents, setFolderContents] =
+    useState<FolderContentsResponse | null>(null);
+  const [folders, setFolders] = useState<FolderResponse[]>([]);
 
   const [page, setPage] = useState<number>(1);
 
@@ -38,41 +45,62 @@ export default function MyDocuments() {
   const [presentingDocument, setPresentingDocument] =
     useState<MinimalOnyxDocument | null>(null);
 
-  const folderIdFromParams = parseInt(searchParams.get("path") || "-1", 10);
+  const folderIdFromParams = parseInt(searchParams.get("folder") || "0", 10);
 
-  const fetchFolderContents = useCallback(async (folderId: number) => {
+  const fetchFolders = useCallback(async () => {
     try {
-      const response = await fetch(`/api/user/folder/${folderId}?page=${page}`);
+      const response = await fetch("/api/user/folder");
       if (!response.ok) {
-        throw new Error("Failed to fetch folder contents");
+        throw new Error("Failed to fetch folders");
       }
       const data = await response.json();
-      setFolderContents(data);
+      setFolders(data);
     } catch (error) {
-      console.error("Error fetching folder contents:", error);
+      console.error("Error fetching folders:", error);
       setPopup({
-        message: "Failed to fetch folder contents",
+        message: "Failed to fetch folders",
         type: "error",
       });
     }
   }, []);
 
+  const fetchFolderContents = useCallback(
+    async (folderId: number | null) => {
+      try {
+        const response = await fetch(
+          `/api/user/file-system?page=${page}&folder_id=${folderId || ""}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch folder contents");
+        }
+        const data = await response.json();
+        setFolderContents(data);
+      } catch (error) {
+        console.error("Error fetching folder contents:", error);
+        setPopup({
+          message: "Failed to fetch folder contents",
+          type: "error",
+        });
+      }
+    },
+    [page]
+  );
+
   useEffect(() => {
-    setCurrentFolder(folderIdFromParams);
-    fetchFolderContents(folderIdFromParams);
-  }, [searchParams]);
+    fetchFolders();
+  }, [fetchFolders]);
+
+  useEffect(() => {
+    setCurrentFolder(folderIdFromParams || null);
+    fetchFolderContents(folderIdFromParams || null);
+  }, [folderIdFromParams, fetchFolderContents]);
 
   const refreshFolderContents = useCallback(() => {
     fetchFolderContents(currentFolder);
   }, [fetchFolderContents, currentFolder]);
 
   const handleFolderClick = (id: number) => {
-    router.push(`/my-documents?path=${id}`);
-    setPage(1);
-  };
-
-  const handleBreadcrumbClick = (folderId: number) => {
-    router.push(`/my-documents?path=${folderId}`);
+    router.push(`/my-documents?folder=${id}`);
     setPage(1);
   };
 
@@ -81,9 +109,10 @@ export default function MyDocuments() {
       const response = await fetch("/api/user/folder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: folderName, parent_id: currentFolder }),
+        body: JSON.stringify({ name: folderName }),
       });
       if (response.ok) {
+        fetchFolders();
         refreshFolderContents();
         setPopup({
           message: "Folder created successfully",
@@ -110,7 +139,10 @@ export default function MyDocuments() {
         method: "DELETE",
       });
       if (response.ok) {
-        fetchFolderContents(currentFolder);
+        if (isFolder) {
+          fetchFolders();
+        }
+        refreshFolderContents();
         setPopup({
           message: `${isFolder ? "Folder" : "File"} deleted successfully`,
           type: "success",
@@ -125,7 +157,6 @@ export default function MyDocuments() {
         type: "error",
       });
     }
-    refreshFolderContents();
   };
 
   const handleUploadFiles = async (files: FileList) => {
@@ -133,10 +164,7 @@ export default function MyDocuments() {
     for (let i = 0; i < files.length; i++) {
       formData.append("files", files[i]);
     }
-    formData.append(
-      "folder_id",
-      currentFolder.toString() === "-1" ? "" : currentFolder.toString()
-    );
+    formData.append("folder_id", currentFolder ? currentFolder.toString() : "");
 
     try {
       const response = await fetch("/api/user/file/upload", {
@@ -144,7 +172,7 @@ export default function MyDocuments() {
         body: formData,
       });
       if (response.ok) {
-        await fetchFolderContents(currentFolder);
+        refreshFolderContents();
         setPopup({
           message: "Files uploaded successfully",
           type: "success",
@@ -160,7 +188,6 @@ export default function MyDocuments() {
       });
     }
 
-    await refreshFolderContents();
     setPage(1);
   };
 
@@ -177,12 +204,12 @@ export default function MyDocuments() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          new_parent_id: destinationFolderId,
+          new_folder_id: destinationFolderId,
           [isFolder ? "folder_id" : "file_id"]: itemId,
         }),
       });
       if (response.ok) {
-        fetchFolderContents(currentFolder);
+        refreshFolderContents();
         setPopup({
           message: `${isFolder ? "Folder" : "File"} moved successfully`,
           type: "success",
@@ -197,7 +224,6 @@ export default function MyDocuments() {
         type: "error",
       });
     }
-    refreshFolderContents();
   };
 
   const handleDownloadItem = async (documentId: string) => {
@@ -248,7 +274,10 @@ export default function MyDocuments() {
         method: "PUT",
       });
       if (response.ok) {
-        fetchFolderContents(currentFolder);
+        if (isFolder) {
+          fetchFolders();
+        }
+        refreshFolderContents();
         setPopup({
           message: `${isFolder ? "Folder" : "File"} renamed successfully`,
           type: "success",
@@ -275,27 +304,19 @@ export default function MyDocuments() {
       )}
       {popup}
       <div className="flex-grow">
-        <FolderBreadcrumb
-          currentFolder={{
-            name: folderContents ? folderContents.name : "",
-            id: currentFolder,
-          }}
-          parents={folderContents?.parents || []}
-          onBreadcrumbClick={handleBreadcrumbClick}
-        />
         <Card>
           <CardHeader>
-            <CardTitle>Folder Contents</CardTitle>
+            <CardTitle>My Documents</CardTitle>
             <FolderActions
-              onRefresh={() => fetchFolderContents(currentFolder)}
+              onRefresh={refreshFolderContents}
               onCreateFolder={handleCreateFolder}
               onUploadFiles={handleUploadFiles}
             />
           </CardHeader>
           <CardContent>
             {folderContents ? (
-              folderContents.files.length > 0 ||
-              folderContents.children.length > 0 ? (
+              folderContents.folders.length > 0 ||
+              folderContents.files.length > 0 ? (
                 <FolderContents
                   currentPage={page}
                   pageLimit={pageLimit}
@@ -312,6 +333,7 @@ export default function MyDocuments() {
                   onDownloadItem={handleDownloadItem}
                   onMoveItem={handleMoveItem}
                   onRenameItem={onRenameItem}
+                  folders={folders}
                 />
               ) : (
                 <p>No content in this folder</p>
@@ -327,7 +349,7 @@ export default function MyDocuments() {
               currentPage={page}
               totalPages={Math.ceil(
                 ((folderContents?.files?.length || 0) +
-                  (folderContents?.children?.length || 0)) /
+                  (folderContents?.folders?.length || 0)) /
                   pageLimit
               )}
               onPageChange={(newPage) => {

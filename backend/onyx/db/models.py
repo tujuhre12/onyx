@@ -2058,19 +2058,12 @@ class UserFolder(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
-    parent_id: Mapped[int | None] = mapped_column(
-        ForeignKey("user_folder.id"), nullable=True
-    )
     name: Mapped[str] = mapped_column(nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(
         default=datetime.datetime.utcnow
     )
 
     user: Mapped["User"] = relationship(back_populates="folders")
-    parent: Mapped["UserFolder"] = relationship(
-        remote_side=[id], back_populates="children"
-    )
-    children: Mapped[list["UserFolder"]] = relationship(back_populates="parent")
     files: Mapped[list["UserFile"]] = relationship(back_populates="folder")
 
 
@@ -2090,7 +2083,7 @@ class UserFile(Base):
         secondary=Persona__UserFile.__table__,
         back_populates="user_files",
     )
-    parent_folder_id: Mapped[int | None] = mapped_column(
+    folder_id: Mapped[int | None] = mapped_column(
         ForeignKey("user_folder.id"), nullable=True
     )
 

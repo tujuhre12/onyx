@@ -18,26 +18,23 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create user_folder table with additional 'display_priority' field
+    # Create user_folder table without parent_id
     op.create_table(
         "user_folder",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("user_id", sa.UUID(), sa.ForeignKey("user.id"), nullable=True),
-        sa.Column(
-            "parent_id", sa.Integer(), sa.ForeignKey("user_folder.id"), nullable=True
-        ),
         sa.Column("name", sa.String(length=255), nullable=True),
         sa.Column("display_priority", sa.Integer(), nullable=True, default=0),
         sa.Column("created_at", sa.DateTime(), default=datetime.datetime.utcnow),
     )
 
-    # Create user_file table
+    # Create user_file table with folder_id instead of parent_folder_id
     op.create_table(
         "user_file",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("user_id", sa.UUID(), sa.ForeignKey("user.id"), nullable=True),
         sa.Column(
-            "parent_folder_id",
+            "folder_id",
             sa.Integer(),
             sa.ForeignKey("user_folder.id"),
             nullable=True,
