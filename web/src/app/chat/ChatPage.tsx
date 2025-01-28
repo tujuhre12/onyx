@@ -115,10 +115,11 @@ import {
   CHROME_MESSAGE,
   SUBMIT_MESSAGE_TYPES,
 } from "@/lib/extension/constants";
-import AssistantModal from "../assistants/mine/AssistantModal";
+
 import { getSourceMetadata } from "@/lib/sources";
 import { UserSettingsModal } from "./modal/UserSettingsModal";
 import { AgenticMessage } from "./message/AgenticMessage";
+import AssistantModal from "../assistants/mine/AssistantModal";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -726,10 +727,20 @@ export function ChatPage({
     newState: RegenerationState | null,
     sessionId?: string | null
   ) => {
+    const newRegenerationState = new Map(regenerationState);
+    newRegenerationState.set(
+      sessionId !== undefined && sessionId != null
+        ? sessionId
+        : currentSessionId(),
+      newState
+    );
+
     setRegenerationState((prevState) => {
       const newRegenerationState = new Map(prevState);
       newRegenerationState.set(
-        sessionId !== undefined ? sessionId : currentSessionId(),
+        sessionId !== undefined && sessionId != null
+          ? sessionId
+          : currentSessionId(),
         newState
       );
       return newRegenerationState;
@@ -743,6 +754,7 @@ export function ChatPage({
   const currentRegenerationState = (): RegenerationState | null => {
     return regenerationState.get(currentSessionId()) || null;
   };
+
   const [canContinue, setCanContinue] = useState<Map<string | null, boolean>>(
     new Map([[null, false]])
   );
@@ -1169,12 +1181,12 @@ export function ChatPage({
     const messageToResend = messageHistory.find(
       (message) => message.messageId === messageIdToResend
     );
-
-    updateRegenerationState(
-      regenerationRequest
-        ? { regenerating: true, finalMessageIndex: messageIdToResend || 0 }
-        : null
-    );
+    if (messageIdToResend) {
+      updateRegenerationState(
+        { regenerating: true, finalMessageIndex: messageIdToResend },
+        currentSessionId()
+      );
+    }
     const messageMap = currentMessageMap(completeMessageDetail);
     const messageToResendParent =
       messageToResend?.parentMessageId !== null &&
@@ -2491,6 +2503,15 @@ export function ChatPage({
                               const messageMap = currentMessageMap(
                                 completeMessageDetail
                               );
+
+                              if (
+                                currentRegenerationState()?.finalMessageIndex &&
+                                currentRegenerationState()?.finalMessageIndex! <
+                                  message.messageId
+                              ) {
+                                return <></>;
+                              }
+
                               const messageReactComponentKey = `${i}-${currentSessionId()}`;
                               const parentMessage = message.parentMessageId
                                 ? messageMap.get(message.parentMessageId)
@@ -2512,7 +2533,13 @@ export function ChatPage({
                                   >
                                     <HumanMessage
                                       stopGenerating={stopGenerating}
-                                      content={message.message}
+                                      content={
+                                        message.message +
+                                        `final message index is ${
+                                          currentRegenerationState()
+                                            ?.finalMessageIndex
+                                        }`
+                                      }
                                       files={message.files}
                                       messageId={message.messageId}
                                       onEdit={(editedContent) => {
