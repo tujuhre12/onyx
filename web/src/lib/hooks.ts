@@ -13,12 +13,16 @@ import { errorHandlingFetcher } from "./fetcher";
 import { useContext, useEffect, useState } from "react";
 import { DateRangePickerValue } from "@/app/ee/admin/performance/DateRangeSelector";
 import { Filters, SourceMetadata } from "./search/interfaces";
-import { destructureValue, structureValue } from "./llm/utils";
+import {
+  destructureValue,
+  getLLMProviderOverrideForPersona,
+  structureValue,
+} from "./llm/utils";
 import { ChatSession } from "@/app/chat/interfaces";
 import { AllUsersResponse } from "./types";
 import { Credential } from "./connectors/credentials";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
-import { PersonaLabel } from "@/app/admin/assistants/interfaces";
+import { Persona, PersonaLabel } from "@/app/admin/assistants/interfaces";
 import { LLMProviderDescriptor } from "@/app/admin/configuration/llm/interfaces";
 import { isAnthropic } from "@/app/admin/configuration/llm/interfaces";
 import { getSourceMetadata } from "./sources";
@@ -367,7 +371,8 @@ export function useLlmOverride(
   llmProviders: LLMProviderDescriptor[],
   globalModel?: string | null,
   currentChatSession?: ChatSession,
-  defaultTemperature?: number
+  defaultTemperature?: number,
+  assistants?: Persona[]
 ): LlmOverrideManager {
   const getValidLlmOverride = (
     overrideModel: string | null | undefined
@@ -423,6 +428,32 @@ export function useLlmOverride(
   const [temperature, setTemperature] = useState<number | null>(
     defaultTemperature !== undefined ? defaultTemperature : 0
   );
+
+  useEffect(() => {
+    const currentPersona = assistants?.find(
+      (a) => a.id === currentChatSession?.persona_id
+    );
+    const personaDefault = currentPersona
+      ? getLLMProviderOverrideForPersona(currentPersona, llmProviders)
+      : undefined;
+
+    if (personaDefault) {
+      updateLLMOverride(personaDefault);
+    } else {
+      updateLLMOverride(globalDefault);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentChatSession]);
+
+  useEffect(() => {
+    if (currentChatSession?.current_alternate_model) {
+      setLlmOverride(
+        getValidLlmOverride(currentChatSession.current_alternate_model)
+      );
+    } else {
+      setLlmOverride(globalDefault);
+    }
+  }, [currentChatSession]);
 
   useEffect(() => {
     setGlobalDefault(getValidLlmOverride(globalModel));

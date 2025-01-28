@@ -293,19 +293,22 @@ export function ChatPage({
     );
   };
 
-  const llmOverrideManager = useLlmOverride(
-    llmProviders,
-    user?.preferences.default_model,
-    selectedChatSession
-  );
-
   const [alternativeAssistant, setAlternativeAssistant] =
     useState<Persona | null>(null);
 
   const [presentingDocument, setPresentingDocument] =
     useState<OnyxDocument | null>(null);
 
-  const { recentAssistants, refreshRecentAssistants } = useAssistants();
+  const { recentAssistants, refreshRecentAssistants, assistants } =
+    useAssistants();
+
+  const llmOverrideManager = useLlmOverride(
+    llmProviders,
+    user?.preferences.default_model,
+    selectedChatSession,
+    undefined,
+    assistants
+  );
 
   const liveAssistant: Persona | undefined =
     alternativeAssistant ||
@@ -336,7 +339,7 @@ export function ChatPage({
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveAssistant, user?.preferences.default_model]);
+  }, [liveAssistant, user?.preferences.default_model, selectedChatSession]);
 
   const stopGenerating = () => {
     const currentSession = currentSessionId();
