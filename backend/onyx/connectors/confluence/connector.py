@@ -288,8 +288,8 @@ class ConfluenceConnector(LoadConnector, PollConnector, SlimConnector):
         ):
             page_count += 1
             logger.debug(
-                f"Processing page {page['id']} - "
-                f"{page.get('title', 'Untitled')}"
+                f"Processing page {page['id']}, "
+                f"title: {page.get('title', 'Untitled')}"
             )
             confluence_page_ids.append(page["id"])
             doc = self._convert_object_to_document(page)
