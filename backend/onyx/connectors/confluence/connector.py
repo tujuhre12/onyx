@@ -298,7 +298,7 @@ class ConfluenceConnector(LoadConnector, PollConnector, SlimConnector):
             if len(doc_batch) >= self.batch_size:
                 yield doc_batch
                 doc_batch = []
-        
+
         logger.info(f"Found {page_count} pages using query '{page_query}'")
         if page_count == 0:
             logger.warning(
@@ -325,9 +325,13 @@ class ConfluenceConnector(LoadConnector, PollConnector, SlimConnector):
                 if len(doc_batch) >= self.batch_size:
                     yield doc_batch
                     doc_batch = []
-            logger.debug(f"Found {attachment_count} attachments for page {confluence_page_id}")
-        
-        logger.info(f"Found {total_attachment_count} total attachments across all pages")
+            logger.debug(
+                f"Found {attachment_count} attachments for page {confluence_page_id}"
+            )
+
+        logger.info(
+            f"Found {total_attachment_count} total attachments across all pages"
+        )
 
         if doc_batch:
             yield doc_batch
