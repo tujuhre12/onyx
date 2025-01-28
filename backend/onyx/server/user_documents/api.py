@@ -36,6 +36,7 @@ router = APIRouter()
 
 class FolderCreationRequest(BaseModel):
     name: str
+    description: str
 
 
 @router.post("/user/folder")
@@ -47,12 +48,14 @@ def create_folder(
     new_folder = UserFolder(
         user_id=user.id if user else None,
         name=request.name,
+        description=request.description,
     )
     db_session.add(new_folder)
     db_session.commit()
     return FolderDetailResponse(
         id=new_folder.id,
         name=new_folder.name,
+        description=new_folder.description,
         files=[],
     )
 

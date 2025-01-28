@@ -11,8 +11,7 @@ export default function WrappedUserDocuments({
 }) {
   return (
     <SidebarWrapper size="lg" initiallyToggled={initiallyToggled}>
-      <div className="mx-auto w-searchbar-xs 2xl:w-searchbar-sm 3xl:w-searchbar">
-        <Title>My Documents</Title>
+      <div className="mx-auto  max-w-4xl w-full">
         <MyDocuments />
       </div>
     </SidebarWrapper>

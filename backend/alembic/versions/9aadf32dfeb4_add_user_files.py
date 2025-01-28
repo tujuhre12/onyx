@@ -24,6 +24,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("user_id", sa.UUID(), sa.ForeignKey("user.id"), nullable=True),
         sa.Column("name", sa.String(length=255), nullable=True),
+        sa.Column("description", sa.String(length=255), nullable=True),
         sa.Column("display_priority", sa.Integer(), nullable=True, default=0),
         sa.Column("created_at", sa.DateTime(), default=datetime.datetime.utcnow),
     )

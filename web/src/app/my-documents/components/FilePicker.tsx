@@ -242,7 +242,7 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
             </div>
           </div>
           {/* NOTE: update */}
-          <div className="w-full px-4 pb-4   m-2 flex flex-col h-[520px] ">
+          <div className="w-full px-4 pb-4 m-2 flex flex-col h-[450px] ">
             <div className="shrink flex h-full overflow-y-auto mb-1 ">
               <SelectedItemsList
                 links={links}

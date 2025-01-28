@@ -13,10 +13,11 @@ router = APIRouter()
 class FolderResponse(BaseModel):
     id: int
     name: str
+    description: str
 
     @classmethod
     def from_model(cls, model: UserFolder) -> "FolderResponse":
-        return cls(id=model.id, name=model.name)
+        return cls(id=model.id, name=model.name, description=model.description)
 
 
 class FileResponse(BaseModel):

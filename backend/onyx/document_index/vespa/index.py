@@ -594,6 +594,7 @@ class VespaIndex(DocumentIndex):
                         primary_index=index_name == self.index_name,
                     )
                     large_chunks_enabled = multipass_config.enable_large_chunks
+
                 enriched_doc_infos = VespaIndex.enrich_basic_chunk_info(
                     index_name=index_name,
                     http_client=http_client,
@@ -607,6 +608,8 @@ class VespaIndex(DocumentIndex):
                     tenant_id=tenant_id,
                     large_chunks_enabled=large_chunks_enabled,
                 )
+                logger.error("CHECKing chunks")
+                logger.error(doc_chunk_ids)
 
                 doc_chunk_count += len(doc_chunk_ids)
 
@@ -662,6 +665,7 @@ class VespaIndex(DocumentIndex):
                     tenant_id=tenant_id,
                     large_chunks_enabled=large_chunks_enabled,
                 )
+
                 for doc_chunk_ids_batch in batch_generator(
                     chunks_to_delete, BATCH_SIZE
                 ):
