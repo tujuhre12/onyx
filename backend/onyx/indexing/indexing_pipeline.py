@@ -359,7 +359,14 @@ def index_doc_batch(
     )
 
     logger.debug("Filtering Documents")
+
+    logger.debug("Document IDs before filtering")
+    logger.debug([doc.id for doc in document_batch])
+
     filtered_documents = filter_fnc(document_batch)
+
+    logger.debug("Document IDs after filtering")
+    logger.debug([doc.id for doc in filtered_documents])
 
     ctx = index_doc_batch_prepare(
         documents=filtered_documents,
@@ -482,6 +489,7 @@ def index_doc_batch(
         update_docs_updated_at__no_commit(
             ids_to_new_updated_at=ids_to_new_updated_at, db_session=db_session
         )
+        logger.info("UPDATING DOCS")
 
         update_docs_last_modified__no_commit(
             document_ids=last_modified_ids, db_session=db_session

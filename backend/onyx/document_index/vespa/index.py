@@ -371,6 +371,12 @@ class VespaIndex(DocumentIndex):
                 for doc_id in doc_id_to_new_chunk_cnt.keys()
             ]
 
+            logger.debug("Indexing these doc IDs / counts")
+            logger.debug(doc_id_to_new_chunk_cnt)
+
+            logger.debug("Enriched docs are as follows")
+            logger.debug(enriched_doc_infos)
+
             for cleaned_doc_info in enriched_doc_infos:
                 # If the document has previously indexed chunks, we know it previously existed
                 if cleaned_doc_info.chunk_end_index:
@@ -620,6 +626,7 @@ class VespaIndex(DocumentIndex):
                 index += 1
 
                 phase_start = time.monotonic()
+
                 enriched_doc_infos = VespaIndex.enrich_basic_chunk_info(
                     index_name=index_name,
                     http_client=httpx_client,
@@ -640,6 +647,13 @@ class VespaIndex(DocumentIndex):
                         f"tenant_id={tenant_id} "
                         f"enriched_doc_infos={enriched_doc_infos} "
                         f"large_chunks_enabled={large_chunks_enabled}"
+                    )
+                    logger.warning(
+                        "Document chunk info:\n"
+                        f"Enriched doc info: {enriched_doc_infos}\n"
+                        f"Doc chunk ids: {doc_chunk_ids}\n"
+                        f"Document ID: {doc_id}"
+                        f"Tenant_id: {tenant_id}"
                     )
 
                 doc_chunk_count += len(doc_chunk_ids)
