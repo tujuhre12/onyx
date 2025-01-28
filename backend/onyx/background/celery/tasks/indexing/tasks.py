@@ -15,6 +15,7 @@ from redis import Redis
 from redis.lock import Lock as RedisLock
 
 from onyx.background.celery.apps.app_base import task_logger
+from onyx.background.celery.celery_utils import httpx_init_vespa_pool
 from onyx.background.celery.tasks.indexing.utils import _should_index
 from onyx.background.celery.tasks.indexing.utils import get_unfenced_index_attempt_ids
 from onyx.background.celery.tasks.indexing.utils import IndexingCallback
@@ -302,6 +303,8 @@ def connector_indexing_task(
 
     attempt_found = False
     n_final_progress: int | None = None
+
+    httpx_init_vespa_pool(20)  # documented default
 
     redis_connector = RedisConnector(tenant_id, cc_pair_id)
     redis_connector_index = redis_connector.new_index(search_settings_id)

@@ -36,6 +36,7 @@ from onyx.db.models import IndexingStatus
 from onyx.db.models import IndexModelStatus
 from onyx.document_index.document_index_utils import get_multipass_config
 from onyx.document_index.factory import get_default_document_index
+from onyx.httpx.httpx_pool import HttpxPool
 from onyx.indexing.embedder import DefaultIndexingEmbedder
 from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
 from onyx.indexing.indexing_pipeline import build_indexing_pipeline
@@ -230,6 +231,7 @@ def _run_indexing(
         secondary_index_name=None,
         large_chunks_enabled=ctx.large_chunks_enabled,
         secondary_large_chunks_enabled=None,
+        httpx_client=HttpxPool.get("vespa"),
     )
 
     indexing_pipeline = build_indexing_pipeline(

@@ -41,9 +41,12 @@ from onyx.document_index.vespa.chunk_retrieval import (
 )
 from onyx.document_index.vespa.chunk_retrieval import query_vespa
 from onyx.document_index.vespa.deletion import delete_vespa_chunks
+from onyx.document_index.vespa.indexing_utils import BaseHTTPXClientContext
 from onyx.document_index.vespa.indexing_utils import batch_index_vespa_chunks
 from onyx.document_index.vespa.indexing_utils import check_for_final_chunk_existence
 from onyx.document_index.vespa.indexing_utils import clean_chunk_id_copy
+from onyx.document_index.vespa.indexing_utils import GlobalHTTPXClientContext
+from onyx.document_index.vespa.indexing_utils import TemporaryHTTPXClientContext
 from onyx.document_index.vespa.shared_utils.utils import get_vespa_http_client
 from onyx.document_index.vespa.shared_utils.utils import (
     replace_invalid_doc_id_characters,
@@ -132,6 +135,7 @@ class VespaIndex(DocumentIndex):
         large_chunks_enabled: bool,
         secondary_large_chunks_enabled: bool | None,
         multitenant: bool = False,
+        httpx_client: httpx.Client | None = None,
     ) -> None:
         self.index_name = index_name
         self.secondary_index_name = secondary_index_name
@@ -140,7 +144,15 @@ class VespaIndex(DocumentIndex):
         self.secondary_large_chunks_enabled = secondary_large_chunks_enabled
 
         self.multitenant = multitenant
-        self.http_client = get_vespa_http_client()
+
+        self.httpx_client_context: BaseHTTPXClientContext
+
+        if httpx_client:
+            self.httpx_client_context = GlobalHTTPXClientContext(httpx_client)
+        else:
+            self.httpx_client_context = TemporaryHTTPXClientContext(
+                get_vespa_http_client
+            )
 
         self.index_to_large_chunks_enabled: dict[str, bool] = {}
         self.index_to_large_chunks_enabled[index_name] = large_chunks_enabled
@@ -341,7 +353,7 @@ class VespaIndex(DocumentIndex):
         # indexing / updates / deletes since we have to make a large volume of requests.
         with (
             concurrent.futures.ThreadPoolExecutor(max_workers=NUM_THREADS) as executor,
-            get_vespa_http_client() as http_client,
+            self.httpx_client_context as http_client,
         ):
             # We require the start and end index for each document in order to
             # know precisely which chunks to delete. This information exists for
@@ -400,9 +412,11 @@ class VespaIndex(DocumentIndex):
             for doc_id in all_doc_ids
         }
 
-    @staticmethod
+    @classmethod
     def _apply_updates_batched(
+        cls,
         updates: list[_VespaUpdateRequest],
+        httpx_client: httpx.Client,
         batch_size: int = BATCH_SIZE,
     ) -> None:
         """Runs a batch of updates in parallel via the ThreadPoolExecutor."""
@@ -424,7 +438,7 @@ class VespaIndex(DocumentIndex):
 
         with (
             concurrent.futures.ThreadPoolExecutor(max_workers=NUM_THREADS) as executor,
-            get_vespa_http_client() as http_client,
+            httpx_client as http_client,
         ):
             for update_batch in batch_generator(updates, batch_size):
                 future_to_document_id = {
@@ -465,7 +479,7 @@ class VespaIndex(DocumentIndex):
             index_names.append(self.secondary_index_name)
 
         chunk_id_start_time = time.monotonic()
-        with get_vespa_http_client() as http_client:
+        with self.httpx_client_context as http_client:
             for update_request in update_requests:
                 for doc_info in update_request.minimal_document_indexing_info:
                     for index_name in index_names:
@@ -521,7 +535,8 @@ class VespaIndex(DocumentIndex):
                         )
                     )
 
-        self._apply_updates_batched(processed_updates_requests)
+        with self.httpx_client_context as httpx_client:
+            self._apply_updates_batched(processed_updates_requests, httpx_client)
         logger.debug(
             "Finished updating Vespa documents in %.2f seconds",
             time.monotonic() - update_start,
@@ -596,7 +611,7 @@ class VespaIndex(DocumentIndex):
         doc_chunk_count = 0
 
         index = 0
-        with get_vespa_http_client(http2=False) as http_client:
+        with self.httpx_client_context as httpx_client:
             timings["get_vespa_http_client_enter"] = time.monotonic() - start
             for (
                 index_name,
@@ -607,7 +622,7 @@ class VespaIndex(DocumentIndex):
                 phase_start = time.monotonic()
                 enriched_doc_infos = VespaIndex.enrich_basic_chunk_info(
                     index_name=index_name,
-                    http_client=http_client,
+                    http_client=httpx_client,
                     document_id=doc_id,
                     previous_chunk_count=chunk_count,
                     new_chunk_count=0,
@@ -636,7 +651,7 @@ class VespaIndex(DocumentIndex):
 
                     phase_start = time.monotonic()
                     self.update_single_chunk(
-                        doc_chunk_id, index_name, fields, doc_id, http_client
+                        doc_chunk_id, index_name, fields, doc_id, httpx_client
                     )
                     timings[f"chunk_{index}_{chunk}"] = time.monotonic() - phase_start
 
@@ -667,9 +682,7 @@ class VespaIndex(DocumentIndex):
         if self.secondary_index_name:
             index_names.append(self.secondary_index_name)
 
-        with get_vespa_http_client(
-            http2=False
-        ) as http_client, concurrent.futures.ThreadPoolExecutor(
+        with self.httpx_client_context as http_client, concurrent.futures.ThreadPoolExecutor(
             max_workers=NUM_THREADS
         ) as executor:
             for (
@@ -834,9 +847,8 @@ class VespaIndex(DocumentIndex):
         )
         return enriched_doc_info
 
-    @classmethod
     def delete_entries_by_tenant_id(
-        cls,
+        self,
         *,
         tenant_id: str,
         index_name: str,
@@ -853,7 +865,7 @@ class VespaIndex(DocumentIndex):
         )
 
         # Step 1: Retrieve all document IDs with the given tenant_id
-        document_ids = cls._get_all_document_ids_by_tenant_id(tenant_id, index_name)
+        document_ids = self._get_all_document_ids_by_tenant_id(tenant_id, index_name)
 
         if not document_ids:
             logger.info(
@@ -867,11 +879,10 @@ class VespaIndex(DocumentIndex):
             for doc_id in document_ids
         ]
 
-        cls._apply_deletes_batched(delete_requests)
+        self._apply_deletes_batched(delete_requests)
 
-    @classmethod
     def _get_all_document_ids_by_tenant_id(
-        cls, tenant_id: str, index_name: str
+        self, tenant_id: str, index_name: str
     ) -> List[str]:
         """
         Retrieves all document IDs with the specified tenant_id, handling pagination.
@@ -908,8 +919,8 @@ class VespaIndex(DocumentIndex):
                 f"Querying for document IDs with tenant_id: {tenant_id}, offset: {offset}"
             )
 
-            with get_vespa_http_client(no_timeout=True) as http_client:
-                response = http_client.get(url, params=query_params)
+            with self.httpx_client_context as http_client:
+                response = http_client.get(url, params=query_params, timeout=None)
                 response.raise_for_status()
 
                 search_result = response.json()
@@ -930,9 +941,8 @@ class VespaIndex(DocumentIndex):
         )
         return document_ids
 
-    @classmethod
     def _apply_deletes_batched(
-        cls,
+        self,
         delete_requests: List["_VespaDeleteRequest"],
         batch_size: int = BATCH_SIZE,
     ) -> None:
@@ -951,13 +961,14 @@ class VespaIndex(DocumentIndex):
             response = http_client.delete(
                 delete_request.url,
                 headers={"Content-Type": "application/json"},
+                timeout=None,
             )
             response.raise_for_status()
 
         logger.debug(f"Starting batch deletion for {len(delete_requests)} documents")
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=NUM_THREADS) as executor:
-            with get_vespa_http_client(no_timeout=True) as http_client:
+            with self.httpx_client_context as http_client:
                 for batch_start in range(0, len(delete_requests), batch_size):
                     batch = delete_requests[batch_start : batch_start + batch_size]
 

@@ -64,9 +64,10 @@ from onyx.db.models import UserGroup
 from onyx.db.sync_record import cleanup_sync_records
 from onyx.db.sync_record import insert_sync_record
 from onyx.db.sync_record import update_sync_record_status
-from onyx.document_index.document_index_utils import get_both_index_names
+from onyx.document_index.document_index_utils import get_both_index_properties
 from onyx.document_index.factory import get_default_document_index
 from onyx.document_index.interfaces import VespaDocumentFields
+from onyx.httpx.httpx_pool import HttpxPool
 from onyx.redis.redis_connector import RedisConnector
 from onyx.redis.redis_connector_credential_pair import RedisConnectorCredentialPair
 from onyx.redis.redis_connector_delete import RedisConnectorDelete
@@ -1105,12 +1106,13 @@ def vespa_metadata_sync_task(
                 sec_ind_name,
                 large_chunks,
                 secondary_large_chunks,
-            ) = get_both_index_names(db_session)
+            ) = get_both_index_properties(db_session)
             doc_index = get_default_document_index(
                 primary_index_name=curr_ind_name,
                 secondary_index_name=sec_ind_name,
                 large_chunks_enabled=large_chunks,
                 secondary_large_chunks_enabled=secondary_large_chunks,
+                httpx_client=HttpxPool.get("vespa"),
             )
             timings["get_index"] = time.monotonic() - phase_start
 

@@ -16,7 +16,7 @@ from onyx.db.engine import get_session
 from onyx.db.models import User
 from onyx.db.search_settings import get_current_search_settings
 from onyx.db.search_settings import get_secondary_search_settings
-from onyx.document_index.document_index_utils import get_both_index_names
+from onyx.document_index.document_index_utils import get_both_index_properties
 from onyx.document_index.factory import get_default_document_index
 from onyx.indexing.embedder import DefaultIndexingEmbedder
 from onyx.indexing.indexing_pipeline import build_indexing_pipeline
@@ -94,7 +94,7 @@ def upsert_ingestion_doc(
         sec_ind_name,
         large_chunks,
         secondary_large_chunks,
-    ) = get_both_index_names(db_session)
+    ) = get_both_index_properties(db_session)
     curr_doc_index = get_default_document_index(
         primary_index_name=curr_ind_name,
         secondary_index_name=None,

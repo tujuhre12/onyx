@@ -57,7 +57,7 @@ def get_multipass_config(search_settings: SearchSettings) -> MultipassConfig:
     )
 
 
-def get_both_index_names(
+def get_both_index_properties(
     db_session: Session,
 ) -> tuple[str, str | None, bool, bool | None]:
     search_settings = get_current_search_settings(db_session)

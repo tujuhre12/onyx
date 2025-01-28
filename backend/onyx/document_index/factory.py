@@ -1,3 +1,4 @@
+import httpx
 from sqlalchemy.orm import Session
 
 from onyx.db.search_settings import get_current_search_settings
@@ -12,6 +13,7 @@ def get_default_document_index(
     secondary_index_name: str | None,
     large_chunks_enabled: bool,
     secondary_large_chunks_enabled: bool | None,
+    httpx_client: httpx.Client | None = None,
 ) -> DocumentIndex:
     """Primary index is the index that is used for querying/updating etc.
     Secondary index is for when both the currently used index and the upcoming
@@ -24,6 +26,7 @@ def get_default_document_index(
         large_chunks_enabled=large_chunks_enabled,
         secondary_large_chunks_enabled=secondary_large_chunks_enabled,
         multitenant=MULTI_TENANT,
+        httpx_client=httpx_client,
     )
 
 

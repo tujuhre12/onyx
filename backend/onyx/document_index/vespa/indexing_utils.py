@@ -1,6 +1,9 @@
 import concurrent.futures
 import json
 import uuid
+from abc import ABC
+from abc import abstractmethod
+from collections.abc import Callable
 from datetime import datetime
 from datetime import timezone
 from http import HTTPStatus
@@ -46,6 +49,7 @@ from onyx.document_index.vespa_constants import TITLE
 from onyx.document_index.vespa_constants import TITLE_EMBEDDING
 from onyx.indexing.models import DocMetadataAwareIndexChunk
 from onyx.utils.logger import setup_logger
+
 
 logger = setup_logger()
 
@@ -287,3 +291,44 @@ def check_for_final_chunk_existence(
 #     return MultipassConfig(
 #         multipass_indexing=multipass, enable_large_chunks=enable_large_chunks
 #     )
+
+
+class BaseHTTPXClientContext(ABC):
+    """Abstract base class for an HTTPX client context manager."""
+
+    @abstractmethod
+    def __enter__(self) -> httpx.Client:
+        pass
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_value, traceback):  # type: ignore
+        pass
+
+
+class GlobalHTTPXClientContext(BaseHTTPXClientContext):
+    """Context manager for a global HTTPX client that does not close it."""
+
+    def __init__(self, client: httpx.Client):
+        self._client = client
+
+    def __enter__(self) -> httpx.Client:
+        return self._client  # Reuse the global client
+
+    def __exit__(self, exc_type, exc_value, traceback):  # type: ignore
+        pass  # Do nothing; don't close the global client
+
+
+class TemporaryHTTPXClientContext(BaseHTTPXClientContext):
+    """Context manager for a temporary HTTPX client that closes it after use."""
+
+    def __init__(self, client_factory: Callable[[], httpx.Client]):
+        self._client_factory = client_factory
+        self._client: httpx.Client | None = None  # Client will be created in __enter__
+
+    def __enter__(self) -> httpx.Client:
+        self._client = self._client_factory()  # Create a new client
+        return self._client
+
+    def __exit__(self, exc_type, exc_value, traceback):  # type: ignore
+        if self._client:
+            self._client.close()
