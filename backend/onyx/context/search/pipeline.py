@@ -31,6 +31,7 @@ from onyx.db.models import User
 from onyx.db.search_settings import get_current_search_settings
 from onyx.document_index.factory import get_default_document_index
 from onyx.document_index.interfaces import VespaChunkRequest
+from onyx.document_index.vespa.indexing_utils import get_multipass_config
 from onyx.llm.interfaces import LLM
 from onyx.secondary_llm_flows.agentic_evaluation import evaluate_inference_section
 from onyx.utils.logger import setup_logger
@@ -67,9 +68,12 @@ class SearchPipeline:
         self.rerank_metrics_callback = rerank_metrics_callback
 
         self.search_settings = get_current_search_settings(db_session)
+        mp_config = get_multipass_config(self.search_settings)
         self.document_index = get_default_document_index(
             primary_index_name=self.search_settings.index_name,
             secondary_index_name=None,
+            large_chunks_enabled=mp_config.enable_large_chunks,
+            secondary_large_chunks_enabled=None,
         )
         self.prompt_config: PromptConfig | None = prompt_config
 

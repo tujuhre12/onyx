@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from onyx.db.search_settings import get_current_search_settings
 from onyx.db.search_settings import get_secondary_search_settings
 from onyx.document_index.interfaces import EnrichedDocumentIndexingInfo
+from onyx.document_index.vespa.indexing_utils import get_multipass_config
 from onyx.indexing.models import DocMetadataAwareIndexChunk
 from shared_configs.configs import MULTI_TENANT
 
@@ -14,14 +15,23 @@ DEFAULT_BATCH_SIZE = 30
 DEFAULT_INDEX_NAME = "danswer_chunk"
 
 
-def get_both_index_names(db_session: Session) -> tuple[str, str | None]:
+def get_both_index_names(
+    db_session: Session,
+) -> tuple[str, str | None, bool, bool | None]:
     search_settings = get_current_search_settings(db_session)
+    config_1 = get_multipass_config(search_settings)
 
     search_settings_new = get_secondary_search_settings(db_session)
     if not search_settings_new:
-        return search_settings.index_name, None
+        return search_settings.index_name, None, config_1.enable_large_chunks, None
 
-    return search_settings.index_name, search_settings_new.index_name
+    config_2 = get_multipass_config(search_settings)
+    return (
+        search_settings.index_name,
+        search_settings_new.index_name,
+        config_1.enable_large_chunks,
+        config_2.enable_large_chunks,
+    )
 
 
 def translate_boost_count_to_multiplier(boost: int) -> float:

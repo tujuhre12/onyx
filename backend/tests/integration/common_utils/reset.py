@@ -20,6 +20,7 @@ from onyx.db.search_settings import get_current_search_settings
 from onyx.db.swap_index import check_index_swap
 from onyx.document_index.vespa.index import DOCUMENT_ID_ENDPOINT
 from onyx.document_index.vespa.index import VespaIndex
+from onyx.document_index.vespa.indexing_utils import get_multipass_config
 from onyx.indexing.models import IndexingSetting
 from onyx.setup import setup_postgres
 from onyx.setup import setup_vespa
@@ -173,10 +174,16 @@ def reset_vespa() -> None:
         check_index_swap(db_session)
 
         search_settings = get_current_search_settings(db_session)
+        multipass_config = get_multipass_config(search_settings)
         index_name = search_settings.index_name
 
     success = setup_vespa(
-        document_index=VespaIndex(index_name=index_name, secondary_index_name=None),
+        document_index=VespaIndex(
+            index_name=index_name,
+            secondary_index_name=None,
+            large_chunks_enabled=multipass_config.enable_large_chunks,
+            secondary_large_chunks_enabled=None,
+        ),
         index_setting=IndexingSetting.from_db_model(search_settings),
         secondary_index_setting=None,
     )
@@ -250,10 +257,16 @@ def reset_vespa_multitenant() -> None:
             check_index_swap(db_session)
 
             search_settings = get_current_search_settings(db_session)
+            multipass_config = get_multipass_config(search_settings)
             index_name = search_settings.index_name
 
         success = setup_vespa(
-            document_index=VespaIndex(index_name=index_name, secondary_index_name=None),
+            document_index=VespaIndex(
+                index_name=index_name,
+                secondary_index_name=None,
+                large_chunks_enabled=multipass_config.enable_large_chunks,
+                secondary_large_chunks_enabled=None,
+            ),
             index_setting=IndexingSetting.from_db_model(search_settings),
             secondary_index_setting=None,
         )

@@ -29,6 +29,7 @@ from onyx.db.search_settings import get_current_search_settings
 from onyx.db.tag import find_tags
 from onyx.document_index.factory import get_default_document_index
 from onyx.document_index.vespa.index import VespaIndex
+from onyx.document_index.vespa.indexing_utils import get_multipass_config
 from onyx.server.query_and_chat.models import AdminSearchRequest
 from onyx.server.query_and_chat.models import AdminSearchResponse
 from onyx.server.query_and_chat.models import ChatSessionDetails
@@ -64,9 +65,14 @@ def admin_search(
         tenant_id=tenant_id,
     )
     search_settings = get_current_search_settings(db_session)
+    mp_config = get_multipass_config(search_settings)
     document_index = get_default_document_index(
-        primary_index_name=search_settings.index_name, secondary_index_name=None
+        primary_index_name=search_settings.index_name,
+        secondary_index_name=None,
+        large_chunks_enabled=mp_config.enable_large_chunks,
+        secondary_large_chunks_enabled=None,
     )
+
     if not isinstance(document_index, VespaIndex):
         raise HTTPException(
             status_code=400,

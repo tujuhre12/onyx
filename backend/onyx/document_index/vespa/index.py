@@ -26,7 +26,6 @@ from onyx.configs.chat_configs import VESPA_SEARCHER_THREADS
 from onyx.configs.constants import KV_REINDEX_KEY
 from onyx.context.search.models import IndexFilters
 from onyx.context.search.models import InferenceChunkUncleaned
-from onyx.db.engine import get_session_with_tenant
 from onyx.document_index.document_index_utils import get_document_chunk_ids
 from onyx.document_index.interfaces import DocumentIndex
 from onyx.document_index.interfaces import DocumentInsertionRecord
@@ -45,9 +44,6 @@ from onyx.document_index.vespa.deletion import delete_vespa_chunks
 from onyx.document_index.vespa.indexing_utils import batch_index_vespa_chunks
 from onyx.document_index.vespa.indexing_utils import check_for_final_chunk_existence
 from onyx.document_index.vespa.indexing_utils import clean_chunk_id_copy
-from onyx.document_index.vespa.indexing_utils import (
-    get_multipass_config,
-)
 from onyx.document_index.vespa.shared_utils.utils import get_vespa_http_client
 from onyx.document_index.vespa.shared_utils.utils import (
     replace_invalid_doc_id_characters,
@@ -133,12 +129,25 @@ class VespaIndex(DocumentIndex):
         self,
         index_name: str,
         secondary_index_name: str | None,
+        large_chunks_enabled: bool,
+        secondary_large_chunks_enabled: bool | None,
         multitenant: bool = False,
     ) -> None:
         self.index_name = index_name
         self.secondary_index_name = secondary_index_name
+
+        self.large_chunks_enabled = large_chunks_enabled
+        self.secondary_large_chunks_enabled = secondary_large_chunks_enabled
+
         self.multitenant = multitenant
         self.http_client = get_vespa_http_client()
+
+        self.index_to_large_chunks_enabled: dict[str, bool] = {}
+        self.index_to_large_chunks_enabled[index_name] = large_chunks_enabled
+        if secondary_index_name and secondary_large_chunks_enabled:
+            self.index_to_large_chunks_enabled[
+                secondary_index_name
+            ] = secondary_large_chunks_enabled
 
     def ensure_indices_exist(
         self,
@@ -586,22 +595,15 @@ class VespaIndex(DocumentIndex):
 
         doc_chunk_count = 0
 
-        index_names = [self.index_name]
-        if self.secondary_index_name:
-            index_names.append(self.secondary_index_name)
-
         index = 0
         with get_vespa_http_client(http2=False) as http_client:
-            for index_name in index_names:
+            for (
+                index_name,
+                large_chunks_enabled,
+            ) in self.index_to_large_chunks_enabled.items():
                 index += 1
 
                 phase_start = time.monotonic()
-                with get_session_with_tenant(tenant_id=tenant_id) as db_session:
-                    multipass_config = get_multipass_config(
-                        db_session=db_session,
-                        primary_index=index_name == self.index_name,
-                    )
-                    large_chunks_enabled = multipass_config.enable_large_chunks
                 enriched_doc_infos = VespaIndex.enrich_basic_chunk_info(
                     index_name=index_name,
                     http_client=http_client,
@@ -658,14 +660,10 @@ class VespaIndex(DocumentIndex):
         ) as http_client, concurrent.futures.ThreadPoolExecutor(
             max_workers=NUM_THREADS
         ) as executor:
-            for index_name in index_names:
-                with get_session_with_tenant(tenant_id=tenant_id) as db_session:
-                    multipass_config = get_multipass_config(
-                        db_session=db_session,
-                        primary_index=index_name == self.index_name,
-                    )
-                    large_chunks_enabled = multipass_config.enable_large_chunks
-
+            for (
+                index_name,
+                large_chunks_enabled,
+            ) in self.index_to_large_chunks_enabled.items():
                 enriched_doc_infos = VespaIndex.enrich_basic_chunk_info(
                     index_name=index_name,
                     http_client=http_client,

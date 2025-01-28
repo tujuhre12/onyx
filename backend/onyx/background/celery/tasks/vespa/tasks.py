@@ -1100,9 +1100,17 @@ def vespa_metadata_sync_task(
     try:
         with get_session_with_tenant(tenant_id) as db_session:
             phase_start = time.monotonic()
-            curr_ind_name, sec_ind_name = get_both_index_names(db_session)
+            (
+                curr_ind_name,
+                sec_ind_name,
+                large_chunks,
+                secondary_large_chunks,
+            ) = get_both_index_names(db_session)
             doc_index = get_default_document_index(
-                primary_index_name=curr_ind_name, secondary_index_name=sec_ind_name
+                primary_index_name=curr_ind_name,
+                secondary_index_name=sec_ind_name,
+                large_chunks_enabled=large_chunks,
+                secondary_large_chunks_enabled=secondary_large_chunks,
             )
             timings["get_index"] = time.monotonic() - phase_start
 
