@@ -166,6 +166,7 @@ class ConfluenceConnector(LoadConnector, PollConnector, SlimConnector):
             )
             page_query += f" and lastmodified <= '{formatted_end_time}'"
 
+        logger.info(f"Constructed Confluence page query: {page_query}")
         return page_query
 
     def _construct_attachment_query(self, confluence_page_id: str) -> str:
@@ -224,6 +225,10 @@ class ConfluenceConnector(LoadConnector, PollConnector, SlimConnector):
 
         if object_text is None:
             # This only happens for attachments that are not parseable
+            logger.debug(
+                f"Skipping {confluence_object.get('type', 'unknown')} (ID: {confluence_object.get('id')}, "
+                f"Title: {confluence_object.get('title', 'Untitled')}) because no text was extracted"
+            )
             return None
 
         # Get space name
@@ -273,12 +278,14 @@ class ConfluenceConnector(LoadConnector, PollConnector, SlimConnector):
         page_query = self._construct_page_query(start, end)
         logger.debug(f"page_query: {page_query}")
         # Fetch pages as Documents
+        page_count = 0
         for page in self.confluence_client.paginated_cql_retrieval(
             cql=page_query,
             expand=",".join(_PAGE_EXPANSION_FIELDS),
             limit=self.batch_size,
         ):
-            logger.debug(f"_fetch_document_batches: {page['id']}")
+            page_count += 1
+            logger.debug(f"Processing page: {page['id']} - {page.get('title', 'Untitled')}")
             confluence_page_ids.append(page["id"])
             doc = self._convert_object_to_document(page)
             if doc is not None:
@@ -286,21 +293,32 @@ class ConfluenceConnector(LoadConnector, PollConnector, SlimConnector):
             if len(doc_batch) >= self.batch_size:
                 yield doc_batch
                 doc_batch = []
+        
+        logger.info(f"Found {page_count} pages using query '{page_query}'")
+        if page_count == 0:
+            logger.warning("No pages found for the given query. This might indicate an issue with the space name, permissions, or that the space is empty.")
 
         # Fetch attachments as Documents
+        total_attachment_count = 0
         for confluence_page_id in confluence_page_ids:
             attachment_query = self._construct_attachment_query(confluence_page_id)
+            attachment_count = 0
             # TODO: maybe should add time filter as well?
             for attachment in self.confluence_client.paginated_cql_retrieval(
                 cql=attachment_query,
                 expand=",".join(_ATTACHMENT_EXPANSION_FIELDS),
             ):
+                attachment_count += 1
+                total_attachment_count += 1
                 doc = self._convert_object_to_document(attachment)
                 if doc is not None:
                     doc_batch.append(doc)
                 if len(doc_batch) >= self.batch_size:
                     yield doc_batch
                     doc_batch = []
+            logger.debug(f"Found {attachment_count} attachments for page {confluence_page_id}")
+        
+        logger.info(f"Found {total_attachment_count} total attachments across all pages")
 
         if doc_batch:
             yield doc_batch
