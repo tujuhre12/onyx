@@ -165,13 +165,13 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
     >
       <div className="flex w-full items-center flex-col h-full">
         <div className="grid  h-full grid-cols-2 overflow-y-hidden w-full">
-          <div className="w-full pb-4 px-4 border-r overflow-y-auto">
-            <div className="mb-4 justify-between flex gap-x-2 w-full">
-              <div className="relative">
+          <div className="w-full pb-4 border-r overflow-y-auto">
+            <div className="mb-4  flex gap-x-2 w-full">
+              <div className="w-full relative">
                 <input
                   type="text"
                   placeholder="Search files and folders..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md   focus:border-transparent"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg
@@ -190,7 +190,7 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex space-x-2">
+              <div className="px-2 flex space-x-2">
                 <IconButton
                   icon={ListIcon}
                   onClick={() => setView("list")}

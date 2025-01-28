@@ -2074,7 +2074,7 @@ export function ChatPage({
       {toggleDocSelection && (
         <FilePickerModal
           buttonContent="Set as Context"
-          title="Attach Files and Folders "
+          title="User Documents"
           isOpen={true}
           onClose={() => setToggleDocSelection(false)}
           onSave={() => {
