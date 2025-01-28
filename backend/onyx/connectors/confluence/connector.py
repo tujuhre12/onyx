@@ -226,8 +226,10 @@ class ConfluenceConnector(LoadConnector, PollConnector, SlimConnector):
         if object_text is None:
             # This only happens for attachments that are not parseable
             logger.debug(
-                f"Skipping {confluence_object.get('type', 'unknown')} (ID: {confluence_object.get('id')}, "
-                f"Title: {confluence_object.get('title', 'Untitled')}) because no text was extracted"
+                f"Skipping {confluence_object.get('type', 'unknown')} "
+                f"(ID: {confluence_object.get('id')}, "
+                f"Title: {confluence_object.get('title', 'Untitled')}) "
+                f"because no text was extracted"
             )
             return None
 
@@ -285,7 +287,10 @@ class ConfluenceConnector(LoadConnector, PollConnector, SlimConnector):
             limit=self.batch_size,
         ):
             page_count += 1
-            logger.debug(f"Processing page: {page['id']} - {page.get('title', 'Untitled')}")
+            logger.debug(
+                f"Processing page {page['id']} - "
+                f"{page.get('title', 'Untitled')}"
+            )
             confluence_page_ids.append(page["id"])
             doc = self._convert_object_to_document(page)
             if doc is not None:
@@ -296,7 +301,11 @@ class ConfluenceConnector(LoadConnector, PollConnector, SlimConnector):
         
         logger.info(f"Found {page_count} pages using query '{page_query}'")
         if page_count == 0:
-            logger.warning("No pages found for the given query. This might indicate an issue with the space name, permissions, or that the space is empty.")
+            logger.warning(
+                "No pages found for the given query. "
+                "This might indicate an issue with the space name, "
+                "permissions, or that the space is empty."
+            )
 
         # Fetch attachments as Documents
         total_attachment_count = 0
