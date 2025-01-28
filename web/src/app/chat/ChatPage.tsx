@@ -2538,13 +2538,7 @@ export function ChatPage({
                                   >
                                     <HumanMessage
                                       stopGenerating={stopGenerating}
-                                      content={
-                                        message.message +
-                                        `final message index is ${
-                                          currentRegenerationState()
-                                            ?.finalMessageIndex
-                                        }`
-                                      }
+                                      content={message.message}
                                       files={message.files}
                                       messageId={message.messageId}
                                       onEdit={(editedContent) => {
