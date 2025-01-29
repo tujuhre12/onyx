@@ -204,9 +204,9 @@ def handle_regular_answer(
 
         # Set search behavior based on whether SearchTool is enabled
         run_search = (
-            OptionalSearchSetting.AS_NEEDED
+            OptionalSearchSetting.AUTO
             if search_tool_enabled
-            else OptionalSearchSetting.DISABLED
+            else OptionalSearchSetting.NEVER
         )
 
         retrieval_details = RetrievalDetails(
