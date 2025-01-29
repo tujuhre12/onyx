@@ -1,4 +1,9 @@
-import React, { KeyboardEvent, ChangeEvent, useContext } from "react";
+import React, {
+  KeyboardEvent,
+  ChangeEvent,
+  useContext,
+  useEffect,
+} from "react";
 
 import { MagnifyingGlass } from "@phosphor-icons/react";
 interface FullSearchBarProps {
@@ -240,18 +245,30 @@ export const FullSearchBar = ({
 interface SearchBarProps {
   query: string;
   setQuery: (query: string) => void;
-  onSearch: () => void;
+  onSearch: (query: string) => void;
 }
 
 export const SearchBar = ({ query, setQuery, onSearch }: SearchBarProps) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    console.log("🔥 useEffect Triggered: Query changed to", query);
+    onSearch(query);
+    resizeTextArea();
+  }, [query]);
+
+  const resizeTextArea = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "24px";
+      const newHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${newHeight}px`;
+    }
+  };
+
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const target = event.target;
-    setQuery(target.value);
-
-    // Resize the textarea to fit the content
-    target.style.height = "24px";
-    const newHeight = target.scrollHeight;
-    target.style.height = `${newHeight}px`;
+    const newValue = target.value;
+    setQuery(newValue);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -260,7 +277,8 @@ export const SearchBar = ({ query, setQuery, onSearch }: SearchBarProps) => {
       !event.shiftKey &&
       !(event.nativeEvent as any).isComposing
     ) {
-      onSearch();
+      console.log("handleKeyDown: ", query);
+      onSearch(query);
       event.preventDefault();
     }
   };
