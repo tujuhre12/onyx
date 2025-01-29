@@ -50,26 +50,6 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-@retry(tries=3, delay=1, backoff=2)
-def _does_doc_chunk_exist(
-    doc_chunk_id: uuid.UUID, index_name: str, http_client: httpx.Client
-) -> bool:
-    doc_url = f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{doc_chunk_id}"
-    doc_fetch_response = http_client.get(doc_url)
-    if doc_fetch_response.status_code == 404:
-        return False
-
-    if doc_fetch_response.status_code != 200:
-        logger.debug(f"Failed to check for document with URL {doc_url}")
-        raise RuntimeError(
-            f"Unexpected fetch document by ID value from Vespa: "
-            f"error={doc_fetch_response.status_code} "
-            f"index={index_name} "
-            f"doc_chunk_id={doc_chunk_id}"
-        )
-    return True
-
-
 def _vespa_get_updated_at_attribute(t: datetime | None) -> int | None:
     if not t:
         return None
@@ -248,6 +228,26 @@ def clean_chunk_id_copy(
         }
     )
     return clean_chunk
+
+
+@retry(tries=3, delay=1, backoff=2)
+def _does_doc_chunk_exist(
+    doc_chunk_id: uuid.UUID, index_name: str, http_client: httpx.Client
+) -> bool:
+    doc_url = f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{doc_chunk_id}"
+    doc_fetch_response = http_client.get(doc_url)
+    if doc_fetch_response.status_code == 404:
+        return False
+
+    if doc_fetch_response.status_code != 200:
+        logger.debug(f"Failed to check for document with URL {doc_url}")
+        raise RuntimeError(
+            f"Unexpected fetch document by ID value from Vespa: "
+            f"error={doc_fetch_response.status_code} "
+            f"index={index_name} "
+            f"doc_chunk_id={doc_chunk_id}"
+        )
+    return True
 
 
 def check_for_final_chunk_existence(
