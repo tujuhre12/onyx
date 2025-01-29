@@ -26,7 +26,6 @@ from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import SubQueryPiece
 from onyx.chat.models import SubQuestionPiece
 from onyx.chat.models import ToolResponse
-from onyx.configs.agent_configs import GRAPH_VERSION_NAME
 from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
 from onyx.tools.tool_runner import ToolCallKickoff
@@ -155,26 +154,19 @@ def run_graph(
 
 # TODO: call this once on startup, TBD where and if it should be gated based
 # on dev mode or not
-def load_compiled_graph(graph_name: str) -> CompiledStateGraph:
-    main_graph_builder = (
-        main_graph_builder_a if graph_name == "a" else main_graph_builder_a
-    )
+def load_compiled_graph() -> CompiledStateGraph:
     global _COMPILED_GRAPH
     if _COMPILED_GRAPH is None:
-        graph = main_graph_builder()
+        graph = main_graph_builder_a()
         _COMPILED_GRAPH = graph.compile()
     return _COMPILED_GRAPH
 
 
 def run_main_graph(
     config: AgentSearchConfig,
-    graph_name: str = "a",
 ) -> AnswerStream:
-    compiled_graph = load_compiled_graph(graph_name)
-    if graph_name == "a":
-        input = MainInput_a(base_question=config.search_request.query, log_messages=[])
-    else:
-        input = MainInput_a(base_question=config.search_request.query, log_messages=[])
+    compiled_graph = load_compiled_graph()
+    input = MainInput_a(base_question=config.search_request.query, log_messages=[])
 
     # Agent search is not a Tool per se, but this is helpful for the frontend
     yield ToolCallKickoff(
@@ -201,11 +193,7 @@ if __name__ == "__main__":
     for _ in range(1):
         now_start = datetime.now()
         logger.debug(f"Start at {now_start}")
-
-        if GRAPH_VERSION_NAME == "a":
-            graph = main_graph_builder_a()
-        else:
-            graph = main_graph_builder_a()
+        graph = main_graph_builder_a()
         compiled_graph = graph.compile()
         now_end = datetime.now()
         logger.debug(f"Graph compiled in {now_end - now_start} seconds")
@@ -217,7 +205,7 @@ if __name__ == "__main__":
             # query="When was Washington born?",
             # query="What is Onyx?",
             # query="What is the difference between astronomy and astrology?",
-            query="Do a search to tell me hat is the difference between astronomy and astrology?",
+            query="Do a search to tell me what is the difference between astronomy and astrology?",
         )
         # Joachim custom persona
 
@@ -226,17 +214,13 @@ if __name__ == "__main__":
                 db_session, primary_llm, fast_llm, search_request
             )
             # search_request.persona = get_persona_by_id(1, None, db_session)
-            config.use_persistence = True
+            config.use_agentic_persistence = True
             # config.perform_initial_search_path_decision = False
             config.perform_initial_search_decomposition = True
-            if GRAPH_VERSION_NAME == "a":
-                input = MainInput_a(
-                    base_question=config.search_request.query, log_messages=[]
-                )
-            else:
-                input = MainInput_a(
-                    base_question=config.search_request.query, log_messages=[]
-                )
+            input = MainInput_a(
+                base_question=config.search_request.query, log_messages=[]
+            )
+
             # with open("output.txt", "w") as f:
             tool_responses: list = []
             for output in run_graph(compiled_graph, config, input):
@@ -275,6 +259,3 @@ if __name__ == "__main__":
                     logger.info(
                         f"   ---------- RE {output.refined_answer_improvement} | "
                     )
-
-            # for tool_response in tool_responses:
-            #    logger.debug(tool_response)
