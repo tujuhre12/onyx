@@ -19,7 +19,17 @@ from onyx.agents.agent_search.models import AgentSearchConfig
 from onyx.agents.agent_search.shared_graph_utils.models import (
     EntityRelationshipTermExtraction,
 )
+from onyx.agents.agent_search.shared_graph_utils.models import PersonaExpressions
+from onyx.agents.agent_search.shared_graph_utils.prompts import (
+    ASSISTANT_SYSTEM_PROMPT_DEFAULT,
+)
+from onyx.agents.agent_search.shared_graph_utils.prompts import (
+    ASSISTANT_SYSTEM_PROMPT_PERSONA,
+)
 from onyx.agents.agent_search.shared_graph_utils.prompts import DATE_PROMPT
+from onyx.agents.agent_search.shared_graph_utils.prompts import (
+    HISTORY_CONTEXT_SUMMARY_PROMPT,
+)
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationConfig
 from onyx.chat.models import DocumentPruningConfig
@@ -247,11 +257,19 @@ def get_test_config(
     return config, search_tool
 
 
-def get_persona_prompt(persona: Persona | None) -> str:
+def get_persona_agent_prompt_expressions(persona: Persona | None) -> PersonaExpressions:
     if persona is None:
-        return ""
+        persona_prompt = ASSISTANT_SYSTEM_PROMPT_DEFAULT
+        persona_base = ""
     else:
-        return "\n".join([x.system_prompt for x in persona.prompts])
+        persona_base = "\n".join([x.system_prompt for x in persona.prompts])
+
+        persona_prompt = ASSISTANT_SYSTEM_PROMPT_PERSONA.format(
+            persona_prompt=persona_base
+        )
+    return PersonaExpressions(
+        contextualized_prompt=persona_prompt, base_prompt=persona_base
+    )
 
 
 def make_question_id(level: int, question_nr: int) -> str:
@@ -325,3 +343,25 @@ def retrieve_search_docs(
                 break
 
     return retrieved_docs
+
+
+def get_answer_citation_ids(answer_str: str) -> list[int]:
+    citation_ids = re.findall(r"\[\[D(\d+)\]\]", answer_str)
+    return list(set([(int(id) - 1) for id in citation_ids]))
+
+
+def summarize_history(
+    history: str, question: str, persona_specification: str, model: LLM
+) -> str:
+    history_context_prompt = HISTORY_CONTEXT_SUMMARY_PROMPT.format(
+        persona_specification=persona_specification, question=question, history=history
+    )
+
+    history_response = model.invoke(history_context_prompt)
+
+    if isinstance(history_response.content, str):
+        history_context_response_str = history_response.content
+    else:
+        history_context_response_str = ""
+
+    return history_context_response_str

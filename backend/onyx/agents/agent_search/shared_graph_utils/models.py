@@ -2,10 +2,14 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from onyx.agents.agent_search.deep_search_a.main.models import AgentAdditionalMetrics
-from onyx.agents.agent_search.deep_search_a.main.models import AgentBaseMetrics
-from onyx.agents.agent_search.deep_search_a.main.models import AgentRefinedMetrics
-from onyx.agents.agent_search.deep_search_a.main.models import AgentTimings
+from onyx.agents.agent_search.deep_search_a.main__graph.models import (
+    AgentAdditionalMetrics,
+)
+from onyx.agents.agent_search.deep_search_a.main__graph.models import AgentBaseMetrics
+from onyx.agents.agent_search.deep_search_a.main__graph.models import (
+    AgentRefinedMetrics,
+)
+from onyx.agents.agent_search.deep_search_a.main__graph.models import AgentTimings
 from onyx.context.search.models import InferenceSection
 from onyx.tools.models import SearchQueryInfo
 
@@ -103,6 +107,7 @@ class QuestionAnswerResults(BaseModel):
     expanded_retrieval_results: list[QueryResult]
     documents: list[InferenceSection]
     context_documents: list[InferenceSection]
+    cited_docs: list[InferenceSection]
     sub_question_retrieval_stats: AgentChunkStats
 
 
@@ -111,3 +116,8 @@ class CombinedAgentMetrics(BaseModel):
     base_metrics: AgentBaseMetrics | None
     refined_metrics: AgentRefinedMetrics
     additional_metrics: AgentAdditionalMetrics
+
+
+class PersonaExpressions(BaseModel):
+    contextualized_prompt: str
+    base_prompt: str
