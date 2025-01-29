@@ -40,14 +40,7 @@ import * as Yup from "yup";
 import CollapsibleSection from "./CollapsibleSection";
 import { SuccessfulPersonaUpdateRedirectType } from "./enums";
 import { Persona, PersonaLabel, StarterMessage } from "./interfaces";
-import {
-  createPersonaLabel,
-  PersonaUpsertParameters,
-  createPersona,
-  deletePersonaLabel,
-  updatePersonaLabel,
-  updatePersona,
-} from "./lib";
+import { PersonaUpsertParameters, createPersona, updatePersona } from "./lib";
 import {
   CameraIcon,
   GroupsIconSkeleton,
@@ -80,9 +73,10 @@ import { errorHandlingFetcher } from "@/lib/fetcher";
 import { DeleteEntityModal } from "@/components/modals/DeleteEntityModal";
 import { DeletePersonaButton } from "./[id]/DeletePersonaButton";
 import Title from "@/components/ui/title";
+import { SEARCH_TOOL_ID } from "@/app/chat/tools/constants";
 
 function findSearchTool(tools: ToolSnapshot[]) {
-  return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
+  return tools.find((tool) => tool.in_code_tool_id === SEARCH_TOOL_ID);
 }
 
 function findImageGenerationTool(tools: ToolSnapshot[]) {
@@ -910,28 +904,11 @@ export function AssistantEditor({
 
                     {internetSearchTool && (
                       <>
-                        <div className="flex items-center content-start mb-2">
-                          <Checkbox
-                            size="sm"
-                            id={`enabled_tools_map.${internetSearchTool.id}`}
-                            checked={
-                              values.enabled_tools_map[internetSearchTool.id]
-                            }
-                            onCheckedChange={() => {
-                              toggleToolInValues(internetSearchTool.id);
-                            }}
-                            name={`enabled_tools_map.${internetSearchTool.id}`}
-                          />
-                          <div className="flex flex-col ml-2">
-                            <span className="text-sm">
-                              {internetSearchTool.display_name}
-                            </span>
-                            <span className="text-xs text-subtle">
-                              Access real-time information and search the web
-                              for up-to-date results
-                            </span>
-                          </div>
-                        </div>
+                        <BooleanFormField
+                          name={`enabled_tools_map.${internetSearchTool.id}`}
+                          label={internetSearchTool.display_name}
+                          subtext="Access real-time information and search the web for up-to-date results"
+                        />
                       </>
                     )}
 
