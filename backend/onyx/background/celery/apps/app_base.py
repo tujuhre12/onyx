@@ -20,10 +20,10 @@ from sqlalchemy.orm import Session
 from onyx.background.celery.apps.task_formatters import CeleryTaskColoredFormatter
 from onyx.background.celery.apps.task_formatters import CeleryTaskPlainFormatter
 from onyx.background.celery.celery_utils import celery_is_worker_primary
+from onyx.configs.constants import ONYX_CLOUD_CELERY_TASK_PREFIX
 from onyx.configs.constants import OnyxRedisLocks
 from onyx.db.engine import get_sqlalchemy_engine
-from onyx.document_index.vespa.shared_utils.utils import get_vespa_http_client
-from onyx.document_index.vespa_constants import VESPA_CONFIG_SERVER_URL
+from onyx.document_index.vespa.shared_utils.utils import wait_for_vespa_with_timeout
 from onyx.redis.redis_connector import RedisConnector
 from onyx.redis.redis_connector_credential_pair import RedisConnectorCredentialPair
 from onyx.redis.redis_connector_delete import RedisConnectorDelete
@@ -100,6 +100,10 @@ def on_task_postrun(
     if not task_id:
         return
 
+    if task.name.startswith(ONYX_CLOUD_CELERY_TASK_PREFIX):
+        # this is a cloud / all tenant task ... no postrun is needed
+        return
+
     # Get tenant_id directly from kwargs- each celery task has a tenant_id kwarg
     if not kwargs:
         logger.error(f"Task {task.name} (ID: {task_id}) is missing kwargs")
@@ -161,9 +165,34 @@ def on_task_postrun(
         return
 
 
-def on_celeryd_init(sender: Any = None, conf: Any = None, **kwargs: Any) -> None:
+def on_celeryd_init(sender: str, conf: Any = None, **kwargs: Any) -> None:
     """The first signal sent on celery worker startup"""
-    multiprocessing.set_start_method("spawn")  # fork is unsafe, set to spawn
+
+    # NOTE(rkuo): start method "fork" is unsafe and we really need it to be "spawn"
+    # But something is blocking set_start_method from working in the cloud unless
+    # force=True. so we use force=True as a fallback.
+
+    all_start_methods: list[str] = multiprocessing.get_all_start_methods()
+    logger.info(f"Multiprocessing all start methods: {all_start_methods}")
+
+    try:
+        multiprocessing.set_start_method("spawn")  # fork is unsafe, set to spawn
+    except Exception:
+        logger.info(
+            "Multiprocessing set_start_method exceptioned. Trying force=True..."
+        )
+        try:
+            multiprocessing.set_start_method(
+                "spawn", force=True
+            )  # fork is unsafe, set to spawn
+        except Exception:
+            logger.info(
+                "Multiprocessing set_start_method force=True exceptioned even with force=True."
+            )
+
+    logger.info(
+        f"Multiprocessing selected start method: {multiprocessing.get_start_method()}"
+    )
 
 
 def wait_for_redis(sender: Any, **kwargs: Any) -> None:
@@ -250,51 +279,6 @@ def wait_for_db(sender: Any, **kwargs: Any) -> None:
     return
 
 
-def wait_for_vespa(sender: Any, **kwargs: Any) -> None:
-    """Waits for Vespa to become ready subject to a hardcoded timeout.
-    Will raise WorkerShutdown to kill the celery worker if the timeout is reached."""
-
-    WAIT_INTERVAL = 5
-    WAIT_LIMIT = 60
-
-    ready = False
-    time_start = time.monotonic()
-    logger.info("Vespa: Readiness probe starting.")
-    while True:
-        try:
-            client = get_vespa_http_client()
-            response = client.get(f"{VESPA_CONFIG_SERVER_URL}/state/v1/health")
-            response.raise_for_status()
-
-            response_dict = response.json()
-            if response_dict["status"]["code"] == "up":
-                ready = True
-                break
-        except Exception:
-            pass
-
-        time_elapsed = time.monotonic() - time_start
-        if time_elapsed > WAIT_LIMIT:
-            break
-
-        logger.info(
-            f"Vespa: Readiness probe ongoing. elapsed={time_elapsed:.1f} timeout={WAIT_LIMIT:.1f}"
-        )
-
-        time.sleep(WAIT_INTERVAL)
-
-    if not ready:
-        msg = (
-            f"Vespa: Readiness probe did not succeed within the timeout "
-            f"({WAIT_LIMIT} seconds). Exiting..."
-        )
-        logger.error(msg)
-        raise WorkerShutdown(msg)
-
-    logger.info("Vespa: Readiness probe succeeded. Continuing...")
-    return
-
-
 def on_secondary_worker_init(sender: Any, **kwargs: Any) -> None:
     logger.info("Running as a secondary celery worker.")
 
@@ -333,6 +317,10 @@ def on_worker_ready(sender: Any, **kwargs: Any) -> None:
 
 def on_worker_shutdown(sender: Any, **kwargs: Any) -> None:
     if not celery_is_worker_primary(sender):
+        return
+
+    if not hasattr(sender, "primary_worker_lock"):
+        # primary_worker_lock will not exist when MULTI_TENANT is True
         return
 
     if not sender.primary_worker_lock:
@@ -476,3 +464,13 @@ def reset_tenant_id(
 ) -> None:
     """Signal handler to reset tenant ID in context var after task ends."""
     CURRENT_TENANT_ID_CONTEXTVAR.set(POSTGRES_DEFAULT_SCHEMA)
+
+
+def wait_for_vespa_or_shutdown(sender: Any, **kwargs: Any) -> None:
+    """Waits for Vespa to become ready subject to a timeout.
+    Raises WorkerShutdown if the timeout is reached."""
+
+    if not wait_for_vespa_with_timeout():
+        msg = "Vespa: Readiness probe did not succeed within the timeout. Exiting..."
+        logger.error(msg)
+        raise WorkerShutdown(msg)

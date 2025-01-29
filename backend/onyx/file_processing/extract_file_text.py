@@ -67,7 +67,9 @@ def is_text_file_extension(file_name: str) -> bool:
 
 def get_file_ext(file_path_or_name: str | Path) -> str:
     _, extension = os.path.splitext(file_path_or_name)
-    return extension
+    # standardize all extensions to be lowercase so that checks against
+    # VALID_FILE_EXTENSIONS and similar will work as intended
+    return extension.lower()
 
 
 def is_valid_file_ext(ext: str) -> bool:
@@ -356,7 +358,13 @@ def extract_file_text(
 
     try:
         if get_unstructured_api_key():
-            return unstructured_to_text(file, file_name)
+            try:
+                return unstructured_to_text(file, file_name)
+            except Exception as unstructured_error:
+                logger.error(
+                    f"Failed to process with Unstructured: {str(unstructured_error)}. Falling back to normal processing."
+                )
+                # Fall through to normal processing
 
         if file_name or extension:
             if extension is not None:

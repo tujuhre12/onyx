@@ -1,27 +1,33 @@
 "use client";
 import {
   ConnectorIndexingStatus,
-  OAuthSlackCallbackResponse,
   DocumentBoostStatus,
   Tag,
   UserGroup,
+  ConnectorStatus,
+  CCPairBasicInfo,
+  ValidSources,
 } from "@/lib/types";
 import useSWR, { mutate, useSWRConfig } from "swr";
 import { errorHandlingFetcher } from "./fetcher";
 import { useContext, useEffect, useState } from "react";
 import { DateRangePickerValue } from "@/app/ee/admin/performance/DateRangeSelector";
-import { SourceMetadata } from "./search/interfaces";
-import { destructureValue, structureValue } from "./llm/utils";
+import { Filters, SourceMetadata } from "./search/interfaces";
+import {
+  destructureValue,
+  findProviderForModel,
+  structureValue,
+} from "./llm/utils";
 import { ChatSession } from "@/app/chat/interfaces";
-import { UsersResponse } from "./users/interfaces";
+import { AllUsersResponse } from "./types";
 import { Credential } from "./connectors/credentials";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
-import { PersonaCategory } from "@/app/admin/assistants/interfaces";
-import {
-  LLMProvider,
-  LLMProviderDescriptor,
-} from "@/app/admin/configuration/llm/interfaces";
+import { Persona, PersonaLabel } from "@/app/admin/assistants/interfaces";
+import { LLMProviderDescriptor } from "@/app/admin/configuration/llm/interfaces";
 import { isAnthropic } from "@/app/admin/configuration/llm/interfaces";
+import { getSourceMetadata } from "./sources";
+import { AuthType, NEXT_PUBLIC_CLOUD_ENABLED } from "./constants";
+import { useUser } from "@/components/user/UserProvider";
 
 const CREDENTIAL_URL = "/api/manage/admin/credential";
 
@@ -71,6 +77,7 @@ export const useObjectState = <T>(
 };
 
 const INDEXING_STATUS_URL = "/api/manage/admin/connector/indexing-status";
+const CONNECTOR_STATUS_URL = "/api/manage/admin/connector/status";
 
 export const useConnectorCredentialIndexingStatus = (
   refreshInterval = 30000, // 30 seconds
@@ -92,16 +99,98 @@ export const useConnectorCredentialIndexingStatus = (
   };
 };
 
-export const useCategories = () => {
+export const useConnectorStatus = (refreshInterval = 30000) => {
   const { mutate } = useSWRConfig();
-  const swrResponse = useSWR<PersonaCategory[]>(
-    "/api/persona/categories",
-    errorHandlingFetcher
+  const url = CONNECTOR_STATUS_URL;
+  const swrResponse = useSWR<ConnectorStatus<any, any>[]>(
+    url,
+    errorHandlingFetcher,
+    { refreshInterval: refreshInterval }
   );
 
   return {
     ...swrResponse,
-    refreshCategories: () => mutate("/api/persona/categories"),
+    refreshIndexingStatus: () => mutate(url),
+  };
+};
+
+export const useBasicConnectorStatus = () => {
+  const url = "/api/manage/connector-status";
+  const swrResponse = useSWR<CCPairBasicInfo[]>(url, errorHandlingFetcher);
+  return {
+    ...swrResponse,
+    refreshIndexingStatus: () => mutate(url),
+  };
+};
+
+export const useLabels = () => {
+  const { mutate } = useSWRConfig();
+  const { data: labels, error } = useSWR<PersonaLabel[]>(
+    "/api/persona/labels",
+    errorHandlingFetcher
+  );
+
+  const refreshLabels = async () => {
+    return mutate("/api/persona/labels");
+  };
+
+  const createLabel = async (name: string) => {
+    const response = await fetch("/api/persona/labels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+
+    if (response.ok) {
+      const newLabel = await response.json();
+      mutate("/api/persona/labels", [...(labels || []), newLabel], false);
+    }
+
+    return response;
+  };
+
+  const updateLabel = async (id: number, name: string) => {
+    const response = await fetch(`/api/admin/persona/label/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label_name: name }),
+    });
+
+    if (response.ok) {
+      mutate(
+        "/api/persona/labels",
+        labels?.map((label) => (label.id === id ? { ...label, name } : label)),
+        false
+      );
+    }
+
+    return response;
+  };
+
+  const deleteLabel = async (id: number) => {
+    const response = await fetch(`/api/admin/persona/label/${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (response.ok) {
+      mutate(
+        "/api/persona/labels",
+        labels?.filter((label) => label.id !== id),
+        false
+      );
+    }
+
+    return response;
+  };
+
+  return {
+    labels,
+    error,
+    refreshLabels,
+    createLabel,
+    updateLabel,
+    deleteLabel,
   };
 };
 
@@ -120,6 +209,14 @@ export interface FilterManager {
   setSelectedDocumentSets: React.Dispatch<React.SetStateAction<string[]>>;
   selectedTags: Tag[];
   setSelectedTags: React.Dispatch<React.SetStateAction<Tag[]>>;
+  getFilterString: () => string;
+  buildFiltersFromQueryString: (
+    filterString: string,
+    availableSources: ValidSources[],
+    availableDocumentSets: string[],
+    availableTags: Tag[]
+  ) => void;
+  clearFilters: () => void;
 }
 
 export function useFilters(): FilterManager {
@@ -130,7 +227,106 @@ export function useFilters(): FilterManager {
   );
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
 
+  const getFilterString = () => {
+    const params = new URLSearchParams();
+
+    if (timeRange) {
+      params.set("from", timeRange.from.toISOString());
+      params.set("to", timeRange.to.toISOString());
+    }
+
+    if (selectedSources.length > 0) {
+      const sourcesParam = selectedSources
+        .map((source) => encodeURIComponent(source.internalName))
+        .join(",");
+      params.set("sources", sourcesParam);
+    }
+
+    if (selectedDocumentSets.length > 0) {
+      const docSetsParam = selectedDocumentSets
+        .map((ds) => encodeURIComponent(ds))
+        .join(",");
+      params.set("documentSets", docSetsParam);
+    }
+
+    if (selectedTags.length > 0) {
+      const tagsParam = selectedTags
+        .map((tag) => encodeURIComponent(tag.tag_value))
+        .join(",");
+      params.set("tags", tagsParam);
+    }
+
+    const queryString = params.toString();
+    return queryString ? `&${queryString}` : "";
+  };
+
+  const clearFilters = () => {
+    setTimeRange(null);
+    setSelectedSources([]);
+    setSelectedDocumentSets([]);
+    setSelectedTags([]);
+  };
+
+  function buildFiltersFromQueryString(
+    filterString: string,
+    availableSources: ValidSources[],
+    availableDocumentSets: string[],
+    availableTags: Tag[]
+  ): void {
+    const params = new URLSearchParams(filterString);
+
+    // Parse the "from" parameter as a DateRangePickerValue
+    let newTimeRange: DateRangePickerValue | null = null;
+    const fromParam = params.get("from");
+    const toParam = params.get("to");
+    if (fromParam && toParam) {
+      const fromDate = new Date(fromParam);
+      const toDate = new Date(toParam);
+      if (!isNaN(fromDate.getTime()) && !isNaN(toDate.getTime())) {
+        newTimeRange = { from: fromDate, to: toDate, selectValue: "" };
+      }
+    }
+
+    // Parse sources
+    const availableSourcesMetadata = availableSources.map(getSourceMetadata);
+    let newSelectedSources: SourceMetadata[] = [];
+    const sourcesParam = params.get("sources");
+    if (sourcesParam) {
+      const sourceNames = sourcesParam.split(",").map(decodeURIComponent);
+      newSelectedSources = availableSourcesMetadata.filter((source) =>
+        sourceNames.includes(source.internalName)
+      );
+    }
+
+    // Parse document sets
+    let newSelectedDocSets: string[] = [];
+    const docSetsParam = params.get("documentSets");
+    if (docSetsParam) {
+      const docSetNames = docSetsParam.split(",").map(decodeURIComponent);
+      newSelectedDocSets = availableDocumentSets.filter((ds) =>
+        docSetNames.includes(ds)
+      );
+    }
+
+    // Parse tags
+    let newSelectedTags: Tag[] = [];
+    const tagsParam = params.get("tags");
+    if (tagsParam) {
+      const tagValues = tagsParam.split(",").map(decodeURIComponent);
+      newSelectedTags = availableTags.filter((tag) =>
+        tagValues.includes(tag.tag_value)
+      );
+    }
+
+    // Update filter manager's values instead of returning
+    setTimeRange(newTimeRange);
+    setSelectedSources(newSelectedSources);
+    setSelectedDocumentSets(newSelectedDocSets);
+    setSelectedTags(newSelectedTags);
+  }
+
   return {
+    clearFilters,
     timeRange,
     setTimeRange,
     selectedSources,
@@ -139,13 +335,15 @@ export function useFilters(): FilterManager {
     setSelectedDocumentSets,
     selectedTags,
     setSelectedTags,
+    getFilterString,
+    buildFiltersFromQueryString,
   };
 }
 
 export const useUsers = () => {
   const url = "/api/manage/users";
 
-  const swrResponse = useSWR<UsersResponse>(url, errorHandlingFetcher);
+  const swrResponse = useSWR<AllUsersResponse>(url, errorHandlingFetcher);
 
   return {
     ...swrResponse,
@@ -162,28 +360,98 @@ export interface LlmOverride {
 export interface LlmOverrideManager {
   llmOverride: LlmOverride;
   updateLLMOverride: (newOverride: LlmOverride) => void;
-  globalDefault: LlmOverride;
-  setGlobalDefault: React.Dispatch<React.SetStateAction<LlmOverride>>;
   temperature: number | null;
   updateTemperature: (temperature: number | null) => void;
   updateModelOverrideForChatSession: (chatSession?: ChatSession) => void;
+  imageFilesPresent: boolean;
+  updateImageFilesPresent: (present: boolean) => void;
+  liveAssistant: Persona | null;
 }
+
+/*
+LLM Override is as follows (i.e. this order)
+- User override (explicitly set in the chat input bar)
+- User preference (defaults to system wide default if no preference set)
+
+On switching to an existing or new chat session or a different assistant:
+- If we have a live assistant after any switch with a model override, use that- otherwise use the above hierarchy
+
+Thus, the input should be
+- User preference
+- LLM Providers (which contain the system wide default)
+- Current assistant
+
+Changes take place as
+- liveAssistant or currentChatSession changes (and the associated model override is set)
+- (uploadLLMOverride) User explicitly setting a model override (and we explicitly override and set the userSpecifiedOverride which we'll use in place of the user preferences unless overridden by an assistant)
+
+If we have a live assistant, we should use that model override
+*/
+
 export function useLlmOverride(
   llmProviders: LLMProviderDescriptor[],
-  globalModel?: string | null,
   currentChatSession?: ChatSession,
-  defaultTemperature?: number
+  liveAssistant?: Persona
 ): LlmOverrideManager {
+  const { user } = useUser();
+
+  const [chatSession, setChatSession] = useState<ChatSession | null>(null);
+
+  const llmOverrideUpdate = () => {
+    if (!chatSession && currentChatSession) {
+      setChatSession(currentChatSession || null);
+      return;
+    }
+
+    if (liveAssistant?.llm_model_version_override) {
+      setLlmOverride(
+        getValidLlmOverride(liveAssistant.llm_model_version_override)
+      );
+    } else if (currentChatSession?.current_alternate_model) {
+      setLlmOverride(
+        getValidLlmOverride(currentChatSession.current_alternate_model)
+      );
+    } else if (user?.preferences?.default_model) {
+      setLlmOverride(getValidLlmOverride(user.preferences.default_model));
+      return;
+    } else {
+      const defaultProvider = llmProviders.find(
+        (provider) => provider.is_default_provider
+      );
+
+      if (defaultProvider) {
+        setLlmOverride({
+          name: defaultProvider.name,
+          provider: defaultProvider.provider,
+          modelName: defaultProvider.default_model_name,
+        });
+      }
+    }
+    setChatSession(currentChatSession || null);
+  };
+
   const getValidLlmOverride = (
     overrideModel: string | null | undefined
   ): LlmOverride => {
     if (overrideModel) {
       const model = destructureValue(overrideModel);
-      const provider = llmProviders.find(
-        (p) =>
-          p.model_names.includes(model.modelName) &&
-          p.provider === model.provider
+      if (!(model.modelName && model.modelName.length > 0)) {
+        const provider = llmProviders.find((p) =>
+          p.model_names.includes(overrideModel)
+        );
+        if (provider) {
+          return {
+            modelName: overrideModel,
+            name: provider.name,
+            provider: provider.provider,
+          };
+        }
+      }
+
+      const provider = llmProviders.find((p) =>
+        p.model_names.includes(model.modelName)
       );
+
       if (provider) {
         return { ...model, name: provider.name };
       }
@@ -191,46 +459,42 @@ export function useLlmOverride(
     return { name: "", provider: "", modelName: "" };
   };
 
-  const [globalDefault, setGlobalDefault] = useState<LlmOverride>(
-    getValidLlmOverride(globalModel)
-  );
-  const updateLLMOverride = (newOverride: LlmOverride) => {
-    setLlmOverride(
-      getValidLlmOverride(
-        structureValue(
-          newOverride.name,
-          newOverride.provider,
-          newOverride.modelName
-        )
-      )
-    );
+  const [imageFilesPresent, setImageFilesPresent] = useState(false);
+
+  const updateImageFilesPresent = (present: boolean) => {
+    setImageFilesPresent(present);
   };
 
-  const [llmOverride, setLlmOverride] = useState<LlmOverride>(
-    currentChatSession && currentChatSession.current_alternate_model
-      ? getValidLlmOverride(currentChatSession.current_alternate_model)
-      : { name: "", provider: "", modelName: "" }
-  );
+  const [llmOverride, setLlmOverride] = useState<LlmOverride>({
+    name: "",
+    provider: "",
+    modelName: "",
+  });
+
+  // Manually set the override
+  const updateLLMOverride = (newOverride: LlmOverride) => {
+    const provider =
+      newOverride.provider ||
+      findProviderForModel(llmProviders, newOverride.modelName);
+    const structuredValue = structureValue(
+      newOverride.name,
+      provider,
+      newOverride.modelName
+    );
+    setLlmOverride(getValidLlmOverride(structuredValue));
+  };
 
   const updateModelOverrideForChatSession = (chatSession?: ChatSession) => {
-    setLlmOverride(
-      chatSession && chatSession.current_alternate_model
-        ? getValidLlmOverride(chatSession.current_alternate_model)
-        : globalDefault
-    );
+    if (chatSession && chatSession.current_alternate_model?.length > 0) {
+      setLlmOverride(getValidLlmOverride(chatSession.current_alternate_model));
+    }
   };
 
-  const [temperature, setTemperature] = useState<number | null>(
-    defaultTemperature !== undefined ? defaultTemperature : 0
-  );
+  const [temperature, setTemperature] = useState<number | null>(0);
 
   useEffect(() => {
-    setGlobalDefault(getValidLlmOverride(globalModel));
-  }, [globalModel, llmProviders]);
-
-  useEffect(() => {
-    setTemperature(defaultTemperature !== undefined ? defaultTemperature : 0);
-  }, [defaultTemperature]);
+    llmOverrideUpdate();
+  }, [liveAssistant, currentChatSession]);
 
   useEffect(() => {
     if (isAnthropic(llmOverride.provider, llmOverride.modelName)) {
@@ -250,11 +514,29 @@ export function useLlmOverride(
     updateModelOverrideForChatSession,
     llmOverride,
     updateLLMOverride,
-    globalDefault,
-    setGlobalDefault,
     temperature,
     updateTemperature,
+    imageFilesPresent,
+    updateImageFilesPresent,
+    liveAssistant: liveAssistant ?? null,
   };
+}
+
+export function useAuthType(): AuthType | null {
+  const { data, error } = useSWR<{ auth_type: AuthType }>(
+    "/api/auth/type",
+    errorHandlingFetcher
+  );
+
+  if (NEXT_PUBLIC_CLOUD_ENABLED) {
+    return "cloud";
+  }
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data.auth_type;
 }
 
 /* 

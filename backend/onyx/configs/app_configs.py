@@ -3,6 +3,7 @@ import os
 import urllib.parse
 from typing import cast
 
+from onyx.auth.schemas import AuthBackend
 from onyx.configs.constants import AuthType
 from onyx.configs.constants import DocumentIndexType
 from onyx.file_processing.enums import HtmlBasedConnectorTransformLinksStrategy
@@ -17,6 +18,7 @@ APP_PORT = 8080
 # prefix from requests directed towards the API server. In these cases, set this to `/api`
 APP_API_PREFIX = os.environ.get("API_PREFIX", "")
 
+SKIP_WARM_UP = os.environ.get("SKIP_WARM_UP", "").lower() == "true"
 
 #####
 # User Facing Features Configs
@@ -54,8 +56,12 @@ MASK_CREDENTIAL_PREFIX = (
     os.environ.get("MASK_CREDENTIAL_PREFIX", "True").lower() != "false"
 )
 
+AUTH_BACKEND = AuthBackend(os.environ.get("AUTH_BACKEND") or AuthBackend.REDIS.value)
+
 SESSION_EXPIRE_TIME_SECONDS = int(
-    os.environ.get("SESSION_EXPIRE_TIME_SECONDS") or 86400 * 7
+    os.environ.get("SESSION_EXPIRE_TIME_SECONDS")
+    or os.environ.get("REDIS_AUTH_EXPIRE_TIME_SECONDS")
+    or 86400 * 7
 )  # 7 days
 
 # Default request timeout, mostly used by connectors
@@ -86,6 +92,12 @@ OAUTH_CLIENT_SECRET = (
 )
 
 USER_AUTH_SECRET = os.environ.get("USER_AUTH_SECRET", "")
+
+# Duration (in seconds) for which the FastAPI Users JWT token remains valid in the user's browser.
+# By default, this is set to match the Redis expiry time for consistency.
+AUTH_COOKIE_EXPIRE_TIME_SECONDS = int(
+    os.environ.get("AUTH_COOKIE_EXPIRE_TIME_SECONDS") or 86400 * 7
+)  # 7 days
 
 # for basic auth
 REQUIRE_EMAIL_VERIFICATION = (
@@ -188,9 +200,12 @@ REDIS_HOST = os.environ.get("REDIS_HOST") or "localhost"
 REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
 REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD") or ""
 
+# this assumes that other redis settings remain the same as the primary
+REDIS_REPLICA_HOST = os.environ.get("REDIS_REPLICA_HOST") or REDIS_HOST
+
+REDIS_AUTH_KEY_PREFIX = "fastapi_users_token:"
+
 # Rate limiting for auth endpoints
-
-
 RATE_LIMIT_WINDOW_SECONDS: int | None = None
 _rate_limit_window_seconds_str = os.environ.get("RATE_LIMIT_WINDOW_SECONDS")
 if _rate_limit_window_seconds_str is not None:
@@ -207,6 +222,7 @@ if _rate_limit_max_requests_str is not None:
     except ValueError:
         pass
 
+AUTH_RATE_LIMITING_ENABLED = RATE_LIMIT_MAX_REQUESTS and RATE_LIMIT_WINDOW_SECONDS
 # Used for general redis things
 REDIS_DB_NUMBER = int(os.environ.get("REDIS_DB_NUMBER", 0))
 
@@ -273,6 +289,11 @@ try:
     CELERY_WORKER_INDEXING_CONCURRENCY = int(env_value)
 except ValueError:
     CELERY_WORKER_INDEXING_CONCURRENCY = CELERY_WORKER_INDEXING_CONCURRENCY_DEFAULT
+
+# The maximum number of tasks that can be queued up to sync to Vespa in a single pass
+VESPA_SYNC_MAX_TASKS = 1024
+
+DB_YIELD_PER_DEFAULT = 64
 
 #####
 # Connector Configs
@@ -531,6 +552,9 @@ try:
 except json.JSONDecodeError:
     pass
 
+# LLM Model Update API endpoint
+LLM_MODEL_UPDATE_API_URL = os.environ.get("LLM_MODEL_UPDATE_API_URL")
+
 #####
 # Enterprise Edition Configs
 #####
@@ -569,7 +593,6 @@ CONTROL_PLANE_API_BASE_URL = os.environ.get(
 
 # JWT configuration
 JWT_ALGORITHM = "HS256"
-
 
 #####
 # API Key Configs

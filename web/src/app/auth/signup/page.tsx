@@ -13,6 +13,7 @@ import Link from "next/link";
 import { SignInButton } from "../login/SignInButton";
 import AuthFlowContainer from "@/components/auth/AuthFlowContainer";
 import ReferralSourceSelector from "./ReferralSourceSelector";
+import AuthErrorDisplay from "@/components/auth/AuthErrorDisplay";
 
 const Page = async (props: {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -21,6 +22,10 @@ const Page = async (props: {
   const nextUrl = Array.isArray(searchParams?.next)
     ? searchParams?.next[0]
     : searchParams?.next || null;
+
+  const defaultEmail = Array.isArray(searchParams?.email)
+    ? searchParams?.email[0]
+    : searchParams?.email || null;
 
   // catch cases where the backend is completely unreachable here
   // without try / catch, will just raise an exception and the page
@@ -63,6 +68,7 @@ const Page = async (props: {
   return (
     <AuthFlowContainer authState="signup">
       <HealthCheckBanner />
+      <AuthErrorDisplay searchParams={searchParams} />
 
       <>
         <div className="absolute top-10x w-full"></div>
@@ -93,6 +99,7 @@ const Page = async (props: {
             isSignup
             shouldVerify={authTypeMetadata?.requiresVerification}
             nextUrl={nextUrl}
+            defaultEmail={defaultEmail}
           />
         </div>
       </>

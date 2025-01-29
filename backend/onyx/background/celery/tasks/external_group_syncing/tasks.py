@@ -22,7 +22,7 @@ from ee.onyx.external_permissions.sync_params import (
 from onyx.background.celery.apps.app_base import task_logger
 from onyx.configs.app_configs import JOB_TIMEOUT
 from onyx.configs.constants import CELERY_EXTERNAL_GROUP_SYNC_LOCK_TIMEOUT
-from onyx.configs.constants import CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT
+from onyx.configs.constants import CELERY_GENERIC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import DANSWER_REDIS_FUNCTION_LOCK_PREFIX
 from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import OnyxCeleryQueues
@@ -91,6 +91,7 @@ def _is_external_group_sync_due(cc_pair: ConnectorCredentialPair) -> bool:
 
 @shared_task(
     name=OnyxCeleryTask.CHECK_FOR_EXTERNAL_GROUP_SYNC,
+    ignore_result=True,
     soft_time_limit=JOB_TIMEOUT,
     bind=True,
 )
@@ -99,14 +100,14 @@ def check_for_external_group_sync(self: Task, *, tenant_id: str | None) -> bool 
 
     lock_beat: RedisLock = r.lock(
         OnyxRedisLocks.CHECK_CONNECTOR_EXTERNAL_GROUP_SYNC_BEAT_LOCK,
-        timeout=CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT,
+        timeout=CELERY_GENERIC_BEAT_LOCK_TIMEOUT,
     )
 
-    try:
-        # these tasks should never overlap
-        if not lock_beat.acquire(blocking=False):
-            return None
+    # these tasks should never overlap
+    if not lock_beat.acquire(blocking=False):
+        return None
 
+    try:
         cc_pair_ids_to_sync: list[int] = []
         with get_session_with_tenant(tenant_id) as db_session:
             cc_pairs = get_all_auto_sync_cc_pairs(db_session)
@@ -250,7 +251,10 @@ def connector_external_group_sync_generator_task(
             return None
 
         with get_session_with_tenant(tenant_id) as db_session:
-            cc_pair = get_connector_credential_pair_from_id(cc_pair_id, db_session)
+            cc_pair = get_connector_credential_pair_from_id(
+                db_session=db_session,
+                cc_pair_id=cc_pair_id,
+            )
             if cc_pair is None:
                 raise ValueError(
                     f"No connector credential pair found for id: {cc_pair_id}"

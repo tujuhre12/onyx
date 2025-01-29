@@ -10,7 +10,7 @@ from onyx.chat.chat_utils import combine_message_chain
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import LlmDoc
 from onyx.chat.models import PromptConfig
-from onyx.chat.prompt_builder.build import AnswerPromptBuilder
+from onyx.chat.prompt_builder.answer_prompt_builder import AnswerPromptBuilder
 from onyx.configs.constants import DocumentSource
 from onyx.configs.model_configs import GEN_AI_HISTORY_CUTOFF
 from onyx.context.search.models import SearchDoc
@@ -108,7 +108,7 @@ def internet_search_response_to_search_docs(
 
 class InternetSearchTool(Tool):
     _NAME = "run_internet_search"
-    _DISPLAY_NAME = "[Beta] Internet Search Tool"
+    _DISPLAY_NAME = "Internet Search"
     _DESCRIPTION = "Perform an internet search for up-to-date information."
 
     def __init__(
@@ -220,6 +220,13 @@ class InternetSearchTool(Tool):
         )
         results = response.json()
 
+        # If no hits, Bing does not include the webPages key
+        search_results = (
+            results["webPages"]["value"][: self.num_results]
+            if "webPages" in results
+            else []
+        )
+
         return InternetSearchResponse(
             revised_query=query,
             internet_results=[
@@ -228,7 +235,7 @@ class InternetSearchTool(Tool):
                     link=result["url"],
                     snippet=result["snippet"],
                 )
-                for result in results["webPages"]["value"][: self.num_results]
+                for result in search_results
             ],
         )
 

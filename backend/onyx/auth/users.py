@@ -1,3 +1,5 @@
+import json
+import secrets
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime
@@ -29,7 +31,7 @@ from fastapi_users import schemas
 from fastapi_users import UUIDIDMixin
 from fastapi_users.authentication import AuthenticationBackend
 from fastapi_users.authentication import CookieTransport
-from fastapi_users.authentication import JWTStrategy
+from fastapi_users.authentication import RedisStrategy
 from fastapi_users.authentication import Strategy
 from fastapi_users.authentication.strategy.db import AccessTokenDatabase
 from fastapi_users.authentication.strategy.db import DatabaseStrategy
@@ -46,19 +48,22 @@ from httpx_oauth.integrations.fastapi import OAuth2AuthorizeCallback
 from httpx_oauth.oauth2 import BaseOAuth2
 from httpx_oauth.oauth2 import OAuth2Token
 from pydantic import BaseModel
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from onyx.auth.api_key import get_hashed_api_key_from_request
 from onyx.auth.email_utils import send_forgot_password_email
 from onyx.auth.email_utils import send_user_verification_email
 from onyx.auth.invited_users import get_invited_users
+from onyx.auth.schemas import AuthBackend
 from onyx.auth.schemas import UserCreate
 from onyx.auth.schemas import UserRole
-from onyx.auth.schemas import UserUpdate
+from onyx.auth.schemas import UserUpdateWithRole
+from onyx.configs.app_configs import AUTH_BACKEND
+from onyx.configs.app_configs import AUTH_COOKIE_EXPIRE_TIME_SECONDS
 from onyx.configs.app_configs import AUTH_TYPE
 from onyx.configs.app_configs import DISABLE_AUTH
 from onyx.configs.app_configs import EMAIL_CONFIGURED
+from onyx.configs.app_configs import REDIS_AUTH_KEY_PREFIX
 from onyx.configs.app_configs import REQUIRE_EMAIL_VERIFICATION
 from onyx.configs.app_configs import SESSION_EXPIRE_TIME_SECONDS
 from onyx.configs.app_configs import TRACK_EXTERNAL_IDP_EXPIRY
@@ -80,11 +85,13 @@ from onyx.db.auth import get_user_db
 from onyx.db.auth import SQLAlchemyUserAdminDB
 from onyx.db.engine import get_async_session
 from onyx.db.engine import get_async_session_with_tenant
+from onyx.db.engine import get_current_tenant_id
 from onyx.db.engine import get_session_with_tenant
 from onyx.db.models import AccessToken
 from onyx.db.models import OAuthAccount
 from onyx.db.models import User
 from onyx.db.users import get_user_by_email
+from onyx.redis.redis_pool import get_async_redis_connection
 from onyx.redis.redis_pool import get_redis_client
 from onyx.utils.logger import setup_logger
 from onyx.utils.telemetry import create_milestone_and_report
@@ -144,11 +151,8 @@ def user_needs_to_be_verified() -> bool:
     return False
 
 
-def anonymous_user_enabled() -> bool:
-    if MULTI_TENANT:
-        return False
-
-    redis_client = get_redis_client(tenant_id=None)
+def anonymous_user_enabled(*, tenant_id: str | None = None) -> bool:
+    redis_client = get_redis_client(tenant_id=tenant_id)
     value = redis_client.get(OnyxRedisLocks.ANONYMOUS_USER_ENABLED)
 
     if value is None:
@@ -211,7 +215,7 @@ def verify_email_domain(email: str) -> None:
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = USER_AUTH_SECRET
     verification_token_secret = USER_AUTH_SECRET
-
+    verification_token_lifetime_seconds = AUTH_COOKIE_EXPIRE_TIME_SECONDS
     user_db: SQLAlchemyUserDatabase[User, uuid.UUID]
 
     async def create(
@@ -241,10 +245,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             referral_source=referral_source,
             request=request,
         )
-
         async with get_async_session_with_tenant(tenant_id) as db_session:
             token = CURRENT_TENANT_ID_CONTEXTVAR.set(tenant_id)
-
             verify_email_is_invited(user_create.email)
             verify_email_domain(user_create.email)
             if MULTI_TENANT:
@@ -263,16 +265,16 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                     user_create.role = UserRole.ADMIN
                 else:
                     user_create.role = UserRole.BASIC
-
             try:
                 user = await super().create(user_create, safe=safe, request=request)  # type: ignore
             except exceptions.UserAlreadyExists:
                 user = await self.get_by_email(user_create.email)
                 # Handle case where user has used product outside of web and is now creating an account through web
                 if not user.role.is_web_login() and user_create.role.is_web_login():
-                    user_update = UserUpdate(
+                    user_update = UserUpdateWithRole(
                         password=user_create.password,
                         is_verified=user_create.is_verified,
+                        role=user_create.role,
                     )
                     user = await self.update(user_update, user)
                 else:
@@ -280,7 +282,6 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
             finally:
                 CURRENT_TENANT_ID_CONTEXTVAR.reset(token)
-
         return user
 
     async def validate_password(self, password: str, _: schemas.UC | models.UP) -> None:
@@ -395,11 +396,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
                     # Explicitly set the Postgres schema for this session to ensure
                     # OAuth account creation happens in the correct tenant schema
-                    await db_session.execute(text(f'SET search_path = "{tenant_id}"'))
 
                     # Add OAuth account
                     await self.user_db.add_oauth_account(user, oauth_account_dict)
-
                     await self.on_after_register(user, request)
 
             else:
@@ -418,7 +417,6 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
             # NOTE: Most IdPs have very short expiry times, and we don't want to force the user to
             # re-authenticate that frequently, so by default this is disabled
-
             if expires_at and TRACK_EXTERNAL_IDP_EXPIRY:
                 oidc_expiry = datetime.fromtimestamp(expires_at, tz=timezone.utc)
                 await self.user_db.update(
@@ -581,49 +579,85 @@ cookie_transport = CookieTransport(
 )
 
 
-# This strategy is used to add tenant_id to the JWT token
-class TenantAwareJWTStrategy(JWTStrategy):
-    async def _create_token_data(self, user: User, impersonate: bool = False) -> dict:
-        tenant_id = await fetch_ee_implementation_or_noop(
-            "onyx.server.tenants.provisioning",
-            "get_or_provision_tenant",
-            async_return_default_schema,
-        )(
-            email=user.email,
-        )
-
-        data = {
-            "sub": str(user.id),
-            "aud": self.token_audience,
-            "tenant_id": tenant_id,
-        }
-        return data
-
-    async def write_token(self, user: User) -> str:
-        data = await self._create_token_data(user)
-        return generate_jwt(
-            data, self.encode_key, self.lifetime_seconds, algorithm=self.algorithm
-        )
-
-
-def get_jwt_strategy() -> TenantAwareJWTStrategy:
-    return TenantAwareJWTStrategy(
-        secret=USER_AUTH_SECRET,
-        lifetime_seconds=SESSION_EXPIRE_TIME_SECONDS,
-    )
+def get_redis_strategy() -> RedisStrategy:
+    return TenantAwareRedisStrategy()
 
 
 def get_database_strategy(
     access_token_db: AccessTokenDatabase[AccessToken] = Depends(get_access_token_db),
 ) -> DatabaseStrategy:
     return DatabaseStrategy(
-        access_token_db, lifetime_seconds=SESSION_EXPIRE_TIME_SECONDS  # type: ignore
+        access_token_db, lifetime_seconds=SESSION_EXPIRE_TIME_SECONDS
     )
 
 
-auth_backend = AuthenticationBackend(
-    name="jwt", transport=cookie_transport, get_strategy=get_jwt_strategy
-)  # type: ignore
+class TenantAwareRedisStrategy(RedisStrategy[User, uuid.UUID]):
+    """
+    A custom strategy that fetches the actual async Redis connection inside each method.
+    We do NOT pass a synchronous or "coroutine" redis object to the constructor.
+    """
+
+    def __init__(
+        self,
+        lifetime_seconds: Optional[int] = SESSION_EXPIRE_TIME_SECONDS,
+        key_prefix: str = REDIS_AUTH_KEY_PREFIX,
+    ):
+        self.lifetime_seconds = lifetime_seconds
+        self.key_prefix = key_prefix
+
+    async def write_token(self, user: User) -> str:
+        redis = await get_async_redis_connection()
+
+        tenant_id = await fetch_ee_implementation_or_noop(
+            "onyx.server.tenants.provisioning",
+            "get_or_provision_tenant",
+            async_return_default_schema,
+        )(email=user.email)
+
+        token_data = {
+            "sub": str(user.id),
+            "tenant_id": tenant_id,
+        }
+        token = secrets.token_urlsafe()
+        await redis.set(
+            f"{self.key_prefix}{token}",
+            json.dumps(token_data),
+            ex=self.lifetime_seconds,
+        )
+        return token
+
+    async def read_token(
+        self, token: Optional[str], user_manager: BaseUserManager[User, uuid.UUID]
+    ) -> Optional[User]:
+        redis = await get_async_redis_connection()
+        token_data_str = await redis.get(f"{self.key_prefix}{token}")
+        if not token_data_str:
+            return None
+
+        try:
+            token_data = json.loads(token_data_str)
+            user_id = token_data["sub"]
+            parsed_id = user_manager.parse_id(user_id)
+            return await user_manager.get(parsed_id)
+        except (exceptions.UserNotExists, exceptions.InvalidID, KeyError):
+            return None
+
+    async def destroy_token(self, token: str, user: User) -> None:
+        """Properly delete the token from async redis."""
+        redis = await get_async_redis_connection()
+        await redis.delete(f"{self.key_prefix}{token}")
+
+
+if AUTH_BACKEND == AuthBackend.REDIS:
+    auth_backend = AuthenticationBackend(
+        name="redis", transport=cookie_transport, get_strategy=get_redis_strategy
+    )
+elif AUTH_BACKEND == AuthBackend.POSTGRES:
+    auth_backend = AuthenticationBackend(
+        name="postgres", transport=cookie_transport, get_strategy=get_database_strategy
+    )
+else:
+    raise ValueError(f"Invalid auth backend: {AUTH_BACKEND}")
 
 
 class FastAPIUserWithLogoutRouter(FastAPIUsers[models.UP, models.ID]):
@@ -755,9 +789,10 @@ async def current_limited_user(
 
 async def current_chat_accesssible_user(
     user: User | None = Depends(optional_user),
+    tenant_id: str | None = Depends(get_current_tenant_id),
 ) -> User | None:
     return await double_check_user(
-        user, allow_anonymous_access=anonymous_user_enabled()
+        user, allow_anonymous_access=anonymous_user_enabled(tenant_id=tenant_id)
     )
 
 
