@@ -48,7 +48,7 @@ def create_slack_channel_persona(
 ) -> Persona:
     """NOTE: does not commit changes"""
 
-    # Verify SearchTool exists but don't require it
+    # Verify SearchTool exists and include it by default (but don't require it)
     search_tool = get_search_tool(db_session)
     if search_tool is None:
         raise ValueError("Search tool not found")
@@ -66,7 +66,7 @@ def create_slack_channel_persona(
         llm_filter_extraction=enable_auto_filters,
         recency_bias=RecencyBiasSetting.AUTO,
         prompt_ids=[default_prompt.id],
-        tool_ids=[],  # SearchTool is now optional for Slack bots
+        tool_ids=[search_tool.id],  # Include SearchTool by default, but it can be removed later
         document_set_ids=document_set_ids,
         llm_model_provider_override=None,
         llm_model_version_override=None,

@@ -195,8 +195,20 @@ def handle_regular_answer(
             if slack_channel_config is not None
             else False
         )
+        # Check if SearchTool is enabled for this persona
+        search_tool_enabled = any(
+            tool.in_code_tool_id == "SearchTool"
+            for tool in persona.tools
+        ) if persona and persona.tools else True  # Default to True if no persona/tools
+
+        # Set search behavior based on whether SearchTool is enabled
+        run_search = (
+            OptionalSearchSetting.AS_NEEDED if search_tool_enabled
+            else OptionalSearchSetting.DISABLED
+        )
+
         retrieval_details = RetrievalDetails(
-            run_search=OptionalSearchSetting.ALWAYS,
+            run_search=run_search,
             real_time=False,
             filters=filters,
             enable_auto_detect_filters=auto_detect_filters,
