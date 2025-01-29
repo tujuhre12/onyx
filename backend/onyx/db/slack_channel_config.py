@@ -66,7 +66,9 @@ def create_slack_channel_persona(
         llm_filter_extraction=enable_auto_filters,
         recency_bias=RecencyBiasSetting.AUTO,
         prompt_ids=[default_prompt.id],
-        tool_ids=[search_tool.id],  # Include SearchTool by default, but it can be removed later
+        tool_ids=[
+            search_tool.id
+        ],  # Include SearchTool by default, but it can be removed later
         document_set_ids=document_set_ids,
         llm_model_provider_override=None,
         llm_model_version_override=None,
