@@ -12,7 +12,6 @@ from onyx.db.users import batch_add_ext_perm_user_if_not_exists
 
 
 def _call_parallel(engine_url: str, email_list: List[str]) -> None:
-    # Create a new engine for each thread to handle SQLite's threading restrictions
     thread_engine = create_engine(engine_url)
     SessionLocal = sessionmaker(bind=thread_engine, expire_on_commit=False)
     session = SessionLocal()
@@ -44,8 +43,8 @@ def test_batch_add_ext_perm_user_if_not_exists_concurrent(
     threads = []
     engine = db_session.get_bind()
 
-    # Create and start multiple threads that all try to add the same users
-    engine_url = str(engine.url)
+    # Get the engine URL for thread-local connections
+    engine_url = str(db_session.get_bind().url)
     for _ in range(thread_count):
         t = threading.Thread(target=_call_parallel, args=(engine_url, emails))
         threads.append(t)
