@@ -9,8 +9,25 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import JSON
 from sqlalchemy.types import Text
+from sqlalchemy.types import TypeDecorator
+from sqlalchemy.types import String
+from uuid import UUID
 
 from onyx.db.models import Base
+
+class SQLiteUUID(TypeDecorator):
+    impl = String(36)
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        return str(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        return UUID(value)
 
 
 @event.listens_for(Base.metadata, "before_create")
@@ -23,14 +40,13 @@ def adapt_jsonb_for_sqlite(target, connection, **kw):
 
         for column in table.columns:
             if isinstance(column.type, JSONB):
-                # Create a new JSON type that SQLite can handle
                 json_type = JSON()
                 json_type.should_evaluate_none = True
                 column.type = json_type
             elif isinstance(column.type, ARRAY):
-                # Convert ARRAY types to TEXT for SQLite
-                # We'll store arrays as JSON strings
                 column.type = Text()
+            elif str(column.type) == 'UUID':
+                column.type = SQLiteUUID()
 
 
 @pytest.fixture
