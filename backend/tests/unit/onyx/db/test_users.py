@@ -2,7 +2,8 @@ import threading
 from typing import List
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import func
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from onyx.auth.schemas import UserRole
