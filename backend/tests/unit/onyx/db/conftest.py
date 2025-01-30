@@ -76,9 +76,8 @@ def adapt_jsonb_for_sqlite(target: Any, connection: Any, **kw: Any) -> None:
 def db_session() -> Generator[Session, None, None]:
     engine = create_engine("sqlite:///:memory:", echo=True)
 
-    # Remove existing event listeners to avoid duplicates
-    for listener in Base.metadata.dispatch.before_create:
-        event.remove(Base.metadata, "before_create", listener)
+    # Clear all existing event listeners to avoid duplicates
+    Base.metadata.dispatch.before_create.clear()
 
     # Add our SQLite type adaptation listener
     event.listen(Base.metadata, "before_create", adapt_jsonb_for_sqlite)
