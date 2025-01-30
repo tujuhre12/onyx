@@ -211,8 +211,6 @@ def try_creating_permissions_sync_task(
         redis_connector.permissions.generator_clear()
         redis_connector.permissions.taskset_clear()
 
-        redis_connector.permissions.set_active()
-
         custom_task_id = f"{redis_connector.permissions.generator_task_key}_{uuid4()}"
 
         # create before setting fence to avoid race condition where the monitoring
@@ -426,6 +424,8 @@ def update_external_document_permissions_task(
     connector_id: int,
     credential_id: int,
 ) -> bool:
+    start = time.monotonic()
+
     document_external_access = DocExternalAccess.from_dict(
         serialized_doc_external_access
     )
@@ -455,10 +455,18 @@ def update_external_document_permissions_task(
                     document_ids=[doc_id],
                 )
 
-            task_logger.info(f"doc={doc_id} " f"action=update_permissions")
+            elapsed = time.monotonic() - start
+            task_logger.info(
+                f"connector_id={connector_id} "
+                f"doc={doc_id} "
+                f"action=update_permissions "
+                f"elapsed={elapsed:.2f}"
+            )
     except Exception:
         task_logger.exception(
-            f"Error Syncing Document Permissions: connector_id={connector_id} doc_id={doc_id}"
+            f"Exception in update_external_document_permissions_task: "
+            f"connector_id={connector_id} "
+            f"doc_id={doc_id}"
         )
         return False
 
