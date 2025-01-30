@@ -315,37 +315,6 @@ def get_personas_for_user(
     return results
 
 
-# def get_personas_for_user(
-#     # if user is `None` assume the user is an admin or auth is disabled
-#     user: User | None,
-#     db_session: Session,
-#     get_editable: bool = True,
-#     include_default: bool = True,
-#     include_slack_bot_personas: bool = False,
-#     include_deleted: bool = False,
-#     joinedload_all: bool = False,
-# ) -> Sequence[Persona]:
-#     stmt = select(Persona).distinct()
-#     stmt = _add_user_filters(stmt=stmt, user=user, get_editable=get_editable)
-#     if not include_default:
-#         stmt = stmt.where(Persona.builtin_persona.is_(False))
-#     if not include_slack_bot_personas:
-#         stmt = stmt.where(not_(Persona.name.startswith(SLACK_BOT_PERSONA_PREFIX)))
-#     if not include_deleted:
-#         stmt = stmt.where(Persona.deleted.is_(False))
-
-#     if joinedload_all:
-#         stmt = stmt.options(
-#             joinedload(Persona.prompts),
-#             joinedload(Persona.tools),
-#             joinedload(Persona.document_sets),
-#             joinedload(Persona.groups),
-#             joinedload(Persona.users),
-#         )
-
-#     return db_session.execute(stmt).unique().scalars().all()
-
-
 def get_personas(db_session: Session) -> Sequence[Persona]:
     stmt = select(Persona).distinct()
     stmt = stmt.where(not_(Persona.name.startswith(SLACK_BOT_PERSONA_PREFIX)))
