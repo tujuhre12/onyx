@@ -46,7 +46,15 @@ def adapt_jsonb_for_sqlite(target: Any, connection: Any, **kw: Any) -> None:
                 column.type = JSON()
             elif isinstance(column.type, PydanticType):
                 if isinstance(column.type.impl, JSONB):
-                    column.type = PydanticType(impl=JSON())
+                    # Handle case where pydantic_model might be None
+                    original_model = column.type.pydantic_model
+                    if original_model is None:
+                        column.type = JSON()
+                    else:
+                        column.type = PydanticType(
+                            pydantic_model=original_model,
+                            impl=JSON()
+                        )
             elif hasattr(column.type, "impl"):
                 impl_type = column.type.impl
                 if isinstance(impl_type, JSONB):
