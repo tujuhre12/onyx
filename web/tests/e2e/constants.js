@@ -4,6 +4,6 @@ export const TEST_USER_CREDENTIALS = {
 };
 
 export const TEST_ADMIN_CREDENTIALS = {
-  email: "admin1@test.com",
-  password: "Admin1Password123!",
+  email: "admin_user@test.com",
+  password: "TestPassword123!",
 };
