@@ -5,6 +5,7 @@ import pytest
 from sqlalchemy import func
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import sessionmaker
 
 from onyx.auth.schemas import UserRole
 from onyx.db.models import User
