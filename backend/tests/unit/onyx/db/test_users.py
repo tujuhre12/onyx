@@ -2,8 +2,7 @@ import threading
 from typing import List
 
 import pytest
-from sqlalchemy import func
-from sqlalchemy import select
+from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.session import sessionmaker
 
@@ -12,23 +11,20 @@ from onyx.db.models import User
 from onyx.db.users import batch_add_ext_perm_user_if_not_exists
 
 
-def _call_parallel(engine, email_list: List[str]) -> None:
-    # Create a new connection and session for each thread to handle SQLite's threading restrictions
-    connection = engine.connect()
-    SessionLocal = sessionmaker(
-        bind=connection,
-        expire_on_commit=False,
-        autoflush=True,
-    )
+def _call_parallel(engine_url: str, email_list: List[str]) -> None:
+    # Create a new engine for each thread to handle SQLite's threading restrictions
+    thread_engine = create_engine(engine_url)
+    SessionLocal = sessionmaker(bind=thread_engine, expire_on_commit=False)
     session = SessionLocal()
     try:
         batch_add_ext_perm_user_if_not_exists(session, email_list)
+        session.commit()
     except Exception:
         session.rollback()
         raise
     finally:
         session.close()
-        connection.close()
+        thread_engine.dispose()
 
 
 @pytest.mark.parametrize(
@@ -49,8 +45,9 @@ def test_batch_add_ext_perm_user_if_not_exists_concurrent(
     engine = db_session.get_bind()
 
     # Create and start multiple threads that all try to add the same users
+    engine_url = str(engine.url)
     for _ in range(thread_count):
-        t = threading.Thread(target=_call_parallel, args=(engine, emails))
+        t = threading.Thread(target=_call_parallel, args=(engine_url, emails))
         threads.append(t)
         t.start()
 
