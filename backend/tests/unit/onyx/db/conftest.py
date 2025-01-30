@@ -3,17 +3,20 @@ from collections.abc import Generator
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy import event
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import JSON
+from sqlalchemy.types import String
+from sqlalchemy.types import Text
 
 from onyx.db.models import Base
 
 
 @event.listens_for(Base.metadata, "before_create")
 def adapt_jsonb_for_sqlite(target, connection, **kw):
-    """Replace JSONB with JSON for SQLite."""
+    """Replace PostgreSQL-specific types with SQLite-compatible types."""
     for table in target.tables.values():
         for column in table.columns:
             if isinstance(column.type, JSONB):
@@ -21,6 +24,10 @@ def adapt_jsonb_for_sqlite(target, connection, **kw):
                 json_type = JSON()
                 json_type.should_evaluate_none = True
                 column.type = json_type
+            elif isinstance(column.type, ARRAY):
+                # Convert ARRAY types to TEXT for SQLite
+                # We'll store arrays as JSON strings
+                column.type = Text()
 
 
 @pytest.fixture
