@@ -1,7 +1,8 @@
 from collections.abc import Generator
-import pytest
 from typing import Any
 from uuid import UUID
+
+import pytest
 
 from sqlalchemy import create_engine
 from sqlalchemy import event
@@ -15,6 +16,7 @@ from sqlalchemy.types import Text
 from sqlalchemy.types import TypeDecorator
 
 from onyx.db.models import Base
+
 
 class SQLiteUUID(TypeDecorator):
     impl = String(36)
@@ -48,6 +50,10 @@ def adapt_jsonb_for_sqlite(target, connection, **kw):
                 column.type = Text()
             elif str(column.type) == "UUID":
                 column.type = SQLiteUUID()
+            elif hasattr(column.type, "impl") and isinstance(column.type.impl, JSONB):
+                json_type = JSON()
+                json_type.should_evaluate_none = True
+                column.type.impl = json_type
 
 
 @pytest.fixture
