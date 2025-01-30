@@ -22,7 +22,7 @@ def _call_parallel(engine, email_list: List[str]) -> None:
     session = SessionLocal()
     try:
         batch_add_ext_perm_user_if_not_exists(session, email_list)
-    except Exception as e:
+    except Exception:
         session.rollback()
         raise
     finally:
