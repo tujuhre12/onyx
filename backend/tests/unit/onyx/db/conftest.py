@@ -10,6 +10,7 @@ from sqlalchemy.types import JSON
 
 from onyx.db.models import Base
 
+
 @event.listens_for(Base.metadata, "before_create")
 def adapt_jsonb_for_sqlite(target, connection, **kw):
     """Replace JSONB with JSON for SQLite."""
