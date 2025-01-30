@@ -1,7 +1,7 @@
 """remove recent assistants
 
 Revision ID: a6df6b88ef81
-Revises: 33ea50e88f24
+Revises: 4d58345da04a
 Create Date: 2025-01-29 10:25:52.790407
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "a6df6b88ef81"
-down_revision = "33ea50e88f24"
+down_revision = "4d58345da04a"
 branch_labels = None
 depends_on = None
 
