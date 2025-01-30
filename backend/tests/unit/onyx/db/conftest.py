@@ -85,9 +85,9 @@ def db_session() -> Generator[Session, None, None]:
     # Create all tables after type adaptation
     Base.metadata.create_all(bind=engine)
 
+    # For SQLite, we need to create a new connection for each session
+    # to avoid threading issues
     connection = engine.connect()
-    transaction = connection.begin()
-
     SessionLocal = sessionmaker(
         bind=connection,
         expire_on_commit=False,  # Prevent detached instance errors
@@ -98,9 +98,9 @@ def db_session() -> Generator[Session, None, None]:
     try:
         yield session
         session.flush()  # Make sure all SQL is executed
-        transaction.commit()
+        session.commit()
     except:
-        transaction.rollback()
+        session.rollback()
         raise
     finally:
         session.close()
