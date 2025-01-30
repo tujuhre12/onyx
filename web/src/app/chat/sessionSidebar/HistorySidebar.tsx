@@ -19,9 +19,7 @@ import {
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChatSession } from "../interfaces";
-import { NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA } from "@/lib/constants";
 import { Folder } from "../folders/interfaces";
-import { usePopup } from "@/components/admin/connectors/Popup";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 
 import { DocumentIcon2, NewChatIcon } from "@/components/icons/icons";
@@ -251,9 +249,10 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
 
     const handleNewChat = () => {
       reset();
+
       const newChatUrl =
         `/${page}` +
-        (NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA && currentChatSession
+        (currentChatSession
           ? `?assistantId=${currentChatSession.persona_id}`
           : "");
       router.push(newChatUrl);
@@ -293,8 +292,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                 className="w-full px-2 py-1  rounded-md items-center hover:bg-hover cursor-pointer transition-all duration-150 flex gap-x-2"
                 href={
                   `/${page}` +
-                  (NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA &&
-                  currentChatSession?.persona_id
+                  (currentChatSession?.persona_id
                     ? `?assistantId=${currentChatSession?.persona_id}`
                     : "")
                 }
