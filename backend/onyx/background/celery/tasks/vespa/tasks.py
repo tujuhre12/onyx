@@ -61,12 +61,13 @@ from onyx.db.index_attempt import get_index_attempt
 from onyx.db.index_attempt import mark_attempt_failed
 from onyx.db.models import DocumentSet
 from onyx.db.models import UserGroup
+from onyx.db.search_settings import get_active_search_settings
 from onyx.db.sync_record import cleanup_sync_records
 from onyx.db.sync_record import insert_sync_record
 from onyx.db.sync_record import update_sync_record_status
-from onyx.document_index.document_index_utils import get_both_index_names
 from onyx.document_index.factory import get_default_document_index
 from onyx.document_index.interfaces import VespaDocumentFields
+from onyx.httpx.httpx_pool import HttpxPool
 from onyx.redis.redis_connector import RedisConnector
 from onyx.redis.redis_connector_credential_pair import RedisConnectorCredentialPair
 from onyx.redis.redis_connector_delete import RedisConnectorDelete
@@ -682,7 +683,7 @@ def monitor_ccpair_pruning_taskset(
 
     mark_ccpair_as_pruned(int(cc_pair_id), db_session)
     task_logger.info(
-        f"Successfully pruned connector credential pair. cc_pair={cc_pair_id}"
+        f"Connector pruning finished: cc_pair={cc_pair_id} num_pruned={initial}"
     )
 
     redis_connector.prune.taskset_clear()
@@ -729,7 +730,6 @@ def monitor_ccpair_permissions_taskset(
         return
 
     mark_cc_pair_as_permissions_synced(db_session, int(cc_pair_id), payload.started)
-    task_logger.info(f"Successfully synced permissions for cc_pair={cc_pair_id}")
     task_logger.info(
         f"Permissions sync finished: "
         f"cc_pair={cc_pair_id} "
@@ -1109,9 +1109,11 @@ def vespa_metadata_sync_task(
 
     try:
         with get_session_with_tenant(tenant_id) as db_session:
-            curr_ind_name, sec_ind_name = get_both_index_names(db_session)
+            active_search_settings = get_active_search_settings(db_session)
             doc_index = get_default_document_index(
-                primary_index_name=curr_ind_name, secondary_index_name=sec_ind_name
+                search_settings=active_search_settings.primary,
+                secondary_search_settings=active_search_settings.secondary,
+                httpx_client=HttpxPool.get("vespa"),
             )
 
             retry_index = RetryDocumentIndex(doc_index)

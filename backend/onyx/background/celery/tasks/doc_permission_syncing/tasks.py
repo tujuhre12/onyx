@@ -206,6 +206,16 @@ def try_creating_permissions_sync_task(
 
         custom_task_id = f"{redis_connector.permissions.generator_task_key}_{uuid4()}"
 
+        # set a basic fence to start
+        redis_connector.permissions.set_active()
+        payload = RedisConnectorPermissionSyncPayload(
+            id=make_short_id(),
+            submitted=datetime.now(timezone.utc),
+            started=None,
+            celery_task_id=None,
+        )
+        redis_connector.permissions.set_fence(payload)
+
         result = app.send_task(
             OnyxCeleryTask.CONNECTOR_PERMISSION_SYNC_GENERATOR_TASK,
             kwargs=dict(
@@ -217,15 +227,9 @@ def try_creating_permissions_sync_task(
             priority=OnyxCeleryPriority.HIGH,
         )
 
-        # set a basic fence to start
-        payload = RedisConnectorPermissionSyncPayload(
-            id=make_short_id(),
-            submitted=datetime.now(timezone.utc),
-            started=None,
-            celery_task_id=result.id,
-        )
-
+        # fill in the celery task id
         redis_connector.permissions.set_active()
+        payload.celery_task_id = result.id
         redis_connector.permissions.set_fence(payload)
     except Exception:
         task_logger.exception(f"Unexpected exception: cc_pair={cc_pair_id}")
