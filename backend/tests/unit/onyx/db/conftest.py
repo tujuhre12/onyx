@@ -20,7 +20,7 @@ def adapt_jsonb_for_sqlite(target, connection, **kw):
         # Remove schema prefix for SQLite
         if table.schema:
             table.schema = None
-        
+
         for column in table.columns:
             if isinstance(column.type, JSONB):
                 # Create a new JSON type that SQLite can handle
