@@ -84,16 +84,26 @@ def db_session() -> Generator[Session, None, None]:
     event.listen(Base.metadata, "before_create", adapt_jsonb_for_sqlite)
     
     # Create all tables after type adaptation
-    Base.metadata.create_all(engine)
+    Base.metadata.create_all(bind=engine)
+    
+    connection = engine.connect()
+    transaction = connection.begin()
     
     SessionLocal = sessionmaker(
-        bind=engine,
-        expire_on_commit=False  # Prevent detached instance errors
+        bind=connection,
+        expire_on_commit=False,  # Prevent detached instance errors
+        autoflush=True
     )
     session = SessionLocal()
     
     try:
         yield session
+        session.flush()  # Make sure all SQL is executed
+        transaction.commit()
+    except:
+        transaction.rollback()
+        raise
     finally:
         session.close()
-        Base.metadata.drop_all(engine)
+        connection.close()
+        Base.metadata.drop_all(bind=engine)
