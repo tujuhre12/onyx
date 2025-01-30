@@ -53,11 +53,13 @@ def adapt_jsonb_for_sqlite(target: Any, connection: Any, **kw: Any) -> None:
                     # Keep the original model but adapt the implementation type
                     impl_type = column.type.impl
                     if isinstance(impl_type, JSONB):
-                        column.type = PydanticType(pydantic_model=original_model)
-                        column.type.impl = JSON()
+                        new_type = PydanticType(pydantic_model=original_model)
+                        new_type.impl = JSON()
+                        column.type = new_type
                     elif isinstance(impl_type, String):
-                        column.type = PydanticType(pydantic_model=original_model)
-                        column.type.impl = String(impl_type.length)
+                        new_type = PydanticType(pydantic_model=original_model)
+                        new_type.impl = String(impl_type.length)
+                        column.type = new_type
             elif hasattr(column.type, "impl"):
                 impl_type = column.type.impl
                 if isinstance(impl_type, JSONB):
@@ -72,10 +74,24 @@ def adapt_jsonb_for_sqlite(target: Any, connection: Any, **kw: Any) -> None:
 
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine("sqlite:///:memory:", echo=True)
+    
+    # Remove existing event listeners to avoid duplicates
+    for listener in Base.metadata.dispatch.before_create:
+        event.remove(Base.metadata, "before_create", listener)
+    
+    # Add our SQLite type adaptation listener
+    event.listen(Base.metadata, "before_create", adapt_jsonb_for_sqlite)
+    
+    # Create all tables after type adaptation
     Base.metadata.create_all(engine)
-    SessionLocal = sessionmaker(bind=engine)
+    
+    SessionLocal = sessionmaker(
+        bind=engine,
+        expire_on_commit=False  # Prevent detached instance errors
+    )
     session = SessionLocal()
+    
     try:
         yield session
     finally:
