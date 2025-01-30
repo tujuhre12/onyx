@@ -10,6 +10,7 @@ from celery import Celery
 from celery import shared_task
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
+from pydantic import ValidationError
 from redis import Redis
 from redis.exceptions import LockError
 from redis.lock import Lock as RedisLock
@@ -62,6 +63,7 @@ from onyx.server.utils import make_short_id
 from onyx.utils.logger import doc_permission_sync_ctx
 from onyx.utils.logger import LoggerContextVars
 from onyx.utils.logger import setup_logger
+
 
 logger = setup_logger()
 
@@ -564,7 +566,21 @@ def validate_permission_sync_fence(
     if not redis_connector.permissions.fenced:
         return
 
-    payload = redis_connector.permissions.payload
+    # in the cloud, the payload format may have changed ...
+    # it's a little sloppy, but just reset the fence for now if that happens
+    # TODO: add intentional cleanup/abort logic
+    try:
+        payload = redis_connector.permissions.payload
+    except ValidationError:
+        logger.warning(
+            "validate_permission_sync_fence - "
+            "Resetting fence because fence schema is out of date: "
+            f"cc_pair={cc_pair_id} "
+            f"fence={fence_key}"
+        )
+
+        redis_connector.permissions.reset()
+
     if not payload:
         return
 
