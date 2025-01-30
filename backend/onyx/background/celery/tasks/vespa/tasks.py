@@ -711,20 +711,30 @@ def monitor_ccpair_permissions_taskset(
     if initial is None:
         return
 
+    payload: RedisConnectorPermissionSyncPayload | None = (
+        redis_connector.permissions.payload
+    )
+
     remaining = redis_connector.permissions.get_remaining()
     task_logger.info(
-        f"Permissions sync progress: cc_pair={cc_pair_id} remaining={remaining} initial={initial}"
+        f"Permissions sync progress: cc_pair={cc_pair_id} "
+        f"id={payload.id} "
+        f"remaining={remaining} "
+        f"initial={initial}"
     )
     if remaining > 0:
         return
 
-    payload: RedisConnectorPermissionSyncPayload | None = (
-        redis_connector.permissions.payload
-    )
     start_time: datetime | None = payload.started if payload else None
 
     mark_cc_pair_as_permissions_synced(db_session, int(cc_pair_id), start_time)
     task_logger.info(f"Successfully synced permissions for cc_pair={cc_pair_id}")
+    task_logger.info(
+        f"Permissions sync finished: "
+        f"cc_pair={cc_pair_id} "
+        f"id={payload.id} "
+        f"num_synced={initial}"
+    )
 
     redis_connector.permissions.reset()
 
@@ -1066,6 +1076,8 @@ def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool | None:
         task_logger.info(
             "Soft time limit exceeded, task is being terminated gracefully."
         )
+    except Exception:
+        task_logger.exception("monitor_vespa_sync exceptioned.")
     finally:
         if lock_beat.owned():
             lock_beat.release()

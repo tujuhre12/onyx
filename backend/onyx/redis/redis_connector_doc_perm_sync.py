@@ -17,6 +17,7 @@ from onyx.redis.redis_pool import SCAN_ITER_COUNT_DEFAULT
 
 
 class RedisConnectorPermissionSyncPayload(BaseModel):
+    id: str
     submitted: datetime
     started: datetime | None
     celery_task_id: str | None
@@ -209,6 +210,9 @@ class RedisConnectorPermissionSync:
     @staticmethod
     def reset_all(r: redis.Redis) -> None:
         """Deletes all redis values for all connectors"""
+        for key in r.scan_iter(RedisConnectorPermissionSync.ACTIVE_PREFIX + "*"):
+            r.delete(key)
+
         for key in r.scan_iter(RedisConnectorPermissionSync.TASKSET_PREFIX + "*"):
             r.delete(key)
 

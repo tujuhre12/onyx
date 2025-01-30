@@ -3,6 +3,7 @@ from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 from time import sleep
+from typing import cast
 from uuid import uuid4
 
 from celery import Celery
@@ -24,6 +25,7 @@ from onyx.access.models import DocExternalAccess
 from onyx.background.celery.apps.app_base import task_logger
 from onyx.background.celery.celery_redis import celery_find_task
 from onyx.background.celery.celery_redis import celery_get_queue_length
+from onyx.background.celery.celery_redis import celery_get_queued_task_ids
 from onyx.background.celery.celery_redis import celery_get_unacked_task_ids
 from onyx.configs.app_configs import JOB_TIMEOUT
 from onyx.configs.constants import CELERY_GENERIC_BEAT_LOCK_TIMEOUT
@@ -50,6 +52,7 @@ from onyx.redis.redis_connector_doc_perm_sync import RedisConnectorPermissionSyn
 from onyx.redis.redis_pool import get_redis_client
 from onyx.redis.redis_pool import redis_lock_dump
 from onyx.redis.redis_pool import SCAN_ITER_COUNT_DEFAULT
+from onyx.server.utils import make_short_id
 from onyx.utils.logger import doc_permission_sync_ctx
 from onyx.utils.logger import LoggerContextVars
 from onyx.utils.logger import setup_logger
@@ -199,6 +202,8 @@ def try_creating_permissions_sync_task(
         redis_connector.permissions.generator_clear()
         redis_connector.permissions.taskset_clear()
 
+        redis_connector.permissions.set_active()
+
         custom_task_id = f"{redis_connector.permissions.generator_task_key}_{uuid4()}"
 
         result = app.send_task(
@@ -214,9 +219,13 @@ def try_creating_permissions_sync_task(
 
         # set a basic fence to start
         payload = RedisConnectorPermissionSyncPayload(
-            submitted=datetime.now(timezone.utc), started=None, celery_task_id=result.id
+            id=make_short_id(),
+            submitted=datetime.now(timezone.utc),
+            started=None,
+            celery_task_id=result.id,
         )
 
+        redis_connector.permissions.set_active()
         redis_connector.permissions.set_fence(payload)
     except Exception:
         task_logger.exception(f"Unexpected exception: cc_pair={cc_pair_id}")
@@ -335,6 +344,7 @@ def connector_permission_sync_generator_task(
                 raise ValueError(f"No fence payload found: cc_pair={cc_pair_id}")
 
             new_payload = RedisConnectorPermissionSyncPayload(
+                id=payload.id,
                 submitted=payload.submitted,
                 started=datetime.now(timezone.utc),
                 celery_task_id=payload.celery_task_id,
@@ -423,15 +433,14 @@ def update_external_document_permissions_task(
                     document_ids=[doc_id],
                 )
 
-            logger.debug(
-                f"Successfully synced postgres document permissions for {doc_id}"
-            )
-        return True
+            task_logger.info(f"doc={doc_id} " f"action=update_permissions")
     except Exception:
-        logger.exception(
+        task_logger.exception(
             f"Error Syncing Document Permissions: connector_id={connector_id} doc_id={doc_id}"
         )
         return False
+
+    return True
 
 
 def validate_permission_sync_fences(
@@ -440,7 +449,20 @@ def validate_permission_sync_fences(
     r_celery: Redis,
     lock_beat: RedisLock,
 ) -> None:
-    reserved_sync_tasks = celery_get_unacked_task_ids(
+    # building lookup table can be expensive, so we won't bother
+    # validating until the queue is small
+    PERMISSION_SYNC_VALIDATION_MAX_QUEUE_LEN = 1024
+
+    queue_len = celery_get_queue_length(
+        OnyxCeleryQueues.DOC_PERMISSIONS_UPSERT, r_celery
+    )
+    if queue_len > PERMISSION_SYNC_VALIDATION_MAX_QUEUE_LEN:
+        return
+
+    queued_upsert_tasks = celery_get_queued_task_ids(
+        OnyxCeleryQueues.DOC_PERMISSIONS_UPSERT, r_celery
+    )
+    reserved_generator_tasks = celery_get_unacked_task_ids(
         OnyxCeleryQueues.CONNECTOR_DOC_PERMISSIONS_SYNC, r_celery
     )
 
@@ -453,7 +475,9 @@ def validate_permission_sync_fences(
         validate_permission_sync_fence(
             tenant_id,
             key_bytes,
-            reserved_sync_tasks,
+            queued_upsert_tasks,
+            reserved_generator_tasks,
+            r,
             r_celery,
         )
     return
@@ -462,7 +486,9 @@ def validate_permission_sync_fences(
 def validate_permission_sync_fence(
     tenant_id: str | None,
     key_bytes: bytes,
+    queued_tasks: set[str],
     reserved_tasks: set[str],
+    r: Redis,
     r_celery: Redis,
 ) -> None:
     """Checks for the error condition where an indexing fence is set but the associated celery tasks don't exist.
@@ -487,6 +513,9 @@ def validate_permission_sync_fence(
     1. An unknown task id is always returned as state PENDING.
     2. Redis can be inspected for the task id, but the task id is gone between the time a worker receives the task
     and the time it actually starts on the worker.
+
+    queued_tasks: the celery queue of lightweight permission sync tasks
+    reserved_tasks: prefetched tasks for sync task generator
     """
     # if the fence doesn't exist, there's nothing to do
     fence_key = key_bytes.decode("utf-8")
@@ -513,15 +542,9 @@ def validate_permission_sync_fence(
     if not payload.celery_task_id:
         return
 
-    # for efficiency, we won't run validation until the queue is below a certain length
-    # since finding a task is O(n)
-    queue_len = celery_get_queue_length(
-        OnyxCeleryQueues.CONNECTOR_DOC_PERMISSIONS_SYNC, r_celery
-    )
-    if queue_len > 1024:
-        return
-
     # OK, there's actually something for us to validate
+
+    # either the generator task must be in flight or its subtasks must be
     found = celery_find_task(
         payload.celery_task_id,
         OnyxCeleryQueues.CONNECTOR_DOC_PERMISSIONS_SYNC,
@@ -534,6 +557,35 @@ def validate_permission_sync_fence(
 
     if payload.celery_task_id in reserved_tasks:
         # the celery task was prefetched and is reserved within a worker
+        redis_connector.permissions.set_active()
+        return
+
+    # look up every task in the current taskset in the celery queue
+    # every entry in the taskset should have an associated entry in the celery task queue
+    # because we get the celery tasks first, the entries in our own permissions taskset
+    # should be roughly a subset of the tasks in celery
+
+    # this check isn't very exact, but should be sufficient over a period of time
+    # A single successful check over some number of attempts is sufficient.
+    tasks_not_in_celery = 0  # a non-zero number after completing our check is bad
+
+    for member in r.sscan_iter(redis_connector.permissions.taskset_key):
+        member_bytes = cast(bytes, member)
+        member_str = member_bytes.decode("utf-8")
+        if member_str in queued_tasks:
+            continue
+
+        if member_str in reserved_tasks:
+            continue
+
+        tasks_not_in_celery += 1
+
+    logger.info(
+        "validate_permission_sync_fence task check: "
+        f"tasks_not_in_celery={tasks_not_in_celery}"
+    )
+
+    if tasks_not_in_celery == 0:
         redis_connector.permissions.set_active()
         return
 
