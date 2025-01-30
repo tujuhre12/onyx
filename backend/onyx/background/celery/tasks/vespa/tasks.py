@@ -715,6 +715,9 @@ def monitor_ccpair_permissions_taskset(
         redis_connector.permissions.payload
     )
 
+    if not payload:
+        return
+
     remaining = redis_connector.permissions.get_remaining()
     task_logger.info(
         f"Permissions sync progress: cc_pair={cc_pair_id} "
@@ -725,9 +728,7 @@ def monitor_ccpair_permissions_taskset(
     if remaining > 0:
         return
 
-    start_time: datetime | None = payload.started if payload else None
-
-    mark_cc_pair_as_permissions_synced(db_session, int(cc_pair_id), start_time)
+    mark_cc_pair_as_permissions_synced(db_session, int(cc_pair_id), payload.started)
     task_logger.info(f"Successfully synced permissions for cc_pair={cc_pair_id}")
     task_logger.info(
         f"Permissions sync finished: "
