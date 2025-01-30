@@ -95,7 +95,7 @@ def db_session() -> Generator[Session, None, None]:
         autoflush=True,
     )
     session = SessionLocal()
-    
+
     try:
         yield session
         session.flush()  # Make sure all SQL is executed
