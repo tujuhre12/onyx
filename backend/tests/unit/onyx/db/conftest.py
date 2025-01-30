@@ -13,6 +13,7 @@ from sqlalchemy.types import JSON
 from sqlalchemy.types import String
 from sqlalchemy.types import Text
 from sqlalchemy.types import TypeDecorator
+from sqlalchemy_pydantic_type import PydanticType
 
 from onyx.db.models import Base
 
@@ -50,9 +51,9 @@ def adapt_jsonb_for_sqlite(target: Any, connection: Any, **kw: Any) -> None:
                 if isinstance(impl_type, JSONB):
                     json_type = JSON()
                     json_type.should_evaluate_none = True
-                    if hasattr(column.type, "astext_type"):
-                        # For PydanticType with astext_type
-                        column.type = type(column.type)(json_type, astext_type=column.type.astext_type)
+                    if isinstance(column.type, PydanticType):
+                        # For PydanticType columns
+                        column.type = PydanticType(json_type)
                     else:
                         # For other composite types
                         column.type = type(column.type)(json_type)
