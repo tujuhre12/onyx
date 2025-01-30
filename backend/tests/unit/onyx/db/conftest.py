@@ -1,4 +1,6 @@
 from collections.abc import Generator
+from typing import Any
+from uuid import UUID
 
 import pytest
 from sqlalchemy import create_engine
@@ -8,11 +10,9 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import JSON
+from sqlalchemy.types import String
 from sqlalchemy.types import Text
 from sqlalchemy.types import TypeDecorator
-from sqlalchemy.types import String
-from typing import Any
-from uuid import UUID
 
 from onyx.db.models import Base
 
@@ -46,7 +46,7 @@ def adapt_jsonb_for_sqlite(target, connection, **kw):
                 column.type = json_type
             elif isinstance(column.type, ARRAY):
                 column.type = Text()
-            elif str(column.type) == 'UUID':
+            elif str(column.type) == "UUID":
                 column.type = SQLiteUUID()
 
 
