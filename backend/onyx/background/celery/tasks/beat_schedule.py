@@ -18,7 +18,7 @@ BEAT_EXPIRES_DEFAULT = 15 * 60  # 15 minutes (in seconds)
 
 # hack to slow down task dispatch in the cloud until
 # we have a better implementation (backpressure, etc)
-CLOUD_BEAT_SCHEDULE_MULTIPLIER = 8
+CLOUD_BEAT_SCHEDULE_MULTIPLIER = 16
 
 # tasks that only run in the cloud
 # the name attribute must start with ONYX_CLOUD_CELERY_TASK_PREFIX = "cloud" to be filtered
@@ -123,7 +123,7 @@ cloud_tasks_to_schedule = [
     {
         "name": f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_monitor-background-processes",
         "task": OnyxCeleryTask.CLOUD_BEAT_TASK_GENERATOR,
-        "schedule": timedelta(minutes=5 * CLOUD_BEAT_SCHEDULE_MULTIPLIER),
+        "schedule": timedelta(minutes=5 * CLOUD_BEAT_SCHEDULE_MULTIPLIER / 2),
         "options": {
             "priority": OnyxCeleryPriority.HIGHEST,
             "expires": BEAT_EXPIRES_DEFAULT,
