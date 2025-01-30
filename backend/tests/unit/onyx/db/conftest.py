@@ -8,7 +8,6 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import JSON
-from sqlalchemy.types import String
 from sqlalchemy.types import Text
 
 from onyx.db.models import Base
