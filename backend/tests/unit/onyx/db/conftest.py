@@ -44,15 +44,10 @@ def adapt_jsonb_for_sqlite(target: Any, connection: Any, **kw: Any) -> None:
         for column in table.columns:
             if isinstance(column.type, JSONB):
                 column.type = JSON()
-            elif hasattr(column.type, "impl"):
-                impl_type = column.type.impl
-                if isinstance(impl_type, JSONB):
-                    json_type = JSON()
-                    if isinstance(column.type, PydanticType):
-                        column.type.impl = json_type
-                    else:
-                        # For other composite types
-                        column.type = type(column.type)(json_type)
+            elif isinstance(column.type, PydanticType) and isinstance(column.type.impl, JSONB):
+                column.type.impl = JSON()
+            elif hasattr(column.type, "impl") and isinstance(column.type.impl, JSONB):
+                column.type = type(column.type)(JSON())
             elif isinstance(column.type, ARRAY):
                 column.type = Text()
             elif str(column.type) == "UUID":
