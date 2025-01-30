@@ -43,14 +43,11 @@ def adapt_jsonb_for_sqlite(target: Any, connection: Any, **kw: Any) -> None:
 
         for column in table.columns:
             if isinstance(column.type, JSONB):
-                json_type = JSON()
-                json_type.should_evaluate_none = True
-                column.type = json_type
+                column.type = JSON().with_variant(JSONB(), "postgresql")
             elif hasattr(column.type, "impl"):
                 impl_type = column.type.impl
                 if isinstance(impl_type, JSONB):
-                    json_type = JSON()
-                    json_type.should_evaluate_none = True
+                    json_type = JSON().with_variant(JSONB(), "postgresql")
                     if isinstance(column.type, PydanticType):
                         column.type.impl = json_type
                     else:
