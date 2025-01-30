@@ -249,6 +249,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
 
     const handleNewChat = () => {
       reset();
+      console.log("currentChatSession", currentChatSession);
 
       const newChatUrl =
         `/${page}` +
@@ -293,7 +294,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                 className="w-full px-2 py-1  rounded-md items-center hover:bg-hover cursor-pointer transition-all duration-150 flex gap-x-2"
                 href={
                   `/${page}` +
-                  (currentChatSession?.persona_id
+                  (currentChatSession
                     ? `?assistantId=${currentChatSession?.persona_id}`
                     : "")
                 }
@@ -318,14 +319,6 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                 <Link
                   className="w-full px-2 py-1  rounded-md items-center hover:bg-hover cursor-pointer transition-all duration-150 flex gap-x-2"
                   href="/chat/input-prompts"
-                  onClick={(e) => {
-                    if (e.metaKey || e.ctrlKey) {
-                      return;
-                    }
-                    if (handleNewChat) {
-                      handleNewChat();
-                    }
-                  }}
                 >
                   <DocumentIcon2
                     size={20}
