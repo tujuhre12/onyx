@@ -13,9 +13,10 @@ from onyx.db.users import batch_add_ext_perm_user_if_not_exists
 
 
 def _call_parallel(engine, email_list: List[str]) -> None:
-    # Create a new session for each thread to handle SQLite's threading restrictions
+    # Create a new connection and session for each thread to handle SQLite's threading restrictions
+    connection = engine.connect()
     SessionLocal = sessionmaker(
-        bind=engine,
+        bind=connection,
         expire_on_commit=False,
         autoflush=True,
     )
@@ -27,6 +28,7 @@ def _call_parallel(engine, email_list: List[str]) -> None:
         raise
     finally:
         session.close()
+        connection.close()
 
 
 @pytest.mark.parametrize(
