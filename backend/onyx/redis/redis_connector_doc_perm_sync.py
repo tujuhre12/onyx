@@ -196,6 +196,7 @@ class RedisConnectorPermissionSync:
         return len(async_results)
 
     def reset(self) -> None:
+        self.redis.delete(self.active_key)
         self.redis.delete(self.generator_progress_key)
         self.redis.delete(self.generator_complete_key)
         self.redis.delete(self.taskset_key)
