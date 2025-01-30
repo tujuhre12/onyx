@@ -33,7 +33,7 @@ class SQLiteUUID(TypeDecorator):
 
 
 @event.listens_for(Base.metadata, "before_create")
-def adapt_jsonb_for_sqlite(target, connection, **kw):
+def adapt_jsonb_for_sqlite(target: Any, connection: Any, **kw: Any) -> None:
     """Replace PostgreSQL-specific types with SQLite-compatible types."""
     for table in target.tables.values():
         # Remove schema prefix for SQLite
@@ -45,14 +45,21 @@ def adapt_jsonb_for_sqlite(target, connection, **kw):
                 json_type = JSON()
                 json_type.should_evaluate_none = True
                 column.type = json_type
+            elif hasattr(column.type, "impl"):
+                impl_type = column.type.impl
+                if isinstance(impl_type, JSONB):
+                    json_type = JSON()
+                    json_type.should_evaluate_none = True
+                    if hasattr(column.type, "astext_type"):
+                        # For PydanticType with astext_type
+                        column.type = type(column.type)(json_type, astext_type=column.type.astext_type)
+                    else:
+                        # For other composite types
+                        column.type = type(column.type)(json_type)
             elif isinstance(column.type, ARRAY):
                 column.type = Text()
             elif str(column.type) == "UUID":
                 column.type = SQLiteUUID()
-            elif hasattr(column.type, "impl") and isinstance(column.type.impl, JSONB):
-                json_type = JSON()
-                json_type.should_evaluate_none = True
-                column.type.impl = json_type
 
 
 @pytest.fixture
