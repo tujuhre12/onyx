@@ -276,15 +276,17 @@ def _generate_ext_permissioned_user(email: str) -> User:
 def batch_add_ext_perm_user_if_not_exists(
     db_session: Session, emails: list[str]
 ) -> list[User]:
-    lower_emails = [email.lower() for email in emails]
-    found_users, missing_lower_emails = _get_users_by_emails(db_session, lower_emails)
+    with db_session.begin():
+        lower_emails = [email.lower() for email in emails]
+        found_users, missing_lower_emails = _get_users_by_emails(
+            db_session, lower_emails
+        )
 
-    new_users: list[User] = []
-    for email in missing_lower_emails:
-        new_users.append(_generate_ext_permissioned_user(email=email))
+        new_users: list[User] = []
+        for email in missing_lower_emails:
+            new_users.append(_generate_ext_permissioned_user(email=email))
 
-    db_session.add_all(new_users)
-    db_session.commit()
+        db_session.add_all(new_users)
 
     return found_users + new_users
 
