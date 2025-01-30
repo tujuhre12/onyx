@@ -1,8 +1,8 @@
 from collections.abc import Generator
+import pytest
 from typing import Any
 from uuid import UUID
 
-import pytest
 from sqlalchemy import create_engine
 from sqlalchemy import event
 from sqlalchemy.dialects.postgresql import ARRAY
