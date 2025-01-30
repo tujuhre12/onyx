@@ -75,24 +75,24 @@ def adapt_jsonb_for_sqlite(target: Any, connection: Any, **kw: Any) -> None:
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
     engine = create_engine("sqlite:///:memory:", echo=True)
-    
+
     # Remove existing event listeners to avoid duplicates
     for listener in Base.metadata.dispatch.before_create:
         event.remove(Base.metadata, "before_create", listener)
-    
+
     # Add our SQLite type adaptation listener
     event.listen(Base.metadata, "before_create", adapt_jsonb_for_sqlite)
-    
+
     # Create all tables after type adaptation
     Base.metadata.create_all(bind=engine)
-    
+
     connection = engine.connect()
     transaction = connection.begin()
-    
+
     SessionLocal = sessionmaker(
         bind=connection,
         expire_on_commit=False,  # Prevent detached instance errors
-        autoflush=True
+        autoflush=True,
     )
     session = SessionLocal()
     
