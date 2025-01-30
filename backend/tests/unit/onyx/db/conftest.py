@@ -17,6 +17,10 @@ from onyx.db.models import Base
 def adapt_jsonb_for_sqlite(target, connection, **kw):
     """Replace PostgreSQL-specific types with SQLite-compatible types."""
     for table in target.tables.values():
+        # Remove schema prefix for SQLite
+        if table.schema:
+            table.schema = None
+        
         for column in table.columns:
             if isinstance(column.type, JSONB):
                 # Create a new JSON type that SQLite can handle
