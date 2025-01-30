@@ -13,7 +13,7 @@ from sqlalchemy.types import JSON
 from sqlalchemy.types import String
 from sqlalchemy.types import Text
 from sqlalchemy.types import TypeDecorator
-from sqlalchemy_pydantic_type import PydanticType
+from onyx.db.pydantic_type import PydanticType
 
 from onyx.db.models import Base
 
