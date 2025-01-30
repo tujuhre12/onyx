@@ -16,7 +16,10 @@ def adapt_jsonb_for_sqlite(target, connection, **kw):
     for table in target.tables.values():
         for column in table.columns:
             if isinstance(column.type, JSONB):
-                column.type = JSON()
+                # Create a new JSON type that SQLite can handle
+                json_type = JSON()
+                json_type.should_evaluate_none = True
+                column.type = json_type
 
 
 @pytest.fixture
