@@ -11,8 +11,14 @@ from onyx.db.models import User
 from onyx.db.users import batch_add_ext_perm_user_if_not_exists
 
 
-def _call_parallel(db_session: Session, email_list: List[str]) -> None:
-    batch_add_ext_perm_user_if_not_exists(db_session, email_list)
+def _call_parallel(engine, email_list: List[str]) -> None:
+    # Create a new session for each thread
+    SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
+    session = SessionLocal()
+    try:
+        batch_add_ext_perm_user_if_not_exists(session, email_list)
+    finally:
+        session.close()
 
 
 @pytest.mark.parametrize(
@@ -30,10 +36,11 @@ def test_batch_add_ext_perm_user_if_not_exists_concurrent(
 ) -> None:
     thread_count = 5
     threads = []
+    engine = db_session.get_bind()
 
     # Create and start multiple threads that all try to add the same users
     for _ in range(thread_count):
-        t = threading.Thread(target=_call_parallel, args=(db_session, emails))
+        t = threading.Thread(target=_call_parallel, args=(engine, emails))
         threads.append(t)
         t.start()
 
