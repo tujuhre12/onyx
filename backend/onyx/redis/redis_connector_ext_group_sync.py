@@ -7,8 +7,11 @@ from pydantic import BaseModel
 from redis.lock import Lock as RedisLock
 from sqlalchemy.orm import Session
 
+from onyx.redis.redis_pool import SCAN_ITER_COUNT_DEFAULT
+
 
 class RedisConnectorExternalGroupSyncPayload(BaseModel):
+    submitted: datetime
     started: datetime | None
     celery_task_id: str | None
 
@@ -63,7 +66,8 @@ class RedisConnectorExternalGroupSync:
         """Count of active external group syncing tasks"""
         count = 0
         for _ in self.redis.scan_iter(
-            RedisConnectorExternalGroupSync.FENCE_PREFIX + "*"
+            RedisConnectorExternalGroupSync.FENCE_PREFIX + "*",
+            count=SCAN_ITER_COUNT_DEFAULT,
         ):
             count += 1
         return count
@@ -131,6 +135,12 @@ class RedisConnectorExternalGroupSync:
         lock: RedisLock | None,
     ) -> int | None:
         pass
+
+    def reset(self) -> None:
+        self.redis.delete(self.generator_progress_key)
+        self.redis.delete(self.generator_complete_key)
+        self.redis.delete(self.taskset_key)
+        self.redis.delete(self.fence_key)
 
     @staticmethod
     def remove_from_taskset(id: int, task_id: str, r: redis.Redis) -> None:

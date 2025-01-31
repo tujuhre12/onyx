@@ -5,6 +5,8 @@ import sys
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from onyx.document_index.document_index_utils import get_multipass_config
+
 # makes it so `PYTHONPATH=.` is not required when running this script
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
@@ -15,6 +17,7 @@ from onyx.db.engine import get_session_context_manager  # noqa: E402
 from onyx.db.document import delete_documents_complete__no_commit  # noqa: E402
 from onyx.db.search_settings import get_current_search_settings  # noqa: E402
 from onyx.document_index.vespa.index import VespaIndex  # noqa: E402
+from onyx.db.document import get_document  # noqa: E402
 
 BATCH_SIZE = 100
 
@@ -53,8 +56,14 @@ def main() -> None:
 
             # Setup Vespa index
             search_settings = get_current_search_settings(db_session)
+            multipass_config = get_multipass_config(search_settings)
             index_name = search_settings.index_name
-            vespa_index = VespaIndex(index_name=index_name, secondary_index_name=None)
+            vespa_index = VespaIndex(
+                index_name=index_name,
+                secondary_index_name=None,
+                large_chunks_enabled=multipass_config.enable_large_chunks,
+                secondary_large_chunks_enabled=None,
+            )
 
             # Delete chunks from Vespa first
             print("Deleting orphaned document chunks from Vespa")
@@ -63,6 +72,9 @@ def main() -> None:
             with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
 
                 def process_doc(doc_id: str) -> str | None:
+                    document = get_document(doc_id, db_session)
+                    if not document:
+                        return None
                     # Check if document exists in Vespa first
                     try:
                         chunks = vespa_index.id_based_retrieval(
@@ -83,7 +95,9 @@ def main() -> None:
 
                     try:
                         print(f"Deleting document {doc_id} in Vespa")
-                        chunks_deleted = vespa_index.delete_single(doc_id)
+                        chunks_deleted = vespa_index.delete_single(
+                            doc_id, tenant_id=None, chunk_count=document.chunk_count
+                        )
                         if chunks_deleted > 0:
                             print(
                                 f"Deleted {chunks_deleted} chunks for document {doc_id}"

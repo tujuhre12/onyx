@@ -13,6 +13,7 @@ from onyx.connectors.confluence.onyx_confluence import OnyxConfluence
 from onyx.connectors.confluence.utils import get_user_email_from_username__server
 from onyx.connectors.models import SlimDocument
 from onyx.db.models import ConnectorCredentialPair
+from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -24,7 +25,9 @@ _REQUEST_PAGINATION_LIMIT = 5000
 def _get_server_space_permissions(
     confluence_client: OnyxConfluence, space_key: str
 ) -> ExternalAccess:
-    space_permissions = confluence_client.get_space_permissions(space_key=space_key)
+    space_permissions = confluence_client.get_all_space_permissions_server(
+        space_key=space_key
+    )
 
     viewspace_permissions = []
     for permission_category in space_permissions:
@@ -66,6 +69,13 @@ def _get_server_space_permissions(
             user_emails.add(user_email)
         else:
             logger.warning(f"Email for user {user_name} not found in Confluence")
+
+    if not user_emails and not group_names:
+        logger.warning(
+            "No user emails or group names found in Confluence space permissions"
+            f"\nSpace key: {space_key}"
+            f"\nSpace permissions: {space_permissions}"
+        )
 
     return ExternalAccess(
         external_user_emails=user_emails,
@@ -248,6 +258,7 @@ def _fetch_all_page_restrictions(
     slim_docs: list[SlimDocument],
     space_permissions_by_space_key: dict[str, ExternalAccess],
     is_cloud: bool,
+    callback: IndexingHeartbeatInterface | None,
 ) -> list[DocExternalAccess]:
     """
     For all pages, if a page has restrictions, then use those restrictions.
@@ -256,6 +267,12 @@ def _fetch_all_page_restrictions(
     document_restrictions: list[DocExternalAccess] = []
 
     for slim_doc in slim_docs:
+        if callback:
+            if callback.should_stop():
+                raise RuntimeError("confluence_doc_sync: Stop signal detected")
+
+            callback.progress("confluence_doc_sync:fetch_all_page_restrictions", 1)
+
         if slim_doc.perm_sync_data is None:
             raise ValueError(
                 f"No permission sync data found for document {slim_doc.id}"
@@ -325,7 +342,7 @@ def _fetch_all_page_restrictions(
 
 
 def confluence_doc_sync(
-    cc_pair: ConnectorCredentialPair,
+    cc_pair: ConnectorCredentialPair, callback: IndexingHeartbeatInterface | None
 ) -> list[DocExternalAccess]:
     """
     Adds the external permissions to the documents in postgres
@@ -350,6 +367,12 @@ def confluence_doc_sync(
     logger.debug("Fetching all slim documents from confluence")
     for doc_batch in confluence_connector.retrieve_all_slim_documents():
         logger.debug(f"Got {len(doc_batch)} slim documents from confluence")
+        if callback:
+            if callback.should_stop():
+                raise RuntimeError("confluence_doc_sync: Stop signal detected")
+
+            callback.progress("confluence_doc_sync", 1)
+
         slim_docs.extend(doc_batch)
 
     logger.debug("Fetching all page restrictions for space")
@@ -358,4 +381,5 @@ def confluence_doc_sync(
         slim_docs=slim_docs,
         space_permissions_by_space_key=space_permissions_by_space_key,
         is_cloud=is_cloud,
+        callback=callback,
     )

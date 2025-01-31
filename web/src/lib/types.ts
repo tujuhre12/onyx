@@ -7,9 +7,11 @@ interface UserPreferences {
   chosen_assistants: number[] | null;
   visible_assistants: number[];
   hidden_assistants: number[];
+  pinned_assistants?: number[];
   default_model: string | null;
   recent_assistants: number[];
   auto_scroll: boolean | null;
+  shortcut_enabled: boolean;
 }
 
 export enum UserRole {
@@ -96,7 +98,7 @@ export type ValidStatuses =
   | "in_progress"
   | "not_started";
 export type TaskStatus = "PENDING" | "STARTED" | "SUCCESS" | "FAILURE";
-export type Feedback = "like" | "dislike";
+export type Feedback = "like" | "dislike" | "mixed";
 export type AccessType = "public" | "private" | "sync";
 export type SessionType = "Chat" | "Search" | "Slack";
 
@@ -199,6 +201,7 @@ export interface CCPairDescriptor<ConnectorType, CredentialType> {
   name: string | null;
   connector: Connector<ConnectorType>;
   credential: Credential<CredentialType>;
+  access_type: AccessType;
 }
 
 export interface DocumentSet {
@@ -355,7 +358,8 @@ export type ConfigurableSources = Exclude<
 
 export const oauthSupportedSources: ConfigurableSources[] = [
   ValidSources.Slack,
-  ValidSources.GoogleDrive,
+  // NOTE: temporarily disabled until our GDrive App is approved
+  // ValidSources.GoogleDrive,
 ];
 
 export type OAuthSupportedSource = (typeof oauthSupportedSources)[number];

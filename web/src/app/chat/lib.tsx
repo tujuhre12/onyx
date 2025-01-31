@@ -24,6 +24,9 @@ import { Persona } from "../admin/assistants/interfaces";
 import { ReadonlyURLSearchParams } from "next/navigation";
 import { SEARCH_PARAM_NAMES } from "./searchParams";
 import { Settings } from "../admin/settings/interfaces";
+import { INTERNET_SEARCH_TOOL_ID } from "./tools/constants";
+import { SEARCH_TOOL_ID } from "./tools/constants";
+import { IIMAGE_GENERATION_TOOL_ID } from "./tools/constants";
 
 interface ChatRetentionInfo {
   chatRetentionDays: number;
@@ -363,8 +366,8 @@ export function groupSessionsByDateRange(chatSessions: ChatSession[]) {
   const groups: Record<string, ChatSession[]> = {
     Today: [],
     "Previous 7 Days": [],
-    "Previous 30 Days": [],
-    "Over 30 days ago": [],
+    "Previous 30 days": [],
+    "Over 30 days": [],
   };
 
   chatSessions.forEach((chatSession) => {
@@ -378,9 +381,9 @@ export function groupSessionsByDateRange(chatSessions: ChatSession[]) {
     } else if (diffDays <= 7) {
       groups["Previous 7 Days"].push(chatSession);
     } else if (diffDays <= 30) {
-      groups["Previous 30 Days"].push(chatSession);
+      groups["Previous 30 days"].push(chatSession);
     } else {
-      groups["Over 30 days ago"].push(chatSession);
+      groups["Over 30 days"].push(chatSession);
     }
   });
 
@@ -424,9 +427,10 @@ export function processRawChatHistory(
       message: messageInfo.message,
       type: messageInfo.message_type as "user" | "assistant",
       files: messageInfo.files,
-      alternateAssistantID: messageInfo.alternate_assistant_id
-        ? Number(messageInfo.alternate_assistant_id)
-        : null,
+      alternateAssistantID:
+        messageInfo.alternate_assistant_id !== null
+          ? Number(messageInfo.alternate_assistant_id)
+          : null,
       // only include these fields if this is an assistant message so that
       // this is identical to what is computed at streaming time
       ...(messageInfo.message_type === "assistant"
@@ -571,14 +575,14 @@ export function personaIncludesRetrieval(selectedPersona: Persona) {
   return selectedPersona.tools.some(
     (tool) =>
       tool.in_code_tool_id &&
-      ["SearchTool", "InternetSearchTool"].includes(tool.in_code_tool_id)
+      [SEARCH_TOOL_ID, INTERNET_SEARCH_TOOL_ID].includes(tool.in_code_tool_id)
   );
 }
 
 export function personaIncludesImage(selectedPersona: Persona) {
   return selectedPersona.tools.some(
     (tool) =>
-      tool.in_code_tool_id && tool.in_code_tool_id == "ImageGenerationTool"
+      tool.in_code_tool_id && tool.in_code_tool_id == IIMAGE_GENERATION_TOOL_ID
   );
 }
 

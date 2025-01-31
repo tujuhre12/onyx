@@ -572,29 +572,9 @@ class ChosenDefaultModelRequest(BaseModel):
     default_model: str | None = None
 
 
-class RecentAssistantsRequest(BaseModel):
-    current_assistant: int
-
-
-def update_recent_assistants(
-    recent_assistants: list[int] | None, current_assistant: int
-) -> list[int]:
-    if recent_assistants is None:
-        recent_assistants = []
-    else:
-        recent_assistants = [x for x in recent_assistants if x != current_assistant]
-
-    # Add current assistant to start of list
-    recent_assistants.insert(0, current_assistant)
-
-    # Keep only the 5 most recent assistants
-    recent_assistants = recent_assistants[:5]
-    return recent_assistants
-
-
-@router.patch("/user/recent-assistants")
-def update_user_recent_assistants(
-    request: RecentAssistantsRequest,
+@router.patch("/shortcut-enabled")
+def update_user_shortcut_enabled(
+    shortcut_enabled: bool,
     user: User | None = Depends(current_user),
     db_session: Session = Depends(get_session),
 ) -> None:
@@ -602,25 +582,16 @@ def update_user_recent_assistants(
         if AUTH_TYPE == AuthType.DISABLED:
             store = get_kv_store()
             no_auth_user = fetch_no_auth_user(store)
-            preferences = no_auth_user.preferences
-            recent_assistants = preferences.recent_assistants
-            updated_preferences = update_recent_assistants(
-                recent_assistants, request.current_assistant
-            )
-            preferences.recent_assistants = updated_preferences
-            set_no_auth_user_preferences(store, preferences)
+            no_auth_user.preferences.shortcut_enabled = shortcut_enabled
+            set_no_auth_user_preferences(store, no_auth_user.preferences)
             return
         else:
             raise RuntimeError("This should never happen")
 
-    recent_assistants = UserInfo.from_model(user).preferences.recent_assistants
-    updated_recent_assistants = update_recent_assistants(
-        recent_assistants, request.current_assistant
-    )
     db_session.execute(
         update(User)
         .where(User.id == user.id)  # type: ignore
-        .values(recent_assistants=updated_recent_assistants)
+        .values(shortcut_enabled=shortcut_enabled)
     )
     db_session.commit()
 
@@ -673,21 +644,23 @@ def update_user_default_model(
     db_session.commit()
 
 
-class ChosenAssistantsRequest(BaseModel):
-    chosen_assistants: list[int]
+class ReorderPinnedAssistantsRequest(BaseModel):
+    ordered_assistant_ids: list[int]
 
 
-@router.patch("/user/assistant-list")
-def update_user_assistant_list(
-    request: ChosenAssistantsRequest,
+@router.patch("/user/pinned-assistants")
+def update_user_pinned_assistants(
+    request: ReorderPinnedAssistantsRequest,
     user: User | None = Depends(current_user),
     db_session: Session = Depends(get_session),
 ) -> None:
+    ordered_assistant_ids = request.ordered_assistant_ids
+
     if user is None:
         if AUTH_TYPE == AuthType.DISABLED:
             store = get_kv_store()
             no_auth_user = fetch_no_auth_user(store)
-            no_auth_user.preferences.chosen_assistants = request.chosen_assistants
+            no_auth_user.preferences.pinned_assistants = ordered_assistant_ids
             set_no_auth_user_preferences(store, no_auth_user.preferences)
             return
         else:
@@ -696,9 +669,13 @@ def update_user_assistant_list(
     db_session.execute(
         update(User)
         .where(User.id == user.id)  # type: ignore
-        .values(chosen_assistants=request.chosen_assistants)
+        .values(pinned_assistants=ordered_assistant_ids)
     )
     db_session.commit()
+
+
+class ChosenAssistantsRequest(BaseModel):
+    chosen_assistants: list[int]
 
 
 def update_assistant_visibility(

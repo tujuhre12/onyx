@@ -1,9 +1,11 @@
 import random
 import time
 import traceback
+from collections.abc import Callable
 from datetime import datetime
 from datetime import timezone
 from http import HTTPStatus
+from typing import Any
 from typing import cast
 
 import httpx
@@ -22,17 +24,20 @@ from onyx.access.access import get_access_for_document
 from onyx.background.celery.apps.app_base import task_logger
 from onyx.background.celery.celery_redis import celery_get_queue_length
 from onyx.background.celery.celery_redis import celery_get_unacked_task_ids
+from onyx.background.celery.tasks.doc_permission_syncing.tasks import (
+    monitor_ccpair_permissions_taskset,
+)
+from onyx.background.celery.tasks.pruning.tasks import monitor_ccpair_pruning_taskset
 from onyx.background.celery.tasks.shared.RetryDocumentIndex import RetryDocumentIndex
 from onyx.background.celery.tasks.shared.tasks import LIGHT_SOFT_TIME_LIMIT
 from onyx.background.celery.tasks.shared.tasks import LIGHT_TIME_LIMIT
 from onyx.configs.app_configs import JOB_TIMEOUT
+from onyx.configs.app_configs import VESPA_SYNC_MAX_TASKS
 from onyx.configs.constants import CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import OnyxCeleryQueues
 from onyx.configs.constants import OnyxCeleryTask
 from onyx.configs.constants import OnyxRedisLocks
 from onyx.db.connector import fetch_connector_by_id
-from onyx.db.connector import mark_cc_pair_as_permissions_synced
-from onyx.db.connector import mark_ccpair_as_pruned
 from onyx.db.connector_credential_pair import add_deletion_failure_message
 from onyx.db.connector_credential_pair import (
     delete_connector_credential_pair__no_commit,
@@ -51,25 +56,31 @@ from onyx.db.document_set import get_document_set_by_id
 from onyx.db.document_set import mark_document_set_as_synced
 from onyx.db.engine import get_session_with_tenant
 from onyx.db.enums import IndexingStatus
+from onyx.db.enums import SyncStatus
+from onyx.db.enums import SyncType
 from onyx.db.index_attempt import delete_index_attempts
 from onyx.db.index_attempt import get_index_attempt
 from onyx.db.index_attempt import mark_attempt_failed
 from onyx.db.models import DocumentSet
-from onyx.document_index.document_index_utils import get_both_index_names
+from onyx.db.models import UserGroup
+from onyx.db.search_settings import get_active_search_settings
+from onyx.db.sync_record import cleanup_sync_records
+from onyx.db.sync_record import insert_sync_record
+from onyx.db.sync_record import update_sync_record_status
 from onyx.document_index.factory import get_default_document_index
 from onyx.document_index.interfaces import VespaDocumentFields
+from onyx.httpx.httpx_pool import HttpxPool
 from onyx.redis.redis_connector import RedisConnector
 from onyx.redis.redis_connector_credential_pair import RedisConnectorCredentialPair
 from onyx.redis.redis_connector_delete import RedisConnectorDelete
 from onyx.redis.redis_connector_doc_perm_sync import RedisConnectorPermissionSync
-from onyx.redis.redis_connector_doc_perm_sync import (
-    RedisConnectorPermissionSyncPayload,
-)
 from onyx.redis.redis_connector_index import RedisConnectorIndex
 from onyx.redis.redis_connector_prune import RedisConnectorPrune
 from onyx.redis.redis_document_set import RedisDocumentSet
 from onyx.redis.redis_pool import get_redis_client
+from onyx.redis.redis_pool import get_redis_replica_client
 from onyx.redis.redis_pool import redis_lock_dump
+from onyx.redis.redis_pool import SCAN_ITER_COUNT_DEFAULT
 from onyx.redis.redis_usergroup import RedisUserGroup
 from onyx.utils.logger import setup_logger
 from onyx.utils.variable_functionality import fetch_versioned_implementation
@@ -87,6 +98,7 @@ logger = setup_logger()
 # which bloats the result metadata considerably. trail=False prevents this.
 @shared_task(
     name=OnyxCeleryTask.CHECK_FOR_VESPA_SYNC_TASK,
+    ignore_result=True,
     soft_time_limit=JOB_TIMEOUT,
     trail=False,
     bind=True,
@@ -103,14 +115,14 @@ def check_for_vespa_sync_task(self: Task, *, tenant_id: str | None) -> bool | No
         timeout=CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT,
     )
 
-    try:
-        # these tasks should never overlap
-        if not lock_beat.acquire(blocking=False):
-            return None
+    # these tasks should never overlap
+    if not lock_beat.acquire(blocking=False):
+        return None
 
+    try:
         with get_session_with_tenant(tenant_id) as db_session:
             try_generate_stale_document_sync_tasks(
-                self.app, db_session, r, lock_beat, tenant_id
+                self.app, VESPA_SYNC_MAX_TASKS, db_session, r, lock_beat, tenant_id
             )
 
         # region document set scan
@@ -185,6 +197,7 @@ def check_for_vespa_sync_task(self: Task, *, tenant_id: str | None) -> bool | No
 
 def try_generate_stale_document_sync_tasks(
     celery_app: Celery,
+    max_tasks: int,
     db_session: Session,
     r: Redis,
     lock_beat: RedisLock,
@@ -215,11 +228,16 @@ def try_generate_stale_document_sync_tasks(
     # rkuo: we could technically sync all stale docs in one big pass.
     # but I feel it's more understandable to group the docs by cc_pair
     total_tasks_generated = 0
+    tasks_remaining = max_tasks
     cc_pairs = get_connector_credential_pairs(db_session)
     for cc_pair in cc_pairs:
+        lock_beat.reacquire()
+
         rc = RedisConnectorCredentialPair(tenant_id, cc_pair.id)
         rc.set_skip_docs(docs_to_skip)
-        result = rc.generate_tasks(celery_app, db_session, r, lock_beat, tenant_id)
+        result = rc.generate_tasks(
+            tasks_remaining, celery_app, db_session, r, lock_beat, tenant_id
+        )
 
         if result is None:
             continue
@@ -233,10 +251,19 @@ def try_generate_stale_document_sync_tasks(
         )
 
         total_tasks_generated += result[0]
+        tasks_remaining -= result[0]
+        if tasks_remaining <= 0:
+            break
 
-    task_logger.info(
-        f"RedisConnector.generate_tasks finished for all cc_pairs. total_tasks_generated={total_tasks_generated}"
-    )
+    if tasks_remaining <= 0:
+        task_logger.info(
+            f"RedisConnector.generate_tasks reached the task generation limit: "
+            f"total_tasks_generated={total_tasks_generated} max_tasks={max_tasks}"
+        )
+    else:
+        task_logger.info(
+            f"RedisConnector.generate_tasks finished for all cc_pairs. total_tasks_generated={total_tasks_generated}"
+        )
 
     r.set(RedisConnectorCredentialPair.get_fence_key(), total_tasks_generated)
     return total_tasks_generated
@@ -260,11 +287,21 @@ def try_generate_document_set_sync_tasks(
 
     # don't generate sync tasks if we're up to date
     # race condition with the monitor/cleanup function if we use a cached result!
-    document_set = get_document_set_by_id(db_session, document_set_id)
+    document_set = get_document_set_by_id(
+        db_session=db_session,
+        document_set_id=document_set_id,
+    )
     if not document_set:
         return None
 
     if document_set.is_up_to_date:
+        # there should be no in-progress sync records if this is up to date
+        # clean it up just in case things got into a bad state
+        cleanup_sync_records(
+            db_session=db_session,
+            entity_id=document_set_id,
+            sync_type=SyncType.DOCUMENT_SET,
+        )
         return None
 
     # add tasks to celery and build up the task set to monitor in redis
@@ -275,7 +312,9 @@ def try_generate_document_set_sync_tasks(
     )
 
     # Add all documents that need to be updated into the queue
-    result = rds.generate_tasks(celery_app, db_session, r, lock_beat, tenant_id)
+    result = rds.generate_tasks(
+        VESPA_SYNC_MAX_TASKS, celery_app, db_session, r, lock_beat, tenant_id
+    )
     if result is None:
         return None
 
@@ -291,6 +330,13 @@ def try_generate_document_set_sync_tasks(
         f"document_set={document_set.id} tasks_generated={tasks_generated}"
     )
 
+    # create before setting fence to avoid race condition where the monitoring
+    # task updates the sync record before it is created
+    insert_sync_record(
+        db_session=db_session,
+        entity_id=document_set_id,
+        sync_type=SyncType.DOCUMENT_SET,
+    )
     # set this only after all tasks have been added
     rds.set_fence(tasks_generated)
     return tasks_generated
@@ -312,8 +358,9 @@ def try_generate_user_group_sync_tasks(
         return None
 
     # race condition with the monitor/cleanup function if we use a cached result!
-    fetch_user_group = fetch_versioned_implementation(
-        "onyx.db.user_group", "fetch_user_group"
+    fetch_user_group = cast(
+        Callable[[Session, int], UserGroup | None],
+        fetch_versioned_implementation("onyx.db.user_group", "fetch_user_group"),
     )
 
     usergroup = fetch_user_group(db_session, usergroup_id)
@@ -321,6 +368,13 @@ def try_generate_user_group_sync_tasks(
         return None
 
     if usergroup.is_up_to_date:
+        # there should be no in-progress sync records if this is up to date
+        # clean it up just in case things got into a bad state
+        cleanup_sync_records(
+            db_session=db_session,
+            entity_id=usergroup_id,
+            sync_type=SyncType.USER_GROUP,
+        )
         return None
 
     # add tasks to celery and build up the task set to monitor in redis
@@ -330,7 +384,9 @@ def try_generate_user_group_sync_tasks(
     task_logger.info(
         f"RedisUserGroup.generate_tasks starting. usergroup_id={usergroup.id}"
     )
-    result = rug.generate_tasks(celery_app, db_session, r, lock_beat, tenant_id)
+    result = rug.generate_tasks(
+        VESPA_SYNC_MAX_TASKS, celery_app, db_session, r, lock_beat, tenant_id
+    )
     if result is None:
         return None
 
@@ -346,8 +402,16 @@ def try_generate_user_group_sync_tasks(
         f"usergroup={usergroup.id} tasks_generated={tasks_generated}"
     )
 
+    # create before setting fence to avoid race condition where the monitoring
+    # task updates the sync record before it is created
+    insert_sync_record(
+        db_session=db_session,
+        entity_id=usergroup_id,
+        sync_type=SyncType.USER_GROUP,
+    )
     # set this only after all tasks have been added
     rug.set_fence(tasks_generated)
+
     return tasks_generated
 
 
@@ -397,6 +461,13 @@ def monitor_document_set_taskset(
         f"remaining={count} initial={initial_count}"
     )
     if count > 0:
+        update_sync_record_status(
+            db_session=db_session,
+            entity_id=document_set_id,
+            sync_type=SyncType.DOCUMENT_SET,
+            sync_status=SyncStatus.IN_PROGRESS,
+            num_docs_synced=count,
+        )
         return
 
     document_set = cast(
@@ -415,6 +486,13 @@ def monitor_document_set_taskset(
             task_logger.info(
                 f"Successfully synced document set: document_set={document_set_id}"
             )
+        update_sync_record_status(
+            db_session=db_session,
+            entity_id=document_set_id,
+            sync_type=SyncType.DOCUMENT_SET,
+            sync_status=SyncStatus.SUCCESS,
+            num_docs_synced=initial_count,
+        )
 
     rds.reset()
 
@@ -448,10 +526,21 @@ def monitor_connector_deletion_taskset(
         f"Connector deletion progress: cc_pair={cc_pair_id} remaining={remaining} initial={fence_data.num_tasks}"
     )
     if remaining > 0:
+        with get_session_with_tenant(tenant_id) as db_session:
+            update_sync_record_status(
+                db_session=db_session,
+                entity_id=cc_pair_id,
+                sync_type=SyncType.CONNECTOR_DELETION,
+                sync_status=SyncStatus.IN_PROGRESS,
+                num_docs_synced=remaining,
+            )
         return
 
     with get_session_with_tenant(tenant_id) as db_session:
-        cc_pair = get_connector_credential_pair_from_id(cc_pair_id, db_session)
+        cc_pair = get_connector_credential_pair_from_id(
+            db_session=db_session,
+            cc_pair_id=cc_pair_id,
+        )
         if not cc_pair:
             task_logger.warning(
                 f"Connector deletion - cc_pair not found: cc_pair={cc_pair_id}"
@@ -523,11 +612,29 @@ def monitor_connector_deletion_taskset(
                 )
                 db_session.delete(connector)
             db_session.commit()
+
+            update_sync_record_status(
+                db_session=db_session,
+                entity_id=cc_pair_id,
+                sync_type=SyncType.CONNECTOR_DELETION,
+                sync_status=SyncStatus.SUCCESS,
+                num_docs_synced=fence_data.num_tasks,
+            )
+
         except Exception as e:
             db_session.rollback()
             stack_trace = traceback.format_exc()
             error_message = f"Error: {str(e)}\n\nStack Trace:\n{stack_trace}"
             add_deletion_failure_message(db_session, cc_pair_id, error_message)
+
+            update_sync_record_status(
+                db_session=db_session,
+                entity_id=cc_pair_id,
+                sync_type=SyncType.CONNECTOR_DELETION,
+                sync_status=SyncStatus.FAILED,
+                num_docs_synced=fence_data.num_tasks,
+            )
+
             task_logger.exception(
                 f"Connector deletion exceptioned: "
                 f"cc_pair={cc_pair_id} connector={cc_pair.connector_id} credential={cc_pair.credential_id}"
@@ -545,83 +652,6 @@ def monitor_connector_deletion_taskset(
     redis_connector.delete.reset()
 
 
-def monitor_ccpair_pruning_taskset(
-    tenant_id: str | None, key_bytes: bytes, r: Redis, db_session: Session
-) -> None:
-    fence_key = key_bytes.decode("utf-8")
-    cc_pair_id_str = RedisConnector.get_id_from_fence_key(fence_key)
-    if cc_pair_id_str is None:
-        task_logger.warning(
-            f"monitor_ccpair_pruning_taskset: could not parse cc_pair_id from {fence_key}"
-        )
-        return
-
-    cc_pair_id = int(cc_pair_id_str)
-
-    redis_connector = RedisConnector(tenant_id, cc_pair_id)
-    if not redis_connector.prune.fenced:
-        return
-
-    initial = redis_connector.prune.generator_complete
-    if initial is None:
-        return
-
-    remaining = redis_connector.prune.get_remaining()
-    task_logger.info(
-        f"Connector pruning progress: cc_pair={cc_pair_id} remaining={remaining} initial={initial}"
-    )
-    if remaining > 0:
-        return
-
-    mark_ccpair_as_pruned(int(cc_pair_id), db_session)
-    task_logger.info(
-        f"Successfully pruned connector credential pair. cc_pair={cc_pair_id}"
-    )
-
-    redis_connector.prune.taskset_clear()
-    redis_connector.prune.generator_clear()
-    redis_connector.prune.set_fence(False)
-
-
-def monitor_ccpair_permissions_taskset(
-    tenant_id: str | None, key_bytes: bytes, r: Redis, db_session: Session
-) -> None:
-    fence_key = key_bytes.decode("utf-8")
-    cc_pair_id_str = RedisConnector.get_id_from_fence_key(fence_key)
-    if cc_pair_id_str is None:
-        task_logger.warning(
-            f"monitor_ccpair_permissions_taskset: could not parse cc_pair_id from {fence_key}"
-        )
-        return
-
-    cc_pair_id = int(cc_pair_id_str)
-
-    redis_connector = RedisConnector(tenant_id, cc_pair_id)
-    if not redis_connector.permissions.fenced:
-        return
-
-    initial = redis_connector.permissions.generator_complete
-    if initial is None:
-        return
-
-    remaining = redis_connector.permissions.get_remaining()
-    task_logger.info(
-        f"Permissions sync progress: cc_pair={cc_pair_id} remaining={remaining} initial={initial}"
-    )
-    if remaining > 0:
-        return
-
-    payload: RedisConnectorPermissionSyncPayload | None = (
-        redis_connector.permissions.payload
-    )
-    start_time: datetime | None = payload.started if payload else None
-
-    mark_cc_pair_as_permissions_synced(db_session, int(cc_pair_id), start_time)
-    task_logger.info(f"Successfully synced permissions for cc_pair={cc_pair_id}")
-
-    redis_connector.permissions.reset()
-
-
 def monitor_ccpair_indexing_taskset(
     tenant_id: str | None, key_bytes: bytes, r: Redis, db_session: Session
 ) -> None:
@@ -630,7 +660,7 @@ def monitor_ccpair_indexing_taskset(
     composite_id = RedisConnector.get_id_from_fence_key(fence_key)
     if composite_id is None:
         task_logger.warning(
-            f"monitor_ccpair_indexing_taskset: could not parse composite_id from {fence_key}"
+            f"Connector indexing: could not parse composite_id from {fence_key}"
         )
         return
 
@@ -680,6 +710,7 @@ def monitor_ccpair_indexing_taskset(
     # inner/outer/inner double check pattern to avoid race conditions when checking for
     # bad state
 
+    # Verify: if the generator isn't complete, the task must not be in READY state
     # inner = get_completion / generator_complete not signaled
     # outer = result.state in READY state
     status_int = redis_connector_index.get_completion()
@@ -725,7 +756,7 @@ def monitor_ccpair_indexing_taskset(
                             )
                 except Exception:
                     task_logger.exception(
-                        "monitor_ccpair_indexing_taskset - transient exception marking index attempt as failed: "
+                        "Connector indexing - Transient exception marking index attempt as failed: "
                         f"attempt={payload.index_attempt_id} "
                         f"tenant={tenant_id} "
                         f"cc_pair={cc_pair_id} "
@@ -733,6 +764,20 @@ def monitor_ccpair_indexing_taskset(
                     )
 
                 redis_connector_index.reset()
+        return
+
+    if redis_connector_index.watchdog_signaled():
+        # if the generator is complete, don't clean up until the watchdog has exited
+        task_logger.info(
+            f"Connector indexing - Delaying finalization until watchdog has exited: "
+            f"attempt={payload.index_attempt_id} "
+            f"cc_pair={cc_pair_id} "
+            f"search_settings={search_settings_id} "
+            f"progress={progress} "
+            f"elapsed_submitted={elapsed_submitted.total_seconds():.2f} "
+            f"elapsed_started={elapsed_started_str}"
+        )
+
         return
 
     status_enum = HTTPStatus(status_int)
@@ -751,11 +796,20 @@ def monitor_ccpair_indexing_taskset(
     redis_connector_index.reset()
 
 
-@shared_task(name=OnyxCeleryTask.MONITOR_VESPA_SYNC, soft_time_limit=300, bind=True)
-def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool:
-    """This is a celery beat task that monitors and finalizes metadata sync tasksets.
+@shared_task(
+    name=OnyxCeleryTask.MONITOR_VESPA_SYNC,
+    ignore_result=True,
+    soft_time_limit=300,
+    bind=True,
+)
+def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool | None:
+    """This is a celery beat task that monitors and finalizes various long running tasks.
+
+    The name monitor_vespa_sync is a bit of a misnomer since it checks many different tasks
+    now. Should change that at some point.
+
     It scans for fence values and then gets the counts of any associated tasksets.
-    If the count is 0, that means all tasks finished and we should clean up.
+    For many tasks, the count is 0, that means all tasks finished and we should clean up.
 
     This task lock timeout is CELERY_METADATA_SYNC_BEAT_LOCK_TIMEOUT seconds, so don't
     do anything too expensive in this function!
@@ -766,26 +820,36 @@ def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool:
 
     time_start = time.monotonic()
 
-    timings: dict[str, float] = {}
+    timings: dict[str, Any] = {}
     timings["start"] = time_start
 
     r = get_redis_client(tenant_id=tenant_id)
+
+    # Replica usage notes
+    #
+    # False negatives are OK. (aka fail to to see a key that exists on the master).
+    # We simply skip the monitoring work and it will be caught on the next pass.
+    #
+    # False positives are not OK, and are possible if we clear a fence on the master and
+    # then read from the replica. In this case, monitoring work could be done on a fence
+    # that no longer exists. To avoid this, we scan from the replica, but double check
+    # the result on the master.
+    r_replica = get_redis_replica_client(tenant_id=tenant_id)
 
     lock_beat: RedisLock = r.lock(
         OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK,
         timeout=CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT,
     )
 
-    try:
-        # prevent overlapping tasks
-        if not lock_beat.acquire(blocking=False):
-            task_logger.info("monitor_vespa_sync exiting due to overlap")
-            return False
+    # prevent overlapping tasks
+    if not lock_beat.acquire(blocking=False):
+        return None
 
+    try:
         # print current queue lengths
         phase_start = time.monotonic()
         # we don't need every tenant polling redis for this info.
-        if not MULTI_TENANT or random.randint(1, 100) == 100:
+        if not MULTI_TENANT or random.randint(1, 10) == 10:
             r_celery = self.app.broker_connection().channel().client  # type: ignore
             n_celery = celery_get_queue_length("celery", r_celery)
             n_indexing = celery_get_queue_length(
@@ -826,81 +890,117 @@ def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool:
                 f"permissions_upsert={n_permissions_upsert} "
             )
         timings["queues"] = time.monotonic() - phase_start
+        timings["queues_ttl"] = r.ttl(OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK)
 
         # scan and monitor activity to completion
         phase_start = time.monotonic()
         lock_beat.reacquire()
-        if r.exists(RedisConnectorCredentialPair.get_fence_key()):
-            monitor_connector_taskset(r)
+        if r_replica.exists(RedisConnectorCredentialPair.get_fence_key()):
+            if r.exists(RedisConnectorCredentialPair.get_fence_key()):
+                monitor_connector_taskset(r)
         timings["connector"] = time.monotonic() - phase_start
+        timings["connector_ttl"] = r.ttl(OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK)
 
         phase_start = time.monotonic()
-        for key_bytes in r.scan_iter(RedisConnectorDelete.FENCE_PREFIX + "*"):
+        lock_beat.reacquire()
+        for key_bytes in r_replica.scan_iter(
+            RedisConnectorDelete.FENCE_PREFIX + "*", count=SCAN_ITER_COUNT_DEFAULT
+        ):
+            if r.exists(key_bytes):
+                monitor_connector_deletion_taskset(tenant_id, key_bytes, r)
             lock_beat.reacquire()
-            monitor_connector_deletion_taskset(tenant_id, key_bytes, r)
 
         timings["connector_deletion"] = time.monotonic() - phase_start
+        timings["connector_deletion_ttl"] = r.ttl(
+            OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK
+        )
 
         phase_start = time.monotonic()
-        for key_bytes in r.scan_iter(RedisDocumentSet.FENCE_PREFIX + "*"):
+        lock_beat.reacquire()
+        for key_bytes in r_replica.scan_iter(
+            RedisDocumentSet.FENCE_PREFIX + "*", count=SCAN_ITER_COUNT_DEFAULT
+        ):
+            if r.exists(key_bytes):
+                with get_session_with_tenant(tenant_id) as db_session:
+                    monitor_document_set_taskset(tenant_id, key_bytes, r, db_session)
             lock_beat.reacquire()
-            with get_session_with_tenant(tenant_id) as db_session:
-                monitor_document_set_taskset(tenant_id, key_bytes, r, db_session)
-        timings["document_set"] = time.monotonic() - phase_start
+        timings["documentset"] = time.monotonic() - phase_start
+        timings["documentset_ttl"] = r.ttl(OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK)
 
         phase_start = time.monotonic()
-        for key_bytes in r.scan_iter(RedisUserGroup.FENCE_PREFIX + "*"):
+        lock_beat.reacquire()
+        for key_bytes in r_replica.scan_iter(
+            RedisUserGroup.FENCE_PREFIX + "*", count=SCAN_ITER_COUNT_DEFAULT
+        ):
+            if r.exists(key_bytes):
+                monitor_usergroup_taskset = (
+                    fetch_versioned_implementation_with_fallback(
+                        "onyx.background.celery.tasks.vespa.tasks",
+                        "monitor_usergroup_taskset",
+                        noop_fallback,
+                    )
+                )
+                with get_session_with_tenant(tenant_id) as db_session:
+                    monitor_usergroup_taskset(tenant_id, key_bytes, r, db_session)
             lock_beat.reacquire()
-            monitor_usergroup_taskset = fetch_versioned_implementation_with_fallback(
-                "onyx.background.celery.tasks.vespa.tasks",
-                "monitor_usergroup_taskset",
-                noop_fallback,
-            )
-            with get_session_with_tenant(tenant_id) as db_session:
-                monitor_usergroup_taskset(tenant_id, key_bytes, r, db_session)
         timings["usergroup"] = time.monotonic() - phase_start
+        timings["usergroup_ttl"] = r.ttl(OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK)
 
         phase_start = time.monotonic()
-        for key_bytes in r.scan_iter(RedisConnectorPrune.FENCE_PREFIX + "*"):
+        lock_beat.reacquire()
+        for key_bytes in r_replica.scan_iter(
+            RedisConnectorPrune.FENCE_PREFIX + "*", count=SCAN_ITER_COUNT_DEFAULT
+        ):
+            if r.exists(key_bytes):
+                with get_session_with_tenant(tenant_id) as db_session:
+                    monitor_ccpair_pruning_taskset(tenant_id, key_bytes, r, db_session)
             lock_beat.reacquire()
-            with get_session_with_tenant(tenant_id) as db_session:
-                monitor_ccpair_pruning_taskset(tenant_id, key_bytes, r, db_session)
         timings["pruning"] = time.monotonic() - phase_start
+        timings["pruning_ttl"] = r.ttl(OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK)
 
         phase_start = time.monotonic()
-        for key_bytes in r.scan_iter(RedisConnectorIndex.FENCE_PREFIX + "*"):
+        lock_beat.reacquire()
+        for key_bytes in r_replica.scan_iter(
+            RedisConnectorIndex.FENCE_PREFIX + "*", count=SCAN_ITER_COUNT_DEFAULT
+        ):
+            if r.exists(key_bytes):
+                with get_session_with_tenant(tenant_id) as db_session:
+                    monitor_ccpair_indexing_taskset(tenant_id, key_bytes, r, db_session)
             lock_beat.reacquire()
-            with get_session_with_tenant(tenant_id) as db_session:
-                monitor_ccpair_indexing_taskset(tenant_id, key_bytes, r, db_session)
         timings["indexing"] = time.monotonic() - phase_start
+        timings["indexing_ttl"] = r.ttl(OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK)
 
         phase_start = time.monotonic()
-        for key_bytes in r.scan_iter(RedisConnectorPermissionSync.FENCE_PREFIX + "*"):
+        lock_beat.reacquire()
+        for key_bytes in r_replica.scan_iter(
+            RedisConnectorPermissionSync.FENCE_PREFIX + "*",
+            count=SCAN_ITER_COUNT_DEFAULT,
+        ):
+            if r.exists(key_bytes):
+                with get_session_with_tenant(tenant_id) as db_session:
+                    monitor_ccpair_permissions_taskset(
+                        tenant_id, key_bytes, r, db_session
+                    )
             lock_beat.reacquire()
-            with get_session_with_tenant(tenant_id) as db_session:
-                monitor_ccpair_permissions_taskset(tenant_id, key_bytes, r, db_session)
 
         timings["permissions"] = time.monotonic() - phase_start
+        timings["permissions_ttl"] = r.ttl(OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK)
     except SoftTimeLimitExceeded:
         task_logger.info(
             "Soft time limit exceeded, task is being terminated gracefully."
         )
+        return False
+    except Exception:
+        task_logger.exception("monitor_vespa_sync exceptioned.")
+        return False
     finally:
         if lock_beat.owned():
             lock_beat.release()
         else:
-            t = timings
             task_logger.error(
                 "monitor_vespa_sync - Lock not owned on completion: "
                 f"tenant={tenant_id} "
-                f"queues={t.get('queues')} "
-                f"connector={t.get('connector')} "
-                f"connector_deletion={t.get('connector_deletion')} "
-                f"document_set={t.get('document_set')} "
-                f"usergroup={t.get('usergroup')} "
-                f"pruning={t.get('pruning')} "
-                f"indexing={t.get('indexing')} "
-                f"permissions={t.get('permissions')}"
+                f"timings={timings}"
             )
             redis_lock_dump(lock_beat, r)
 
@@ -919,11 +1019,15 @@ def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool:
 def vespa_metadata_sync_task(
     self: Task, document_id: str, tenant_id: str | None
 ) -> bool:
+    start = time.monotonic()
+
     try:
         with get_session_with_tenant(tenant_id) as db_session:
-            curr_ind_name, sec_ind_name = get_both_index_names(db_session)
+            active_search_settings = get_active_search_settings(db_session)
             doc_index = get_default_document_index(
-                primary_index_name=curr_ind_name, secondary_index_name=sec_ind_name
+                search_settings=active_search_settings.primary,
+                secondary_search_settings=active_search_settings.secondary,
+                httpx_client=HttpxPool.get("vespa"),
             )
 
             retry_index = RetryDocumentIndex(doc_index)
@@ -949,7 +1053,12 @@ def vespa_metadata_sync_task(
             )
 
             # update Vespa. OK if doc doesn't exist. Raises exception otherwise.
-            chunks_affected = retry_index.update_single(document_id, fields)
+            chunks_affected = retry_index.update_single(
+                document_id,
+                tenant_id=tenant_id,
+                chunk_count=doc.chunk_count,
+                fields=fields,
+            )
 
             # update db last. Worst case = we crash right before this and
             # the sync might repeat again later
@@ -964,9 +1073,16 @@ def vespa_metadata_sync_task(
             # r = get_redis_client(tenant_id=tenant_id)
             # r.delete(redis_syncing_key)
 
-            task_logger.info(f"doc={document_id} action=sync chunks={chunks_affected}")
+            elapsed = time.monotonic() - start
+            task_logger.info(
+                f"doc={document_id} "
+                f"action=sync "
+                f"chunks={chunks_affected} "
+                f"elapsed={elapsed:.2f}"
+            )
     except SoftTimeLimitExceeded:
         task_logger.info(f"SoftTimeLimitExceeded exception. doc={document_id}")
+        return False
     except Exception as ex:
         if isinstance(ex, RetryError):
             task_logger.warning(

@@ -21,6 +21,7 @@ from onyx.configs.app_configs import REDIS_HOST
 from onyx.configs.app_configs import REDIS_PASSWORD
 from onyx.configs.app_configs import REDIS_POOL_MAX_CONNECTIONS
 from onyx.configs.app_configs import REDIS_PORT
+from onyx.configs.app_configs import REDIS_REPLICA_HOST
 from onyx.configs.app_configs import REDIS_SSL
 from onyx.configs.app_configs import REDIS_SSL_CA_CERTS
 from onyx.configs.app_configs import REDIS_SSL_CERT_REQS
@@ -28,6 +29,8 @@ from onyx.configs.constants import REDIS_SOCKET_KEEPALIVE_OPTIONS
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
+
+SCAN_ITER_COUNT_DEFAULT = 4096
 
 
 class TenantRedis(redis.Redis):
@@ -116,9 +119,10 @@ class TenantRedis(redis.Redis):
             "hexists",
             "hset",
             "hdel",
+            "ttl",
         ]  # Regular methods that need simple prefixing
 
-        if item == "scan_iter":
+        if item == "scan_iter" or item == "sscan_iter":
             return self._prefix_scan_iter(original_attr)
         elif item in methods_to_wrap and callable(original_attr):
             return self._prefix_method(original_attr)
@@ -129,22 +133,31 @@ class RedisPool:
     _instance: Optional["RedisPool"] = None
     _lock: threading.Lock = threading.Lock()
     _pool: redis.BlockingConnectionPool
+    _replica_pool: redis.BlockingConnectionPool
 
     def __new__(cls) -> "RedisPool":
         if not cls._instance:
             with cls._lock:
                 if not cls._instance:
                     cls._instance = super(RedisPool, cls).__new__(cls)
-                    cls._instance._init_pool()
+                    cls._instance._init_pools()
         return cls._instance
 
-    def _init_pool(self) -> None:
+    def _init_pools(self) -> None:
         self._pool = RedisPool.create_pool(ssl=REDIS_SSL)
+        self._replica_pool = RedisPool.create_pool(
+            host=REDIS_REPLICA_HOST, ssl=REDIS_SSL
+        )
 
     def get_client(self, tenant_id: str | None) -> Redis:
         if tenant_id is None:
             tenant_id = "public"
         return TenantRedis(tenant_id, connection_pool=self._pool)
+
+    def get_replica_client(self, tenant_id: str | None) -> Redis:
+        if tenant_id is None:
+            tenant_id = "public"
+        return TenantRedis(tenant_id, connection_pool=self._replica_pool)
 
     @staticmethod
     def create_pool(
@@ -207,6 +220,10 @@ redis_pool = RedisPool()
 
 def get_redis_client(*, tenant_id: str | None) -> Redis:
     return redis_pool.get_client(tenant_id)
+
+
+def get_redis_replica_client(*, tenant_id: str | None) -> Redis:
+    return redis_pool.get_replica_client(tenant_id)
 
 
 SSL_CERT_REQS_MAP = {

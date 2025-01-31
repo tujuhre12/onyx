@@ -3,6 +3,7 @@ import os
 import urllib.parse
 from typing import cast
 
+from onyx.auth.schemas import AuthBackend
 from onyx.configs.constants import AuthType
 from onyx.configs.constants import DocumentIndexType
 from onyx.file_processing.enums import HtmlBasedConnectorTransformLinksStrategy
@@ -17,6 +18,7 @@ APP_PORT = 8080
 # prefix from requests directed towards the API server. In these cases, set this to `/api`
 APP_API_PREFIX = os.environ.get("API_PREFIX", "")
 
+SKIP_WARM_UP = os.environ.get("SKIP_WARM_UP", "").lower() == "true"
 
 #####
 # User Facing Features Configs
@@ -54,12 +56,12 @@ MASK_CREDENTIAL_PREFIX = (
     os.environ.get("MASK_CREDENTIAL_PREFIX", "True").lower() != "false"
 )
 
-REDIS_AUTH_EXPIRE_TIME_SECONDS = int(
-    os.environ.get("REDIS_AUTH_EXPIRE_TIME_SECONDS") or 86400 * 7
-)  # 7 days
+AUTH_BACKEND = AuthBackend(os.environ.get("AUTH_BACKEND") or AuthBackend.REDIS.value)
 
 SESSION_EXPIRE_TIME_SECONDS = int(
-    os.environ.get("SESSION_EXPIRE_TIME_SECONDS") or 86400 * 7
+    os.environ.get("SESSION_EXPIRE_TIME_SECONDS")
+    or os.environ.get("REDIS_AUTH_EXPIRE_TIME_SECONDS")
+    or 86400 * 7
 )  # 7 days
 
 # Default request timeout, mostly used by connectors
@@ -90,6 +92,12 @@ OAUTH_CLIENT_SECRET = (
 )
 
 USER_AUTH_SECRET = os.environ.get("USER_AUTH_SECRET", "")
+
+# Duration (in seconds) for which the FastAPI Users JWT token remains valid in the user's browser.
+# By default, this is set to match the Redis expiry time for consistency.
+AUTH_COOKIE_EXPIRE_TIME_SECONDS = int(
+    os.environ.get("AUTH_COOKIE_EXPIRE_TIME_SECONDS") or 86400 * 7
+)  # 7 days
 
 # for basic auth
 REQUIRE_EMAIL_VERIFICATION = (
@@ -192,6 +200,8 @@ REDIS_HOST = os.environ.get("REDIS_HOST") or "localhost"
 REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
 REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD") or ""
 
+# this assumes that other redis settings remain the same as the primary
+REDIS_REPLICA_HOST = os.environ.get("REDIS_REPLICA_HOST") or REDIS_HOST
 
 REDIS_AUTH_KEY_PREFIX = "fastapi_users_token:"
 
@@ -279,6 +289,11 @@ try:
     CELERY_WORKER_INDEXING_CONCURRENCY = int(env_value)
 except ValueError:
     CELERY_WORKER_INDEXING_CONCURRENCY = CELERY_WORKER_INDEXING_CONCURRENCY_DEFAULT
+
+# The maximum number of tasks that can be queued up to sync to Vespa in a single pass
+VESPA_SYNC_MAX_TASKS = 1024
+
+DB_YIELD_PER_DEFAULT = 64
 
 #####
 # Connector Configs
@@ -462,6 +477,12 @@ INDEXING_SIZE_WARNING_THRESHOLD = int(
 # during indexing, will log verbose memory diff stats every x batches and at the end.
 # 0 disables this behavior and is the default.
 INDEXING_TRACER_INTERVAL = int(os.environ.get("INDEXING_TRACER_INTERVAL") or 0)
+
+# Enable multi-threaded embedding model calls for parallel processing
+# Note: only applies for API-based embedding models
+INDEXING_EMBEDDING_MODEL_NUM_THREADS = int(
+    os.environ.get("INDEXING_EMBEDDING_MODEL_NUM_THREADS") or 1
+)
 
 # During an indexing attempt, specifies the number of batches which are allowed to
 # exception without aborting the attempt.
