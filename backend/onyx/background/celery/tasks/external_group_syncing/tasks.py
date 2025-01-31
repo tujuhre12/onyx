@@ -22,7 +22,7 @@ from ee.onyx.external_permissions.sync_params import (
 from onyx.background.celery.apps.app_base import task_logger
 from onyx.configs.app_configs import JOB_TIMEOUT
 from onyx.configs.constants import CELERY_EXTERNAL_GROUP_SYNC_LOCK_TIMEOUT
-from onyx.configs.constants import CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT
+from onyx.configs.constants import CELERY_GENERIC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import DANSWER_REDIS_FUNCTION_LOCK_PREFIX
 from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import OnyxCeleryQueues
@@ -33,7 +33,11 @@ from onyx.db.connector_credential_pair import get_connector_credential_pair_from
 from onyx.db.engine import get_session_with_tenant
 from onyx.db.enums import AccessType
 from onyx.db.enums import ConnectorCredentialPairStatus
+from onyx.db.enums import SyncStatus
+from onyx.db.enums import SyncType
 from onyx.db.models import ConnectorCredentialPair
+from onyx.db.sync_record import insert_sync_record
+from onyx.db.sync_record import update_sync_record_status
 from onyx.redis.redis_connector import RedisConnector
 from onyx.redis.redis_connector_ext_group_sync import (
     RedisConnectorExternalGroupSyncPayload,
@@ -91,6 +95,7 @@ def _is_external_group_sync_due(cc_pair: ConnectorCredentialPair) -> bool:
 
 @shared_task(
     name=OnyxCeleryTask.CHECK_FOR_EXTERNAL_GROUP_SYNC,
+    ignore_result=True,
     soft_time_limit=JOB_TIMEOUT,
     bind=True,
 )
@@ -99,14 +104,14 @@ def check_for_external_group_sync(self: Task, *, tenant_id: str | None) -> bool 
 
     lock_beat: RedisLock = r.lock(
         OnyxRedisLocks.CHECK_CONNECTOR_EXTERNAL_GROUP_SYNC_BEAT_LOCK,
-        timeout=CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT,
+        timeout=CELERY_GENERIC_BEAT_LOCK_TIMEOUT,
     )
 
-    try:
-        # these tasks should never overlap
-        if not lock_beat.acquire(blocking=False):
-            return None
+    # these tasks should never overlap
+    if not lock_beat.acquire(blocking=False):
+        return None
 
+    try:
         cc_pair_ids_to_sync: list[int] = []
         with get_session_with_tenant(tenant_id) as db_session:
             cc_pairs = get_all_auto_sync_cc_pairs(db_session)
@@ -199,6 +204,15 @@ def try_creating_external_group_sync_task(
             celery_task_id=result.id,
         )
 
+        # create before setting fence to avoid race condition where the monitoring
+        # task updates the sync record before it is created
+        with get_session_with_tenant(tenant_id) as db_session:
+            insert_sync_record(
+                db_session=db_session,
+                entity_id=cc_pair_id,
+                sync_type=SyncType.EXTERNAL_GROUP,
+            )
+
         redis_connector.external_group_sync.set_fence(payload)
 
     except Exception:
@@ -250,7 +264,10 @@ def connector_external_group_sync_generator_task(
             return None
 
         with get_session_with_tenant(tenant_id) as db_session:
-            cc_pair = get_connector_credential_pair_from_id(cc_pair_id, db_session)
+            cc_pair = get_connector_credential_pair_from_id(
+                db_session=db_session,
+                cc_pair_id=cc_pair_id,
+            )
             if cc_pair is None:
                 raise ValueError(
                     f"No connector credential pair found for id: {cc_pair_id}"
@@ -285,10 +302,25 @@ def connector_external_group_sync_generator_task(
             )
 
             mark_cc_pair_as_external_group_synced(db_session, cc_pair.id)
+
+            update_sync_record_status(
+                db_session=db_session,
+                entity_id=cc_pair_id,
+                sync_type=SyncType.EXTERNAL_GROUP,
+                sync_status=SyncStatus.SUCCESS,
+            )
     except Exception as e:
         task_logger.exception(
             f"Failed to run external group sync: cc_pair={cc_pair_id}"
         )
+
+        with get_session_with_tenant(tenant_id) as db_session:
+            update_sync_record_status(
+                db_session=db_session,
+                entity_id=cc_pair_id,
+                sync_type=SyncType.EXTERNAL_GROUP,
+                sync_status=SyncStatus.FAILED,
+            )
 
         redis_connector.external_group_sync.generator_clear()
         redis_connector.external_group_sync.taskset_clear()

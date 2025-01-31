@@ -20,6 +20,9 @@ interface ModalProps {
   noPadding?: boolean;
   height?: string;
   noScroll?: boolean;
+  heightOverride?: string;
+  removeBottomPadding?: boolean;
+  removePadding?: boolean;
 }
 
 export function Modal({
@@ -35,6 +38,9 @@ export function Modal({
   icon,
   hideCloseButton,
   noScroll,
+  heightOverride,
+  removeBottomPadding,
+  removePadding,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -57,7 +63,7 @@ export function Modal({
     <div
       onMouseDown={handleMouseDown}
       className={cn(
-        `fixed inset-0 bg-black bg-opacity-25 backdrop-blur-sm h-full
+        `fixed inset-0 bg-black border boder-border bg-opacity-10 backdrop-blur-sm h-full
         flex items-center justify-center z-[9999] transition-opacity duration-300 ease-in-out`
       )}
     >
@@ -78,10 +84,12 @@ export function Modal({
           duration-300 
           ease-in-out
           relative
-          overflow-visible
           ${width ?? "w-11/12 max-w-4xl"}
-          ${noPadding ? "" : "p-10"}
+          ${noPadding ? "" : removeBottomPadding ? "pt-10 px-10" : "p-10"}
           ${className || ""}
+          flex
+          flex-col
+          ${heightOverride ? `h-${heightOverride}` : "max-h-[90vh]"}
         `}
       >
         {onOutsideClick && !hideCloseButton && (
@@ -95,10 +103,10 @@ export function Modal({
             </button>
           </div>
         )}
-        <div className="w-full overflow-y-auto overflow-x-visible p-1 flex flex-col h-full justify-stretch">
+        <div className="flex-shrink-0">
           {title && (
             <>
-              <div className="flex mb-4">
+              <div className="flex">
                 <h2
                   className={`my-auto flex content-start gap-x-4 font-bold ${
                     titleSize || "text-2xl"
@@ -111,15 +119,8 @@ export function Modal({
               {!hideDividerForTitle && <Separator />}
             </>
           )}
-          <div
-            className={cn(
-              noScroll ? "overflow-auto" : "overflow-x-visible",
-              height || "max-h-[60vh]"
-            )}
-          >
-            {children}
-          </div>
         </div>
+        {children}
       </div>
     </div>
   );

@@ -1,5 +1,9 @@
 import concurrent.futures
 import json
+import uuid
+from abc import ABC
+from abc import abstractmethod
+from collections.abc import Callable
 from datetime import datetime
 from datetime import timezone
 from http import HTTPStatus
@@ -11,6 +15,8 @@ from onyx.connectors.cross_connector_utils.miscellaneous_utils import (
     get_experts_stores_representations,
 )
 from onyx.document_index.document_index_utils import get_uuid_from_chunk
+from onyx.document_index.document_index_utils import get_uuid_from_chunk_info_old
+from onyx.document_index.interfaces import MinimalDocumentIndexingInfo
 from onyx.document_index.vespa.shared_utils.utils import remove_invalid_unicode_chars
 from onyx.document_index.vespa.shared_utils.utils import (
     replace_invalid_doc_id_characters,
@@ -44,18 +50,14 @@ from onyx.document_index.vespa_constants import TITLE_EMBEDDING
 from onyx.indexing.models import DocMetadataAwareIndexChunk
 from onyx.utils.logger import setup_logger
 
+
 logger = setup_logger()
 
 
 @retry(tries=3, delay=1, backoff=2)
-def _does_document_exist(
-    doc_chunk_id: str,
-    index_name: str,
-    http_client: httpx.Client,
+def _does_doc_chunk_exist(
+    doc_chunk_id: uuid.UUID, index_name: str, http_client: httpx.Client
 ) -> bool:
-    """Returns whether the document already exists and the users/group whitelists
-    Specifically in this case, document refers to a vespa document which is equivalent to a Onyx
-    chunk. This checks for whether the chunk exists already in the index"""
     doc_url = f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{doc_chunk_id}"
     doc_fetch_response = http_client.get(doc_url)
     if doc_fetch_response.status_code == 404:
@@ -64,10 +66,10 @@ def _does_document_exist(
     if doc_fetch_response.status_code != 200:
         logger.debug(f"Failed to check for document with URL {doc_url}")
         raise RuntimeError(
-            f"Unexpected fetch document by ID value from Vespa "
-            f"with error {doc_fetch_response.status_code}"
-            f"Index name: {index_name}"
-            f"Doc chunk id: {doc_chunk_id}"
+            f"Unexpected fetch document by ID value from Vespa: "
+            f"error={doc_fetch_response.status_code} "
+            f"index={index_name} "
+            f"doc_chunk_id={doc_chunk_id}"
         )
     return True
 
@@ -98,8 +100,8 @@ def get_existing_documents_from_chunks(
     try:
         chunk_existence_future = {
             executor.submit(
-                _does_document_exist,
-                str(get_uuid_from_chunk(chunk)),
+                _does_doc_chunk_exist,
+                get_uuid_from_chunk(chunk),
                 index_name,
                 http_client,
             ): chunk
@@ -131,7 +133,9 @@ def _index_vespa_chunk(
     document = chunk.source_document
 
     # No minichunk documents in vespa, minichunk vectors are stored in the chunk itself
+
     vespa_chunk_id = str(get_uuid_from_chunk(chunk))
+
     embeddings = chunk.embeddings
 
     embeddings_name_vector_map = {"full_chunk": embeddings.full_embedding}
@@ -248,3 +252,62 @@ def clean_chunk_id_copy(
         }
     )
     return clean_chunk
+
+
+def check_for_final_chunk_existence(
+    minimal_doc_info: MinimalDocumentIndexingInfo,
+    start_index: int,
+    index_name: str,
+    http_client: httpx.Client,
+) -> int:
+    index = start_index
+    while True:
+        doc_chunk_id = get_uuid_from_chunk_info_old(
+            document_id=minimal_doc_info.doc_id,
+            chunk_id=index,
+            large_chunk_reference_ids=[],
+        )
+        if not _does_doc_chunk_exist(doc_chunk_id, index_name, http_client):
+            return index
+        index += 1
+
+
+class BaseHTTPXClientContext(ABC):
+    """Abstract base class for an HTTPX client context manager."""
+
+    @abstractmethod
+    def __enter__(self) -> httpx.Client:
+        pass
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_value, traceback):  # type: ignore
+        pass
+
+
+class GlobalHTTPXClientContext(BaseHTTPXClientContext):
+    """Context manager for a global HTTPX client that does not close it."""
+
+    def __init__(self, client: httpx.Client):
+        self._client = client
+
+    def __enter__(self) -> httpx.Client:
+        return self._client  # Reuse the global client
+
+    def __exit__(self, exc_type, exc_value, traceback):  # type: ignore
+        pass  # Do nothing; don't close the global client
+
+
+class TemporaryHTTPXClientContext(BaseHTTPXClientContext):
+    """Context manager for a temporary HTTPX client that closes it after use."""
+
+    def __init__(self, client_factory: Callable[[], httpx.Client]):
+        self._client_factory = client_factory
+        self._client: httpx.Client | None = None  # Client will be created in __enter__
+
+    def __enter__(self) -> httpx.Client:
+        self._client = self._client_factory()  # Create a new client
+        return self._client
+
+    def __exit__(self, exc_type, exc_value, traceback):  # type: ignore
+        if self._client:
+            self._client.close()
