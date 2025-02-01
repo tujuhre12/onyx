@@ -22,22 +22,22 @@ from onyx.agents.agent_search.deep_search.main.states import (
     SubQuestionResultsUpdate,
 )
 from onyx.agents.agent_search.deep_search.shared.expanded_retrieval.models import (
-    ExpandedRetrievalResult,
+    QuestionRetrievalResult,
 )
 
 ### States ###
 
 
-class SearchSQInput(CoreState):
+class SubQuestionRetrievalInput(CoreState):
     pass
 
 
 ## Graph State
 
 
-class SearchSQState(
+class SubQuestionRetrievalState(
     # This includes the core state
-    SearchSQInput,
+    SubQuestionRetrievalInput,
     InitialQuestionDecompositionUpdate,
     InitialAnswerUpdate,
     SubQuestionResultsUpdate,
@@ -45,12 +45,11 @@ class SearchSQState(
     InitialAnswerQualityUpdate,
     ExploratorySearchUpdate,
 ):
-    # expanded_retrieval_result: Annotated[list[ExpandedRetrievalResult], add]
-    base_raw_search_result: Annotated[list[ExpandedRetrievalResult], add]
+    base_raw_search_result: Annotated[list[QuestionRetrievalResult], add]
 
 
 ## Graph Output State - presently not used
 
 
-class SearchSQOutput(TypedDict):
+class SubQuestionRetrievalOutput(TypedDict):
     log_messages: list[str]

@@ -14,26 +14,25 @@ from onyx.agents.agent_search.deep_search.main.states import (
 ### States ###
 
 
-class SQInput(CoreState):
+class SubQuestionAnsweringInput(CoreState):
     pass
 
 
 ## Graph State
 
 
-class SQState(
+class SubQuestionAnsweringState(
     # This includes the core state
-    SQInput,
+    SubQuestionAnsweringInput,
     InitialQuestionDecompositionUpdate,
     InitialAnswerUpdate,
     SubQuestionResultsUpdate,
 ):
-    # expanded_retrieval_result: Annotated[list[ExpandedRetrievalResult], add]
     pass
 
 
 ## Graph Output State - presently not used
 
 
-class SQOutput(TypedDict):
+class SubQuestionAnsweringOutput(TypedDict):
     log_messages: list[str]
