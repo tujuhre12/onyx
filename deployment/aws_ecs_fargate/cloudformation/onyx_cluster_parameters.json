@@ -1,5 +1,5 @@
 [
     {"ParameterKey": "Environment", "ParameterValue": "production"},
-    {"ParameterKey": "OnyxNamespace", "ParameterValue": "onyx2"},
+    {"ParameterKey": "OnyxNamespace", "ParameterValue": "onyx"},
     {"ParameterKey": "VpcID", "ParameterValue": "vpc-098cfa79d637dabff"}
 ]

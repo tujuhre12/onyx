@@ -112,7 +112,7 @@ Resources:
           Command:
             - /bin/sh
             - -c
-            - dos2unix /etc/nginx/conf.d/run-nginx.sh && /etc/nginx/conf.d/run-nginx.sh app.conf.template.use-cloudtls
+            - dos2unix /etc/nginx/conf.d/run-nginx.sh && /etc/nginx/conf.d/run-nginx.sh app.conf.template.dev
           Environment:
             - Name: EMAIL
               Value: ""
