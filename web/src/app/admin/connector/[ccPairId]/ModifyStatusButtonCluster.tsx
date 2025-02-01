@@ -8,6 +8,7 @@ import { buildCCPairInfoUrl } from "./lib";
 import { setCCPairStatus } from "@/lib/ccPair";
 import { useState } from "react";
 import { LoadingAnimation } from "@/components/Loading";
+import { ValidSources } from "@/lib/types";
 
 export function ModifyStatusButtonCluster({
   ccPair,
@@ -48,39 +49,45 @@ export function ModifyStatusButtonCluster({
       ? "Click to start indexing again!"
       : "When paused, the connector's documents will still be visible. However, no new documents will be indexed.";
 
+  const isPausedFileConnector =
+    ccPair.connector.source === ValidSources.File &&
+    ccPair.status === ConnectorCredentialPairStatus.PAUSED;
+
   return (
     <>
       {popup}
-      <Button
-        className="flex items-center justify-center w-auto min-w-[100px] px-4 py-2"
-        variant={
-          ccPair.status === ConnectorCredentialPairStatus.PAUSED
-            ? "success-reverse"
-            : "default"
-        }
-        disabled={isUpdating}
-        onClick={() =>
-          handleStatusChange(
+      {!isPausedFileConnector && (
+        <Button
+          className="flex items-center justify-center w-auto min-w-[100px] px-4 py-2"
+          variant={
             ccPair.status === ConnectorCredentialPairStatus.PAUSED
-              ? ConnectorCredentialPairStatus.ACTIVE
-              : ConnectorCredentialPairStatus.PAUSED
-          )
-        }
-        tooltip={tooltip}
-      >
-        {isUpdating ? (
-          <LoadingAnimation
-            text={
+              ? "success-reverse"
+              : "default"
+          }
+          disabled={isUpdating}
+          onClick={() =>
+            handleStatusChange(
               ccPair.status === ConnectorCredentialPairStatus.PAUSED
-                ? "Resuming"
-                : "Pausing"
-            }
-            size="text-md"
-          />
-        ) : (
-          buttonText
-        )}
-      </Button>
+                ? ConnectorCredentialPairStatus.ACTIVE
+                : ConnectorCredentialPairStatus.PAUSED
+            )
+          }
+          tooltip={tooltip}
+        >
+          {isUpdating ? (
+            <LoadingAnimation
+              text={
+                ccPair.status === ConnectorCredentialPairStatus.PAUSED
+                  ? "Resuming"
+                  : "Pausing"
+              }
+              size="text-md"
+            />
+          ) : (
+            buttonText
+          )}
+        </Button>
+      )}
     </>
   );
 }

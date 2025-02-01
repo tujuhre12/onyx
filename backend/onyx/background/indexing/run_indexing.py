@@ -532,6 +532,31 @@ def _run_indexing(
                 f"elapsed={elapsed_time:.2f}s"
             )
 
+        cc_pair = get_connector_credential_pair_from_id(
+            db_session=db_session_temp,
+            cc_pair_id=ctx.cc_pair_id,
+        )
+
+        if cc_pair:
+            logger.info(
+                f"Checking FILE connector status: source={cc_pair.connector.source}, "
+                f"status={cc_pair.status}, cc_pair_id={ctx.cc_pair_id}"
+            )
+
+            if (
+                cc_pair.connector.source == DocumentSource.FILE
+                and cc_pair.status == ConnectorCredentialPairStatus.ACTIVE
+            ):
+                logger.info(
+                    f"Pausing FILE connector after successful indexing: cc_pair_id={ctx.cc_pair_id}"
+                )
+                update_connector_credential_pair(
+                    db_session=db_session,
+                    connector_id=ctx.connector_id,
+                    credential_id=ctx.credential_id,
+                    status=ConnectorCredentialPairStatus.PAUSED,
+                )
+
         if ctx.is_primary:
             update_connector_credential_pair(
                 db_session=db_session_temp,

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import React, { useRef, useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -91,20 +92,19 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       asChild = false,
       icon: Icon,
       tooltip,
+      reverse,
       ...props
     },
     ref
   ) => {
     const Comp = asChild ? Slot : "button";
-    const button = (
+    const tooltipRef = useRef<HTMLDivElement>(null);
+    const [tooltipOffset, setTooltipOffset] = useState(0);
+
+    // Define the button element first
+    const buttonElement = (
       <Comp
-        className={cn(
-          buttonVariants({
-            variant,
-            size,
-            className,
-          })
-        )}
+        className={cn(buttonVariants({ variant, size, reverse, className }))}
         ref={ref}
         {...props}
       >
@@ -113,18 +113,36 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       </Comp>
     );
 
+    useEffect(() => {
+      if (tooltip && tooltipRef.current) {
+        const handleResize = () => {
+          const rect = tooltipRef.current!.getBoundingClientRect();
+          const overflow = rect.right - window.innerWidth;
+          setTooltipOffset(overflow > 0 ? overflow : 0);
+        };
+
+        handleResize();
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+      }
+    }, [tooltip]);
+
     if (tooltip) {
       return (
         <div className="relative group">
-          {button}
-          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-neutral-800 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+          {buttonElement}
+          <div
+            ref={tooltipRef}
+            className="absolute bottom-full left-1/2 mb-2 px-2 py-1 bg-neutral-800 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap transform"
+            style={{ transform: `translateX(calc(-50% - ${tooltipOffset}px))` }}
+          >
             {tooltip}
           </div>
         </div>
       );
     }
 
-    return button;
+    return buttonElement;
   }
 );
 Button.displayName = "Button";
