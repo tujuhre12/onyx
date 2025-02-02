@@ -10,12 +10,13 @@ from onyx.agents.agent_search.deep_search.main.states import (
 from onyx.agents.agent_search.deep_search.main.states import (
     SubQuestionResultsUpdate,
 )
+from onyx.context.search.models import InferenceSection
 
 ### States ###
 
 
 class SubQuestionAnsweringInput(CoreState):
-    pass
+    exploratory_search_results: list[InferenceSection]
 
 
 ## Graph State
