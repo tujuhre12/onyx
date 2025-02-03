@@ -41,6 +41,9 @@ def generate_sub_answer(
     config: RunnableConfig,
     writer: StreamWriter = lambda _: None,
 ) -> SubQuestionAnswerGenerationUpdate:
+    """
+    LangGraph node to generate a sub-answer.
+    """
     node_start_time = datetime.now()
 
     graph_config = cast(GraphConfig, config["metadata"]["config"])
@@ -103,7 +106,7 @@ def generate_sub_answer(
             response.append(content)
 
         answer_str = merge_message_runs(response, chunk_separator="")[0].content
-        logger.info(
+        logger.debug(
             f"Average dispatch time: {sum(dispatch_timings) / len(dispatch_timings)}"
         )
 
