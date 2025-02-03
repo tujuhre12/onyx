@@ -1,12 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  FiPlusCircle,
-  FiPlus,
-  FiInfo,
-  FiX,
-  FiFilter,
-  FiLoader,
-} from "react-icons/fi";
+import { FiPlusCircle, FiPlus, FiInfo, FiX, FiFilter } from "react-icons/fi";
 import { ChatInputOption } from "./ChatInputOption";
 import { Persona } from "@/app/admin/assistants/interfaces";
 import LLMPopover from "./LLMPopover";
@@ -41,9 +34,6 @@ import { getFormattedDateRangeString } from "@/lib/dateUtils";
 import { truncateString } from "@/lib/utils";
 import { buildImgUrl } from "../files/images/utils";
 import { useUser } from "@/components/user/UserProvider";
-import { LoadingIndicator } from "react-select/dist/declarations/src/components/indicators";
-import { FidgetSpinner } from "react-loader-spinner";
-import { LoadingAnimation } from "@/components/Loading";
 
 const MAX_INPUT_HEIGHT = 200;
 
@@ -631,16 +621,12 @@ export function ChatInputBar({
                       <SourceChip
                         key={`file-${index}`}
                         icon={
-                          file.isUploading ? (
-                            <FiLoader className="animate-spin" />
-                          ) : (
-                            <img
-                              className="h-full py-.5 object-cover rounded-lg bg-background cursor-pointer"
-                              src={buildImgUrl(file.id)}
-                            />
-                          )
+                          <img
+                            className="h-full py-.5 object-cover rounded-lg bg-background cursor-pointer"
+                            src={buildImgUrl(file.id)}
+                          />
                         }
-                        title={file.name || "File" + file.id}
+                        title={file.name || "File"}
                         onRemove={() => {
                           setFiles(
                             files.filter(
