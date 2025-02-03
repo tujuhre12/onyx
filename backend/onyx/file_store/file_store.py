@@ -92,7 +92,6 @@ class PostgresBackedFileStore(FileStore):
             # The large objects in postgres are saved as special objects can be listed with
             # SELECT * FROM pg_largeobject_metadata;
             obj_id = create_populate_lobj(content=content, db_session=self.db_session)
-            print("uPLODING FILE TO FILE NAME", file_name)
             upsert_pgfilestore(
                 file_name=file_name,
                 display_name=display_name or file_name,

@@ -693,12 +693,10 @@ export async function uploadFilesForChat(
     method: "POST",
     body: formData,
   });
-  alert("RESPONSE");
   if (!response.ok) {
     return [[], `Failed to upload files - ${(await response.json()).detail}`];
   }
   const responseJson = await response.json();
-  alert(JSON.stringify(responseJson));
 
   return [responseJson.files as FileDescriptor[], null];
 }
