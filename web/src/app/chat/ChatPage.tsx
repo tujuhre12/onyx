@@ -479,7 +479,6 @@ export function ChatPage({
       );
 
       const session = await response.json();
-      console.log(session);
       const chatSession = session as BackendChatSession;
       setSelectedAssistantFromId(chatSession.persona_id);
 
