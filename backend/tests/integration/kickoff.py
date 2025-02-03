@@ -16,7 +16,8 @@ from typing import NamedTuple
 import requests
 import yaml
 
-from danswer.document_index.vespa.index import VespaIndex
+from onyx.configs.constants import AuthType
+from onyx.document_index.vespa.index import VespaIndex
 
 
 BACKEND_DIR_PATH = Path(__file__).parent.parent.parent
@@ -32,6 +33,7 @@ class DeploymentConfig(NamedTuple):
     web_port: int
     nginx_port: int
     redis_port: int
+    postgres_db: str
 
 
 class SharedServicesConfig(NamedTuple):
@@ -39,6 +41,7 @@ class SharedServicesConfig(NamedTuple):
     postgres_port: int
     vespa_port: int
     vespa_tenant_port: int
+    model_server_port: int
 
 
 def get_random_port() -> int:
@@ -60,12 +63,12 @@ def cleanup_pid(pid: int) -> None:
 
 
 def get_shared_services_stack_name(run_id: uuid.UUID) -> str:
-    return f"base-danswer-{run_id}"
+    return f"base-onyx-{run_id}"
 
 
 def get_db_name(instance_num: int) -> str:
     """Get the database name for a given instance number."""
-    return f"danswer_{instance_num}"
+    return f"onyx_{instance_num}"
 
 
 def get_vector_db_prefix(instance_num: int) -> str:
@@ -76,7 +79,7 @@ def get_vector_db_prefix(instance_num: int) -> str:
 def setup_db(
     instance_num: int,
     postgres_port: int,
-) -> None:
+) -> str:
     env = os.environ.copy()
 
     # Wait for postgres to be ready
@@ -146,6 +149,8 @@ def setup_db(
             print("Alembic upgrade failed, retrying in 5 seconds...")
             time.sleep(5)
 
+    return db_name
+
 
 def start_api_server(
     instance_num: int,
@@ -178,6 +183,7 @@ def start_api_server(
             "MODEL_SERVER_PORT": str(model_server_port),
             "VECTOR_DB_INDEX_NAME_PREFIX__INTEGRATION_TEST_ONLY": vector_db_prefix,
             "LOG_LEVEL": "debug",
+            "AUTH_TYPE": AuthType.BASIC,
         }
     )
 
@@ -189,58 +195,9 @@ def start_api_server(
     process = subprocess.Popen(
         [
             "uvicorn",
-            "danswer.main:app",
+            "onyx.main:app",
             "--host",
             "localhost",
-            "--port",
-            str(port),
-        ],
-        env=env,
-        cwd=str(BACKEND_DIR_PATH),
-        stdout=log_file,
-        stderr=subprocess.STDOUT,
-    )
-    register_process(process)
-
-    return port
-
-
-def start_model_server(
-    instance_num: int,
-    postgres_port: int,
-    vespa_port: int,
-    vespa_tenant_port: int,
-    redis_port: int,
-    register_process: Callable[[subprocess.Popen], None],
-) -> int:
-    """Start the model server."""
-    print("Starting model server...")
-
-    env = os.environ.copy()
-    env.update(
-        {
-            "POSTGRES_HOST": "localhost",
-            "POSTGRES_PORT": str(postgres_port),
-            "REDIS_HOST": "localhost",
-            "REDIS_PORT": str(redis_port),
-            "VESPA_HOST": "localhost",
-            "VESPA_PORT": str(vespa_port),
-            "VESPA_TENANT_PORT": str(vespa_tenant_port),
-            "LOG_LEVEL": "debug",
-        }
-    )
-
-    port = get_random_port()
-
-    # Open log file for model server in /tmp
-    log_file = open(f"/tmp/model_server_{instance_num}.txt", "w")
-
-    process = subprocess.Popen(
-        [
-            "uvicorn",
-            "model_server.main:app",
-            "--host",
-            "0.0.0.0",
             "--port",
             str(port),
         ],
@@ -299,19 +256,20 @@ def start_background(
 
 def start_shared_services(run_id: uuid.UUID) -> SharedServicesConfig:
     """Start Postgres and Vespa using docker-compose.
-    Returns (postgres_port, vespa_port, vespa_tenant_port)
+    Returns (postgres_port, vespa_port, vespa_tenant_port, model_server_port)
     """
     print("Starting database services...")
 
     postgres_port = get_random_port()
     vespa_port = get_random_port()
     vespa_tenant_port = get_random_port()
+    model_server_port = get_random_port()
 
     minimal_compose = {
         "services": {
             "relational_db": {
                 "image": "postgres:15.2-alpine",
-                "command": "-c 'max_connections=250'",
+                "command": "-c 'max_connections=1000'",
                 "environment": {
                     "POSTGRES_USER": os.getenv("POSTGRES_USER", "postgres"),
                     "POSTGRES_PASSWORD": os.getenv("POSTGRES_PASSWORD", "password"),
@@ -348,7 +306,41 @@ def start_shared_services(run_id: uuid.UUID) -> SharedServicesConfig:
         check=True,
     )
 
-    return SharedServicesConfig(run_id, postgres_port, vespa_port, vespa_tenant_port)
+    # Start the shared model server
+    env = os.environ.copy()
+    env.update(
+        {
+            "POSTGRES_HOST": "localhost",
+            "POSTGRES_PORT": str(postgres_port),
+            "VESPA_HOST": "localhost",
+            "VESPA_PORT": str(vespa_port),
+            "VESPA_TENANT_PORT": str(vespa_tenant_port),
+            "LOG_LEVEL": "debug",
+        }
+    )
+
+    # Open log file for shared model server in /tmp
+    log_file = open("/tmp/shared_model_server.txt", "w")
+
+    process = subprocess.Popen(
+        [
+            "uvicorn",
+            "model_server.main:app",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            str(model_server_port),
+        ],
+        env=env,
+        cwd=str(BACKEND_DIR_PATH),
+        stdout=log_file,
+        stderr=subprocess.STDOUT,
+    )
+    atexit.register(cleanup_pid, process.pid)
+
+    return SharedServicesConfig(
+        run_id, postgres_port, vespa_port, vespa_tenant_port, model_server_port
+    )
 
 
 def prepare_vespa(instance_ids: list[int], vespa_tenant_port: int) -> None:
@@ -382,7 +374,7 @@ def start_redis(
     print(f"Starting Redis for instance {instance_num}...")
 
     redis_port = get_random_port()
-    container_name = f"redis-danswer-{instance_num}"
+    container_name = f"redis-onyx-{instance_num}"
 
     # Start Redis using docker run
     subprocess.run(
@@ -412,6 +404,7 @@ def launch_instance(
     postgres_port: int,
     vespa_port: int,
     vespa_tenant_port: int,
+    model_server_port: int,
     register_process: Callable[[subprocess.Popen], None],
 ) -> DeploymentConfig:
     """Launch a Docker Compose instance with custom ports."""
@@ -423,18 +416,10 @@ def launch_instance(
     redis_port = start_redis(instance_num, register_process)
 
     try:
-        model_server_port = start_model_server(
-            instance_num,
-            postgres_port,
-            vespa_port,
-            vespa_tenant_port,
-            redis_port,  # Pass instance-specific Redis port
-            register_process,
-        )
-        setup_db(instance_num, postgres_port)
+        db_name = setup_db(instance_num, postgres_port)
         api_port = start_api_server(
             instance_num,
-            model_server_port,
+            model_server_port,  # Use shared model server port
             postgres_port,
             vespa_port,
             vespa_tenant_port,
@@ -453,7 +438,9 @@ def launch_instance(
         print(f"Failed to start API server for instance {instance_num}: {e}")
         raise
 
-    return DeploymentConfig(instance_num, api_port, web_port, nginx_port, redis_port)
+    return DeploymentConfig(
+        instance_num, api_port, web_port, nginx_port, redis_port, db_name
+    )
 
 
 def wait_for_instance(
@@ -499,7 +486,7 @@ def cleanup_instance(instance_num: int) -> None:
                 "-f",
                 str(temp_compose),
                 "-p",
-                f"danswer-stack-{instance_num}",
+                f"onyx-stack-{instance_num}",
                 "down",
             ],
             check=True,
@@ -524,7 +511,7 @@ def run_x_instances(
     instance_ids = list(range(1, num_instances + 1))
     _pids: list[int] = []
 
-    def register_process(process) -> None:
+    def register_process(process: subprocess.Popen) -> None:
         _pids.append(process.pid)
 
     def cleanup_all_instances() -> None:
@@ -547,7 +534,7 @@ def run_x_instances(
 
         # Stop and remove all Redis containers
         for instance_id in range(1, num_instances + 1):
-            container_name = f"redis-danswer-{instance_id}"
+            container_name = f"redis-onyx-{instance_id}"
             try:
                 subprocess.run(["docker", "rm", "-f", container_name], check=True)
             except subprocess.CalledProcessError:
@@ -570,7 +557,7 @@ def run_x_instances(
     # Use ThreadPool to launch instances in parallel and collect results
     # NOTE: only kick off 10 at a time to avoid overwhelming the system
     print("Launching instances...")
-    with ThreadPool(processes=min(10, num_instances)) as pool:
+    with ThreadPool(processes=len(instance_ids)) as pool:
         # Create list of arguments for each instance
         launch_args = [
             (
@@ -578,6 +565,7 @@ def run_x_instances(
                 shared_services_config.postgres_port,
                 shared_services_config.vespa_port,
                 shared_services_config.vespa_tenant_port,
+                shared_services_config.model_server_port,
                 register_process,
             )
             for i in instance_ids
@@ -588,7 +576,7 @@ def run_x_instances(
 
     # Wait for all instances to be healthy
     print("Waiting for instances to be healthy...")
-    with ThreadPool(processes=min(10, len(port_configs))) as pool:
+    with ThreadPool(processes=len(port_configs)) as pool:
         pool.map(wait_for_instance, port_configs)
 
     print("All instances launched!")

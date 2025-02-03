@@ -25,7 +25,6 @@ from onyx.indexing.models import IndexingSetting
 from onyx.setup import setup_postgres
 from onyx.setup import setup_vespa
 from onyx.utils.logger import setup_logger
-from tests.integration.common_utils.timeout import run_with_timeout
 from tests.integration.common_utils.constants import GUARANTEED_FRESH_SETUP
 
 logger = setup_logger()
@@ -72,6 +71,8 @@ def downgrade_postgres(
     config_name: str = "alembic",
     revision: str = "base",
     clear_data: bool = False,
+    postgres_host: str = POSTGRES_HOST,
+    postgres_port: str = POSTGRES_PORT,
 ) -> None:
     """Downgrade Postgres database to base state."""
     if clear_data:
@@ -82,8 +83,8 @@ def downgrade_postgres(
             dbname=database,
             user=POSTGRES_USER,
             password=POSTGRES_PASSWORD,
-            host=POSTGRES_HOST,
-            port=POSTGRES_PORT,
+            host=postgres_host,
+            port=postgres_port,
         )
         conn.autocommit = True  # Need autocommit for dropping schema
         cur = conn.cursor()
@@ -117,8 +118,8 @@ def downgrade_postgres(
         db=database,
         user=POSTGRES_USER,
         password=POSTGRES_PASSWORD,
-        host=POSTGRES_HOST,
-        port=POSTGRES_PORT,
+        host=postgres_host,
+        port=postgres_port,
         db_api=SYNC_DB_API,
     )
     _run_migrations(
@@ -130,15 +131,19 @@ def downgrade_postgres(
 
 
 def upgrade_postgres(
-    database: str = "postgres", config_name: str = "alembic", revision: str = "head"
+    database: str = "postgres",
+    config_name: str = "alembic",
+    revision: str = "head",
+    postgres_host: str = POSTGRES_HOST,
+    postgres_port: str = POSTGRES_PORT,
 ) -> None:
     """Upgrade Postgres database to latest version."""
     conn_str = build_connection_string(
         db=database,
         user=POSTGRES_USER,
         password=POSTGRES_PASSWORD,
-        host=POSTGRES_HOST,
-        port=POSTGRES_PORT,
+        host=postgres_host,
+        port=postgres_port,
         db_api=SYNC_DB_API,
     )
     _run_migrations(
@@ -153,37 +158,25 @@ def reset_postgres(
     database: str = "postgres",
     config_name: str = "alembic",
     setup_onyx: bool = True,
+    postgres_host: str = POSTGRES_HOST,
+    postgres_port: str = POSTGRES_PORT,
 ) -> None:
     """Reset the Postgres database."""
-    # this seems to hang due to locking issues, so run with a timeout with a few retries
-    NUM_TRIES = 10
-    TIMEOUT = 10
-    success = False
-    for _ in range(NUM_TRIES):
-        logger.info(f"Downgrading Postgres... ({_ + 1}/{NUM_TRIES})")
-        try:
-            run_with_timeout(
-                downgrade_postgres,
-                TIMEOUT,
-                kwargs={
-                    "database": database,
-                    "config_name": config_name,
-                    "revision": "base",
-                    "clear_data": True,
-                },
-            )
-            success = True
-            break
-        except TimeoutError:
-            logger.warning(
-                f"Postgres downgrade timed out, retrying... ({_ + 1}/{NUM_TRIES})"
-            )
-
-    if not success:
-        raise RuntimeError("Postgres downgrade failed after 10 timeouts.")
-
-    logger.info("Upgrading Postgres...")
-    upgrade_postgres(database=database, config_name=config_name, revision="head")
+    downgrade_postgres(
+        database=database,
+        config_name=config_name,
+        revision="base",
+        clear_data=True,
+        postgres_host=postgres_host,
+        postgres_port=postgres_port,
+    )
+    upgrade_postgres(
+        database=database,
+        config_name=config_name,
+        revision="head",
+        postgres_host=postgres_host,
+        postgres_port=postgres_port,
+    )
     if setup_onyx:
         logger.info("Setting up Postgres...")
         with get_session_context_manager() as db_session:
@@ -337,14 +330,22 @@ def reset_vespa_multitenant() -> None:
                 time.sleep(5)
 
 
-def reset_all() -> None:
+def reset_all(
+    database: str = "postgres",
+    postgres_host: str = POSTGRES_HOST,
+    postgres_port: str = POSTGRES_PORT,
+) -> None:
     # if we're guaranteed a fresh setup, we don't need to reset
     # this happens when running the tests w/ the parallelized setup
     if GUARANTEED_FRESH_SETUP:
         return None
 
     logger.info("Resetting Postgres...")
-    reset_postgres()
+    reset_postgres(
+        database=database,
+        postgres_host=postgres_host,
+        postgres_port=postgres_port,
+    )
     logger.info("Resetting Vespa...")
     reset_vespa()
 

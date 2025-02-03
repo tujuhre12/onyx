@@ -43,6 +43,7 @@ from onyx.configs.app_configs import USER_AUTH_SECRET
 from onyx.configs.app_configs import WEB_DOMAIN
 from onyx.configs.constants import AuthType
 from onyx.configs.constants import POSTGRES_WEB_APP_NAME
+from onyx.configs.integration_test_configs import SKIP_CONNECTION_POOL_WARM_UP
 from onyx.db.engine import SqlEngine
 from onyx.db.engine import warm_up_connections
 from onyx.server.api_key.api import router as api_key_router
@@ -208,8 +209,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if DISABLE_GENERATIVE_AI:
         logger.notice("Generative AI Q&A disabled")
 
-    # fill up Postgres connection pools
-    await warm_up_connections()
+    # only used for IT. Need to skip since it overloads postgres when we have 50+
+    # instances running
+    if not SKIP_CONNECTION_POOL_WARM_UP:
+        # fill up Postgres connection pools
+        await warm_up_connections()
 
     if not MULTI_TENANT:
         # We cache this at the beginning so there is no delay in the first telemetry

@@ -18,10 +18,10 @@ def list_all_tests(directory: str | Path = ".") -> list[str]:
     print(f"Searching for tests in: {directory}")
 
     class TestCollector:
-        def __init__(self):
-            self.collected = []
+        def __init__(self) -> None:
+            self.collected: list[str] = []
 
-        def pytest_collection_modifyitems(self, items):
+        def pytest_collection_modifyitems(self, items: list[Item]) -> None:
             for item in items:
                 if isinstance(item, Item):
                     # Get the relative path from the test file to the directory we're searching from
