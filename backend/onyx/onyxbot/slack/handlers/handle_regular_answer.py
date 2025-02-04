@@ -106,8 +106,6 @@ def handle_regular_answer(
         ]
         prompt = persona.prompts[0] if persona.prompts else None
 
-    should_respond_even_with_no_docs = persona.num_chunks == 0 if persona else False
-
     # TODO: Add in support for Slack to truncate messages based on max LLM context
     # llm, _ = get_llms_for_persona(persona)
 
@@ -302,27 +300,27 @@ def handle_regular_answer(
             logger.debug(answer.answer)
         return True
 
-    retrieval_info = answer.docs
-    if not retrieval_info:
-        # This should not happen, even with no docs retrieved, there is still info returned
-        raise RuntimeError("Failed to retrieve docs, cannot answer question.")
+    answer.docs
+    # if not retrieval_info:
+    # This should not happen, even with no docs retrieved, there is still info returned
+    # raise RuntimeError("Failed to retrieve docs, cannot answer question.")
 
-    top_docs = retrieval_info.top_documents
-    if not top_docs and not should_respond_even_with_no_docs:
-        logger.error(
-            f"Unable to answer question: '{user_message}' - no documents found"
-        )
-        # Optionally, respond in thread with the error message
-        # Used primarily for debugging purposes
-        if should_respond_with_error_msgs:
-            respond_in_thread(
-                client=client,
-                channel=channel,
-                receiver_ids=None,
-                text="Found no documents when trying to answer. Did you index any documents?",
-                thread_ts=message_ts_to_respond_to,
-            )
-        return True
+    # top_docs = retrieval_info.top_documents
+    # if not top_docs and not should_respond_even_with_no_docs:
+    #     logger.error(
+    #         f"Unable to answer question: '{user_message}' - no documents found"
+    #     )
+    #     # Optionally, respond in thread with the error message
+    #     # Used primarily for debugging purposes
+    #     if should_respond_with_error_msgs:
+    #         respond_in_thread(
+    #             client=client,
+    #             channel=channel,
+    #             receiver_ids=None,
+    #             text="Found no documents when trying to answer. Did you index any documents?",
+    #             thread_ts=message_ts_to_respond_to,
+    #         )
+    #     return True
 
     if not answer.answer and disable_docs_only_answer:
         logger.notice(

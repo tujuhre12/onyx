@@ -342,9 +342,9 @@ def _build_qa_response_blocks(
     answer: ChatOnyxBotResponse,
 ) -> list[Block]:
     retrieval_info = answer.docs
-    if not retrieval_info:
-        # This should not happen, even with no docs retrieved, there is still info returned
-        raise RuntimeError("Failed to retrieve docs, cannot answer question.")
+    # if not retrieval_info:
+    # This should not happen, even with no docs retrieved, there is still info returned
+    # raise RuntimeError("Failed to retrieve docs, cannot answer question.")
 
     if DISABLE_GENERATIVE_AI:
         return []
