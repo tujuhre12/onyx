@@ -125,7 +125,14 @@ def format_entity_term_extraction(
 
     term_strs = ["\n\nTerms:\n"]
     for term in terms:
-        term_str = f"{term.term_name} ({term.term_type}): similar to {', '.join(term.term_similar_to)}"
+        term_str = ""
+        if term.term_name is None:
+            continue
+        term_str += f"{term.term_name} "
+        if term.term_type:
+            term_str += f"({term.term_type}) "
+        if term.term_similar_to:
+            term_str += f"similar to {', '.join(term.term_similar_to)}"
         term_strs.append(term_str)
 
     term_str = "\n - ".join(term_strs)

@@ -21,7 +21,7 @@ from onyx.context.search.models import InferenceSection
 
 
 class ExpandedRetrievalInput(SubgraphCoreState):
-    question: str = ""
+    question: str
     base_search: bool = False
     sub_question_id: str | None = None
 

@@ -150,6 +150,8 @@ def generate_refined_answer(
 
     for i, result in enumerate(sub_question_answer_results, 1):
         question_level, _ = parse_question_id(result.question_id)
+        if result.question is None:
+            continue
         sub_questions.append(result.question)
 
         if (

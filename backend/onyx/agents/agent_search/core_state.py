@@ -9,7 +9,6 @@ class CoreState(BaseModel):
     This is the core state that is shared across all subgraphs.
     """
 
-    base_question: str = ""
     log_messages: Annotated[list[str], add] = []
 
 

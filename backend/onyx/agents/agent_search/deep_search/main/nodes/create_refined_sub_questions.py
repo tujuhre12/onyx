@@ -71,12 +71,16 @@ def create_refined_sub_questions(
 
     initial_question_answers = state.sub_question_results
 
-    addressed_question_list = [
-        x.question for x in initial_question_answers if x.verified_high_quality
+    addressed_question_list: list[str] = [
+        x.question
+        for x in initial_question_answers
+        if x.verified_high_quality and x.question is not None
     ]
 
-    failed_question_list = [
-        x.question for x in initial_question_answers if not x.verified_high_quality
+    failed_question_list: list[str] = [
+        x.question
+        for x in initial_question_answers
+        if not x.verified_high_quality and x.question is not None
     ]
 
     msg = [

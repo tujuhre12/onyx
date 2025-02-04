@@ -160,6 +160,8 @@ def generate_initial_answer(
         for idx, sub_question_answer_result in enumerate(
             sub_question_answer_results, start=1
         ):
+            if sub_question_answer_result.question is None:
+                continue
             all_sub_questions.append(sub_question_answer_result.question)
 
             is_valid_answer = (

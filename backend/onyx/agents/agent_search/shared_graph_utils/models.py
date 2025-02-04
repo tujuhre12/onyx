@@ -62,23 +62,23 @@ class RefinedAgentStats(BaseModel):
 
 
 class Term(BaseModel):
-    term_name: str = ""
-    term_type: str = ""
-    term_similar_to: list[str] = []
+    term_name: str | None = None
+    term_type: str | None = None
+    term_similar_to: list[str] | None = None
 
 
 ### Models ###
 
 
 class Entity(BaseModel):
-    entity_name: str = ""
-    entity_type: str = ""
+    entity_name: str | None = None
+    entity_type: str | None = None
 
 
 class Relationship(BaseModel):
-    relationship_name: str = ""
-    relationship_type: str = ""
-    relationship_entities: list[str] = []
+    relationship_name: str | None = None
+    relationship_type: str | None = None
+    relationship_entities: list[str] | None = None
 
 
 class EntityRelationshipTermExtraction(BaseModel):
@@ -99,9 +99,9 @@ class QueryRetrievalResult(BaseModel):
 
 
 class SubQuestionAnswerResults(BaseModel):
-    question: str
+    question: str | None
     question_id: str
-    answer: str
+    answer: str | None
     verified_high_quality: bool
     sub_query_retrieval_results: list[QueryRetrievalResult]
     verified_reranked_documents: list[InferenceSection]

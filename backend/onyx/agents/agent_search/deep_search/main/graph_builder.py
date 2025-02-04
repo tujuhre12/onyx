@@ -252,9 +252,7 @@ if __name__ == "__main__":
             db_session, primary_llm, fast_llm, search_request
         )
 
-        inputs = MainInput(
-            base_question=graph_config.inputs.search_request.query, log_messages=[]
-        )
+        inputs = MainInput(log_messages=[])
 
         for thing in compiled_graph.stream(
             input=inputs,

@@ -23,9 +23,8 @@ class SubQuestionAnswerCheckUpdate(LoggerUpdate, BaseModel):
 
 
 class SubQuestionAnswerGenerationUpdate(LoggerUpdate, BaseModel):
-    answer: str = ""
-    log_messages: list[str] = []
-    cited_documents: Annotated[list[InferenceSection], dedup_inference_sections] = []
+    answer: str | None = None
+    cited_documents: Annotated[list[InferenceSection], dedup_inference_sections]
     # answer_stat: AnswerStats
 
 
@@ -33,8 +32,8 @@ class SubQuestionRetrievalIngestionUpdate(LoggerUpdate, BaseModel):
     expanded_retrieval_results: list[QueryRetrievalResult] = []
     verified_reranked_documents: Annotated[
         list[InferenceSection], dedup_inference_sections
-    ] = []
-    context_documents: Annotated[list[InferenceSection], dedup_inference_sections] = []
+    ]
+    context_documents: Annotated[list[InferenceSection], dedup_inference_sections]
     sub_question_retrieval_stats: AgentChunkRetrievalStats = AgentChunkRetrievalStats()
 
 
@@ -42,7 +41,7 @@ class SubQuestionRetrievalIngestionUpdate(LoggerUpdate, BaseModel):
 
 
 class SubQuestionAnsweringInput(SubgraphCoreState):
-    question: str = ""
+    question: str
     question_id: str = (
         ""  # 0_0 is original question, everything else is <level>_<question_num>.
     )
@@ -72,4 +71,4 @@ class AnswerQuestionOutput(LoggerUpdate, BaseModel):
       results in a list so the add operator is used to add them together.
     """
 
-    answer_results: Annotated[list[SubQuestionAnswerResults], add] = []
+    answer_results: Annotated[list[SubQuestionAnswerResults], add]
