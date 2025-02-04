@@ -100,7 +100,6 @@ services:
         - NEXT_PUBLIC_DISABLE_LOGOUT=${NEXT_PUBLIC_DISABLE_LOGOUT:-}
         - NEXT_PUBLIC_THEME=${NEXT_PUBLIC_THEME:-}
         - NEXT_PUBLIC_FORGOT_PASSWORD_ENABLED=${NEXT_PUBLIC_FORGOT_PASSWORD_ENABLED:-}
-        - NODE_OPTIONS=--max-old-space-size=8096
     depends_on:
       - api_server
     restart: always
@@ -108,7 +107,6 @@ services:
       - .env
     environment:
       - INTERNAL_URL=http://api_server:8080
-      - NODE_OPTIONS=--max-old-space-size=8096
     logging:
       driver: json-file
       options:

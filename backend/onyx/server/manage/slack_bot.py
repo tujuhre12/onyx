@@ -361,8 +361,7 @@ def get_all_channels_from_slack_api(
         response = client.conversations_list(limit=1000)
         channels = {channel["name"]: channel["id"] for channel in response["channels"]}
         return channels
-    except SlackApiError as e:
-        print(f"Error fetching channels: {e.response['error']}")
+    except SlackApiError:
         raise HTTPException(
             status_code=500, detail="Error fetching channels from Slack API"
         )
