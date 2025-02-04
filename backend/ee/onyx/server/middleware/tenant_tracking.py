@@ -10,6 +10,7 @@ from fastapi import Response
 from ee.onyx.auth.users import decode_anonymous_user_jwt_token
 from ee.onyx.configs.app_configs import ANONYMOUS_USER_COOKIE_NAME
 from onyx.auth.api_key import extract_tenant_from_api_key_header
+from onyx.configs.constants import TENANT_ID_COOKIE_NAME
 from onyx.db.engine import is_valid_schema_name
 from onyx.redis.redis_pool import retrieve_auth_token_data_from_redis
 from shared_configs.configs import MULTI_TENANT
@@ -93,8 +94,9 @@ async def _get_tenant_id_from_request(
         raise HTTPException(status_code=500, detail="Internal server error")
 
     finally:
+        print(request.cookies)
         # As a final step, check for explicit tenant_id cookie
-        tenant_id_cookie = request.cookies.get("tenant_id")
+        tenant_id_cookie = request.cookies.get(TENANT_ID_COOKIE_NAME)
         if tenant_id_cookie and is_valid_schema_name(tenant_id_cookie):
             return tenant_id_cookie
 

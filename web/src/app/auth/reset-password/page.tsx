@@ -13,7 +13,10 @@ import { TextFormField } from "@/components/admin/connectors/Field";
 import { usePopup } from "@/components/admin/connectors/Popup";
 import { Spinner } from "@/components/Spinner";
 import { redirect, useSearchParams } from "next/navigation";
-import { NEXT_PUBLIC_FORGOT_PASSWORD_ENABLED } from "@/lib/constants";
+import {
+  NEXT_PUBLIC_FORGOT_PASSWORD_ENABLED,
+  TENANT_ID_COOKIE_NAME,
+} from "@/lib/constants";
 import Cookies from "js-cookie";
 
 const ResetPasswordPage: React.FC = () => {
@@ -21,11 +24,14 @@ const ResetPasswordPage: React.FC = () => {
   const [isWorking, setIsWorking] = useState(false);
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  const tenantId = searchParams.get("tenant_id");
+  const tenantId = searchParams.get("onyx_tid");
 
   useEffect(() => {
     if (tenantId) {
-      Cookies.set("tenant_id", tenantId, { path: "/" });
+      Cookies.set(TENANT_ID_COOKIE_NAME, tenantId, {
+        path: "/",
+        expires: 1 / 24,
+      }); // Expires in 1 hour
     }
   }, [tenantId]);
 
@@ -71,10 +77,27 @@ const ResetPasswordPage: React.FC = () => {
                 redirect("/auth/login");
               }, 1000);
             } catch (error) {
-              setPopup({
-                type: "error",
-                message: "An error occurred. Please try again.",
-              });
+              if (error instanceof Error) {
+                if (error.message === "Invalid password") {
+                  setPopup({
+                    type: "error",
+                    message:
+                      "Invalid password. Please try a different password.",
+                  });
+                } else {
+                  setPopup({
+                    type: "error",
+                    message:
+                      error.message ||
+                      "An error occurred during password reset.",
+                  });
+                }
+              } else {
+                setPopup({
+                  type: "error",
+                  message: "An unexpected error occurred. Please try again.",
+                });
+              }
             } finally {
               setIsWorking(false);
             }
