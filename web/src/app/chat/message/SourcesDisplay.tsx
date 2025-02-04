@@ -105,6 +105,7 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
 
         {hasMoreDocuments && (
           <SeeMoreBlock
+            fullWidth
             toggled={docSidebarToggled}
             toggleDocumentSelection={toggleDocumentSelection}
             uniqueSources={
