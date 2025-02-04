@@ -218,6 +218,22 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     verification_token_lifetime_seconds = AUTH_COOKIE_EXPIRE_TIME_SECONDS
     user_db: SQLAlchemyUserDatabase[User, uuid.UUID]
 
+    async def get_by_email(self, user_email: str) -> User:
+        print("WTIHINT THIS FUNCTION RIGHT NOW")
+        tenant_id = fetch_ee_implementation_or_noop(
+            "onyx.server.tenants.user_mapping", "get_tenant_id_for_email", None
+        )(user_email)
+        async with get_async_session_with_tenant(tenant_id) as db_session:
+            if MULTI_TENANT:
+                tenant_user_db = SQLAlchemyUserAdminDB[User, uuid.UUID](
+                    db_session, User, OAuthAccount
+                )
+                user = await tenant_user_db.get_by_email(user_email)
+            else:
+                user = await self.user_db.get_by_email(user_email)
+
+        return user
+
     async def create(
         self,
         user_create: schemas.UC | UserCreate,
@@ -500,9 +516,25 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             )
             raise HTTPException(
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "Your admin has not enbaled this feature.",
+                "Your admin has not enabled this feature.",
             )
+
         send_forgot_password_email(user.email, token)
+
+        # Create a response object
+        response = Response()
+
+        # Set a cookie in the response
+        response.set_cookie(
+            key="forgot_password_token",
+            value="value",
+            httponly=True,
+            secure=True,
+            # samesite="strict",
+            max_age=3600,  # Set expiration time (e.g., 1 hour)
+        )
+
+        return response
 
     async def on_after_request_verify(
         self, user: User, token: str, request: Optional[Request] = None
