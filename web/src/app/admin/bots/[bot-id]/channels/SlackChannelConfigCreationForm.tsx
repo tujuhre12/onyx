@@ -120,7 +120,7 @@ export const SlackChannelConfigCreationForm = ({
           knowledge_source: existingSlackBotUsesPersona
             ? existingPersonaHasSearchTool
               ? "assistant"
-              : "nonsearch_assistant"
+              : "non_search_assistant"
             : existingSlackChannelConfig?.persona
               ? "document_sets"
               : "all_public",
@@ -167,7 +167,7 @@ export const SlackChannelConfigCreationForm = ({
               "all_public",
               "document_sets",
               "assistant",
-              "nonsearch_assistant",
+              "non_search_assistant",
             ])
             .required(),
         })}
@@ -181,14 +181,14 @@ export const SlackChannelConfigCreationForm = ({
             respond_member_group_list: values.respond_member_group_list,
             usePersona:
               values.knowledge_source === "assistant" ||
-              values.knowledge_source === "nonsearch_assistant",
+              values.knowledge_source === "non_search_assistant",
             document_sets:
               values.knowledge_source === "document_sets"
                 ? values.document_sets
                 : [],
             persona_id:
               values.knowledge_source === "assistant" ||
-              values.knowledge_source === "nonsearch_assistant"
+              values.knowledge_source === "non_search_assistant"
                 ? values.persona_id
                 : null,
             standard_answer_categories: values.standard_answer_categories.map(

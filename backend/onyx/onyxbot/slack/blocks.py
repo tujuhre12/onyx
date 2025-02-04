@@ -338,13 +338,30 @@ def _build_citations_blocks(
     return citations_block
 
 
+def _build_answer_blocks(
+    answer: ChatOnyxBotResponse, fallback_answer: str
+) -> list[Block]:
+    if not answer.answer:
+        answer_blocks = [SectionBlock(text=fallback_answer)]
+    else:
+        # replaces markdown links with slack format links
+        formatted_answer = format_slack_message(answer.answer)
+        answer_processed = decode_escapes(
+            remove_slack_text_interactions(formatted_answer)
+        )
+        answer_blocks = [
+            SectionBlock(text=text) for text in _split_text(answer_processed)
+        ]
+    return answer_blocks
+
+
 def _build_qa_response_blocks(
     answer: ChatOnyxBotResponse,
 ) -> list[Block]:
     retrieval_info = answer.docs
-    # if not retrieval_info:
-    # This should not happen, even with no docs retrieved, there is still info returned
-    # raise RuntimeError("Failed to retrieve docs, cannot answer question.")
+    if not retrieval_info:
+        # This should not happen, even with no docs retrieved, there is still info returned
+        raise RuntimeError("Failed to retrieve docs, cannot answer question.")
 
     if DISABLE_GENERATIVE_AI:
         return []
@@ -376,21 +393,10 @@ def _build_qa_response_blocks(
 
         filter_block = SectionBlock(text=f"_{filter_text}_")
 
-    if not answer.answer:
-        answer_blocks = [
-            SectionBlock(
-                text="Sorry, I was unable to find an answer, but I did find some potentially relevant docs 🤓"
-            )
-        ]
-    else:
-        # replaces markdown links with slack format links
-        formatted_answer = format_slack_message(answer.answer)
-        answer_processed = decode_escapes(
-            remove_slack_text_interactions(formatted_answer)
-        )
-        answer_blocks = [
-            SectionBlock(text=text) for text in _split_text(answer_processed)
-        ]
+    answer_blocks = _build_answer_blocks(
+        answer=answer,
+        fallback_answer="Sorry, I was unable to find an answer, but I did find some potentially relevant docs 🤓",
+    )
 
     response_blocks: list[Block] = []
 
@@ -481,6 +487,7 @@ def build_slack_response_blocks(
     use_citations: bool,
     feedback_reminder_id: str | None,
     skip_ai_feedback: bool = False,
+    expecting_search_result: bool = False,
 ) -> list[Block]:
     """
     This function is a top level function that builds all the blocks for the Slack response.
@@ -491,9 +498,15 @@ def build_slack_response_blocks(
         message_info.thread_messages[-1].message, message_info.is_bot_msg
     )
 
-    answer_blocks = _build_qa_response_blocks(
-        answer=answer,
-    )
+    if expecting_search_result:
+        answer_blocks = _build_qa_response_blocks(
+            answer=answer,
+        )
+
+    else:
+        answer_blocks = _build_answer_blocks(
+            answer=answer, fallback_answer="Sorry, I was unable to generate an answer."
+        )
 
     web_follow_up_block = []
     if channel_conf and channel_conf.get("show_continue_in_web_ui"):

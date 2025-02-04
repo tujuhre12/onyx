@@ -10,7 +10,6 @@ import {
 } from "formik";
 import { CCPairDescriptor, DocumentSet } from "@/lib/types";
 import {
-  BooleanFormField,
   Label,
   SelectorFormField,
   SubLabel,
@@ -49,6 +48,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
+
+import { CheckFormField } from "@/components/ui/CheckField";
 
 export interface SlackChannelConfigFormFieldsProps {
   isUpdate: boolean;
@@ -254,8 +255,8 @@ export function SlackChannelConfigFormFields({
               sublabel="Control both the documents and the prompt to use for answering questions"
             />
             <RadioGroupItemField
-              value="nonsearch_assistant"
-              id="nonsearch_assistant"
+              value="non_search_assistant"
+              id="non_search_assistant"
               label="Non-Search Assistant"
               sublabel="Chat with an assistant that does not use documents"
             />
@@ -422,7 +423,7 @@ export function SlackChannelConfigFormFields({
             )}
           </div>
         )}
-        {values.knowledge_source === "nonsearch_assistant" && (
+        {values.knowledge_source === "non_search_assistant" && (
           <div className="mt-4">
             <SubLabel>
               <>
@@ -468,7 +469,7 @@ export function SlackChannelConfigFormFields({
       </div>
       <Separator className="my-4" />
       <Accordion type="multiple" className=" gap-y-2 w-full">
-        {values.knowledge_source !== "nonsearch_assistant" && (
+        {values.knowledge_source !== "non_search_assistant" && (
           <AccordionItem value="search-options">
             <AccordionTrigger className="text-text">
               Search Configuration
@@ -486,15 +487,14 @@ export function SlackChannelConfigFormFields({
                     ]}
                   />
                 </div>
-                <BooleanFormField
+                <CheckFormField
                   name="enable_auto_filters"
-                  removeIndent
                   label="Enable LLM Autofiltering"
                   tooltip="If set, the LLM will generate source and time filters based on the user's query"
                 />
-                <BooleanFormField
+
+                <CheckFormField
                   name="answer_validity_check_enabled"
-                  removeIndent
                   label="Only respond if citations found"
                   tooltip="If set, will only answer questions where the model successfully produces citations"
                 />
@@ -507,16 +507,14 @@ export function SlackChannelConfigFormFields({
           <AccordionTrigger>General Configuration</AccordionTrigger>
           <AccordionContent>
             <div className="space-y-4">
-              <BooleanFormField
+              <CheckFormField
                 name="show_continue_in_web_ui"
-                removeIndent
                 label="Show Continue in Web UI button"
                 tooltip="If set, will show a button at the bottom of the response that allows the user to continue the conversation in the Onyx Web UI"
               />
 
-              <BooleanFormField
+              <CheckFormField
                 name="still_need_help_enabled"
-                removeIndent
                 onChange={(checked: boolean) => {
                   setFieldValue("still_need_help_enabled", checked);
                   if (!checked) {
@@ -546,21 +544,18 @@ export function SlackChannelConfigFormFields({
                 </CollapsibleSection>
               )}
 
-              <BooleanFormField
+              <CheckFormField
                 name="questionmark_prefilter_enabled"
-                removeIndent
                 label="Only respond to questions"
                 tooltip="If set, OnyxBot will only respond to messages that contain a question mark"
               />
-              <BooleanFormField
+              <CheckFormField
                 name="respond_tag_only"
-                removeIndent
                 label="Respond to @OnyxBot Only"
                 tooltip="If set, OnyxBot will only respond when directly tagged"
               />
-              <BooleanFormField
+              <CheckFormField
                 name="respond_to_bots"
-                removeIndent
                 label="Respond to Bot messages"
                 tooltip="If not set, OnyxBot will always ignore messages from Bots"
               />

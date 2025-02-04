@@ -27,6 +27,7 @@ from onyx.db.engine import get_session_with_tenant
 from onyx.db.models import SlackChannelConfig
 from onyx.db.models import User
 from onyx.db.persona import get_persona_by_id
+from onyx.db.persona import persona_has_search_tool
 from onyx.db.users import get_user_by_email
 from onyx.onyxbot.slack.blocks import build_slack_response_blocks
 from onyx.onyxbot.slack.handlers.utils import send_team_member_message
@@ -105,6 +106,9 @@ def handle_regular_answer(
             document_set.name for document_set in persona.document_sets
         ]
         prompt = persona.prompts[0] if persona.prompts else None
+
+    with get_session_with_tenant(tenant_id) as db_session:
+        expecting_search_result = persona_has_search_tool(persona.id, db_session)
 
     # TODO: Add in support for Slack to truncate messages based on max LLM context
     # llm, _ = get_llms_for_persona(persona)
@@ -300,27 +304,27 @@ def handle_regular_answer(
             logger.debug(answer.answer)
         return True
 
-    answer.docs
-    # if not retrieval_info:
-    # This should not happen, even with no docs retrieved, there is still info returned
-    # raise RuntimeError("Failed to retrieve docs, cannot answer question.")
+    retrieval_info = answer.docs
+    if not retrieval_info and expecting_search_result:
+        # This should not happen, even with no docs retrieved, there is still info returned
+        raise RuntimeError("Failed to retrieve docs, cannot answer question.")
 
-    # top_docs = retrieval_info.top_documents
-    # if not top_docs and not should_respond_even_with_no_docs:
-    #     logger.error(
-    #         f"Unable to answer question: '{user_message}' - no documents found"
-    #     )
-    #     # Optionally, respond in thread with the error message
-    #     # Used primarily for debugging purposes
-    #     if should_respond_with_error_msgs:
-    #         respond_in_thread(
-    #             client=client,
-    #             channel=channel,
-    #             receiver_ids=None,
-    #             text="Found no documents when trying to answer. Did you index any documents?",
-    #             thread_ts=message_ts_to_respond_to,
-    #         )
-    #     return True
+    top_docs = retrieval_info.top_documents if retrieval_info else []
+    if not top_docs and expecting_search_result:
+        logger.error(
+            f"Unable to answer question: '{user_message}' - no documents found"
+        )
+        # Optionally, respond in thread with the error message
+        # Used primarily for debugging purposes
+        if should_respond_with_error_msgs:
+            respond_in_thread(
+                client=client,
+                channel=channel,
+                receiver_ids=None,
+                text="Found no documents when trying to answer. Did you index any documents?",
+                thread_ts=message_ts_to_respond_to,
+            )
+        return True
 
     if not answer.answer and disable_docs_only_answer:
         logger.notice(
@@ -335,7 +339,8 @@ def handle_regular_answer(
     )
 
     if (
-        only_respond_if_citations
+        expecting_search_result
+        and only_respond_if_citations
         and not answer.citations
         and not message_info.bypass_filters
     ):
@@ -361,6 +366,7 @@ def handle_regular_answer(
         channel_conf=channel_conf,
         use_citations=True,  # No longer supporting quotes
         feedback_reminder_id=feedback_reminder_id,
+        expecting_search_result=expecting_search_result,
     )
 
     try:
