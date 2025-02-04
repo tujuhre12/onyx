@@ -43,6 +43,7 @@ async def _get_tenant_id_from_request(
     Attempt to extract tenant_id from:
     1) The API key header
     2) The Redis-based token (stored in Cookie: fastapiusersauth)
+    3)  Reset token cookie
     Fallback: POSTGRES_DEFAULT_SCHEMA
     """
     # Check for API key
@@ -90,3 +91,12 @@ async def _get_tenant_id_from_request(
     except Exception as e:
         logger.error(f"Unexpected error in _get_tenant_id_from_request: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+    finally:
+        # As a final step, check for explicit tenant_id cookie
+        tenant_id_cookie = request.cookies.get("tenant_id")
+        if tenant_id_cookie and is_valid_schema_name(tenant_id_cookie):
+            return tenant_id_cookie
+
+        # If we've reached this point, return the default schema
+        return POSTGRES_DEFAULT_SCHEMA
