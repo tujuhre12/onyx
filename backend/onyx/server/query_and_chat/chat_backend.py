@@ -420,6 +420,10 @@ def handle_new_chat_message(
 
     def stream_generator() -> Generator[str, None, None]:
         try:
+            import time
+
+            start_time = time.time()
+            n = 0
             for packet in stream_chat_message(
                 new_msg_req=chat_message_req,
                 user=user,
@@ -431,6 +435,19 @@ def handle_new_chat_message(
                 ),
                 is_connected=is_connected_func,
             ):
+                if "top_documents" in packet:
+                    to_first_docs = time.time() - start_time
+                    print(f"Time to first docs: {to_first_docs}")
+                    print(packet)
+                elif "answer_piece" in packet:
+                    to_answer_piece = time.time() - start_time
+                    if n == 1:
+                        print(f"Time to answer piece: {to_answer_piece}")
+                        print(packet)
+                    n += 1
+
+                # time_since_start = time.time() - start_time
+                # print(f"Time since start: {time_since_start}")
                 yield json.dumps(packet) if isinstance(packet, dict) else packet
 
         except Exception as e:

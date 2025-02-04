@@ -12,20 +12,6 @@ from onyx.context.search.models import InferenceSection
 from onyx.tools.models import SearchQueryInfo
 
 
-# Pydantic models for structured outputs
-# class RewrittenQueries(BaseModel):
-#     rewritten_queries: list[str]
-
-
-# class BinaryDecision(BaseModel):
-#     decision: Literal["yes", "no"]
-
-
-# class BinaryDecisionWithReasoning(BaseModel):
-#     reasoning: str
-#     decision: Literal["yes", "no"]
-
-
 class RetrievalFitScoreMetrics(BaseModel):
     scores: dict[str, float]
     chunk_ids: list[str]
