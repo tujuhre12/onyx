@@ -43,8 +43,17 @@ export function DraggableTable({
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>();
   const items = useMemo(() => rows?.map(({ id }) => id), [rows]);
   const sensors = useSensors(
-    useSensor(MouseSensor, {}),
-    useSensor(TouchSensor, {}),
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {})
   );
 
@@ -87,7 +96,7 @@ export function DraggableTable({
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis]}
     >
-      <Table className="overflow-y-visible">
+      <Table>
         <TableHeader>
           <TableRow>
             <TableHead></TableHead>
@@ -103,20 +112,20 @@ export function DraggableTable({
               return <DraggableRow key={row.id} row={row} isAdmin={isAdmin} />;
             })}
           </SortableContext>
-
-          {isAdmin && (
-            <DragOverlay>
-              {selectedRow && (
-                <Table className="overflow-y-visible">
-                  <TableBody>
-                    <StaticRow key={selectedRow.id} row={selectedRow} />
-                  </TableBody>
-                </Table>
-              )}
-            </DragOverlay>
-          )}
         </TableBody>
       </Table>
+
+      {isAdmin && (
+        <DragOverlay>
+          {selectedRow && (
+            <Table>
+              <TableBody>
+                <StaticRow key={selectedRow.id} row={selectedRow} />
+              </TableBody>
+            </Table>
+          )}
+        </DragOverlay>
+      )}
     </DndContext>
   );
 }

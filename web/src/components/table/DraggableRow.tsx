@@ -6,11 +6,9 @@ import { Row } from "./interfaces";
 
 export function DraggableRow({
   row,
-  forceDragging,
   isAdmin = true,
 }: {
   row: Row;
-  forceDragging?: boolean;
   isAdmin?: boolean;
 }) {
   const {
@@ -25,26 +23,22 @@ export function DraggableRow({
   });
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition: transition,
+    transition,
   };
 
   return (
     <TableRow
       ref={setNodeRef}
       style={style}
-      className={isDragging ? "invisible" : "bg-background"}
+      className={isDragging ? "opacity-50" : ""}
     >
       <TableCell>
         {isAdmin && (
-          <DragHandle
-            isDragging={isDragging || forceDragging}
-            {...attributes}
-            {...listeners}
-          />
+          <DragHandle isDragging={isDragging} {...attributes} {...listeners} />
         )}
       </TableCell>
-      {row.cells.map((column, ind) => (
-        <TableCell key={ind}>{column}</TableCell>
+      {row.cells.map((cell, index) => (
+        <TableCell key={index}>{cell}</TableCell>
       ))}
     </TableRow>
   );

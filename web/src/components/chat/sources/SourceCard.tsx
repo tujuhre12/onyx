@@ -116,10 +116,10 @@ export function SeeMoreBlock({
             <SourceIcon
               key={index}
               sourceType={icon.data as ValidSources}
-              iconSize={14}
+              iconSize={18}
             />
           ) : (
-            <WebResultIcon key={index} url={icon.data} size={14} />
+            <WebResultIcon key={index} url={icon.data} size={18} />
           )
         )}
       </div>
