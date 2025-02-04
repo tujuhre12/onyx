@@ -179,7 +179,7 @@ export function SlackChannelConfigFormFields({
   );
 
   return (
-    <Form className="max-w-3xl">
+    <>
       <div className="w-full">
         {isDefault && (
           <Badge variant="agent" className="bg-blue-100 text-blue-800">
@@ -417,7 +417,7 @@ export function SlackChannelConfigFormFields({
         />
       </div>
       {showAdvancedOptions && (
-        <div className="mt-4 space-y-6">
+        <div className="mt-2 space-y-4">
           <div className="w-64">
             <SelectorFormField
               name="response_type"
@@ -571,13 +571,11 @@ export function SlackChannelConfigFormFields({
             </Tooltip>
           </TooltipProvider>
         )}
-        <Button onClick={() => {}} type="submit">
-          {isUpdate ? "Update" : "Create"}
-        </Button>
+        <Button type="submit">{isUpdate ? "Update" : "Create"}</Button>
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
       </div>
-    </Form>
+    </>
   );
 }

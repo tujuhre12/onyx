@@ -16,7 +16,7 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade():
+def upgrade() -> None:
     # Add is_default column
     op.add_column(
         "slack_channel_config",
@@ -37,8 +37,41 @@ def upgrade():
         postgresql_where=sa.text("is_default IS TRUE"),
     )
 
+    # Create default channel configs for existing slack bots without one
+    conn = op.get_bind()
+    slack_bots = conn.execute(sa.text("SELECT id FROM slack_bot")).fetchall()
 
-def downgrade():
+    for slack_bot in slack_bots:
+        slack_bot_id = slack_bot[0]
+        existing_default = conn.execute(
+            sa.text(
+                "SELECT id FROM slack_channel_config WHERE slack_bot_id = :bot_id AND is_default = TRUE"
+            ),
+            {"bot_id": slack_bot_id},
+        ).fetchone()
+
+        if not existing_default:
+            conn.execute(
+                sa.text(
+                    """
+                    INSERT INTO slack_channel_config (
+                        slack_bot_id, persona_id, channel_config, enable_auto_filters, is_default
+                    ) VALUES (
+                        :bot_id, NULL,
+                        '{"channel_name": null, "respond_member_group_list": [], "answer_filters": [], "follow_up_tags": []}',
+                        FALSE, TRUE
+                    )
+                """
+                ),
+                {"bot_id": slack_bot_id},
+            )
+
+
+def downgrade() -> None:
+    # Delete default slack channel configs
+    conn = op.get_bind()
+    conn.execute(sa.text("DELETE FROM slack_channel_config WHERE is_default = TRUE"))
+
     # Remove index
     op.drop_index(
         "ix_slack_channel_config_slack_bot_id_default",

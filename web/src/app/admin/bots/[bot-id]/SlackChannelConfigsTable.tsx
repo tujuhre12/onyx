@@ -48,21 +48,19 @@ export function SlackChannelConfigsTable({
             window.location.href = `/admin/bots/${slackBotId}/channels/${defaultConfig?.id}`;
           }}
         >
-          <FiSettings className="mr-2" />
+          <FiSettings />
           Edit Default Config
         </Button>
         <Link href={`/admin/bots/${slackBotId}/channels/new`}>
           <Button variant="outline">
-            <FiPlusSquare className="mr-2" />
-            New Slack Channel Configuration
+            <FiPlusSquare />
+            New Channel Configuration
           </Button>
         </Link>
       </div>
 
       <div>
-        <h2 className="text-2xl font-bold mb-4">
-          Channel-Specific Configurations
-        </h2>
+        <h2 className="text-2xl font- mb-4">Channel-Specific Configurations</h2>
         <Card>
           <Table>
             <TableHeader>
@@ -80,7 +78,7 @@ export function SlackChannelConfigsTable({
                   return (
                     <TableRow
                       key={slackChannelConfig.id}
-                      className="cursor-pointer hover:bg-accent transition-colors"
+                      className="cursor-pointer transition-colors"
                       onClick={() => {
                         window.location.href = `/admin/bots/${slackBotId}/channels/${slackChannelConfig.id}`;
                       }}

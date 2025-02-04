@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from onyx.configs.chat_configs import MAX_CHUNKS_FED_TO_CHAT
 from onyx.context.search.enums import RecencyBiasSetting
+from onyx.db.constants import DEFAULT_PERSONA_SLACKCHANNEL_NAME
 from onyx.db.constants import SLACK_BOT_PERSONA_PREFIX
 from onyx.db.models import ChannelConfig
 from onyx.db.models import Persona
@@ -22,8 +23,8 @@ from onyx.utils.variable_functionality import (
 )
 
 
-def _build_persona_name(channel_name: str) -> str:
-    return f"{SLACK_BOT_PERSONA_PREFIX}{channel_name}"
+def _build_persona_name(channel_name: str | None) -> str:
+    return f"{SLACK_BOT_PERSONA_PREFIX}{channel_name if channel_name else DEFAULT_PERSONA_SLACKCHANNEL_NAME}"
 
 
 def _cleanup_relationships(db_session: Session, persona_id: int) -> None:
@@ -40,7 +41,7 @@ def _cleanup_relationships(db_session: Session, persona_id: int) -> None:
 
 def create_slack_channel_persona(
     db_session: Session,
-    channel_name: str,
+    channel_name: str | None,
     document_set_ids: list[int],
     existing_persona_id: int | None = None,
     num_chunks: float = MAX_CHUNKS_FED_TO_CHAT,
@@ -90,7 +91,7 @@ def insert_slack_channel_config(
     channel_config: ChannelConfig,
     standard_answer_category_ids: list[int],
     enable_auto_filters: bool,
-    is_default: bool,
+    is_default: bool = False,
 ) -> SlackChannelConfig:
     versioned_fetch_standard_answer_categories_by_ids = (
         fetch_versioned_implementation_with_fallback(
@@ -150,7 +151,6 @@ def update_slack_channel_config(
     channel_config: ChannelConfig,
     standard_answer_category_ids: list[int],
     enable_auto_filters: bool,
-    is_default: bool,
 ) -> SlackChannelConfig:
     slack_channel_config = db_session.scalar(
         select(SlackChannelConfig).where(
@@ -180,22 +180,6 @@ def update_slack_channel_config(
             f"Some or all categories with ids {standard_answer_category_ids} do not exist"
         )
 
-    if is_default != slack_channel_config.is_default:
-        if is_default:
-            existing_default = db_session.scalar(
-                select(SlackChannelConfig).where(
-                    SlackChannelConfig.slack_bot_id
-                    == slack_channel_config.slack_bot_id,
-                    SlackChannelConfig.is_default is True,  # type: ignore
-                    SlackChannelConfig.id != slack_channel_config_id,
-                )
-            )
-            if existing_default:
-                raise ValueError("A default config already exists for this Slack bot.")
-        else:
-            if "channel_name" not in channel_config:
-                raise ValueError("Channel name is required for non-default configs.")
-
     # update the config
     slack_channel_config.persona_id = persona_id
     slack_channel_config.channel_config = channel_config
@@ -203,7 +187,6 @@ def update_slack_channel_config(
         existing_standard_answer_categories
     )
     slack_channel_config.enable_auto_filters = enable_auto_filters
-    slack_channel_config.is_default = is_default
 
     db_session.commit()
 
@@ -272,6 +255,10 @@ def fetch_slack_channel_config(
 def fetch_slack_channel_config_for_channel_or_default(
     db_session: Session, slack_bot_id: int, channel_name: str
 ) -> SlackChannelConfig | None:
+    print(
+        f"Fetching Slack channel config for bot_id: {slack_bot_id}, channel: {channel_name}"
+    )
+
     # attempt to find channel-specific config first
     sc_config = db_session.scalar(
         select(SlackChannelConfig).where(
@@ -281,7 +268,12 @@ def fetch_slack_channel_config_for_channel_or_default(
     )
 
     if sc_config:
+        print(f"Found channel-specific config for {channel_name}")
         return sc_config
+
+    print(
+        f"No channel-specific config found for {channel_name}, looking for default for id {slack_bot_id}"
+    )
 
     # if none found, see if there is a default
     default_sc = db_session.scalar(
@@ -290,5 +282,10 @@ def fetch_slack_channel_config_for_channel_or_default(
             SlackChannelConfig.is_default is True,  # type: ignore
         )
     )
+
+    if default_sc:
+        print("Found default Slack channel config")
+    else:
+        print("No default Slack channel config found")
 
     return default_sc

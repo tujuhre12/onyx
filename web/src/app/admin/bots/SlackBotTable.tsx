@@ -71,7 +71,6 @@ export const SlackBotTable = ({ slackBots }: { slackBots: SlackBot[] }) => {
             <TableHead>Status</TableHead>
             <TableHead>Default Config</TableHead>
             <TableHead>Channel Count</TableHead>
-            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

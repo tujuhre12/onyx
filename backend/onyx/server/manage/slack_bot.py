@@ -53,12 +53,6 @@ def _form_channel_config(
     answer_filters = slack_channel_config_creation_request.answer_filters
     follow_up_tags = slack_channel_config_creation_request.follow_up_tags
 
-    if not raw_channel_name:
-        raise HTTPException(
-            status_code=400,
-            detail="Must provide at least one channel name",
-        )
-
     try:
         cleaned_channel_name = validate_channel_name(
             db_session=db_session,
@@ -113,6 +107,12 @@ def create_slack_channel_config(
         current_slack_channel_config_id=None,
     )
 
+    if channel_config["channel_name"] is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Channel name is required",
+        )
+
     persona_id = None
     if slack_channel_config_creation_request.persona_id is not None:
         persona_id = slack_channel_config_creation_request.persona_id
@@ -125,12 +125,12 @@ def create_slack_channel_config(
         ).id
 
     slack_channel_config_model = insert_slack_channel_config(
+        db_session=db_session,
         slack_bot_id=slack_channel_config_creation_request.slack_bot_id,
         persona_id=persona_id,
         channel_config=channel_config,
         standard_answer_category_ids=slack_channel_config_creation_request.standard_answer_categories,
         enable_auto_filters=slack_channel_config_creation_request.enable_auto_filters,
-        is_default=slack_channel_config_creation_request.is_default,
     )
     return SlackChannelConfig.from_model(slack_channel_config_model)
 
@@ -193,7 +193,6 @@ def patch_slack_channel_config(
         channel_config=channel_config,
         standard_answer_category_ids=slack_channel_config_creation_request.standard_answer_categories,
         enable_auto_filters=slack_channel_config_creation_request.enable_auto_filters,
-        is_default=slack_channel_config_creation_request.is_default,
     )
     return SlackChannelConfig.from_model(slack_channel_config_model)
 
