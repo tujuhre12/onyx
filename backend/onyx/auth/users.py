@@ -219,7 +219,6 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     user_db: SQLAlchemyUserDatabase[User, uuid.UUID]
 
     async def get_by_email(self, user_email: str) -> User:
-        print("WTIHINT THIS FUNCTION RIGHT NOW")
         tenant_id = fetch_ee_implementation_or_noop(
             "onyx.server.tenants.user_mapping", "get_tenant_id_for_email", None
         )(user_email)
@@ -518,23 +517,13 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
                 "Your admin has not enabled this feature.",
             )
+        tenant_id = await fetch_ee_implementation_or_noop(
+            "onyx.server.tenants.provisioning",
+            "get_or_provision_tenant",
+            async_return_default_schema,
+        )(email=user.email)
 
-        send_forgot_password_email(user.email, token)
-
-        # Create a response object
-        response = Response()
-
-        # Set a cookie in the response
-        response.set_cookie(
-            key="forgot_password_token",
-            value="value",
-            httponly=True,
-            secure=True,
-            # samesite="strict",
-            max_age=3600,  # Set expiration time (e.g., 1 hour)
-        )
-
-        return response
+        send_forgot_password_email(user.email, token, tenant_id=tenant_id)
 
     async def on_after_request_verify(
         self, user: User, token: str, request: Optional[Request] = None
