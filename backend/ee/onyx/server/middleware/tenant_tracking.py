@@ -94,7 +94,6 @@ async def _get_tenant_id_from_request(
         raise HTTPException(status_code=500, detail="Internal server error")
 
     finally:
-        print(request.cookies)
         # As a final step, check for explicit tenant_id cookie
         tenant_id_cookie = request.cookies.get(TENANT_ID_COOKIE_NAME)
         if tenant_id_cookie and is_valid_schema_name(tenant_id_cookie):

@@ -24,7 +24,8 @@ const ResetPasswordPage: React.FC = () => {
   const [isWorking, setIsWorking] = useState(false);
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  const tenantId = searchParams.get("onyx_tid");
+  const tenantId = searchParams.get(TENANT_ID_COOKIE_NAME);
+  // Keep search param same name as cookie for simplicity
 
   useEffect(() => {
     if (tenantId) {
@@ -78,20 +79,11 @@ const ResetPasswordPage: React.FC = () => {
               }, 1000);
             } catch (error) {
               if (error instanceof Error) {
-                if (error.message === "Invalid password") {
-                  setPopup({
-                    type: "error",
-                    message:
-                      "Invalid password. Please try a different password.",
-                  });
-                } else {
-                  setPopup({
-                    type: "error",
-                    message:
-                      error.message ||
-                      "An error occurred during password reset.",
-                  });
-                }
+                setPopup({
+                  type: "error",
+                  message:
+                    error.message || "An error occurred during password reset.",
+                });
               } else {
                 setPopup({
                   type: "error",
