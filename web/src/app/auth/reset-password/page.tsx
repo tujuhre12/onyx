@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { resetPassword } from "../forgot-password/utils";
 import AuthFlowContainer from "@/components/auth/AuthFlowContainer";
 import CardSection from "@/components/admin/CardSection";
@@ -14,12 +14,20 @@ import { usePopup } from "@/components/admin/connectors/Popup";
 import { Spinner } from "@/components/Spinner";
 import { redirect, useSearchParams } from "next/navigation";
 import { NEXT_PUBLIC_FORGOT_PASSWORD_ENABLED } from "@/lib/constants";
+import Cookies from "js-cookie";
 
 const ResetPasswordPage: React.FC = () => {
   const { popup, setPopup } = usePopup();
   const [isWorking, setIsWorking] = useState(false);
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
+  const tenantId = searchParams.get("tenant_id");
+
+  useEffect(() => {
+    if (tenantId) {
+      Cookies.set("tenant_id", tenantId, { path: "/" });
+    }
+  }, [tenantId]);
 
   if (!NEXT_PUBLIC_FORGOT_PASSWORD_ENABLED) {
     redirect("/auth/login");

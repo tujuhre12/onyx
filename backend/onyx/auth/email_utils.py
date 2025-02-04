@@ -65,9 +65,12 @@ def send_forgot_password_email(
     user_email: str,
     token: str,
     mail_from: str = EMAIL_FROM,
+    tenant_id: str | None = None,
 ) -> None:
     subject = "Onyx Forgot Password"
     link = f"{WEB_DOMAIN}/auth/reset-password?token={token}"
+    if tenant_id:
+        link += f"&tenant_id={tenant_id}"
     body = f"Click the following link to reset your password: {link}"
     send_email(user_email, subject, body, mail_from)
 
