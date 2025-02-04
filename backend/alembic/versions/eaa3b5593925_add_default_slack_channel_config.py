@@ -1,7 +1,7 @@
 """add default slack channel config
 
 Revision ID: eaa3b5593925
-Revises: 2f80c6a2550f
+Revises: 98a5008d8711
 Create Date: 2025-02-03 18:07:56.552526
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "eaa3b5593925"
-down_revision = "2f80c6a2550f"
+down_revision = "98a5008d8711"
 branch_labels = None
 depends_on = None
 
