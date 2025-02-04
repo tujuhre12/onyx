@@ -90,6 +90,7 @@ def insert_slack_channel_config(
     channel_config: ChannelConfig,
     standard_answer_category_ids: list[int],
     enable_auto_filters: bool,
+    is_default: bool,
 ) -> SlackChannelConfig:
     versioned_fetch_standard_answer_categories_by_ids = (
         fetch_versioned_implementation_with_fallback(
@@ -115,12 +116,26 @@ def insert_slack_channel_config(
                 f"Some or all categories with ids {standard_answer_category_ids} do not exist"
             )
 
+    if is_default:
+        existing_default = db_session.scalar(
+            select(SlackChannelConfig).where(
+                SlackChannelConfig.slack_bot_id == slack_bot_id,
+                SlackChannelConfig.is_default is True,  # type: ignore
+            )
+        )
+        if existing_default:
+            raise ValueError("A default config already exists for this Slack bot.")
+    else:
+        if "channel_name" not in channel_config:
+            raise ValueError("Channel name is required for non-default configs.")
+
     slack_channel_config = SlackChannelConfig(
         slack_bot_id=slack_bot_id,
         persona_id=persona_id,
         channel_config=channel_config,
         standard_answer_categories=existing_standard_answer_categories,
         enable_auto_filters=enable_auto_filters,
+        is_default=is_default,
     )
     db_session.add(slack_channel_config)
     db_session.commit()
@@ -135,6 +150,7 @@ def update_slack_channel_config(
     channel_config: ChannelConfig,
     standard_answer_category_ids: list[int],
     enable_auto_filters: bool,
+    is_default: bool,
 ) -> SlackChannelConfig:
     slack_channel_config = db_session.scalar(
         select(SlackChannelConfig).where(
@@ -164,32 +180,30 @@ def update_slack_channel_config(
             f"Some or all categories with ids {standard_answer_category_ids} do not exist"
         )
 
-    # get the existing persona id before updating the object
-    existing_persona_id = slack_channel_config.persona_id
+    if is_default != slack_channel_config.is_default:
+        if is_default:
+            existing_default = db_session.scalar(
+                select(SlackChannelConfig).where(
+                    SlackChannelConfig.slack_bot_id
+                    == slack_channel_config.slack_bot_id,
+                    SlackChannelConfig.is_default is True,  # type: ignore
+                    SlackChannelConfig.id != slack_channel_config_id,
+                )
+            )
+            if existing_default:
+                raise ValueError("A default config already exists for this Slack bot.")
+        else:
+            if "channel_name" not in channel_config:
+                raise ValueError("Channel name is required for non-default configs.")
 
     # update the config
-    # NOTE: need to do this before cleaning up the old persona or else we
-    # will encounter `violates foreign key constraint` errors
     slack_channel_config.persona_id = persona_id
     slack_channel_config.channel_config = channel_config
     slack_channel_config.standard_answer_categories = list(
         existing_standard_answer_categories
     )
     slack_channel_config.enable_auto_filters = enable_auto_filters
-
-    # if the persona has changed, then clean up the old persona
-    if persona_id != existing_persona_id and existing_persona_id:
-        existing_persona = db_session.scalar(
-            select(Persona).where(Persona.id == existing_persona_id)
-        )
-        # if the existing persona was one created just for use with this Slack channel,
-        # then clean it up
-        if existing_persona and existing_persona.name.startswith(
-            SLACK_BOT_PERSONA_PREFIX
-        ):
-            _cleanup_relationships(
-                db_session=db_session, persona_id=existing_persona_id
-            )
+    slack_channel_config.is_default = is_default
 
     db_session.commit()
 
@@ -253,3 +267,28 @@ def fetch_slack_channel_config(
             SlackChannelConfig.id == slack_channel_config_id
         )
     )
+
+
+def fetch_slack_channel_config_for_channel_or_default(
+    db_session: Session, slack_bot_id: int, channel_name: str
+) -> SlackChannelConfig | None:
+    # attempt to find channel-specific config first
+    sc_config = db_session.scalar(
+        select(SlackChannelConfig).where(
+            SlackChannelConfig.slack_bot_id == slack_bot_id,
+            SlackChannelConfig.channel_config["channel_name"].astext == channel_name,
+        )
+    )
+
+    if sc_config:
+        return sc_config
+
+    # if none found, see if there is a default
+    default_sc = db_session.scalar(
+        select(SlackChannelConfig).where(
+            SlackChannelConfig.slack_bot_id == slack_bot_id,
+            SlackChannelConfig.is_default is True,  # type: ignore
+        )
+    )
+
+    return default_sc

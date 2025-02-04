@@ -1,6 +1,20 @@
 import { errorHandlingFetcher } from "@/lib/fetcher";
-import { SlackBot, SlackChannelConfig } from "@/lib/types";
+import { SlackChannelConfig } from "@/lib/types";
 import useSWR, { mutate } from "swr";
+
+export type SlackBot = {
+  id: number;
+  name: string;
+  enabled: boolean;
+  configs_count: number;
+  slack_channel_configs: Array<{
+    id: number;
+    is_default: boolean;
+    channel_config: {
+      channel_name: string;
+    };
+  }>;
+};
 
 export const useSlackChannelConfigs = () => {
   const url = "/api/manage/admin/slack-app/channel";

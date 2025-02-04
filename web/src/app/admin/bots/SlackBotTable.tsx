@@ -1,7 +1,7 @@
 "use client";
 
 import { PageSelector } from "@/components/PageSelector";
-import { SlackBot } from "@/lib/types";
+import { SlackBot } from "./[bot-id]/hooks";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FiCheck, FiEdit, FiXCircle } from "react-icons/fi";
@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 const NUM_IN_PAGE = 20;
 
@@ -42,7 +43,7 @@ function ClickableTableRow({
   );
 }
 
-export function SlackBotTable({ slackBots }: { slackBots: SlackBot[] }) {
+export const SlackBotTable = ({ slackBots }: { slackBots: SlackBot[] }) => {
   const [page, setPage] = useState(1);
 
   // sort by id for consistent ordering
@@ -67,8 +68,10 @@ export function SlackBotTable({ slackBots }: { slackBots: SlackBot[] }) {
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Default Config</TableHead>
             <TableHead>Channel Count</TableHead>
-            <TableHead>Enabled</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -85,13 +88,19 @@ export function SlackBotTable({ slackBots }: { slackBots: SlackBot[] }) {
                     {slackBot.name}
                   </div>
                 </TableCell>
-                <TableCell>{slackBot.configs_count}</TableCell>
                 <TableCell>
                   {slackBot.enabled ? (
-                    <FiCheck className="text-emerald-600" size="18" />
+                    <Badge variant="success">Enabled</Badge>
                   ) : (
-                    <FiXCircle className="text-red-600" size="18" />
+                    <Badge variant="destructive">Disabled</Badge>
                   )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="secondary">Default Set</Badge>
+                </TableCell>
+                <TableCell>{slackBot.configs_count}</TableCell>
+                <TableCell>
+                  {/* Add any action buttons here if needed */}
                 </TableCell>
               </ClickableTableRow>
             );
@@ -99,7 +108,7 @@ export function SlackBotTable({ slackBots }: { slackBots: SlackBot[] }) {
           {slackBots.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={4}
+                colSpan={5}
                 className="text-center text-muted-foreground"
               >
                 Please add a New Slack Bot to begin chatting with Danswer!
@@ -128,4 +137,4 @@ export function SlackBotTable({ slackBots }: { slackBots: SlackBot[] }) {
       )}
     </div>
   );
-}
+};

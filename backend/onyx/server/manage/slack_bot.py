@@ -1,6 +1,10 @@
+from typing import Dict
+
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 from sqlalchemy.orm import Session
 
 from onyx.auth.users import current_admin_user
@@ -12,6 +16,7 @@ from onyx.db.models import ChannelConfig
 from onyx.db.models import User
 from onyx.db.persona import get_persona_by_id
 from onyx.db.slack_bot import fetch_slack_bot
+from onyx.db.slack_bot import fetch_slack_bot_tokens
 from onyx.db.slack_bot import fetch_slack_bots
 from onyx.db.slack_bot import insert_slack_bot
 from onyx.db.slack_bot import remove_slack_bot
@@ -124,8 +129,8 @@ def create_slack_channel_config(
         persona_id=persona_id,
         channel_config=channel_config,
         standard_answer_category_ids=slack_channel_config_creation_request.standard_answer_categories,
-        db_session=db_session,
         enable_auto_filters=slack_channel_config_creation_request.enable_auto_filters,
+        is_default=slack_channel_config_creation_request.is_default,
     )
     return SlackChannelConfig.from_model(slack_channel_config_model)
 
@@ -188,6 +193,7 @@ def patch_slack_channel_config(
         channel_config=channel_config,
         standard_answer_category_ids=slack_channel_config_creation_request.standard_answer_categories,
         enable_auto_filters=slack_channel_config_creation_request.enable_auto_filters,
+        is_default=slack_channel_config_creation_request.is_default,
     )
     return SlackChannelConfig.from_model(slack_channel_config_model)
 
@@ -233,6 +239,23 @@ def create_bot(
         enabled=slack_bot_creation_request.enabled,
         bot_token=slack_bot_creation_request.bot_token,
         app_token=slack_bot_creation_request.app_token,
+    )
+
+    # Create a default Slack channel config
+    default_channel_config = ChannelConfig(
+        channel_name=None,
+        respond_member_group_list=[],
+        answer_filters=[],
+        follow_up_tags=[],
+    )
+    insert_slack_channel_config(
+        db_session=db_session,
+        slack_bot_id=slack_bot_model.id,
+        persona_id=None,
+        channel_config=default_channel_config,
+        standard_answer_category_ids=[],
+        enable_auto_filters=False,
+        is_default=True,
     )
 
     create_milestone_and_report(
@@ -315,3 +338,32 @@ def list_bot_configs(
         SlackChannelConfig.from_model(slack_bot_config_model)
         for slack_bot_config_model in slack_bot_config_models
     ]
+
+
+@router.get(
+    "/admin/slack-app/bots/{bot_id}/channels_from_slack_api",
+    response_model=Dict[str, str],
+)
+def get_all_channels_from_slack_api(
+    bot_id: int,
+    db_session: Session = Depends(get_session),
+    _: User | None = Depends(current_admin_user),
+) -> Dict[str, str]:
+    tokens = fetch_slack_bot_tokens(db_session, bot_id)
+    if not tokens or "bot_token" not in tokens:
+        raise HTTPException(
+            status_code=404, detail="Bot token not found for the given bot ID"
+        )
+
+    bot_token = tokens["bot_token"]
+    client = WebClient(token=bot_token)
+
+    try:
+        response = client.conversations_list(limit=1000)
+        channels = {channel["name"]: channel["id"] for channel in response["channels"]}
+        return channels
+    except SlackApiError as e:
+        print(f"Error fetching channels: {e.response['error']}")
+        raise HTTPException(
+            status_code=500, detail="Error fetching channels from Slack API"
+        )
