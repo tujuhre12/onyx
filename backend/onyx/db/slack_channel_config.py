@@ -255,10 +255,6 @@ def fetch_slack_channel_config(
 def fetch_slack_channel_config_for_channel_or_default(
     db_session: Session, slack_bot_id: int, channel_name: str
 ) -> SlackChannelConfig | None:
-    print(
-        f"Fetching Slack channel config for bot_id: {slack_bot_id}, channel: {channel_name}"
-    )
-
     # attempt to find channel-specific config first
     sc_config = db_session.scalar(
         select(SlackChannelConfig).where(
@@ -268,24 +264,14 @@ def fetch_slack_channel_config_for_channel_or_default(
     )
 
     if sc_config:
-        print(f"Found channel-specific config for {channel_name}")
         return sc_config
-
-    print(
-        f"No channel-specific config found for {channel_name}, looking for default for id {slack_bot_id}"
-    )
 
     # if none found, see if there is a default
     default_sc = db_session.scalar(
         select(SlackChannelConfig).where(
             SlackChannelConfig.slack_bot_id == slack_bot_id,
-            SlackChannelConfig.is_default is True,  # type: ignore
+            SlackChannelConfig.is_default == True,  # noqa: E712
         )
     )
-
-    if default_sc:
-        print("Found default Slack channel config")
-    else:
-        print("No default Slack channel config found")
 
     return default_sc

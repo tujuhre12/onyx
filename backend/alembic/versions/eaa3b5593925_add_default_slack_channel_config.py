@@ -23,12 +23,6 @@ def upgrade() -> None:
         sa.Column("is_default", sa.Boolean(), nullable=False, server_default="false"),
     )
 
-    # Add unique constraint
-    op.create_unique_constraint(
-        "uq_slack_channel_config_slack_bot_id_default",
-        "slack_channel_config",
-        ["slack_bot_id", "is_default"],
-    )
     op.create_index(
         "ix_slack_channel_config_slack_bot_id_default",
         "slack_channel_config",
@@ -76,13 +70,6 @@ def downgrade() -> None:
     op.drop_index(
         "ix_slack_channel_config_slack_bot_id_default",
         table_name="slack_channel_config",
-    )
-
-    # Remove unique constraint
-    op.drop_constraint(
-        "uq_slack_channel_config_slack_bot_id_default",
-        "slack_channel_config",
-        type_="unique",
     )
 
     # Remove is_default column

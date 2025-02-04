@@ -41,6 +41,7 @@ import { SearchMultiSelectDropdown } from "@/components/Dropdown";
 import { fetchSlackChannels } from "../lib";
 import { Badge } from "@/components/ui/badge";
 import useSWR from "swr";
+import { ThreeDotsLoader } from "@/components/Loading";
 
 export interface SlackChannelConfigFormFieldsProps {
   isUpdate: boolean;
@@ -177,6 +178,9 @@ export function SlackChannelConfigFormFields({
       }));
     }
   );
+  if (isLoading) {
+    return <ThreeDotsLoader />;
+  }
 
   return (
     <>
@@ -195,24 +199,20 @@ export function SlackChannelConfigFormFields({
               Select A Slack Channel:
             </label>{" "}
             <Field name="channel_name">
-              {({ field, form }: { field: any; form: any }) =>
-                isLoading ? (
-                  <div>Loading channels...</div>
-                ) : (
-                  <SearchMultiSelectDropdown
-                    options={channelOptions || []}
-                    onSelect={(selected) => {
-                      form.setFieldValue("channel_name", selected.name);
-                      setCurrentSearchTerm(selected.name);
-                    }}
-                    initialSearchTerm={field.value}
-                    onSearchTermChange={(term) => {
-                      setCurrentSearchTerm(term);
-                      form.setFieldValue("channel_name", term);
-                    }}
-                  />
-                )
-              }
+              {({ field, form }: { field: any; form: any }) => (
+                <SearchMultiSelectDropdown
+                  options={channelOptions || []}
+                  onSelect={(selected) => {
+                    form.setFieldValue("channel_name", selected.name);
+                    setCurrentSearchTerm(selected.name);
+                  }}
+                  initialSearchTerm={field.value}
+                  onSearchTermChange={(term) => {
+                    setCurrentSearchTerm(term);
+                    form.setFieldValue("channel_name", term);
+                  }}
+                />
+              )}
             </Field>
           </>
         )}
