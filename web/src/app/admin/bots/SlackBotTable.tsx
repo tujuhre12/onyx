@@ -1,10 +1,9 @@
 "use client";
 
 import { PageSelector } from "@/components/PageSelector";
-import { SlackBot } from "./[bot-id]/hooks";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FiCheck, FiEdit, FiXCircle } from "react-icons/fi";
+import { FiEdit } from "react-icons/fi";
 import {
   Table,
   TableBody,
@@ -14,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { SlackBot } from "@/lib/types";
 
 const NUM_IN_PAGE = 20;
 
