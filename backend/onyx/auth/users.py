@@ -232,6 +232,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             else:
                 user = await self.user_db.get_by_email(user_email)
 
+        if not user:
+            raise exceptions.UserNotExists()
+
         return user
 
     async def create(
