@@ -150,7 +150,7 @@ def check_for_pruning(self: Task, *, tenant_id: str | None) -> bool | None:
 
         # we want to run this less frequently than the overall task
         lock_beat.reacquire()
-        if not r.exists(OnyxRedisSignals.VALIDATE_PRUNING_FENCES):
+        if not r.exists(OnyxRedisSignals.BLOCK_VALIDATE_PRUNING_FENCES):
             # clear any permission fences that don't have associated celery tasks in progress
             # tasks can be in the queue in redis, in reserved tasks (prefetched by the worker),
             # or be currently executing
@@ -159,7 +159,7 @@ def check_for_pruning(self: Task, *, tenant_id: str | None) -> bool | None:
             except Exception:
                 task_logger.exception("Exception while validating pruning fences")
 
-            r.set(OnyxRedisSignals.VALIDATE_PRUNING_FENCES, 1, ex=300)
+            r.set(OnyxRedisSignals.BLOCK_VALIDATE_PRUNING_FENCES, 1, ex=300)
     except SoftTimeLimitExceeded:
         task_logger.info(
             "Soft time limit exceeded, task is being terminated gracefully."
