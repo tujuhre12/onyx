@@ -2,11 +2,13 @@ import React from "react";
 import { MdDragIndicator } from "react-icons/md";
 
 interface DragHandleProps extends React.HTMLAttributes<HTMLDivElement> {
-  isDragging: boolean;
+  isDragging?: boolean;
+  size?: number;
 }
 
 export const DragHandle: React.FC<DragHandleProps> = ({
   isDragging,
+  size = 16,
   ...props
 }) => {
   return (
@@ -16,7 +18,7 @@ export const DragHandle: React.FC<DragHandleProps> = ({
       }`}
       {...props}
     >
-      <MdDragIndicator />
+      <MdDragIndicator size={size} />
     </div>
   );
 };
