@@ -340,7 +340,7 @@ def _build_citations_blocks(
 
 def _build_answer_blocks(
     answer: ChatOnyxBotResponse, fallback_answer: str
-) -> list[Block]:
+) -> list[SectionBlock]:
     if not answer.answer:
         answer_blocks = [SectionBlock(text=fallback_answer)]
     else:
