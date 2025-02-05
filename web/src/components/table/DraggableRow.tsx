@@ -30,7 +30,7 @@ export function DraggableRow({
     <TableRow
       ref={setNodeRef}
       style={style}
-      className={isDragging ? "opacity-50" : ""}
+      className={isDragging ? "opacity-0" : ""}
     >
       <TableCell>
         {isAdmin && (

@@ -1838,15 +1838,15 @@ export function ChatPage({
       ? settings?.enterpriseSettings?.auto_scroll || false
       : user?.preferences?.auto_scroll!;
 
-  // useScrollonStream({
-  //   chatState: currentSessionChatState,
-  //   scrollableDivRef,
-  //   scrollDist,
-  //   endDivRef,
-  //   debounceNumber,
-  //   mobile: settings?.isMobile,
-  //   enableAutoScroll: autoScrollEnabled,
-  // });
+  useScrollonStream({
+    chatState: currentSessionChatState,
+    scrollableDivRef,
+    scrollDist,
+    endDivRef,
+    debounceNumber,
+    mobile: settings?.isMobile,
+    enableAutoScroll: autoScrollEnabled,
+  });
 
   // Virtualization + Scrolling related effects and functions
   const scrollInitialized = useRef(false);
