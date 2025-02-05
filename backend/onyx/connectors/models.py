@@ -198,11 +198,10 @@ class ConnectorCheckpoint(BaseModel):
     # TODO: maybe move this to something disk-based to handle extremely large checkpoints?
     checkpoint_content: dict
     has_more: bool
-    progress: int
 
     @classmethod
     def build_dummy_checkpoint(cls) -> "ConnectorCheckpoint":
-        return ConnectorCheckpoint(checkpoint_content={}, has_more=True, progress=0)
+        return ConnectorCheckpoint(checkpoint_content={}, has_more=True)
 
 
 class DocumentFailure(BaseModel):

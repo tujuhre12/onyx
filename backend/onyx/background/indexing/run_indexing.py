@@ -8,6 +8,7 @@ from datetime import timezone
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from onyx.background.indexing.checkpointing_utils import check_checkpoint_size
 from onyx.background.indexing.checkpointing_utils import get_latest_valid_checkpoint
 from onyx.background.indexing.checkpointing_utils import save_checkpoint
 from onyx.background.indexing.memory_tracer import MemoryTracer
@@ -212,7 +213,11 @@ def _check_failure_threshold(
     1. We have more than 3 failures AND
     2. Failures account for more than 10% of processed documents
     """
-    if total_failures > 3 and total_failures / (document_count or 1) > 0.1:
+    failure_ratio = total_failures / (document_count or 1)
+
+    FAILURE_THRESHOLD = 3
+    FAILURE_RATIO_THRESHOLD = 0.1
+    if total_failures > FAILURE_THRESHOLD and failure_ratio > FAILURE_RATIO_THRESHOLD:
         logger.error(
             f"Connector run failed with '{total_failures}' errors "
             f"after '{batch_num}' batches."
@@ -237,7 +242,7 @@ def _run_indexing(
     2. Embed and index these documents into the chosen datastore (vespa)
     3. Updates Postgres to record the indexed documents + the outcome of this run
     """
-    start_time = time.time()
+    start_time = time.monotonic()  # jsut used for logging
 
     with get_session_with_tenant(tenant_id) as db_session_temp:
         index_attempt_start = get_index_attempt(db_session_temp, index_attempt_id)
@@ -544,6 +549,11 @@ def _run_indexing(
 
                 memory_tracer.increment_and_maybe_trace()
 
+            # `make sure the checkpoints aren't getting too large`at some regular interval
+            CHECKPOINT_SIZE_CHECK_INTERVAL = 100
+            if batch_num % CHECKPOINT_SIZE_CHECK_INTERVAL == 0:
+                check_checkpoint_size(checkpoint)
+
             # save latest checkpoint
             with get_session_with_tenant(tenant_id) as db_session_temp:
                 save_checkpoint(
@@ -555,7 +565,7 @@ def _run_indexing(
     except Exception as e:
         logger.exception(
             "Connector run exceptioned after elapsed time: "
-            f"{time.time() - start_time} seconds"
+            f"{time.monotonic() - start_time} seconds"
         )
 
         if isinstance(e, ConnectorStopSignal):
@@ -598,7 +608,7 @@ def _run_indexing(
 
     memory_tracer.stop()
 
-    elapsed_time = time.time() - start_time
+    elapsed_time = time.monotonic() - start_time
     with get_session_with_tenant(tenant_id) as db_session_temp:
         # resolve entity-based errors
         for error in entity_based_unresolved_errors:

@@ -373,7 +373,7 @@ def index_doc_batch(
     chunks: list[DocAwareChunk] = chunker.chunk(ctx.updatable_docs)
 
     logger.debug("Starting embedding")
-    chunks_with_embeddings, embedding_falures = (
+    chunks_with_embeddings, embedding_failures = (
         embed_chunks_with_failure_handling(
             chunks=chunks,
             embedder=embedder,
@@ -510,7 +510,7 @@ def index_doc_batch(
         new_docs=len([r for r in insertion_records if r.already_existed is False]),
         total_docs=len(filtered_documents),
         total_chunks=len(access_aware_chunks),
-        failures=vector_db_write_failures + embedding_falures,
+        failures=vector_db_write_failures + embedding_failures,
     )
 
     return result

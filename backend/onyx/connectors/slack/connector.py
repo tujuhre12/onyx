@@ -555,7 +555,6 @@ class SlackConnector(SlimConnector, CheckpointConnector):
             checkpoint = ConnectorCheckpoint(
                 checkpoint_content=checkpoint_content,  # type: ignore
                 has_more=True,
-                progress=checkpoint.progress + 1,
             )
             return checkpoint
 
@@ -639,7 +638,6 @@ class SlackConnector(SlimConnector, CheckpointConnector):
             checkpoint = ConnectorCheckpoint(
                 checkpoint_content=checkpoint_content,  # type: ignore
                 has_more=checkpoint_content["current_channel"] is not None,
-                progress=checkpoint.progress + 1,
             )
             return checkpoint
 

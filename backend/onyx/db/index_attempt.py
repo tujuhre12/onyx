@@ -43,8 +43,8 @@ def get_last_attempt_for_cc_pair(
 def get_recent_completed_attempts_for_cc_pair(
     cc_pair_id: int,
     search_settings_id: int,
+    limit: int,
     db_session: Session,
-    limit: int = 10,
 ) -> list[IndexAttempt]:
     return (
         db_session.query(IndexAttempt)

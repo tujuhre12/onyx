@@ -1079,9 +1079,8 @@ def connector_indexing_proxy_task(
 @shared_task(
     name=OnyxCeleryTask.CHECK_FOR_CHECKPOINT_CLEANUP,
     soft_time_limit=300,
-    bind=True,
 )
-def check_for_checkpoint_cleanup(self: Task, *, tenant_id: str | None) -> None:
+def check_for_checkpoint_cleanup(*, tenant_id: str | None) -> None:
     """Clean up old checkpoints that are older than 7 days."""
     locked = False
     redis_client = get_redis_client(tenant_id=tenant_id)

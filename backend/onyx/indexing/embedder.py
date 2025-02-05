@@ -227,6 +227,10 @@ def embed_chunks_with_failure_handling(
     chunks: list[DocAwareChunk],
     embedder: IndexingEmbedder,
 ) -> tuple[list[IndexChunk], list[ConnectorFailure]]:
+    """Tries to embed all chunks in one large batch. If that batch fails for any reason,
+    goes document by document to isolate the failure(s).
+    """
+
     # First try to embed all chunks in one batch
     try:
         return embedder.embed_chunks(chunks=chunks), []

@@ -558,6 +558,19 @@ def get_cc_pair_indexing_errors(
     _: User = Depends(current_curator_or_admin_user),
     db_session: Session = Depends(get_session),
 ) -> PaginatedReturn[IndexAttemptErrorPydantic]:
+    """Gives back all errors for a given CC Pair. Allows pagination based on page and page_size params.
+
+    Args:
+        cc_pair_id: ID of the connector-credential pair to get errors for
+        include_resolved: Whether to include resolved errors in the results
+        page: Page number for pagination, starting at 0
+        page_size: Number of errors to return per page
+        _: Current user, must be curator or admin
+        db_session: Database session
+
+    Returns:
+        Paginated list of indexing errors for the CC pair.
+    """
     total_count = count_index_attempt_errors_for_cc_pair(
         db_session=db_session,
         cc_pair_id=cc_pair_id,

@@ -14,10 +14,12 @@ from onyx.db.models import IndexAttempt
 from onyx.db.models import IndexingStatus
 from onyx.file_store.file_store import get_default_file_store
 from onyx.utils.logger import setup_logger
+from onyx.utils.object_size_check import deep_getsizeof
 
 
 logger = setup_logger()
 
+_NUM_RECENT_ATTEMPTS_TO_CONSIDER = 20
 _NUM_DOCS_INDEXED_TO_BE_VALID_CHECKPOINT = 100
 
 
@@ -75,6 +77,7 @@ def get_latest_valid_checkpoint(
         cc_pair_id=cc_pair_id,
         search_settings_id=search_settings_id,
         db_session=db_session,
+        limit=_NUM_RECENT_ATTEMPTS_TO_CONSIDER,
     )
     checkpoint_candidates = [
         candidate
@@ -93,6 +96,17 @@ def get_latest_valid_checkpoint(
             and candidate.total_docs_indexed > _NUM_DOCS_INDEXED_TO_BE_VALID_CHECKPOINT
         )
     ]
+
+    # don't keep using checkpoints if we've had a bunch of failed attempts in a row
+    # for now, capped at 10
+    if len(checkpoint_candidates) == _NUM_RECENT_ATTEMPTS_TO_CONSIDER:
+        logger.warning(
+            f"{_NUM_RECENT_ATTEMPTS_TO_CONSIDER} consecutive failed attempts found "
+            f"for cc_pair={cc_pair_id}. Ignoring checkpoint to let the run start "
+            "from scratch."
+        )
+        return ConnectorCheckpoint.build_dummy_checkpoint()
+
     # assumes latest checkpoint is the furthest along. This only isn't true
     # if something else has gone wrong.
     latest_valid_checkpoint_candidate = (
@@ -175,3 +189,12 @@ def cleanup_checkpoint(db_session: Session, index_attempt_id: int) -> None:
     db_session.commit()
 
     return None
+
+
+def check_checkpoint_size(checkpoint: ConnectorCheckpoint) -> None:
+    """Check if the checkpoint content size exceeds the limit (200MB)"""
+    content_size = deep_getsizeof(checkpoint.checkpoint_content)
+    if content_size > 200_000_000:  # 200MB in bytes
+        raise ValueError(
+            f"Checkpoint content size ({content_size} bytes) exceeds 200MB limit"
+        )

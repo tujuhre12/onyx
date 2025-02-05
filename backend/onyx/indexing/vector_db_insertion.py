@@ -31,6 +31,13 @@ def write_chunks_to_vector_db_with_backoff(
     chunks: list[DocMetadataAwareIndexChunk],
     index_batch_params: IndexBatchParams,
 ) -> tuple[list[DocumentInsertionRecord], list[ConnectorFailure]]:
+    """Tries to insert all chunks in one large batch. If that batch fails for any reason,
+    goes document by document to isolate the failure(s).
+
+    IMPORTANT: must pass in whole documents at a time not individual chunks, since the
+    vector DB interface assumes that all chunks for a single document are present.
+    """
+
     # first try to write the chunks to the vector db
     try:
         return (
