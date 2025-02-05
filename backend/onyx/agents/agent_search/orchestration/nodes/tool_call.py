@@ -27,7 +27,7 @@ def emit_packet(packet: AnswerPacket, writer: StreamWriter) -> None:
 def tool_call(
     state: ToolChoiceUpdate,
     config: RunnableConfig,
-    writer: StreamWriter = lambda _: None,
+    writer: StreamWriter,
 ) -> ToolCallUpdate:
     """Calls the tool specified in the state and updates the state with the result"""
 

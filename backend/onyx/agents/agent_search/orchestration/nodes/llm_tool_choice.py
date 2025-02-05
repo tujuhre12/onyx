@@ -26,9 +26,7 @@ logger = setup_logger()
 # from the state and config
 # TODO: fan-out to multiple tool call nodes? Make this configurable?
 def llm_tool_choice(
-    state: ToolChoiceState,
-    config: RunnableConfig,
-    writer: StreamWriter = lambda _: None,
+    state: ToolChoiceState, config: RunnableConfig, writer: StreamWriter
 ) -> ToolChoiceUpdate:
     """
     This node is responsible for calling the LLM to choose a tool. If no tool is chosen,

@@ -39,7 +39,7 @@ logger = setup_logger()
 def generate_sub_answer(
     state: AnswerQuestionState,
     config: RunnableConfig,
-    writer: StreamWriter = lambda _: None,
+    writer: StreamWriter,
 ) -> SubQuestionAnswerGenerationUpdate:
     """
     LangGraph node to generate a sub-answer.

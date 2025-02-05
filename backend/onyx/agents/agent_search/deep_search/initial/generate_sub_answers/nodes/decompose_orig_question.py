@@ -46,7 +46,7 @@ logger = setup_logger()
 def decompose_orig_question(
     state: SubQuestionRetrievalState,
     config: RunnableConfig,
-    writer: StreamWriter = lambda _: None,
+    writer: StreamWriter,
 ) -> InitialQuestionDecompositionUpdate:
     """
     LangGraph node to decompose the original question into sub-questions.

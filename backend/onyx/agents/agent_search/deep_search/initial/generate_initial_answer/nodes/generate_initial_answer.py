@@ -61,7 +61,7 @@ from onyx.tools.tool_implementations.search.search_tool import yield_search_resp
 def generate_initial_answer(
     state: SubQuestionRetrievalState,
     config: RunnableConfig,
-    writer: StreamWriter = lambda _: None,
+    writer: StreamWriter,
 ) -> InitialAnswerUpdate:
     """
     LangGraph node to generate the initial answer, using the initial sub-questions/sub-answers and the

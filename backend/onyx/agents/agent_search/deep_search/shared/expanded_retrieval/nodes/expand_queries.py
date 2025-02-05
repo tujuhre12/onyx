@@ -29,7 +29,7 @@ from onyx.prompts.agent_search import (
 def expand_queries(
     state: ExpandedRetrievalInput,
     config: RunnableConfig,
-    writer: StreamWriter = lambda _: None,
+    writer: StreamWriter,
 ) -> QueryExpansionUpdate:
     """
     LangGraph node to expand a question into multiple search queries.

@@ -28,7 +28,7 @@ from onyx.tools.tool_implementations.search.search_tool import yield_search_resp
 def format_results(
     state: ExpandedRetrievalState,
     config: RunnableConfig,
-    writer: StreamWriter = lambda _: None,
+    writer: StreamWriter,
 ) -> ExpandedRetrievalUpdate:
     """
     LangGraph node that constructs the proper expanded retrieval format.
