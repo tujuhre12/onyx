@@ -13,7 +13,7 @@ export default function CreateButton({
 }: CreateButtonProps) {
   return (
     <Link href={href}>
-      <Button className="font-normal mt-2" variant="outline">
+      <Button className="font-normal mt-2" variant="create">
         <FiPlusCircle />
         {text}
       </Button>
