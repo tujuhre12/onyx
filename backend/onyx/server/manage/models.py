@@ -286,7 +286,3 @@ class AllUsersResponse(BaseModel):
 class SlackChannel(BaseModel):
     id: str
     name: str
-
-
-class SlackChannelsResponse(BaseModel):
-    channels: dict[str, SlackChannel]

@@ -31,7 +31,6 @@ from onyx.server.manage.models import SlackBotCreationRequest
 from onyx.server.manage.models import SlackChannel
 from onyx.server.manage.models import SlackChannelConfig
 from onyx.server.manage.models import SlackChannelConfigCreationRequest
-from onyx.server.manage.models import SlackChannelsResponse
 from onyx.server.manage.validate_tokens import validate_app_token
 from onyx.server.manage.validate_tokens import validate_bot_token
 from onyx.utils.telemetry import create_milestone_and_report
@@ -340,13 +339,13 @@ def list_bot_configs(
 
 
 @router.get(
-    "/admin/slack-app/bots/{bot_id}/channels_from_slack_api",
+    "/admin/slack-app/bots/{bot_id}/channels",
 )
 def get_all_channels_from_slack_api(
     bot_id: int,
     db_session: Session = Depends(get_session),
     _: User | None = Depends(current_admin_user),
-) -> SlackChannelsResponse:
+) -> list[SlackChannel]:
     tokens = fetch_slack_bot_tokens(db_session, bot_id)
     if not tokens or "bot_token" not in tokens:
         raise HTTPException(
@@ -357,7 +356,7 @@ def get_all_channels_from_slack_api(
     client = WebClient(token=bot_token)
 
     try:
-        channels = {}
+        channels = []
         cursor = None
         while True:
             response = client.conversations_list(
@@ -367,15 +366,13 @@ def get_all_channels_from_slack_api(
                 cursor=cursor,
             )
             for channel in response["channels"]:
-                channels[channel["name"]] = SlackChannel(
-                    id=channel["id"], name=channel["name"]
-                )
+                channels.append(SlackChannel(id=channel["id"], name=channel["name"]))
 
             cursor = response.get("response_metadata", {}).get("next_cursor")
             if not cursor:
                 break
 
-        return SlackChannelsResponse(channels=channels)
+        return channels
     except SlackApiError as e:
         raise HTTPException(
             status_code=500, detail=f"Error fetching channels from Slack API: {str(e)}"

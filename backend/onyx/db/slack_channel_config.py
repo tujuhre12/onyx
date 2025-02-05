@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from onyx.configs.chat_configs import MAX_CHUNKS_FED_TO_CHAT
 from onyx.context.search.enums import RecencyBiasSetting
-from onyx.db.constants import DEFAULT_PERSONA_SLACKCHANNEL_NAME
+from onyx.db.constants import DEFAULT_PERSONA_SLACK_CHANNEL_NAME
 from onyx.db.constants import SLACK_BOT_PERSONA_PREFIX
 from onyx.db.models import ChannelConfig
 from onyx.db.models import Persona
@@ -24,7 +24,7 @@ from onyx.utils.variable_functionality import (
 
 
 def _build_persona_name(channel_name: str | None) -> str:
-    return f"{SLACK_BOT_PERSONA_PREFIX}{channel_name if channel_name else DEFAULT_PERSONA_SLACKCHANNEL_NAME}"
+    return f"{SLACK_BOT_PERSONA_PREFIX}{channel_name if channel_name else DEFAULT_PERSONA_SLACK_CHANNEL_NAME}"
 
 
 def _cleanup_relationships(db_session: Session, persona_id: int) -> None:

@@ -96,15 +96,12 @@ export function isPersonaASlackBotPersona(persona: Persona) {
 }
 
 export const fetchSlackChannels = async (botId: number) => {
-  return fetch(
-    `/api/manage/admin/slack-app/bots/${botId}/channels_from_slack_api`,
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  ).then((response) => {
+  return fetch(`/api/manage/admin/slack-app/bots/${botId}/channels`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  }).then((response) => {
     if (!response.ok) {
       throw new Error("Failed to fetch Slack channels");
     }

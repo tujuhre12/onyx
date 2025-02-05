@@ -266,6 +266,11 @@ export interface SlackChannelConfig {
   is_default: boolean;
 }
 
+export interface SlackChannelDescriptor {
+  id: string;
+  name: string;
+}
+
 export interface SlackBot {
   id: number;
   name: string;

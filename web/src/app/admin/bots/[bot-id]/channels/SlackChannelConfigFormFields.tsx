@@ -169,12 +169,12 @@ export function SlackChannelConfigFormFields({
   }, [documentSets]);
 
   const { data: channelOptions, isLoading } = useSWR(
-    `/api/manage/admin/slack-app/bots/${slack_bot_id}/channels_from_slack_api`,
+    `/api/manage/admin/slack-app/bots/${slack_bot_id}/channels`,
     async (url: string) => {
       const channels = await fetchSlackChannels(slack_bot_id);
-      return Object.entries(channels).map(([name, id]) => ({
-        name,
-        value: id as string,
+      return channels.map((channel: any) => ({
+        name: channel.name,
+        value: channel.id,
       }));
     }
   );
