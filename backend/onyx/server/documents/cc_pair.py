@@ -507,14 +507,16 @@ def sync_cc_pair_groups(
         f"credential_id={cc_pair.credential_id} "
         f"{cc_pair.connector.name} connector."
     )
-    tasks_created = try_creating_external_group_sync_task(
+    payload_id = try_creating_external_group_sync_task(
         primary_app, cc_pair_id, r, CURRENT_TENANT_ID_CONTEXTVAR.get()
     )
-    if not tasks_created:
+    if not payload_id:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail="External group sync task creation failed.",
         )
+
+    logger.info(f"External group sync queued: cc_pair={cc_pair_id} id={payload_id}")
 
     return StatusResponse(
         success=True,
