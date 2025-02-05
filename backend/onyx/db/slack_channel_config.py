@@ -253,15 +253,19 @@ def fetch_slack_channel_config(
 
 
 def fetch_slack_channel_config_for_channel_or_default(
-    db_session: Session, slack_bot_id: int, channel_name: str
+    db_session: Session, slack_bot_id: int, channel_name: str | None
 ) -> SlackChannelConfig | None:
     # attempt to find channel-specific config first
-    sc_config = db_session.scalar(
-        select(SlackChannelConfig).where(
-            SlackChannelConfig.slack_bot_id == slack_bot_id,
-            SlackChannelConfig.channel_config["channel_name"].astext == channel_name,
+    if channel_name:
+        sc_config = db_session.scalar(
+            select(SlackChannelConfig).where(
+                SlackChannelConfig.slack_bot_id == slack_bot_id,
+                SlackChannelConfig.channel_config["channel_name"].astext
+                == channel_name,
+            )
         )
-    )
+    else:
+        sc_config = None
 
     if sc_config:
         return sc_config

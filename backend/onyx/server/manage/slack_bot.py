@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
@@ -368,8 +370,12 @@ def get_all_channels_from_slack_api(
             for channel in response["channels"]:
                 channels.append(SlackChannel(id=channel["id"], name=channel["name"]))
 
-            cursor = response.get("response_metadata", {}).get("next_cursor")
-            if not cursor:
+            response_metadata: dict[str, Any] = response.get("response_metadata", {})
+            if isinstance(response_metadata, dict):
+                cursor = response_metadata.get("next_cursor")
+                if not cursor:
+                    break
+            else:
                 break
 
         return channels
