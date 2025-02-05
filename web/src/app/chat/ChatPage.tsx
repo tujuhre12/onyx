@@ -1457,6 +1457,7 @@ export function ChatPage({
                 sub_questions,
                 packet as SubQuestionPiece
               );
+              setAgenticGenerating(true);
             } else if (Object.hasOwn(packet, "sub_query")) {
               sub_questions = constructSubQuestions(
                 sub_questions,
@@ -1665,6 +1666,7 @@ export function ChatPage({
         completeMessageMapOverride: currentMessageMap(completeMessageDetail),
       });
     }
+    setAgenticGenerating(false);
     resetRegenerationState(currentSessionId());
 
     updateChatState("input");
@@ -1792,6 +1794,7 @@ export function ChatPage({
   // Used to maintain a "time out" for history sidebar so our existing refs can have time to process change
   const [untoggled, setUntoggled] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [agenticGenerating, setAgenticGenerating] = useState(false);
 
   const explicitlyUntoggle = () => {
     setShowHistorySidebar(false);
@@ -1836,7 +1839,7 @@ export function ChatPage({
   const autoScrollEnabled =
     user?.preferences?.auto_scroll == null
       ? settings?.enterpriseSettings?.auto_scroll || false
-      : user?.preferences?.auto_scroll!;
+      : user?.preferences?.auto_scroll! && !agenticGenerating;
 
   useScrollonStream({
     chatState: currentSessionChatState,
