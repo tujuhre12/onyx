@@ -633,14 +633,7 @@ export function SlackChannelConfigFormFields({
             </Tooltip>
           </TooltipProvider>
         )}
-        <Button
-          onClick={() => {
-            console.log(formikProps.errors);
-          }}
-          type="submit"
-        >
-          {isUpdate ? "Update" : "Create"}
-        </Button>
+        <Button type="submit">{isUpdate ? "Update" : "Create"}</Button>
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>

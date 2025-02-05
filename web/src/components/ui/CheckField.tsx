@@ -18,11 +18,13 @@ interface CheckFieldProps {
   sublabel?: string;
   size?: "sm" | "md" | "lg";
   tooltip?: string;
+  onChange?: (checked: boolean) => void;
 }
 
 export const CheckFormField: React.FC<CheckFieldProps> = ({
   name,
   label,
+  onChange,
   sublabel,
   size = "md",
   tooltip,
@@ -39,6 +41,7 @@ export const CheckFormField: React.FC<CheckFieldProps> = ({
   const handleClick = (e: React.MouseEvent<HTMLLabelElement>) => {
     e.preventDefault();
     helpers.setValue(!field.value);
+    onChange?.(field.value);
   };
 
   const checkboxContent = (
@@ -48,6 +51,7 @@ export const CheckFormField: React.FC<CheckFieldProps> = ({
         checked={field.value}
         onCheckedChange={(checked) => {
           helpers.setValue(Boolean(checked));
+          onChange?.(Boolean(checked));
         }}
         className={cn(
           "peer shrink-0 rounded-sm border border-neutral-200 bg-white ring-offset-white " +
