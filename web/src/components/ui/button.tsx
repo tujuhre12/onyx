@@ -23,7 +23,7 @@ const buttonVariants = cva(
         "destructive-reverse":
           "bg-neutral-50 text-red-500 hover:bg-neutral-50/90 dark:bg-neutral-50 dark:text-red-900 dark:hover:bg-neutral-50/90",
         outline:
-          "border border-neutral-300 bg-white hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-800 dark:hover:text-neutral-50",
+          "border border-neutral-600 hover:bg-white bg-neutral-50 text-text-dark hover:text-text dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-800 dark:hover:text-neutral-50",
         "outline-reverse":
           "border border-neutral-300 bg-neutral-900 hover:bg-neutral-800 hover:text-neutral-50 dark:border-neutral-800 dark:bg-white dark:hover:bg-neutral-50 dark:hover:text-neutral-900",
         secondary:

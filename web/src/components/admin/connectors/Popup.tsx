@@ -59,21 +59,21 @@ export const Popup: React.FC<PopupSpec> = ({ message, type }) => (
         />
       </svg>
     )}
-    <div className="flex flex-col items-center space-x-2">
-      <span className="font-medium">{message}</span>
+    <div className="flex flex-col justify-center items-start">
+      <p className="font-medium">{message}</p>
       {type === "error" && (
-        <span className="text-xs text-red-100">
+        <p className="text-xs  bg-blacktext-red-100">
           Need help?{" "}
           <a
             href="https://join.slack.com/t/onyx-dot-app/shared_invite/zt-2twesxdr6-5iQitKZQpgq~hYIZ~dv3KA"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline hover:text-red-900"
+            className="underline hover:text-red-100"
           >
             Join our community
           </a>{" "}
-          for support.
-        </span>
+          for support!
+        </p>
       )}
     </div>
   </div>
