@@ -61,6 +61,7 @@ INDEXING_TRACER_NUM_PRINT_ENTRIES = 5
 def _get_connector_runner(
     db_session: Session,
     attempt: IndexAttempt,
+    batch_size: int,
     start_time: datetime,
     end_time: datetime,
     tenant_id: str | None,
@@ -108,7 +109,9 @@ def _get_connector_runner(
         raise e
 
     return ConnectorRunner(
-        connector=runnable_connector, time_range=(start_time, end_time)
+        connector=runnable_connector,
+        batch_size=batch_size,
+        time_range=(start_time, end_time),
     )
 
 
@@ -370,6 +373,7 @@ def _run_indexing(
             connector_runner = _get_connector_runner(
                 db_session=db_session_temp,
                 attempt=index_attempt,
+                batch_size=INDEX_BATCH_SIZE,
                 start_time=window_start,
                 end_time=window_end,
                 tenant_id=tenant_id,
@@ -405,15 +409,27 @@ def _run_indexing(
                 error for error in unresolved_errors if error.entity_id
             ]
 
-        doc_batch: list[Document] = []
         while checkpoint.has_more:
             logger.info(
                 f"Running '{ctx.source}' connector with checkpoint: {checkpoint}"
             )
-            for document, checkpoint, failure in connector_runner.run(checkpoint):
-                # build a batch of documents
-                if document is not None:
-                    doc_batch.append(document)
+            for document_batch, failure, next_checkpoint in connector_runner.run(
+                checkpoint
+            ):
+                # Check if connector is disabled mid run and stop if so unless it's the secondary
+                # index being built. We want to populate it even for paused connectors
+                # Often paused connectors are sources that aren't updated frequently but the
+                # contents still need to be initially pulled.
+                if callback:
+                    if callback.should_stop():
+                        raise ConnectorStopSignal("Connector stop signal detected")
+
+                # TODO: should we move this into the above callback instead?
+                with get_session_with_tenant(tenant_id) as db_session_temp:
+                    # will exception if the connector/index attempt is marked as paused/failed
+                    _check_connector_and_attempt_status(
+                        db_session_temp, ctx, index_attempt_id
+                    )
 
                 # save record of any failures at the connector level
                 if failure is not None:
@@ -430,36 +446,17 @@ def _run_indexing(
                         total_failures, document_count, batch_num, failure
                     )
 
-                # If we've reached the batch size, or if the document is None (e.g. we're at the end
-                # of the checkpoint)
-                if len(doc_batch) < INDEX_BATCH_SIZE and document is not None:
+                # save the new checkpoint (if one is provided)
+                if next_checkpoint:
+                    checkpoint = next_checkpoint
+
+                # below is all document processing logic, so if no batch we can just continue
+                if document_batch is None:
                     continue
-
-                # if the checkpoint didn't return any docs, just skip the below
-                if len(doc_batch) == 0:
-                    continue
-
-                to_process_batch = doc_batch
-                doc_batch = []
-
-                # Check if connector is disabled mid run and stop if so unless it's the secondary
-                # index being built. We want to populate it even for paused connectors
-                # Often paused connectors are sources that aren't updated frequently but the
-                # contents still need to be initially pulled.
-                if callback:
-                    if callback.should_stop():
-                        raise ConnectorStopSignal("Connector stop signal detected")
-
-                # TODO: should we move this into the above callback instead?
-                with get_session_with_tenant(tenant_id) as db_session_temp:
-                    # will exception if the connector/index attempt is marked as paused/failed
-                    _check_connector_and_attempt_status(
-                        db_session_temp, ctx, index_attempt_id
-                    )
 
                 batch_description = []
 
-                doc_batch_cleaned = strip_null_characters(to_process_batch)
+                doc_batch_cleaned = strip_null_characters(document_batch)
                 for doc in doc_batch_cleaned:
                     batch_description.append(doc.to_short_descriptor())
 
@@ -497,7 +494,7 @@ def _run_indexing(
                 ]
                 successful_document_ids = [
                     document.id
-                    for document in to_process_batch
+                    for document in document_batch
                     if document.id not in failed_document_ids
                 ]
                 for document_id in successful_document_ids:

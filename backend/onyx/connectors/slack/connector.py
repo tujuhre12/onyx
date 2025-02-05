@@ -512,6 +512,18 @@ class SlackConnector(SlimConnector, CheckpointConnector):
         end: SecondsSinceUnixEpoch,
         checkpoint: ConnectorCheckpoint,
     ) -> CheckpointOutput:
+        """Rough outline:
+
+        Step 1: Get all channels, yield back Checkpoint.
+        Step 2: Loop through each channel. For each channel:
+            Step 2.1: Get messages within the time range.
+            Step 2.2: Process messages in parallel, yield back docs.
+            Step 2.3: Update checkpoint with new_latest, seen_thread_ts, and current_channel.
+                      Slack returns messages from newest to oldest, so we need to keep track of
+                      the latest message we've seen in each channel.
+            Step 2.4: If there are no more messages in the channel, switch the current
+                      channel to the next channel.
+        """
         if self.client is None or self.text_cleaner is None:
             raise ConnectorMissingCredentialError("Slack")
 
@@ -536,11 +548,7 @@ class SlackConnector(SlimConnector, CheckpointConnector):
                 raw_channels, self.channels, self.channel_regex_enabled
             )
             if len(filtered_channels) == 0:
-                return (
-                    None,
-                    checkpoint,
-                    None,
-                )
+                return checkpoint
 
             checkpoint_content["channel_ids"] = [c["id"] for c in filtered_channels]
             checkpoint_content["current_channel"] = filtered_channels[0]
@@ -549,12 +557,7 @@ class SlackConnector(SlimConnector, CheckpointConnector):
                 has_more=True,
                 progress=checkpoint.progress + 1,
             )
-            yield (
-                None,
-                checkpoint,
-                None,
-            )
-            return
+            return checkpoint
 
         final_channel_ids = checkpoint_content["channel_ids"]
         channel = checkpoint_content["current_channel"]
@@ -600,14 +603,18 @@ class SlackConnector(SlimConnector, CheckpointConnector):
                     doc, thread_ts, failures = future.result()
                     if doc:
                         # handle race conditions here since this is single
-                        # threaded
+                        # threaded. Multi-threaded _process_message reads from this
+                        # but since this is single threaded, we won't run into simul
+                        # writes. At worst, we can duplicate a thread, which will be
+                        # deduped later on.
                         if thread_ts not in seen_thread_ts:
-                            yield (doc, checkpoint, None)
+                            yield doc
 
                         if thread_ts:
                             seen_thread_ts.add(thread_ts)
                     elif failures:
-                        yield (None, checkpoint, failures)
+                        for failure in failures:
+                            yield failure
 
             checkpoint_content["seen_thread_ts"] = list(seen_thread_ts)
             checkpoint_content["channel_completion_map"][channel["id"]] = new_latest
@@ -634,29 +641,22 @@ class SlackConnector(SlimConnector, CheckpointConnector):
                 has_more=checkpoint_content["current_channel"] is not None,
                 progress=checkpoint.progress + 1,
             )
-            yield (
-                None,
-                checkpoint,
-                None,
-            )
+            return checkpoint
 
         except Exception as e:
             logger.exception(f"Error processing channel {channel['name']}")
-            yield (
-                None,
-                checkpoint,
-                ConnectorFailure(
-                    failed_entity=EntityFailure(
-                        entity_id=channel["id"],
-                        missed_time_range=(
-                            datetime.fromtimestamp(start, tz=timezone.utc),
-                            datetime.fromtimestamp(end, tz=timezone.utc),
-                        ),
+            yield ConnectorFailure(
+                failed_entity=EntityFailure(
+                    entity_id=channel["id"],
+                    missed_time_range=(
+                        datetime.fromtimestamp(start, tz=timezone.utc),
+                        datetime.fromtimestamp(end, tz=timezone.utc),
                     ),
-                    failure_message=str(e),
-                    exception=e,
                 ),
+                failure_message=str(e),
+                exception=e,
             )
+            return checkpoint
 
 
 if __name__ == "__main__":
@@ -674,12 +674,15 @@ if __name__ == "__main__":
 
     checkpoint = ConnectorCheckpoint.build_dummy_checkpoint()
 
-    for document, checkpoint, failures in connector.load_from_checkpoint(
-        one_day_ago, current, checkpoint
-    ):
-        if document:
-            print(document)
-        if failures:
-            print(failures)
+    gen = connector.load_from_checkpoint(one_day_ago, current, checkpoint)
+    try:
+        for document_or_failure in gen:
+            if isinstance(document_or_failure, Document):
+                print(document_or_failure)
+            elif isinstance(document_or_failure, ConnectorFailure):
+                print(document_or_failure)
+    except StopIteration as e:
+        checkpoint = e.value
+        print("Next checkpoint:", checkpoint)
 
     print("Next checkpoint:", checkpoint)

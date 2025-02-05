@@ -1,4 +1,5 @@
 import abc
+from collections.abc import Generator
 from collections.abc import Iterator
 from typing import Any
 
@@ -16,9 +17,7 @@ SecondsSinceUnixEpoch = float
 
 GenerateDocumentsOutput = Iterator[list[Document]]
 GenerateSlimDocumentOutput = Iterator[list[SlimDocument]]
-CheckpointOutput = Iterator[
-    tuple[Document | None, ConnectorCheckpoint, ConnectorFailure | None]
-]
+CheckpointOutput = Generator[Document | ConnectorFailure, None, ConnectorCheckpoint]
 
 
 class BaseConnector(abc.ABC):
@@ -120,4 +119,23 @@ class CheckpointConnector(BaseConnector):
         end: SecondsSinceUnixEpoch,
         checkpoint: ConnectorCheckpoint,
     ) -> CheckpointOutput:
+        """Yields back documents or failures. Final return is the new checkpoint.
+
+        Final return can be access via either:
+
+        ```
+        try:
+            for document_or_failure in connector.load_from_checkpoint(start, end, checkpoint):
+                print(document_or_failure)
+        except StopIteration as e:
+            checkpoint = e.value  # Extracting the return value
+            print(checkpoint)
+        ```
+
+        OR
+
+        ```
+        checkpoint = yield from connector.load_from_checkpoint(start, end, checkpoint)
+        ```
+        """
         raise NotImplementedError
