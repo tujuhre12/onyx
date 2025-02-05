@@ -80,9 +80,9 @@ def fetch_slack_bot_tokens(
     db_session: Session, slack_bot_id: int
 ) -> dict[str, str] | None:
     slack_bot = db_session.scalar(select(SlackBot).where(SlackBot.id == slack_bot_id))
-    if slack_bot:
-        return {
-            "app_token": slack_bot.app_token,
-            "bot_token": slack_bot.bot_token,
-        }
-    return None
+    if not slack_bot:
+        return None
+    return {
+        "app_token": slack_bot.app_token,
+        "bot_token": slack_bot.bot_token,
+    }

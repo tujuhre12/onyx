@@ -281,3 +281,12 @@ class AllUsersResponse(BaseModel):
     accepted_pages: int
     invited_pages: int
     slack_users_pages: int
+
+
+class SlackChannel(BaseModel):
+    id: str
+    name: str
+
+
+class SlackChannelsResponse(BaseModel):
+    channels: dict[str, SlackChannel]

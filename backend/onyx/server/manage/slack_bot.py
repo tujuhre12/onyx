@@ -1,5 +1,3 @@
-from typing import Dict
-
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
@@ -30,8 +28,10 @@ from onyx.db.slack_channel_config import update_slack_channel_config
 from onyx.onyxbot.slack.config import validate_channel_name
 from onyx.server.manage.models import SlackBot
 from onyx.server.manage.models import SlackBotCreationRequest
+from onyx.server.manage.models import SlackChannel
 from onyx.server.manage.models import SlackChannelConfig
 from onyx.server.manage.models import SlackChannelConfigCreationRequest
+from onyx.server.manage.models import SlackChannelsResponse
 from onyx.server.manage.validate_tokens import validate_app_token
 from onyx.server.manage.validate_tokens import validate_bot_token
 from onyx.utils.telemetry import create_milestone_and_report
@@ -341,13 +341,12 @@ def list_bot_configs(
 
 @router.get(
     "/admin/slack-app/bots/{bot_id}/channels_from_slack_api",
-    response_model=Dict[str, str],
 )
 def get_all_channels_from_slack_api(
     bot_id: int,
     db_session: Session = Depends(get_session),
     _: User | None = Depends(current_admin_user),
-) -> Dict[str, str]:
+) -> SlackChannelsResponse:
     tokens = fetch_slack_bot_tokens(db_session, bot_id)
     if not tokens or "bot_token" not in tokens:
         raise HTTPException(
@@ -358,10 +357,26 @@ def get_all_channels_from_slack_api(
     client = WebClient(token=bot_token)
 
     try:
-        response = client.conversations_list(limit=1000)
-        channels = {channel["name"]: channel["id"] for channel in response["channels"]}
-        return channels
-    except SlackApiError:
+        channels = {}
+        cursor = None
+        while True:
+            response = client.conversations_list(
+                types="public_channel,private_channel",
+                exclude_archived=True,
+                limit=1000,
+                cursor=cursor,
+            )
+            for channel in response["channels"]:
+                channels[channel["name"]] = SlackChannel(
+                    id=channel["id"], name=channel["name"]
+                )
+
+            cursor = response.get("response_metadata", {}).get("next_cursor")
+            if not cursor:
+                break
+
+        return SlackChannelsResponse(channels=channels)
+    except SlackApiError as e:
         raise HTTPException(
-            status_code=500, detail="Error fetching channels from Slack API"
+            status_code=500, detail=f"Error fetching channels from Slack API: {str(e)}"
         )
