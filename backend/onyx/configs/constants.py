@@ -315,6 +315,9 @@ class OnyxRedisSignals:
     )
     BLOCK_VALIDATE_PRUNING_FENCES = "signal:block_validate_pruning_fences"
     BLOCK_BUILD_FENCE_LOOKUP_TABLE = "signal:block_build_fence_lookup_table"
+
+
+class OnyxRedisConstants:
     ACTIVE_FENCES = "active_fences"
 
 
