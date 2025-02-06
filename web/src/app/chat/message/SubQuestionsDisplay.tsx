@@ -441,11 +441,11 @@ const SubQuestionDisplay: React.FC<{
               forcedStatus !== ToggleState.Done) ||
               toggled) && (
               <div
-                className={`transform bg-orange-200 ease-in-out origin-top ${
+                className={`transform ease-in-out origin-top ${
                   toggled ? "scale-y-100 opacity-100" : "scale-y-100 opacity-0"
                 }`}
               >
-                <div className="bg-blaack pl-0">
+                <div className="pl-0">
                   <div className="flex flex-col gap-2">
                     <div className="leading-none text-[#4a4a4a] text-xs font-medium">
                       {temporaryDisplay?.tinyQuestion}
