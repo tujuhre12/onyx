@@ -207,6 +207,13 @@ export function SettingsForm() {
     ]);
   }
 
+  const isProSearchDisabled =
+    combinedSettings?.settings?.pro_search_disabled === null
+      ? combinedSettings?.enterpriseSettings == null
+        ? true
+        : false
+      : (combinedSettings?.settings?.pro_search_disabled ?? false);
+
   return (
     <div>
       {popup}
@@ -231,7 +238,7 @@ export function SettingsForm() {
       <Checkbox
         label="Pro Search Disabled"
         sublabel="If set, users will not be able to use Pro Search."
-        checked={settings.pro_search_disabled}
+        checked={isProSearchDisabled}
         onChange={(e) =>
           handleToggleSettingsField("pro_search_disabled", e.target.checked)
         }
