@@ -3077,8 +3077,8 @@ export function ChatPage({
                           )}
                           <div className="pointer-events-auto w-[95%] mx-auto relative mb-8">
                             <ChatInputBar
-                              agentSearchEnabled={agentSearchEnabled}
-                              setAgentSearchEnabled={() => toggleAgentSearch()}
+                              proSearchEnabled={agentSearchEnabled}
+                              setProSearchEnabled={() => toggleAgentSearch()}
                               toggleDocumentSidebar={toggleDocumentSidebar}
                               availableSources={sources}
                               availableDocumentSets={documentSets}
