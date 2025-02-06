@@ -1064,6 +1064,7 @@ export function ChatPage({
     documentSidebarInitialWidth = Math.min(700, maxDocumentSidebarWidth);
   }
 
+  const [fullList, setFullList] = useState<any[]>([]);
   class CurrentMessageFIFO {
     private stack: PacketType[] = [];
     isComplete: boolean = false;
@@ -1437,15 +1438,15 @@ export function ChatPage({
               }
             }
 
-            // if (Object.hasOwn(packet, "stop_reason")) {
-            //   alert(JSON.stringify(packet));
-            // }
+            if (Object.hasOwn(packet, "stop_reason")) {
+              setFullList((prev) => [...prev, packet]);
+            }
+
             // // Continuously refine the sub_questions based on the packets that we receive
             if (
               Object.hasOwn(packet, "stop_reason") &&
               Object.hasOwn(packet, "level_question_num")
             ) {
-              // alert(JSON.stringify(packet));
               sub_questions = constructSubQuestions(
                 sub_questions,
                 packet as StreamStopInfo
