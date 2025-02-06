@@ -528,11 +528,14 @@ def validate_pruning_fences(
     if queue_len > PERMISSION_SYNC_VALIDATION_MAX_QUEUE_LEN:
         return
 
-    queued_upsert_tasks = celery_get_queued_task_ids(
-        OnyxCeleryQueues.CONNECTOR_DELETION, r_celery
-    )
+    # the queue for a single pruning generator task
     reserved_generator_tasks = celery_get_unacked_task_ids(
         OnyxCeleryQueues.CONNECTOR_PRUNING, r_celery
+    )
+
+    # the queue for a reasonably large set of lightweight deletion tasks
+    queued_upsert_tasks = celery_get_queued_task_ids(
+        OnyxCeleryQueues.CONNECTOR_DELETION, r_celery
     )
 
     # validate all existing indexing jobs
@@ -544,8 +547,8 @@ def validate_pruning_fences(
         validate_pruning_fence(
             tenant_id,
             key_bytes,
-            queued_upsert_tasks,
             reserved_generator_tasks,
+            queued_upsert_tasks,
             r,
             r_celery,
         )
@@ -555,8 +558,8 @@ def validate_pruning_fences(
 def validate_pruning_fence(
     tenant_id: str | None,
     key_bytes: bytes,
-    queued_tasks: set[str],
     reserved_tasks: set[str],
+    queued_tasks: set[str],
     r: Redis,
     r_celery: Redis,
 ) -> None:
@@ -609,7 +612,7 @@ def validate_pruning_fence(
     # either the generator task must be in flight or its subtasks must be
     found = celery_find_task(
         payload.celery_task_id,
-        OnyxCeleryQueues.CONNECTOR_DOC_PERMISSIONS_SYNC,
+        OnyxCeleryQueues.CONNECTOR_PRUNING,
         r_celery,
     )
     if found:
@@ -651,7 +654,7 @@ def validate_pruning_fence(
         tasks_not_in_celery += 1
 
     task_logger.info(
-        "validate_permission_sync_fence task check: "
+        "validate_pruning_fence task check: "
         f"tasks_scanned={tasks_scanned} tasks_not_in_celery={tasks_not_in_celery}"
     )
 
