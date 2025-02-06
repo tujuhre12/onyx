@@ -1,7 +1,7 @@
 """Add checkpointing/failure handling
 
 Revision ID: b7a7eee5aa15
-Revises: 98a5008d8711
+Revises: f5437cc136c5
 Create Date: 2025-01-24 15:17:36.763172
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "b7a7eee5aa15"
-down_revision = "98a5008d8711"
+down_revision = "f5437cc136c5"
 branch_labels = None
 depends_on = None
 
