@@ -15,6 +15,10 @@ Parameters:
   SubnetId2:
     Type: String
     Default: subnet-06721b79e2e51d22c
+  SubnetId3:
+    Type: String
+  SubnetId4:
+    Type: String
 
 Resources:
 
@@ -89,6 +93,24 @@ Resources:
     Properties:
       FileSystemId: !Ref OnyxEfs
       SubnetId: !Ref SubnetId2
+      SecurityGroups:
+        - !Ref EFSSecurityGroupMountTargets
+
+  EFSMountTarget3:
+    DependsOn: OnyxEfs
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref OnyxEfs
+      SubnetId: !Ref SubnetId3
+      SecurityGroups:
+        - !Ref EFSSecurityGroupMountTargets
+
+  EFSMountTarget4:
+    DependsOn: OnyxEfs
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref OnyxEfs
+      SubnetId: !Ref SubnetId4
       SecurityGroups:
         - !Ref EFSSecurityGroupMountTargets
 
