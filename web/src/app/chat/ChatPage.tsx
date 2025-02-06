@@ -1063,8 +1063,6 @@ export function ChatPage({
   if (!documentSidebarInitialWidth && maxDocumentSidebarWidth) {
     documentSidebarInitialWidth = Math.min(700, maxDocumentSidebarWidth);
   }
-
-  const [fullList, setFullList] = useState<any[]>([]);
   class CurrentMessageFIFO {
     private stack: PacketType[] = [];
     isComplete: boolean = false;
@@ -1436,10 +1434,6 @@ export function ChatPage({
                 is_generating = false;
                 second_level_generating = true;
               }
-            }
-
-            if (Object.hasOwn(packet, "stop_reason")) {
-              setFullList((prev) => [...prev, packet]);
             }
 
             // // Continuously refine the sub_questions based on the packets that we receive
