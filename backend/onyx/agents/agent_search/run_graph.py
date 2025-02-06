@@ -123,9 +123,7 @@ def run_main_graph(
 ) -> AnswerStream:
     compiled_graph = load_compiled_graph()
 
-    input = MainInput_a(
-        base_question=config.inputs.search_request.query, log_messages=[]
-    )
+    input = MainInput_a(log_messages=[])
 
     # Agent search is not a Tool per se, but this is helpful for the frontend
     yield ToolCallKickoff(
@@ -172,9 +170,7 @@ if __name__ == "__main__":
             # search_request.persona = get_persona_by_id(1, None, db_session)
             # config.perform_initial_search_path_decision = False
             config.behavior.perform_initial_search_decomposition = True
-            input = MainInput_a(
-                base_question=config.inputs.search_request.query, log_messages=[]
-            )
+            input = MainInput_a(log_messages=[])
 
             tool_responses: list = []
             for output in run_graph(compiled_graph, config, input):

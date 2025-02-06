@@ -21,9 +21,12 @@ from onyx.context.search.models import InferenceSection
 
 
 class ExpandedRetrievalInput(SubgraphCoreState):
-    question: str = ""
-    base_search: bool = False
+    # exception from 'no default value' in inputs - used w/o explicit setting for original question
+    # search
     sub_question_id: str | None = None
+
+    question: str
+    base_search: bool
 
 
 ## Update/Return States
@@ -88,4 +91,4 @@ class DocVerificationInput(ExpandedRetrievalInput):
 
 
 class RetrievalInput(ExpandedRetrievalInput):
-    query_to_retrieve: str = ""
+    query_to_retrieve: str
