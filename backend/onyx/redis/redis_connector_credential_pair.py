@@ -71,7 +71,8 @@ class RedisConnectorCredentialPair(RedisObjectHelper):
 
         last_lock_time = time.monotonic()
 
-        async_results = []
+        num_tasks_sent = 0
+
         cc_pair = get_connector_credential_pair_from_id(
             db_session=db_session,
             cc_pair_id=int(self._id),
@@ -113,7 +114,7 @@ class RedisConnectorCredentialPair(RedisObjectHelper):
             )
 
             # Priority on sync's triggered by new indexing should be medium
-            result = celery_app.send_task(
+            celery_app.send_task(
                 OnyxCeleryTask.VESPA_METADATA_SYNC_TASK,
                 kwargs=dict(document_id=doc_id, tenant_id=tenant_id),
                 queue=OnyxCeleryQueues.VESPA_METADATA_SYNC,
@@ -121,13 +122,13 @@ class RedisConnectorCredentialPair(RedisObjectHelper):
                 priority=OnyxCeleryPriority.MEDIUM,
             )
 
-            async_results.append(result)
+            num_tasks_sent += 1
             self.skip_docs.add(doc_id)
 
-            if len(async_results) >= max_tasks:
+            if num_tasks_sent >= max_tasks:
                 break
 
-        return len(async_results), num_docs
+        return num_tasks_sent, num_docs
 
 
 class RedisGlobalConnectorCredentialPair:
