@@ -6,7 +6,7 @@ Create Date: 2024-02-06 17:45:17.000000
 
 """
 from alembic import op
-from sqlalchemy import Boolean
+import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
@@ -16,16 +16,16 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade():
+def upgrade() -> None:
     # Rename column while preserving data
     op.alter_column('settings', 'pro_search_disabled',
                    new_column_name='agent_search_disabled',
-                   existing_type=Boolean(),
+                   existing_type=sa.Boolean(),
                    existing_nullable=True)
 
 
-def downgrade():
+def downgrade() -> None:
     op.alter_column('settings', 'agent_search_disabled',
                    new_column_name='pro_search_disabled',
-                   existing_type=Boolean(),
+                   existing_type=sa.Boolean(),
                    existing_nullable=True)
