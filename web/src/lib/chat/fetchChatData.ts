@@ -179,8 +179,9 @@ export async function fetchChatData(searchParams: {
   const sidebarToggled = requestCookies.get(SIDEBAR_TOGGLED_COOKIE_NAME);
 
   const proSearchToggled =
-    requestCookies.get(AGENT_SEARCH_TOGGLED_COOKIE_NAME)?.value.toLowerCase() ===
-      "true" ??
+    requestCookies
+      .get(AGENT_SEARCH_TOGGLED_COOKIE_NAME)
+      ?.value.toLowerCase() === "true" ??
     requestCookies.get(PRO_SEARCH_TOGGLED_COOKIE_NAME)?.value.toLowerCase() ===
       "true" ??
     false;
