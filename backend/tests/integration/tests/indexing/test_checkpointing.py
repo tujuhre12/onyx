@@ -56,7 +56,7 @@ def test_mock_connector_basic_flow(
             {
                 "documents": [test_doc.model_dump(mode="json")],
                 "checkpoint": ConnectorCheckpoint(
-                    checkpoint_content={}, has_more=False, progress=1
+                    checkpoint_content={}, has_more=False
                 ).model_dump(mode="json"),
                 "failures": [],
             }
@@ -130,7 +130,7 @@ def test_mock_connector_with_failures(
             {
                 "documents": [doc1.model_dump(mode="json")],
                 "checkpoint": ConnectorCheckpoint(
-                    checkpoint_content={"test": "data"}, has_more=False, progress=1
+                    checkpoint_content={}, has_more=False
                 ).model_dump(mode="json"),
                 "failures": [doc2_failure.model_dump(mode="json")],
             }
@@ -210,7 +210,7 @@ def test_mock_connector_failure_recovery(
             {
                 "documents": [doc1.model_dump(mode="json")],
                 "checkpoint": ConnectorCheckpoint(
-                    checkpoint_content={}, has_more=False, progress=1
+                    checkpoint_content={}, has_more=False
                 ).model_dump(mode="json"),
                 "failures": [
                     doc2_failure.model_dump(mode="json"),
@@ -293,7 +293,7 @@ def test_mock_connector_failure_recovery(
                     doc2.model_dump(mode="json"),
                 ],
                 "checkpoint": ConnectorCheckpoint(
-                    checkpoint_content={}, has_more=False, progress=1
+                    checkpoint_content={}, has_more=False
                 ).model_dump(mode="json"),
                 "failures": [],
             }
@@ -373,14 +373,14 @@ def test_mock_connector_checkpoint_recovery(
             {
                 "documents": [doc.model_dump(mode="json") for doc in docs_batch_1],
                 "checkpoint": ConnectorCheckpoint(
-                    checkpoint_content={"progress": 1}, has_more=True, progress=1
+                    checkpoint_content={}, has_more=False
                 ).model_dump(mode="json"),
                 "failures": [],
             },
             {
                 "documents": [doc2.model_dump(mode="json")],
                 "checkpoint": ConnectorCheckpoint(
-                    checkpoint_content={"progress": 2}, has_more=True, progress=2
+                    checkpoint_content={}, has_more=False
                 ).model_dump(mode="json"),
                 "failures": [],
             },
@@ -388,7 +388,7 @@ def test_mock_connector_checkpoint_recovery(
                 "documents": [],
                 # should never hit this, unhandled exception happens first
                 "checkpoint": ConnectorCheckpoint(
-                    checkpoint_content={"progress": 3}, has_more=False, progress=3
+                    checkpoint_content={}, has_more=False
                 ).model_dump(mode="json"),
                 "failures": [],
                 "unhandled_exception": "Simulated unhandled error",
@@ -449,8 +449,8 @@ def test_mock_connector_checkpoint_recovery(
     assert (
         initial_checkpoints[0]["checkpoint_content"] == {}
     )  # Initial empty checkpoint
-    assert initial_checkpoints[1]["checkpoint_content"] == {"progress": 1}
-    assert initial_checkpoints[2]["checkpoint_content"] == {"progress": 2}
+    assert initial_checkpoints[1]["checkpoint_content"] == {}
+    assert initial_checkpoints[2]["checkpoint_content"] == {}
 
     # Reset the mock server for the next run
     response = mock_server_client.post("/reset")
@@ -463,7 +463,7 @@ def test_mock_connector_checkpoint_recovery(
             {
                 "documents": [doc3.model_dump(mode="json")],
                 "checkpoint": ConnectorCheckpoint(
-                    checkpoint_content={"progress": 3}, has_more=False, progress=3
+                    checkpoint_content={}, has_more=False
                 ).model_dump(mode="json"),
                 "failures": [],
             }
@@ -513,4 +513,4 @@ def test_mock_connector_checkpoint_recovery(
 
     # Verify the recovery run started from the last successful checkpoint
     assert len(recovery_checkpoints) == 1
-    assert recovery_checkpoints[0]["checkpoint_content"] == {"progress": 2}
+    assert recovery_checkpoints[0]["checkpoint_content"] == {}

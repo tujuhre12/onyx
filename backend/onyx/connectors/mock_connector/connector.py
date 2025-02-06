@@ -78,9 +78,9 @@ class MockConnector(CheckpointConnector):
 
         # yield all documents
         for document in current_yield.documents:
-            yield (document, checkpoint, None)
+            yield document
 
         for failure in current_yield.failures:
-            yield (None, checkpoint, failure)
+            yield failure
 
-        yield (None, current_yield.checkpoint, None)
+        return current_yield.checkpoint
