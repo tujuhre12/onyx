@@ -1437,15 +1437,19 @@ export function ChatPage({
               }
             }
 
-            // Continuously refine the sub_questions based on the packets that we receive
+            // if (Object.hasOwn(packet, "stop_reason")) {
+            //   alert(JSON.stringify(packet));
+            // }
+            // // Continuously refine the sub_questions based on the packets that we receive
             if (
               Object.hasOwn(packet, "stop_reason") &&
               Object.hasOwn(packet, "level_question_num")
             ) {
-              // sub_questions = constructSubQuestions(
-              //   sub_questions,
-              //   packet as StreamStopInfo
-              // );
+              // alert(JSON.stringify(packet));
+              sub_questions = constructSubQuestions(
+                sub_questions,
+                packet as StreamStopInfo
+              );
             } else if (Object.hasOwn(packet, "sub_question")) {
               is_generating = true;
               sub_questions = constructSubQuestions(

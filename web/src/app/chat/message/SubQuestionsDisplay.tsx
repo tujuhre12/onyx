@@ -474,9 +474,24 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   overallAnswerGenerating,
   allowDocuments,
 }) => {
-  const { dynamicSubQuestions } = useStreamingMessages(subQuestions, () => {});
+  const [showSummarizing, setShowSummarizing] = useState(
+    finishedGenerating && !overallAnswerGenerating
+  );
+  const { dynamicSubQuestions } = useStreamingMessages(
+    subQuestions,
+    () => {},
+    () => {
+      setTimeout(() => {
+        setShowSummarizing(true);
+      }, PHASE_MIN_MS * 2);
+    }
+  );
   const { dynamicSubQuestions: dynamicSecondLevelQuestions } =
-    useStreamingMessages(secondLevelQuestions || [], () => {});
+    useStreamingMessages(
+      secondLevelQuestions || [],
+      () => {},
+      () => {}
+    );
   const memoizedSubQuestions = useMemo(() => {
     return finishedGenerating ? subQuestions : dynamicSubQuestions;
   }, [finishedGenerating, dynamicSubQuestions, subQuestions]);
@@ -503,10 +518,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
     ).length == memoizedSubQuestions.length;
 
   const [streamedText, setStreamedText] = useState(
-    !overallAnswerGenerating ? "Summarize findings" : ""
-  );
-  const [showSummarizing, setShowSummarizing] = useState(
-    finishedGenerating && !overallAnswerGenerating
+    finishedGenerating ? "Summarize findings" : ""
   );
   const [canShowSummarizing, setCanShowSummarizing] =
     useState(finishedGenerating);
@@ -526,7 +538,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
       memoizedSubQuestions.length > 0 &&
       memoizedSubQuestions.filter(
         (subQuestion) => subQuestion?.answer.length > 2
-      ).length == memoizedSubQuestions.length
+      ).length == subQuestions.length
     ) {
       setTimeout(() => {
         setCanShowSummarizing(true);
@@ -566,7 +578,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
         } else {
           clearInterval(streamInterval);
         }
-      }, 8);
+      }, 25);
     }
   }, [showSummarizing]);
 
