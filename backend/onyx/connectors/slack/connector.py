@@ -317,6 +317,16 @@ def _get_messages(
     latest: str | None = None,
 ) -> tuple[list[MessageType], bool]:
     """Slack goes from newest to oldest."""
+
+    # have to be in the channel in order to read messages
+    if not channel["is_member"]:
+        make_slack_api_call_w_retries(
+            client.conversations_join,
+            channel=channel["id"],
+            is_private=channel["is_private"],
+        )
+        logger.info(f"Successfully joined '{channel['name']}'")
+
     response = make_slack_api_call_w_retries(
         client.conversations_history,
         channel=channel["id"],

@@ -220,9 +220,9 @@ class IndexAttemptManager:
         include_resolved: bool = True,
         user_performing_action: DATestUser | None = None,
     ) -> list[IndexAttemptErrorPydantic]:
-        url = f"{API_SERVER_URL}/manage/admin/cc-pair/{cc_pair_id}/errors"
+        url = f"{API_SERVER_URL}/manage/admin/cc-pair/{cc_pair_id}/errors?page_size=100"
         if include_resolved:
-            url += "?include_resolved=true"
+            url += "&include_resolved=true"
         response = requests.get(
             url=url,
             headers=user_performing_action.headers
@@ -231,4 +231,4 @@ class IndexAttemptManager:
         )
         response.raise_for_status()
         data = response.json()
-        return [IndexAttemptErrorPydantic(**item) for item in data]
+        return [IndexAttemptErrorPydantic(**item) for item in data["items"]]

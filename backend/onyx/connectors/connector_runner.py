@@ -20,16 +20,33 @@ logger = setup_logger()
 TimeRange = tuple[datetime, datetime]
 
 
-def _wrap_checkpoint_output(
-    checkpoint_connector_generator: CheckpointOutput,
-) -> Generator[
-    tuple[Document | None, ConnectorFailure | None, ConnectorCheckpoint | None],
-    None,
-    None,
-]:
-    next_checkpoint = None
-    try:
-        for document_or_failure in checkpoint_connector_generator:
+class CheckpointOutputWrapper:
+    """
+    Wraps a CheckpointOutput generator to give things back in a more digestible format.
+    The connector format is easier for the connector implementor (e.g. it enforces exactly
+    one new checkpoint is returned AND that the checkpoint is at the end), thus the different
+    formats.
+    """
+
+    def __init__(self) -> None:
+        self.next_checkpoint: ConnectorCheckpoint | None = None
+
+    def __call__(
+        self,
+        checkpoint_connector_generator: CheckpointOutput,
+    ) -> Generator[
+        tuple[Document | None, ConnectorFailure | None, ConnectorCheckpoint | None],
+        None,
+        None,
+    ]:
+        # grabs the final return value and stores it in the `next_checkpoint` variable
+        def _inner_wrapper(
+            checkpoint_connector_generator: CheckpointOutput,
+        ) -> CheckpointOutput:
+            self.next_checkpoint = yield from checkpoint_connector_generator
+            return self.next_checkpoint  # not used
+
+        for document_or_failure in _inner_wrapper(checkpoint_connector_generator):
             if isinstance(document_or_failure, Document):
                 yield document_or_failure, None, None
             elif isinstance(document_or_failure, ConnectorFailure):
@@ -38,14 +55,13 @@ def _wrap_checkpoint_output(
                 raise ValueError(
                     f"Invalid document_or_failure type: {type(document_or_failure)}"
                 )
-    except StopIteration as e:
-        next_checkpoint = e.value
-        yield None, None, next_checkpoint
 
-    if next_checkpoint is None:
-        raise RuntimeError(
-            "Checkpoint is None. This should never happen - the connector should always return a checkpoint."
-        )
+        if self.next_checkpoint is None:
+            raise RuntimeError(
+                "Checkpoint is None. This should never happen - the connector should always return a checkpoint."
+            )
+
+        yield None, None, self.next_checkpoint
 
 
 class ConnectorRunner:
@@ -89,7 +105,9 @@ class ConnectorRunner:
                     end=self.time_range[1].timestamp(),
                     checkpoint=checkpoint,
                 )
-                for document, failure, next_checkpoint in _wrap_checkpoint_output(
+                next_checkpoint: ConnectorCheckpoint | None = None
+                # this is guaranteed to always run at least once with next_checkpoint being non-None
+                for document, failure, next_checkpoint in CheckpointOutputWrapper()(
                     checkpoint_connector_generator
                 ):
                     if document is not None:
@@ -99,13 +117,15 @@ class ConnectorRunner:
                         yield None, failure, None
 
                     if len(self.doc_batch) >= self.batch_size:
-                        yield self.doc_batch, None, next_checkpoint
+                        yield self.doc_batch, None, None
                         self.doc_batch = []
 
                 # yield remaining documents
                 if len(self.doc_batch) > 0:
-                    yield self.doc_batch, None, next_checkpoint
+                    yield self.doc_batch, None, None
                     self.doc_batch = []
+
+                yield None, None, next_checkpoint
 
                 logger.debug(
                     f"Connector took {time.monotonic() - start} seconds to get to the next checkpoint."

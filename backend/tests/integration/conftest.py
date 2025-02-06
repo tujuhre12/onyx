@@ -65,15 +65,16 @@ def new_admin_user(reset: None) -> DATestUser | None:
 @pytest.fixture
 def admin_user() -> DATestUser:
     try:
-        user = UserManager.create(name=ADMIN_USER_NAME)
+        user = UserManager.create(name=ADMIN_USER_NAME, is_first_user=True)
 
         # if there are other users for some reason, reset and try again
         if user.role != UserRole.ADMIN:
+            print("Trying to reset")
             reset_all()
             user = UserManager.create(name=ADMIN_USER_NAME)
         return user
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Failed to create admin user: {e}")
 
     try:
         user = UserManager.login_as_user(
@@ -90,8 +91,10 @@ def admin_user() -> DATestUser:
             reset_all()
             user = UserManager.create(name=ADMIN_USER_NAME)
             return user
-    except Exception:
-        pass
+
+        return user
+    except Exception as e:
+        print(f"Failed to create or login as admin user: {e}")
 
     raise RuntimeError("Failed to create or login as admin user")
 
