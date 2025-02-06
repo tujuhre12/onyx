@@ -18,14 +18,20 @@ depends_on = None
 
 def upgrade() -> None:
     # Rename column while preserving data
-    op.alter_column('settings', 'pro_search_disabled',
-                   new_column_name='agent_search_disabled',
-                   existing_type=sa.Boolean(),
-                   existing_nullable=True)
+    op.alter_column(
+        "settings",
+        "pro_search_disabled",
+        new_column_name="agent_search_disabled",
+        existing_type=sa.Boolean(),
+        existing_nullable=True,
+    )
 
 
 def downgrade() -> None:
-    op.alter_column('settings', 'agent_search_disabled',
-                   new_column_name='pro_search_disabled',
-                   existing_type=sa.Boolean(),
-                   existing_nullable=True)
+    op.alter_column(
+        "settings",
+        "agent_search_disabled",
+        new_column_name="pro_search_disabled",
+        existing_type=sa.Boolean(),
+        existing_nullable=True,
+    )

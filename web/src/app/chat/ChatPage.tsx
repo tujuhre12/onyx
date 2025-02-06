@@ -206,9 +206,10 @@ export function ChatPage({
 
   const [documentSidebarToggled, setDocumentSidebarToggled] = useState(false);
   const [agentSearchEnabled, setAgentSearchEnabled] = useState<boolean>(
-    (Cookies.get(LEGACY_PRO_SEARCH_TOGGLED_COOKIE_NAME)?.toLowerCase() === 'true') ?? 
-    (Cookies.get(AGENT_SEARCH_TOGGLED_COOKIE_NAME)?.toLowerCase() === 'true') ?? 
-    proSearchToggled
+    Cookies.get(LEGACY_PRO_SEARCH_TOGGLED_COOKIE_NAME)?.toLowerCase() ===
+      "true" ??
+      Cookies.get(AGENT_SEARCH_TOGGLED_COOKIE_NAME)?.toLowerCase() === "true" ??
+      proSearchToggled
   );
   const [streamingAllowed, setStreamingAllowed] = useState(false);
   const toggleAgentSearch = () => {

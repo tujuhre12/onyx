@@ -196,8 +196,8 @@ interface ChatInputBarProps {
   availableDocumentSets: DocumentSet[];
   availableTags: Tag[];
   retrievalEnabled: boolean;
-  proSearchEnabled: boolean;  // TODO: rename to agentSearchEnabled in a future PR
-  setProSearchEnabled: (enabled: boolean) => void;  // TODO: rename to setAgentSearchEnabled in a future PR
+  proSearchEnabled: boolean; // TODO: rename to agentSearchEnabled in a future PR
+  setProSearchEnabled: (enabled: boolean) => void; // TODO: rename to setAgentSearchEnabled in a future PR
 }
 
 export function ChatInputBar({
@@ -226,8 +226,8 @@ export function ChatInputBar({
   availableDocumentSets,
   availableTags,
   llmOverrideManager,
-  proSearchEnabled,  // TODO: rename to agentSearchEnabled
-  setProSearchEnabled,  // TODO: rename to setAgentSearchEnabled
+  proSearchEnabled, // TODO: rename to agentSearchEnabled
+  setProSearchEnabled, // TODO: rename to setAgentSearchEnabled
 }: ChatInputBarProps) {
   const { user } = useUser();
   const settings = useContext(SettingsContext);
