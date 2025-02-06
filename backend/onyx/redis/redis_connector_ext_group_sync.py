@@ -74,7 +74,8 @@ class RedisConnectorExternalGroupSync:
     def get_active_task_count(self) -> int:
         """Count of active external group syncing tasks"""
         count = 0
-        for _ in self.redis.scan_iter(
+        for _ in self.redis.sscan_iter(
+            OnyxRedisConstants.ACTIVE_FENCES,
             RedisConnectorExternalGroupSync.FENCE_PREFIX + "*",
             count=SCAN_ITER_COUNT_DEFAULT,
         ):

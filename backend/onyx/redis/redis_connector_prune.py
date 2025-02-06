@@ -81,8 +81,10 @@ class RedisConnectorPrune:
     def get_active_task_count(self) -> int:
         """Count of active pruning tasks"""
         count = 0
-        for key in self.redis.scan_iter(
-            RedisConnectorPrune.FENCE_PREFIX + "*", count=SCAN_ITER_COUNT_DEFAULT
+        for _ in self.redis.sscan_iter(
+            OnyxRedisConstants.ACTIVE_FENCES,
+            RedisConnectorPrune.FENCE_PREFIX + "*",
+            count=SCAN_ITER_COUNT_DEFAULT,
         ):
             count += 1
         return count

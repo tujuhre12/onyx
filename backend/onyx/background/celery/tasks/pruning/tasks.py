@@ -54,7 +54,6 @@ from onyx.redis.redis_connector_prune import RedisConnectorPrune
 from onyx.redis.redis_connector_prune import RedisConnectorPrunePayload
 from onyx.redis.redis_pool import get_redis_client
 from onyx.redis.redis_pool import get_redis_replica_client
-from onyx.redis.redis_pool import SCAN_ITER_COUNT_DEFAULT
 from onyx.server.utils import make_short_id
 from onyx.utils.logger import LoggerContextVars
 from onyx.utils.logger import pruning_ctx
@@ -563,20 +562,6 @@ def validate_pruning_fences(
 
         lock_beat.reacquire()
 
-    # validate all existing indexing jobs
-    for key_bytes in r.scan_iter(
-        RedisConnectorPrune.FENCE_PREFIX + "*",
-        count=SCAN_ITER_COUNT_DEFAULT,
-    ):
-        lock_beat.reacquire()
-        validate_pruning_fence(
-            tenant_id,
-            key_bytes,
-            reserved_generator_tasks,
-            queued_upsert_tasks,
-            r,
-            r_celery,
-        )
     return
 
 
