@@ -543,7 +543,8 @@ def validate_external_group_sync_fence(
         "validate_external_group_sync_fence - "
         "Resetting fence because no associated celery tasks were found: "
         f"cc_pair={cc_pair_id} "
-        f"fence={fence_key}"
+        f"fence={fence_key} "
+        f"payload_id={payload.id}"
     )
 
     redis_connector.external_group_sync.reset()

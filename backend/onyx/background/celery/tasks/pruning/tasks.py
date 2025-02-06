@@ -2,6 +2,7 @@ import time
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
+from typing import Any
 from typing import cast
 from uuid import uuid4
 
@@ -30,6 +31,7 @@ from onyx.configs.constants import DANSWER_REDIS_FUNCTION_LOCK_PREFIX
 from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import OnyxCeleryQueues
 from onyx.configs.constants import OnyxCeleryTask
+from onyx.configs.constants import OnyxRedisConstants
 from onyx.configs.constants import OnyxRedisLocks
 from onyx.configs.constants import OnyxRedisSignals
 from onyx.connectors.factory import instantiate_connector
@@ -51,6 +53,7 @@ from onyx.redis.redis_connector import RedisConnector
 from onyx.redis.redis_connector_prune import RedisConnectorPrune
 from onyx.redis.redis_connector_prune import RedisConnectorPrunePayload
 from onyx.redis.redis_pool import get_redis_client
+from onyx.redis.redis_pool import get_redis_replica_client
 from onyx.redis.redis_pool import SCAN_ITER_COUNT_DEFAULT
 from onyx.server.utils import make_short_id
 from onyx.utils.logger import LoggerContextVars
@@ -107,6 +110,7 @@ def _is_pruning_due(cc_pair: ConnectorCredentialPair) -> bool:
 )
 def check_for_pruning(self: Task, *, tenant_id: str | None) -> bool | None:
     r = get_redis_client(tenant_id=tenant_id)
+    r_replica = get_redis_replica_client(tenant_id=tenant_id)
     r_celery: Redis = self.app.broker_connection().channel().client  # type: ignore
 
     lock_beat: RedisLock = r.lock(
@@ -155,7 +159,7 @@ def check_for_pruning(self: Task, *, tenant_id: str | None) -> bool | None:
             # tasks can be in the queue in redis, in reserved tasks (prefetched by the worker),
             # or be currently executing
             try:
-                validate_pruning_fences(tenant_id, r, r_celery, lock_beat)
+                validate_pruning_fences(tenant_id, r, r_replica, r_celery, lock_beat)
             except Exception:
                 task_logger.exception("Exception while validating pruning fences")
 
@@ -517,6 +521,7 @@ def monitor_ccpair_pruning_taskset(
 def validate_pruning_fences(
     tenant_id: str | None,
     r: Redis,
+    r_replica: Redis,
     r_celery: Redis,
     lock_beat: RedisLock,
 ) -> None:
@@ -537,6 +542,26 @@ def validate_pruning_fences(
     queued_upsert_tasks = celery_get_queued_task_ids(
         OnyxCeleryQueues.CONNECTOR_DELETION, r_celery
     )
+
+    # Use replica for this because the worst thing that happens
+    # is that we don't run the validation on this pass
+    keys = cast(set[Any], r_replica.smembers(OnyxRedisConstants.ACTIVE_FENCES))
+    for key in keys:
+        key_bytes = cast(bytes, key)
+        key_str = key_bytes.decode("utf-8")
+        if not key_str.startswith(RedisConnectorPrune.FENCE_PREFIX):
+            continue
+
+        validate_pruning_fence(
+            tenant_id,
+            key_bytes,
+            reserved_generator_tasks,
+            queued_upsert_tasks,
+            r,
+            r_celery,
+        )
+
+        lock_beat.reacquire()
 
     # validate all existing indexing jobs
     for key_bytes in r.scan_iter(
