@@ -1,6 +1,6 @@
 from typing import Any, Literal
-from onyx.db.engine import get_iam_auth_token
-from onyx.configs.app_configs import USE_IAM_AUTH
+from onyx.db.engine import SYNC_DB_API, get_iam_auth_token
+from onyx.configs.app_configs import POSTGRES_DB, USE_IAM_AUTH
 from onyx.configs.app_configs import POSTGRES_HOST
 from onyx.configs.app_configs import POSTGRES_PORT
 from onyx.configs.app_configs import POSTGRES_USER
@@ -13,12 +13,11 @@ from sqlalchemy import text
 from sqlalchemy.engine.base import Connection
 import os
 import ssl
-import asyncio
 import logging
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import create_engine
 from sqlalchemy.sql.schema import SchemaItem
 from onyx.configs.constants import SSL_CERT_FILE
 from shared_configs.configs import MULTI_TENANT, POSTGRES_DEFAULT_SCHEMA
@@ -133,17 +132,32 @@ def provide_iam_token_for_alembic(
         cparams["ssl"] = ssl_context
 
 
-async def run_async_migrations() -> None:
+def run_migrations() -> None:
     schema_name, create_schema, upgrade_all_tenants = get_schema_options()
 
-    engine = create_async_engine(
-        build_connection_string(),
+    # Get any environment variables passed through alembic config
+    env_vars = context.config.attributes.get("env_vars", {})
+
+    # Use env vars if provided, otherwise fall back to defaults
+    postgres_host = env_vars.get("POSTGRES_HOST", POSTGRES_HOST)
+    postgres_port = env_vars.get("POSTGRES_PORT", POSTGRES_PORT)
+    postgres_user = env_vars.get("POSTGRES_USER", POSTGRES_USER)
+    postgres_db = env_vars.get("POSTGRES_DB", POSTGRES_DB)
+
+    engine = create_engine(
+        build_connection_string(
+            db=postgres_db,
+            user=postgres_user,
+            host=postgres_host,
+            port=postgres_port,
+            db_api=SYNC_DB_API,
+        ),
         poolclass=pool.NullPool,
     )
 
     if USE_IAM_AUTH:
 
-        @event.listens_for(engine.sync_engine, "do_connect")
+        @event.listens_for(engine, "do_connect")
         def event_provide_iam_token_for_alembic(
             dialect: Any, conn_rec: Any, cargs: Any, cparams: Any
         ) -> None:
@@ -152,31 +166,26 @@ async def run_async_migrations() -> None:
     if upgrade_all_tenants:
         tenant_schemas = get_all_tenant_ids()
         for schema in tenant_schemas:
+            if schema is None:
+                continue
+
             try:
                 logger.info(f"Migrating schema: {schema}")
-                async with engine.connect() as connection:
-                    await connection.run_sync(
-                        do_run_migrations,
-                        schema_name=schema,
-                        create_schema=create_schema,
-                    )
+                with engine.connect() as connection:
+                    do_run_migrations(connection, schema, create_schema)
             except Exception as e:
                 logger.error(f"Error migrating schema {schema}: {e}")
                 raise
     else:
         try:
             logger.info(f"Migrating schema: {schema_name}")
-            async with engine.connect() as connection:
-                await connection.run_sync(
-                    do_run_migrations,
-                    schema_name=schema_name,
-                    create_schema=create_schema,
-                )
+            with engine.connect() as connection:
+                do_run_migrations(connection, schema_name, create_schema)
         except Exception as e:
             logger.error(f"Error migrating schema {schema_name}: {e}")
             raise
 
-    await engine.dispose()
+    engine.dispose()
 
 
 def run_migrations_offline() -> None:
@@ -184,18 +193,18 @@ def run_migrations_offline() -> None:
     url = build_connection_string()
 
     if upgrade_all_tenants:
-        engine = create_async_engine(url)
+        engine = create_engine(url)
 
         if USE_IAM_AUTH:
 
-            @event.listens_for(engine.sync_engine, "do_connect")
+            @event.listens_for(engine, "do_connect")
             def event_provide_iam_token_for_alembic_offline(
                 dialect: Any, conn_rec: Any, cargs: Any, cparams: Any
             ) -> None:
                 provide_iam_token_for_alembic(dialect, conn_rec, cargs, cparams)
 
         tenant_schemas = get_all_tenant_ids()
-        engine.sync_engine.dispose()
+        engine.dispose()
 
         for schema in tenant_schemas:
             logger.info(f"Migrating schema: {schema}")
@@ -230,12 +239,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    new_loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(new_loop)
-    try:
-        new_loop.run_until_complete(run_async_migrations())
-    finally:
-        new_loop.close()
+    run_migrations()
 
 
 if context.is_offline_mode():

@@ -6,6 +6,7 @@ import sys
 import threading
 import time
 from dataclasses import dataclass
+from multiprocessing.synchronize import Lock as LockType
 from pathlib import Path
 
 from tests.integration.common_utils.reset import reset_all
@@ -79,6 +80,7 @@ def worker(
     result_queue: multiprocessing.Queue,
     shared_services_config: SharedServicesConfig,
     deployment_configs: list[DeploymentConfig],
+    reset_lock: LockType,
 ) -> None:
     """Worker process that runs tests on available instances."""
     while True:
@@ -104,10 +106,13 @@ def worker(
                 f"Resetting instance for next. DB: {deployment_config.postgres_db}, "
                 f"Port: {shared_services_config.postgres_port}"
             )
-            reset_all(
-                database=deployment_config.postgres_db,
-                postgres_port=str(shared_services_config.postgres_port),
-            )
+            # alembic is NOT thread-safe, so we need to make sure only one worker is resetting at a time
+            with reset_lock:
+                reset_all(
+                    database=deployment_config.postgres_db,
+                    postgres_port=str(shared_services_config.postgres_port),
+                    silence_logs=True,
+                )
         except Exception as e:
             # Log the error and put it in the result queue
             error_msg = f"Critical error in worker thread for test {test}: {str(e)}"
@@ -129,7 +134,7 @@ def worker(
 
 
 def main() -> None:
-    NUM_INSTANCES = 1
+    NUM_INSTANCES = 10
 
     # Get all tests
     tests = list_all_tests(Path(__file__).parent)
@@ -143,10 +148,11 @@ def main() -> None:
     # Start all instances at once
     shared_services_config, deployment_configs = run_x_instances(NUM_INSTANCES)
 
-    # Create queues
+    # Create queues and lock
     test_queue: queue.Queue[str | None] = queue.Queue()
     instance_queue: queue.Queue[int] = queue.Queue()
     result_queue: multiprocessing.Queue = multiprocessing.Queue()
+    reset_lock: LockType = multiprocessing.Lock()
 
     # Fill the instance queue with available instance numbers
     for i in range(1, NUM_INSTANCES + 1):
@@ -171,47 +177,56 @@ def main() -> None:
                 result_queue,
                 shared_services_config,
                 deployment_configs,
+                reset_lock,
             ),
         )
         worker_thread.start()
         workers.append(worker_thread)
 
     # Monitor workers and fail fast if any die
-    while any(w.is_alive() for w in workers):
-        # Check if all tests are done
-        if test_queue.empty() and all(not w.is_alive() for w in workers):
-            break
+    try:
+        while any(w.is_alive() for w in workers):
+            # Check if all tests are done
+            if test_queue.empty() and all(not w.is_alive() for w in workers):
+                break
 
-        # Check for dead workers that died with unfinished tests
-        if not test_queue.empty() and any(not w.is_alive() for w in workers):
-            print(
-                "\nCritical: Worker thread(s) died with tests remaining!",
-                file=sys.stderr,
-            )
+            # Check for dead workers that died with unfinished tests
+            if not test_queue.empty() and any(not w.is_alive() for w in workers):
+                print(
+                    "\nCritical: Worker thread(s) died with tests remaining!",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+
+            time.sleep(0.1)  # Avoid busy waiting
+
+        # Collect results
+        results: list[TestResult] = []
+        while not result_queue.empty():
+            results.append(result_queue.get())
+
+        # Print results
+        print("\nTest Results:")
+        failed = False
+        for result in results:
+            status = "✅ PASSED" if result.success else "❌ FAILED"
+            print(f"{status} - {result.test_name}")
+            if not result.success:
+                failed = True
+                print("Error output:")
+                print(result.error)
+                print("Test output:")
+                print(result.output)
+                print("-" * 80)
+
+        if failed:
             sys.exit(1)
 
-        time.sleep(0.1)  # Avoid busy waiting
-
-    # Collect results
-    results: list[TestResult] = []
-    while not result_queue.empty():
-        results.append(result_queue.get())
-
-    # Print results
-    print("\nTest Results:")
-    failed = False
-    for result in results:
-        status = "✅ PASSED" if result.success else "❌ FAILED"
-        print(f"{status} - {result.test_name}")
-        if not result.success:
-            failed = True
-            print("Error output:")
-            print(result.error)
-            print("Test output:")
-            print(result.output)
-            print("-" * 80)
-
-    if failed:
+    except KeyboardInterrupt:
+        print("\nTest run interrupted by user", file=sys.stderr)
+        sys.exit(130)  # Standard exit code for SIGINT
+    except Exception as e:
+        print(f"\nCritical error during result collection: {str(e)}", file=sys.stderr)
         sys.exit(1)
 
 

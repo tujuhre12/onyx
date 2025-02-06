@@ -127,6 +127,24 @@ def setup_db(
         check=True,
     )
 
+    # NEW: Stamp this brand-new DB at 'base' so Alembic doesn't fail
+    subprocess.run(
+        [
+            "alembic",
+            "stamp",
+            "base",
+        ],
+        env={
+            **env,
+            "PGPASSWORD": "password",
+            "POSTGRES_HOST": "localhost",
+            "POSTGRES_PORT": str(postgres_port),
+            "POSTGRES_DB": db_name,
+        },
+        check=True,
+        cwd=str(BACKEND_DIR_PATH),
+    )
+
     # Run alembic upgrade to create tables
     max_attempts = 3
     for attempt in range(max_attempts):
@@ -444,7 +462,7 @@ def launch_instance(
 
 
 def wait_for_instance(
-    ports: DeploymentConfig, max_attempts: int = 60, wait_seconds: int = 2
+    ports: DeploymentConfig, max_attempts: int = 120, wait_seconds: int = 2
 ) -> None:
     """Wait for an instance to be healthy."""
     print(f"Waiting for instance {ports.instance_num} to be ready...")

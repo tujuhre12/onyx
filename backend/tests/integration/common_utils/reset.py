@@ -1,5 +1,9 @@
+import contextlib
+import io
 import logging
+import sys
 import time
+from logging import Logger
 from types import SimpleNamespace
 
 import psycopg2
@@ -31,8 +35,10 @@ logger = setup_logger()
 
 
 def _run_migrations(
-    database_url: str,
+    database: str,
     config_name: str,
+    postgres_host: str,
+    postgres_port: str,
     direction: str = "upgrade",
     revision: str = "head",
     schema: str = "public",
@@ -46,8 +52,25 @@ def _run_migrations(
     alembic_cfg.attributes["configure_logger"] = False
     alembic_cfg.config_ini_section = config_name
 
+    # Add environment variables to the config attributes
+    alembic_cfg.attributes["env_vars"] = {
+        "POSTGRES_HOST": postgres_host,
+        "POSTGRES_PORT": postgres_port,
+        "POSTGRES_DB": database,
+    }
+
     alembic_cfg.cmd_opts = SimpleNamespace()  # type: ignore
     alembic_cfg.cmd_opts.x = [f"schema={schema}"]  # type: ignore
+
+    # Build the database URL
+    database_url = build_connection_string(
+        db=database,
+        user=POSTGRES_USER,
+        password=POSTGRES_PASSWORD,
+        host=postgres_host,
+        port=postgres_port,
+        db_api=SYNC_DB_API,
+    )
 
     # Set the SQLAlchemy URL in the Alembic configuration
     alembic_cfg.set_main_option("sqlalchemy.url", database_url)
@@ -114,17 +137,11 @@ def downgrade_postgres(
         return
 
     # Downgrade to base
-    conn_str = build_connection_string(
-        db=database,
-        user=POSTGRES_USER,
-        password=POSTGRES_PASSWORD,
-        host=postgres_host,
-        port=postgres_port,
-        db_api=SYNC_DB_API,
-    )
     _run_migrations(
-        conn_str,
-        config_name,
+        database=database,
+        config_name=config_name,
+        postgres_host=postgres_host,
+        postgres_port=postgres_port,
         direction="downgrade",
         revision=revision,
     )
@@ -138,17 +155,11 @@ def upgrade_postgres(
     postgres_port: str = POSTGRES_PORT,
 ) -> None:
     """Upgrade Postgres database to latest version."""
-    conn_str = build_connection_string(
-        db=database,
-        user=POSTGRES_USER,
-        password=POSTGRES_PASSWORD,
-        host=postgres_host,
-        port=postgres_port,
-        db_api=SYNC_DB_API,
-    )
     _run_migrations(
-        conn_str,
-        config_name,
+        database=database,
+        config_name=config_name,
+        postgres_host=postgres_host,
+        postgres_port=postgres_port,
         direction="upgrade",
         revision=revision,
     )
@@ -334,9 +345,45 @@ def reset_all(
     database: str = "postgres",
     postgres_host: str = POSTGRES_HOST,
     postgres_port: str = POSTGRES_PORT,
+    silence_logs: bool = False,
 ) -> None:
-    # if we're guaranteed a fresh setup, we don't need to reset
-    # this happens when running the tests w/ the parallelized setup
+    if not silence_logs:
+        with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(
+            sys.stderr
+        ):
+            _do_reset(database, postgres_host, postgres_port)
+        return
+
+    # Store original logging levels
+    loggers_to_silence: list[Logger] = [
+        logging.getLogger(),  # Root logger
+        logging.getLogger("alembic"),
+        logger.logger,  # Our custom logger
+    ]
+    original_levels = [logger.level for logger in loggers_to_silence]
+
+    # Temporarily set all loggers to ERROR level
+    for log in loggers_to_silence:
+        log.setLevel(logging.ERROR)
+
+    stdout_redirect = io.StringIO()
+    stderr_redirect = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(stdout_redirect), contextlib.redirect_stderr(
+            stderr_redirect
+        ):
+            _do_reset(database, postgres_host, postgres_port)
+    except Exception as e:
+        print(stdout_redirect.getvalue(), file=sys.stdout)
+        print(stderr_redirect.getvalue(), file=sys.stderr)
+        raise e
+    finally:
+        # Restore original logging levels
+        for logger_, level in zip(loggers_to_silence, original_levels):
+            logger_.setLevel(level)
+
+
+def _do_reset(database: str, postgres_host: str, postgres_port: str) -> None:
     if GUARANTEED_FRESH_SETUP:
         return None
 
