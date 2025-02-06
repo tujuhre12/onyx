@@ -24,9 +24,7 @@ import {
   DOCUMENT_SIDEBAR_WIDTH_COOKIE_NAME,
   PRO_SEARCH_TOGGLED_COOKIE_NAME,
 } from "@/components/resizable/constants";
-import {
-  AGENT_SEARCH_TOGGLED_COOKIE_NAME,
-} from "@/lib/constants";
+import { AGENT_SEARCH_TOGGLED_COOKIE_NAME } from "@/lib/constants";
 import { hasCompletedWelcomeFlowSS } from "@/components/initialSetup/welcome/WelcomeModalWrapper";
 import {
   NEXT_PUBLIC_DEFAULT_SIDEBAR_OPEN,
@@ -181,8 +179,10 @@ export async function fetchChatData(searchParams: {
   const sidebarToggled = requestCookies.get(SIDEBAR_TOGGLED_COOKIE_NAME);
 
   const proSearchToggled =
-    requestCookies.get(AGENT_SEARCH_TOGGLED_COOKIE_NAME)?.value.toLowerCase() === "true" ??
-    requestCookies.get(PRO_SEARCH_TOGGLED_COOKIE_NAME)?.value.toLowerCase() === "true" ??
+    requestCookies.get(AGENT_SEARCH_TOGGLED_COOKIE_NAME)?.value.toLowerCase() ===
+      "true" ??
+    requestCookies.get(PRO_SEARCH_TOGGLED_COOKIE_NAME)?.value.toLowerCase() ===
+      "true" ??
     false;
 
   // IF user is an anoymous user, we don't want to show the sidebar (they have no access to chat history)
