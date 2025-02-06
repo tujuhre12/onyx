@@ -43,7 +43,7 @@ def dispatch_subquestion_sep(level: int, writer: StreamWriter) -> Callable[[int]
             "stream_finished",
             StreamStopInfo(
                 stop_reason=StreamStopReason.FINISHED,
-                stream_type=StreamType.SUB_ANSWER,
+                stream_type=StreamType.SUB_QUESTIONS,
                 level=level,
                 level_question_num=sep_num,
             ),
