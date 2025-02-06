@@ -27,7 +27,6 @@ import {
 } from "@dnd-kit/sortable";
 import { DraggableRow } from "./DraggableRow";
 import { Row } from "./interfaces";
-import { StaticRow } from "./StaticRow";
 
 export function DraggableTable({
   headers,
@@ -108,9 +107,9 @@ export function DraggableTable({
 
         <TableBody>
           <SortableContext items={items} strategy={verticalListSortingStrategy}>
-            {rows.map((row) => {
-              return <DraggableRow key={row.id} row={row} isAdmin={isAdmin} />;
-            })}
+            {rows.map((row) => (
+              <DraggableRow key={row.id} row={row} isAdmin={isAdmin} />
+            ))}
           </SortableContext>
         </TableBody>
       </Table>
@@ -120,7 +119,11 @@ export function DraggableTable({
           {selectedRow && (
             <Table>
               <TableBody>
-                <StaticRow key={selectedRow.id} row={selectedRow} />
+                <DraggableRow
+                  row={selectedRow}
+                  isAdmin={isAdmin}
+                  isDragOverlay
+                />
               </TableBody>
             </Table>
           )}

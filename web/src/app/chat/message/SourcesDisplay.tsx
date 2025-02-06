@@ -108,11 +108,7 @@ export const SourcesDisplay: React.FC<SourcesDisplayProps> = ({
             fullWidth
             toggled={docSidebarToggled}
             toggleDocumentSelection={toggleDocumentSelection}
-            uniqueSources={
-              Array.from(
-                new Set(documents.map((doc) => doc.source_type))
-              ) as ValidSources[]
-            }
+            docs={documents}
             webSourceDomains={documents.map((doc) => doc.link)}
           />
         )}
