@@ -210,7 +210,7 @@ export function ChatPage({
   const toggleAgentSearch = () => {
     Cookies.set(
       AGENT_SEARCH_TOGGLED_COOKIE_NAME,
-      String(!agentSearchEnabled).toLocaleLowerCase()
+      String(!agentSearchEnabled).toLowerCase()
     );
     setAgentSearchEnabled(!agentSearchEnabled);
   };
