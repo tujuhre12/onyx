@@ -231,9 +231,9 @@ export function SettingsForm() {
       <Checkbox
         label="Agent Search Enabled"
         sublabel="If set, users will be able to use Agent Search."
-        checked={!(settings.pro_search_disabled ?? false)}
+        checked={!(settings.agent_search_disabled ?? false)}
         onChange={(e) =>
-          handleToggleSettingsField("pro_search_disabled", !e.target.checked)
+          handleToggleSettingsField("agent_search_disabled", !e.target.checked)
         }
       />
 
