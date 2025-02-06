@@ -25,8 +25,6 @@ interface AssistantsContextProps {
   ownedButHiddenAssistants: Persona[];
   refreshAssistants: () => Promise<void>;
   isImageGenerationAvailable: boolean;
-  recentAssistants: Persona[];
-  refreshRecentAssistants: (currentAssistant: number) => Promise<void>;
   // Admin only
   editablePersonas: Persona[];
   allAssistants: Persona[];
@@ -56,29 +54,27 @@ export const AssistantsProvider: React.FC<{
   const [editablePersonas, setEditablePersonas] = useState<Persona[]>([]);
   const [allAssistants, setAllAssistants] = useState<Persona[]>([]);
 
-  const [pinnedAssistants, setPinnedAssistants] = useState<Persona[]>(
-    assistants.filter((assistant) =>
-      user?.preferences?.pinned_assistants?.includes(assistant.id)
-    )
-  );
-  useEffect(() => {
-    setPinnedAssistants(
-      assistants.filter((assistant) =>
-        user?.preferences?.pinned_assistants?.includes(assistant.id)
-      )
-    );
-  }, [user?.preferences?.pinned_assistants, assistants]);
+  const [pinnedAssistants, setPinnedAssistants] = useState<Persona[]>(() => {
+    if (user?.preferences.pinned_assistants) {
+      return user.preferences.pinned_assistants
+        .map((id) => assistants.find((assistant) => assistant.id === id))
+        .filter((assistant): assistant is Persona => assistant !== undefined);
+    } else {
+      return assistants.filter((a) => a.builtin_persona);
+    }
+  });
 
-  const [recentAssistants, setRecentAssistants] = useState<Persona[]>(
-    user?.preferences.recent_assistants
-      ?.filter((assistantId) =>
-        assistants.find((assistant) => assistant.id === assistantId)
-      )
-      .map(
-        (assistantId) =>
-          assistants.find((assistant) => assistant.id === assistantId)!
-      ) || []
-  );
+  useEffect(() => {
+    setPinnedAssistants(() => {
+      if (user?.preferences.pinned_assistants) {
+        return user.preferences.pinned_assistants
+          .map((id) => assistants.find((assistant) => assistant.id === id))
+          .filter((assistant): assistant is Persona => assistant !== undefined);
+      } else {
+        return assistants.filter((a) => a.builtin_persona);
+      }
+    });
+  }, [user?.preferences?.pinned_assistants, assistants]);
 
   const [isImageGenerationAvailable, setIsImageGenerationAvailable] =
     useState<boolean>(false);
@@ -130,28 +126,6 @@ export const AssistantsProvider: React.FC<{
     fetchPersonas();
   }, [isAdmin, isCurator]);
 
-  const refreshRecentAssistants = async (currentAssistant: number) => {
-    const response = await fetch("/api/user/recent-assistants", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        current_assistant: currentAssistant,
-      }),
-    });
-    if (!response.ok) {
-      return;
-    }
-    setRecentAssistants((recentAssistants) => [
-      assistants.find((assistant) => assistant.id === currentAssistant)!,
-
-      ...recentAssistants.filter(
-        (assistant) => assistant.id !== currentAssistant
-      ),
-    ]);
-  };
-
   const refreshAssistants = async () => {
     try {
       const response = await fetch("/api/persona", {
@@ -176,13 +150,6 @@ export const AssistantsProvider: React.FC<{
     } catch (error) {
       console.error("Error refreshing assistants:", error);
     }
-
-    setRecentAssistants(
-      assistants.filter(
-        (assistant) =>
-          user?.preferences.recent_assistants?.includes(assistant.id) || false
-      )
-    );
   };
 
   const {
@@ -225,8 +192,6 @@ export const AssistantsProvider: React.FC<{
         editablePersonas,
         allAssistants,
         isImageGenerationAvailable,
-        recentAssistants,
-        refreshRecentAssistants,
         setPinnedAssistants,
         pinnedAssistants,
       }}

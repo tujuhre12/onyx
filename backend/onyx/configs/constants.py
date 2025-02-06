@@ -15,6 +15,12 @@ ID_SEPARATOR = ":;:"
 DEFAULT_BOOST = 0
 SESSION_KEY = "session"
 
+# Cookies
+FASTAPI_USERS_AUTH_COOKIE_NAME = (
+    "fastapiusersauth"  # Currently a constant, but logic allows for configuration
+)
+TENANT_ID_COOKIE_NAME = "onyx_tid"  # tenant id - for workaround cases
+
 NO_AUTH_USER_ID = "__no_auth_user__"
 NO_AUTH_USER_EMAIL = "anonymous@onyx.app"
 
@@ -38,6 +44,13 @@ DEFAULT_PERSONA_ID = 0
 
 DEFAULT_CC_PAIR_ID = 1
 
+# subquestion level and question number for basic flow
+BASIC_KEY = (-1, -1)
+AGENT_SEARCH_INITIAL_KEY = (0, 0)
+CANCEL_CHECK_INTERVAL = 20
+DISPATCH_SEP_CHAR = "\n"
+FORMAT_DOCS_SEPARATOR = "\n\n"
+NUM_EXPLORATORY_DOCS = 15
 # Postgres connection constants for application_name
 POSTGRES_WEB_APP_NAME = "web"
 POSTGRES_INDEXER_APP_NAME = "indexer"
@@ -294,11 +307,23 @@ class OnyxRedisLocks:
     SLACK_BOT_HEARTBEAT_PREFIX = "da_heartbeat:slack_bot"
     ANONYMOUS_USER_ENABLED = "anonymous_user_enabled"
 
-    CLOUD_CHECK_INDEXING_BEAT_LOCK = "da_lock:cloud_check_indexing_beat"
+    CLOUD_BEAT_TASK_GENERATOR_LOCK = "da_lock:cloud_beat_task_generator"
+    CLOUD_CHECK_ALEMBIC_BEAT_LOCK = "da_lock:cloud_check_alembic"
 
 
 class OnyxRedisSignals:
-    VALIDATE_INDEXING_FENCES = "signal:validate_indexing_fences"
+    BLOCK_VALIDATE_INDEXING_FENCES = "signal:block_validate_indexing_fences"
+    BLOCK_VALIDATE_EXTERNAL_GROUP_SYNC_FENCES = (
+        "signal:block_validate_external_group_sync_fences"
+    )
+    BLOCK_VALIDATE_PERMISSION_SYNC_FENCES = (
+        "signal:block_validate_permission_sync_fences"
+    )
+    BLOCK_BUILD_FENCE_LOOKUP_TABLE = "signal:block_build_fence_lookup_table"
+
+
+class OnyxRedisConstants:
+    ACTIVE_FENCES = "active_fences"
 
 
 class OnyxCeleryPriority(int, Enum):
@@ -317,6 +342,11 @@ ONYX_CLOUD_TENANT_ID = "cloud"
 
 
 class OnyxCeleryTask:
+    DEFAULT = "celery"
+
+    CLOUD_BEAT_TASK_GENERATOR = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_generate_beat_tasks"
+    CLOUD_CHECK_ALEMBIC = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_alembic"
+
     CHECK_FOR_CONNECTOR_DELETION = "check_for_connector_deletion_task"
     CHECK_FOR_VESPA_SYNC_TASK = "check_for_vespa_sync_task"
     CHECK_FOR_INDEXING = "check_for_indexing"
@@ -324,8 +354,10 @@ class OnyxCeleryTask:
     CHECK_FOR_DOC_PERMISSIONS_SYNC = "check_for_doc_permissions_sync"
     CHECK_FOR_EXTERNAL_GROUP_SYNC = "check_for_external_group_sync"
     CHECK_FOR_LLM_MODEL_UPDATE = "check_for_llm_model_update"
+
     MONITOR_VESPA_SYNC = "monitor_vespa_sync"
     MONITOR_BACKGROUND_PROCESSES = "monitor_background_processes"
+
     KOMBU_MESSAGE_CLEANUP_TASK = "kombu_message_cleanup_task"
     CONNECTOR_PERMISSION_SYNC_GENERATOR_TASK = (
         "connector_permission_sync_generator_task"
@@ -342,8 +374,6 @@ class OnyxCeleryTask:
     VESPA_METADATA_SYNC_TASK = "vespa_metadata_sync_task"
     CHECK_TTL_MANAGEMENT_TASK = "check_ttl_management_task"
     AUTOGENERATE_USAGE_REPORT_TASK = "autogenerate_usage_report_task"
-
-    CLOUD_CHECK_FOR_INDEXING = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_for_indexing"
 
 
 REDIS_SOCKET_KEEPALIVE_OPTIONS = {}

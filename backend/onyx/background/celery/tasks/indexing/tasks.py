@@ -15,7 +15,7 @@ from redis import Redis
 from redis.lock import Lock as RedisLock
 
 from onyx.background.celery.apps.app_base import task_logger
-from onyx.background.celery.tasks.beat_schedule import BEAT_EXPIRES_DEFAULT
+from onyx.background.celery.celery_utils import httpx_init_vespa_pool
 from onyx.background.celery.tasks.indexing.utils import _should_index
 from onyx.background.celery.tasks.indexing.utils import get_unfenced_index_attempt_ids
 from onyx.background.celery.tasks.indexing.utils import IndexingCallback
@@ -23,32 +23,32 @@ from onyx.background.celery.tasks.indexing.utils import try_creating_indexing_ta
 from onyx.background.celery.tasks.indexing.utils import validate_indexing_fences
 from onyx.background.indexing.job_client import SimpleJobClient
 from onyx.background.indexing.run_indexing import run_indexing_entrypoint
+from onyx.configs.app_configs import MANAGED_VESPA
+from onyx.configs.app_configs import VESPA_CLOUD_CERT_PATH
+from onyx.configs.app_configs import VESPA_CLOUD_KEY_PATH
 from onyx.configs.constants import CELERY_GENERIC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import CELERY_INDEXING_LOCK_TIMEOUT
 from onyx.configs.constants import CELERY_TASK_WAIT_FOR_FENCE_TIMEOUT
-from onyx.configs.constants import ONYX_CLOUD_TENANT_ID
-from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import OnyxCeleryTask
 from onyx.configs.constants import OnyxRedisLocks
 from onyx.configs.constants import OnyxRedisSignals
 from onyx.db.connector import mark_ccpair_with_indexing_trigger
 from onyx.db.connector_credential_pair import fetch_connector_credential_pairs
 from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
-from onyx.db.engine import get_all_tenant_ids
 from onyx.db.engine import get_session_with_tenant
 from onyx.db.enums import IndexingMode
 from onyx.db.index_attempt import get_index_attempt
 from onyx.db.index_attempt import get_last_attempt_for_cc_pair
 from onyx.db.index_attempt import mark_attempt_canceled
 from onyx.db.index_attempt import mark_attempt_failed
-from onyx.db.models import SearchSettings
-from onyx.db.search_settings import get_active_search_settings
+from onyx.db.search_settings import get_active_search_settings_list
 from onyx.db.search_settings import get_current_search_settings
 from onyx.db.swap_index import check_index_swap
 from onyx.natural_language_processing.search_nlp_models import EmbeddingModel
 from onyx.natural_language_processing.search_nlp_models import warm_up_bi_encoder
 from onyx.redis.redis_connector import RedisConnector
 from onyx.redis.redis_pool import get_redis_client
+from onyx.redis.redis_pool import get_redis_replica_client
 from onyx.redis.redis_pool import redis_lock_dump
 from onyx.utils.logger import setup_logger
 from onyx.utils.variable_functionality import global_version
@@ -68,15 +68,12 @@ logger = setup_logger()
 def check_for_indexing(self: Task, *, tenant_id: str | None) -> int | None:
     """a lightweight task used to kick off indexing tasks.
     Occcasionally does some validation of existing state to clear up error conditions"""
-    debug_tenants = {
-        "tenant_i-043470d740845ec56",
-        "tenant_82b497ce-88aa-4fbd-841a-92cae43529c8",
-    }
     time_start = time.monotonic()
 
     tasks_created = 0
     locked = False
     redis_client = get_redis_client(tenant_id=tenant_id)
+    redis_client_replica = get_redis_replica_client(tenant_id=tenant_id)
 
     # we need to use celery's redis client to access its redis data
     # (which lives on a different db number)
@@ -123,47 +120,17 @@ def check_for_indexing(self: Task, *, tenant_id: str | None) -> int | None:
 
         # kick off index attempts
         for cc_pair_id in cc_pair_ids:
-            # debugging logic - remove after we're done
-            if tenant_id in debug_tenants:
-                ttl = redis_client.ttl(OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK)
-                task_logger.info(
-                    f"check_for_indexing cc_pair lock: "
-                    f"tenant={tenant_id} "
-                    f"cc_pair={cc_pair_id} "
-                    f"ttl={ttl}"
-                )
-
             lock_beat.reacquire()
 
             redis_connector = RedisConnector(tenant_id, cc_pair_id)
             with get_session_with_tenant(tenant_id) as db_session:
-                search_settings_list: list[SearchSettings] = get_active_search_settings(
-                    db_session
-                )
+                search_settings_list = get_active_search_settings_list(db_session)
                 for search_settings_instance in search_settings_list:
-                    if tenant_id in debug_tenants:
-                        ttl = redis_client.ttl(OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK)
-                        task_logger.info(
-                            f"check_for_indexing cc_pair search settings lock: "
-                            f"tenant={tenant_id} "
-                            f"cc_pair={cc_pair_id} "
-                            f"ttl={ttl}"
-                        )
-
                     redis_connector_index = redis_connector.new_index(
                         search_settings_instance.id
                     )
                     if redis_connector_index.fenced:
                         continue
-
-                    if tenant_id in debug_tenants:
-                        ttl = redis_client.ttl(OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK)
-                        task_logger.info(
-                            f"check_for_indexing get_connector_credential_pair_from_id: "
-                            f"tenant={tenant_id} "
-                            f"cc_pair={cc_pair_id} "
-                            f"ttl={ttl}"
-                        )
 
                     cc_pair = get_connector_credential_pair_from_id(
                         db_session=db_session,
@@ -172,27 +139,9 @@ def check_for_indexing(self: Task, *, tenant_id: str | None) -> int | None:
                     if not cc_pair:
                         continue
 
-                    if tenant_id in debug_tenants:
-                        ttl = redis_client.ttl(OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK)
-                        task_logger.info(
-                            f"check_for_indexing get_last_attempt_for_cc_pair: "
-                            f"tenant={tenant_id} "
-                            f"cc_pair={cc_pair_id} "
-                            f"ttl={ttl}"
-                        )
-
                     last_attempt = get_last_attempt_for_cc_pair(
                         cc_pair.id, search_settings_instance.id, db_session
                     )
-
-                    if tenant_id in debug_tenants:
-                        ttl = redis_client.ttl(OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK)
-                        task_logger.info(
-                            f"check_for_indexing cc_pair should index: "
-                            f"tenant={tenant_id} "
-                            f"cc_pair={cc_pair_id} "
-                            f"ttl={ttl}"
-                        )
 
                     search_settings_primary = False
                     if search_settings_instance.id == search_settings_list[0].id:
@@ -226,15 +175,6 @@ def check_for_indexing(self: Task, *, tenant_id: str | None) -> int | None:
                                 cc_pair.id, None, db_session
                             )
 
-                    if tenant_id in debug_tenants:
-                        ttl = redis_client.ttl(OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK)
-                        task_logger.info(
-                            f"check_for_indexing cc_pair try_creating_indexing_task: "
-                            f"tenant={tenant_id} "
-                            f"cc_pair={cc_pair_id} "
-                            f"ttl={ttl}"
-                        )
-
                     # using a task queue and only allowing one task per cc_pair/search_setting
                     # prevents us from starving out certain attempts
                     attempt_id = try_creating_indexing_task(
@@ -255,24 +195,6 @@ def check_for_indexing(self: Task, *, tenant_id: str | None) -> int | None:
                         )
                         tasks_created += 1
 
-                    if tenant_id in debug_tenants:
-                        ttl = redis_client.ttl(OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK)
-                        task_logger.info(
-                            f"check_for_indexing cc_pair try_creating_indexing_task finished: "
-                            f"tenant={tenant_id} "
-                            f"cc_pair={cc_pair_id} "
-                            f"ttl={ttl}"
-                        )
-
-        # debugging logic - remove after we're done
-        if tenant_id in debug_tenants:
-            ttl = redis_client.ttl(OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK)
-            task_logger.info(
-                f"check_for_indexing unfenced lock: "
-                f"tenant={tenant_id} "
-                f"ttl={ttl}"
-            )
-
         lock_beat.reacquire()
 
         # Fail any index attempts in the DB that don't have fences
@@ -282,24 +204,7 @@ def check_for_indexing(self: Task, *, tenant_id: str | None) -> int | None:
                 db_session, redis_client
             )
 
-            if tenant_id in debug_tenants:
-                ttl = redis_client.ttl(OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK)
-                task_logger.info(
-                    f"check_for_indexing after get unfenced lock: "
-                    f"tenant={tenant_id} "
-                    f"ttl={ttl}"
-                )
-
             for attempt_id in unfenced_attempt_ids:
-                # debugging logic - remove after we're done
-                if tenant_id in debug_tenants:
-                    ttl = redis_client.ttl(OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK)
-                    task_logger.info(
-                        f"check_for_indexing unfenced attempt id lock: "
-                        f"tenant={tenant_id} "
-                        f"ttl={ttl}"
-                    )
-
                 lock_beat.reacquire()
 
                 attempt = get_index_attempt(db_session, attempt_id)
@@ -317,29 +222,20 @@ def check_for_indexing(self: Task, *, tenant_id: str | None) -> int | None:
                     attempt.id, db_session, failure_reason=failure_reason
                 )
 
-        # debugging logic - remove after we're done
-        if tenant_id in debug_tenants:
-            ttl = redis_client.ttl(OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK)
-            task_logger.info(
-                f"check_for_indexing validate fences lock: "
-                f"tenant={tenant_id} "
-                f"ttl={ttl}"
-            )
-
         lock_beat.reacquire()
         # we want to run this less frequently than the overall task
-        if not redis_client.exists(OnyxRedisSignals.VALIDATE_INDEXING_FENCES):
+        if not redis_client.exists(OnyxRedisSignals.BLOCK_VALIDATE_INDEXING_FENCES):
             # clear any indexing fences that don't have associated celery tasks in progress
             # tasks can be in the queue in redis, in reserved tasks (prefetched by the worker),
             # or be currently executing
             try:
                 validate_indexing_fences(
-                    tenant_id, self.app, redis_client, redis_client_celery, lock_beat
+                    tenant_id, redis_client_replica, redis_client_celery, lock_beat
                 )
             except Exception:
                 task_logger.exception("Exception while validating indexing fences")
 
-            redis_client.set(OnyxRedisSignals.VALIDATE_INDEXING_FENCES, 1, ex=60)
+            redis_client.set(OnyxRedisSignals.BLOCK_VALIDATE_INDEXING_FENCES, 1, ex=60)
     except SoftTimeLimitExceeded:
         task_logger.info(
             "Soft time limit exceeded, task is being terminated gracefully."
@@ -407,6 +303,14 @@ def connector_indexing_task(
 
     attempt_found = False
     n_final_progress: int | None = None
+
+    # 20 is the documented default for httpx max_keepalive_connections
+    if MANAGED_VESPA:
+        httpx_init_vespa_pool(
+            20, ssl_cert=VESPA_CLOUD_CERT_PATH, ssl_key=VESPA_CLOUD_KEY_PATH
+        )
+    else:
+        httpx_init_vespa_pool(20)
 
     redis_connector = RedisConnector(tenant_id, cc_pair_id)
     redis_connector_index = redis_connector.new_index(search_settings_id)
@@ -674,16 +578,20 @@ def connector_indexing_proxy_task(
     while True:
         sleep(5)
 
+        # renew watchdog signal (this has a shorter timeout than set_active)
+        redis_connector_index.set_watchdog(True)
+
         # renew active signal
         redis_connector_index.set_active()
 
         # if the job is done, clean up and break
         if job.done():
+            exit_code: int | None
             try:
                 if job.status == "error":
                     ignore_exitcode = False
 
-                    exit_code: int | None = None
+                    exit_code = None
                     if job.process:
                         exit_code = job.process.exitcode
 
@@ -780,67 +688,10 @@ def connector_indexing_proxy_task(
             )
             continue
 
+    redis_connector_index.set_watchdog(False)
     task_logger.info(
         f"Indexing watchdog - finished: attempt={index_attempt_id} "
         f"cc_pair={cc_pair_id} "
         f"search_settings={search_settings_id}"
     )
     return
-
-
-@shared_task(
-    name=OnyxCeleryTask.CLOUD_CHECK_FOR_INDEXING,
-    trail=False,
-    bind=True,
-)
-def cloud_check_for_indexing(self: Task) -> bool | None:
-    """a lightweight task used to kick off individual check tasks for each tenant."""
-    time_start = time.monotonic()
-
-    redis_client = get_redis_client(tenant_id=ONYX_CLOUD_TENANT_ID)
-
-    lock_beat: RedisLock = redis_client.lock(
-        OnyxRedisLocks.CLOUD_CHECK_INDEXING_BEAT_LOCK,
-        timeout=CELERY_GENERIC_BEAT_LOCK_TIMEOUT,
-    )
-
-    # these tasks should never overlap
-    if not lock_beat.acquire(blocking=False):
-        return None
-
-    last_lock_time = time.monotonic()
-
-    try:
-        tenant_ids = get_all_tenant_ids()
-        for tenant_id in tenant_ids:
-            current_time = time.monotonic()
-            if current_time - last_lock_time >= (CELERY_GENERIC_BEAT_LOCK_TIMEOUT / 4):
-                lock_beat.reacquire()
-                last_lock_time = current_time
-
-            self.app.send_task(
-                OnyxCeleryTask.CHECK_FOR_INDEXING,
-                kwargs=dict(
-                    tenant_id=tenant_id,
-                ),
-                priority=OnyxCeleryPriority.HIGH,
-                expires=BEAT_EXPIRES_DEFAULT,
-            )
-    except SoftTimeLimitExceeded:
-        task_logger.info(
-            "Soft time limit exceeded, task is being terminated gracefully."
-        )
-    except Exception:
-        task_logger.exception("Unexpected exception during cloud indexing check")
-    finally:
-        if lock_beat.owned():
-            lock_beat.release()
-        else:
-            task_logger.error("cloud_check_for_indexing - Lock not owned on completion")
-            redis_lock_dump(lock_beat, redis_client)
-
-    time_elapsed = time.monotonic() - time_start
-    task_logger.info(
-        f"cloud_check_for_indexing finished: num_tenants={len(tenant_ids)} elapsed={time_elapsed:.2f}"
-    )
-    return True
