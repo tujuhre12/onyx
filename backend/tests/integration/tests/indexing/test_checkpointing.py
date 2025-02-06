@@ -373,14 +373,14 @@ def test_mock_connector_checkpoint_recovery(
             {
                 "documents": [doc.model_dump(mode="json") for doc in docs_batch_1],
                 "checkpoint": ConnectorCheckpoint(
-                    checkpoint_content={}, has_more=False
+                    checkpoint_content={}, has_more=True
                 ).model_dump(mode="json"),
                 "failures": [],
             },
             {
                 "documents": [doc2.model_dump(mode="json")],
                 "checkpoint": ConnectorCheckpoint(
-                    checkpoint_content={}, has_more=False
+                    checkpoint_content={}, has_more=True
                 ).model_dump(mode="json"),
                 "failures": [],
             },
