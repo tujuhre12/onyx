@@ -205,7 +205,8 @@ export function ChatPage({
   const enterpriseSettings = settings?.enterpriseSettings;
 
   const [documentSidebarToggled, setDocumentSidebarToggled] = useState(false);
-  const [agentSearchEnabled, setAgentSearchEnabled] = useState<boolean>(proSearchToggled);
+  const [agentSearchEnabled, setAgentSearchEnabled] =
+    useState<boolean>(proSearchToggled);
   const [streamingAllowed, setStreamingAllowed] = useState(false);
   const toggleAgentSearch = () => {
     Cookies.set(

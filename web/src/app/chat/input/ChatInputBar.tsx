@@ -227,7 +227,7 @@ export function ChatInputBar({
   availableTags,
   llmOverrideManager,
   agentSearchEnabled,
-  setAgentSearchEnabled
+  setAgentSearchEnabled,
 }: ChatInputBarProps) {
   const { user } = useUser();
   const settings = useContext(SettingsContext);
