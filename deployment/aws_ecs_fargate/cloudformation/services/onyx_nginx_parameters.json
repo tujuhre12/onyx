@@ -1,8 +1,7 @@
 [
-    {"ParameterKey": "DomainName", "ParameterValue": "demo2.danswer.ai"},
+    {"ParameterKey": "DomainName", "ParameterValue": "demo.danswer.ai"},
     {"ParameterKey": "Environment", "ParameterValue": "production"},
-    {"ParameterKey": "HostedZoneId", "ParameterValue": ""},
-    {"ParameterKey": "SubnetIDs", "ParameterValue": "subnet-0af372d676f65b287,subnet-06721b79e2e51d22c"},
-    {"ParameterKey": "VpcID", "ParameterValue": "vpc-098cfa79d637dabff"},
-    {"ParameterKey": "OnyxNamespace", "ParameterValue": "onyx2"}
+    {"ParameterKey": "HostedZoneId", "ParameterValue": "Z0514693S8C8QL9LABTK"},
+    {"ParameterKey": "SubnetIDs", "ParameterValue": "subnet-0cf9acc0cbbeb2ec3,subnet-0bdbce01335e31546,subnet-0c1a6e490c2d05c12,subnet-0311d737212f2d06a"},
+    {"ParameterKey": "VpcID", "ParameterValue": "vpc-0dac18b1f5913dbb9"}
 ]

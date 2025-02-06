@@ -19,9 +19,6 @@ Parameters:
   ServiceName:
     Type: String
     Default: onyx-nginx
-  OnyxNamespace:
-    Type: String
-    Default: onyx
   OnyxBackendApiServiceName:
     Type: String
     Default: onyx-backend-api-server-service
@@ -119,9 +116,15 @@ Resources:
             - Name: DOMAIN
               Value: !Ref DomainName
             - Name: ONYX_BACKEND_API_HOST
-              Value: !Sub ${Environment}-${OnyxBackendApiServiceName}.${OnyxNamespace}
+              Value: !Sub
+                - "${Environment}-${OnyxBackendApiServiceName}.${ImportedNamespace}"
+                - ImportedNamespace: !ImportValue
+                    Fn::Sub: "${Environment}-onyx-cluster-OnyxNamespaceName"
             - Name: ONYX_WEB_SERVER_HOST
-              Value: !Sub ${Environment}-${OnyxWebServerServiceName}.${OnyxNamespace}
+              Value: !Sub
+                - "${Environment}-${OnyxWebServerServiceName}.${ImportedNamespace}"
+                - ImportedNamespace: !ImportValue
+                    Fn::Sub: "${Environment}-onyx-cluster-OnyxNamespaceName"
           MountPoints:
             - SourceVolume: efs-volume
               ContainerPath: /etc/nginx/conf.d
@@ -202,6 +205,14 @@ Resources:
           CidrIp: "0.0.0.0/0"
         - FromPort: 80
           ToPort: 80
+          IpProtocol: "tcp"
+          CidrIpv6: "::/0"
+        - FromPort: 443
+          ToPort: 443
+          IpProtocol: "tcp"
+          CidrIp: "0.0.0.0/0"
+        - FromPort: 443
+          ToPort: 443
           IpProtocol: "tcp"
           CidrIpv6: "::/0"
 

@@ -160,6 +160,7 @@ Resources:
             RootDirectory: "/"
 
   ECSAutoScalingTarget:
+    DependsOn: ECSService
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     Properties:
       MaxCapacity: 5
@@ -173,7 +174,7 @@ Resources:
       ScalableDimension: ecs:service:DesiredCount
       ServiceNamespace: ecs
 
-  ECSAutoScalingPolicy:
+  ECSAutoScalingPolicyCpu:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
       PolicyName: !Sub ${Environment}-${ServiceName}-service-cpu-scaleout
@@ -186,10 +187,10 @@ Resources:
         ScaleOutCooldown: 60
         ScaleInCooldown: 60
 
-  ECSAutoScalingPolicyMemroy:
+  ECSAutoScalingPolicyMemory:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
-      PolicyName: !Sub ${Environment}-${ServiceName}-service-cpu-scaleout
+      PolicyName: !Sub ${Environment}-${ServiceName}-service-memory-scaleout
       ScalingTargetId: !Ref ECSAutoScalingTarget
       PolicyType: TargetTrackingScaling
       TargetTrackingScalingPolicyConfiguration:
