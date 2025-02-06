@@ -92,9 +92,10 @@ import { ChatPopup } from "./ChatPopup";
 import FunctionalHeader from "@/components/chat/Header";
 import { useSidebarVisibility } from "@/components/chat/hooks";
 import {
-  PRO_SEARCH_TOGGLED_COOKIE_NAME,
-  SIDEBAR_TOGGLED_COOKIE_NAME,
-} from "@/components/resizable/constants";
+  AGENT_SEARCH_TOGGLED_COOKIE_NAME,
+  LEGACY_PRO_SEARCH_TOGGLED_COOKIE_NAME,
+} from "@/lib/constants";
+import { SIDEBAR_TOGGLED_COOKIE_NAME } from "@/components/resizable/constants";
 import FixedLogo from "../../components/logo/FixedLogo";
 
 import { DeleteEntityModal } from "../../components/modals/DeleteEntityModal";
@@ -204,14 +205,18 @@ export function ChatPage({
   const enterpriseSettings = settings?.enterpriseSettings;
 
   const [documentSidebarToggled, setDocumentSidebarToggled] = useState(false);
-  const [proSearchEnabled, setProSearchEnabled] = useState(proSearchToggled);
+  const [agentSearchEnabled, setAgentSearchEnabled] = useState<boolean>(
+    (Cookies.get(LEGACY_PRO_SEARCH_TOGGLED_COOKIE_NAME)?.toLowerCase() === 'true') ?? 
+    (Cookies.get(AGENT_SEARCH_TOGGLED_COOKIE_NAME)?.toLowerCase() === 'true') ?? 
+    proSearchToggled
+  );
   const [streamingAllowed, setStreamingAllowed] = useState(false);
-  const toggleProSearch = () => {
+  const toggleAgentSearch = () => {
     Cookies.set(
-      PRO_SEARCH_TOGGLED_COOKIE_NAME,
-      String(!proSearchEnabled).toLocaleLowerCase()
+      AGENT_SEARCH_TOGGLED_COOKIE_NAME,
+      String(!agentSearchEnabled).toLocaleLowerCase()
     );
-    setProSearchEnabled(!proSearchEnabled);
+    setAgentSearchEnabled(!agentSearchEnabled);
   };
 
   const [userSettingsToggled, setUserSettingsToggled] = useState(false);
@@ -1326,8 +1331,8 @@ export function ChatPage({
           searchParams.get(SEARCH_PARAM_NAMES.SYSTEM_PROMPT) || undefined,
         useExistingUserMessage: isSeededChat,
         useLanggraph:
-          !settings?.settings.pro_search_disabled &&
-          proSearchEnabled &&
+          !settings?.settings.agent_search_disabled &&
+          agentSearchEnabled &&
           retrievalEnabled,
       });
 
@@ -3071,8 +3076,8 @@ export function ChatPage({
                           )}
                           <div className="pointer-events-auto w-[95%] mx-auto relative mb-8">
                             <ChatInputBar
-                              proSearchEnabled={proSearchEnabled}
-                              setProSearchEnabled={() => toggleProSearch()}
+                              agentSearchEnabled={agentSearchEnabled}
+                              setAgentSearchEnabled={() => toggleAgentSearch()}
                               toggleDocumentSidebar={toggleDocumentSidebar}
                               availableSources={sources}
                               availableDocumentSets={documentSets}

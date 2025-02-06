@@ -8,8 +8,8 @@ import {
 import { SearchIcon } from "lucide-react";
 
 interface AgenticToggleProps {
-  proSearchEnabled: boolean;
-  setProSearchEnabled: (enabled: boolean) => void;
+  agentSearchEnabled: boolean;
+  setAgentSearchEnabled: (enabled: boolean) => void;
 }
 
 const ProSearchIcon = () => (
@@ -38,11 +38,11 @@ const ProSearchIcon = () => (
 );
 
 export function AgenticToggle({
-  proSearchEnabled,
-  setProSearchEnabled,
+  agentSearchEnabled,
+  setAgentSearchEnabled,
 }: AgenticToggleProps) {
   const handleToggle = () => {
-    setProSearchEnabled(!proSearchEnabled);
+    setAgentSearchEnabled(!agentSearchEnabled);
   };
 
   return (
@@ -56,12 +56,12 @@ export function AgenticToggle({
             px-2  inline-flex items-center`}
             onClick={handleToggle}
             role="switch"
-            aria-checked={proSearchEnabled}
+            aria-checked={agentSearchEnabled}
           >
             <div
               className={`
                 ${
-                  proSearchEnabled
+                  agentSearchEnabled
                     ? "border-[#D9D9D0] group-hover:border-black"
                     : "border-[#D9D9D0] group-hover:border-black"
                 }
@@ -69,7 +69,7 @@ export function AgenticToggle({
             >
               <span
                 className={`${
-                  proSearchEnabled
+                  agentSearchEnabled
                     ? "bg-agent translate-x-4 scale-75"
                     : "bg-[#64645E] group-hover:bg-text translate-x-0.5 scale-75"
                 }  inline-block h-[12px] w-[12px]  group-hover:scale-90 transform rounded-full transition-transform duration-200 ease-in-out`}
@@ -77,7 +77,7 @@ export function AgenticToggle({
             </div>
             <span
               className={`ml-2 text-sm font-[550] flex items-center ${
-                proSearchEnabled ? "text-agent" : "text-text-dark"
+                agentSearchEnabled ? "text-agent" : "text-text-dark"
               }`}
             >
               Agent
