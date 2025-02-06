@@ -659,7 +659,7 @@ def validate_permission_sync_fence(
         f"tasks_scanned={tasks_scanned} tasks_not_in_celery={tasks_not_in_celery}"
     )
 
-    # we're only active if tasks_scanned > 0 and tasks_not_in_celery == 0
+    # we're active if there are still tasks to run and those tasks all exist in celery
     if tasks_scanned > 0 and tasks_not_in_celery == 0:
         redis_connector.permissions.set_active()
         return

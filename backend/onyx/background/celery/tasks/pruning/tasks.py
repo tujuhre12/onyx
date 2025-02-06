@@ -624,7 +624,7 @@ def validate_pruning_fence(
 
     # look up every task in the current taskset in the celery queue
     # every entry in the taskset should have an associated entry in the celery task queue
-    # because we get the celery tasks first, the entries in our own permissions taskset
+    # because we get the celery tasks first, the entries in our own pruning taskset
     # should be roughly a subset of the tasks in celery
 
     # this check isn't very exact, but should be sufficient over a period of time
@@ -655,7 +655,8 @@ def validate_pruning_fence(
         f"tasks_scanned={tasks_scanned} tasks_not_in_celery={tasks_not_in_celery}"
     )
 
-    if tasks_not_in_celery == 0:
+    # we're active if there are still tasks to run and those tasks all exist in celery
+    if tasks_scanned > 0 and tasks_not_in_celery == 0:
         redis_connector.prune.set_active()
         return
 
