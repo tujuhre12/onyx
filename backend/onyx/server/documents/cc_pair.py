@@ -359,16 +359,16 @@ def prune_cc_pair(
         f"credential={cc_pair.credential_id} "
         f"{cc_pair.connector.name} connector."
     )
-    celery_task_id = try_creating_prune_generator_task(
+    payload_id = try_creating_prune_generator_task(
         primary_app, cc_pair, db_session, r, CURRENT_TENANT_ID_CONTEXTVAR.get()
     )
-    if not celery_task_id:
+    if not payload_id:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail="Pruning task creation failed.",
         )
 
-    logger.info(f"Pruning queued: cc_pair={cc_pair.id} task={celery_task_id}")
+    logger.info(f"Pruning queued: cc_pair={cc_pair.id} id={payload_id}")
 
     return StatusResponse(
         success=True,

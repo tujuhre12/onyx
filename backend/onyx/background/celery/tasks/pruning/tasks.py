@@ -138,14 +138,14 @@ def check_for_pruning(self: Task, *, tenant_id: str | None) -> bool | None:
                 if not _is_pruning_due(cc_pair):
                     continue
 
-                celery_task_id = try_creating_prune_generator_task(
+                payload_id = try_creating_prune_generator_task(
                     self.app, cc_pair, db_session, r, tenant_id
                 )
-                if not celery_task_id:
+                if not payload_id:
                     continue
 
                 task_logger.info(
-                    f"Pruning queued: cc_pair={cc_pair.id} task={celery_task_id}"
+                    f"Pruning queued: cc_pair={cc_pair.id} id={payload_id}"
                 )
 
         # we want to run this less frequently than the overall task
@@ -266,7 +266,7 @@ def try_creating_prune_generator_task(
         payload.celery_task_id = result.id
         redis_connector.prune.set_fence(payload)
 
-        payload_id = payload.celery_task_id
+        payload_id = payload.id
     except Exception:
         task_logger.exception(f"Unexpected exception: cc_pair={cc_pair.id}")
         return None
@@ -679,7 +679,8 @@ def validate_pruning_fence(
         "validate_pruning_fence - "
         "Resetting fence because no associated celery tasks were found: "
         f"cc_pair={cc_pair_id} "
-        f"fence={fence_key}"
+        f"fence={fence_key} "
+        f"payload_id={payload.id}"
     )
 
     redis_connector.prune.reset()
