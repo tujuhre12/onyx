@@ -46,7 +46,7 @@ class GraphPersistence(BaseModel):
 
     chat_session_id: UUID
     # The message ID of the to-be-created first agent message
-    # in response to the user message that triggered the Pro Search
+    # in response to the user message that triggered the Agent Search
     message_id: int
 
     # The database session the user and initial agent

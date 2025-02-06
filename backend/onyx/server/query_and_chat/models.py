@@ -134,8 +134,8 @@ class CreateChatMessageRequest(ChunkContext):
     # https://platform.openai.com/docs/guides/structured-outputs/introduction
     structured_response_format: dict | None = None
 
-    # If true, ignores most of the search options and uses pro search instead.
-    # TODO: decide how many of the above options we want to pass through to pro search
+    # If true, ignores most of the search options and uses agent search instead.
+    # TODO: decide how many of the above options we want to pass through to agent search
     use_agentic_search: bool = False
 
     skip_gen_ai_answer_generation: bool = False
