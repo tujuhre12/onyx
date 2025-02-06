@@ -205,12 +205,7 @@ export function ChatPage({
   const enterpriseSettings = settings?.enterpriseSettings;
 
   const [documentSidebarToggled, setDocumentSidebarToggled] = useState(false);
-  const [agentSearchEnabled, setAgentSearchEnabled] = useState<boolean>(
-    Cookies.get(LEGACY_PRO_SEARCH_TOGGLED_COOKIE_NAME)?.toLowerCase() ===
-      "true" ??
-      Cookies.get(AGENT_SEARCH_TOGGLED_COOKIE_NAME)?.toLowerCase() === "true" ??
-      proSearchToggled
-  );
+  const [agentSearchEnabled, setAgentSearchEnabled] = useState<boolean>(proSearchToggled);
   const [streamingAllowed, setStreamingAllowed] = useState(false);
   const toggleAgentSearch = () => {
     Cookies.set(
@@ -3077,8 +3072,8 @@ export function ChatPage({
                           )}
                           <div className="pointer-events-auto w-[95%] mx-auto relative mb-8">
                             <ChatInputBar
-                              proSearchEnabled={agentSearchEnabled}
-                              setProSearchEnabled={() => toggleAgentSearch()}
+                              agentSearchEnabled={agentSearchEnabled}
+                              setAgentSearchEnabled={toggleAgentSearch}
                               toggleDocumentSidebar={toggleDocumentSidebar}
                               availableSources={sources}
                               availableDocumentSets={documentSets}
