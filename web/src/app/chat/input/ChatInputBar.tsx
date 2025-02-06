@@ -800,7 +800,7 @@ export function ChatInputBar({
               </div>
               <div className="flex items-center my-auto">
                 {retrievalEnabled &&
-                  !settings?.settings.pro_search_disabled && (
+                  !settings?.settings.agent_search_disabled && (
                     <AgenticToggle
                       agentSearchEnabled={proSearchEnabled}
                       setAgentSearchEnabled={setProSearchEnabled}
