@@ -129,7 +129,7 @@ def worker(
 
 
 def main() -> None:
-    NUM_INSTANCES = 2
+    NUM_INSTANCES = 1
 
     # Get all tests
     tests = list_all_tests(Path(__file__).parent)
