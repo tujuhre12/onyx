@@ -226,8 +226,8 @@ export function ChatInputBar({
   availableDocumentSets,
   availableTags,
   llmOverrideManager,
-  proSearchEnabled: agentSearchEnabled,
-  setProSearchEnabled: setAgentSearchEnabled
+  agentSearchEnabled,
+  setAgentSearchEnabled
 }: ChatInputBarProps) {
   const { user } = useUser();
   const settings = useContext(SettingsContext);
