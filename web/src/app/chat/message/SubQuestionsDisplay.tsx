@@ -483,7 +483,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
     () => {
       setTimeout(() => {
         setShowSummarizing(true);
-      }, PHASE_MIN_MS * 2);
+      }, PHASE_MIN_MS * 3);
     }
   );
   const { dynamicSubQuestions: dynamicSecondLevelQuestions } =
@@ -578,7 +578,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
         } else {
           clearInterval(streamInterval);
         }
-      }, 25);
+      }, 10);
     }
   }, [showSummarizing]);
 
