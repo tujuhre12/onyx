@@ -349,7 +349,8 @@ def connector_pruning_generator_task(
 
         logger.info(
             f"connector_prune_generator_task - Fence found, continuing...: "
-            f"fence={redis_connector.prune.fence_key}"
+            f"fence={redis_connector.prune.fence_key} "
+            f"payload_id={payload.id}"
         )
         break
 

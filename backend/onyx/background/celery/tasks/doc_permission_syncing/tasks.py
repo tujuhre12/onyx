@@ -336,7 +336,8 @@ def connector_permission_sync_generator_task(
 
         logger.info(
             f"connector_permission_sync_generator_task - Fence found, continuing...: "
-            f"fence={redis_connector.permissions.fence_key}"
+            f"fence={redis_connector.permissions.fence_key} "
+            f"payload_id={payload.id}"
         )
         break
 

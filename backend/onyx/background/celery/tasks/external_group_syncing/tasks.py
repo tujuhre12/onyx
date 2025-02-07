@@ -331,7 +331,8 @@ def connector_external_group_sync_generator_task(
 
         logger.info(
             f"connector_external_group_sync_generator_task - Fence found, continuing...: "
-            f"fence={redis_connector.external_group_sync.fence_key}"
+            f"fence={redis_connector.external_group_sync.fence_key} "
+            f"payload_id={payload.id}"
         )
         break
 
