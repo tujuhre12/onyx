@@ -401,7 +401,7 @@ def connector_external_group_sync_generator_task(
             )
     except Exception as e:
         task_logger.exception(
-            f"Failed to run external group sync: cc_pair={cc_pair_id}"
+            f"External group sync exceptioned: cc_pair={cc_pair_id} payload_id={payload.id}"
         )
 
         with get_session_with_tenant(tenant_id) as db_session:
@@ -420,6 +420,10 @@ def connector_external_group_sync_generator_task(
         redis_connector.external_group_sync.set_fence(None)
         if lock.owned():
             lock.release()
+
+    task_logger.info(
+        f"External group sync finished: cc_pair={cc_pair_id} payload_id={payload.id}"
+    )
 
 
 def validate_external_group_sync_fences(

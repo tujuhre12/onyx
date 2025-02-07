@@ -303,6 +303,8 @@ def connector_pruning_generator_task(
     and compares those IDs to locally stored documents and deletes all locally stored IDs missing
     from the most recently pulled document ID list"""
 
+    payload_id: str | None = None
+
     LoggerContextVars.reset()
 
     pruning_ctx_dict = pruning_ctx.get()
@@ -346,6 +348,8 @@ def connector_pruning_generator_task(
             )
             time.sleep(1)
             continue
+
+        payload_id = payload.id
 
         logger.info(
             f"connector_prune_generator_task - Fence found, continuing...: "
@@ -461,7 +465,9 @@ def connector_pruning_generator_task(
             redis_connector.prune.generator_complete = tasks_generated
     except Exception as e:
         task_logger.exception(
-            f"Failed to run pruning: cc_pair={cc_pair_id} connector={connector_id}"
+            f"Pruning exceptioned: cc_pair={cc_pair_id} "
+            f"connector={connector_id} "
+            f"payload_id={payload_id}"
         )
 
         redis_connector.prune.reset()
@@ -470,7 +476,9 @@ def connector_pruning_generator_task(
         if lock.owned():
             lock.release()
 
-        task_logger.info(f"Pruning generator finished: cc_pair={cc_pair_id}")
+    task_logger.info(
+        f"Pruning generator finished: cc_pair={cc_pair_id} payload_id={payload_id}"
+    )
 
 
 """Monitoring pruning utils, called in monitor_vespa_sync"""

@@ -292,6 +292,8 @@ def connector_permission_sync_generator_task(
     This task assumes that the task has already been properly fenced
     """
 
+    payload_id: str | None = None
+
     LoggerContextVars.reset()
 
     doc_permission_sync_ctx_dict = doc_permission_sync_ctx.get()
@@ -333,6 +335,8 @@ def connector_permission_sync_generator_task(
             )
             sleep(1)
             continue
+
+        payload_id = payload.id
 
         logger.info(
             f"connector_permission_sync_generator_task - Fence found, continuing...: "
@@ -416,7 +420,9 @@ def connector_permission_sync_generator_task(
             redis_connector.permissions.generator_complete = tasks_generated
 
     except Exception as e:
-        task_logger.exception(f"Failed to run permission sync: cc_pair={cc_pair_id}")
+        task_logger.exception(
+            f"Permission sync exceptioned: cc_pair={cc_pair_id} payload_id={payload_id}"
+        )
 
         redis_connector.permissions.generator_clear()
         redis_connector.permissions.taskset_clear()
@@ -425,6 +431,10 @@ def connector_permission_sync_generator_task(
     finally:
         if lock.owned():
             lock.release()
+
+    task_logger.info(
+        f"Permission sync finished: cc_pair={cc_pair_id} payload_id={payload.id}"
+    )
 
 
 @shared_task(
