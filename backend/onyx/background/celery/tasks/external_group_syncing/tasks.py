@@ -112,6 +112,8 @@ def _is_external_group_sync_due(cc_pair: ConnectorCredentialPair) -> bool:
     bind=True,
 )
 def check_for_external_group_sync(self: Task, *, tenant_id: str | None) -> bool | None:
+    DEBUG_TENANTS = ["tenant_e2a9073a-df78-4e73-80e8-a80da3023979"]
+
     # we need to use celery's redis client to access its redis data
     # (which lives on a different db number)
     r = get_redis_client(tenant_id=tenant_id)
@@ -131,6 +133,8 @@ def check_for_external_group_sync(self: Task, *, tenant_id: str | None) -> bool 
         cc_pair_ids_to_sync: list[int] = []
         with get_session_with_tenant(tenant_id) as db_session:
             cc_pairs = get_all_auto_sync_cc_pairs(db_session)
+            if tenant_id in DEBUG_TENANTS:
+                task_logger.info(f"cc_pairs: {cc_pairs}")
 
             # We only want to sync one cc_pair per source type in
             # GROUP_PERMISSIONS_IS_CC_PAIR_AGNOSTIC
@@ -148,9 +152,20 @@ def check_for_external_group_sync(self: Task, *, tenant_id: str | None) -> bool 
                         if cc_pair.id != cc_pair_to_remove.id
                     ]
 
+            if tenant_id in DEBUG_TENANTS:
+                task_logger.info(f"cc_pairs deduped: {cc_pairs}")
+
             for cc_pair in cc_pairs:
+                due_str = "not due"
                 if _is_external_group_sync_due(cc_pair):
                     cc_pair_ids_to_sync.append(cc_pair.id)
+                    due_str = "due"
+
+                if tenant_id in DEBUG_TENANTS:
+                    task_logger.info(f"cc_pair {due_str}: cc_pair={cc_pair.id}")
+
+        if tenant_id in DEBUG_TENANTS:
+            task_logger.info(f"cc_pair_ids to sync: {cc_pair_ids_to_sync}")
 
         lock_beat.reacquire()
         for cc_pair_id in cc_pair_ids_to_sync:
@@ -263,7 +278,7 @@ def try_creating_external_group_sync_task(
         payload.celery_task_id = result.id
         redis_connector.external_group_sync.set_fence(payload)
 
-        payload_id = payload.celery_task_id
+        payload_id = payload.id
     except Exception:
         task_logger.exception(
             f"Unexpected exception while trying to create external group sync task: cc_pair={cc_pair_id}"
