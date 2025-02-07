@@ -65,7 +65,7 @@ export function FilterDropdown({
                       cursor-pointer
                       flex-none
                       w-full
-                      text-emphasis
+                      text-text-darker
                       items-center
                       gap-x-1
                       ${dropdownColor || "bg-background"}

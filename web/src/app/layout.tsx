@@ -106,7 +106,7 @@ export default async function RootLayout({
           />
         )}
       </head>
-      <body className={`relative ${inter.variable} font-hanken`}>
+      <body className={`dark relative ${inter.variable} font-hanken`}>
         <div
           className={`text-text min-h-screen bg-background ${
             process.env.THEME_IS_DARK?.toLowerCase() === "true" ? "dark" : ""

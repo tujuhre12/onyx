@@ -161,7 +161,7 @@ export function UserSettingsModal({
     >
       <>
         <div className="flex mb-4">
-          <h2 className="text-2xl text-emphasis font-bold flex my-auto">
+          <h2 className="text-2xl text-text-darker font-bold flex my-auto">
             User settings
           </h2>
         </div>
@@ -201,14 +201,16 @@ export function UserSettingsModal({
 
         <Separator />
 
-        <h3 className="text-lg text-emphasis font-bold mb-2 ">Default Model</h3>
+        <h3 className="text-lg text-text-darker font-bold mb-2 ">
+          Default Model
+        </h3>
         <div
           className="w-full max-h-96 overflow-y-auto flex text-sm flex-col border rounded-md"
           ref={containerRef}
         >
           <div
             ref={messageRef}
-            className="sticky top-0 bg-background-100 p-2 text-xs text-emphasis font-medium"
+            className="sticky top-0 bg-background-100 p-2 text-xs text-text-darker font-medium"
             style={{ display: "none" }}
           >
             Scroll to see all options

@@ -127,7 +127,7 @@ export function AssistantIcon({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={className}>
+          <div className={className + " text-black"}>
             {assistant.id == -3 ? (
               <ArtAsistantIcon size={dimension} />
             ) : assistant.id == 0 ? (

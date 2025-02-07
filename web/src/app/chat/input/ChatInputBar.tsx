@@ -523,8 +523,9 @@ export function ChatInputBar({
               flex-col
               border
               shadow
-              border-background-300]/60
+              border-input-border
               rounded-lg
+              overflow-hidden
               text-text-chatbar
               [&:has(textarea:focus)]::ring-1
               [&:has(textarea:focus)]::ring-black
@@ -578,7 +579,7 @@ export function ChatInputBar({
                 resize-none
                 rounded-lg
                 border-0
-                bg-background
+                bg-input-background
                 placeholder:text-text-muted
                 ${
                   textAreaRef.current &&
@@ -590,7 +591,6 @@ export function ChatInputBar({
                 break-word
                 overscroll-contain
                 outline-none
-                placeholder-subtle
                 resize-none
                 px-5
                 py-4
@@ -627,7 +627,7 @@ export function ChatInputBar({
               filterManager.selectedDocumentSets.length > 0 ||
               filterManager.selectedTags.length > 0 ||
               filterManager.selectedSources.length > 0) && (
-              <div className="flex bg-background gap-x-.5 px-2">
+              <div className="flex bg-input-background gap-x-.5 px-2">
                 <div className="flex gap-x-1 px-2 overflow-visible overflow-x-scroll items-end miniscroll">
                   {filterManager.selectedTags &&
                     filterManager.selectedTags.map((tag, index) => (
@@ -750,7 +750,7 @@ export function ChatInputBar({
               </div>
             )}
 
-            <div className="flex pr-4 pb-2 justify-between items-center w-full ">
+            <div className="flex pr-4 pb-2 justify-between bg-input-background items-center w-full ">
               <div className="space-x-1 flex  px-4 ">
                 <ChatInputOption
                   flexPriority="stiff"
@@ -840,12 +840,12 @@ export function ChatInputBar({
                   chatState == "loading" ? (
                     <StopGeneratingIcon
                       size={8}
-                      className="text-emphasis m-auto text-onyx-white flex-none"
+                      className="text-text-darker m-auto text-onyx-white flex-none"
                     />
                   ) : (
                     <SendIcon
                       size={22}
-                      className={`text-emphasis text-onyx-white p-1 my-auto rounded-full ${
+                      className={`text-text-darker text-onyx-white p-1 my-auto rounded-full ${
                         chatState == "input" && message
                           ? "bg-submit-background"
                           : "bg-disabled-submit-background"

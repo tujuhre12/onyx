@@ -19,7 +19,7 @@ export function BasicClickable({
         border-border
         rounded
         font-medium 
-        text-emphasis 
+        text-text-darker 
         text-sm
         relative
         px-1 py-1.5

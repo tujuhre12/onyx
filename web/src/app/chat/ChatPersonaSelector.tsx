@@ -33,7 +33,7 @@ function PersonaItem({
           mx-1
           select-none 
           cursor-pointer 
-          text-emphasis
+          text-text-darker
           bg-background
           hover:bg-hover-light
           ${isSelected ? "bg-hover text-selected-emphasis" : ""}

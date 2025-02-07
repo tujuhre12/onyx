@@ -222,7 +222,7 @@ export const FullSearchBar = ({
             >
               <SendIcon
                 size={28}
-                className={`text-emphasis ${
+                className={`text-text-darker ${
                   disabled || !query
                     ? "bg-disabled-submit-background"
                     : "bg-submit-background"
@@ -268,7 +268,7 @@ export const SearchBar = ({ query, setQuery, onSearch }: SearchBarProps) => {
   return (
     <div className="flex text-text-chatbar justify-center">
       <div className="flex items-center w-full opacity-100 border-2 border-border rounded-lg px-4 py-2 focus-within:border-accent bg-background-search">
-        <MagnifyingGlass className="text-emphasis" />
+        <MagnifyingGlass className="text-text-darker" />
         <textarea
           autoFocus
           className="flex-grow ml-2 h-6 placeholder:text-text-chatbar-subtle outline-none placeholder-default overflow-hidden whitespace-normal resize-none"

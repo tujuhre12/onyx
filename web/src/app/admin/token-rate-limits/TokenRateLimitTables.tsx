@@ -131,7 +131,7 @@ export const TokenRateLimitTable = ({
                   </div>
                 </TableCell>
                 {shouldRenderGroupName() && (
-                  <TableCell className="font-bold text-emphasis">
+                  <TableCell className="font-bold text-text-darker">
                     {tokenRateLimit.group_name}
                   </TableCell>
                 )}

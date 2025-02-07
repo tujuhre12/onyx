@@ -15,7 +15,10 @@ export const Hoverable: React.FC<{
       onClick={onClick}
     >
       <div className="flex items-center">
-        <Icon size={size} className="text-gray-background-600 shrink-0" />
+        <Icon
+          size={size}
+          className="text-gray-background-600 shrink-0 dark:hover:text-[#fff]"
+        />
         {hoverText && (
           <div className="max-w-0 leading-none whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out group-hover:max-w-xs group-hover:ml-2">
             <span className="text-xs text-gray-background-700">
@@ -34,7 +37,7 @@ export const HoverableIcon: React.FC<{
 }> = ({ icon, onClick }) => {
   return (
     <div
-      className="hover:bg-background-chat-hover p-1.5 rounded h-fit cursor-pointer"
+      className="hover:bg-background-chat-hover dark:hover:text-[#fff] text-gray-background-600 p-1.5 rounded h-fit cursor-pointer"
       onClick={onClick}
     >
       {icon}

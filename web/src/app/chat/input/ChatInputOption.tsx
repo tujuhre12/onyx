@@ -44,10 +44,11 @@ export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
             items-center 
             space-x-1
             group
-            text-text-700
-            !rounded-lg
+            rounded
+            text-inputoption
+            hover:text-text-950
             hover:bg-background-chat-hover
-            hover:text-emphasis
+            hover:text-text-darker
             py-1.5
             px-2
             ${
@@ -65,15 +66,10 @@ export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
           `}
             onClick={onClick}
           >
-            <Icon
-              size={size}
-              className="h-4 w-4 my-auto text-background-800 group-hover:text-text flex-none"
-            />
+            <Icon size={size} className="h-4 w-4 my-auto  flex-none" />
             <div className={`flex items-center ${minimize && "mobile:hidden"}`}>
               {name && (
-                <span className="text-sm text-background-800 group-hover:text-text break-all line-clamp-1">
-                  {name}
-                </span>
+                <span className="text-sm  break-all line-clamp-1">{name}</span>
               )}
               {toggle && (
                 <ChevronDownIcon className="flex-none ml-1" size={size - 4} />

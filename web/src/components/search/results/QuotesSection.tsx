@@ -105,7 +105,7 @@ export const QuotesSection = (props: QuotesSectionProps) => {
     <ResponseSection
       status={status}
       header={
-        <div className="ml-2 text-emphasis font-bold">
+        <div className="ml-2 text-text-darker font-bold">
           {<QuotesHeader {...props} />}
         </div>
       }

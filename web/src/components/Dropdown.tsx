@@ -265,6 +265,7 @@ export function DefaultDropdownElement({
         cursor-pointer 
         bg-transparent 
         rounded
+        text-text-dark
         hover:bg-hover
       `}
       onClick={onSelect}
@@ -449,7 +450,7 @@ export function ControlledPopup({
             border-border 
             z-30 
             rounded 
-            text-emphasis 
+            text-text-darker 
             shadow-lg`}
           style={{ transform: "translateY(calc(-100% - 5px))" }}
         >

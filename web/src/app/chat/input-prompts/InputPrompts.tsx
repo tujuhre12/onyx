@@ -177,7 +177,7 @@ export default function InputPrompts() {
     };
 
     return (
-      <div className="border rounded-lg p-4 mb-4 relative">
+      <div className="border dark:border-none dark:bg-background-200 rounded-lg p-4 mb-4 relative">
         {isEditing ? (
           <>
             <div className="absolute top-2 right-2">

@@ -5,54 +5,44 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 dark:ring-offset-neutral-950 dark:focus-visible:ring-neutral-300",
+  "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        success:
-          "bg-green-100 text-green-600 hover:bg-green-500/90 dark:bg-blue-500 dark:text-text-50 dark:hover:bg-green-900/90",
-        "success-reverse":
-          "bg-green-600 text-onyx-white hover:bg-green-700 dark:bg-green-700 dark:text-onyx-white dark:hover:bg-green-800",
+        success: "bg-green-100 text-green-600 hover:bg-green-500/90",
+        "success-reverse": "bg-green-600 text-onyx-white hover:bg-green-700",
         default:
-          "bg-background-900 border-border text-text-50 hover:bg-background-900/90 dark:bg-background-50 dark:text-text-900 dark:hover:bg-background-50/90",
+          "bg-background-900 border-border text-text-50 hover:bg-background-900/90",
         "default-reverse":
-          "bg-background-50 border-border text-text-900 hover:bg-background-50/90 dark:bg-background-900 dark:text-text-50 dark:hover:bg-background-900/90",
-        destructive:
-          "bg-red-500 text-text-50 hover:bg-red-500/90 dark:bg-red-900 dark:text-text-50 dark:hover:bg-red-900/90",
+          "bg-background-50 border-border text-text-900 hover:bg-background-50/90",
+        destructive: "bg-red-500 text-text-50 hover:bg-red-500/90",
         "destructive-reverse":
-          "bg-background-50 text-red-500 hover:bg-background-50/90 dark:bg-background-50 dark:text-red-900 dark:hover:bg-background-50/90",
+          "bg-background-50 text-red-500 hover:bg-background-50/90",
         outline:
-          "border border-background-300 bg-onyx-white hover:bg-background-50 hover:text-text-900 dark:border-background-800 dark:bg-background-950 dark:hover:bg-background-800 dark:hover:text-text-50",
+          "border border-background-300 bg-onyx-white hover:bg-background-50 hover:text-text-900",
         create:
-          "border border-background-300 bg-background-50 text-text-700 hover:bg-background-100 hover:text-text-900 transition-colors duration-200 ease-in-out shadow-sm dark:border-background-700 dark:bg-background-800 dark:text-text-200 dark:hover:bg-background-700 dark:hover:text-text-100",
+          "border border-background-300 dark:bg-white bg-background-50 text-text-700 hover:bg-background-100 hover:text-text-900 transition-colors duration-200 ease-in-out shadow-sm",
         "outline-reverse":
-          "border border-background-300 bg-background-900 hover:bg-background-800 hover:text-text-50 dark:border-background-800 dark:bg-onyx-white dark:hover:bg-background-50 dark:hover:text-text-900",
-        secondary:
-          "bg-background-100 text-text-900 hover:bg-background-100/80 dark:bg-background-800 dark:text-text-50 dark:hover:bg-background-800/80",
+          "border border-background-300 bg-background-900 hover:bg-background-800 hover:text-text-50",
+        secondary: "bg-background-100 text-text-900 hover:bg-background-100/80",
         "secondary-reverse":
-          "bg-background-900 text-text-100 hover:bg-background-900/80 dark:bg-background-50 dark:text-text-800 dark:hover:bg-background-50/80",
-        ghost:
-          "hover:bg-background-100 hover:text-text-900 dark:hover:bg-background-800 dark:hover:text-text-50",
-        "ghost-reverse":
-          "hover:bg-background-800 hover:text-text-50 dark:hover:bg-background-100 dark:hover:text-text-900",
-        link: "text-text-900 underline-offset-4 hover:underline dark:text-text-50",
-        "link-reverse":
-          "text-text-50 underline-offset-4 hover:underline dark:text-text-900",
-        submit:
-          "bg-green-500 text-inverted hover:bg-green-600/90 dark:bg-background-50 dark:text-blue-500 dark:hover:bg-green-100/90",
+          "bg-background-900 text-text-100 hover:bg-background-900/80",
+        ghost: "hover:bg-background-100 hover:text-text-900",
+        "ghost-reverse": "hover:bg-background-800 hover:text-text-50",
+        link: "text-text-900 underline-offset-4 hover:underline",
+        "link-reverse": "text-text-50 underline-offset-4 hover:underline",
+        submit: "bg-green-500 text-inverted hover:bg-green-600/90",
         "submit-reverse":
-          "bg-background-50 text-blue-600 hover:bg-background-50/80 dark:bg-background-50 dark:text-blue-600 dark:hover:bg-background-50/90",
-        navigate:
-          "bg-blue-500 text-onyx-white hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700",
-        "navigate-reverse":
-          "bg-onyx-white text-blue-500 hover:bg-blue-50 dark:bg-blue-100 dark:hover:bg-blue-200",
+          "bg-background-50 text-blue-600 hover:bg-background-50/80",
+        navigate: "bg-blue-500 text-onyx-white hover:bg-blue-600",
+        "navigate-reverse": "bg-onyx-white text-blue-500 hover:bg-blue-50",
         update:
-          "border border-background-300 bg-background-100 text-text-900 hover:bg-background-100/80 dark:bg-background-800 dark:text-text-50 dark:hover:bg-background-800/80",
+          "border border-background-300 bg-background-100 text-text-900 hover:bg-background-100/80",
         "update-reverse":
-          "bg-background-900 text-text-100 hover:bg-background-900/80 dark:bg-background-50 dark:text-text-800 dark:hover:bg-background-50/80",
-        next: "bg-background-700 text-text-50 hover:bg-background-700/90 dark:bg-background-600 dark:text-text-50 dark:hover:bg-background-600/90",
+          "bg-background-900 text-text-100 hover:bg-background-900/80",
+        next: "bg-background-700 text-text-50 hover:bg-background-700/90",
         "next-reverse":
-          "bg-background-50 text-text-700 hover:bg-background-50/90 dark:bg-background-50 dark:text-text-600 dark:hover:bg-background-50/90",
+          "bg-background-50 text-text-700 hover:bg-background-50/90",
       },
       size: {
         default: "h-10 px-4 py-2",

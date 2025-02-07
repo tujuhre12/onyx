@@ -106,7 +106,7 @@ export function ShareChatSessionModal({
       <Modal onOutsideClick={onClose} width="max-w-3xl">
         <>
           <div className="flex mb-4">
-            <h2 className="text-2xl text-emphasis font-bold flex my-auto">
+            <h2 className="text-2xl text-text-darker font-bold flex my-auto">
               Share link to Chat
             </h2>
           </div>

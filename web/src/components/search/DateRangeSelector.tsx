@@ -49,7 +49,7 @@ export function DateRangeSelector({
             {isHorizontal ? (
               "Date"
             ) : value?.selectValue ? (
-              <div className="text-emphasis">{value.selectValue}</div>
+              <div className="text-text-darker">{value.selectValue}</div>
             ) : (
               "Any time..."
             )}

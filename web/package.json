@@ -4,7 +4,7 @@
   "version-comment": "version field must be SemVer or chromatic will barf",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

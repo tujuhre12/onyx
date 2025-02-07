@@ -55,7 +55,7 @@ export const FeedbackModal = ({
   return (
     <Modal onOutsideClick={onClose} width="w-full max-w-3xl">
       <>
-        <h2 className="text-2xl text-emphasis font-bold mb-4 flex">
+        <h2 className="text-2xl text-text-darker font-bold mb-4 flex">
           <div className="mr-1 my-auto">
             {feedbackType === "like" ? (
               <FilledLikeIcon
@@ -109,7 +109,7 @@ export const FeedbackModal = ({
 
         <div className="flex mt-2">
           <button
-            className="bg-accent text-onyx-white py-2 px-4 rounded hover:bg-blue-600 focus:outline-none mx-auto"
+            className="bg-agent text-onyx-white py-2 px-4 rounded hover:bg-agent/50 focus:outline-none mx-auto"
             onClick={handleSubmit}
           >
             Submit feedback

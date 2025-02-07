@@ -226,7 +226,7 @@ export function ChatSessionDisplay({
               <div
                 className={`flex  ${
                   isRenamingChat ? "-mr-2" : ""
-                } text-text-darker text-sm leading-normal relative gap-x-2`}
+                } text-text-dark text-sm leading-normal relative gap-x-2`}
               >
                 {isRenamingChat ? (
                   <div className="flex items-center w-full" ref={renamingRef}>
@@ -325,7 +325,7 @@ export function ChatSessionDisplay({
                             }
                             popover={
                               <div
-                                className={`border border-border rounded-lg bg-background z-50 ${
+                                className={`border border-border text-text-dark rounded-lg bg-background z-50 ${
                                   isDeleteModalOpen ? "w-64" : "w-32"
                                 }`}
                               >

@@ -221,7 +221,7 @@ export function Explorer({
         </div>
       )}
       {!query && (
-        <div className="flex text-emphasis mt-3">
+        <div className="flex text-text-darker mt-3">
           Search for a document above to modify its boost or hide it from
           searches.
         </div>
