@@ -93,6 +93,8 @@ module.exports = {
 
         "gray-background": "#F4F2ED",
 
+        "new-background": "#ebe7de",
+
         // background
         background: "#FEFCFA",
         "background-dark": "#F1EEE8",

@@ -67,11 +67,11 @@ export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
           >
             <Icon
               size={size}
-              className="h-4 w-4 my-auto text-[#4a4a4a] group-hover:text-text flex-none"
+              className="h-4 w-4 my-auto text-background-800 group-hover:text-text flex-none"
             />
             <div className={`flex items-center ${minimize && "mobile:hidden"}`}>
               {name && (
-                <span className="text-sm text-[#4a4a4a] group-hover:text-text break-all line-clamp-1">
+                <span className="text-sm text-background-800 group-hover:text-text break-all line-clamp-1">
                   {name}
                 </span>
               )}

@@ -95,13 +95,13 @@ export const SourceChip2 = ({
             <div className="w-[17px] h-4 p-[3px] flex-col justify-center items-center gap-2.5 inline-flex">
               <div className="h-2.5 relative">{icon}</div>
             </div>
-            <div className="text-[#4a4a4a] text-xs font-medium leading-normal">
+            <div className="text-background-800 text-xs font-medium leading-normal">
               {truncateTitle ? truncateString(title, 50) : title}
             </div>
             {onRemove && (
               <XIcon
                 size={12}
-                className="text-[#4a4a4a] ml-2 cursor-pointer"
+                className="text-background-800 ml-2 cursor-pointer"
                 onClick={(e: React.MouseEvent<SVGSVGElement>) => {
                   e.stopPropagation();
                   onRemove();
