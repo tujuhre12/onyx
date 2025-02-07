@@ -949,15 +949,15 @@ export function ChatPage({
       // Check if all messages are currently rendered
       if (currentVisibleRange.end < messageHistory.length) {
         // Update visible range to include the last messages
-        updateCurrentVisibleRange({
-          start: Math.max(
-            0,
-            messageHistory.length -
-              (currentVisibleRange.end - currentVisibleRange.start)
-          ),
-          end: messageHistory.length,
-          mostVisibleMessageId: currentVisibleRange.mostVisibleMessageId,
-        });
+        // updateCurrentVisibleRange({
+        //   start: Math.max(
+        //     0,
+        //     messageHistory.length -
+        //       (currentVisibleRange.end - currentVisibleRange.start)
+        //   ),
+        //   end: messageHistory.length,
+        //   mostVisibleMessageId: currentVisibleRange.mostVisibleMessageId,
+        // });
 
         // Wait for the state update and re-render before scrolling
         setTimeout(() => {
@@ -1869,6 +1869,7 @@ export function ChatPage({
     newRange: VisibleRange,
     forceUpdate?: boolean
   ) => {
+    console.log("updateCurrentVisibleRange", newRange);
     if (
       scrollInitialized.current &&
       visibleRange.get(loadedIdSessionRef.current) == undefined &&
@@ -1907,26 +1908,54 @@ export function ChatPage({
       scrollInitialized.current = true;
     }
   };
+  const setVisibleRangeForCurrentSessionId = (newRange: VisibleRange) => {
+    console.log("setVisibleRangeForCurrentSessionId", newRange);
+    setVisibleRange((prevState) => {
+      const newState = new Map(prevState);
+      newState.set(currentSessionId(), newRange);
+      return newState;
+    });
+  };
 
-  const updateVisibleRangeBasedOnScroll = () => {
-    if (!scrollInitialized.current) return;
+  function updateVisibleRangeBasedOnScroll() {
     const scrollableDiv = scrollableDivRef.current;
     if (!scrollableDiv) return;
 
-    const viewportHeight = scrollableDiv.clientHeight;
-    let mostVisibleMessageIndex = -1;
+    const distanceFromBottom =
+      scrollableDiv.scrollHeight -
+      scrollableDiv.scrollTop -
+      scrollableDiv.clientHeight;
 
+    const isNearBottom = distanceFromBottom < 200;
+
+    // If user is near bottom, we treat the last message as "most visible"
+    if (isNearBottom) {
+      const startIndex = Math.max(0, messageHistory.length - BUFFER_COUNT);
+      const endIndex = messageHistory.length;
+      setVisibleRangeForCurrentSessionId({
+        start: startIndex,
+        end: endIndex,
+        mostVisibleMessageId:
+          messageHistory.length > 0
+            ? messageHistory[messageHistory.length - 1].messageId
+            : null,
+      });
+      return;
+    }
+
+    // otherwise do the bounding rect logic:
+    let mostVisibleMessageIndex = -1;
+    const viewportHeight = scrollableDiv.clientHeight;
     messageHistory.forEach((message, index) => {
-      const messageElement = document.getElementById(
-        `message-${message.messageId}`
-      );
-      if (messageElement) {
-        const rect = messageElement.getBoundingClientRect();
-        const isVisible = rect.bottom <= viewportHeight && rect.bottom > 0;
+      const elem = document.getElementById(`message-${message.messageId}`);
+      if (elem) {
+        const rect = elem.getBoundingClientRect();
+        const isVisible = rect.top < viewportHeight && rect.bottom >= 0;
         if (isVisible && index > mostVisibleMessageIndex) {
           mostVisibleMessageIndex = index;
         }
       }
+      // clientScrollToBottom;
     });
 
     if (mostVisibleMessageIndex !== -1) {
@@ -1935,34 +1964,50 @@ export function ChatPage({
         messageHistory.length,
         mostVisibleMessageIndex + BUFFER_COUNT + 1
       );
-
-      updateCurrentVisibleRange({
+      setVisibleRangeForCurrentSessionId({
         start: startIndex,
         end: endIndex,
         mostVisibleMessageId: messageHistory[mostVisibleMessageIndex].messageId,
       });
     }
-  };
+  }
 
   useEffect(() => {
     initializeVisibleRange();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, messageHistory]);
 
-  useLayoutEffect(() => {
-    const scrollableDiv = scrollableDivRef.current;
+  useEffect(() => {
+    console.log("useEffect has been called");
+    const scrollEl = scrollableDivRef.current;
+    if (!scrollEl) {
+      console.log("no scrollEl");
+      return;
+    }
 
     const handleScroll = () => {
-      updateVisibleRangeBasedOnScroll();
+      requestAnimationFrame(() => {
+        updateVisibleRangeBasedOnScroll();
+      });
     };
 
-    scrollableDiv?.addEventListener("scroll", handleScroll);
+    const attachScrollListener = () => {
+      if (scrollEl) {
+        scrollEl.addEventListener("scroll", handleScroll);
+      } else {
+        console.log("scrollEl not available, retrying in 100ms");
+        setTimeout(attachScrollListener, 100);
+      }
+    };
+
+    attachScrollListener();
 
     return () => {
-      scrollableDiv?.removeEventListener("scroll", handleScroll);
+      if (scrollEl) {
+        scrollEl.removeEventListener("scroll", handleScroll);
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messageHistory]);
+  }, [scrollableDivRef, messageHistory, currentSessionId()]);
 
   const imageFileInMessageHistory = useMemo(() => {
     return messageHistory
@@ -2493,7 +2538,7 @@ export function ChatPage({
                               ? messageHistory
                               : messageHistory.slice(
                                   currentVisibleRange.start,
-                                  currentVisibleRange.end
+                                  currentVisibleRange.end + 2
                                 )
                             ).map((message, fauxIndex) => {
                               const i =
