@@ -35,7 +35,7 @@ const DropdownOption: React.FC<DropdownOptionProps> = ({
   openInNewTab,
 }) => {
   const content = (
-    <div className="flex py-1.5 text-sm px-2 gap-x-2 text-t text-sm cursor-pointer rounded hover:bg-[#f1eee8]">
+    <div className="flex py-1.5 text-sm px-2 gap-x-2 text-t text-sm cursor-pointer rounded hover:bg-background-dark">
       {icon}
       {label}
     </div>

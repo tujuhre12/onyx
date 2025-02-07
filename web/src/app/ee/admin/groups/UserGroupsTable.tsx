@@ -247,7 +247,7 @@ export const UserGroupsTable = ({
                             <SimpleUserDisplay key={user.id} user={user} />
                           );
                         })}
-                      <div className="text-gray-300">
+                      <div className="text-gray-background-300">
                         + {userGroup.users.length - MAX_USERS_TO_DISPLAY} more
                       </div>
                     </div>
@@ -257,7 +257,7 @@ export const UserGroupsTable = ({
               status: userGroup.is_up_to_date ? (
                 <div className="text-emerald-600">Up to date!</div>
               ) : (
-                <div className="text-gray-300 w-10">
+                <div className="text-gray-background-300 w-10">
                   <LoadingAnimation text="Syncing" />
                 </div>
               ),

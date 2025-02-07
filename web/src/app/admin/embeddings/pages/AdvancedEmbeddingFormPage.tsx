@@ -68,10 +68,10 @@ const AdvancedEmbeddingFormPage = forwardRef<
                           type="button"
                           onClick={() => remove(index)}
                           className={`p-2 my-auto bg-input flex-none rounded-md 
-                              bg-red-500 text-white hover:bg-red-600
+                              bg-red-500 text-onyx-white hover:bg-red-600
                               focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50`}
                         >
-                          <TrashIcon className="text-white my-auto" />
+                          <TrashIcon className="text-onyx-white my-auto" />
                         </button>
                       </div>
                     )
@@ -79,7 +79,7 @@ const AdvancedEmbeddingFormPage = forwardRef<
                   <button
                     type="button"
                     onClick={() => push("")}
-                    className={`mt-2 p-2 bg-rose-500 text-xs text-white rounded-md flex items-center
+                    className={`mt-2 p-2 bg-rose-500 text-xs text-onyx-white rounded-md flex items-center
                         hover:bg-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-opacity-50`}
                   >
                     <FaPlus className="mr-2" />

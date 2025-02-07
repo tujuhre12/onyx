@@ -1070,7 +1070,7 @@ export const BookstackIcon = ({
   size = 16,
   className = defaultTailwindCSS,
 }: IconProps) => {
-  return <SiBookstack size={size} className={className + " text-[#0288D1]"} />;
+  return <SiBookstack size={size} className={className} />;
 };
 
 export const ConfluenceIcon = ({

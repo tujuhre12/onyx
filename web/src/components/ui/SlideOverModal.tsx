@@ -46,18 +46,18 @@ const SlideOverModal = ({
       <div className="absolute inset-0 overflow-hidden">
         {/* Overlay */}
         <div
-          className="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          className="absolute inset-0 bg-gray-background-500 bg-opacity-75 transition-opacity"
           onClick={() => onOpenChange(false)}
         ></div>
 
         <div ref={modalRef} className="absolute">
           <div className="pointer-events-auto w-screen max-w-md">
-            <div className="flex flex-col overflow-y-auto bg-white shadow-xl rounded-lg max-h-[80vh]">
+            <div className="flex flex-col overflow-y-auto bg-onyx-white shadow-xl rounded-lg max-h-[80vh]">
               <div className="px-4 pt-6 sm:px-6">
                 <div className="flex items-start justify-end">
                   <button
                     type="button"
-                    className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    className="rounded-md bg-onyx-white text-gray-background-400 hover:text-gray-background-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     onClick={() => onOpenChange(false)}
                   >
                     <span className="sr-only">Close panel</span>

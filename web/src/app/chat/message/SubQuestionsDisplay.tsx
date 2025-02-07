@@ -317,7 +317,7 @@ const SubQuestionDisplay: React.FC<{
       <div
         className={`absolute left-[5px] ${
           isFirst ? "top-[15px]" : "top-0"
-        } bottom-0 w-[2px] bg-neutral-200
+        } bottom-0 w-[2px] bg-background-200
 
         ${isLast && !toggled ? "h-4" : "h-full"}`}
       />
@@ -331,7 +331,7 @@ const SubQuestionDisplay: React.FC<{
         </div>
         <div className="ml-8 w-full">
           <div
-            className="flex -mx-2 rounded-md px-2 hover:bg-[#F5F3ED] items-start py-1.5 my-.5 cursor-pointer"
+            className="flex -mx-2 rounded-md px-2 hover:bg-background-100 items-start py-1.5 my-.5 cursor-pointer"
             onClick={() => setToggled(!toggled)}
           >
             <div className="text-black text-base font-medium leading-normal flex-grow pr-2">

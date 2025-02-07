@@ -330,7 +330,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
           )}
 
           <div className="h-full relative overflow-x-hidden overflow-y-auto">
-            <div className="flex px-4 font-normal text-sm gap-x-2 leading-normal text-[#6c6c6c]/80 items-center font-normal leading-normal">
+            <div className="flex px-4 font-normal text-sm gap-x-2 leading-normal text-background-500/80 items-center font-normal leading-normal">
               Assistants
             </div>
             <DndContext

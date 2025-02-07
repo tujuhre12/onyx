@@ -83,7 +83,7 @@ export const SourceChip2 = ({
             className={`
             h-6
             px-2
-            bg-[#f1eee8]
+            bg-background-dark
             rounded-2xl
             justify-center
             items-center
@@ -143,7 +143,7 @@ export const SourceChip = ({
         flex
         items-center
         px-1
-        bg-gray-background
+        bg-gray-background-background
         text-xs
         text-text-darker
         border
@@ -523,7 +523,7 @@ export function ChatInputBar({
               flex-col
               border
               shadow
-              border-[#DCDAD4]/60
+              border-background-300]/60
               rounded-lg
               text-text-chatbar
               [&:has(textarea:focus)]::ring-1
@@ -840,12 +840,12 @@ export function ChatInputBar({
                   chatState == "loading" ? (
                     <StopGeneratingIcon
                       size={8}
-                      className="text-emphasis m-auto text-white flex-none"
+                      className="text-emphasis m-auto text-onyx-white flex-none"
                     />
                   ) : (
                     <SendIcon
                       size={22}
-                      className={`text-emphasis text-white p-1 my-auto rounded-full ${
+                      className={`text-emphasis text-onyx-white p-1 my-auto rounded-full ${
                         chatState == "input" && message
                           ? "bg-submit-background"
                           : "bg-disabled-submit-background"

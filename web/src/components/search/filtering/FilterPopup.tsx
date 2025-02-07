@@ -73,8 +73,8 @@ export function FilterPopup({
     <li
       className={`px-3 py-2 flex items-center gap-x-2 cursor-pointer transition-colors duration-200 ${
         selectedFilter === category
-          ? "bg-gray-100 text-gray-900"
-          : "text-gray-600 hover:bg-gray-50"
+          ? "bg-gray-background-100 text-gray-background-900"
+          : "text-gray-background-600 hover:bg-gray-background-50"
       }`}
       onMouseDown={() => {
         setSelectedFilter(category);
@@ -124,7 +124,7 @@ export function FilterPopup({
                 )
               )
             }
-            className="text-gray-600 hover:text-gray-800"
+            className="text-gray-background-600 hover:text-gray-background-800"
           >
             <FiChevronLeft size={20} />
           </button>
@@ -144,14 +144,17 @@ export function FilterPopup({
                 )
               )
             }
-            className="text-gray-600 hover:text-gray-800"
+            className="text-gray-background-600 hover:text-gray-background-800"
           >
             <FiChevronRight size={20} />
           </button>
         </div>
         <div className="grid grid-cols-7 gap-1 text-center mb-2">
           {days.map((day) => (
-            <div key={day} className="text-xs font-medium text-gray-400">
+            <div
+              key={day}
+              className="text-xs font-medium text-gray-background-400"
+            >
               {day}
             </div>
           ))}
@@ -173,12 +176,12 @@ export function FilterPopup({
               <button
                 key={index + 1}
                 className={`w-8 h-8 text-sm rounded-full flex items-center justify-center
-                  ${isInRange ? "bg-blue-100" : "hover:bg-gray-100"}
+                  ${isInRange ? "bg-blue-100" : "hover:bg-gray-background-100"}
                   ${isStart || isEnd ? "bg-blue-500 text-white" : ""}
                   ${
                     isInRange && !isStart && !isEnd
                       ? "text-blue-600"
-                      : "text-gray-700"
+                      : "text-gray-background-700"
                   }
                 `}
                 onClick={() => {
@@ -259,7 +262,7 @@ export function FilterPopup({
         align="start"
       >
         <div className="flex h-[325px]">
-          <div className="w-1/3 border-r border-gray-200 p-2">
+          <div className="w-1/3 border-r border-gray-background-200 p-2">
             <ul className="space-y-1">
               <FilterOption
                 category={FilterCategories.date}
@@ -294,13 +297,13 @@ export function FilterPopup({
               <div className="p-4">
                 {renderCalendar()}
                 {filterManager.timeRange ? (
-                  <div className="mt-2 text-xs text-gray-600">
+                  <div className="mt-2 text-xs text-gray-background-600">
                     Selected:{" "}
                     {filterManager.timeRange.from.toLocaleDateString()} -{" "}
                     {filterManager.timeRange.to.toLocaleDateString()}
                   </div>
                 ) : (
-                  <div className="mt-2 text-xs text-gray-600">
+                  <div className="mt-2 text-xs text-gray-background-600">
                     No time restriction selected
                   </div>
                 )}
@@ -398,24 +401,24 @@ export function FilterPopup({
           >
             Clear Filters
           </Button>
-          <div className="text-xs text-gray-500 flex items-center space-x-1">
+          <div className="text-xs text-gray-background-500 flex items-center space-x-1">
             {filterManager.selectedSources.length > 0 && (
-              <span className="bg-gray-100 px-1.5 py-0.5 rounded-full">
+              <span className="bg-gray-background-100 px-1.5 py-0.5 rounded-full">
                 {filterManager.selectedSources.length} sources
               </span>
             )}
             {filterManager.selectedDocumentSets.length > 0 && (
-              <span className="bg-gray-100 px-1.5 py-0.5 rounded-full">
+              <span className="bg-gray-background-100 px-1.5 py-0.5 rounded-full">
                 {filterManager.selectedDocumentSets.length} sets
               </span>
             )}
             {filterManager.selectedTags.length > 0 && (
-              <span className="bg-gray-100 px-1.5 py-0.5 rounded-full">
+              <span className="bg-gray-background-100 px-1.5 py-0.5 rounded-full">
                 {filterManager.selectedTags.length} tags
               </span>
             )}
             {filterManager.timeRange && (
-              <span className="bg-gray-100 px-1.5 py-0.5 rounded-full">
+              <span className="bg-gray-background-100 px-1.5 py-0.5 rounded-full">
                 Date range
               </span>
             )}

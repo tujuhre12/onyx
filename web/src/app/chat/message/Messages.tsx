@@ -398,7 +398,7 @@ export const AIMessage = ({
     <div
       id={isComplete ? "onyx-ai-message" : undefined}
       ref={trackedElementRef}
-      className={`py-5 ml-4 lg:px-5 relative flex `}
+      className={`py-5 text-text ml-4 lg:px-5 relative flex `}
     >
       <div
         className={`mx-auto ${
@@ -995,7 +995,9 @@ export const HumanMessage = ({
                           <Tooltip>
                             <TooltipTrigger>
                               <HoverableIcon
-                                icon={<FiEdit2 className="text-gray-600" />}
+                                icon={
+                                  <FiEdit2 className="text-gray-background-600" />
+                                }
                                 onClick={() => {
                                   setIsEditing(true);
                                   setIsHovered(false);
@@ -1018,7 +1020,7 @@ export const HumanMessage = ({
                           !isEditing &&
                           (!files || files.length === 0)
                         ) && "ml-auto"
-                      } relative flex-none max-w-[70%] mb-auto whitespace-break-spaces rounded-3xl bg-user px-5 py-2.5`}
+                      } relative text-text flex-none max-w-[70%] mb-auto whitespace-break-spaces rounded-3xl bg-user px-5 py-2.5`}
                     >
                       {content}
                     </div>

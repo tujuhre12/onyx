@@ -40,7 +40,7 @@ export function RegenerateDropdown({
   };
 
   const Dropdown = (
-    <div className="overflow-y-auto py-2 min-w-fit bg-white dark:bg-gray-800 rounded-md shadow-lg">
+    <div className="overflow-y-auto py-2 min-w-fit bg-onyx-white dark:bg-gray-background-800 rounded-md shadow-lg">
       <div className="mb-1 flex items-center justify-between px-4 pt-2">
         <span className="text-sm text-text-500 dark:text-text-400">
           Regenerate with
@@ -50,8 +50,10 @@ export function RegenerateDropdown({
         <div
           key={option.value}
           role="menuitem"
-          className={`flex items-center m-1.5 p-1.5 text-sm cursor-pointer focus-visible:outline-0 group relative hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md my-0 px-3 mx-2 gap-2.5 py-3 !pr-3 ${
-            option.value === selected ? "bg-gray-100 dark:bg-gray-700" : ""
+          className={`flex items-center m-1.5 p-1.5 text-sm cursor-pointer focus-visible:outline-0 group relative hover:bg-gray-background-100 dark:hover:bg-gray-background-700 rounded-md my-0 px-3 mx-2 gap-2.5 py-3 !pr-3 ${
+            option.value === selected
+              ? "bg-gray-background-100 dark:bg-gray-background-700"
+              : ""
           }`}
           onClick={() => onSelect(option.value)}
         >

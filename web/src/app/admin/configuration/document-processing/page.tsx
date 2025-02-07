@@ -54,7 +54,7 @@ function Main() {
   }
   return (
     <div className="container mx-auto p-4">
-      <CardSection className="mb-8 max-w-2xl bg-white text-text shadow-lg rounded-lg">
+      <CardSection className="mb-8 max-w-2xl bg-onyx-white text-text shadow-lg rounded-lg">
         <h3 className="text-2xl text-text-800 font-bold mb-4 text-text border-b border-b-border pb-2">
           Process with Unstructured API
         </h3>
@@ -84,7 +84,7 @@ function Main() {
             {isApiKeySet ? (
               <div className="w-full p-3 border rounded-md bg-background text-text flex items-center">
                 <span className="flex-grow">••••••••••••••••</span>
-                <Lock className="h-5 w-5 text-gray-400" />
+                <Lock className="h-5 w-5 text-gray-background-400" />
               </div>
             ) : (
               <input
@@ -109,7 +109,7 @@ function Main() {
             ) : (
               <Button
                 onClick={handleSave}
-                className="bg-blue-500 text-white hover:bg-blue-600 transition duration-200"
+                className="bg-blue-500 text-onyx-white hover:bg-blue-600 transition duration-200"
               >
                 Save API Key
               </Button>

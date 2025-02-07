@@ -129,6 +129,7 @@ import {
   useOperatingSystem,
   useSidebarShortcut,
 } from "@/lib/browserUtilities";
+import { Button } from "@/components/ui/button";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -353,6 +354,10 @@ export function ChatPage({
     selectedChatSession,
     liveAssistant
   );
+
+  function toggleDarkMode() {
+    document.documentElement.classList.toggle("dark");
+  }
 
   const noAssistants = liveAssistant == null || liveAssistant == undefined;
 
@@ -2622,6 +2627,7 @@ export function ChatPage({
 
                                 return (
                                   <div
+                                    className="text-text"
                                     id={`message-${message.messageId}`}
                                     key={messageReactComponentKey}
                                     ref={
@@ -3070,6 +3076,7 @@ export function ChatPage({
                             </div>
                           )}
                           <div className="pointer-events-auto w-[95%] mx-auto relative mb-8">
+                            <Button onClick={toggleDarkMode}> Dark Mode</Button>
                             <ChatInputBar
                               proSearchEnabled={proSearchEnabled}
                               setProSearchEnabled={() => toggleProSearch()}

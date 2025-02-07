@@ -1356,7 +1356,7 @@ export function AssistantEditor({
                 </>
               )}
 
-              <div className="mt-12 gap-x-2 w-full  justify-end flex">
+              <div className="mt-12 gap-x-2 w-full justify-end flex">
                 <Button
                   type="submit"
                   disabled={isSubmitting || isRequestSuccessful}

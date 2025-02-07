@@ -35,7 +35,7 @@ const AdvancedFormPage = () => {
         name="indexingStart"
       />
       <div className="mt-4 flex w-full mx-auto max-w-2xl justify-start">
-        <button className="flex gap-x-1 bg-red-500 hover:bg-red-500/80 items-center text-white py-2.5 px-3.5 text-sm font-regular rounded ">
+        <button className="flex gap-x-1 bg-red-500 hover:bg-red-500/80 items-center text-onyx-white py-2.5 px-3.5 text-sm font-regular rounded ">
           <TrashIcon size={20} className="text-white" />
           <div className="w-full items-center gap-x-2 flex">Reset</div>
         </button>

@@ -4,36 +4,36 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border border-neutral-200 px-2.5 py-0.5 text-xs font-normal transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-950 focus:ring-offset-2 dark:border-neutral-800 dark:focus:ring-neutral-300",
+  "inline-flex items-center rounded-full border border-background-200 px-2.5 py-0.5 text-xs font-normal transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-950 focus:ring-offset-2 dark:border-background-800 dark:focus:ring-neutral-300",
   {
     variants: {
       variant: {
         "agent-faded":
-          "border-neutral-200 bg-neutral-100 text-neutral-600 hover:bg-neutral-200",
+          "border-background-200 bg-background-100 text-text-600 hover:bg-background-200",
         agent:
-          "border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-75 dark:bg-orange-900 dark:text-neutral-50 dark:hover:bg-orange-850",
+          "border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-75 dark:bg-orange-900 dark:text-text-50 dark:hover:bg-orange-850",
 
         canceled:
-          "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-75 dark:bg-gray-900 dark:text-neutral-50 dark:hover:bg-gray-850",
+          "border-gray-background-200 bg-gray-background-50 text-gray-background-600 hover:bg-gray-background-75 dark:bg-gray-background-900 dark:text-text-50 dark:hover:bg-gray-background-850",
         orange:
-          "border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-75 dark:bg-orange-900 dark:text-neutral-50 dark:hover:bg-orange-850",
+          "border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-75 dark:bg-orange-900 dark:text-text-50 dark:hover:bg-orange-850",
         paused:
-          "border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-75 dark:bg-amber-900 dark:text-neutral-50 dark:hover:bg-amber-850",
+          "border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-75 dark:bg-amber-900 dark:text-text-50 dark:hover:bg-amber-850",
         in_progress:
-          "border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-75 dark:bg-blue-900 dark:text-neutral-50 dark:hover:bg-blue-850",
+          "border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-75 dark:bg-blue-900 dark:text-text-50 dark:hover:bg-blue-850",
 
         purple:
-          "border-purple-400 bg-purple-50 text-purple-600 hover:bg-purple-75 dark:bg-purple-900 dark:text-neutral-50 dark:hover:bg-purple-850",
+          "border-purple-400 bg-purple-50 text-purple-600 hover:bg-purple-75 dark:bg-purple-900 dark:text-text-50 dark:hover:bg-purple-850",
         success:
-          "border-green-200 bg-emerald-50 text-green-600 hover:bg-emerald-75 dark:bg-green-900 dark:text-neutral-50 dark:hover:bg-green-850",
+          "border-green-200 bg-emerald-50 text-green-600 hover:bg-emerald-75 dark:bg-green-900 dark:text-text-50 dark:hover:bg-green-850",
         default:
-          "border-neutral-200 bg-neutral-50 text-neutral-600 hover:bg-neutral-75 dark:bg-neutral-900 dark:text-neutral-50 dark:hover:bg-neutral-850",
+          "border-background-200 bg-background-50 text-text-600 hover:bg-background-75 dark:bg-background-900 dark:text-text-50 dark:hover:bg-background-850",
         secondary:
-          "border-neutral-200 bg-neutral-50 text-neutral-600 hover:bg-neutral-75 dark:bg-neutral-900 dark:text-neutral-50 dark:hover:bg-neutral-850",
+          "border-background-200 bg-background-50 text-text-600 hover:bg-background-75 dark:bg-background-900 dark:text-text-50 dark:hover:bg-background-850",
         destructive:
-          "border-red-200 bg-red-50 text-red-600 hover:bg-red-75 dark:bg-red-900 dark:text-neutral-50 dark:hover:bg-red-850",
+          "border-red-200 bg-red-50 text-red-600 hover:bg-red-75 dark:bg-red-900 dark:text-text-50 dark:hover:bg-red-850",
         outline:
-          "border-neutral-200 bg-neutral-50 text-neutral-600 hover:bg-neutral-75 dark:bg-neutral-900 dark:text-neutral-50 dark:hover:bg-neutral-850",
+          "border-background-200 bg-background-50 text-text-600 hover:bg-background-75 dark:bg-background-900 dark:text-text-50 dark:hover:bg-background-850",
       },
     },
     defaultVariants: {

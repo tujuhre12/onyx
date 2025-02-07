@@ -44,7 +44,7 @@ module.exports = {
       },
 
       gradientColorStops: {
-        "neutral-10": "#e5e5e5 5%",
+        "neutral-10": "var(--neutral-10) 5%",
       },
       screens: {
         "2xl": "1420px",
@@ -91,13 +91,16 @@ module.exports = {
         "token-attr-name": "var(--token-attr-name)",
         "non-selectable": "var(--non-selectable)",
 
-        "gray-background": "#F4F2ED",
+        "onyx-white": "var(--white)",
 
-        "new-background": "#ebe7de",
+        "gray-background": "var(--gray-background)",
+
+        "new-background": "var(--new-background)",
+        "new-background-light": "var(--new-background-light)",
 
         // background
-        background: "#FEFCFA",
-        "background-dark": "#F1EEE8",
+        background: "var(--background)",
+        "background-dark": "var(--background-dark)",
         "background-100": "var(--background-100)",
         "background-125": "var(--background-125)",
         "background-150": "var(--background-150)",
@@ -109,6 +112,20 @@ module.exports = {
         "background-700": "var(--background-700)",
         "background-800": "var(--background-800)",
         "background-900": "var(--background-900)",
+
+        "gray-background": "var(--gray-background)",
+        "gray-background-dark": "var(--gray-background-dark)",
+        "gray-background-100": "var(--gray-background-100)",
+        "gray-background-125": "var(--gray-background-125)",
+        "gray-background-150": "var(--gray-background-150)",
+        "gray-background-200": "var(--gray-background-200)",
+        "gray-background-300": "var(--gray-background-300)",
+        "gray-background-400": "var(--gray-background-400)",
+        "gray-background-500": "var(--gray-background-500)",
+        "gray-background-600": "var(--gray-background-600)",
+        "gray-background-700": "var(--gray-background-700)",
+        "gray-background-800": "var(--gray-background-800)",
+        "gray-background-900": "var(--gray-background-900)",
 
         "background-inverted": "var(--background-inverted)",
         "background-emphasis": "var(--background-emphasis)",
@@ -126,7 +143,7 @@ module.exports = {
 
         // colors for sidebar in chat, search, and manage settings
 
-        "background-chatbar": "#F5F3EE",
+        "background-chatbar": "var(--background-chatbar)",
         "text-sidebar": "var(--text-500)",
 
         "toggled-background": "var(--background-400)",
@@ -151,8 +168,8 @@ module.exports = {
         "text-application-untoggled": "var(--text-500)",
         "text-application-untoggled-hover": "var(--text-700)",
 
-        "background-chat-hover": "#E6E3DD",
-        "background-chat-selected": "#E6E3DD",
+        "background-chat-hover": "var(--background-chat-hover)",
+        "background-chat-selected": "var(--background-chat-selected)",
 
         // Background for chat messages (user bubbles)
         user: "var(--user-bubble)",
@@ -161,7 +178,7 @@ module.exports = {
         "text-mobile-sidebar-toggled": "var(--text-800)",
         "text-mobile-sidebar-untoggled": "var(--text-500)",
         "text-editing-message": "var(--text-800)",
-        "background-sidebar": "#F5F3EE",
+        "background-sidebar": "var(--background-sidebar)",
         "background-search-filter": "var(--background-100)",
         "background-search-filter-dropdown": "var(--background-hover)",
 
@@ -172,7 +189,7 @@ module.exports = {
         "background-agentic-untoggled": "var(--undo)",
         "text-agentic-toggled": "var(--text-800)",
         "text-agentic-untoggled": "var(--white)",
-        "text-chatbar-subtle": "#9c9c96",
+        "text-chatbar-subtle": "var(--text-chatbar-subtle)",
         "text-chatbar": "var(--text-800)",
 
         // Color for the star indicator on high quality search results.
@@ -184,15 +201,15 @@ module.exports = {
 
         input: "var(--white)",
 
-        text: "#000000",
-        "text-darker": "#282828",
-        "text-dark": "#4A4A4A",
-        "text-muted": "#6C6C6B",
-        "text-gray": "#6c6c6c",
+        text: "var(--text)",
+        "text-darker": "var(--text-darker)",
+        "text-dark": "var(--text-dark)",
+        "text-muted": "var(--text-muted)",
+        "text-gray": "var(--text-gray)",
 
         // background: "#F1EEE8",
 
-        "text-light": "#9c9c96",
+        "text-light": "var(--text-light)",
 
         "text-50": "var(--text-50)",
         "text-100": "var(--text-100)",
@@ -251,7 +268,7 @@ module.exports = {
         "border-medium": "var(--border-medium)",
         "border-strong": "var(--border-strong)",
         "border-dark": "var(--border-dark)",
-        "non-selectable-border": "#f5c2c7",
+        "non-selectable-border": "var(--non-selectable-border)",
 
         inverted: "var(--white)",
         link: "var(--link)",
@@ -263,18 +280,18 @@ module.exports = {
         alert: "var(--alert)",
         accent: "var(--accent)",
         // -        agent: "#6C6AD6",
-        "agent-sidebar": "#BE5D0E",
-        agent: "#E47011",
+        "agent-sidebar": "var(--agent-sidebar)",
+        agent: "var(--agent)",
         // agent: "#FE8B09",
 
         // agent: "#6C6AD6",
         // agent: "#FE8B09",
 
         // hover
-        "hover-light": "#F1EEE8",
+        "hover-light": "var(--hover-light)",
         "hover-lightish": "var(--background-125)",
 
-        hover: "#E6E3DD",
+        hover: "var(--hover)",
         "hover-emphasis": "var(--background-300)",
         "accent-hover": "var(--accent-hover)",
 
@@ -304,21 +321,21 @@ module.exports = {
             faint: "var(--tremor-brand-faint)",
             muted: "var(--tremor-brand-muted)",
             subtle: "var(--tremor-brand-subtle)",
-            DEFAULT: "#3b82f6", // blue-500
+            DEFAULT: "var(--tremor-brand-default)",
             emphasis: "var(--tremor-brand-emphasis)",
             inverted: "var(--tremor-brand-inverted)",
           },
           background: {
             muted: "var(--tremor-background-muted)",
             subtle: "var(--tremor-background-subtle)",
-            DEFAULT: "#ffffff", // white
+            DEFAULT: "var(--tremor-background-default)",
             emphasis: "var(--tremor-background-emphasis)",
           },
           border: {
-            DEFAULT: "#e5e7eb", // gray-200
+            DEFAULT: "var(--tremor-border-default)",
           },
           ring: {
-            DEFAULT: "#e5e7eb", // gray-200
+            DEFAULT: "var(--tremor-ring-default)",
           },
           content: {
             subtle: "var(--tremor-content-subtle)",
@@ -334,7 +351,7 @@ module.exports = {
             faint: "var(--dark-tremor-brand-faint)",
             muted: "var(--dark-tremor-brand-muted)",
             subtle: "var(--dark-tremor-brand-subtle)",
-            DEFAULT: "#3b82f6", // blue-500
+            DEFAULT: "var(--dark-tremor-brand-default)",
             emphasis: "var(--dark-tremor-brand-emphasis)",
             inverted: "var(--dark-tremor-brand-inverted)",
           },
@@ -345,10 +362,10 @@ module.exports = {
             emphasis: "var(--dark-tremor-background-emphasis)",
           },
           border: {
-            DEFAULT: "#1f2937", // gray-800
+            DEFAULT: "var(--dark-tremor-border-default)",
           },
           ring: {
-            DEFAULT: "#1f2937", // gray-800
+            DEFAULT: "var(--dark-tremor-ring-default)",
           },
           content: {
             subtle: "var(--dark-tremor-content-subtle)",
@@ -358,6 +375,7 @@ module.exports = {
             inverted: "var(--dark-tremor-content-inverted)",
           },
         },
+        foreground: "var(--foreground)",
       },
       boxShadow: {
         // light
@@ -395,36 +413,36 @@ module.exports = {
       },
       calendar: {
         // Light mode
-        "bg-selected": "#4B5563",
-        "bg-outside-selected": "rgba(75, 85, 99, 0.2)",
-        "text-muted": "#6B7280",
-        "text-selected": "#FFFFFF",
-        "range-start": "#000000",
-        "range-middle": "#F3F4F6",
-        "range-end": "#000000",
-        "text-in-range": "#1F2937",
+        "bg-selected": "var(--calendar-bg-selected)",
+        "bg-outside-selected": "var(--calendar-bg-outside-selected)",
+        "text-muted": "var(--calendar-text-muted)",
+        "text-selected": "var(--calendar-text-selected)",
+        "range-start": "var(--calendar-range-start)",
+        "range-middle": "var(--calendar-range-middle)",
+        "range-end": "var(--calendar-range-end)",
+        "text-in-range": "var(--calendar-text-in-range)",
 
         // Dark mode
-        "bg-selected-dark": "#6B7280",
-        "bg-outside-selected-dark": "rgba(107, 114, 128, 0.2)",
-        "text-muted-dark": "#9CA3AF",
-        "text-selected-dark": "#F3F4F6",
-        "range-start-dark": "#374151",
-        "range-middle-dark": "#4B5563",
-        "range-end-dark": "#374151",
-        "text-in-range-dark": "#E5E7EB",
+        "bg-selected-dark": "var(--calendar-bg-selected-dark)",
+        "bg-outside-selected-dark": "var(--calendar-bg-outside-selected-dark)",
+        "text-muted-dark": "var(--calendar-text-muted-dark)",
+        "text-selected-dark": "var(--calendar-text-selected-dark)",
+        "range-start-dark": "var(--calendar-range-start-dark)",
+        "range-middle-dark": "var(--calendar-range-middle-dark)",
+        "range-end-dark": "var(--calendar-range-end-dark)",
+        "text-in-range-dark": "var(--calendar-text-in-range-dark)",
 
         // Hover effects
-        "hover-bg": "#9CA3AF",
-        "hover-bg-dark": "#6B7280",
-        "hover-text": "#374151",
-        "hover-text-dark": "#E5E7EB",
+        "hover-bg": "var(--calendar-hover-bg)",
+        "hover-bg-dark": "var(--calendar-hover-bg-dark)",
+        "hover-text": "var(--calendar-hover-text)",
+        "hover-text-dark": "var(--calendar-hover-text-dark)",
 
         // Today's date
-        "today-bg": "#D1D5DB",
-        "today-bg-dark": "#4B5563",
-        "today-text": "#374151",
-        "today-text-dark": "#D1D5DB",
+        "today-bg": "var(--calendar-today-bg)",
+        "today-bg-dark": "var(--calendar-today-bg-dark)",
+        "today-text": "var(--calendar-today-text)",
+        "today-text-dark": "var(--calendar-today-text-dark)",
       },
     },
   },

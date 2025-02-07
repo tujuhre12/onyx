@@ -33,7 +33,7 @@ const SourceCard: React.FC<{
       onClick={() =>
         openDocument(document, () => setPresentingDocument(document))
       }
-      className="w-full max-w-[260px] h-[80px] p-3 bg-[#f1eee8]
+      className="w-full max-w-[260px] h-[80px] p-3 bg-background-dark
              text-left hover:bg-new-background
              cursor-pointer rounded-lg
              flex flex-col justify-between

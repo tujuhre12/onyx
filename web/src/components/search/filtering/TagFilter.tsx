@@ -18,8 +18,8 @@ export const SelectableDropdown = ({
       key={value}
       className={`p-2 flex gap-x-2 items-center rounded cursor-pointer transition-colors duration-200 ${
         selected
-          ? "bg-gray-200 dark:bg-gray-700"
-          : "hover:bg-gray-100 dark:hover:bg-gray-800"
+          ? "bg-gray-background-200 dark:bg-gray-background-700"
+          : "hover:bg-gray-background-100 dark:hover:bg-gray-background-800"
       }`}
       onClick={toggle}
     >

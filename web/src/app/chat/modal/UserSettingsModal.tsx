@@ -155,7 +155,10 @@ export function UserSettingsModal({
       : user?.preferences?.auto_scroll;
 
   return (
-    <Modal onOutsideClick={onClose} width="rounded-lg w-full bg-white max-w-xl">
+    <Modal
+      onOutsideClick={onClose}
+      width="rounded-lg w-full bg-onyx-white max-w-xl"
+    >
       <>
         <div className="flex mb-4">
           <h2 className="text-2xl text-emphasis font-bold flex my-auto">

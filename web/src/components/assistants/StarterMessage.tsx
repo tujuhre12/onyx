@@ -44,7 +44,7 @@ export function StarterMessages({
                     className={`
                       relative flex ${!isMobile ? "w-40" : "w-full max-w-52"}
                       shadow
-                      border-[#DCDAD4]/60
+                      border-background-300]/60
                       flex-col gap-2 rounded-md
                       text-text-dark hover:text-text
                       border

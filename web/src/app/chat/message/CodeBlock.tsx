@@ -60,10 +60,10 @@ export const CodeBlock = memo(function CodeBlock({
       <span
         className={`
           font-mono 
-          text-gray-800 
-          bg-gray-50 
+          text-gray-background-800 
+          bg-gray-background-50 
           border 
-          border-gray-300 
+          border-gray-background-300 
           rounded 
           align-bottom
           px-1

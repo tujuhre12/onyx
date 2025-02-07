@@ -42,9 +42,9 @@ export const Switch = React.forwardRef<
           "border-2 border-transparent transition-colors focus-visible:outline-none " +
           "focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 " +
           "focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 " +
-          "data-[state=checked]:bg-neutral-900 data-[state=unchecked]:bg-neutral-200 " +
+          "data-[state=checked]:bg-background-900 data-[state=unchecked]:bg-background-200 " +
           "dark:focus-visible:ring-neutral-300 dark:focus-visible:ring-offset-neutral-950 " +
-          "dark:data-[state=checked]:bg-neutral-50 dark:data-[state=unchecked]:bg-neutral-800",
+          "dark:data-[state=checked]:bg-background-50 dark:data-[state=unchecked]:bg-background-800",
         sizeClasses[size],
         className
       )}
@@ -52,8 +52,8 @@ export const Switch = React.forwardRef<
     >
       <SwitchPrimitives.Thumb
         className={cn(
-          "pointer-events-none block rounded-full bg-white shadow-lg ring-0 transition-transform " +
-            "data-[state=unchecked]:translate-x-0 dark:bg-neutral-950",
+          "pointer-events-none block rounded-full bg-onyx-white shadow-lg ring-0 transition-transform " +
+            "data-[state=unchecked]:translate-x-0 dark:bg-background-950",
           thumbSizeClasses[size],
           translateClasses[size],
           circleClassName

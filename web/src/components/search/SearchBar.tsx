@@ -62,7 +62,7 @@ export const AnimatedToggle = ({
               >
                 <div
                   className={`
-                  bg-white w-4 h-4 rounded-full shadow-md transform transition-all duration-300 ease-in-out
+                  bg-onyx-white w-4 h-4 rounded-full shadow-md transform transition-all duration-300 ease-in-out
                   ${isOn ? "translate-x-4" : ""}
                 `}
                 ></div>
@@ -72,7 +72,7 @@ export const AnimatedToggle = ({
           </div>
         </TooltipTrigger>
         <TooltipContent side={direction} backgroundColor="bg-background-200">
-          <div className="bg-white my-auto p-6 rounded-lg max-w-sm">
+          <div className="bg-onyx-white my-auto p-6 rounded-lg max-w-sm">
             <h2 className="text-xl text-text-800 font-bold mb-2">
               Agentic Search
             </h2>
@@ -226,7 +226,7 @@ export const FullSearchBar = ({
                   disabled || !query
                     ? "bg-disabled-submit-background"
                     : "bg-submit-background"
-                } text-white p-1 rounded-full`}
+                } text-onyx-white p-1 rounded-full`}
               />
             </button>
           </div>

@@ -134,7 +134,7 @@ export function SearchSummary({
               ))}
             {Array.from(new Set(docs.map((doc) => doc.source_type))).length >
               3 && (
-              <div className="rounded-full bg-gray-200 w-3.5 h-3.5 flex items-center justify-center">
+              <div className="rounded-full bg-gray-background-200 w-3.5 h-3.5 flex items-center justify-center">
                 <span className="text-[8px]">
                   +
                   {Array.from(new Set(docs.map((doc) => doc.source_type)))

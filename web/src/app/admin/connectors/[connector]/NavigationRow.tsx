@@ -54,7 +54,7 @@ const NavigationRow = ({
       <div className="flex justify-center">
         {(formStep > 0 || noCredentials) && (
           <SquareNavigationButton
-            className="bg-accent text-white py-2.5 px-3.5 disabled:opacity-50"
+            className="bg-accent text-onyx-white py-2.5 px-3.5 disabled:opacity-50"
             disabled={!isValid}
             onClick={onSubmit}
           >
@@ -67,7 +67,7 @@ const NavigationRow = ({
       <div className="flex justify-end">
         {formStep === 0 && (
           <SquareNavigationButton
-            className="bg-blue-400 text-white py-2.5 px-3.5 disabled:bg-blue-200"
+            className="bg-blue-400 text-onyx-white py-2.5 px-3.5 disabled:bg-blue-200"
             disabled={!activatedCredential}
             onClick={nextFormStep}
           >

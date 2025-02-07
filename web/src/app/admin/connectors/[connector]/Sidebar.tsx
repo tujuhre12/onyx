@@ -35,7 +35,7 @@ function BackButton({
     <div className="mx-3 mt-6 flex-col flex items-center">
       <Link
         href={"/admin/add-connector"}
-        className="w-full p-2 bg-white border-border border rounded items-center hover:bg-background-200 cursor-pointer transition-all duration-150 flex gap-x-2"
+        className="w-full p-2 bg-onyx-white border-border border rounded items-center hover:bg-background-200 cursor-pointer transition-all duration-150 flex gap-x-2"
       >
         <SettingsIcon className="flex-none " />
         <p className="my-auto flex items-center text-sm">{buttonText}</p>
@@ -96,7 +96,7 @@ export default function Sidebar() {
             <div className="mx-auto w-full max-w-2xl px-4 py-8">
               <div className="relative">
                 {connector != "file" && (
-                  <div className="absolute h-[85%] left-[6px] top-[8px] bottom-0 w-0.5 bg-gray-300"></div>
+                  <div className="absolute h-[85%] left-[6px] top-[8px] bottom-0 w-0.5 bg-gray-background-300"></div>
                 )}
                 {settingSteps.map((step, index) => {
                   const allowed =
@@ -119,7 +119,7 @@ export default function Sidebar() {
                       <div className="flex-shrink-0 mr-4 z-10">
                         <div
                           className={`rounded-full h-3.5 w-3.5 flex items-center justify-center ${
-                            allowed ? "bg-blue-500" : "bg-gray-300"
+                            allowed ? "bg-blue-500" : "bg-gray-background-300"
                           }`}
                         >
                           {formStep === index && (
@@ -129,7 +129,9 @@ export default function Sidebar() {
                       </div>
                       <div
                         className={`${
-                          index <= formStep ? "text-gray-800" : "text-gray-500"
+                          index <= formStep
+                            ? "text-gray-background-800"
+                            : "text-gray-background-500"
                         }`}
                       >
                         {step}

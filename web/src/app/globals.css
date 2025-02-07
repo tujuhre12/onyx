@@ -218,32 +218,273 @@
     --dark-tremor-content-inverted: #000000;
     /* black */
     --radius: 0.5rem;
+
+    /* Specific hex codes from Tailwind config */
+    --gray-background: #f4f2ed;
+    --new-background: #ebe7de;
+    --new-background-light: #d9d1c0;
+    --background: #fefcfa;
+    --background-dark: #f1eee8;
+    --gray-background-dark: #e9e6e0;
+    --background-chatbar: #f5f3ee;
+    --background-chat-hover: #e6e3dd;
+    --background-chat-selected: #e6e3dd;
+    --background-sidebar: #f5f3ee;
+    --text-chatbar-subtle: #9c9c96;
+    --text: #000000;
+    --text-darker: #282828;
+    --text-dark: #4a4a4a;
+    --text-muted: #6c6c6b;
+    --text-gray: #6c6c6c;
+    --text-light: #9c9c96;
+
+    /* New variables for remaining direct color definitions */
+    --neutral-10: #e5e5e5;
+    --non-selectable-border: #f5c2c7;
+    --agent-sidebar: #be5d0e;
+    --agent: #e47011;
+    --hover-light: #f1eee8;
+    --hover: #e6e3dd;
+    --tremor-brand-default: #3b82f6;
+    --tremor-background-default: #ffffff;
+    --tremor-border-default: #e5e7eb;
+    --tremor-ring-default: #e5e7eb;
+    --dark-tremor-border-default: #1f2937;
+    --dark-tremor-ring-default: #1f2937;
+    --calendar-bg-selected: #4b5563;
+    --calendar-bg-outside-selected: rgba(75, 85, 99, 0.2);
+    --calendar-text-muted: #6b7280;
+    --calendar-text-selected: #ffffff;
+    --calendar-range-start: #000000;
+    --calendar-range-middle: #f3f4f6;
+    --calendar-range-end: #000000;
+    --calendar-text-in-range: #1f2937;
+    --calendar-bg-selected-dark: #6b7280;
+    --calendar-bg-outside-selected-dark: rgba(107, 114, 128, 0.2);
+    --calendar-text-muted-dark: #9ca3af;
+    --calendar-text-selected-dark: #f3f4f6;
+    --calendar-range-start-dark: #374151;
+    --calendar-range-middle-dark: #4b5563;
+    --calendar-range-end-dark: #374151;
+    --calendar-text-in-range-dark: #e5e7eb;
+    --calendar-hover-bg: #9ca3af;
+    --calendar-hover-bg-dark: #6b7280;
+    --calendar-hover-text: #374151;
+    --calendar-hover-text-dark: #e5e7eb;
+    --calendar-today-bg: #d1d5db;
+    --calendar-today-bg-dark: #4b5563;
+    --calendar-today-text: #374151;
+    --calendar-today-text-dark: #d1d5db;
   }
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+
+  :root [data-theme="dark"] {
+    /* ==========
+       Basic HSL / Core
+       (Replaced with dark-friendly, more neutral tones)
+       ========== */
+    --background: #141414;
+
+    /* ==========
+       Text Scale
+       ========== */
+    --text-50: #f0f0f0;
+    --text-100: #ebebeb;
+    --text-200: #e6e6e6;
+    --text-300: #e1e1e1;
+    --text-400: #d8d8d8;
+    --text-500: #cfcfcf;
+    --text-600: #c6c6c6;
+    --text-700: #bdbdbd;
+    --text-800: #b4b4b4;
+    --text-900: #ababab;
+    --text-950: #a2a2a2;
+
+    /* ==========
+          Background Scale
+          ========== */
+    --background-100: #1a1a1a;
+    --background-125: #1f1f1f;
+    --background-150: #242424;
+    --background-200: #292929;
+    --background-300: #333333;
+    --background-400: #3d3d3d;
+    --background-500: #474747;
+    --background-600: #515151;
+    --background-700: #5b5b5b;
+    --background-800: #656565;
+    --background-900: #6f6f6f;
+    --background-inverted: #ffffff;
+
+    --foreground: #e0e0e0;
+    --card: #2a2a2a;
+    --card-foreground: #e0e0e0;
+    --popover: #2a2a2a;
+    --popover-foreground: #e0e0e0;
+    --primary: #2a2a2a;
+    --primary-foreground: #f0f0f0;
+    --secondary: #3a3a3a;
+    --secondary-foreground: #e0e0e0;
+    --muted: #3a3a3a;
+    --muted-foreground: #a0a0a0;
+    --accent: #3a3a3a;
+    --accent-foreground: #e0e0e0;
+    --destructive: #e74c3c;
+    --destructive-foreground: #f0f0f0;
+    --border: #4a4a4a;
+    --input: #4a4a4a;
+    --ring: #e0e0e0;
+    --radius: 0.5rem;
+
+    /* Example "dark" replacements for your charts
+       (modified to be more neutral) */
+    --chart-1: #e74c3c;
+    --chart-2: #27ae60;
+    --chart-3: #f39c12;
+    --chart-4: #8e44ad;
+    --chart-5: #d35400;
+
+    --background-emphasis: #2a2a2a;
+    --background-strong: #3a3a3a;
+
+    /* ==========
+       Borders
+       ========== */
+    --border-light: #3a3a3a;
+    --border-medium: #606060;
+    --border-strong: #808080;
+    --border-dark: #a0a0a0;
+
+    /* ==========
+       Links & Alerts
+       ========== */
+    --link: #f39c12;
+    --link-hover: #d35400;
+    --error: #e74c3c;
+    --undo: #c0392b;
+    --success: #27ae60;
+    --light-success: #2ecc71;
+    --alert: #f39c12;
+    --accent: #8e44ad;
+    --accent-hover: #9b59b6;
+
+    /* ==========
+       Black & White
+       ========== */
+    --black: #000000;
+    --white: #ffffff;
+
+    /* ==========
+       Code & Syntax
+       ========== */
+    --code-text: #e0e0e0;
+    --token-comment: #95a5a6;
+    --token-punctuation: #bdc3c7;
+    --token-property: #3498db;
+    --token-selector: #e67e22;
+    --token-atrule: #9b59b6;
+    --token-function: #f1c40f;
+    --token-regex: #1abc9c;
+    --token-attr-name: #2ecc71;
+
+    /* ==========
+       Miscellaneous
+       ========== */
+    --non-selectable: #c0392b;
+    --highlight-text: rgba(255, 235, 170, 0.5);
+
+    --user-bubble: #2a2a2a;
+    --ai-bubble: #3a3a3a;
+
+    --document-color: #e74c3c;
+
+    /* ==========
+       Scrollbar
+       ========== */
+    --scrollbar-track: #2a2a2a;
+    --scrollbar-thumb: #3a3a3a;
+    --scrollbar-thumb-hover: #4a4a4a;
+    --scrollbar-dark-thumb: #808080;
+    --scrollbar-dark-thumb-hover: #a0a0a0;
+
+    /* ==========
+       Tremor (Dark equivalents)
+       ========== */
+    --tremor-brand-faint: #1a1a1a;
+    --tremor-brand-muted: #2a2a2a;
+    --tremor-brand-subtle: #3a3a3a;
+    --tremor-brand-emphasis: #808080;
+    --tremor-brand-inverted: #0a0a0a;
+    --tremor-background-muted: #202020;
+    --tremor-background-subtle: #2a2a2a;
+    --tremor-background-emphasis: #a0a0a0;
+    --tremor-content-subtle: #606060;
+    --tremor-content-default: #a0a0a0;
+    --tremor-content-emphasis: #e0e0e0;
+    --tremor-content-strong: #f0f0f0;
+    --tremor-content-inverted: #000000;
+
+    /* ==========
+       Additional Custom Variables
+       ========== */
+    --gray-background: #1f1d18;
+    --new-background: #242019;
+    --new-background-light: #322a1c;
+    --background-dark: #2a2a2a;
+    --gray-background-dark: #262626;
+    --background-chatbar: #2a2a2a;
+    --background-chat-hover: #353535;
+    --background-chat-selected: #353535;
+    --background-sidebar: #2a2a2a;
+    --text-chatbar-subtle: #909090;
+
+    --text: #e0e0e0;
+    --text-darker: #d0d0d0;
+    --text-dark: #c0c0c0;
+    --text-muted: #a0a0a0;
+    --text-gray: #909090;
+    --text-light: #808080;
+
+    --neutral-10: #606060;
+    --non-selectable-border: #7c2d2d;
+    --agent-sidebar: #d35400;
+    --agent: #e67e22;
+    --hover-light: #2f2f2f;
+    --hover: #303030;
+
+    --tremor-brand-default: #f39c12;
+    --tremor-background-default: #1a1a1a;
+    --tremor-border-default: #4a4a4a;
+    --tremor-ring-default: #4a4a4a;
+    --dark-tremor-border-default: #2a2a2a;
+    --dark-tremor-ring-default: #2a2a2a;
+
+    /* Calendar-related dark mode adjustments */
+    --calendar-bg-selected: #4a4a4a;
+    --calendar-bg-outside-selected: rgba(74, 74, 74, 0.2);
+    --calendar-text-muted: #909090;
+    --calendar-text-selected: #e0e0e0;
+    --calendar-range-start: #e0e0e0;
+    --calendar-range-middle: #3a3a3a;
+    --calendar-range-end: #e0e0e0;
+    --calendar-text-in-range: #a0a0a0;
+
+    --calendar-bg-selected-dark: #606060;
+    --calendar-bg-outside-selected-dark: rgba(96, 96, 96, 0.2);
+    --calendar-text-muted-dark: #909090;
+    --calendar-text-selected-dark: #e0e0e0;
+    --calendar-range-start-dark: #3a3a3a;
+    --calendar-range-middle-dark: #4a4a4a;
+    --calendar-range-end-dark: #3a3a3a;
+    --calendar-text-in-range-dark: #c0c0c0;
+
+    --calendar-hover-bg: #909090;
+    --calendar-hover-bg-dark: #606060;
+    --calendar-hover-text: #3a3a3a;
+    --calendar-hover-text-dark: #c0c0c0;
+    --calendar-today-bg: #a0a0a0;
+    --calendar-today-bg-dark: #4a4a4a;
+    --calendar-today-text: #3a3a3a;
+    --calendar-today-text-dark: #a0a0a0;
   }
 }
 

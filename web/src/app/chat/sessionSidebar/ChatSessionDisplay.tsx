@@ -248,7 +248,7 @@ export function ChatSessionDisplay({
                         className="w-full text-sm bg-transparent border-b border-text-darker outline-none"
                       />
                     </div>
-                    <div className="flex text-[#6c6c6c] flex-none">
+                    <div className="flex text-background-500 flex-none">
                       <button onClick={onRename} className="p-1">
                         <FiCheck size={14} />
                       </button>
@@ -360,13 +360,13 @@ export function ChatSessionDisplay({
                                     </p>
                                     <div className="flex justify-center gap-2">
                                       <button
-                                        className="px-3 py-1 text-sm bg-gray-200 rounded"
+                                        className="px-3 py-1 text-sm bg-gray-background-200 rounded"
                                         onClick={handleCancelDelete}
                                       >
                                         Cancel
                                       </button>
                                       <button
-                                        className="px-3 py-1 text-sm bg-red-500 text-white rounded"
+                                        className="px-3 py-1 text-sm bg-red-500 text-onyx-white rounded"
                                         onClick={handleConfirmDelete}
                                       >
                                         Delete

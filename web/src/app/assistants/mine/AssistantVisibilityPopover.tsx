@@ -99,7 +99,9 @@ export function AssistantVisibilityPopover({
             {isUpdating && (
               <div className="ml-2 inline-flex items-center">
                 <ThreeDotsLoader />
-                <span className="ml-2 text-sm text-gray-600">Updating...</span>
+                <span className="ml-2 text-sm text-gray-background-600">
+                  Updating...
+                </span>
               </div>
             )}
           </Button>
@@ -134,8 +136,8 @@ export function AssistantVisibilityPopover({
               ]);
             }}
             itemComponent={({ option }) => (
-              <div className="flex items-center px-4 py-2.5 cursor-pointer hover:bg-gray-100">
-                <UsersIcon className="mr-3 text-gray-500" />
+              <div className="flex items-center px-4 py-2.5 cursor-pointer hover:bg-gray-background-100">
+                <UsersIcon className="mr-3 text-gray-background-500" />
                 <span className="flex-grow">{option.name}</span>
                 <FiPlus className="text-blue-500" />
               </div>
@@ -145,7 +147,7 @@ export function AssistantVisibilityPopover({
 
         {selectedUsers.length > 0 && (
           <div>
-            <h4 className="text-xs font-medium text-gray-700 mb-2">
+            <h4 className="text-xs font-medium text-gray-background-700 mb-2">
               Selected Users:
             </h4>
             <div className="flex flex-wrap gap-2">
@@ -184,7 +186,7 @@ export function AssistantVisibilityPopover({
 
         <div>
           <h3 className="text-sm font-semibold mb-2">Currently Shared With</h3>
-          <div className="bg-gray-50 rounded-lg p-2">
+          <div className="bg-gray-background-50 rounded-lg p-2">
             <AssistantSharedStatusDisplay
               size="md"
               assistant={assistant}

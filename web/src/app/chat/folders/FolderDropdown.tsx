@@ -189,7 +189,7 @@ export const FolderDropdown = forwardRef<HTMLDivElement, FolderDropdownProps>(
                     type="text"
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
-                    className="text-sm font-medium bg-transparent outline-none w-full pb-1 border-b border-[#6c6c6c] transition-colors duration-200"
+                    className="text-sm font-medium bg-transparent outline-none w-full pb-1 border-b border-background-500 transition-colors duration-200"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         handleEdit();
@@ -241,13 +241,13 @@ export const FolderDropdown = forwardRef<HTMLDivElement, FolderDropdownProps>(
                       </p>
                       <div className="flex justify-center gap-2">
                         <button
-                          className="px-3 py-1 text-sm bg-gray-200 rounded"
+                          className="px-3 py-1 text-sm bg-gray-background-200 rounded"
                           onClick={handleCancelDelete}
                         >
                           Cancel
                         </button>
                         <button
-                          className="px-3 py-1 text-sm bg-red-500 text-white rounded"
+                          className="px-3 py-1 text-sm bg-red-500 text-onyx-white rounded"
                           onClick={handleConfirmDelete}
                         >
                           Delete

@@ -155,7 +155,7 @@ export const AdminBooleanFormField = ({
           onChange={(e) => {
             helpers.setValue(e.target.checked);
           }}
-          className={`mr-3 bg-white px-5 w-3.5 h-3.5 ${
+          className={`mr-3 bg-onyx-white px-5 w-3.5 h-3.5 ${
             alignTop ? "mt-1" : "my-auto"
           }`}
         />

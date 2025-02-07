@@ -90,7 +90,7 @@ export function SimplifiedChatInputBar({
               flex
               flex-col
               border
-              border-[#E5E7EB]
+              border-background-200
               rounded-lg
               relative
               text-text-chatbar
@@ -233,7 +233,7 @@ export function SimplifiedChatInputBar({
         >
           <SendIcon
             size={28}
-            className={`text-emphasis text-white p-1 rounded-full  ${
+            className={`text-emphasis text-onyx-white p-1 rounded-full  ${
               message ? "bg-submit-background" : "bg-disabled-submit-background"
             } `}
           />

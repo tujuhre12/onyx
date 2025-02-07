@@ -80,10 +80,10 @@ export function DocumentPreview({
       {open && (
         <button
           onClick={() => open()}
-          className="ml-2 p-2 rounded-full hover:bg-gray-200 transition-colors duration-200"
+          className="ml-2 p-2 rounded-full hover:bg-gray-background-200 transition-colors duration-200"
           aria-label="Expand document"
         >
-          <ExpandTwoIcon className="w-5 h-5 text-gray-600" />
+          <ExpandTwoIcon className="w-5 h-5 text-gray-background-600" />
         </button>
       )}
     </div>

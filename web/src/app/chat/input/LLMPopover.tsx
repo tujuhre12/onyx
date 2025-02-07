@@ -139,7 +139,7 @@ export default function LLMPopover({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-64 p-1 bg-background border border-gray-200 rounded-md shadow-lg flex flex-col"
+        className="w-64 p-1 bg-background border border-gray-background-200 rounded-md shadow-lg flex flex-col"
       >
         <div className="flex-grow max-h-[300px] default-scrollbar overflow-y-auto">
           {llmOptions.map(({ name, icon, value }, index) => {
@@ -147,9 +147,9 @@ export default function LLMPopover({
               return (
                 <button
                   key={index}
-                  className={`w-full flex items-center gap-x-2 px-3 py-2 text-sm text-left hover:bg-gray-100 transition-colors duration-150 ${
+                  className={`w-full flex items-center gap-x-2 px-3 py-2 text-sm text-left hover:bg-gray-background-100 transition-colors duration-150 ${
                     currentLlm === name
-                      ? "bg-gray-100 text-text"
+                      ? "bg-gray-background-100 text-text"
                       : "text-text-darker"
                   }`}
                   onClick={() => {
@@ -193,7 +193,7 @@ export default function LLMPopover({
           })}
         </div>
         {user?.preferences?.temperature_override_enabled && (
-          <div className="mt-2 pt-2 border-t border-gray-200">
+          <div className="mt-2 pt-2 border-t border-gray-background-200">
             <div className="w-full px-3 py-2">
               <Slider
                 value={[localTemperature]}
@@ -204,7 +204,7 @@ export default function LLMPopover({
                 onValueCommit={handleTemperatureChangeComplete}
                 className="w-full"
               />
-              <div className="flex justify-between text-xs text-gray-500 mt-2">
+              <div className="flex justify-between text-xs text-gray-background-500 mt-2">
                 <span>Temperature (creativity)</span>
                 <span>{localTemperature.toFixed(1)}</span>
               </div>
