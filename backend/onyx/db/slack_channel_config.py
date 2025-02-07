@@ -182,7 +182,6 @@ def update_slack_channel_config(
         )
 
     # update the config
-    print("CHANNEL CONFIG IS 2 ", slack_channel_config.channel_config)
     slack_channel_config.persona_id = persona_id
     slack_channel_config.channel_config = channel_config
     slack_channel_config.standard_answer_categories = list(
