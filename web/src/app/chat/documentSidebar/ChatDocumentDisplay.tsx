@@ -82,8 +82,10 @@ export function ChatDocumentDisplay({
   return (
     <div className="desktop:max-w-[400px] opacity-100 w-full">
       <div
-        className={`flex relative flex-col px-3 py-2.5 gap-0.5 rounded-xl my-1 ${
-          isSelected ? "bg-new-background" : "bg- hover:bg-new-background/80"
+        className={`flex relative flex-col px-3 py-2.5 gap-0.5  rounded-xl my-1 ${
+          isSelected
+            ? "bg-new-background"
+            : " hover:bg-new-background hover:bg-opacity-50"
         }`}
       >
         <button

@@ -157,7 +157,7 @@ export function UserSettingsModal({
   return (
     <Modal
       onOutsideClick={onClose}
-      width="rounded-lg w-full bg-onyx-white max-w-xl"
+      width="rounded-lg w-full bg-background-100 max-w-xl"
     >
       <>
         <div className="flex mb-4">

@@ -207,13 +207,18 @@
 
     --gray-background: #1d1d1d;
     --gray-background-dark: #252525;
-    --new-background: #2a2a2a;
-    --new-background-light: #343434;
+
+    --new-background: #2c2c2c;
+    --new-background-light: #383838;
+
     --background-chatbar: #202020;
     --background-chat-hover: #3a3a3a;
     --background-chat-selected: #2f2f2f;
     --background-sidebar: #171717;
     --black: #000000;
+
+    --accent-background: #181816;
+    --accent-background-hovered: #1a1a18;
 
     --text-darker: #dcdcdc;
 
