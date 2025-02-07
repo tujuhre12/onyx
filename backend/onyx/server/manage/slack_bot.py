@@ -145,13 +145,11 @@ def patch_slack_channel_config(
     db_session: Session = Depends(get_session),
     _: User | None = Depends(current_admin_user),
 ) -> SlackChannelConfig:
-    print("GETTING CHANNEL CONFIG")
     channel_config = _form_channel_config(
         db_session=db_session,
         slack_channel_config_creation_request=slack_channel_config_creation_request,
         current_slack_channel_config_id=slack_channel_config_id,
     )
-    print("CHANNEL CONFIG IS ", channel_config)
 
     persona_id = None
     if slack_channel_config_creation_request.persona_id is not None:
