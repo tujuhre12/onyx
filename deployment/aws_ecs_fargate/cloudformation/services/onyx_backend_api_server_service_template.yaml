@@ -21,6 +21,23 @@ Parameters:
   TaskDesiredCount:
     Type: Number
     Default: 1
+  AuthType:
+    Type: String
+    Default: basic
+  RequireEmailVerification:
+    Type: String
+    Default: "true"
+  SmtpUser:
+    Description: Email to send verification emails.
+    Type: String
+  SmtpServer:
+    Description: Non-Google email account server
+    Type: String
+    Default: ""
+  SmtpPort:
+    Description: Non-Google email account port
+    Type: String
+    Default: ""
 
 Resources:
 
@@ -168,10 +185,20 @@ Resources:
                 - ImportedNamespace: !ImportValue
                     Fn::Sub: "${Environment}-onyx-cluster-OnyxNamespaceName"
             - Name: AUTH_TYPE
-              Value: disabled
+              Value: !Ref AuthType
+            - Name: REQUIRE_EMAIL_VERIFICATION
+              Value: !Ref RequireEmailVerification
+            - Name: SMTP_USER
+              Value: !Ref SmtpUser
+            - Name: SMTP_SERVER
+              Value: !Ref SmtpServer
+            - Name: SMTP_PORT
+              Value: !Ref SmtpPort
           Secrets:
             - Name: POSTGRES_PASSWORD
               ValueFrom: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Environment}/postgres/user/password
+            - Name: SMTP_PASS
+              Value: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Environment}/smtp/verification/password
           VolumesFrom: []
           SystemControls: []
 

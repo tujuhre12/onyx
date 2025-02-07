@@ -40,6 +40,7 @@ EFS_PARAMETERS_FILE="onyx_efs_parameters.json"
 ACM_PARAMETERS_FILE="onyx_acm_parameters.json"
 CLUSTER_PARAMETERS_FILE="onyx_cluster_parameters.json"
 LAMBDA_PARAMETERS_FILE="onyx_lambda_cron_restart_services_parameters.json"
+BACKEND_API_PARAMETERS_FILE="$SERVICE_DIR/onyx_backend_api_server_service_parameters.json"
 
 # Function to validate a CloudFormation template
 validate_template() {
@@ -133,10 +134,12 @@ deploy_services_stacks() {
       stack_name=$(convert_underscores_to_hyphens "$stack_name")
 
       # Use the common parameters file for specific services
-      if [[ "$template_name" =~ ^(onyx_backend_api_server_service_template.yaml|onyx_postgres_service_template.yaml|onyx_backend_background_server_service_template.yaml|onyx_redis_service_template.yaml|onyx_model_server_indexing_service_template.yaml|onyx_model_server_inference_service_template.yaml|onyx_vespaengine_service_template.yaml|onyx_web_server_service_template.yaml)$ ]]; then
+      if [[ "$template_name" =~ ^(onyx_postgres_service_template.yaml|onyx_backend_background_server_service_template.yaml|onyx_redis_service_template.yaml|onyx_model_server_indexing_service_template.yaml|onyx_model_server_inference_service_template.yaml|onyx_vespaengine_service_template.yaml|onyx_web_server_service_template.yaml)$ ]]; then
         config_file="$COMMON_PARAMETERS_FILE"
       elif [[ "$template_name" =~ ^(onyx_nginx_service_template.yaml)$ ]]; then
         config_file="$NGINX_PARAMETERS_FILE"
+      elif [[ "$template_name" =~ ^(onyx_backend_api_server_service_template.yaml)$ ]]; then
+        config_file="$BACKEND_API_PARAMETERS_FILE"
       else
           config_file=""
       fi
