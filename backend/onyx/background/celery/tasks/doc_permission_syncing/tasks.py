@@ -228,12 +228,15 @@ def try_creating_permissions_sync_task(
 
         # create before setting fence to avoid race condition where the monitoring
         # task updates the sync record before it is created
-        with get_session_with_tenant(tenant_id) as db_session:
-            insert_sync_record(
-                db_session=db_session,
-                entity_id=cc_pair_id,
-                sync_type=SyncType.EXTERNAL_PERMISSIONS,
-            )
+        try:
+            with get_session_with_tenant(tenant_id) as db_session:
+                insert_sync_record(
+                    db_session=db_session,
+                    entity_id=cc_pair_id,
+                    sync_type=SyncType.EXTERNAL_PERMISSIONS,
+                )
+        except Exception:
+            task_logger.exception("insert_sync_record exceptioned.")
 
         # set a basic fence to start
         redis_connector.permissions.set_active()
@@ -257,7 +260,6 @@ def try_creating_permissions_sync_task(
         )
 
         # fill in the celery task id
-        redis_connector.permissions.set_active()
         payload.celery_task_id = result.id
         redis_connector.permissions.set_fence(payload)
 

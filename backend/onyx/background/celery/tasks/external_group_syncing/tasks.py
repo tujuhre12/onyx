@@ -224,12 +224,28 @@ def try_creating_external_group_sync_task(
         redis_connector.external_group_sync.generator_clear()
         redis_connector.external_group_sync.taskset_clear()
 
+        # create before setting fence to avoid race condition where the monitoring
+        # task updates the sync record before it is created
+        try:
+            with get_session_with_tenant(tenant_id) as db_session:
+                insert_sync_record(
+                    db_session=db_session,
+                    entity_id=cc_pair_id,
+                    sync_type=SyncType.EXTERNAL_GROUP,
+                )
+        except Exception:
+            task_logger.exception("insert_sync_record exceptioned.")
+
+        # Signal active before creating fence
+        redis_connector.external_group_sync.set_active()
+
         payload = RedisConnectorExternalGroupSyncPayload(
             id=make_short_id(),
             submitted=datetime.now(timezone.utc),
             started=None,
             celery_task_id=None,
         )
+        redis_connector.external_group_sync.set_fence(payload)
 
         custom_task_id = f"{redis_connector.external_group_sync.taskset_key}_{uuid4()}"
 
@@ -243,15 +259,6 @@ def try_creating_external_group_sync_task(
             task_id=custom_task_id,
             priority=OnyxCeleryPriority.HIGH,
         )
-
-        # create before setting fence to avoid race condition where the monitoring
-        # task updates the sync record before it is created
-        with get_session_with_tenant(tenant_id) as db_session:
-            insert_sync_record(
-                db_session=db_session,
-                entity_id=cc_pair_id,
-                sync_type=SyncType.EXTERNAL_GROUP,
-            )
 
         payload.celery_task_id = result.id
         redis_connector.external_group_sync.set_fence(payload)

@@ -233,8 +233,21 @@ def try_creating_prune_generator_task(
 
         custom_task_id = f"{redis_connector.prune.generator_task_key}_{uuid4()}"
 
-        # set a basic fence to start
+        # create before setting fence to avoid race condition where the monitoring
+        # task updates the sync record before it is created
+        try:
+            insert_sync_record(
+                db_session=db_session,
+                entity_id=cc_pair.id,
+                sync_type=SyncType.PRUNING,
+            )
+        except Exception:
+            task_logger.exception("insert_sync_record exceptioned.")
+
+        # signal active before the fence is set
         redis_connector.prune.set_active()
+
+        # set a basic fence to start
         payload = RedisConnectorPrunePayload(
             id=make_short_id(),
             submitted=datetime.now(timezone.utc),
@@ -256,16 +269,7 @@ def try_creating_prune_generator_task(
             priority=OnyxCeleryPriority.LOW,
         )
 
-        # create before setting fence to avoid race condition where the monitoring
-        # task updates the sync record before it is created
-        insert_sync_record(
-            db_session=db_session,
-            entity_id=cc_pair.id,
-            sync_type=SyncType.PRUNING,
-        )
-
         # fill in the celery task id
-        redis_connector.prune.set_active()
         payload.celery_task_id = result.id
         redis_connector.prune.set_fence(payload)
 
