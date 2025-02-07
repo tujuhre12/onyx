@@ -10,6 +10,7 @@ from typing import Literal
 from typing import TypedDict
 from uuid import UUID
 
+import openai
 from langchain_core.messages import BaseMessage
 from langchain_core.messages import HumanMessage
 from langgraph.types import StreamWriter
@@ -34,6 +35,9 @@ from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import StreamStopReason
 from onyx.chat.models import StreamType
 from onyx.chat.prompt_builder.answer_prompt_builder import AnswerPromptBuilder
+from onyx.configs.agent_configs import (
+    AGENT_TIMEOUT_OVERWRITE_LLM_HISTORY_SUMMARY_GENERATION,
+)
 from onyx.configs.chat_configs import CHAT_TARGET_CHUNK_PERCENTAGE
 from onyx.configs.chat_configs import MAX_CHUNKS_FED_TO_CHAT
 from onyx.configs.constants import DEFAULT_PERSONA_ID
@@ -372,7 +376,20 @@ def summarize_history(
         )
     )
 
-    history_response = llm.invoke(history_context_prompt)
+    try:
+        history_response = llm.invoke(
+            history_context_prompt,
+            timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_HISTORY_SUMMARY_GENERATION,
+        )
+    except openai.APITimeoutError:
+        return (
+            history  # this is what is done at this point anyway, so wwe default to this
+        )
+
+    except Exception:
+        return (
+            history  # this is what is done at this point anyway, so wwe default to this
+        )
     assert isinstance(history_response.content, str)
     return history_response.content
 

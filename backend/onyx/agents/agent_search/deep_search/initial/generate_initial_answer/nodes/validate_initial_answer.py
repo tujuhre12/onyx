@@ -25,7 +25,7 @@ def validate_initial_answer(
         f"--------{node_start_time}--------Checking for base answer validity - for not set True/False manually"
     )
 
-    verdict = True
+    verdict = True  # not actually requitred as already streamed out. Refinement will do similar
 
     return InitialAnswerQualityUpdate(
         initial_answer_quality_eval=verdict,

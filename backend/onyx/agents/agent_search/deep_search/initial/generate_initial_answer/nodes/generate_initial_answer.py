@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any
 from typing import cast
 
+import openai
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.runnables import RunnableConfig
@@ -26,6 +27,7 @@ from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     trim_prompt_piece,
 )
+from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.models import InitialAgentResultStats
 from onyx.agents.agent_search.shared_graph_utils.operators import (
     dedup_inference_sections,
@@ -42,12 +44,16 @@ from onyx.agents.agent_search.shared_graph_utils.utils import remove_document_ci
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import ExtendedToolResponse
+from onyx.chat.models import StreamingError
 from onyx.configs.agent_configs import AGENT_MAX_ANSWER_CONTEXT_DOCS
 from onyx.configs.agent_configs import AGENT_MIN_ORIG_QUESTION_DOCS
-from onyx.context.search.models import InferenceSection
-from onyx.prompts.agent_search import (
-    INITIAL_ANSWER_PROMPT_W_SUB_QUESTIONS,
+from onyx.configs.agent_configs import (
+    AGENT_TIMEOUT_OVERWRITE_LLM_INITIAL_ANSWER_GENERATION,
 )
+from onyx.context.search.models import InferenceSection
+from onyx.prompts.agent_search import AGENT_LLM_ERROR_MESSAGE
+from onyx.prompts.agent_search import AGENT_LLM_TIMEOUT_MESSAGE
+from onyx.prompts.agent_search import INITIAL_ANSWER_PROMPT_W_SUB_QUESTIONS
 from onyx.prompts.agent_search import (
     INITIAL_ANSWER_PROMPT_WO_SUB_QUESTIONS,
 )
@@ -224,30 +230,80 @@ def generate_initial_answer(
 
         streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
         dispatch_timings: list[float] = []
-        for message in model.stream(msg):
-            # TODO: in principle, the answer here COULD contain images, but we don't support that yet
-            content = message.content
-            if not isinstance(content, str):
-                raise ValueError(
-                    f"Expected content to be a string, but got {type(content)}"
-                )
-            start_stream_token = datetime.now()
 
+        agent_error: AgentError | None = None
+
+        try:
+            for message in model.stream(
+                msg,
+                timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_INITIAL_ANSWER_GENERATION,
+            ):
+                # TODO: in principle, the answer here COULD contain images, but we don't support that yet
+                content = message.content
+                if not isinstance(content, str):
+                    raise ValueError(
+                        f"Expected content to be a string, but got {type(content)}"
+                    )
+                start_stream_token = datetime.now()
+
+                write_custom_event(
+                    "initial_agent_answer",
+                    AgentAnswerPiece(
+                        answer_piece=content,
+                        level=0,
+                        level_question_num=0,
+                        answer_type="agent_level_answer",
+                    ),
+                    writer,
+                )
+                end_stream_token = datetime.now()
+                dispatch_timings.append(
+                    (end_stream_token - start_stream_token).microseconds
+                )
+                streamed_tokens.append(content)
+
+        except openai.APITimeoutError:
+            agent_error = AgentError(
+                error_type="timeout",
+                error_message=AGENT_LLM_TIMEOUT_MESSAGE,
+                error_result="LLM Timeout Error",
+            )
+
+        except Exception:
+            agent_error = AgentError(
+                error_type="LLM error",
+                error_message=AGENT_LLM_ERROR_MESSAGE,
+                error_result="LLM Error",
+            )
+
+        if agent_error:
             write_custom_event(
                 "initial_agent_answer",
-                AgentAnswerPiece(
-                    answer_piece=content,
-                    level=0,
-                    level_question_num=0,
-                    answer_type="agent_level_answer",
+                StreamingError(
+                    error=AGENT_LLM_TIMEOUT_MESSAGE,
                 ),
                 writer,
             )
-            end_stream_token = datetime.now()
-            dispatch_timings.append(
-                (end_stream_token - start_stream_token).microseconds
+            return InitialAnswerUpdate(
+                initial_answer=None,
+                error=AgentError(
+                    error_message=agent_error.error_message or "An LLM error occurred",
+                    error_type=agent_error.error_type,
+                    error_result=agent_error.error_result,
+                ),
+                initial_agent_stats=None,
+                generated_sub_questions=sub_questions,
+                agent_base_end_time=None,
+                agent_base_metrics=None,
+                log_messages=[
+                    get_langgraph_node_log_string(
+                        graph_component="initial - generate initial answer",
+                        node_name="generate initial answer",
+                        node_start_time=node_start_time,
+                        result=agent_error.error_result or "An LLM error occurred",
+                    )
+                ],
             )
-            streamed_tokens.append(content)
 
         logger.debug(
             f"Average dispatch time for initial answer: {sum(dispatch_timings) / len(dispatch_timings)}"

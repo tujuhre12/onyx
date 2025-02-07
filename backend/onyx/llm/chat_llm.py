@@ -380,6 +380,7 @@ class DefaultMultiLLM(LLM):
         tool_choice: ToolChoiceOptions | None,
         stream: bool,
         structured_response_format: dict | None = None,
+        timeout_overwrite: int | None = None,
     ) -> litellm.ModelResponse | litellm.CustomStreamWrapper:
         # litellm doesn't accept LangChain BaseMessage objects, so we need to convert them
         # to a dict representation
@@ -405,7 +406,7 @@ class DefaultMultiLLM(LLM):
                 stream=stream,
                 # model params
                 temperature=0,
-                timeout=self._timeout,
+                timeout=timeout_overwrite or self._timeout,
                 # For now, we don't support parallel tool calls
                 # NOTE: we can't pass this in if tools are not specified
                 # or else OpenAI throws an error
@@ -444,6 +445,7 @@ class DefaultMultiLLM(LLM):
         tools: list[dict] | None = None,
         tool_choice: ToolChoiceOptions | None = None,
         structured_response_format: dict | None = None,
+        timeout_overwrite: int | None = None,
     ) -> BaseMessage:
         if LOG_DANSWER_MODEL_INTERACTIONS:
             self.log_model_configs()
@@ -451,7 +453,12 @@ class DefaultMultiLLM(LLM):
         response = cast(
             litellm.ModelResponse,
             self._completion(
-                prompt, tools, tool_choice, False, structured_response_format
+                prompt,
+                tools,
+                tool_choice,
+                False,
+                structured_response_format,
+                timeout_overwrite,
             ),
         )
         choice = response.choices[0]
@@ -469,19 +476,31 @@ class DefaultMultiLLM(LLM):
         tools: list[dict] | None = None,
         tool_choice: ToolChoiceOptions | None = None,
         structured_response_format: dict | None = None,
+        timeout_overwrite: int | None = None,
     ) -> Iterator[BaseMessage]:
         if LOG_DANSWER_MODEL_INTERACTIONS:
             self.log_model_configs()
 
         if DISABLE_LITELLM_STREAMING:
-            yield self.invoke(prompt, tools, tool_choice, structured_response_format)
+            yield self.invoke(
+                prompt,
+                tools,
+                tool_choice,
+                structured_response_format,
+                timeout_overwrite,
+            )
             return
 
         output = None
         response = cast(
             litellm.CustomStreamWrapper,
             self._completion(
-                prompt, tools, tool_choice, True, structured_response_format
+                prompt,
+                tools,
+                tool_choice,
+                True,
+                structured_response_format,
+                timeout_overwrite,
             ),
         )
         try:

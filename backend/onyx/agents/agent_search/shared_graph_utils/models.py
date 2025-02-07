@@ -56,6 +56,12 @@ class InitialAgentResultStats(BaseModel):
     agent_effectiveness: dict[str, float | int | None]
 
 
+class AgentError(BaseModel):
+    error_message: str
+    error_type: str
+    error_result: str | None = None
+
+
 class RefinedAgentStats(BaseModel):
     revision_doc_efficiency: float | None
     revision_question_efficiency: float | None

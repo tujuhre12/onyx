@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any
 from typing import cast
 
+import openai
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.runnables import RunnableConfig
@@ -23,6 +24,7 @@ from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     trim_prompt_piece,
 )
+from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.models import InferenceSection
 from onyx.agents.agent_search.shared_graph_utils.models import RefinedAgentStats
 from onyx.agents.agent_search.shared_graph_utils.operators import (
@@ -43,8 +45,14 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import ExtendedToolResponse
+from onyx.chat.models import StreamingError
 from onyx.configs.agent_configs import AGENT_MAX_ANSWER_CONTEXT_DOCS
 from onyx.configs.agent_configs import AGENT_MIN_ORIG_QUESTION_DOCS
+from onyx.configs.agent_configs import (
+    AGENT_TIMEOUT_OVERWRITE_LLM_REFINED_ANSWER_GENERATION,
+)
+from onyx.prompts.agent_search import AGENT_LLM_ERROR_MESSAGE
+from onyx.prompts.agent_search import AGENT_LLM_TIMEOUT_MESSAGE
 from onyx.prompts.agent_search import (
     REFINED_ANSWER_PROMPT_W_SUB_QUESTIONS,
 )
@@ -231,28 +239,78 @@ def generate_refined_answer(
 
     streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
     dispatch_timings: list[float] = []
-    for message in model.stream(msg):
-        # TODO: in principle, the answer here COULD contain images, but we don't support that yet
-        content = message.content
-        if not isinstance(content, str):
-            raise ValueError(
-                f"Expected content to be a string, but got {type(content)}"
-            )
+    agent_error: AgentError | None = None
 
-        start_stream_token = datetime.now()
+    try:
+        for message in model.stream(
+            msg, timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_REFINED_ANSWER_GENERATION
+        ):
+            # TODO: in principle, the answer here COULD contain images, but we don't support that yet
+            content = message.content
+            if not isinstance(content, str):
+                raise ValueError(
+                    f"Expected content to be a string, but got {type(content)}"
+                )
+
+            start_stream_token = datetime.now()
+            write_custom_event(
+                "refined_agent_answer",
+                AgentAnswerPiece(
+                    answer_piece=content,
+                    level=1,
+                    level_question_num=0,
+                    answer_type="agent_level_answer",
+                ),
+                writer,
+            )
+            end_stream_token = datetime.now()
+            dispatch_timings.append(
+                (end_stream_token - start_stream_token).microseconds
+            )
+            streamed_tokens.append(content)
+
+    except openai.APITimeoutError:
+        agent_error = AgentError(
+            error_type="timeout",
+            error_message=AGENT_LLM_TIMEOUT_MESSAGE,
+            error_result="LLM Timeout Error",
+        )
+
+    except Exception:
+        agent_error = AgentError(
+            error_type="LLM error",
+            error_message=AGENT_LLM_ERROR_MESSAGE,
+            error_result="LLM Error",
+        )
+
+    if agent_error:
         write_custom_event(
-            "refined_agent_answer",
-            AgentAnswerPiece(
-                answer_piece=content,
-                level=1,
-                level_question_num=0,
-                answer_type="agent_level_answer",
+            "initial_agent_answer",
+            StreamingError(
+                error=AGENT_LLM_TIMEOUT_MESSAGE,
             ),
             writer,
         )
-        end_stream_token = datetime.now()
-        dispatch_timings.append((end_stream_token - start_stream_token).microseconds)
-        streamed_tokens.append(content)
+
+        return RefinedAnswerUpdate(
+            refined_answer=None,
+            refined_answer_quality=False,  # TODO: replace this with the actual check value
+            refined_agent_stats=None,
+            agent_refined_end_time=None,
+            agent_refined_metrics=AgentRefinedMetrics(
+                refined_doc_boost_factor=0.0,
+                refined_question_boost_factor=0.0,
+                duration_s=None,
+            ),
+            log_messages=[
+                get_langgraph_node_log_string(
+                    graph_component="main",
+                    node_name="generate refined answer",
+                    node_start_time=node_start_time,
+                    result=agent_error.error_result or "An LLM error occurred",
+                )
+            ],
+        )
 
     logger.debug(
         f"Average dispatch time for refined answer: {sum(dispatch_timings) / len(dispatch_timings)}"
@@ -265,49 +323,6 @@ def generate_refined_answer(
         revision_doc_efficiency=refined_doc_effectiveness,
         revision_question_efficiency=revision_question_efficiency,
     )
-
-    logger.debug(f"\n\n---INITIAL ANSWER ---\n\n Answer:\n Agent: {initial_answer}")
-    logger.debug("-" * 10)
-    logger.debug(f"\n\n---REVISED AGENT ANSWER ---\n\n Answer:\n Agent: {answer}")
-
-    logger.debug("-" * 100)
-
-    if state.initial_agent_stats:
-        initial_doc_boost_factor = state.initial_agent_stats.agent_effectiveness.get(
-            "utilized_chunk_ratio", "--"
-        )
-        initial_support_boost_factor = (
-            state.initial_agent_stats.agent_effectiveness.get("support_ratio", "--")
-        )
-        num_initial_verified_docs = state.initial_agent_stats.original_question.get(
-            "num_verified_documents", "--"
-        )
-        initial_verified_docs_avg_score = (
-            state.initial_agent_stats.original_question.get("verified_avg_score", "--")
-        )
-        initial_sub_questions_verified_docs = (
-            state.initial_agent_stats.sub_questions.get("num_verified_documents", "--")
-        )
-
-        logger.debug("INITIAL AGENT STATS")
-        logger.debug(f"Document Boost Factor: {initial_doc_boost_factor}")
-        logger.debug(f"Support Boost Factor: {initial_support_boost_factor}")
-        logger.debug(f"Originally Verified Docs: {num_initial_verified_docs}")
-        logger.debug(
-            f"Originally Verified Docs Avg Score: {initial_verified_docs_avg_score}"
-        )
-        logger.debug(
-            f"Sub-Questions Verified Docs: {initial_sub_questions_verified_docs}"
-        )
-    if refined_agent_stats:
-        logger.debug("-" * 10)
-        logger.debug("REFINED AGENT STATS")
-        logger.debug(
-            f"Revision Doc Factor: {refined_agent_stats.revision_doc_efficiency}"
-        )
-        logger.debug(
-            f"Revision Question Factor: {refined_agent_stats.revision_question_efficiency}"
-        )
 
     agent_refined_end_time = datetime.now()
     if state.agent_refined_start_time:

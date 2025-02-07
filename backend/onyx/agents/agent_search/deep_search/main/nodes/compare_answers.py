@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import cast
 
+import openai
+from langchain_core.messages import BaseMessage
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
@@ -10,11 +12,15 @@ from onyx.agents.agent_search.deep_search.main.states import (
 )
 from onyx.agents.agent_search.deep_search.main.states import MainState
 from onyx.agents.agent_search.models import GraphConfig
+from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.chat.models import RefinedAnswerImprovement
+from onyx.configs.agent_configs import AGENT_TIMEOUT_OVERWRITE_LLM_COMPARE_ANSWERS
+from onyx.prompts.agent_search import AGENT_LLM_ERROR_MESSAGE
+from onyx.prompts.agent_search import AGENT_LLM_TIMEOUT_MESSAGE
 from onyx.prompts.agent_search import (
     INITIAL_REFINED_ANSWER_COMPARISON_PROMPT,
 )
@@ -40,15 +46,43 @@ def compare_answers(
 
     msg = [HumanMessage(content=compare_answers_prompt)]
 
+    agent_error: AgentError | None = None
     # Get the rewritten queries in a defined format
     model = graph_config.tooling.fast_llm
-
+    resp: BaseMessage | None = None
+    refined_answer_improvement: bool | None = None
     # no need to stream this
-    resp = model.invoke(msg)
+    try:
+        resp = model.invoke(
+            msg, timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_COMPARE_ANSWERS
+        )
 
-    refined_answer_improvement = (
-        isinstance(resp.content, str) and "yes" in resp.content.lower()
-    )
+    except openai.APITimeoutError:
+        agent_error = AgentError(
+            error_type="timeout",
+            error_message=AGENT_LLM_TIMEOUT_MESSAGE,
+            error_result="The LLM timed out, and the answers could not be compared.",
+        )
+
+    except Exception:
+        agent_error = AgentError(
+            error_type="LLM error",
+            error_message=AGENT_LLM_ERROR_MESSAGE,
+            error_result="The LLM errored out, and the answers could not be compared.",
+        )
+
+    if agent_error or resp is None:
+        refined_answer_improvement = True
+        if agent_error:
+            log_result = agent_error.error_result
+        else:
+            log_result = "An answer could not be generated."
+
+    else:
+        refined_answer_improvement = (
+            isinstance(resp.content, str) and "yes" in resp.content.lower()
+        )
+        log_result = f"Answer comparison: {refined_answer_improvement}"
 
     write_custom_event(
         "refined_answer_improvement",
@@ -65,7 +99,7 @@ def compare_answers(
                 graph_component="main",
                 node_name="compare answers",
                 node_start_time=node_start_time,
-                result=f"Answer comparison: {refined_answer_improvement}",
+                result=log_result,
             )
         ],
     )

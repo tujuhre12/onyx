@@ -1,6 +1,8 @@
 from datetime import datetime
+from typing import Any
 from typing import cast
 
+import openai
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_message_runs
 from langchain_core.runnables.config import RunnableConfig
@@ -16,14 +18,22 @@ from onyx.agents.agent_search.deep_search.shared.expanded_retrieval.states impor
     QueryExpansionUpdate,
 )
 from onyx.agents.agent_search.models import GraphConfig
+from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.utils import dispatch_separated
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import parse_question_id
+from onyx.configs.agent_configs import (
+    AGENT_TIMEOUT_OVERWRITE_LLM_QUERY_REWRITING_GENERATION,
+)
+from onyx.prompts.agent_search import AGENT_LLM_ERROR_MESSAGE
+from onyx.prompts.agent_search import AGENT_LLM_TIMEOUT_MESSAGE
 from onyx.prompts.agent_search import (
     QUERY_REWRITING_PROMPT,
 )
+
+BaseMessage_Content = str | list[str | dict[str, Any]]
 
 
 def expand_queries(
@@ -54,13 +64,41 @@ def expand_queries(
         )
     ]
 
-    llm_response_list = dispatch_separated(
-        llm.stream(prompt=msg), dispatch_subquery(level, question_num, writer)
-    )
+    agent_error: AgentError | None = None
+    llm_response_list: list[BaseMessage_Content] = []
 
-    llm_response = merge_message_runs(llm_response_list, chunk_separator="")[0].content
+    try:
+        llm_response_list = dispatch_separated(
+            llm.stream(
+                prompt=msg,
+                timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_QUERY_REWRITING_GENERATION,
+            ),
+            dispatch_subquery(level, question_num, writer),
+        )
+    except openai.APITimeoutError:
+        agent_error = AgentError(
+            error_type="timeout",
+            error_message=AGENT_LLM_TIMEOUT_MESSAGE,
+            error_result="Query rewriting failed due to LLM timeout - use original question.",
+        )
 
-    rewritten_queries = llm_response.split("\n")
+    except Exception:
+        agent_error = AgentError(
+            error_type="LLM error",
+            error_message=AGENT_LLM_ERROR_MESSAGE,
+            error_result="Query rewriting failed due to LLM error - use question.",
+        )
+
+    if agent_error:
+        llm_response = ""
+        rewritten_queries = [question]
+        log_result = agent_error.error_result
+    else:
+        llm_response = merge_message_runs(llm_response_list, chunk_separator="")[
+            0
+        ].content
+        rewritten_queries = llm_response.split("\n")
+        log_result = f"Number of expanded queries: {len(rewritten_queries)}"
 
     return QueryExpansionUpdate(
         expanded_queries=rewritten_queries,
@@ -69,7 +107,7 @@ def expand_queries(
                 graph_component="shared - expanded retrieval",
                 node_name="expand queries",
                 node_start_time=node_start_time,
-                result=f"Number of expanded queries: {len(rewritten_queries)}",
+                result=log_result,
             )
         ],
     )

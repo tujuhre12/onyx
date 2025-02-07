@@ -1,5 +1,7 @@
 from typing import cast
 
+import openai
+from langchain_core.messages import BaseMessage
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables.config import RunnableConfig
 
@@ -13,6 +15,10 @@ from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     trim_prompt_piece,
 )
+from onyx.agents.agent_search.shared_graph_utils.models import AgentError
+from onyx.configs.agent_configs import AGENT_TIMEOUT_OVERWRITE_LLM_DOCUMENT_VERIFICATION
+from onyx.prompts.agent_search import AGENT_LLM_ERROR_MESSAGE
+from onyx.prompts.agent_search import AGENT_LLM_TIMEOUT_MESSAGE
 from onyx.prompts.agent_search import (
     DOCUMENT_VERIFICATION_PROMPT,
 )
@@ -51,11 +57,35 @@ def verify_documents(
         )
     ]
 
-    response = fast_llm.invoke(msg)
+    agent_error: AgentError | None = None
+    response: BaseMessage | None = None
 
-    verified_documents = []
-    if isinstance(response.content, str) and "yes" in response.content.lower():
-        verified_documents.append(retrieved_document_to_verify)
+    try:
+        response = fast_llm.invoke(
+            msg, timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_DOCUMENT_VERIFICATION
+        )
+
+    except openai.APITimeoutError:
+        agent_error = AgentError(
+            error_type="timeout",
+            error_message=AGENT_LLM_TIMEOUT_MESSAGE,
+            error_result="The LLM timed out, and the document could not be verified.",
+        )
+
+    except Exception:
+        agent_error = AgentError(
+            error_type="LLM error",
+            error_message=AGENT_LLM_ERROR_MESSAGE,
+            error_result="The LLM errored out, and the document could not be verified.",
+        )
+
+    if agent_error or response is None:
+        verified_documents = [retrieved_document_to_verify]
+
+    else:
+        verified_documents = []
+        if isinstance(response.content, str) and "yes" in response.content.lower():
+            verified_documents.append(retrieved_document_to_verify)
 
     return DocVerificationUpdate(
         verified_documents=verified_documents,

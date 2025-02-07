@@ -26,6 +26,19 @@ def decide_refinement_need(
 
     decision = True  # TODO: just for current testing purposes
 
+    if state.error:
+        return RequireRefinemenEvalUpdate(
+            require_refined_answer_eval=False,
+            log_messages=[
+                get_langgraph_node_log_string(
+                    graph_component="main",
+                    node_name="decide refinement need",
+                    node_start_time=node_start_time,
+                    result="Timeout Error",
+                )
+            ],
+        )
+
     log_messages = [
         get_langgraph_node_log_string(
             graph_component="main",

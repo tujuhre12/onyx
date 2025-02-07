@@ -1,6 +1,8 @@
 from datetime import datetime
+from typing import Any
 from typing import cast
 
+import openai
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.runnables import RunnableConfig
@@ -23,6 +25,7 @@ from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     build_history_prompt,
 )
+from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.utils import dispatch_separated
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
@@ -33,6 +36,11 @@ from onyx.chat.models import StreamStopReason
 from onyx.chat.models import StreamType
 from onyx.chat.models import SubQuestionPiece
 from onyx.configs.agent_configs import AGENT_NUM_DOCS_FOR_DECOMPOSITION
+from onyx.configs.agent_configs import (
+    AGENT_TIMEOUT_OVERWRITE_LLM_SUBQUESTION_GENERATION,
+)
+from onyx.prompts.agent_search import AGENT_LLM_ERROR_MESSAGE
+from onyx.prompts.agent_search import AGENT_LLM_TIMEOUT_MESSAGE
 from onyx.prompts.agent_search import (
     INITIAL_DECOMPOSITION_PROMPT_QUESTIONS_AFTER_SEARCH,
 )
@@ -42,6 +50,8 @@ from onyx.prompts.agent_search import (
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
+
+BaseMessage_Content = str | list[str | dict[str, Any]]
 
 
 def decompose_orig_question(
@@ -112,11 +122,33 @@ def decompose_orig_question(
     )
 
     # dispatches custom events for subquestion tokens, adding in subquestion ids.
-    streamed_tokens = dispatch_separated(
-        model.stream(msg),
-        dispatch_subquestion(0, writer),
-        sep_callback=dispatch_subquestion_sep(0, writer),
-    )
+
+
+    agent_error: AgentError | None = None
+    streamed_tokens: list[BaseMessage_Content] = []
+
+    try:
+        streamed_tokens = dispatch_separated(
+            model.stream(
+                msg,
+                timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_SUBQUESTION_GENERATION,
+            ),
+            dispatch_subquestion(0, writer),
+            sep_callback=dispatch_subquestion_sep(0, writer),
+        )
+    except openai.APITimeoutError:
+        agent_error = AgentError(
+            error_type="timeout",
+            error_message=AGENT_LLM_TIMEOUT_MESSAGE,
+            error_result="The LLM timed out, and the subquestions could not be generated.",
+        )
+
+    except Exception:
+        agent_error = AgentError(
+            error_type="LLM error",
+            error_message=AGENT_LLM_ERROR_MESSAGE,
+            error_result="The LLM errored out, and the subquestions could not be generated.",
+        )
 
     stop_event = StreamStopInfo(
         stop_reason=StreamStopReason.FINISHED,
@@ -125,19 +157,24 @@ def decompose_orig_question(
     )
     write_custom_event("stream_finished", stop_event, writer)
 
-    deomposition_response = merge_content(*streamed_tokens)
+    if agent_error:
+        initial_sub_questions: list[str] = []
+        log_result = agent_error.error_result
+    else:
+        deomposition_response = merge_content(*streamed_tokens)
 
-    # this call should only return strings. Commenting out for efficiency
-    # assert [type(tok) == str for tok in streamed_tokens]
+        # this call should only return strings. Commenting out for efficiency
+        # assert [type(tok) == str for tok in streamed_tokens]
 
-    # use no-op cast() instead of str() which runs code
-    # list_of_subquestions = clean_and_parse_list_string(cast(str, response))
-    list_of_subqs = cast(str, deomposition_response).split("\n")
+        # use no-op cast() instead of str() which runs code
+        # list_of_subquestions = clean_and_parse_list_string(cast(str, response))
+        list_of_subqs = cast(str, deomposition_response).split("\n")
 
-    decomp_list: list[str] = [sq.strip() for sq in list_of_subqs if sq.strip() != ""]
+        initial_sub_questions = [sq.strip() for sq in list_of_subqs if sq.strip() != ""]
+        log_result = f"decomposed original question into {len(initial_sub_questions)} subquestions"
 
     return InitialQuestionDecompositionUpdate(
-        initial_sub_questions=decomp_list,
+        initial_sub_questions=initial_sub_questions,
         agent_start_time=agent_start_time,
         agent_refined_start_time=None,
         agent_refined_end_time=None,
@@ -151,7 +188,7 @@ def decompose_orig_question(
                 graph_component="initial - generate sub answers",
                 node_name="decompose original question",
                 node_start_time=node_start_time,
-                result=f"decomposed original question into {len(decomp_list)} subquestions",
+                result=log_result,
             )
         ],
     )

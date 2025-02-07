@@ -5,8 +5,9 @@ UNKNOWN_ANSWER = "I do not have enough information to answer this question."
 NO_RECOVERED_DOCS = "No relevant information recovered"
 YES = "yes"
 NO = "no"
-
-
+AGENT_LLM_TIMEOUT_MESSAGE = "The agent timed out. Please try again."
+AGENT_LLM_ERROR_MESSAGE = "The agent encountered an error. Please try again."
+LLM_ANSWER_ERROR_MESSAGE = "The question was not answered due to an LLM error."
 # Framing/Support/Template Prompts
 HISTORY_FRAMING_PROMPT = f"""
 For more context, here is the history of the conversation so far that preceded this question:
