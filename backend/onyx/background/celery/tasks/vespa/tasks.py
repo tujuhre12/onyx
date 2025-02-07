@@ -912,7 +912,7 @@ def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool | None:
 
         # use a lookup table to find active fences. We still have to verify the fence
         # exists since it is an optimization and not the source of truth.
-        keys = cast(set[Any], r.smembers(OnyxRedisConstants.ACTIVE_FENCES))
+        keys = cast(set[Any], r_replica.smembers(OnyxRedisConstants.ACTIVE_FENCES))
         for key in keys:
             key_bytes = cast(bytes, key)
 
