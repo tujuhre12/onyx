@@ -198,7 +198,7 @@ Resources:
             - Name: POSTGRES_PASSWORD
               ValueFrom: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Environment}/postgres/user/password
             - Name: SMTP_PASS
-              Value: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Environment}/smtp/verification/password
+              ValueFrom: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Environment}/smtp/verification/password
           VolumesFrom: []
           SystemControls: []
 
