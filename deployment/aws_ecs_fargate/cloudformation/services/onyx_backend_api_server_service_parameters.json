@@ -17,7 +17,7 @@
 },
 {
 	"ParameterKey": "RequireEmailVerification",
-	"ParameterValue": "true"
+	"ParameterValue": ""
 },
 {
 	"ParameterKey": "SmtpUser",
