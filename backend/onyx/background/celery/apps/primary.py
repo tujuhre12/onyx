@@ -85,7 +85,7 @@ def on_worker_init(sender: Worker, **kwargs: Any) -> None:
     logger.info("worker_init signal received.")
 
     SqlEngine.set_app_name(POSTGRES_CELERY_WORKER_PRIMARY_APP_NAME)
-    SqlEngine.init_engine(pool_size=8, max_overflow=0)
+    SqlEngine.init_engine(pool_size=16, max_overflow=0)
 
     app_base.wait_for_redis(sender, **kwargs)
     app_base.wait_for_db(sender, **kwargs)
