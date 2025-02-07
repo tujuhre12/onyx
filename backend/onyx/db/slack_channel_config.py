@@ -151,6 +151,7 @@ def update_slack_channel_config(
     channel_config: ChannelConfig,
     standard_answer_category_ids: list[int],
     enable_auto_filters: bool,
+    disabled: bool,
 ) -> SlackChannelConfig:
     slack_channel_config = db_session.scalar(
         select(SlackChannelConfig).where(
@@ -181,6 +182,7 @@ def update_slack_channel_config(
         )
 
     # update the config
+    print("CHANNEL CONFIG IS 2 ", slack_channel_config.channel_config)
     slack_channel_config.persona_id = persona_id
     slack_channel_config.channel_config = channel_config
     slack_channel_config.standard_answer_categories = list(
