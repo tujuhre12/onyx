@@ -42,7 +42,7 @@ class TenantRedis(redis.Redis):
         self.tenant_id: str = tenant_id
 
     def _prefixed(self, key: str | bytes | memoryview) -> str | bytes | memoryview:
-        prefix: str = f"{self.tenant_id}:" if self.tenant_id else ""
+        prefix: str = f"{self.tenant_id}:"
         if isinstance(key, str):
             if key.startswith(prefix):
                 return key
