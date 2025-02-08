@@ -62,8 +62,8 @@ export function AgenticToggle({
               className={`
                 ${
                   proSearchEnabled
-                    ? "border-background-200 group-hover:border-black"
-                    : "border-background-200 group-hover:border-black"
+                    ? "border-background-200 group-hover:border-[#000] dark:group-hover:border-neutral-300"
+                    : "border-background-200 group-hover:border-[#000] dark:group-hover:border-neutral-300"
                 }
                  relative inline-flex h-[16px] w-8 items-center rounded-full transition-colors focus:outline-none border animate transition-all duration-200 border-background-200 group-hover:border-[1px]  `}
             >
@@ -86,7 +86,7 @@ export function AgenticToggle({
         </TooltipTrigger>
         <TooltipContent
           side="top"
-          className="w-72 p-4 bg-white rounded-lg shadow-lg border border-background-200"
+          className="w-72 p-4 bg-white rounded-lg shadow-lg border border-background-200 dark:border-neutral-900"
         >
           <div className="flex items-center space-x-2 mb-3">
             <h3 className="text-sm font-semibold text-text-900">

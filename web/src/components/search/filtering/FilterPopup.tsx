@@ -400,22 +400,22 @@ export function FilterPopup({
           </Button>
           <div className="text-xs text-text-500 flex items-center space-x-1">
             {filterManager.selectedSources.length > 0 && (
-              <span className="bg-background-100 px-1.5 py-0.5 rounded-full">
+              <span className="bg-background-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded-full">
                 {filterManager.selectedSources.length} sources
               </span>
             )}
             {filterManager.selectedDocumentSets.length > 0 && (
-              <span className="bg-background-100 px-1.5 py-0.5 rounded-full">
+              <span className="bg-background-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded-full">
                 {filterManager.selectedDocumentSets.length} sets
               </span>
             )}
             {filterManager.selectedTags.length > 0 && (
-              <span className="bg-background-100 px-1.5 py-0.5 rounded-full">
+              <span className="bg-background-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded-full">
                 {filterManager.selectedTags.length} tags
               </span>
             )}
             {filterManager.timeRange && (
-              <span className="bg-background-100 px-1.5 py-0.5 rounded-full">
+              <span className="bg-background-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded-full">
                 Date range
               </span>
             )}
