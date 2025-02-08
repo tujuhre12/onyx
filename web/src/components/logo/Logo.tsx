@@ -32,6 +32,7 @@ export function Logo({
   ) {
     return (
       <div style={{ height, width }} className={className}>
+        <span className="invisible w-0">{effectiveTheme}</span>
         <OnyxIcon
           size={height}
           className={`${className} ${
