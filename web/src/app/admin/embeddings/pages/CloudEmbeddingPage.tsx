@@ -499,7 +499,7 @@ export function CloudModelCard({
           className={`w-full p-2 rounded-lg text-sm ${
             enabled
               ? "bg-background-125 border border-border cursor-not-allowed"
-              : "bg-background border border-border hover:bg-hover cursor-pointer"
+              : "bg-background border border-border hover:bg-accent-background-hovered cursor-pointer"
           }`}
           onClick={() => {
             if (enabled) {

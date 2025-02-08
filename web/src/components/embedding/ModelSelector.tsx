@@ -22,7 +22,7 @@ export function ModelPreview({
   return (
     <CardSection
       className={`shadow-md ${
-        display ? "bg-inverted rounded-lg p-4" : "bg-hover-light p-2"
+        display ? "bg-inverted rounded-lg p-4" : "bg-accent-background p-2"
       } w-96 flex flex-col`}
     >
       <div className="font-bold text-lg flex">{model.model_name}</div>
@@ -83,7 +83,7 @@ export function ModelOption({
             className={`w-full p-2 rounded-lg text-sm ${
               selected
                 ? "bg-background-125 border border-border cursor-not-allowed"
-                : "bg-background border border-border hover:bg-hover cursor-pointer"
+                : "bg-background border border-border hover:bg-accent-background-hovered cursor-pointer"
             }`}
             onClick={(e) => {
               e.stopPropagation();

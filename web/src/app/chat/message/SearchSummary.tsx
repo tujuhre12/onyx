@@ -225,7 +225,7 @@ export function SearchSummary({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    className="ml-2 -my-2 mobile:hidden hover:bg-hover p-1 rounded flex-shrink-0 group-hover:opacity-100 opacity-0"
+                    className="ml-2 -my-2 mobile:hidden hover:bg-accent-background-hovered p-1 rounded flex-shrink-0 group-hover:opacity-100 opacity-0"
                     onClick={() => {
                       setIsEditing(true);
                     }}

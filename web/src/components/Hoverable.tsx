@@ -11,7 +11,7 @@ export const Hoverable: React.FC<{
 }> = ({ icon: Icon, active, hoverText, onClick, size = ICON_SIZE }) => {
   return (
     <div
-      className={`group relative flex items-center overflow-hidden  p-1.5  h-fit rounded-md cursor-pointer transition-all duration-300 ease-in-out hover:bg-hover`}
+      className={`group relative flex items-center overflow-hidden  p-1.5  h-fit rounded-md cursor-pointer transition-all duration-300 ease-in-out hover:bg-accent-background-hovered`}
       onClick={onClick}
     >
       <div className="flex items-center">

@@ -76,12 +76,16 @@ function SummaryRow({
       </TableCell>
 
       <TableCell>
-        <div className="text-sm text-text-500">Total Connectors</div>
+        <div className="text-sm text-neutral-500 dark:text-neutral-300">
+          Total Connectors
+        </div>
         <div className="text-xl font-semibold">{summary.count}</div>
       </TableCell>
 
       <TableCell>
-        <div className="text-sm text-text-500">Active Connectors</div>
+        <div className="text-sm text-neutral-500 dark:text-neutral-300">
+          Active Connectors
+        </div>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -106,7 +110,9 @@ function SummaryRow({
 
       {isPaidEnterpriseFeaturesEnabled && (
         <TableCell>
-          <div className="text-sm text-text-500">Public Connectors</div>
+          <div className="text-sm text-neutral-500 dark:text-neutral-300">
+            Public Connectors
+          </div>
           <p className="flex text-xl mx-auto font-semibold items-center text-lg mt-1">
             {summary.public}/{summary.count}
           </p>
@@ -114,14 +120,18 @@ function SummaryRow({
       )}
 
       <TableCell>
-        <div className="text-sm text-text-500">Total Docs Indexed</div>
+        <div className="text-sm text-neutral-500 dark:text-neutral-300">
+          Total Docs Indexed
+        </div>
         <div className="text-xl font-semibold">
           {summary.totalDocsIndexed.toLocaleString()}
         </div>
       </TableCell>
 
       <TableCell>
-        <div className="text-sm text-text-500">Errors</div>
+        <div className="text-sm text-neutral-500 dark:text-neutral-300">
+          Errors
+        </div>
 
         <div className="flex items-center text-lg gap-x-1 font-semibold">
           {summary.errors > 0 && <Warning className="text-error h-6 w-6" />}
@@ -193,7 +203,7 @@ function ConnectorRow({
 
   return (
     <TableRow
-      className={`hover:bg-hover-light ${
+      className={`hover:bg-accent-background ${
         invisible
           ? "invisible !h-0 !-mb-10 !border-none"
           : "!border !border-border"

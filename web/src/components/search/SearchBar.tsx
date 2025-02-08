@@ -221,12 +221,12 @@ export const FullSearchBar = ({
               className="flex my-auto cursor-pointer"
             >
               <SendIcon
-                size={28}
-                className={`text-text-darker ${
-                  disabled || !query
-                    ? "bg-disabled-submit-background"
-                    : "bg-submit-background"
-                } text-white p-1 rounded-full`}
+                size={22}
+                className={`text-neutral-50 dark:text-neutral-900 p-1 my-auto rounded-full ${
+                  query
+                    ? "bg-neutral-900 dark:bg-neutral-50"
+                    : "bg-neutral-500 dark:bg-neutral-400"
+                }`}
               />
             </button>
           </div>

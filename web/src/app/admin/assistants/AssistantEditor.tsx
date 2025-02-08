@@ -1217,7 +1217,7 @@ export function AssistantEditor({
                           setFieldValue("label_ids", newLabelIds);
                         }}
                         itemComponent={({ option }) => (
-                          <div className="flex items-center justify-between px-4 py-3 text-sm hover:bg-hover cursor-pointer border-b border-border last:border-b-0">
+                          <div className="flex items-center justify-between px-4 py-3 text-sm hover:bg-accent-background-hovered cursor-pointer border-b border-border last:border-b-0">
                             <div
                               className="flex-grow"
                               onClick={() => {

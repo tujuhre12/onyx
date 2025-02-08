@@ -87,7 +87,7 @@ export const IsPublicGroupSelector = <T extends IsPublicGroupSelectorFormType>({
             }
             disabled={!isAdmin}
             subtext={
-              <span className="block mt-2 text-sm text-text-500">
+              <span className="block mt-2 text-sm text-text-600 dark:text-neutral-400">
                 If set, then this {objectName} will be usable by{" "}
                 <b>All {publicToWhom}</b>. Otherwise, only <b>Admins</b> and{" "}
                 <b>{publicToWhom}</b> who have explicitly been given access to
@@ -150,7 +150,9 @@ export const IsPublicGroupSelector = <T extends IsPublicGroupSelectorFormType>({
                         flex 
                         cursor-pointer 
                         ${
-                          isSelected ? "bg-background-strong" : "hover:bg-hover"
+                          isSelected
+                            ? "bg-background-strong"
+                            : "hover:bg-accent-background-hovered"
                         }
                       `}
                           onClick={() => {

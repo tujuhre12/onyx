@@ -147,9 +147,9 @@ export default function LLMPopover({
               return (
                 <button
                   key={index}
-                  className={`w-full flex items-center gap-x-2 px-3 py-2 text-sm text-left hover:bg-background-100 transition-colors duration-150 ${
+                  className={`w-full flex items-center gap-x-2 px-3 py-2 text-sm text-left hover:bg-background-100 dark:hover:bg-neutral-800 transition-colors duration-150 ${
                     currentLlm === name
-                      ? "bg-background-100 text-text"
+                      ? "bg-background-100 dark:bg-neutral-900 text-text"
                       : "text-text-darker"
                   }`}
                   onClick={() => {
@@ -157,7 +157,11 @@ export default function LLMPopover({
                     setIsOpen(false);
                   }}
                 >
-                  {icon({ size: 16, className: "flex-none my-auto " })}
+                  {icon({
+                    size: 16,
+                    className: "flex-none my-auto text-black",
+                  })}
+                  asdfasdf
                   <span className="line-clamp-1 ">
                     {getDisplayNameForModel(name)}
                   </span>

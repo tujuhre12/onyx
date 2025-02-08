@@ -292,6 +292,7 @@ module.exports = {
         accent: "var(--accent)",
         "agent-sidebar": "var(--agent-sidebar)",
         agent: "var(--agent)",
+        "lighter-agent": "var(--lighter-agent)",
 
         // hover
         "hover-light": "var(--hover-light)",

@@ -101,7 +101,7 @@ const AssistantCard: React.FC<{
   }, [persona.name]);
 
   return (
-    <div className="w-full p-2 overflow-visible pb-4 pt-3 bg-neutral-100 dark:bg-neutral-800/80 rounded shadow-[0px_0px_4px_0px_rgba(0,0,0,0.25)] flex flex-col">
+    <div className="w-full text-text-800 p-2 overflow-visible pb-4 pt-3 bg-transparent dark:bg-neutral-800/80 rounded shadow-[0px_0px_4px_0px_rgba(0,0,0,0.25)] flex flex-col">
       <div className="w-full flex">
         <div className="ml-2 flex-none mr-2 mt-1 w-10 h-10">
           <AssistantIcon assistant={persona} size="large" />
@@ -257,7 +257,7 @@ const AssistantCard: React.FC<{
 
           <div className="flex flex-col ">
             <div className="my-1.5">
-              <p className="flex items-center text-neutral-600 dark:text-neutral-400 text-xs opacity-50">
+              <p className="flex items-center text-neutral-800 dark:text-neutral-200 text-xs opacity-50">
                 {persona.owner?.email || persona.builtin_persona ? (
                   <>
                     <span className="truncate">
@@ -302,7 +302,7 @@ const AssistantCard: React.FC<{
                       router.push(`/chat?assistantId=${persona.id}`);
                       closeModal();
                     }}
-                    className="hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:text-neutral-900 dark:hover:text-neutral-100 px-2 py-1 gap-x-1 rounded border border-neutral-400 dark:border-neutral-600 flex items-center"
+                    className="hover:bg-neutral-100 dark:hover:bg-neutral-700 dark:bg-[#2E2E2D] hover:text-neutral-900 dark:hover:text-neutral-100 px-2 py-1 gap-x-1 rounded border border-neutral-400 dark:border-neutral-600 flex items-center"
                   >
                     <PencilIcon size={12} className="flex-none" />
                     <span className="text-xs">Start Chat</span>
@@ -324,7 +324,7 @@ const AssistantCard: React.FC<{
                         !pinned
                       );
                     }}
-                    className="hover:bg-neutral-200 dark:hover:bg-neutral-700 px-2 group cursor-pointer py-1 gap-x-1 relative rounded border border-neutral-400 dark:border-neutral-600 flex items-center w-[65px]"
+                    className="hover:bg-neutral-100  dark:hover:bg-neutral-700 dark:bg-[#2E2E2D] px-2 group cursor-pointer py-1 gap-x-1 relative rounded border border-neutral-400 dark:border-neutral-600 flex items-center w-[65px]"
                   >
                     <PinnedIcon size={12} />
                     {!pinned ? (

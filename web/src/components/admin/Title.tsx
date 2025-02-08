@@ -21,7 +21,6 @@ export function AdminPageTitle({
       <div className="w-full flex">
         <h1 className="text-3xl text-text-900 font-bold flex gap-x-2">
           {icon} {title}
-          ll
         </h1>
         {farRightElement && <div className="ml-auto">{farRightElement}</div>}
       </div>

@@ -17,10 +17,11 @@
     --neutral-100: #f5f5f5;
     --neutral-125: #f1f2f4; /* You had background-125 & text-125 as #f1f2f4 */
     --neutral-150: #eaeaea;
-    --neutral-200: #e5e5e5;
+    --neutral-200: #ececec;
     --neutral-300: #d4d4d4;
     --neutral-400: #a3a3a3;
     --neutral-500: #737373;
+    --neutral-600-border-dark: #525252;
     --neutral-600: #525252;
     --neutral-700: #404040;
     --neutral-800: #262626;
@@ -67,7 +68,7 @@
     --accent: 0 0% 96.1%;
     --accent-foreground: 0 0% 9%;
     --accent-background: #f0eee8;
-    --accent-background-hovered: #e6e1d6;
+    --accent-background-hovered: #e5e3dd;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --ring: 0 0% 3.9%;
@@ -119,6 +120,7 @@
     /* agent references */
     --agent-sidebar: #be5d0e;
     --agent: #e47011;
+    --lighter-agent: #f59e0b;
 
     /* Tremor brand & dark tremor brand references */
 
@@ -273,9 +275,9 @@
     /* --accent-background: #181816; */
     --accent-background: #262626;
 
-    --accent-background-hovered: #404040;
+    --accent-background-hovered: #2a2a2a;
 
-    --text-darker: #dcdcdc;
+    --text-darker: #f0f0f0;
 
     /* borders & input (reversed scales) */
     --neutral-200-border: #5a5a5a; /* was #e5e7eb */
@@ -367,6 +369,7 @@
     /* Agent references */
     --agent-sidebar: #be5d0e; /* You can keep or lighten/darken if desired */
     --agent: #e47011;
+    --lighter-agent: #f59e0b;
   }
 }
 

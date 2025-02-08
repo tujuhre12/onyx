@@ -168,7 +168,7 @@ export function AssistantModal({
               </button>
             </div>
             <div className="px-2 flex py-4 items-center gap-x-2 flex-wrap">
-              <FilterIcon size={16} />
+              <FilterIcon className="text-text-800" size={16} />
               <AssistantBadgeSelector
                 text="Pinned"
                 selected={assistantFilters[AssistantFilter.Pinned]}

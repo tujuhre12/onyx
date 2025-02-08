@@ -33,7 +33,6 @@ import { MdOutlineCreditCard } from "react-icons/md";
 import { UserSettingsModal } from "@/app/chat/modal/UserSettingsModal";
 import { usePopup } from "./connectors/Popup";
 import { useChatContext } from "../context/ChatContext";
-import { ModeToggle } from "@/app/chat/modal/ThemeToggle";
 
 export function ClientLayout({
   user,
@@ -76,7 +75,7 @@ export function ClientLayout({
           />
         )}
 
-        <div className="flex-none text-text-settings-sidebar bg-background-sidebar w-[250px] overflow-x-hidden z-20 pt-2 pb-8 h-full border-r border-border miniscroll overflow-auto">
+        <div className="flex-none text-text-settings-sidebar bg-background-sidebar w-[250px] overflow-x-hidden z-20 pt-2 pb-8 h-full border-r border-border dark:border-none miniscroll overflow-auto">
           <AdminSidebar
             collections={[
               {
@@ -423,7 +422,6 @@ export function ClientLayout({
           />
         </div>
         <div className="pb-8 relative h-full overflow-y-hidden w-full">
-          <ModeToggle />
           <div className="fixed left-0 gap-x-4 px-4 top-4 h-8 px-0 mb-auto w-full items-start flex justify-end">
             <UserDropdown toggleUserSettings={toggleUserSettings} />
           </div>

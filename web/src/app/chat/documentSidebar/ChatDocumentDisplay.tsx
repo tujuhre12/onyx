@@ -82,7 +82,7 @@ export function ChatDocumentDisplay({
   return (
     <div className="desktop:max-w-[400px] opacity-100 w-full">
       <div
-        className={`flex relative flex-col px-3 py-2.5 gap-0.5  rounded-xl my-1 ${
+        className={`flex relative  flex-col px-3 py-2.5 gap-0.5  rounded-xl my-1 ${
           isSelected
             ? "bg-accent-background-hovered"
             : " hover:bg-accent-background"

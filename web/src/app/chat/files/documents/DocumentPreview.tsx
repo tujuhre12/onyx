@@ -27,7 +27,7 @@ export function DocumentPreview({
         ${alignBubble && "min-w-52 max-w-48"}
         flex
         items-center
-        bg-hover-light/50
+        bg-accent-background/50
         border
         border-border
         rounded-lg
@@ -117,7 +117,7 @@ export function InputDocumentPreview({
         flex
         items-center
         p-2
-        bg-hover
+        bg-accent-background-hovered
         border
         border-border
         rounded-md

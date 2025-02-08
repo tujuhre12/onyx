@@ -139,7 +139,7 @@ function ToolForm({
             py-1 
             px-3 
             text-sm
-            hover:bg-hover-light
+            hover:bg-accent-background
           "
           onClick={() => {
             const definition = values.definition;

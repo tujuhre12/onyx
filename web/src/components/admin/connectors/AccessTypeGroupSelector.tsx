@@ -152,7 +152,7 @@ export function AccessTypeGroupSelector({
                             ${
                               isSelected
                                 ? "bg-background-strong"
-                                : "hover:bg-hover"
+                                : "hover:bg-accent-background-hovered"
                             }
                         `}
                           onClick={() => {

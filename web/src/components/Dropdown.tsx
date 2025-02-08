@@ -264,7 +264,7 @@ export function DefaultDropdownElement({
         bg-transparent 
         rounded
         text-text-dark
-        hover:bg-hover
+        hover:bg-accent-background-hovered
       `}
       onClick={onSelect}
     >

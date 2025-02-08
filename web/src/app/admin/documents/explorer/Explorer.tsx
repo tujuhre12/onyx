@@ -50,7 +50,7 @@ const DocumentDisplay = ({
         </a>
       </div>
       <div className="flex flex-wrap gap-x-2 mt-1 text-xs">
-        <div className="px-1 py-0.5 bg-hover rounded flex">
+        <div className="px-1 py-0.5 bg-accent-background-hovered rounded flex">
           <p className="mr-1 my-auto">Boost:</p>
           <ScoreSection
             documentId={document.document_id}
@@ -77,7 +77,7 @@ const DocumentDisplay = ({
               });
             }
           }}
-          className="px-1 py-0.5 bg-hover hover:bg-hover-light rounded flex cursor-pointer select-none"
+          className="px-1 py-0.5 bg-accent-background-hovered hover:bg-accent-background rounded flex cursor-pointer select-none"
         >
           <div className="my-auto">
             {document.hidden ? (

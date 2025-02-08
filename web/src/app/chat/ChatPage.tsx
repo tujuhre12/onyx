@@ -355,10 +355,6 @@ export function ChatPage({
     liveAssistant
   );
 
-  function toggleDarkMode() {
-    document.documentElement.classList.toggle("dark");
-  }
-
   const noAssistants = liveAssistant == null || liveAssistant == undefined;
 
   const availableSources = ccPairs.map((ccPair) => ccPair.source);
@@ -2422,7 +2418,7 @@ export function ChatPage({
                           className={`
                           flex-none 
                           overflow-y-hidden 
-                          bg-background-100 
+                          bg-transparent
                           transition-all 
                           bg-opacity-80
                           duration-300 
@@ -3076,7 +3072,6 @@ export function ChatPage({
                             </div>
                           )}
                           <div className="pointer-events-auto w-[95%] mx-auto relative mb-8">
-                            <Button onClick={toggleDarkMode}> Dark Mode</Button>
                             <ChatInputBar
                               proSearchEnabled={proSearchEnabled}
                               setProSearchEnabled={() => toggleProSearch()}
@@ -3160,7 +3155,7 @@ export function ChatPage({
                 <div className="mx-auto h-full flex">
                   <div
                     style={{ transition: "width 0.30s ease-out" }}
-                    className={`flex-none bg-transparent transition-all bg-opacity-80 duration-300 epase-in-out h-full
+                    className={`flex-none bg-transparent transition-all bg-opacity-80 duration-300 ease-in-out h-full
                         ${
                           toggledSidebar && !settings?.isMobile
                             ? "w-[250px] "

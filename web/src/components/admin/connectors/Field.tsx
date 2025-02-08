@@ -76,7 +76,11 @@ export function LabelWithTooltip({
 }
 
 export function SubLabel({ children }: { children: string | JSX.Element }) {
-  return <div className="text-sm text-text-dark/80 mb-2">{children}</div>;
+  return (
+    <div className="text-sm text-neutral-600 dark:text-neutral-300 mb-2">
+      {children}
+    </div>
+  );
 }
 
 export function ManualErrorMessage({ children }: { children: string }) {
@@ -276,9 +280,9 @@ export function TextFormField({
             placeholder:${sizeClass.placeholder}
             caret-accent
             focus-visible:outline-none
-            focus-visible:ring-2
-            focus-visible:ring-neutral-950
-            focus-visible:ring-offset-2
+            focus-visible:ring-1
+            focus-visible:ring-lighter-agent
+            focus-visible:ring-offset-1
             disabled:cursor-not-allowed
             disabled:opacity-50
             md:text-sm
@@ -528,6 +532,7 @@ export const BooleanFormField = ({
               }`}</Label>
               {tooltip && <ToolTipDetails>{tooltip}</ToolTipDetails>}
             </div>
+
             {subtext && <SubLabel>{subtext}</SubLabel>}
           </div>
         )}
@@ -601,7 +606,7 @@ export function TextArrayField<T extends Yup.AnyObject>({
                     <div className="my-auto">
                       {index >= minFields ? (
                         <FiX
-                          className="my-auto w-10 h-10 cursor-pointer hover:bg-hover rounded p-2"
+                          className="my-auto w-10 h-10 cursor-pointer hover:bg-accent-background-hovered rounded p-2"
                           onClick={() => arrayHelpers.remove(index)}
                         />
                       ) : (

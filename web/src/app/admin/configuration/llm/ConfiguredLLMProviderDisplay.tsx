@@ -75,7 +75,7 @@ function LLMProviderDisplay({
   return (
     <div>
       {popup}
-      <div className="border border-border p-3 rounded w-96 flex shadow-md">
+      <div className="border border-border p-3 dark:bg-neutral-800 rounded w-96 flex shadow-md">
         <div className="my-auto">
           <div className="font-bold">{providerName} </div>
           <div className="text-xs italic">({existingLlmProvider.provider})</div>

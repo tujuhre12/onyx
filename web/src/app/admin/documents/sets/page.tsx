@@ -68,7 +68,7 @@ const EditRow = ({
           <TooltipTrigger asChild>
             <div
               className={`
-              text-text-darkerfont-medium my-auto p-1 hover:bg-hover-light flex items-center select-none
+              text-text-darkerfont-medium my-auto p-1 hover:bg-accent-background flex items-center select-none
               ${documentSet.is_up_to_date ? "cursor-pointer" : "cursor-default"}
             `}
               style={{ wordBreak: "normal", overflowWrap: "break-word" }}

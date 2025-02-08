@@ -58,7 +58,7 @@ export function EditableValue({
   return (
     <div className="h-full flex flex-col">
       <div
-        className="flex my-auto cursor-pointer hover:bg-hover rounded"
+        className="flex my-auto cursor-pointer hover:bg-accent-background-hovered rounded"
         onClick={() => setIsOpen(true)}
       >
         <div className={"flex " + (consistentWidth && " w-6")}>

@@ -74,7 +74,7 @@ export const UserGroupsTable = ({
                 <TableRow key={userGroup.id}>
                   <TableCell>
                     <Link
-                      className="whitespace-nowrap overflow-hidden text-ellipsis inline-flex items-center cursor-pointer p-2 rounded hover:bg-hover max-w-full"
+                      className="whitespace-nowrap overflow-hidden text-ellipsis inline-flex items-center cursor-pointer p-2 rounded hover:bg-accent-background-hovered max-w-full"
                       href={`/admin/groups/${userGroup.id}`}
                     >
                       <FiEdit2 className="mr-2 flex-shrink-0" />

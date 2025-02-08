@@ -49,7 +49,7 @@ export function AdminSidebar({ collections }: { collections: Collection[] }) {
         </div>
         <div className="flex w-full justify-center">
           <Link href="/chat">
-            <button className="text-sm hover:bg-background-settings-hover flex items-center block w-52 py-2.5 flex px-2 text-left hover:bg-opacity-80 cursor-pointer rounded">
+            <button className="text-sm text-text-700 hover:bg-background-settings-hover flex items-center block w-52 py-2.5 flex px-2 text-left hover:bg-opacity-80 cursor-pointer rounded">
               <CgArrowsExpandUpLeft className="my-auto" size={18} />
               <p className="ml-1 break-words line-clamp-2 ellipsis leading-none">
                 Exit Admin
@@ -71,18 +71,6 @@ export function AdminSidebar({ collections }: { collections: Collection[] }) {
                   className={`text-sm text-text-700 block flex gap-x-2 items-center w-52 py-2.5 px-2 text-left hover:bg-background-settings-hover rounded`}
                 >
                   {item.name}
-                  {item.error && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <WarningCircle size={18} className="text-error" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          Navigate here to update your search settings
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
                 </button>
               </Link>
             ))}

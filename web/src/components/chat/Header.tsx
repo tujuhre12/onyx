@@ -140,13 +140,11 @@ export default function FunctionalHeader({
             {setSharingModalVisible && !hideUserDropdown && (
               <div
                 onClick={() => setSharingModalVisible(true)}
-                className="mobile:hidden mr-2 my-auto rounded-full p-1 cursor-pointer hover:bg-hover-light"
+                className="mobile:hidden mr-2 my-auto rounded-full p-1 cursor-pointer hover:bg-accent-background"
               >
                 <FiShare2 size="18" />
               </div>
             )}
-
-            <ModeToggle />
 
             <div className="mobile:hidden flex my-auto">
               <UserDropdown

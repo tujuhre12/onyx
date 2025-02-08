@@ -42,7 +42,7 @@ export function DateRangeSelector({
             border 
             border-border 
             cursor-pointer 
-            hover:bg-hover`}
+            hover:bg-accent-background-hovered`}
         >
           <FiCalendar className="flex-none my-auto mr-2" />{" "}
           <p className="line-clamp-1">

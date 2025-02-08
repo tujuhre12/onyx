@@ -76,7 +76,7 @@ export const FeedbackModal = ({
           {predefinedFeedbackOptions.map((feedback, index) => (
             <button
               key={index}
-              className={`bg-background-dark hover:bg-hover text-default py-2 px-4 rounded m-1 
+              className={`bg-background-dark hover:bg-accent-background-hovered text-default py-2 px-4 rounded m-1 
                 ${predefinedFeedback === feedback && "ring-2 ring-accent/20"}`}
               onClick={() => handlePredefinedFeedback(feedback)}
             >

@@ -156,10 +156,7 @@ export function UserSettingsModal({
       : user?.preferences?.auto_scroll;
 
   return (
-    <Modal
-      onOutsideClick={onClose}
-      width="rounded-lg w-full bg-background-100 max-w-xl"
-    >
+    <Modal onOutsideClick={onClose} width="rounded-lg w-full max-w-xl">
       <>
         <div className="flex mb-4">
           <h2 className="text-2xl text-text-darker font-bold flex my-auto">
@@ -167,46 +164,65 @@ export function UserSettingsModal({
           </h2>
         </div>
 
-        <div className="flex flex-col gap-y-2">
-          <div className="flex items-center gap-x-2">
-            <Switch
-              size="sm"
-              checked={checked}
-              onCheckedChange={(checked) => {
-                updateUserAutoScroll(checked);
-              }}
-            />
-            <Label className="text-sm">Enable auto-scroll</Label>
+        <div className="flex flex-col gap-y-4">
+          <div className="flex flex-col gap-y-3">
+            <h3 className="text-lg text-text-darker font-semibold mb-2">
+              General Settings
+            </h3>
+            <div className="flex flex-col gap-y-3">
+              <div className="flex items-center gap-x-3">
+                <Switch
+                  size="sm"
+                  checked={checked}
+                  onCheckedChange={(checked) => {
+                    updateUserAutoScroll(checked);
+                  }}
+                />
+                <Label className="text-sm">Auto-scroll</Label>
+              </div>
+              <div className="flex items-center gap-x-3">
+                <Switch
+                  size="sm"
+                  checked={user?.preferences?.shortcut_enabled}
+                  onCheckedChange={(checked) => {
+                    updateUserShortcuts(checked);
+                  }}
+                />
+                <Label className="text-sm">Prompt Shortcuts</Label>
+              </div>
+              <div className="flex items-center gap-x-3">
+                <Switch
+                  size="sm"
+                  checked={user?.preferences?.temperature_override_enabled}
+                  onCheckedChange={(checked) => {
+                    updateUserTemperatureOverrideEnabled(checked);
+                  }}
+                />
+                <Label className="text-sm">Temperature Override</Label>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-x-2">
-            <Switch
-              size="sm"
-              checked={user?.preferences?.shortcut_enabled}
-              onCheckedChange={(checked) => {
-                updateUserShortcuts(checked);
-              }}
-            />
-            <Label className="text-sm">Enable Prompt Shortcuts</Label>
-          </div>
-          <div className="flex items-center gap-x-2">
-            <Switch
-              size="sm"
-              checked={user?.preferences?.temperature_override_enabled}
-              onCheckedChange={(checked) => {
-                updateUserTemperatureOverrideEnabled(checked);
-              }}
-            />
-            <Label className="text-sm">Enable Temperature Override</Label>
+
+          <Separator className="my-2" />
+
+          <div className="flex flex-col gap-y-2">
+            <h3 className="text-lg text-text-darker font-semibold mb-2">
+              Theme
+            </h3>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Select theme</Label>
+              <ModeToggle />
+            </div>
           </div>
         </div>
 
-        <Separator />
+        <Separator className="my-4" />
 
-        <h3 className="text-lg text-text-darker font-bold mb-2 ">
+        <h3 className="text-lg text-text-darker font-semibold mb-2">
           Default Model
         </h3>
         <div
-          className="w-full max-h-96 overflow-y-auto flex text-sm flex-col border rounded-md"
+          className="w-full max-h-96 overflow-y-auto flex text-sm flex-col border dark:border-none rounded-md"
           ref={containerRef}
         >
           <div

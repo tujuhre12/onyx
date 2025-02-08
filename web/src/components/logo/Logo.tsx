@@ -3,6 +3,8 @@
 import { useContext } from "react";
 import { SettingsContext } from "../settings/SettingsProvider";
 import Image from "next/image";
+import { useTheme } from "next-themes";
+import { OnyxLogoTypeIcon } from "../icons/icons";
 
 export function Logo({
   height,
@@ -17,6 +19,7 @@ export function Logo({
 
   height = height || 32;
   width = width || 30;
+  const isDarkMode = useTheme().theme === "dark";
 
   if (
     !settings ||
@@ -25,7 +28,12 @@ export function Logo({
   ) {
     return (
       <div style={{ height, width }} className={className}>
-        <Image src="/logo.png" alt="Logo" width={width} height={height} />
+        <Image
+          src={isDarkMode ? "/logo-dark.png" : "/logo.png"}
+          alt="Logo"
+          width={width}
+          height={height}
+        />
       </div>
     );
   }
@@ -46,17 +54,13 @@ export function Logo({
 }
 
 export function LogoType() {
+  const theme = useTheme();
   return (
-    <Image
-      priority
-      className="max-h-8 w-full mr-auto "
-      src="/logotype.png"
-      alt="Logo"
-      width={2640}
-      height={733}
-      style={{ objectFit: "contain", width: "100%", height: "100%" }}
-      loading="eager"
-      unoptimized={true}
+    <OnyxLogoTypeIcon
+      size={115}
+      className={` items-center w-full ${
+        theme.theme === "dark" ? "text-[#fff]" : "text-[#000]"
+      }`}
     />
   );
 }
