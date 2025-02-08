@@ -155,6 +155,10 @@ class RedisPool:
             host=REDIS_REPLICA_HOST, ssl=REDIS_SSL
         )
 
+    # Returns a Redis client that is not tenant-specific (used for auth operations)
+    def get_auth_client(self) -> Redis:
+        return Redis(connection_pool=self._pool)
+
     def get_client(self, tenant_id: str | None) -> Redis:
         if tenant_id is None:
             tenant_id = "public"
@@ -295,7 +299,7 @@ def retrieve_auth_expiration_from_redis(request: Request) -> datetime | None:
     if not token:
         return None
 
-    redis = get_redis_client(tenant_id="")
+    redis = redis_pool.get_auth_client()
     redis_key = REDIS_AUTH_KEY_PREFIX + token
 
     # Get the TTL of the key

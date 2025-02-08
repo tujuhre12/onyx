@@ -116,12 +116,10 @@ export async function createChatSession(
     }
   );
   if (!createChatSessionResponse.ok) {
-    if (createChatSessionResponse.status !== 403) {
-      console.error(
-        `Failed to create chat session - ${createChatSessionResponse.status}`
-      );
-      throw Error("Failed to create chat session");
-    }
+    console.error(
+      `Failed to create chat session - ${createChatSessionResponse.status}`
+    );
+    throw Error("Failed to create chat session");
   }
   const chatSessionResponseJson = await createChatSessionResponse.json();
   return chatSessionResponseJson.chat_session_id;
