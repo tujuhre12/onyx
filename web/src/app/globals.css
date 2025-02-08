@@ -7,7 +7,10 @@
     --warning: 38 92% 50%;
     --warning-foreground: 48 96% 89%;
 
+    --input-text: #6c6c6b;
+
     /* ---------------------------------
+    
      * 1. Single set of neutral values
      * --------------------------------- */
     --neutral-50: #fafafa;
@@ -64,7 +67,7 @@
     --accent: 0 0% 96.1%;
     --accent-foreground: 0 0% 9%;
     --accent-background: #f0eee8;
-    --accent-background-hovered: #ebe7de;
+    --accent-background-hovered: #e6e1d6;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --ring: 0 0% 3.9%;
@@ -243,6 +246,8 @@
     --neutral-950: #f0f0f0; /* lightest */
     --hover: #2c2c2c;
 
+    --input-text: #b4b4b4;
+
     --text-darker: #f0f0f0;
     --text-dark: #f0f0f0;
     /* -------------------------------------------------------
@@ -255,6 +260,7 @@
     --text-text: #1d1d1d;
     --background-dark: #252525;
 
+    /* --new-background: #fff; */
     --new-background: #2c2c2c;
     --new-background-light: #383838;
 
@@ -264,8 +270,10 @@
     --background-sidebar: #171717;
     --black: #000000;
 
-    --accent-background: #181816;
-    --accent-background-hovered: #1a1a18;
+    /* --accent-background: #181816; */
+    --accent-background: #262626;
+
+    --accent-background-hovered: #404040;
 
     --text-darker: #dcdcdc;
 

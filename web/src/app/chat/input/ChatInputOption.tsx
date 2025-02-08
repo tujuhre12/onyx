@@ -45,10 +45,11 @@ export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
             space-x-1
             group
             rounded
-            text-inputoption
-            hover:text-text-950
+            text-input-text
             hover:bg-background-chat-hover
-            hover:text-text-darker
+            hover:text-neutral-900
+
+            dark:hover:text-neutral-50
             py-1.5
             px-2
             ${

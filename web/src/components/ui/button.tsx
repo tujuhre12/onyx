@@ -9,38 +9,50 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        success: "bg-green-100 text-green-600 hover:bg-green-500/90",
-        "success-reverse": "bg-green-600 text-white hover:bg-green-700",
+        success:
+          "bg-green-100 text-green-600 hover:bg-green-500/90 dark:bg-green-700 dark:text-green-100 dark:hover:bg-green-600/90",
+        "success-reverse":
+          "bg-green-600 text-white hover:bg-green-700 dark:bg-green-200 dark:text-green-800 dark:hover:bg-green-300",
         default:
-          "bg-neutral-900 border-border text-neutral-50 hover:bg-neutral-900/90",
+          "bg-neutral-900 border-border text-neutral-50 hover:bg-neutral-900/90 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200",
         "default-reverse":
-          "bg-neutral-50 border-border text-neutral-900 hover:bg-neutral-50/90",
-        destructive: "bg-red-500 text-neutral-50 hover:bg-red-500/90",
+          "bg-neutral-50 border-border text-neutral-900 hover:bg-neutral-50/90 dark:bg-neutral-800 dark:text-neutral-50 dark:hover:bg-neutral-700",
+        destructive:
+          "bg-red-500 text-neutral-50 hover:bg-red-500/90 dark:bg-red-700 dark:hover:bg-red-600",
         "destructive-reverse":
-          "bg-neutral-50 text-red-500 hover:bg-neutral-50/90",
+          "bg-neutral-50 text-red-500 hover:bg-neutral-50/90 dark:bg-red-100 dark:text-red-700 dark:hover:bg-red-200",
         outline:
-          "border border-background-300 bg-white hover:bg-neutral-50 hover:text-neutral-900",
+          "border border-neutral-300 bg-white hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-600 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:hover:text-neutral-50",
         create:
-          "border border-background-300 dark:bg-white bg-neutral-50 text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors duration-200 ease-in-out shadow-sm",
+          "border border-neutral-300 bg-neutral-50 text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors duration-200 ease-in-out shadow-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 dark:hover:text-neutral-50",
         "outline-reverse":
-          "border border-background-300 bg-neutral-900 hover:bg-neutral-800 hover:text-neutral-50",
-        secondary: "bg-neutral-100 text-neutral-900 hover:bg-neutral-100/80",
+          "border border-neutral-300 bg-neutral-900 hover:bg-neutral-800 hover:text-neutral-50 dark:border-neutral-600 dark:bg-neutral-100 dark:hover:bg-neutral-200 dark:hover:text-neutral-900",
+        secondary:
+          "bg-neutral-100 text-neutral-900 hover:bg-neutral-100/80 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600",
         "secondary-reverse":
-          "bg-neutral-900 text-neutral-100 hover:bg-neutral-900/80",
-        ghost: "hover:bg-neutral-100 hover:text-neutral-900",
-        "ghost-reverse": "hover:bg-neutral-800 hover:text-neutral-50",
-        link: "text-neutral-900 underline-offset-4 hover:underline",
-        "link-reverse": "text-neutral-50 underline-offset-4 hover:underline",
-        submit: "bg-green-500 text-inverted hover:bg-green-600/90",
-        "submit-reverse": "bg-neutral-50 text-blue-600 hover:bg-neutral-50/80",
-        navigate: "bg-blue-500 text-white hover:bg-blue-600",
-        "navigate-reverse": "bg-white text-blue-500 hover:bg-blue-50",
+          "bg-neutral-900 text-neutral-100 hover:bg-neutral-900/80 dark:bg-neutral-200 dark:text-neutral-800 dark:hover:bg-neutral-300",
+        ghost:
+          "hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-50",
+        "ghost-reverse":
+          "hover:bg-neutral-800 hover:text-neutral-50 dark:hover:bg-neutral-200 dark:hover:text-neutral-900",
+        link: "text-neutral-900 underline-offset-4 hover:underline dark:text-neutral-100",
+        "link-reverse":
+          "text-neutral-50 underline-offset-4 hover:underline dark:text-neutral-900",
+        submit:
+          "bg-green-500 text-neutral-50 hover:bg-green-600/90 dark:bg-green-700 dark:hover:bg-green-600",
+        "submit-reverse":
+          "bg-neutral-50 text-blue-600 hover:bg-neutral-50/80 dark:bg-blue-100 dark:text-blue-800 dark:hover:bg-blue-200",
+        navigate:
+          "bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600",
+        "navigate-reverse":
+          "bg-white text-blue-500 hover:bg-blue-50 dark:bg-blue-100 dark:text-blue-800 dark:hover:bg-blue-200",
         update:
-          "border border-background-300 bg-neutral-100 text-neutral-900 hover:bg-neutral-100/80",
+          "border border-neutral-300 bg-neutral-100 text-neutral-900 hover:bg-neutral-100/80 dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-600",
         "update-reverse":
-          "bg-neutral-900 text-neutral-100 hover:bg-neutral-900/80",
-        next: "bg-neutral-700 text-neutral-50 hover:bg-neutral-700/90",
-        "next-reverse": "bg-neutral-50 text-neutral-700 hover:bg-neutral-50/90",
+          "bg-neutral-900 text-neutral-100 hover:bg-neutral-900/80 dark:bg-neutral-200 dark:text-neutral-800 dark:hover:bg-neutral-300",
+        next: "bg-neutral-700 text-neutral-50 hover:bg-neutral-700/90 dark:bg-neutral-300 dark:text-neutral-900 dark:hover:bg-neutral-400",
+        "next-reverse":
+          "bg-neutral-50 text-neutral-700 hover:bg-neutral-50/90 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700",
       },
       size: {
         default: "h-10 px-4 py-2",

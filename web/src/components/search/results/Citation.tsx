@@ -61,10 +61,7 @@ export function Citation({
             </span>
           </div>
         </TooltipTrigger>
-        <TooltipContent
-          width="mb-2 max-w-lg"
-          className="border-2 border-border shadow-lg bg-white"
-        >
+        <TooltipContent width="mb-2 max-w-lg">
           {document_info?.document ? (
             <CompactDocumentCard
               updatePresentingDocument={document_info.updatePresentingDocument}

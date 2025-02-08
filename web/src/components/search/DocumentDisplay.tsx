@@ -446,7 +446,7 @@ export function CompactDocumentCard({
           "..."}
       </div>
       {document.blurb && (
-        <div className="text-xs mb-0 text-text-600 line-clamp-2">
+        <div className="text-xs mb-0 text-neutral-600 dark:text-neutral-300 line-clamp-2">
           {document.blurb}
         </div>
       )}

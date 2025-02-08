@@ -432,7 +432,7 @@ export function ChatInputBar({
               ref={suggestionsRef}
               className="text-sm absolute w-[calc(100%-2rem)] top-0 transform -translate-y-full"
             >
-              <div className="rounded-lg py-1 sm-1.5 bg-background border border-border shadow-lg px-1.5 mt-2 z-10">
+              <div className="rounded-lg py-1 sm-1.5 bg-input-background border border-border dark:border-none shadow-lg px-1.5 mt-2 z-10">
                 {assistantTagOptions.map((currentAssistant, index) => (
                   <button
                     key={index}
@@ -476,7 +476,7 @@ export function ChatInputBar({
               ref={suggestionsRef}
               className="text-sm absolute inset-x-0 top-0 w-full transform -translate-y-full"
             >
-              <div className="rounded-lg py-1.5 bg-background border border-border shadow-lg mx-2 px-1.5 mt-2 rounded z-10">
+              <div className="rounded-lg py-1.5 bg-input-background dark:border-none border border-border shadow-lg mx-2 px-1.5 mt-2 rounded z-10">
                 {filteredPrompts.map(
                   (currentPrompt: InputPrompt, index: number) => (
                     <button
@@ -523,7 +523,9 @@ export function ChatInputBar({
               flex-col
               border
               shadow
+              bg-input-background
               border-input-border
+              dark:border-none
               rounded-lg
               overflow-hidden
               text-text-chatbar
@@ -580,7 +582,10 @@ export function ChatInputBar({
                 rounded-lg
                 border-0
                 bg-input-background
-                placeholder:text-text-muted
+                font-normal
+                text-base
+                leading-6
+                placeholder:text-input-text
                 ${
                   textAreaRef.current &&
                   textAreaRef.current.scrollHeight > MAX_INPUT_HEIGHT
@@ -594,6 +599,7 @@ export function ChatInputBar({
                 resize-none
                 px-5
                 py-4
+                dark:text-[#ececec]
               `}
               autoFocus
               style={{ scrollbarWidth: "thin" }}
@@ -813,8 +819,8 @@ export function ChatInputBar({
                     chatState == "toolBuilding" ||
                     chatState == "loading"
                       ? chatState != "streaming"
-                        ? "bg-background-400"
-                        : "bg-background-800"
+                        ? "bg-neutral-900 dark:bg-neutral-400 "
+                        : "bg-neutral-500 dark:bg-neutral-50"
                       : ""
                   } h-[22px] w-[22px] rounded-full`}
                   onClick={() => {
@@ -840,15 +846,15 @@ export function ChatInputBar({
                   chatState == "loading" ? (
                     <StopGeneratingIcon
                       size={8}
-                      className="text-text-darker m-auto text-white flex-none"
+                      className="text-neutral-50 dark:text-neutral-900 m-auto text-white flex-none"
                     />
                   ) : (
                     <SendIcon
                       size={22}
-                      className={`text-text-darker text-white p-1 my-auto rounded-full ${
+                      className={`text-neutral-50 dark:text-neutral-900 p-1 my-auto rounded-full ${
                         chatState == "input" && message
-                          ? "bg-submit-background"
-                          : "bg-disabled-submit-background"
+                          ? "bg-neutral-900 dark:bg-neutral-50"
+                          : "bg-neutral-500 dark:bg-neutral-400"
                       }`}
                     />
                   )}

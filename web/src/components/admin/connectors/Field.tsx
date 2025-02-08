@@ -254,21 +254,44 @@ export function TextFormField({
           id={name}
           className={`
             ${small && sizeClass.input}
-            border 
-            border-border 
-            rounded-md
+            flex
+            h-10
             w-full 
-            py-2 
+            rounded-md
+            border 
+            border-neutral-200
+            bg-white
             px-3 
+            py-2 
             mt-1
+            text-base
+
+            file:border-0
+            file:bg-transparent
+            file:text-sm
+            file:font-medium
+            file:text-neutral-950
+            placeholder:text-neutral-500
             placeholder:font-description 
             placeholder:${sizeClass.placeholder}
             caret-accent
-            placeholder:text-text-muted
+            focus-visible:outline-none
+            focus-visible:ring-2
+            focus-visible:ring-neutral-950
+            focus-visible:ring-offset-2
+            disabled:cursor-not-allowed
+            disabled:opacity-50
+            md:text-sm
+            dark:border-neutral-700
+            dark:bg-transparent
+            dark:ring-offset-neutral-950
+            dark:file:text-neutral-50
+            dark:placeholder:text-neutral-400
+
             ${heightString}
             ${sizeClass.input}
-            ${disabled ? " bg-background-strong" : " bg-white/80"}
-            ${isCode ? " font-mono" : ""}
+            ${disabled ? "bg-neutral-100 dark:bg-neutral-800" : ""}
+            ${isCode ? "font-mono" : ""}
             ${className}
           `}
           disabled={disabled}

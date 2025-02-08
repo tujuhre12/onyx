@@ -93,15 +93,17 @@ module.exports = {
 
         "gray-background": "var(--gray-background)",
 
-        "new-background": "var(--off-white)",
-        "new-background-light": "var(--off-white)",
+        "new-background": "var(--new-background)",
+        "new-background-light": "var(--new-background-light)",
         warning: "hsl(var(--warning))",
         "warning-foreground": "hsl(var(--warning-foreground))",
+
+        "input-text": "var(--input-text)",
 
         // background
         background: "var(--background-input-background)",
         "input-border": "var(--input-border)",
-        "input-background": "var(--background-input-background)",
+        "input-background": "var(--input-background)",
         "input-option": "var(--input-option)",
         "input-option-hover": "var(--input-option-hover)",
         "accent-background": "var(--accent-background)",

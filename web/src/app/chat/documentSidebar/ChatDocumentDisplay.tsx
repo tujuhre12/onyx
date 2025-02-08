@@ -84,8 +84,8 @@ export function ChatDocumentDisplay({
       <div
         className={`flex relative flex-col px-3 py-2.5 gap-0.5  rounded-xl my-1 ${
           isSelected
-            ? "bg-new-background"
-            : " hover:bg-new-background hover:bg-opacity-50"
+            ? "bg-accent-background-hovered"
+            : " hover:bg-accent-background"
         }`}
       >
         <button
@@ -98,7 +98,7 @@ export function ChatDocumentDisplay({
             ) : (
               <SourceIcon sourceType={document.source_type} iconSize={18} />
             )}
-            <div className="line-clamp-1 text-text-900 text-sm font-semibold">
+            <div className="line-clamp-1 text-neutral-900 dark:text-neutral-300 text-sm font-semibold">
               {(document.semantic_identifier || document.document_id).length >
               (modal ? 30 : 40)
                 ? `${(document.semantic_identifier || document.document_id)
@@ -111,7 +111,7 @@ export function ChatDocumentDisplay({
             <DocumentMetadataBlock modal={modal} document={document} />
           )}
           <div
-            className={`line-clamp-3 text-sm font-normal leading-snug text-text-600 ${
+            className={`line-clamp-3 text-sm font-normal leading-snug text-neutral-900 dark:text-neutral-300 ${
               hasMetadata ? "mt-2" : ""
             }`}
           >
