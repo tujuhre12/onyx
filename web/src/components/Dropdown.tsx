@@ -33,16 +33,14 @@ function StandardDropdownOption<T>({
   return (
     <button
       onClick={() => handleSelect(option)}
-      className={`w-full text-left block px-4 py-2.5 text-sm bg-onyx-white hover:bg-gray-background-50 ${
-        index !== 0 ? "border-t border-gray-background-200" : ""
+      className={`w-full text-left block px-4 py-2.5 text-sm bg-white hover:bg-background-50 ${
+        index !== 0 ? "border-t border-background-200" : ""
       }`}
       role="menuitem"
     >
-      <p className="font-medium  text-xs text-gray-background-900">
-        {option.name}
-      </p>
+      <p className="font-medium  text-xs text-text-900">{option.name}</p>
       {option.description && (
-        <p className="text-xs text-gray-background-500">{option.description}</p>
+        <p className="text-xs text-text-500">{option.description}</p>
       )}
     </button>
   );
@@ -115,21 +113,21 @@ export function SearchMultiSelectDropdown({
             }
           }}
           onFocus={() => setIsOpen(true)}
-          className="inline-flex justify-between w-full px-4 py-2 text-sm bg-onyx-white text-gray-background-800 border border-gray-background-300 rounded-md shadow-sm"
+          className="inline-flex justify-between w-full px-4 py-2 text-sm bg-white text-text-800 border border-background-300 rounded-md shadow-sm"
         />
         <button
           type="button"
-          className="absolute top-0 right-0 text-sm h-full px-2 border-l border-gray-background-300"
+          className="absolute top-0 right-0 text-sm h-full px-2 border-l border-background-300"
           aria-expanded={isOpen}
           aria-haspopup="true"
           onClick={() => setIsOpen(!isOpen)}
         >
-          <ChevronDownIcon className="my-auto w-4 h-4 text-gray-background-600" />
+          <ChevronDownIcon className="my-auto w-4 h-4 text-text-600" />
         </button>
       </div>
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-full rounded-md shadow-lg bg-onyx-white border border-gray-background-300 max-h-60 overflow-y-auto">
+        <div className="absolute z-10 mt-1 w-full rounded-md shadow-lg bg-white border border-background-300 max-h-60 overflow-y-auto">
           <div
             role="menu"
             aria-orientation="vertical"
@@ -162,9 +160,9 @@ export function SearchMultiSelectDropdown({
                   option.name.toLowerCase() === searchTerm.toLowerCase()
               ) && (
                 <>
-                  <div className="border-t border-gray-background-300"></div>
+                  <div className="border-t border-background-300"></div>
                   <button
-                    className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-background-800 hover:bg-gray-background-100"
+                    className="w-full text-left flex items-center px-4 py-2 text-sm text-text-800 hover:bg-background-100"
                     role="menuitem"
                     onClick={() => {
                       onCreate(searchTerm);
@@ -172,7 +170,7 @@ export function SearchMultiSelectDropdown({
                       setSearchTerm("");
                     }}
                   >
-                    <PlusIcon className="w-4 h-4 mr-2 text-gray-background-600" />
+                    <PlusIcon className="w-4 h-4 mr-2 text-text-600" />
                     Create label &quot;{searchTerm}&quot;
                   </button>
                 </>
@@ -180,7 +178,7 @@ export function SearchMultiSelectDropdown({
 
             {filteredOptions.length === 0 &&
               (!onCreate || searchTerm.trim() === "") && (
-                <div className="px-4 py-2.5 text-sm text-gray-background-500">
+                <div className="px-4 py-2.5 text-sm text-text-500">
                   No matches found
                 </div>
               )}

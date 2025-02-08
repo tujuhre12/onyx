@@ -62,18 +62,12 @@ const CredentialSelectionTable = ({
     <div className="w-full max-h-[50vh] overflow-auto">
       <table className="w-full text-sm border-collapse">
         <thead className="sticky top-0 w-full">
-          <tr className="bg-gray-background-100">
-            <th className="p-2 text-left font-medium text-gray-background-600"></th>
-            <th className="p-2 text-left font-medium text-gray-background-600">
-              ID
-            </th>
-            <th className="p-2 text-left font-medium text-gray-background-600">
-              Name
-            </th>
-            <th className="p-2 text-left font-medium text-gray-background-600">
-              Created
-            </th>
-            <th className="p-2 text-left font-medium text-gray-background-600">
+          <tr className="bg-background-100">
+            <th className="p-2 text-left font-medium text-text-600"></th>
+            <th className="p-2 text-left font-medium text-text-600">ID</th>
+            <th className="p-2 text-left font-medium text-text-600">Name</th>
+            <th className="p-2 text-left font-medium text-text-600">Created</th>
+            <th className="p-2 text-left font-medium text-text-600">
               Last Updated
             </th>
             <th />
@@ -92,7 +86,7 @@ const CredentialSelectionTable = ({
               return (
                 <tr
                   key={credential.id}
-                  className="border-b hover:bg-gray-background-50"
+                  className="border-b hover:bg-background-50"
                 >
                   <td className="min-w-[60px] p-2">
                     {!selected ? (

@@ -22,7 +22,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             "py-2",
             "text-sm",
             "ring-offset-white",
-            "placeholder:text-text-500",
+            "placeholder:text-neutral-500",
             // "focus-visible:outline-none",
             // "focus-visible:ring-2",
             // "focus-visible:ring-neutral-950",

@@ -241,13 +241,13 @@ export const FolderDropdown = forwardRef<HTMLDivElement, FolderDropdownProps>(
                       </p>
                       <div className="flex justify-center gap-2">
                         <button
-                          className="px-3 py-1 text-sm bg-gray-background-200 rounded"
+                          className="px-3 py-1 text-sm bg-background-200 rounded"
                           onClick={handleCancelDelete}
                         >
                           Cancel
                         </button>
                         <button
-                          className="px-3 py-1 text-sm bg-red-500 text-onyx-white rounded"
+                          className="px-3 py-1 text-sm bg-red-500 text-white rounded"
                           onClick={handleConfirmDelete}
                         >
                           Delete

@@ -109,7 +109,7 @@ export const FeedbackModal = ({
 
         <div className="flex mt-2">
           <button
-            className="bg-agent text-onyx-white py-2 px-4 rounded hover:bg-agent/50 focus:outline-none mx-auto"
+            className="bg-agent text-white py-2 px-4 rounded hover:bg-agent/50 focus:outline-none mx-auto"
             onClick={handleSubmit}
           >
             Submit feedback

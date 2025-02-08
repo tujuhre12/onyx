@@ -4,6 +4,9 @@
 
 @layer base {
   :root {
+    --warning: 38 92% 50%;
+    --warning-foreground: 48 96% 89%;
+
     /* ---------------------------------
      * 1. Single set of neutral values
      * --------------------------------- */
@@ -29,9 +32,8 @@
     --background: #fefcfa; /* slightly off-white, keep it */
     --input-background: #fefcfa;
     --input-border: #f1eee8;
-    --background-dark: #f1eee8; /* distinct from #f5f5f5 */
-    --gray-background: #f4f2ed;
-    --gray-background-dark: #e9e6e0;
+    --text-text: #f4f2ed;
+    --background-dark: #e9e6e0;
     --new-background: #ebe7de;
     --new-background-light: #d9d1c0;
     --background-chatbar: #f5f3ee;
@@ -116,7 +118,81 @@
     --agent: #e47011;
 
     /* Tremor brand & dark tremor brand references */
-    /* --tremor-brand-faint: #eff6ff;
+
+    /* Calendar-specific references not matching neutrals */
+    /* --calendar-bg-selected: #4b5563;
+    --calendar-bg-outside-selected: rgba(75, 85, 99, 0.2);
+    --calendar-text-muted: #6b7280;
+    --calendar-text-selected: #ffffff;
+    --calendar-range-start: #000000;
+    --calendar-range-middle: #f3f4f6;
+    --calendar-range-end: #000000;
+    --calendar-text-in-range: #1f2937;
+    --calendar-bg-selected-dark: #6b7280;
+    --calendar-bg-outside-selected-dark: rgba(107, 114, 128, 0.2);
+    --calendar-text-muted-dark: #9ca3af;
+    --calendar-text-selected-dark: #f3f4f6;
+    --calendar-range-start-dark: #374151;
+    --calendar-range-middle-dark: #4b5563;
+    --calendar-range-end-dark: #374151;
+    --calendar-text-in-range-dark: #e5e7eb;
+    --calendar-hover-bg: #9ca3af;
+    --calendar-hover-bg-dark: #6b7280;
+    --calendar-hover-text: #374151;
+    --calendar-hover-text-dark: #e5e7eb;
+    --calendar-today-bg: #d1d5db;
+    --calendar-today-bg-dark: #4b5563;
+    --calendar-today-text: #374151;
+    --calendar-today-text-dark: #d1d5db; */
+
+    /* Consolidated color variables */
+    --neutral-100-border-light: #f5f5f5;
+    --neutral-300-border-medium: #d4d4d4;
+    --neutral-400-border-strong: #a3a3a3;
+    --neutral-600-border-dark: #525252;
+    --background-input-background: #fefcfa;
+    --background-chatbar-sidebar: #f5f3ee;
+    --background-chat-hover-selected: #e6e3dd;
+    --white-card-popover: #ffffff;
+    --card-popover-foreground: #0c0c0c;
+
+    /* Near-duplicates consolidated */
+    --neutral-200-border: #e5e6e6; /* Average of #e5e5e5 and #e5e7eb */
+    --off-white: #f3f1ec; /* Average of #f4f2ed, #f5f3ee, #f1eee8, #e9e6e0, #ebe7de */
+
+    /* Update references to use new consolidated variables */
+    --neutral-100: var(--neutral-100-border-light);
+    --border-light: var(--neutral-100-border-light);
+    --neutral-300: var(--neutral-300-border-medium);
+    --border-medium: var(--neutral-300-border-medium);
+    --neutral-400: var(--neutral-400-border-strong);
+    --border-strong: var(--neutral-400-border-strong);
+    --neutral-600: var(--neutral-600-border-dark);
+    --border-dark: var(--neutral-600-border-dark);
+    --background: var(--background-input-background);
+    --input-background: var(--background-input-background);
+    --background-chatbar: var(--background-chatbar-sidebar);
+    --background-sidebar: var(--background-chatbar-sidebar);
+    --background-chat-hover: var(--background-chat-hover-selected);
+    --background-chat-selected: var(--background-chat-hover-selected);
+    --white: var(--white-card-popover);
+    --card: var(--white-card-popover);
+    --popover: var(--white-card-popover);
+    --card-foreground: var(--card-popover-foreground);
+    --popover-foreground: var(--card-popover-foreground);
+
+    /* Update near-duplicates */
+    --neutral-200: var(--neutral-200-border);
+    --border: var(--neutral-200-border);
+    --text-text: var(--off-white);
+    --background-dark: var(--off-white);
+    --new-background: var(--off-white);
+    --new-background-light: var(--off-white);
+    --user-bubble: var(--off-white);
+  }
+
+  .dark {
+    --tremor-brand-faint: #eff6ff;
     --tremor-brand-muted: #bfdbfe;
     --tremor-brand-subtle: #60a5fa;
     --tremor-brand-default: #3b82f6;
@@ -145,50 +221,22 @@
     --dark-tremor-content-default: #d1d5db;
     --dark-tremor-content-emphasis: #f3f4f6;
     --dark-tremor-content-strong: #f9fafb;
-    --dark-tremor-content-inverted: #000000; */
+    --dark-tremor-content-inverted: #000000;
 
-    /* Calendar-specific references not matching neutrals */
-    /* --calendar-bg-selected: #4b5563;
-    --calendar-bg-outside-selected: rgba(75, 85, 99, 0.2);
-    --calendar-text-muted: #6b7280;
-    --calendar-text-selected: #ffffff;
-    --calendar-range-start: #000000;
-    --calendar-range-middle: #f3f4f6;
-    --calendar-range-end: #000000;
-    --calendar-text-in-range: #1f2937;
-    --calendar-bg-selected-dark: #6b7280;
-    --calendar-bg-outside-selected-dark: rgba(107, 114, 128, 0.2);
-    --calendar-text-muted-dark: #9ca3af;
-    --calendar-text-selected-dark: #f3f4f6;
-    --calendar-range-start-dark: #374151;
-    --calendar-range-middle-dark: #4b5563;
-    --calendar-range-end-dark: #374151;
-    --calendar-text-in-range-dark: #e5e7eb;
-    --calendar-hover-bg: #9ca3af;
-    --calendar-hover-bg-dark: #6b7280;
-    --calendar-hover-text: #374151;
-    --calendar-hover-text-dark: #e5e7eb;
-    --calendar-today-bg: #d1d5db;
-    --calendar-today-bg-dark: #4b5563;
-    --calendar-today-text: #374151;
-    --calendar-today-text-dark: #d1d5db; */
-  }
-
-  :root {
     /* ---------------------------------
      * 1. Single set of neutral values
      *    (reversed for dark mode)
      * --------------------------------- */
     --inputoption: "#B4B4B4";
     --neutral-50: #161616; /* darkest */
-    --neutral-100: #1a1a1a;
+    --neutral-100-border-light: #1a1a1a;
     --neutral-125: #1f1f1f;
     --neutral-150: #252525;
-    --neutral-200: #2c2c2c;
-    --neutral-300: #404040;
-    --neutral-400: #5a5a5a;
+    --neutral-200-border: #2c2c2c;
+    --neutral-300-border-medium: #404040;
+    --neutral-400-border-strong: #5a5a5a;
     --neutral-500: #757575;
-    --neutral-600: #a0a0a0;
+    --neutral-600-border-dark: #a0a0a0;
     --neutral-700: #bdbdbd;
     --neutral-800: #d4d4d4;
     --neutral-900: #ececec;
@@ -200,19 +248,18 @@
     /* -------------------------------------------------------
      * 2. Special / custom backgrounds (shifted to dark)
      * ------------------------------------------------------- */
-    --background: #1f1f1f;
+    --background-input-background: #1f1f1f;
     --input-background: #303030;
     --input-border: #5a5a5a;
-    --background-dark: #232323;
 
-    --gray-background: #1d1d1d;
-    --gray-background-dark: #252525;
+    --text-text: #1d1d1d;
+    --background-dark: #252525;
 
     --new-background: #2c2c2c;
     --new-background-light: #383838;
 
-    --background-chatbar: #202020;
-    --background-chat-hover: #3a3a3a;
+    --background-chatbar-sidebar: #171717;
+    --background-chat-hover-selected: #3a3a3a;
     --background-chat-selected: #2f2f2f;
     --background-sidebar: #171717;
     --black: #000000;
@@ -222,12 +269,12 @@
 
     --text-darker: #dcdcdc;
 
-    /* borders & input (revers  ed scales) */
-    --border: #5a5a5a; /* was #e5e7eb */
-    --border-light: #6a6a6a; /* was #f5f5f5 */
-    --border-medium: #4a4a4a; /* was #d4d4d4 */
-    --border-strong: #3a3a3a; /* was #a3a3a3 */
-    --border-dark: #2a2a2a; /* was #525252 */
+    /* borders & input (reversed scales) */
+    --neutral-200-border: #5a5a5a; /* was #e5e7eb */
+    --neutral-100-border-light: #6a6a6a; /* was #f5f5f5 */
+    --neutral-300-border-medium: #4a4a4a; /* was #d4d4d4 */
+    --neutral-400-border-strong: #3a3a3a; /* was #a3a3a3 */
+    --neutral-600-border-dark: #2a2a2a; /* was #525252 */
     --input: 0 0% 15%; /* (HSL) approx #262626 for dark input backgrounds */
 
     /* Additional single-purpose color vars (inverted where sensible) */
@@ -273,7 +320,7 @@
     --alert: #f59e0b;
     --accent-hover: #4f46e5;
     --black: #ffffff;
-    --white: #000000;
+    --white-card-popover: #000000;
 
     /* Code syntax highlighting – typically brighter/lighter for dark backgrounds */
     --code-text: #e0e0e0;
@@ -295,8 +342,11 @@
       180,
       0.5
     ); /* still stands out as highlight */
-    --user-bubble: #2a2a2a; /* was #f1eee8 */
-    --ai-bubble: #1f1f1f; /* was #272a2d */
+    --tw-prose-bold: #fff;
+
+    --off-white: #2a2a2a; /* was #f1eee8 */
+
+    --ai-bubble: #1f1f1f;
     --document-color: #f43f5e; /* keep the same bright accent? */
 
     /* Scrollbars, etc. */

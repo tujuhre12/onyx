@@ -10,39 +10,37 @@ const buttonVariants = cva(
     variants: {
       variant: {
         success: "bg-green-100 text-green-600 hover:bg-green-500/90",
-        "success-reverse": "bg-green-600 text-onyx-white hover:bg-green-700",
+        "success-reverse": "bg-green-600 text-white hover:bg-green-700",
         default:
-          "bg-background-900 border-border text-text-50 hover:bg-background-900/90",
+          "bg-neutral-900 border-border text-neutral-50 hover:bg-neutral-900/90",
         "default-reverse":
-          "bg-background-50 border-border text-text-900 hover:bg-background-50/90",
-        destructive: "bg-red-500 text-text-50 hover:bg-red-500/90",
+          "bg-neutral-50 border-border text-neutral-900 hover:bg-neutral-50/90",
+        destructive: "bg-red-500 text-neutral-50 hover:bg-red-500/90",
         "destructive-reverse":
-          "bg-background-50 text-red-500 hover:bg-background-50/90",
+          "bg-neutral-50 text-red-500 hover:bg-neutral-50/90",
         outline:
-          "border border-background-300 bg-onyx-white hover:bg-background-50 hover:text-text-900",
+          "border border-background-300 bg-white hover:bg-neutral-50 hover:text-neutral-900",
         create:
-          "border border-background-300 dark:bg-white bg-background-50 text-text-700 hover:bg-background-100 hover:text-text-900 transition-colors duration-200 ease-in-out shadow-sm",
+          "border border-background-300 dark:bg-white bg-neutral-50 text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors duration-200 ease-in-out shadow-sm",
         "outline-reverse":
-          "border border-background-300 bg-background-900 hover:bg-background-800 hover:text-text-50",
-        secondary: "bg-background-100 text-text-900 hover:bg-background-100/80",
+          "border border-background-300 bg-neutral-900 hover:bg-neutral-800 hover:text-neutral-50",
+        secondary: "bg-neutral-100 text-neutral-900 hover:bg-neutral-100/80",
         "secondary-reverse":
-          "bg-background-900 text-text-100 hover:bg-background-900/80",
-        ghost: "hover:bg-background-100 hover:text-text-900",
-        "ghost-reverse": "hover:bg-background-800 hover:text-text-50",
-        link: "text-text-900 underline-offset-4 hover:underline",
-        "link-reverse": "text-text-50 underline-offset-4 hover:underline",
+          "bg-neutral-900 text-neutral-100 hover:bg-neutral-900/80",
+        ghost: "hover:bg-neutral-100 hover:text-neutral-900",
+        "ghost-reverse": "hover:bg-neutral-800 hover:text-neutral-50",
+        link: "text-neutral-900 underline-offset-4 hover:underline",
+        "link-reverse": "text-neutral-50 underline-offset-4 hover:underline",
         submit: "bg-green-500 text-inverted hover:bg-green-600/90",
-        "submit-reverse":
-          "bg-background-50 text-blue-600 hover:bg-background-50/80",
-        navigate: "bg-blue-500 text-onyx-white hover:bg-blue-600",
-        "navigate-reverse": "bg-onyx-white text-blue-500 hover:bg-blue-50",
+        "submit-reverse": "bg-neutral-50 text-blue-600 hover:bg-neutral-50/80",
+        navigate: "bg-blue-500 text-white hover:bg-blue-600",
+        "navigate-reverse": "bg-white text-blue-500 hover:bg-blue-50",
         update:
-          "border border-background-300 bg-background-100 text-text-900 hover:bg-background-100/80",
+          "border border-background-300 bg-neutral-100 text-neutral-900 hover:bg-neutral-100/80",
         "update-reverse":
-          "bg-background-900 text-text-100 hover:bg-background-900/80",
-        next: "bg-background-700 text-text-50 hover:bg-background-700/90",
-        "next-reverse":
-          "bg-background-50 text-text-700 hover:bg-background-50/90",
+          "bg-neutral-900 text-neutral-100 hover:bg-neutral-900/80",
+        next: "bg-neutral-700 text-neutral-50 hover:bg-neutral-700/90",
+        "next-reverse": "bg-neutral-50 text-neutral-700 hover:bg-neutral-50/90",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -107,7 +105,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       return (
         <div className="relative group">
           {button}
-          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-background-800 text-onyx-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-neutral-800 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
             {tooltip}
           </div>
         </div>

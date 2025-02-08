@@ -34,9 +34,9 @@ const DriveJsonUpload = ({
     <>
       <input
         className={
-          "mr-3 text-sm text-gray-background-900 border border-gray-background-300 overflow-visible " +
-          "cursor-pointer bg-background dark:text-gray-background-400 focus:outline-none " +
-          "dark:bg-gray-background-700 dark:border-gray-background-600 dark:placeholder-gray-400"
+          "mr-3 text-sm text-text-900 border border-background-300 overflow-visible " +
+          "cursor-pointer bg-background dark:text-text-400 focus:outline-none " +
+          "dark:bg-background-700 dark:border-background-600 dark:placeholder-text-400"
         }
         type="file"
         accept=".json"
@@ -397,7 +397,7 @@ export const GmailAuthSection = ({
                     type="submit"
                     disabled={isSubmitting}
                     className={
-                      "bg-slate-500 hover:bg-slate-700 text-onyx-white " +
+                      "bg-slate-500 hover:bg-slate-700 text-white " +
                       "font-bold py-2 px-4 rounded focus:outline-none " +
                       "focus:shadow-outline w-full max-w-sm mx-auto"
                     }

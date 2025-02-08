@@ -21,12 +21,10 @@ export const Button = ({
         "group relative " +
         (fullWidth ? "w-full " : "") +
         "py-1 px-2 border border-transparent text-sm " +
-        "font-medium rounded-md text-onyx-white " +
+        "font-medium rounded-md text-white " +
         "focus:outline-none focus:ring-2 " +
         "focus:ring-offset-2 focus:ring-red-500 mx-auto " +
-        (disabled
-          ? "bg-gray-background-700 "
-          : "bg-red-800 hover:bg-red-900 ") +
+        (disabled ? "bg-background-700 " : "bg-red-800 hover:bg-red-900 ") +
         className
       }
       onClick={onClick}

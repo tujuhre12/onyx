@@ -62,13 +62,13 @@ export function AdminSidebar({ collections }: { collections: Collection[] }) {
             className="flex flex-col items-center justify-center w-full"
             key={collectionInd}
           >
-            <h2 className="text-xs text-text-settings-sidebar-strong w-52 font-bold pb-2">
+            <h2 className="text-xs text-text-800 w-52 font-bold pb-2">
               <div>{collection.name}</div>
             </h2>
             {collection.items.map((item) => (
               <Link key={item.link} href={item.link}>
                 <button
-                  className={`text-sm block flex gap-x-2 items-center w-52 py-2.5 px-2 text-left hover:bg-background-settings-hover rounded`}
+                  className={`text-sm text-text-700 block flex gap-x-2 items-center w-52 py-2.5 px-2 text-left hover:bg-background-settings-hover rounded`}
                 >
                   {item.name}
                   {item.error && (

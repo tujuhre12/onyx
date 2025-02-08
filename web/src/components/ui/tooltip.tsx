@@ -28,7 +28,7 @@ const TooltipContent = React.forwardRef<
     ref={ref}
     sideOffset={sideOffset}
     className={cn(
-      `z-50 overflow-hidden rounded-md text-onyx-white  ${
+      `z-50 overflow-hidden rounded-md text-white  ${
         backgroundColor || "bg-black"
       }
       ${width || "max-w-sm"}

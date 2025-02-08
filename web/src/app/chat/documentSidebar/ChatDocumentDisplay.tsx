@@ -50,7 +50,7 @@ export function DocumentMetadataBlock({
                 />
               ))}
             {metadataEntries.length > MAX_METADATA_ITEMS && (
-              <span className="ml-1 text-xs text-gray-background-500">...</span>
+              <span className="ml-1 text-xs text-text-500">...</span>
             )}
           </div>
         </>
@@ -111,7 +111,7 @@ export function ChatDocumentDisplay({
             <DocumentMetadataBlock modal={modal} document={document} />
           )}
           <div
-            className={`line-clamp-3 text-sm font-normal leading-snug text-gray-background-600 ${
+            className={`line-clamp-3 text-sm font-normal leading-snug text-text-600 ${
               hasMetadata ? "mt-2" : ""
             }`}
           >

@@ -168,7 +168,7 @@ export function RefinemenetBadge({
               }}
               side="bottom"
               align="start"
-              className="w-fit  -mt-1 p-4 bg-onyx-white border-2 border-border shadow-lg rounded-md"
+              className="w-fit  -mt-1 p-4 bg-white border-2 border-border shadow-lg rounded-md"
             >
               {/* If not done, show the "Refining" box + a chevron */}
 
@@ -256,7 +256,7 @@ export const NoNewAnswerMessage = () => {
 
   return (
     <div
-      className="text-gray-background-600 text-sm transition-opacity duration-2000 ease-out"
+      className="text-text-600 text-sm transition-opacity duration-2000 ease-out"
       style={{ opacity: opacity }}
     >
       No new answer found...
@@ -338,7 +338,7 @@ export function StatusRefinement({
                 onMouseLeave={() => setToolTipHovered(false)}
                 side="bottom"
                 align="start"
-                className="w-fit p-4 bg-onyx-white border-2 border-border shadow-lg rounded-md"
+                className="w-fit p-4 bg-white border-2 border-border shadow-lg rounded-md"
               >
                 {/* If not done, show the "Refining" box + a chevron */}
 

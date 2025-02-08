@@ -51,7 +51,7 @@ export function ModelOption({
       className={`p-4 w-96 border rounded-lg transition-all duration-200 ${
         selected
           ? "border-blue-500 bg-blue-50 shadow-md"
-          : "border-gray-background-200 hover:border-blue-300 hover:shadow-sm"
+          : "border-background-200 hover:border-blue-300 hover:shadow-sm"
       }`}
     >
       <div className="flex items-center justify-between mb-3">
@@ -69,12 +69,12 @@ export function ModelOption({
           </a>
         )}
       </div>
-      <p className="text-sm k text-gray-background-600 text-left mb-2">
+      <p className="text-sm k text-text-600 text-left mb-2">
         {model.description ||
           currentModelCopy?.description ||
           "Custom model—no description is available."}
       </p>
-      <div className="text-xs text-gray-background-500">
+      <div className="text-xs text-text-500">
         {model.isDefault ? "Default" : "Self-hosted"}
       </div>
       {onSelect && (

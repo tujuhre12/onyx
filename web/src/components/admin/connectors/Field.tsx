@@ -386,24 +386,24 @@ export const MarkdownFormField = ({
   return (
     <div className="flex flex-col space-y-4 mb-4">
       <Label>{label}</Label>
-      <div className="border border-gray-background-300 rounded-md">
-        <div className="flex items-center justify-between px-4 py-2 bg-gray-background-100 rounded-t-md">
+      <div className="border border-background-300 rounded-md">
+        <div className="flex items-center justify-between px-4 py-2 bg-background-100 rounded-t-md">
           <div className="flex items-center space-x-2">
-            <FaMarkdown className="text-gray-background-500" />
-            <span className="text-sm font-semibold text-gray-background-600">
+            <FaMarkdown className="text-text-500" />
+            <span className="text-sm font-semibold text-text-600">
               Markdown
             </span>
           </div>
           <button
             type="button"
             onClick={togglePreview}
-            className="text-sm font-semibold text-gray-background-600 hover:text-gray-background-800 focus:outline-none"
+            className="text-sm font-semibold text-text-600 hover:text-text-800 focus:outline-none"
           >
             {isPreviewOpen ? "Write" : "Preview"}
           </button>
         </div>
         {isPreviewOpen ? (
-          <div className="p-4 border-t border-gray-background-300">
+          <div className="p-4 border-t border-background-300">
             <ReactMarkdown className="prose" remarkPlugins={[remarkGfm]}>
               {field.value}
             </ReactMarkdown>
@@ -414,7 +414,7 @@ export const MarkdownFormField = ({
               {...field}
               rows={2}
               placeholder={placeholder}
-              className={`w-full p-2 border border-border rounded-md border-gray-background-300`}
+              className={`w-full p-2 border border-border rounded-md border-background-300`}
             />
           </div>
         )}

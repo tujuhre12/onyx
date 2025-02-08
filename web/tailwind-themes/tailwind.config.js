@@ -79,7 +79,7 @@ module.exports = {
       },
       colors: {
         // code styling
-        "code-bg": "var(--black)",
+        "code-bg": "#000",
         "code-text": "var(--code-text)",
         "token-comment": "var(--token-comment)",
         "token-punctuation": "var(--token-punctuation)",
@@ -91,44 +91,44 @@ module.exports = {
         "token-attr-name": "var(--token-attr-name)",
         "non-selectable": "var(--non-selectable)",
 
-        "onyx-white": "var(--white)",
-
         "gray-background": "var(--gray-background)",
 
-        "new-background": "var(--new-background)",
-        "new-background-light": "var(--new-background-light)",
+        "new-background": "var(--off-white)",
+        "new-background-light": "var(--off-white)",
+        warning: "hsl(var(--warning))",
+        "warning-foreground": "hsl(var(--warning-foreground))",
 
         // background
-        background: "var(--background)",
+        background: "var(--background-input-background)",
         "input-border": "var(--input-border)",
-        "input-background": "var(--input-background)",
+        "input-background": "var(--background-input-background)",
         "input-option": "var(--input-option)",
         "input-option-hover": "var(--input-option-hover)",
         "accent-background": "var(--accent-background)",
         "accent-background-hovered": "var(--accent-background-hovered)",
-        "background-dark": "var(--background-dark)",
-        "background-100": "var(--neutral-100)",
+        "background-dark": "var(--off-white)",
+        "background-100": "var(--neutral-100-border-light)",
         "background-125": "var(--neutral-125)",
         "background-150": "var(--neutral-150)",
-        "background-200": "var(--neutral-200)",
-        "background-300": "var(--neutral-300)",
-        "background-400": "var(--neutral-400)",
+        "background-200": "var(--neutral-200-border)",
+        "background-300": "var(--neutral-300-border-medium)",
+        "background-400": "var(--neutral-400-border-strong)",
         "background-500": "var(--neutral-500)",
-        "background-600": "var(--neutral-600)",
+        "background-600": "var(--neutral-600-border-dark)",
         "background-700": "var(--neutral-700)",
         "background-800": "var(--neutral-800)",
         "background-900": "var(--neutral-900)",
 
-        "gray-background": "var(--neutral-100)",
-        "gray-background-dark": "var(--neutral-200)",
-        "gray-background-100": "var(--neutral-100)",
+        "gray-background": "var(--neutral-100-border-light)",
+        "gray-background-dark": "var(--neutral-200-border)",
+        "gray-background-100": "var(--neutral-100-border-light)",
         "gray-background-125": "var(--neutral-125)",
         "gray-background-150": "var(--neutral-150)",
-        "gray-background-200": "var(--neutral-200)",
-        "gray-background-300": "var(--neutral-300)",
-        "gray-background-400": "var(--neutral-400)",
+        "gray-background-200": "var(--neutral-200-border)",
+        "gray-background-300": "var(--neutral-300-border-medium)",
+        "gray-background-400": "var(--neutral-400-border-strong)",
         "gray-background-500": "var(--neutral-500)",
-        "gray-background-600": "var(--neutral-600)",
+        "gray-background-600": "var(--neutral-600-border-dark)",
         "gray-background-700": "var(--neutral-700)",
         "gray-background-800": "var(--neutral-800)",
         "gray-background-900": "var(--neutral-900)",
@@ -138,115 +138,114 @@ module.exports = {
         "background-inverted": "var(--background-inverted)",
         "background-emphasis": "var(--background-emphasis)",
         "background-strong": "var(--background-strong)",
-        "background-search": "var(--white)",
+        "background-search": "var(--white-card-popover)",
 
-        "background-history-sidebar-button-hover": "var(--neutral-200)",
-        "divider-history-sidebar-bar": "var(--border)",
+        "background-history-sidebar-button-hover": "var(--neutral-200-border)",
+        "divider-history-sidebar-bar": "var(--neutral-200-border)",
         "text-mobile-sidebar": "var(--text-800)",
-        "background-search-filter": "var(--neutral-100)",
-        "background-search-filter-dropdown": "var(--neutral-100)",
+        "background-search-filter": "var(--neutral-100-border-light)",
+        "background-search-filter-dropdown": "var(--neutral-100-border-light)",
+        "tw-prose-bold": "#fff",
 
-        "user-bubble": "var(--user-bubble)",
+        "user-bubble": "var(--off-white)",
 
         // colors for sidebar in chat, search, and manage settings
 
-        "background-chatbar": "var(--background-chatbar)",
+        "background-chatbar": "var(--background-chatbar-sidebar)",
         "text-sidebar": "var(--text-500)",
 
-        "toggled-background": "var(--neutral-400)",
-        "untoggled-background": "var(--neutral-200)",
-        "background-starter-message": "var(--background)",
-        "background-starter-message-hover": "var(--neutral-100)",
+        "toggled-background": "var(--neutral-400-border-strong)",
+        "untoggled-background": "var(--neutral-200-border)",
+        "background-starter-message": "var(--background-input-background)",
+        "background-starter-message-hover": "var(--neutral-100-border-light)",
 
         "text-sidebar-toggled-header": "var(--text-800)",
         "text-sidebar-header": "var(--text-800)",
 
-        "background-back-button": "var(--neutral-200)",
+        "background-back-button": "var(--neutral-200-border)",
         "text-back-button": "var(--neutral-800)",
 
         // Settings
         "text-sidebar-subtle": "var(--neutral-500)",
-        "icon-settings-sidebar": "var(--neutral-600)",
-        "text-settings-sidebar": "var(--neutral-600)",
+        "icon-settings-sidebar": "var(--neutral-600-border-dark)",
+        "text-settings-sidebar": "var(--neutral-600-border-dark)",
         "text-settings-sidebar-strong": "var(--neutral-900)",
-        "background-settings-hover": "var(--neutral-200)",
+        "background-settings-hover": "var(--neutral-200-border)",
 
         "text-application-toggled": "var(--text-800)",
         "text-application-untoggled": "var(--text-500)",
         "text-application-untoggled-hover": "var(--text-700)",
 
-        "background-chat-hover": "var(--background-chat-hover)",
-        "background-chat-selected": "var(--background-chat-selected)",
+        "background-chat-hover": "var(--background-chat-hover-selected)",
+        "background-chat-selected": "var(--background-chat-hover-selected)",
         black: "var(--black)",
-        white: "var(--white)",
+        white: "var(--white-card-popover)",
 
         // Background for chat messages (user bubbles)
-        user: "var(--user-bubble)",
+        user: "var(--off-white)",
 
         "userdropdown-background": "var(--neutral-800)",
         "text-mobile-sidebar-toggled": "var(--neutral-800)",
         "text-mobile-sidebar-untoggled": "var(--neutral-500)",
         "text-editing-message": "var(--neutral-800)",
-        "background-sidebar": "var(--background-sidebar)",
-        "background-search-filter": "var(--neutral-100)",
+        "background-sidebar": "var(--background-chatbar-sidebar)",
+        "background-search-filter": "var(--neutral-100-border-light)",
         "background-search-filter-dropdown": "var(--background-hover)",
 
-        "background-toggle": "var(--neutral-100)",
+        "background-toggle": "var(--neutral-100-border-light)",
 
         // Colors for the search toggle buttons
         "background-agentic-toggled": "var(--light-success)",
         "background-agentic-untoggled": "var(--undo)",
         "text-agentic-toggled": "var(--neutral-800)",
-        "text-agentic-untoggled": "var(--white)",
+        "text-agentic-untoggled": "var(--white-card-popover)",
         "text-chatbar-subtle": "var(--text-chatbar-subtle)",
         "text-chatbar": "var(--neutral-800)",
 
         // Color for the star indicator on high quality search results.
-        "star-indicator": "var(--neutral-100)",
+        "star-indicator": "var(--neutral-100-border-light)",
 
         // Backgrounds for submit buttons on search and chat
         "submit-background": "var(--neutral-800)",
-        "disabled-submit-background": "var(--neutral-400)",
+        "disabled-submit-background": "var(--neutral-400-border-strong)",
 
-        input: "var(--white)",
+        input: "var(--white-card-popover)",
 
         text: "var(--neutral-900)",
         "text-darker": "var(--text-darker)",
         "text-dark": "var(--text-dark)",
-        "sidebar-border": "var(--neutral-200)",
+        "sidebar-border": "var(--neutral-200-border)",
         "text-gray": "var(--text-gray)",
-
-        // background: "#F1EEE8",
 
         "text-light": "var(--text-light)",
 
         "text-50": "var(--neutral-50)",
-        "text-100": "var(--neutral-100)",
-        "text-200": "var(--neutral-200)",
-        "text-300": "var(--neutral-300)",
-        "text-400": "var(--neutral-400)",
+        "text-100": "var(--neutral-100-border-light)",
+        "text-200": "var(--neutral-200-border)",
+        "text-300": "var(--neutral-300-border-medium)",
+        "text-400": "var(--neutral-400-border-strong)",
         "text-500": "var(--neutral-500)",
-        "text-600": "var(--neutral-600)",
+        "text-600": "var(--neutral-600-border-dark)",
         "text-700": "var(--neutral-700)",
         "text-800": "var(--neutral-800)",
         "text-900": "var(--neutral-900)",
         "text-950": "var(--neutral-950)",
-        "text-muted": "var(--neutral-600)",
-        // Light mode
+        "text-muted": "var(--p)",
+
         // Light mode
         "calendar-bg-selected": "var(--neutral-800)",
-        "calendar-bg-outside-selected": "var(--neutral-200)",
-        "calendar-text-muted": "var(--neutral-400)",
-        "calendar-text-selected": "var(--white)",
+        "calendar-bg-outside-selected": "var(--neutral-200-border)",
+        "calendar-text-muted": "var(--neutral-400-border-strong)",
+        "calendar-text-selected": "var(--white-card-popover)",
         "calendar-range-middle": "var(--neutral-800)",
-        "calendar-range-end": "var(--white)",
-        "calendar-text-in-range": "var(--neutral-200)",
+        "calendar-range-end": "var(--white-card-popover)",
+        "calendar-text-in-range": "var(--neutral-200-border)",
         "calendar-text-end": "var(--neutral-900)",
 
         // Dark mode
         "calendar-bg-outside-selected-dark": "var(--neutral-700)",
         "calendar-text-muted-dark": "var(--text-500)",
-        "calendar-text-selected-dark": "var(--white)",
+        "calendar-text-selected-dark": "var(--white-card-popover)",
         "calendar-range-middle-dark": "var(--neutral-800)",
         "calendar-text-in-range-dark": "var(--text-200)",
 
@@ -257,11 +256,11 @@ module.exports = {
         "calendar-hover-text-dark": "var(--text-200)",
 
         // Today's date
-        "calendar-today-bg": "var(--neutral-100)",
+        "calendar-today-bg": "var(--neutral-100-border-light)",
         "calendar-today-bg-dark": "var(--neutral-800)",
         "calendar-today-text": "var(--neutral-800)",
-        "calendar-today-text-dark": "var(--neutral-200)",
-        "calendar-background-selected": "var(--white)",
+        "calendar-today-text-dark": "var(--neutral-200-border)",
+        "calendar-background-selected": "var(--white-card-popover)",
         "calendar-ring-selected": "var(--neutral-900)",
 
         "user-text": "var(--text-800)",
@@ -273,14 +272,14 @@ module.exports = {
         strong: "var(--text-900)",
 
         // borders
-        border: "var(--border)",
-        "border-light": "var(--border-light)",
-        "border-medium": "var(--border-medium)",
-        "border-strong": "var(--border-strong)",
-        "border-dark": "var(--border-dark)",
+        border: "var(--neutral-200-border)",
+        "border-light": "var(--neutral-100-border-light)",
+        "border-medium": "var(--neutral-300-border-medium)",
+        "border-strong": "var(--neutral-400-border-strong)",
+        "border-dark": "var(--neutral-600-border-dark)",
         "non-selectable-border": "var(--non-selectable-border)",
 
-        inverted: "var(--white)",
+        inverted: "var(--white-card-popover)",
         link: "var(--link)",
         "link-hover": "var(--link-hover)",
 
@@ -289,20 +288,15 @@ module.exports = {
         success: "var(--success)",
         alert: "var(--alert)",
         accent: "var(--accent)",
-        // -        agent: "#6C6AD6",
         "agent-sidebar": "var(--agent-sidebar)",
         agent: "var(--agent)",
-        // agent: "#FE8B09",
-
-        // agent: "#6C6AD6",
-        // agent: "#FE8B09",
 
         // hover
         "hover-light": "var(--hover-light)",
         "hover-lightish": "var(--neutral-125)",
 
         hover: "var(--hover)",
-        "hover-emphasis": "var(--neutral-300)",
+        "hover-emphasis": "var(--neutral-300-border-medium)",
         "accent-hover": "var(--accent-hover)",
 
         // keyword highlighting

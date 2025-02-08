@@ -908,7 +908,7 @@ export const HumanMessage = ({
                         break-word
                         overscroll-contain
                         outline-none 
-                        placeholder-gray-400 
+                        placeholder-text-400 
                         resize-none
                         text-text-editing-message
                         pl-4
@@ -996,9 +996,7 @@ export const HumanMessage = ({
                           <Tooltip>
                             <TooltipTrigger>
                               <HoverableIcon
-                                icon={
-                                  <FiEdit2 className="text-gray-background-600" />
-                                }
+                                icon={<FiEdit2 className="text-text-600" />}
                                 onClick={() => {
                                   setIsEditing(true);
                                   setIsHovered(false);

@@ -223,7 +223,7 @@ export default function NRFPage({
         <button
           aria-label="Open settings"
           onClick={toggleSettings}
-          className="bg-onyx-white bg-opacity-70 rounded-full p-2.5 cursor-pointer hover:bg-opacity-80 transition-colors duration-200"
+          className="bg-white bg-opacity-70 rounded-full p-2.5 cursor-pointer hover:bg-opacity-80 transition-colors duration-200"
         >
           <Menu size={12} className="text-text-900" />
         </button>

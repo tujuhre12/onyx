@@ -15,6 +15,7 @@ import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { useChatContext } from "@/components/context/ChatContext";
 import { InputPromptsSection } from "./InputPromptsSection";
 import { LLMSelector } from "@/components/llm/LLMSelector";
+import { ModeToggle } from "./ThemeToggle";
 
 export function UserSettingsModal({
   setPopup,

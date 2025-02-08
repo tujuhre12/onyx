@@ -49,7 +49,7 @@ export function StarterMessages({
                       text-text-dark hover:text-text
                       border
                       dark:border-none
-                      dark:bg-background-200
+                      dark:bg-background-150
                       dark:hover:bg-background-150
                       px-3 py-2
                       text-start align-to text-wrap

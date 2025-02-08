@@ -55,7 +55,7 @@ function Calendar({
           "aria-selected:bg-calendar-range-middle aria-selected:text-calendar-text-in-range dark:aria-selected:bg-calendar-range-middle-dark dark:aria-selected:text-calendar-text-in-range-dark",
         day_hidden: "invisible",
         day_range_start:
-          "bg-calendar-background-selected ring-calendar-ring-selected ring text-text-900",
+          "bg-calendar-background-selected ring-calendar-ring-selected ring text-neutral-900",
         ...classNames,
       }}
       components={{

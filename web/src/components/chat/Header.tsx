@@ -10,6 +10,7 @@ import { ChatBanner } from "@/app/chat/ChatBanner";
 import LogoWithText from "../header/LogoWithText";
 import { NewChatIcon } from "../icons/icons";
 import { SettingsContext } from "../settings/SettingsProvider";
+import { ModeToggle } from "@/app/chat/modal/ThemeToggle";
 
 export default function FunctionalHeader({
   page,
@@ -144,6 +145,8 @@ export default function FunctionalHeader({
                 <FiShare2 size="18" />
               </div>
             )}
+
+            <ModeToggle />
 
             <div className="mobile:hidden flex my-auto">
               <UserDropdown

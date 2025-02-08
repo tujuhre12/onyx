@@ -34,9 +34,9 @@ export const DriveJsonUpload = ({
     <>
       <input
         className={
-          "mr-3 text-sm text-gray-background-900 border border-gray-background-300 " +
-          "cursor-pointer bg-backgrournd dark:text-gray-background-400 focus:outline-none " +
-          "dark:bg-gray-background-700 dark:border-gray-background-600 dark:placeholder-gray-400"
+          "mr-3 text-sm text-text-900 border border-background-300 " +
+          "cursor-pointer bg-backgrournd dark:text-text-400 focus:outline-none " +
+          "dark:bg-background-700 dark:border-background-600 dark:placeholder-text-400"
         }
         type="file"
         accept=".json"

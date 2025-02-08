@@ -124,7 +124,7 @@ export function SourceSelector({
                         e.stopPropagation();
                         setTimeRange(null);
                       }}
-                      className="text-sm text-gray-background-500 hover:text-gray-background-700"
+                      className="text-sm text-text-500 hover:text-text-700"
                     >
                       Clear
                     </button>

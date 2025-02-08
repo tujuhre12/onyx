@@ -359,7 +359,7 @@ const SubQuestionDisplay: React.FC<{
                 >
                   <div className="pl-0 pb-2">
                     <div className="mb-4 flex flex-col gap-2">
-                      <div className="text-background-800 text-xs font-medium leading-normal">
+                      <div className="text-text-800 text-xs font-medium leading-normal">
                         Searching
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -376,7 +376,7 @@ const SubQuestionDisplay: React.FC<{
 
                     {(subQuestion?.is_complete || memoizedDocs?.length > 0) && (
                       <div className="mb-4 flex flex-col gap-2">
-                        <div className="text-background-800 text-xs font-medium leading-normal">
+                        <div className="text-text-800 text-xs font-medium leading-normal">
                           Reading
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -413,7 +413,7 @@ const SubQuestionDisplay: React.FC<{
                       subQuestion?.answer?.length > 0) && (
                       <div className="flex flex-col gap-2">
                         <div
-                          className="text-background-800 cursor-pointer items-center text-xs flex gap-x-1 font-medium leading-normal"
+                          className="text-text-800 cursor-pointer items-center text-xs flex gap-x-1 font-medium leading-normal"
                           onClick={() => setAnalysisToggled(!analysisToggled)}
                         >
                           Analyzing
@@ -447,7 +447,7 @@ const SubQuestionDisplay: React.FC<{
               >
                 <div className="pl-0">
                   <div className="flex flex-col gap-2">
-                    <div className="leading-none text-background-800 text-xs font-medium">
+                    <div className="leading-none text-text-800 text-xs font-medium">
                       {temporaryDisplay?.tinyQuestion}
                     </div>
                   </div>

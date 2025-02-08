@@ -67,7 +67,7 @@ const ExpandableContentWrapper: React.FC<ExpandableContentWrapperProps> = ({
         !expanded ? "w-message-sm" : "w-full"
       } !rounded !rounded-lg overflow-y-hidden border h-full border-border`}
     >
-      <CardHeader className="w-full py-4 border-b border-border bg-onyx-white z-[10] top-0">
+      <CardHeader className="w-full py-4 border-b border-border bg-white z-[10] top-0">
         <div className="flex justify-between items-center">
           <CardTitle className="text-ellipsis line-clamp-1 text-xl font-semibold text-text-700 pr-4">
             {fileDescriptor.name || "Untitled"}

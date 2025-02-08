@@ -592,7 +592,7 @@ export function SlackChannelConfigFormFields({
                   <AlertCircle className="h-5 w-5 text-alert" />
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="top" className="bg-onyx-white p-4 w-80">
+              <TooltipContent side="top" className="bg-white p-4 w-80">
                 <Label className="text-text mb-2 font-semibold">
                   Privacy Alert
                 </Label>
@@ -613,7 +613,7 @@ export function SlackChannelConfigFormFields({
                         <Link
                           key={ccpairinfo.id}
                           href={`/admin/connector/${ccpairinfo.id}`}
-                          className="flex items-center p-2 rounded-md hover:bg-gray-background-100 transition-colors"
+                          className="flex items-center p-2 rounded-md hover:bg-background-100 transition-colors"
                         >
                           <div className="mr-2">
                             <SourceIcon

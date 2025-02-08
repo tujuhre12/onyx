@@ -178,7 +178,7 @@ const RerankingDetailsForm = forwardRef<
                         className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
                           isSelected
                             ? "border-blue-500 bg-blue-50 shadow-md"
-                            : "border-gray-background-200 hover:border-blue-300 hover:shadow-sm"
+                            : "border-background-200 hover:border-blue-300 hover:shadow-sm"
                         }`}
                         onClick={() => {
                           if (
@@ -240,10 +240,10 @@ const RerankingDetailsForm = forwardRef<
                             </a>
                           )}
                         </div>
-                        <p className="text-sm text-gray-background-600 mb-2">
+                        <p className="text-sm text-text-600 mb-2">
                           {card.description}
                         </p>
-                        <div className="text-xs text-gray-background-500">
+                        <div className="text-xs text-text-500">
                           {card.cloud ? "Cloud-based" : "Self-hosted"}
                         </div>
                       </div>

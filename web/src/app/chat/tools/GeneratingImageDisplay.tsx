@@ -60,7 +60,7 @@ export default function GeneratingImageDisplay({ isCompleted = false }) {
       <div className="m-auto relative flex">
         <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 100 100">
           <circle
-            className="text-gray-background-200"
+            className="text-text-200"
             strokeWidth="8"
             stroke="currentColor"
             fill="transparent"
@@ -69,7 +69,7 @@ export default function GeneratingImageDisplay({ isCompleted = false }) {
             cy="50"
           />
           <circle
-            className="text-gray-background-800 transition-all duration-300"
+            className="text-text-800 transition-all duration-300"
             strokeWidth="8"
             strokeDasharray={276.46}
             strokeDashoffset={276.46 * (1 - progress / 100)}

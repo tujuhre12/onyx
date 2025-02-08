@@ -61,13 +61,10 @@ export const ShortCut = ({
               onError={() => setFaviconError(true)}
             />
           ) : (
-            <QuestionMarkIcon
-              size={32}
-              className="text-onyx-white w-full h-full"
-            />
+            <QuestionMarkIcon size={32} className="text-white w-full h-full" />
           )}
         </div>
-        <h1 className="text-onyx-white w-full text-center font-semibold text-sm truncate px-2">
+        <h1 className="text-white w-full text-center font-semibold text-sm truncate px-2">
           {shortCut.name}
         </h1>
       </div>
@@ -85,8 +82,8 @@ export const AddShortCut = ({
       onClick={openShortCutModal}
       className="w-24 h-24 flex-none rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all duration-300 ease-in-out flex flex-col items-center justify-center"
     >
-      <PlusIcon className="w-8 h-8 text-onyx-white mb-2" />
-      <h1 className="text-onyx-white text-xs font-medium">New Bookmark</h1>
+      <PlusIcon className="w-8 h-8 text-white mb-2" />
+      <h1 className="text-white text-xs font-medium">New Bookmark</h1>
     </button>
   );
 };
@@ -184,7 +181,7 @@ export const NewShortCutModal = ({
                 id="url"
                 value={url}
                 onChange={handleUrlChange}
-                className={`bg-background-800 border-background-700 text-onyx-white ${
+                className={`bg-background-800 border-background-700 text-white ${
                   !isValidUrl && url ? "border-red-500" : ""
                 }`}
                 placeholder="https://example.com"

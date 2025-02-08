@@ -54,7 +54,7 @@ const SourceCard: React.FC<{
 
       <div className="flex items-center gap-1 mt-1">
         <ResultIcon doc={document} size={18} />
-        <div className="text-background-800 text-xs leading-tight truncate flex-1 min-w-0">
+        <div className="text-text-800 text-xs leading-tight truncate flex-1 min-w-0">
           {truncatedIdentifier}
         </div>
       </div>

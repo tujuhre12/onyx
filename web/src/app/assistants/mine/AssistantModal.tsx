@@ -135,7 +135,7 @@ export function AssistantModal({
                   {!isSearchFocused && (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 text-gray-background-400"
+                      className="h-5 w-5 text-text-400"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -201,7 +201,7 @@ export function AssistantModal({
           </div>
 
           <div className="flex-grow overflow-y-auto">
-            <h2 className="text-2xl font-semibold text-gray-background-800 mb-2 px-4 py-2">
+            <h2 className="text-2xl font-semibold text-text-800 mb-2 px-4 py-2">
               Featured Assistants
             </h2>
 
@@ -219,7 +219,7 @@ export function AssistantModal({
                   </div>
                 ))
               ) : (
-                <div className="col-span-2 text-center text-gray-background-500">
+                <div className="col-span-2 text-center text-text-500">
                   No featured assistants match filters
                 </div>
               )}
@@ -227,7 +227,7 @@ export function AssistantModal({
 
             {allAssistants && allAssistants.length > 0 && (
               <>
-                <h2 className="text-2xl font-semibold text-gray-background-800 mt-4 mb-2 px-4 py-2">
+                <h2 className="text-2xl font-semibold text-text-800 mt-4 mb-2 px-4 py-2">
                   All Assistants
                 </h2>
 

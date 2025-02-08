@@ -233,7 +233,7 @@ export function SimplifiedChatInputBar({
         >
           <SendIcon
             size={28}
-            className={`text-text-darker text-onyx-white p-1 rounded-full  ${
+            className={`text-text-darker text-white p-1 rounded-full  ${
               message ? "bg-submit-background" : "bg-disabled-submit-background"
             } `}
           />

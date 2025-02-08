@@ -31,7 +31,7 @@ export const ApiKeyModal = ({
       onOutsideClick={hide ? () => hide() : undefined}
     >
       <>
-        <div className="mb-5 text-sm text-gray-background-700">
+        <div className="mb-5 text-sm text-text-700">
           Please provide an API Key – you can always change this or switch
           models later.
           <br />

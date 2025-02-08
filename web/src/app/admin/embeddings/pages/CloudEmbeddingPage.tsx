@@ -194,7 +194,7 @@ export default function CloudEmbeddingPage({
             {!liteLLMProvider ? (
               <button
                 onClick={() => setShowTentativeProvider(LITELLM_CLOUD_PROVIDER)}
-                className="mb-2 px-4 py-2 bg-blue-500 text-onyx-white rounded hover:bg-blue-600 text-sm cursor-pointer"
+                className="mb-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm cursor-pointer"
               >
                 Set API Configuration
               </button>
@@ -210,12 +210,12 @@ export default function CloudEmbeddingPage({
             )}
 
             {!liteLLMProvider && (
-              <CardSection className="mt-2 w-full max-w-4xl bg-gray-background-50 border border-gray-background-200">
+              <CardSection className="mt-2 w-full max-w-4xl bg-background-50 border border-background-200">
                 <div className="p-4">
                   <Text className="text-lg font-semibold mb-2">
                     API URL Required
                   </Text>
-                  <Text className="text-sm text-gray-background-600 mb-4">
+                  <Text className="text-sm text-text-600 mb-4">
                     Before you can add models, you need to provide an API URL
                     for your LiteLLM proxy. Click the &quot;Provide API
                     URL&quot; button above to set up your LiteLLM configuration.
@@ -308,24 +308,21 @@ export default function CloudEmbeddingPage({
             <>
               <button
                 onClick={() => setShowTentativeProvider(AZURE_CLOUD_PROVIDER)}
-                className="mb-2 px-4 py-2 bg-blue-500 text-onyx-white rounded hover:bg-blue-600 text-sm cursor-pointer"
+                className="mb-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm cursor-pointer"
               >
                 Configure Azure OpenAI
               </button>
               <div className="mt-2 w-full max-w-4xl">
-                <CardSection className="p-4 border border-gray-background-200 rounded-lg shadow-sm">
+                <CardSection className="p-4 border border-background-200 rounded-lg shadow-sm">
                   <Text className="text-base font-medium mb-2">
                     Configure Azure OpenAI for Embeddings
                   </Text>
-                  <Text className="text-sm text-gray-background-600 mb-3">
+                  <Text className="text-sm text-text-600 mb-3">
                     Click &quot;Configure Azure OpenAI&quot; to set up Azure
                     OpenAI for embeddings.
                   </Text>
-                  <div className="flex items-center text-sm text-gray-background-700">
-                    <FiInfo
-                      className="text-gray-background-400 mr-2"
-                      size={16}
-                    />
+                  <div className="flex items-center text-sm text-text-700">
+                    <FiInfo className="text-text-400 mr-2" size={16} />
                     <Text>
                       You&apos;ll need: API version, base URL, API key, model
                       name, and deployment name.
@@ -342,7 +339,7 @@ export default function CloudEmbeddingPage({
                 </Text>
 
                 {azureProviderDetails ? (
-                  <CardSection className="bg-onyx-white shadow-sm border border-gray-background-200 rounded-lg">
+                  <CardSection className="bg-white shadow-sm border border-background-200 rounded-lg">
                     <div className="p-4 space-y-3">
                       <div className="flex justify-between">
                         <span className="font-medium">API Version:</span>
@@ -361,14 +358,14 @@ export default function CloudEmbeddingPage({
                       onClick={() =>
                         setChangeCredentialsProvider(AZURE_CLOUD_PROVIDER)
                       }
-                      className="mt-2 px-4 py-2 bg-red-500 text-onyx-white rounded hover:bg-red-600 text-sm"
+                      className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
                     >
                       Delete Current Azure Provider
                     </button>
                   </CardSection>
                 ) : (
-                  <CardSection className="bg-gray-background-50 border border-gray-background-200 rounded-lg">
-                    <div className="p-4 text-gray-background-500 text-center">
+                  <CardSection className="bg-background-50 border border-background-200 rounded-lg">
+                    <div className="p-4 text-text-500 text-center">
                       No Azure provider has been configured yet.
                     </div>
                   </CardSection>
@@ -454,7 +451,7 @@ export function CloudModelCard({
       className={`p-4 w-96 border rounded-lg transition-all duration-200 ${
         enabled
           ? "border-blue-500 bg-blue-50 shadow-md"
-          : "border-gray-background-300 hover:border-blue-300 hover:shadow-sm"
+          : "border-background-300 hover:border-blue-300 hover:shadow-sm"
       } ${!provider.configured && "opacity-80 hover:opacity-100"}`}
     >
       {popup}
@@ -490,12 +487,10 @@ export function CloudModelCard({
           </a>
         </div>
       </div>
-      <p className="text-sm text-gray-background-600 mb-2">
-        {model.description}
-      </p>
+      <p className="text-sm text-text-600 mb-2">{model.description}</p>
       {model?.provider_type?.toLowerCase() !=
         EmbeddingProvider.LITELLM.toLowerCase() && (
-        <div className="text-xs text-gray-background-500 mb-2">
+        <div className="text-xs text-text-500 mb-2">
           ${model.pricePerMillion}/M tokens
         </div>
       )}

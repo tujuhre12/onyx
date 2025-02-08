@@ -87,7 +87,7 @@ export const IsPublicGroupSelector = <T extends IsPublicGroupSelectorFormType>({
             }
             disabled={!isAdmin}
             subtext={
-              <span className="block mt-2 text-sm text-gray-background-500">
+              <span className="block mt-2 text-sm text-text-500">
                 If set, then this {objectName} will be usable by{" "}
                 <b>All {publicToWhom}</b>. Otherwise, only <b>Admins</b> and{" "}
                 <b>{publicToWhom}</b> who have explicitly been given access to
@@ -108,7 +108,7 @@ export const IsPublicGroupSelector = <T extends IsPublicGroupSelectorFormType>({
               </div>
             </div>
             {userGroupsIsLoading ? (
-              <div className="animate-pulse bg-gray-background-200 h-8 w-32 rounded"></div>
+              <div className="animate-pulse bg-background-200 h-8 w-32 rounded"></div>
             ) : (
               <Text className="mb-3">
                 {isAdmin || !enforceGroupSelection ? (
@@ -129,7 +129,7 @@ export const IsPublicGroupSelector = <T extends IsPublicGroupSelectorFormType>({
               render={(arrayHelpers: ArrayHelpers) => (
                 <div className="flex gap-2 flex-wrap mb-4">
                   {userGroupsIsLoading ? (
-                    <div className="animate-pulse bg-gray-background-200 h-8 w-32 rounded"></div>
+                    <div className="animate-pulse bg-background-200 h-8 w-32 rounded"></div>
                   ) : (
                     userGroups &&
                     userGroups.map((userGroup: UserGroup) => {

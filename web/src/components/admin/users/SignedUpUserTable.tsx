@@ -158,7 +158,7 @@ const SignedUpUserTable = ({
               .map(([role, label]) => (
                 <div
                   key={role}
-                  className="flex items-center space-x-2 px-2 py-1.5 cursor-pointer hover:bg-gray-background-200"
+                  className="flex items-center space-x-2 px-2 py-1.5 cursor-pointer hover:bg-background-200"
                   onClick={() => toggleRole(role as UserRole)}
                 >
                   <input

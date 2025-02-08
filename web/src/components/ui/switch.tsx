@@ -42,7 +42,7 @@ export const Switch = React.forwardRef<
           "border-2 border-transparent transition-colors focus-visible:outline-none " +
           "focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 " +
           "focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 " +
-          "data-[state=checked]:bg-background-900 data-[state=unchecked]:bg-background-200 " +
+          "data-[state=checked]:bg-neutral-900 data-[state=unchecked]:bg-neutral-200 " +
           sizeClasses[size],
         className
       )}
@@ -50,7 +50,7 @@ export const Switch = React.forwardRef<
     >
       <SwitchPrimitives.Thumb
         className={cn(
-          "pointer-events-none block rounded-full bg-onyx-white shadow-lg ring-0 transition-transform " +
+          "pointer-events-none block rounded-full bg-white shadow-lg ring-0 transition-transform " +
             "data-[state=unchecked]:translate-x-0",
           thumbSizeClasses[size],
           translateClasses[size],

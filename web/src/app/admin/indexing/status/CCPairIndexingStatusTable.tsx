@@ -76,19 +76,17 @@ function SummaryRow({
       </TableCell>
 
       <TableCell>
-        <div className="text-sm text-gray-background-500">Total Connectors</div>
+        <div className="text-sm text-text-500">Total Connectors</div>
         <div className="text-xl font-semibold">{summary.count}</div>
       </TableCell>
 
       <TableCell>
-        <div className="text-sm text-gray-background-500">
-          Active Connectors
-        </div>
+        <div className="text-sm text-text-500">Active Connectors</div>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center mt-1">
-                <div className="w-full bg-onyx-white rounded-full h-2 mr-2">
+                <div className="w-full bg-white rounded-full h-2 mr-2">
                   <div
                     className="bg-green-500 h-2 rounded-full"
                     style={{ width: `${activePercentage}%` }}
@@ -108,9 +106,7 @@ function SummaryRow({
 
       {isPaidEnterpriseFeaturesEnabled && (
         <TableCell>
-          <div className="text-sm text-gray-background-500">
-            Public Connectors
-          </div>
+          <div className="text-sm text-text-500">Public Connectors</div>
           <p className="flex text-xl mx-auto font-semibold items-center text-lg mt-1">
             {summary.public}/{summary.count}
           </p>
@@ -118,16 +114,14 @@ function SummaryRow({
       )}
 
       <TableCell>
-        <div className="text-sm text-gray-background-500">
-          Total Docs Indexed
-        </div>
+        <div className="text-sm text-text-500">Total Docs Indexed</div>
         <div className="text-xl font-semibold">
           {summary.totalDocsIndexed.toLocaleString()}
         </div>
       </TableCell>
 
       <TableCell>
-        <div className="text-sm text-gray-background-500">Errors</div>
+        <div className="text-sm text-text-500">Errors</div>
 
         <div className="flex items-center text-lg gap-x-1 font-semibold">
           {summary.errors > 0 && <Warning className="text-error h-6 w-6" />}

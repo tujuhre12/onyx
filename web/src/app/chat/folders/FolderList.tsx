@@ -255,13 +255,13 @@ const FolderItem = ({
                         <div className="flex justify-end">
                           <button
                             onClick={confirmDelete}
-                            className="bg-red-500 hover:bg-red-600 text-onyx-white px-2 py-1 rounded text-xs mr-2"
+                            className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs mr-2"
                           >
                             Yes
                           </button>
                           <button
                             onClick={cancelDelete}
-                            className="bg-gray-background-300 hover:bg-gray-background-200 px-2 py-1 rounded text-xs"
+                            className="bg-background-300 hover:bg-background-200 px-2 py-1 rounded text-xs"
                           >
                             No
                           </button>

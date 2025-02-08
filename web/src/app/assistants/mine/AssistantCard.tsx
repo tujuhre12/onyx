@@ -50,7 +50,7 @@ export const AssistantBadge = ({
     <div
       className={`h-4 px-1.5 py-1 text-[10px] flex-none bg-background-200/50 rounded-lg justify-center items-center gap-1 inline-flex ${className}`}
     >
-      <div className="text-background-800 font-normal leading-[8px]">
+      <div className="text-text-800 font-normal leading-[8px]">
         {maxLength ? truncateString(text, maxLength) : text}
       </div>
     </div>
