@@ -4,6 +4,8 @@ import json
 import ssl
 import threading
 from collections.abc import Callable
+from datetime import datetime
+from datetime import timedelta
 from typing import Any
 from typing import cast
 from typing import Optional
@@ -40,7 +42,7 @@ class TenantRedis(redis.Redis):
         self.tenant_id: str = tenant_id
 
     def _prefixed(self, key: str | bytes | memoryview) -> str | bytes | memoryview:
-        prefix: str = f"{self.tenant_id}:"
+        prefix: str = f"{self.tenant_id}:" if self.tenant_id else ""
         if isinstance(key, str):
             if key.startswith(prefix):
                 return key
@@ -86,6 +88,7 @@ class TenantRedis(redis.Redis):
             iterator = method(*args, **kwargs)
 
             # Remove prefix from returned keys
+
             prefix = f"{self.tenant_id}:".encode()
             prefix_len = len(prefix)
 
@@ -285,6 +288,25 @@ async def get_async_redis_connection() -> aioredis.Redis:
 
     # Return the established connection (or pool) for all future operations
     return _async_redis_connection
+
+
+def retrieve_auth_expiration_from_redis(request: Request) -> datetime | None:
+    token = request.cookies.get(FASTAPI_USERS_AUTH_COOKIE_NAME)
+    if not token:
+        return None
+
+    redis = get_redis_client(tenant_id="")
+    redis_key = REDIS_AUTH_KEY_PREFIX + token
+
+    # Get the TTL of the key
+    ttl = redis.ttl(redis_key)
+
+    if ttl <= 0:
+        return None  # Key doesn't exist or has no expiration
+
+    # Calculate the expiration datetime
+    expiration = datetime.now() + timedelta(seconds=ttl)
+    return expiration
 
 
 async def retrieve_auth_token_data_from_redis(request: Request) -> dict | None:
