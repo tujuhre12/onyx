@@ -341,6 +341,9 @@ export const AIMessage = ({
     () => ({
       a: anchorCallback,
       p: paragraphCallback,
+      b: ({ node, className, children }: any) => {
+        return <span className={className}>||||{children}</span>;
+      },
       code: ({ node, className, children }: any) => {
         const codeText = extractCodeText(
           node,

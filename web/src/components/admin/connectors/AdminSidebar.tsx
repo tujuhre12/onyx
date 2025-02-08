@@ -68,7 +68,7 @@ export function AdminSidebar({ collections }: { collections: Collection[] }) {
             {collection.items.map((item) => (
               <Link key={item.link} href={item.link}>
                 <button
-                  className={`text-sm text-text-700 block flex gap-x-2 items-center w-52 py-2.5 px-2 text-left hover:bg-background-settings-hover rounded`}
+                  className={`text-sm text-text-700 block flex gap-x-2 items-center w-52 py-2.5 px-2 text-left hover:bg-background-settings-hover dark:hover:bg-neutral-800 rounded`}
                 >
                   {item.name}
                 </button>

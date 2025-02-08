@@ -147,7 +147,7 @@ module.exports = {
         "text-mobile-sidebar": "var(--text-800)",
         "background-search-filter": "var(--neutral-100-border-light)",
         "background-search-filter-dropdown": "var(--neutral-100-border-light)",
-        "tw-prose-bold": "#fff",
+        "tw-prose-bold": "var(--text-800)",
 
         "user-bubble": "var(--off-white)",
 

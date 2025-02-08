@@ -65,6 +65,7 @@ export function LogoType() {
 
   return (
     <>
+      <span className="invisible w-0">{effectiveTheme}</span>
       <OnyxLogoTypeIcon
         size={115}
         className={`items-center w-full ${
