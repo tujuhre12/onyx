@@ -825,10 +825,7 @@ export function AssistantEditor({
                               </TooltipProvider>
                             </div>
                           </div>
-                          <p
-                            className="text-sm text-subtle"
-                            style={{ color: "rgb(113, 114, 121)" }}
-                          >
+                          <p className="text-sm text-neutral-700 dark:text-neutral-400">
                             Attach additional unique knowledge to this assistant
                           </p>
                         </div>

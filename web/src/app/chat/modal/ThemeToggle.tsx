@@ -27,21 +27,27 @@ export function ModeToggle() {
       <DropdownMenuContent align="end">
         <DropdownMenuItem
           onClick={() => setTheme("light")}
-          className={theme === "light" ? "bg-neutral-100" : ""}
+          className={
+            theme === "light" ? "bg-neutral-100 dark:bg-neutral-800" : ""
+          }
         >
           <Sun className="mr-2 h-4 w-4" />
           <span>Light</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setTheme("dark")}
-          className={theme === "dark" ? "bg-neutral-100" : ""}
+          className={
+            theme === "dark" ? "bg-neutral-100 dark:bg-neutral-800" : ""
+          }
         >
           <Moon className="mr-2 h-4 w-4" />
           <span>Dark</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setTheme("system")}
-          className={theme === "system" ? "bg-neutral-100" : ""}
+          className={
+            theme === "system" ? "bg-neutral-100 dark:bg-neutral-800" : ""
+          }
         >
           <Laptop className="mr-2 h-4 w-4" />
           <span>System</span>

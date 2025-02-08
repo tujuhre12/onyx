@@ -33,7 +33,7 @@ function StandardDropdownOption<T>({
   return (
     <button
       onClick={() => handleSelect(option)}
-      className={`w-full text-left block px-4 py-2.5 text-sm bg-white hover:bg-background-50 ${
+      className={`w-full text-left block px-4 py-2.5 text-sm bg-white dark:bg-neutral-800 hover:bg-background-50 ${
         index !== 0 ? "border-t border-background-200" : ""
       }`}
       role="menuitem"
@@ -113,7 +113,7 @@ export function SearchMultiSelectDropdown({
             }
           }}
           onFocus={() => setIsOpen(true)}
-          className="inline-flex justify-between w-full px-4 py-2 text-sm bg-white text-text-800 border border-background-300 rounded-md shadow-sm"
+          className="inline-flex justify-between w-full px-4 py-2 text-sm bg-white dark:bg-transparent text-text-800 border border-background-300 rounded-md shadow-sm"
         />
         <button
           type="button"

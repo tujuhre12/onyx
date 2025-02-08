@@ -12,7 +12,7 @@ const buttonVariants = cva(
         success:
           "bg-green-100 text-green-600 hover:bg-green-500/90 dark:bg-green-700 dark:text-green-100 dark:hover:bg-green-600/90",
         "success-reverse":
-          "bg-green-600 text-white hover:bg-green-700 dark:bg-green-200 dark:text-green-800 dark:hover:bg-green-300",
+          "bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:text-green-100 dark:hover:bg-green-600",
         default:
           "bg-neutral-900 border-border text-neutral-50 hover:bg-neutral-900/90 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200",
         "default-reverse":

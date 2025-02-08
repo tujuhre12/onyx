@@ -64,7 +64,7 @@ export function Modal({
       onMouseDown={handleMouseDown}
       className={cn(
         `fixed inset-0 bg-neutral-950/50 border border-neutral-200 dark:border-neutral-800 bg-opacity-30 backdrop-blur-sm h-full
-        flex items-center justify-center z-[100] transition-opacity duration-300 ease-in-out`
+        flex items-center justify-center z-50 transition-opacity duration-300 ease-in-out`
       )}
     >
       <div

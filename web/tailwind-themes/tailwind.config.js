@@ -268,7 +268,7 @@ module.exports = {
         "user-text": "var(--text-800)",
 
         description: "var(--text-400)",
-        subtle: "var(--text-500)",
+        subtle: "var(--neutral-600-border-dark)",
         default: "var(--text-600)",
         emphasis: "var(--text-700)",
         strong: "var(--text-900)",

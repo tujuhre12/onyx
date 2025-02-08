@@ -59,7 +59,7 @@ function SummaryRow({
   return (
     <TableRow
       onClick={onToggle}
-      className="border-border group hover:bg-background-settings-hover bg-background-sidebar py-4 rounded-sm !border cursor-pointer"
+      className="border-border dark:border-neutral-700 group hover:bg-background-settings-hover bg-background-sidebar py-4 rounded-sm !border cursor-pointer"
     >
       <TableCell>
         <div className="text-xl flex items-center truncate ellipsis gap-x-2 font-semibold">
@@ -203,11 +203,13 @@ function ConnectorRow({
 
   return (
     <TableRow
-      className={`hover:bg-accent-background ${
-        invisible
-          ? "invisible !h-0 !-mb-10 !border-none"
-          : "!border !border-border"
-      }  w-full cursor-pointer relative `}
+      className={`
+border border-border dark:border-neutral-700
+        hover:bg-accent-background ${
+          invisible
+            ? "invisible !h-0 !-mb-10 !border-none"
+            : "!border border-border dark:border-neutral-700"
+        }  w-full cursor-pointer relative `}
       onClick={() => {
         router.push(`/admin/connector/${ccPairsIndexingStatus.cc_pair_id}`);
       }}
@@ -467,7 +469,7 @@ export function CCPairIndexingStatusTable({
                   />
                   {connectorsToggled[source] && (
                     <>
-                      <TableRow className="border border-border">
+                      <TableRow className="border border-border dark:border-neutral-700">
                         <TableHead>Name</TableHead>
                         <TableHead>Last Indexed</TableHead>
                         <TableHead>Activity</TableHead>
