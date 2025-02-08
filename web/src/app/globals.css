@@ -21,6 +21,7 @@
     --neutral-300: #d4d4d4;
     --neutral-400: #a3a3a3;
     --neutral-500: #737373;
+    --neutral-600: #525252;
     --neutral-600-border-dark: #525252;
     --neutral-600: #525252;
     --neutral-700: #404040;
@@ -121,34 +122,6 @@
     --agent-sidebar: #be5d0e;
     --agent: #e47011;
     --lighter-agent: #f59e0b;
-
-    /* Tremor brand & dark tremor brand references */
-
-    /* Calendar-specific references not matching neutrals */
-    /* --calendar-bg-selected: #4b5563;
-    --calendar-bg-outside-selected: rgba(75, 85, 99, 0.2);
-    --calendar-text-muted: #6b7280;
-    --calendar-text-selected: #ffffff;
-    --calendar-range-start: #000000;
-    --calendar-range-middle: #f3f4f6;
-    --calendar-range-end: #000000;
-    --calendar-text-in-range: #1f2937;
-    --calendar-bg-selected-dark: #6b7280;
-    --calendar-bg-outside-selected-dark: rgba(107, 114, 128, 0.2);
-    --calendar-text-muted-dark: #9ca3af;
-    --calendar-text-selected-dark: #f3f4f6;
-    --calendar-range-start-dark: #374151;
-    --calendar-range-middle-dark: #4b5563;
-    --calendar-range-end-dark: #374151;
-    --calendar-text-in-range-dark: #e5e7eb;
-    --calendar-hover-bg: #9ca3af;
-    --calendar-hover-bg-dark: #6b7280;
-    --calendar-hover-text: #374151;
-    --calendar-hover-text-dark: #e5e7eb;
-    --calendar-today-bg: #d1d5db;
-    --calendar-today-bg-dark: #4b5563;
-    --calendar-today-text: #374151;
-    --calendar-today-text-dark: #d1d5db; */
 
     /* Consolidated color variables */
     --neutral-100-border-light: #f5f5f5;
