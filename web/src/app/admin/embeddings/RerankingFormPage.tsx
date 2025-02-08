@@ -177,8 +177,8 @@ const RerankingDetailsForm = forwardRef<
                         key={`${card.rerank_provider_type}-${card.modelName}`}
                         className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
                           isSelected
-                            ? "border-blue-500 bg-blue-50 shadow-md"
-                            : "border-background-200 hover:border-blue-300 hover:shadow-sm"
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900 dark:border-blue-700 shadow-md"
+                            : "border-background-200 hover:border-blue-300 hover:shadow-sm dark:border-neutral-700 dark:hover:border-blue-300"
                         }`}
                         onClick={() => {
                           if (

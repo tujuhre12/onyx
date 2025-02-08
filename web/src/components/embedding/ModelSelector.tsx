@@ -50,7 +50,7 @@ export function ModelOption({
     <div
       className={`p-4 w-96 border rounded-lg transition-all duration-200 ${
         selected
-          ? "border-blue-500 bg-blue-50 shadow-md"
+          ? "border-blue-500 bg-blue-50 dark:bg-blue-900 dark:border-blue-700 shadow-md"
           : "border-background-200 hover:border-blue-300 hover:shadow-sm"
       }`}
     >
@@ -69,7 +69,7 @@ export function ModelOption({
           </a>
         )}
       </div>
-      <p className="text-sm k text-text-600 text-left mb-2">
+      <p className="text-sm k text-text-600 dark:text-neutral-400 text-left mb-2">
         {model.description ||
           currentModelCopy?.description ||
           "Custom model—no description is available."}

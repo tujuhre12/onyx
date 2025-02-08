@@ -450,7 +450,7 @@ export function CloudModelCard({
     <div
       className={`p-4 w-96 border rounded-lg transition-all duration-200 ${
         enabled
-          ? "border-blue-500 bg-blue-50 shadow-md"
+          ? "border-blue-500 bg-blue-50 dark:bg-blue-950 shadow-md"
           : "border-background-300 hover:border-blue-300 hover:shadow-sm"
       } ${!provider.configured && "opacity-80 hover:opacity-100"}`}
     >
@@ -465,7 +465,9 @@ export function CloudModelCard({
       )}
 
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold text-lg">{model.model_name}</h3>
+        <h3 className="font-bold dark:text-neutral-100 text-lg">
+          {model.model_name}
+        </h3>
         <div className="flex gap-x-2">
           {model.provider_type == EmbeddingProvider.LITELLM.toLowerCase() && (
             <button
@@ -487,7 +489,9 @@ export function CloudModelCard({
           </a>
         </div>
       </div>
-      <p className="text-sm text-text-600 mb-2">{model.description}</p>
+      <p className="text-sm text-text-600 dark:text-neutral-400 mb-2">
+        {model.description}
+      </p>
       {model?.provider_type?.toLowerCase() !=
         EmbeddingProvider.LITELLM.toLowerCase() && (
         <div className="text-xs text-text-500 mb-2">

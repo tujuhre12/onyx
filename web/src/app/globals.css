@@ -154,7 +154,6 @@
     --neutral-100-border-light: #f5f5f5;
     --neutral-300-border-medium: #d4d4d4;
     --neutral-400-border-strong: #a3a3a3;
-    --neutral-600-border-dark: #525252;
     --background-input-background: #fefcfa;
     --background-chatbar-sidebar: #f5f3ee;
     --background-chat-hover-selected: #e6e3dd;
@@ -284,7 +283,7 @@
     --neutral-100-border-light: #6a6a6a; /* was #f5f5f5 */
     --neutral-300-border-medium: #4a4a4a; /* was #d4d4d4 */
     --neutral-400-border-strong: #3a3a3a; /* was #a3a3a3 */
-    --neutral-600-border-dark: #2a2a2a; /* was #525252 */
+    --neutral-600-border-dark: #9ca3af; /* was #525252, now using Tailwind's neutral-400 */
     --input: 0 0% 15%; /* (HSL) approx #262626 for dark input backgrounds */
 
     /* Additional single-purpose color vars (inverted where sensible) */
