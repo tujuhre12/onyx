@@ -306,11 +306,12 @@ def retrieve_auth_expiration_from_redis(request: Request) -> datetime | None:
     # Get the TTL of the key
     ttl = redis.ttl(redis_key)
 
-    if ttl <= 0:
-        return None  # Key doesn't exist or has no expiration
+    # Check if ttl is a valid number
+    if not isinstance(ttl, (int, float)) or ttl <= 0:
+        return None  # Key doesn't exist, has no expiration, or invalid TTL
 
     # Calculate the expiration datetime
-    expiration = datetime.now() + timedelta(seconds=ttl)
+    expiration = datetime.now() + timedelta(seconds=float(ttl))
     return expiration
 
 
