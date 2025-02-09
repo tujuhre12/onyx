@@ -96,3 +96,40 @@ def get_fit_scores(
     )
 
     return fit_eval
+
+
+def get_streaming_documents(
+    relevant_docs: list[InferenceSection],
+    context_documents: list[InferenceSection],
+    original_question_docs: list[InferenceSection],
+    max_docs: int,
+) -> list[InferenceSection]:
+    """
+    Create a deduplicated list of documents to stream, prioritizing relevant docs.
+
+    Args:
+        relevant_docs: Primary documents to include
+        context_documents: Additional context documents to append
+        original_question_docs: Original question documents to append
+        max_docs: Maximum number of documents to return
+
+    Returns:
+        List of deduplicated documents, limited to max_docs
+    """
+    # Start with relevant docs or fallback to original question docs
+    streaming_documents = (
+        relevant_docs if relevant_docs else original_question_docs[:15]
+    )
+
+    # Use a set for O(1) lookups of document IDs
+    seen_doc_ids = {doc.center_chunk.document_id for doc in streaming_documents}
+
+    # Combine additional documents to check in one iteration
+    additional_docs = context_documents + original_question_docs
+    for doc in additional_docs:
+        doc_id = doc.center_chunk.document_id
+        if doc_id not in seen_doc_ids:
+            streaming_documents.append(doc)
+            seen_doc_ids.add(doc_id)
+
+    return streaming_documents[:max_docs]

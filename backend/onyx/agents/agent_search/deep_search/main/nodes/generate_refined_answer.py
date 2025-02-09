@@ -23,6 +23,9 @@ from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     trim_prompt_piece,
 )
+from onyx.agents.agent_search.shared_graph_utils.calculations import (
+    get_streaming_documents,
+)
 from onyx.agents.agent_search.shared_graph_utils.models import InferenceSection
 from onyx.agents.agent_search.shared_graph_utils.models import RefinedAgentStats
 from onyx.agents.agent_search.shared_graph_utils.operators import (
@@ -44,6 +47,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import ExtendedToolResponse
 from onyx.configs.agent_configs import AGENT_MAX_ANSWER_CONTEXT_DOCS
+from onyx.configs.agent_configs import AGENT_MAX_STREAMED_DOCS_FOR_REFINED_ANSWER
 from onyx.configs.agent_configs import AGENT_MIN_ORIG_QUESTION_DOCS
 from onyx.prompts.agent_search import (
     REFINED_ANSWER_PROMPT_W_SUB_QUESTIONS,
@@ -103,10 +107,14 @@ def generate_refined_answer(
         consolidated_context_docs, consolidated_context_docs
     )
 
-    streaming_docs = (
-        relevant_docs
-        if len(relevant_docs) > 0
-        else original_question_retrieved_documents[:15]
+    # Create the list of documents to stream out. Start with the
+    # ones that wil be in the context (or, if len == 0, use docs
+    # that were retrieved for the original question)
+    streaming_documents = get_streaming_documents(
+        relevant_docs=relevant_docs,
+        context_documents=state.context_documents,
+        original_question_docs=original_question_retrieved_documents,
+        max_docs=AGENT_MAX_STREAMED_DOCS_FOR_REFINED_ANSWER,
     )
 
     query_info = get_query_info(state.orig_question_sub_query_retrieval_results)
@@ -117,8 +125,8 @@ def generate_refined_answer(
     relevance_list = relevance_from_docs(relevant_docs)
     for tool_response in yield_search_responses(
         query=question,
-        reranked_sections=streaming_docs,
-        final_context_sections=streaming_docs,
+        reranked_sections=streaming_documents,
+        final_context_sections=streaming_documents,
         search_query_info=query_info,
         get_section_relevance=lambda: relevance_list,
         search_tool=graph_config.tooling.search_tool,
