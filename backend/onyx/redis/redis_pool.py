@@ -278,6 +278,7 @@ async def get_async_redis_connection() -> aioredis.Redis:
 
                     if REDIS_SSL_CA_CERTS:
                         ssl_context.load_verify_locations(REDIS_SSL_CA_CERTS)
+
                     ssl_context.check_hostname = False
 
                     # Map your string to the proper ssl.CERT_* constant
