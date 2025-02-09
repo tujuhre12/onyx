@@ -493,8 +493,20 @@ export const AgenticMessage = ({
                         </div>
                       </div>
                     </>
-                  ) : isComplete ? null : (
-                    <></>
+                  ) : isComplete ? (
+                    error && (
+                      <p className="mt-2 mx-4 text-red-700 text-sm my-auto">
+                        {error}
+                      </p>
+                    )
+                  ) : (
+                    <>
+                      {error && (
+                        <p className="mt-2 mx-4 text-red-700 text-sm my-auto">
+                          {error}
+                        </p>
+                      )}
+                    </>
                   )}
                   {handleFeedback &&
                     (isActive ? (
