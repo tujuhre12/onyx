@@ -338,7 +338,7 @@ export function StatusRefinement({
                 onMouseLeave={() => setToolTipHovered(false)}
                 side="bottom"
                 align="start"
-                className="w-fit p-4 bg-white border-2 border-border shadow-lg rounded-md"
+                className="w-fit p-4 bg-white border-2 border-border dark:border-neutral-800 shadow-lg rounded-md"
               >
                 {/* If not done, show the "Refining" box + a chevron */}
 

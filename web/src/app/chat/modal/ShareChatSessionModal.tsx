@@ -183,7 +183,7 @@ export function ShareChatSessionModal({
                       }
                     }}
                     size="sm"
-                    variant="submit"
+                    variant="secondary"
                   >
                     Generate and Copy Share Link
                   </Button>

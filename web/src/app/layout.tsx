@@ -24,7 +24,7 @@ import Script from "next/script";
 import { LogoType } from "@/components/logo/Logo";
 import { Hanken_Grotesk } from "next/font/google";
 import { WebVitals } from "./web-vitals";
-import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { ThemeProvider } from "next-themes";
 
 const inter = Inter({
   subsets: ["latin"],

@@ -2,10 +2,8 @@
 
 import { useContext } from "react";
 import { SettingsContext } from "../settings/SettingsProvider";
-import Image from "next/image";
 import { useTheme } from "next-themes";
 import { OnyxIcon, OnyxLogoTypeIcon } from "../icons/icons";
-import { useEffect } from "react";
 
 export function Logo({
   height,

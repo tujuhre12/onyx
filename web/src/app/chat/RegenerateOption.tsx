@@ -40,7 +40,7 @@ export function RegenerateDropdown({
   };
 
   const Dropdown = (
-    <div className="overflow-y-auto py-2 min-w-fit bg-neutral-50 dark:bg-neutral-900 rounded-md shadow-lg">
+    <div className="overflow-y-auto border border-neutral-800  py-2 min-w-fit bg-neutral-50 dark:bg-neutral-900 rounded-md shadow-lg">
       <div className="mb-1 flex items-center justify-between px-4 pt-2">
         <span className="text-sm text-neutral-600 dark:text-neutral-400">
           Regenerate with

@@ -22,7 +22,7 @@ export function Callout({
         {
           "border-rose-300 bg-rose-50 dark:border-rose-500 dark:bg-rose-950/50":
             type === "danger",
-          "border-amber-300 bg-amber-50 dark:border-amber-500 dark:bg-amber-950/50":
+          "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/30":
             type === "warning",
           "border-sky-300 bg-sky-50 dark:border-sky-500 dark:bg-sky-950/50":
             type === "notice",

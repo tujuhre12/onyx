@@ -64,7 +64,8 @@ import { MemoizedAnchor, MemoizedParagraph } from "./MemoizedTextComponents";
 import { extractCodeText, preprocessLaTeX } from "./codeUtils";
 import ToolResult from "../../../components/tools/ToolResult";
 import CsvContent from "../../../components/tools/CSVContent";
-import SourceCard, { SeeMoreBlock } from "@/components/chat/sources/SourceCard";
+import { SeeMoreBlock } from "@/components/chat/sources/SourceCard";
+import { SourceCard } from "./SourcesDisplay";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
@@ -212,7 +213,7 @@ export const AIMessage = ({
   retrievalDisabled?: boolean;
   overriddenModel?: string;
   regenerate?: (modelOverRide: LlmOverride) => Promise<void>;
-  setPresentingDocument?: (document: OnyxDocument) => void;
+  setPresentingDocument: (document: OnyxDocument) => void;
 }) => {
   const toolCallGenerating = toolCall && !toolCall.tool_result;
 
@@ -499,7 +500,7 @@ export const AIMessage = ({
                                 .slice(0, 2)
                                 .map((doc: OnyxDocument, ind: number) => (
                                   <SourceCard
-                                    doc={doc}
+                                    document={doc}
                                     key={ind}
                                     setPresentingDocument={
                                       setPresentingDocument

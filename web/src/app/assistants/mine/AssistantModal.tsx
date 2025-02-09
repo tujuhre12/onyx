@@ -118,7 +118,7 @@ export function AssistantModal({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && hideModal()}>
       <DialogContent
-        className="p-0 overflow-hidden max-h-[80vh] max-w-none w-[95%] bg-background rounded-sm shadow-2xl transform transition-all duration-300 ease-in-out relative w-11/12 max-w-4xl pt-10 pb-10  px-10  overflow-hidden flex flex-col   max-w-4xl"
+        className="p-0  max-h-[80vh] max-w-none w-[95%] bg-background rounded-sm shadow-2xl transform transition-all duration-300 ease-in-out relative w-11/12 max-w-4xl pt-10 pb-10  px-10  overflow-hidden flex flex-col   max-w-4xl"
         style={{
           position: "fixed",
           top: "10vh",
@@ -127,7 +127,7 @@ export function AssistantModal({
           margin: 0,
         }}
       >
-        <div className="flex overflow-hidden flex-col h-full">
+        <div className="flex den flex-col h-full">
           <div className="flex flex-col sticky top-0 z-10">
             <div className="flex px-2 justify-between items-center gap-x-2 mb-0">
               <div className="h-12 w-full rounded-lg flex-col justify-center items-start gap-2.5 inline-flex">
@@ -160,7 +160,7 @@ export function AssistantModal({
               </div>
               <button
                 onClick={() => router.push("/assistants/new")}
-                className="h-10 cursor-pointer px-6 py-3 bg-black hover:bg-background-800 rounded-md border border-black justify-center items-center gap-2.5 inline-flex"
+                className="h-10 cursor-pointer px-6 py-3 bg-background-800 hover:bg-black rounded-md border border-black justify-center items-center gap-2.5 inline-flex"
               >
                 <div className="text-text-50 text-lg font-normal leading-normal">
                   Create
