@@ -273,7 +273,7 @@ const SubQuestionDisplay: React.FC<{
             behavior: "smooth",
             block: "start",
           });
-        }, 1000);
+        }, 10);
       }
     }
   }, [currentlyOpen]);
@@ -326,6 +326,7 @@ const SubQuestionDisplay: React.FC<{
         ref={questionRef}
         className={`flex items-start ${!isLast ? "pb-2" : ""}`}
       >
+        f
         <div className="absolute left-0 w-3 h-3 rounded-full mt-[12px] z-10">
           <StatusIndicator status={forcedStatus || status} />
         </div>
@@ -474,10 +475,13 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   overallAnswerGenerating,
   allowDocuments,
 }) => {
+  // const [finishedStreaming, setFinishedStreaming] = useState(
+  //   finishedGenerating ? true : false
+  // );
   const [showSummarizing, setShowSummarizing] = useState(
     finishedGenerating && !overallAnswerGenerating
   );
-  const { dynamicSubQuestions } = useStreamingMessages(
+  const { dynamicSubQuestions, finishStreaming } = useStreamingMessages(
     subQuestions,
     () => {},
     () => {
@@ -522,6 +526,13 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
     useState(finishedGenerating);
 
   const [shownDocuments, setShownDocuments] = useState(documents);
+
+  useEffect(() => {
+    if (streamedText === "Summarize findings") {
+      finishStreaming();
+    }
+    // alert(streamedText);
+  }, [streamedText]);
 
   useEffect(() => {
     if (documents && documents.length > 0) {
@@ -670,6 +681,11 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
             }
           />
         ))}
+        {/* {finishedStreaming ? (
+          <div className="h-4 w-4 bg-red-400 rounded-full"></div>
+        ) : (
+          <div className="h-4 w-4 bg-blue-400 rounded-full"></div>
+        )} */}
         {showSecondLevel &&
           memoizedSecondLevelQuestions &&
           memoizedSecondLevelQuestions?.map((subQuestion, index) => (
