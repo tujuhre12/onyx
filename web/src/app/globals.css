@@ -17,7 +17,7 @@
     --neutral-100: #f5f5f5;
     --neutral-125: #f1f2f4; /* You had background-125 & text-125 as #f1f2f4 */
     --neutral-150: #eaeaea;
-    --neutral-200: #ececec;
+    --neutral-200: #d4d4d4;
     --neutral-300: #d4d4d4;
     --neutral-400: #a3a3a3;
     --neutral-500: #737373;
@@ -95,7 +95,7 @@
     --white: #ffffff;
 
     /* Code syntax highlighting */
-    --code-text: #e0e0e0;
+    --code-text: #d4d4d4;
     --token-comment: #608b4e;
     --token-punctuation: #d4d4d4;
     --token-property: #569cd6;
@@ -215,7 +215,7 @@
     --neutral--neutral-600-border-dark: #a0a0a0;
     --neutral-700: #bdbdbd;
     --neutral-800: #d4d4d4;
-    --neutral-900: #ececec;
+    --neutral-900: #d4d4d4;
     --neutral-950: #f0f0f0; /* lightest */
     --hover: #2c2c2c;
 
@@ -304,7 +304,7 @@
     --white-card-popover: #000000;
 
     /* Code syntax highlighting – typically brighter/lighter for dark backgrounds */
-    --code-text: #e0e0e0;
+    --code-text: #d4d4d4;
     --token-comment: #608b4e;
     --token-punctuation: #d4d4d4;
     --token-property: #569cd6;

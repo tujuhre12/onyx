@@ -34,7 +34,7 @@ export const SourceCard: React.FC<{
         openDocument(document, () => setPresentingDocument(document))
       }
       className="w-full max-w-[260px] h-[80px] p-3
-             text-left bg-accent-background hover:bg-accent-background-hovered dark:bg-accent-background-hovered dark:hover:bg-accent-background
+             text-left bg-accent-background hover:bg-accent-background-hovered dark:bg-accent-background-hovered dark:hover:bg-neutral-700/80
              cursor-pointer rounded-lg
              flex flex-col justify-between
              overflow-hidden"

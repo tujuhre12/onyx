@@ -267,10 +267,10 @@ export function ChatSessionDisplay({
                     </div>
                   </div>
                 ) : (
-                  <p className="break-all font-normal overflow-hidden dark:text-[#ececec] whitespace-nowrap w-full mr-3 relative">
+                  <p className="break-all font-normal overflow-hidden dark:text-[#D4D4D4] whitespace-nowrap w-full mr-3 relative">
                     {chatName || `Unnamed Chat`}
                     <span
-                      className={`absolute right-0 top-0 h-full w-8 bg-gradient-to-r from-transparent 
+                      className={`absolute right-0 top-0 h-full w-2 bg-gradient-to-r from-transparent 
                       ${
                         isSelected
                           ? "to-background-chat-selected"

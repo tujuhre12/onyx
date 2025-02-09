@@ -148,7 +148,7 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
             <TooltipTrigger asChild>
               <p
                 ref={nameRef}
-                className="text-base text-left w-fit line-clamp-1 text-ellipsis text-black dark:text-[#ececec]"
+                className="text-base text-left w-fit line-clamp-1 text-ellipsis text-black dark:text-[#D4D4D4]"
               >
                 {assistant.name}
               </p>
@@ -272,7 +272,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             w-full
             border-r 
             dark:border-none
-            dark:text-[#ececec]
+            dark:text-[#D4D4D4]
             border-sidebar-border 
             flex 
             flex-col relative
@@ -331,8 +331,8 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             </div>
           )}
 
-          <div className="h-full default-scrollbar relative overflow-x-hidden overflow-y-auto">
-            <div className="flex px-4 font-normal text-sm gap-x-2 leading-normal text-text-500/80 dark:text-[#ececec] items-center font-normal leading-normal">
+          <div className="h-full  relative overflow-x-hidden overflow-y-auto">
+            <div className="flex px-4 font-normal text-sm gap-x-2 leading-normal text-text-500/80 dark:text-[#D4D4D4] items-center font-normal leading-normal">
               Assistants
             </div>
             <DndContext
@@ -375,7 +375,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             <div className="w-full px-4">
               <button
                 onClick={() => setShowAssistantsModal(true)}
-                className="w-full cursor-pointer text-base text-black dark:text-[#ececec] hover:bg-background-chat-hover flex items-center gap-x-2 py-1 px-2 rounded-md"
+                className="w-full cursor-pointer text-base text-black dark:text-[#D4D4D4] hover:bg-background-chat-hover flex items-center gap-x-2 py-1 px-2 rounded-md"
               >
                 Explore Assistants
               </button>

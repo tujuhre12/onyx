@@ -15,10 +15,6 @@ export function Logo({
   className?: string;
 }) {
   const settings = useContext(SettingsContext);
-  const { theme, resolvedTheme } = useTheme();
-
-  // Fallback if theme is "system"
-  const effectiveTheme = theme === "system" ? resolvedTheme : theme;
 
   height = height || 32;
   width = width || 30;
@@ -32,11 +28,8 @@ export function Logo({
       <div style={{ height, width }} className={className}>
         <OnyxIcon
           size={height}
-          className={`${className} ${
-            effectiveTheme === "dark" ? "text-[#fff]" : "text-[#000]"
-          }`}
+          className={`${className} dark:text-[#fff] text-[#000]`}
         />
-        <span className="invisible w-0">{effectiveTheme}</span>
       </div>
     );
   }
@@ -57,20 +50,10 @@ export function Logo({
 }
 
 export function LogoType() {
-  const { theme, resolvedTheme } = useTheme();
-
-  // Fallback if theme is "system"
-  const effectiveTheme = theme === "system" ? resolvedTheme : theme;
-
   return (
-    <>
-      <span className="invisible w-0">{effectiveTheme}</span>
-      <OnyxLogoTypeIcon
-        size={115}
-        className={`items-center w-full ${
-          effectiveTheme === "dark" ? "text-[#fff]" : "text-[#000]"
-        }`}
-      />
-    </>
+    <OnyxLogoTypeIcon
+      size={115}
+      className={`items-center w-full dark:text-[#fff]`}
+    />
   );
 }

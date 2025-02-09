@@ -53,12 +53,14 @@ TableFooter.displayName = "TableFooter";
 
 const TableRow = React.forwardRef<
   HTMLTableRowElement,
-  React.HTMLAttributes<HTMLTableRowElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLTableRowElement> & { noHover?: boolean }
+>(({ className, noHover, ...props }, ref) => (
   <tr
     ref={ref}
     className={cn(
-      "border-b transition-colors hover:bg-neutral-100/50 data-[state=selected]:bg-neutral-100 dark:hover:bg-neutral-800/80 dark:data-[state=selected]:bg-neutral-800",
+      `border-b transition-colors  data-[state=selected]:bg-neutral-100 dark:data-[state=selected]:bg-neutral-800 ${
+        noHover ? "" : "dark:hover:bg-neutral-800/80 hover:bg-neutral-100/50"
+      }`,
       className
     )}
     {...props}

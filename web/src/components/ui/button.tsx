@@ -73,6 +73,13 @@ const buttonVariants = cva(
   }
 );
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
@@ -115,12 +122,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     if (tooltip) {
       return (
-        <div className="relative group">
-          {button}
-          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-neutral-950 text-neutral-50 text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            {tooltip}
-          </div>
-        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>{button}</TooltipTrigger>
+            <TooltipContent showTick={true}>
+              <p>{tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     }
 

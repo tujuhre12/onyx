@@ -59,7 +59,7 @@ function SummaryRow({
   return (
     <TableRow
       onClick={onToggle}
-      className="border-border dark:hover:bg-neutral-900/60 dark:border-neutral-700 group hover:bg-background-settings-hover/20 bg-background-sidebar py-4 rounded-sm !border cursor-pointer"
+      className="border-border dark:hover:bg-neutral-800 dark:border-neutral-700 group hover:bg-background-settings-hover/20 bg-background-sidebar py-4 rounded-sm !border cursor-pointer"
     >
       <TableCell>
         <div className="text-xl flex items-center truncate ellipsis gap-x-2 font-semibold">
@@ -145,7 +145,6 @@ function ConnectorRow({
   };
 
   const getActivityBadge = () => {
-    return <Badge variant="paused">Paused</Badge>;
     if (
       ccPairsIndexingStatus.cc_pair_status ===
       ConnectorCredentialPairStatus.DELETING
@@ -450,7 +449,10 @@ export function CCPairIndexingStatusTable({
                   />
                   {connectorsToggled[source] && (
                     <>
-                      <TableRow className="border border-border dark:border-neutral-700">
+                      <TableRow
+                        noHover
+                        className="border  !  border-border dark:border-neutral-700"
+                      >
                         <TableHead>Name</TableHead>
                         <TableHead>Last Indexed</TableHead>
                         <TableHead>Activity</TableHead>
