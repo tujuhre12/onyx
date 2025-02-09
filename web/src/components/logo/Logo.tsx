@@ -32,13 +32,13 @@ export function Logo({
   ) {
     return (
       <div style={{ height, width }} className={className}>
-        <span className="invisible w-0">{effectiveTheme}</span>
         <OnyxIcon
           size={height}
           className={`${className} ${
             effectiveTheme === "dark" ? "text-[#fff]" : "text-[#000]"
           }`}
         />
+        <span className="invisible w-0">{effectiveTheme}</span>
       </div>
     );
   }

@@ -54,14 +54,20 @@ export function Citation({
                   ? question_info.openQuestion(question_info.question)
                   : null;
             }}
-            className="inline-flex items-center cursor-pointer transition-all duration-200 ease-in-out"
+            className="inline-flex items-baseline cursor-pointer transition-all duration-200 ease-in-out"
           >
-            <span className="flex items-center justify-center w-5 h-5 text-[11px] font-medium text-text-700 bg-background-100 rounded-full border border-background-300 hover:bg-background-200 hover:text-text-900 shadow-sm">
+            <span
+              className="flex items-center justify-center w-5 h-5 text-[11px] font-medium text-text-700 bg-background-100 rounded-full border border-background-300 hover:bg-background-200 hover:text-text-900 shadow-sm -mt-0.5"
+              style={{ verticalAlign: "baseline" }}
+            >
               {innerText}
             </span>
           </div>
         </TooltipTrigger>
-        <TooltipContent width="mb-2 max-w-lg">
+        <TooltipContent
+          className="dark:border border-neutral-700"
+          width="mb-2 max-w-lg"
+        >
           {document_info?.document ? (
             <CompactDocumentCard
               updatePresentingDocument={document_info.updatePresentingDocument}

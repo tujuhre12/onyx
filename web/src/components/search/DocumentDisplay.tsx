@@ -437,7 +437,7 @@ export function CompactDocumentCard({
       onClick={() => {
         openDocument(document, updatePresentingDocument);
       }}
-      className="max-w-[250px]  gap-y-0 cursor-pointer pb-0 pt-0 mt-0 flex gap-y-0  flex-col  content-start items-start gap-0 "
+      className="max-w-[200px]  gap-y-0 cursor-pointer pb-0 pt-0 mt-0 flex gap-y-0  flex-col  content-start items-start gap-0 "
     >
       <div className="text-sm  !pb-0 !mb-0 font-semibold flex  items-center gap-x-1 text-text-900 pt-0 mt-0 truncate w-full">
         {icon}
