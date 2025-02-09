@@ -655,3 +655,7 @@ ul > li > p {
 .dark strong {
   color: white;
 }
+
+.dark li {
+  color: #e5e5e5;
+}
