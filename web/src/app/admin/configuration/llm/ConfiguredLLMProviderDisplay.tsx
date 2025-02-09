@@ -25,8 +25,7 @@ function LLMProviderUpdateModal({
 }) {
   const providerName = existingLlmProvider?.name
     ? `"${existingLlmProvider.name}"`
-    : null ||
-      llmProviderDescriptor?.display_name ||
+    : llmProviderDescriptor?.display_name ||
       llmProviderDescriptor?.name ||
       "Custom LLM Provider";
   return (
@@ -113,7 +112,7 @@ function LLMProviderDisplay({
         {existingLlmProvider && (
           <div className="my-auto ml-3">
             {existingLlmProvider.is_default_provider ? (
-              <Badge variant="orange">Default</Badge>
+              <Badge variant="agent">Default</Badge>
             ) : (
               <Badge variant="success">Enabled</Badge>
             )}
