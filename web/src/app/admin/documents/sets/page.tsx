@@ -213,7 +213,7 @@ const DocumentSetTable = ({
                       </Badge>
                     ) : (
                       <Badge
-                        variant={isEditable ? "in_progress" : "outline"}
+                        variant={isEditable ? "private" : "default"}
                         icon={FiLock}
                       >
                         Private

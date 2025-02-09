@@ -8,6 +8,10 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
+        outline:
+          "border-neutral-200 bg-neutral-50 text-neutral-600 hover:bg-neutral-75 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:hover:bg-neutral-850",
+        purple:
+          "border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-75 dark:border-purple-700 dark:bg-purple-900 dark:text-purple-100 dark:hover:bg-purple-800",
         public:
           "border-green-200 bg-green-50 text-green-700 hover:bg-green-75 dark:border-green-700 dark:bg-green-900 dark:text-green-100 dark:hover:bg-green-800",
         private:
