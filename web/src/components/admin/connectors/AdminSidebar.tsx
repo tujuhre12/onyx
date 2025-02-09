@@ -79,10 +79,10 @@ export function AdminSidebar({ collections }: { collections: Collection[] }) {
       </nav>
       {combinedSettings.webVersion && (
         <div
-          className="flex flex-col mt-6 items-center justify-center w-full"
+          className="flex flex-col mt-12 items-center justify-center w-full"
           key={"onyxVersion"}
         >
-          <h2 className="text-xs text-text w-52 font-medium pb-2">
+          <h2 className="text-xs text-text/40 w-52 font-medium">
             Onyx version: {combinedSettings.webVersion}
           </h2>
         </div>

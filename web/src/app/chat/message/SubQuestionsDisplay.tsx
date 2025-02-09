@@ -331,7 +331,7 @@ const SubQuestionDisplay: React.FC<{
         </div>
         <div className="ml-8 w-full">
           <div
-            className="flex -mx-2 rounded-md px-2 hover:bg-background-100 items-start py-1.5 my-.5 cursor-pointer"
+            className="flex -mx-2 rounded-md px-2 hover:bg-background-100 dark:hover:bg-neutral-800 items-start py-1.5 my-.5 cursor-pointer"
             onClick={() => setToggled(!toggled)}
           >
             <div className="text-black text-base font-medium leading-normal flex-grow pr-2">

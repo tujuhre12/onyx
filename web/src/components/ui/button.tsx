@@ -32,7 +32,7 @@ const buttonVariants = cva(
         "secondary-reverse":
           "bg-neutral-900 text-neutral-100 hover:bg-neutral-900/80 dark:bg-neutral-200 dark:text-neutral-800 dark:hover:bg-neutral-300",
         ghost:
-          "hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-50",
+          "hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-transparent dark:hover:text-neutral-50",
         "ghost-reverse":
           "hover:bg-neutral-800 hover:text-neutral-50 dark:hover:bg-neutral-200 dark:hover:text-neutral-900",
         link: "text-neutral-900 underline-offset-4 hover:underline dark:text-neutral-100",

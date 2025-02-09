@@ -48,7 +48,7 @@ export const AssistantBadge = ({
 }) => {
   return (
     <div
-      className={`h-4 px-1.5 py-1 text-[10px] flex-none bg-background-200/50 rounded-lg justify-center items-center gap-1 inline-flex ${className}`}
+      className={`h-4 px-1.5 py-1 text-[10px] flex-none bg-neutral-200/50 dark:bg-neutral-700 rounded-lg justify-center items-center gap-1 inline-flex ${className}`}
     >
       <div className="text-text-800 font-normal leading-[8px]">
         {maxLength ? truncateString(text, maxLength) : text}

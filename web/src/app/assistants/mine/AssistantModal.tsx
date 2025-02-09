@@ -160,7 +160,7 @@ export function AssistantModal({
               </div>
               <button
                 onClick={() => router.push("/assistants/new")}
-                className="h-10 cursor-pointer px-6 py-3 bg-black rounded-md border border-black justify-center items-center gap-2.5 inline-flex"
+                className="h-10 cursor-pointer px-6 py-3 bg-black hover:bg-background-800 rounded-md border border-black justify-center items-center gap-2.5 inline-flex"
               >
                 <div className="text-text-50 text-lg font-normal leading-normal">
                   Create

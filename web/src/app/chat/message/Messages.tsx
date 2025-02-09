@@ -409,7 +409,7 @@ export const AIMessage = ({
         }  max-w-message-max`}
       >
         <div className={`lg:mr-12 ${!shared && "mobile:ml-0 md:ml-8"}`}>
-          <div className="flex">
+          <div className="flex items-start">
             <AssistantIcon
               className="mobile:hidden"
               size={24}

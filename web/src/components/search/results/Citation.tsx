@@ -43,7 +43,7 @@ export function Citation({
     <TooltipProvider delayDuration={0}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div
+          <span
             onClick={() => {
               document_info?.document
                 ? openDocument(
@@ -54,15 +54,15 @@ export function Citation({
                   ? question_info.openQuestion(question_info.question)
                   : null;
             }}
-            className="inline-flex items-baseline cursor-pointer transition-all duration-200 ease-in-out"
+            className="inline-flex items-center cursor-pointer transition-all duration-200 ease-in-out"
           >
             <span
-              className="flex items-center justify-center w-5 h-5 text-[11px] font-medium text-text-700 bg-background-100 rounded-full border border-background-300 hover:bg-background-200 hover:text-text-900 shadow-sm -mt-0.5"
-              style={{ verticalAlign: "baseline" }}
+              className="flex items-center justify-center w-4 h-4 text-[10px] font-medium text-text-700 bg-background-100 rounded-full border border-background-300 hover:bg-background-200 hover:text-text-900 shadow-sm"
+              style={{ transform: "translateY(-10%)", lineHeight: "1" }}
             >
               {innerText}
             </span>
-          </div>
+          </span>
         </TooltipTrigger>
         <TooltipContent
           className="dark:border border-neutral-700"

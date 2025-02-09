@@ -86,26 +86,9 @@ function SummaryRow({
         <div className="text-sm text-neutral-500 dark:text-neutral-300">
           Active Connectors
         </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center mt-1">
-                <div className="w-full bg-white rounded-full h-2 mr-2">
-                  <div
-                    className="bg-green-500 h-2 rounded-full"
-                    style={{ width: `${activePercentage}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-medium whitespace-nowrap">
-                  {summary.active} ({activePercentage.toFixed(0)}%)
-                </span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              {summary.active} out of {summary.count} connectors are active
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <p className="flex text-xl mx-auto font-semibold items-center text-lg mt-1">
+          {summary.active}/{summary.count}
+        </p>
       </TableCell>
 
       {isPaidEnterpriseFeaturesEnabled && (
@@ -188,7 +171,7 @@ function ConnectorRow({
         );
       case "not_started":
         return (
-          <Badge circle variant="purple">
+          <Badge circle variant="not_started">
             Scheduled
           </Badge>
         );
@@ -231,16 +214,13 @@ border border-border dark:border-neutral-700
             </Badge>
           ) : ccPairsIndexingStatus.access_type === "sync" ? (
             <Badge
-              variant={isEditable ? "orange" : "default"}
+              variant={isEditable ? "auto-sync" : "default"}
               icon={FiRefreshCw}
             >
-              Sync
+              Auto-Sync
             </Badge>
           ) : (
-            <Badge
-              variant={isEditable ? "in_progress" : "default"}
-              icon={FiLock}
-            >
+            <Badge variant={isEditable ? "private" : "default"} icon={FiLock}>
               Private
             </Badge>
           )}
