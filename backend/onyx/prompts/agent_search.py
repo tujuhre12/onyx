@@ -627,6 +627,12 @@ independently without the original question available
 - For each sub-question, please also provide a search term that can be used to retrieve relevant documents from a document store.
 - Consider specifically the sub-questions that were suggested but not answered. This is a sign that they are not answerable \
 with the available context, and you should not ask similar questions.
+ - Do not(!) create sub-questions that are clarifying question to the person who asked the question, \
+like making suggestions or asking the user for more information! This is not useful for the actual \
+question-answering process! You need to take the information from the user as it is given to you! \
+For example, should the question be of the type 'why does product X perform poorly for customer A', DO NOT create a \
+sub-question of the type 'what are the settings that customer A uses for product X?'! A valid sub-question \
+could rather be 'which settings for product X have been shown to lead to poor performance for customers?'
 
 Here is the initial question:
 {SEPARATOR_LINE}
