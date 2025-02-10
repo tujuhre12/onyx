@@ -3,7 +3,6 @@ from langgraph.graph import START
 from langgraph.graph import StateGraph
 
 from onyx.agents.agent_search.basic.states import BasicInput
-from onyx.agents.agent_search.basic.states import BasicOutput
 from onyx.agents.agent_search.basic.states import BasicState
 from onyx.agents.agent_search.orchestration.nodes.basic_use_tool_response import (
     basic_use_tool_response,
@@ -13,6 +12,8 @@ from onyx.agents.agent_search.orchestration.nodes.prepare_tool_input import (
     prepare_tool_input,
 )
 from onyx.agents.agent_search.orchestration.nodes.tool_call import tool_call
+from onyx.agents.agent_search.orchestration.states import ToolChoiceUpdate
+from onyx.configs.agent_configs import AGENT_MAX_TOOL_CALLS
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -22,7 +23,7 @@ def basic_graph_builder() -> StateGraph:
     graph = StateGraph(
         state_schema=BasicState,
         input=BasicInput,
-        output=BasicOutput,
+        output=ToolChoiceUpdate,
     )
 
     ### Add nodes ###
@@ -60,10 +61,14 @@ def basic_graph_builder() -> StateGraph:
         end_key="basic_use_tool_response",
     )
 
-    graph.add_edge(
-        start_key="basic_use_tool_response",
-        end_key=END,
+    graph.add_conditional_edges(
+        "basic_use_tool_response", should_continue, ["tool_call", END]
     )
+
+    # graph.add_edge(
+    #     start_key="basic_use_tool_response",
+    #     end_key=END,
+    # )
 
     return graph
 
@@ -72,7 +77,8 @@ def should_continue(state: BasicState) -> str:
     return (
         # If there are no tool calls, basic graph already streamed the answer
         END
-        if state.tool_choice is None
+        if state.tool_choices[-1] is None
+        or len(state.tool_choices) > AGENT_MAX_TOOL_CALLS
         else "tool_call"
     )
 

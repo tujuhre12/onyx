@@ -23,14 +23,17 @@ OPEN_AI_TOOL_CALLING_MODELS = {
 ANTHROPIC_TOOL_CALLING_PREFIX = "claude-3-5-sonnet"
 
 
+def is_anthropic_tool_calling_model(model_provider: str, model_name: str) -> bool:
+    return model_provider == ANTHROPIC_PROVIDER_NAME and model_name.startswith(
+        ANTHROPIC_TOOL_CALLING_PREFIX
+    )
+
+
 def explicit_tool_calling_supported(model_provider: str, model_name: str) -> bool:
     return (
         model_provider == OPENAI_PROVIDER_NAME
         and model_name in OPEN_AI_TOOL_CALLING_MODELS
-    ) or (
-        model_provider == ANTHROPIC_PROVIDER_NAME
-        and model_name.startswith(ANTHROPIC_TOOL_CALLING_PREFIX)
-    )
+    ) or is_anthropic_tool_calling_model(model_provider, model_name)
 
 
 def compute_tool_tokens(tool: Tool, llm_tokenizer: BaseTokenizer) -> int:
