@@ -169,9 +169,9 @@ export function RefinemenetBadge({
     }
   }, [isDone, isHovered, setCanShowResponse]);
 
-  // if (!shouldShow) {
-  //   return null; // entire box disappears
-  // }
+  if (!shouldShow) {
+    return null; // entire box disappears
+  }
 
   return (
     <TooltipProvider delayDuration={0}>
