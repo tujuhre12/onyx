@@ -36,7 +36,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import parse_question_id
 from onyx.configs.agent_configs import (
-    AGENT_TIMEOUT_OVERWRITE_LLM_QUERY_REWRITING_GENERATION,
+    AGENT_TIMEOUT_OVERRIDE_LLM_QUERY_REWRITING_GENERATION,
 )
 from onyx.llm.chat_llm import LLMRateLimitError
 from onyx.llm.chat_llm import LLMTimeoutError
@@ -85,7 +85,7 @@ def expand_queries(
         llm_response_list = dispatch_separated(
             llm.stream(
                 prompt=msg,
-                timeout_override=AGENT_TIMEOUT_OVERWRITE_LLM_QUERY_REWRITING_GENERATION,
+                timeout_override=AGENT_TIMEOUT_OVERRIDE_LLM_QUERY_REWRITING_GENERATION,
             ),
             dispatch_subquery(level, question_num, writer),
         )

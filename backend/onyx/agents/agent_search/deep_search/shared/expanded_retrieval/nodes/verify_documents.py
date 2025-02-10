@@ -33,7 +33,7 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
     AgentLLMErrorType,
 )
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
-from onyx.configs.agent_configs import AGENT_TIMEOUT_OVERWRITE_LLM_DOCUMENT_VERIFICATION
+from onyx.configs.agent_configs import AGENT_TIMEOUT_OVERRIDE_LLM_DOCUMENT_VERIFICATION
 from onyx.llm.chat_llm import LLMRateLimitError
 from onyx.llm.chat_llm import LLMTimeoutError
 from onyx.prompts.agent_search import (
@@ -82,7 +82,7 @@ def verify_documents(
 
     try:
         response = fast_llm.invoke(
-            msg, timeout_override=AGENT_TIMEOUT_OVERWRITE_LLM_DOCUMENT_VERIFICATION
+            msg, timeout_override=AGENT_TIMEOUT_OVERRIDE_LLM_DOCUMENT_VERIFICATION
         )
 
     except LLMTimeoutError:

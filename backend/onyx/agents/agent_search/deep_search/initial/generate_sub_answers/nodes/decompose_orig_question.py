@@ -48,7 +48,7 @@ from onyx.chat.models import StreamType
 from onyx.chat.models import SubQuestionPiece
 from onyx.configs.agent_configs import AGENT_NUM_DOCS_FOR_DECOMPOSITION
 from onyx.configs.agent_configs import (
-    AGENT_TIMEOUT_OVERWRITE_LLM_SUBQUESTION_GENERATION,
+    AGENT_TIMEOUT_OVERRIDE_LLM_SUBQUESTION_GENERATION,
 )
 from onyx.llm.chat_llm import LLMRateLimitError
 from onyx.llm.chat_llm import LLMTimeoutError
@@ -141,7 +141,7 @@ def decompose_orig_question(
         streamed_tokens = dispatch_separated(
             model.stream(
                 msg,
-                timeout_override=AGENT_TIMEOUT_OVERWRITE_LLM_SUBQUESTION_GENERATION,
+                timeout_override=AGENT_TIMEOUT_OVERRIDE_LLM_SUBQUESTION_GENERATION,
             ),
             dispatch_subquestion(0, writer),
             sep_callback=dispatch_subquestion_sep(0, writer),

@@ -59,7 +59,7 @@ from onyx.chat.models import StreamingError
 from onyx.configs.agent_configs import AGENT_MAX_ANSWER_CONTEXT_DOCS
 from onyx.configs.agent_configs import AGENT_MIN_ORIG_QUESTION_DOCS
 from onyx.configs.agent_configs import (
-    AGENT_TIMEOUT_OVERWRITE_LLM_INITIAL_ANSWER_GENERATION,
+    AGENT_TIMEOUT_OVERRIDE_LLM_INITIAL_ANSWER_GENERATION,
 )
 from onyx.context.search.models import InferenceSection
 from onyx.llm.chat_llm import LLMRateLimitError
@@ -247,7 +247,7 @@ def generate_initial_answer(
         try:
             for message in model.stream(
                 msg,
-                timeout_override=AGENT_TIMEOUT_OVERWRITE_LLM_INITIAL_ANSWER_GENERATION,
+                timeout_override=AGENT_TIMEOUT_OVERRIDE_LLM_INITIAL_ANSWER_GENERATION,
             ):
                 # TODO: in principle, the answer here COULD contain images, but we don't support that yet
                 content = message.content

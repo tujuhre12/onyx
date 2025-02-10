@@ -29,7 +29,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.chat.models import RefinedAnswerImprovement
-from onyx.configs.agent_configs import AGENT_TIMEOUT_OVERWRITE_LLM_COMPARE_ANSWERS
+from onyx.configs.agent_configs import AGENT_TIMEOUT_OVERRIDE_LLM_COMPARE_ANSWERS
 from onyx.llm.chat_llm import LLMRateLimitError
 from onyx.llm.chat_llm import LLMTimeoutError
 from onyx.prompts.agent_search import (
@@ -68,7 +68,7 @@ def compare_answers(
     # no need to stream this
     try:
         resp = model.invoke(
-            msg, timeout_override=AGENT_TIMEOUT_OVERWRITE_LLM_COMPARE_ANSWERS
+            msg, timeout_override=AGENT_TIMEOUT_OVERRIDE_LLM_COMPARE_ANSWERS
         )
 
     except LLMTimeoutError:
