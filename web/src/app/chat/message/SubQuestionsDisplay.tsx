@@ -326,7 +326,6 @@ const SubQuestionDisplay: React.FC<{
         ref={questionRef}
         className={`flex items-start ${!isLast ? "pb-2" : ""}`}
       >
-        f
         <div className="absolute left-0 w-3 h-3 rounded-full mt-[12px] z-10">
           <StatusIndicator status={forcedStatus || status} />
         </div>
