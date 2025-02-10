@@ -13,7 +13,6 @@ from onyx.agents.agent_search.orchestration.nodes.prepare_tool_input import (
 )
 from onyx.agents.agent_search.orchestration.nodes.tool_call import tool_call
 from onyx.agents.agent_search.orchestration.states import ToolChoiceUpdate
-from onyx.configs.agent_configs import AGENT_MAX_TOOL_CALLS
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -74,7 +73,6 @@ def should_continue(state: BasicState) -> str:
         # If there are no tool calls, basic graph already streamed the answer
         END
         if state.tool_choices[-1] is None
-        or len(state.tool_choices) > AGENT_MAX_TOOL_CALLS
         else "tool_call"
     )
 

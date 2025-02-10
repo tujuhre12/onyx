@@ -310,7 +310,7 @@ def test_answer_with_search_no_tool_calling(
     call_args = mock_llm.stream.call_args
 
     # Verify that no tools were passed to the LLM
-    # assert "tools" not in call_args.kwargs or not call_args.kwargs["tools"]
+    assert "tools" not in call_args.kwargs or not call_args.kwargs["tools"]
 
     # Verify that the prompt was built correctly
     assert (
