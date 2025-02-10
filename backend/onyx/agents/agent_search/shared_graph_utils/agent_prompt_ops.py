@@ -150,3 +150,17 @@ def get_prompt_enrichment_components(
         history=history,
         date_str=date_str,
     )
+
+
+def binary_string_test(text: str, positive_value: str = "yes") -> bool:
+    """
+    Tests if a string contains a positive value (case-insensitive).
+
+    Args:
+        text: The string to test
+        positive_value: The value to look for (defaults to "yes")
+
+    Returns:
+        True if the positive value is found in the text
+    """
+    return positive_value.lower() in text.lower()

@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Any
 from typing import cast
 
-import openai
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.runnables import RunnableConfig
@@ -26,6 +25,15 @@ from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
 )
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     trim_prompt_piece,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_ERROR_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_RATELIMIT_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_TIMEOUT_MESSAGE,
 )
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.models import InitialAgentResultStats
@@ -51,8 +59,8 @@ from onyx.configs.agent_configs import (
     AGENT_TIMEOUT_OVERWRITE_LLM_INITIAL_ANSWER_GENERATION,
 )
 from onyx.context.search.models import InferenceSection
-from onyx.prompts.agent_search import AGENT_LLM_ERROR_MESSAGE
-from onyx.prompts.agent_search import AGENT_LLM_TIMEOUT_MESSAGE
+from onyx.llm.chat_llm import LLMRateLimitError
+from onyx.llm.chat_llm import LLMTimeoutError
 from onyx.prompts.agent_search import INITIAL_ANSWER_PROMPT_W_SUB_QUESTIONS
 from onyx.prompts.agent_search import (
     INITIAL_ANSWER_PROMPT_WO_SUB_QUESTIONS,
@@ -262,19 +270,30 @@ def generate_initial_answer(
                 )
                 streamed_tokens.append(content)
 
-        except openai.APITimeoutError:
+        except LLMTimeoutError as e:
             agent_error = AgentError(
                 error_type="timeout",
                 error_message=AGENT_LLM_TIMEOUT_MESSAGE,
                 error_result="LLM Timeout Error",
             )
-
-        except Exception:
+            logger.error("LLM Timeout Error - generate initial answer")
+            raise e  # fail loudly on this critical step
+        except LLMRateLimitError as e:
+            agent_error = AgentError(
+                error_type="rate limit",
+                error_message=AGENT_LLM_RATELIMIT_MESSAGE,
+                error_result="LLM Rate Limit Error",
+            )
+            logger.error("LLM Rate Limit Error - generate initial answer")
+            raise e  # fail loudly on this critical step
+        except Exception as e:
             agent_error = AgentError(
                 error_type="LLM error",
                 error_message=AGENT_LLM_ERROR_MESSAGE,
                 error_result="LLM Error",
             )
+            logger.error("General LLM Error - generate initial answer")
+            raise e  # fail loudly on this critical step
 
         if agent_error:
             write_custom_event(

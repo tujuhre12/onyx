@@ -50,6 +50,18 @@ litellm.telemetry = False
 _LLM_PROMPT_LONG_TERM_LOG_CATEGORY = "llm_prompt"
 
 
+class LLMTimeoutError(Exception):
+    """
+    Exception raised when an LLM call times out.
+    """
+
+
+class LLMRateLimitError(Exception):
+    """
+    Exception raised when an LLM call is rate limited.
+    """
+
+
 def _base_msg_to_role(msg: BaseMessage) -> str:
     if isinstance(msg, HumanMessage) or isinstance(msg, HumanMessageChunk):
         return "user"
@@ -425,6 +437,12 @@ class DefaultMultiLLM(LLM):
         except Exception as e:
             self._record_error(processed_prompt, e)
             # for break pointing
+            if isinstance(e, litellm.Timeout):
+                raise LLMTimeoutError(e)
+
+            elif isinstance(e, litellm.RateLimitError):
+                raise LLMRateLimitError(e)
+
             raise e
 
     @property
@@ -453,12 +471,12 @@ class DefaultMultiLLM(LLM):
         response = cast(
             litellm.ModelResponse,
             self._completion(
-                prompt,
-                tools,
-                tool_choice,
-                False,
-                structured_response_format,
-                timeout_overwrite,
+                prompt=prompt,
+                tools=tools,
+                tool_choice=tool_choice,
+                stream=False,
+                structured_response_format=structured_response_format,
+                timeout_overwrite=timeout_overwrite,
             ),
         )
         choice = response.choices[0]
@@ -495,12 +513,12 @@ class DefaultMultiLLM(LLM):
         response = cast(
             litellm.CustomStreamWrapper,
             self._completion(
-                prompt,
-                tools,
-                tool_choice,
-                True,
-                structured_response_format,
-                timeout_overwrite,
+                prompt=prompt,
+                tools=tools,
+                tool_choice=tool_choice,
+                stream=True,
+                structured_response_format=structured_response_format,
+                timeout_overwrite=timeout_overwrite,
             ),
         )
         try:

@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Any
 from typing import cast
 
-import openai
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.runnables import RunnableConfig
@@ -12,7 +11,6 @@ from onyx.agents.agent_search.deep_search.main.models import (
     AgentRefinedMetrics,
 )
 from onyx.agents.agent_search.deep_search.main.operations import get_query_info
-from onyx.agents.agent_search.deep_search.main.operations import logger
 from onyx.agents.agent_search.deep_search.main.states import MainState
 from onyx.agents.agent_search.deep_search.main.states import (
     RefinedAnswerUpdate,
@@ -23,6 +21,15 @@ from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
 )
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     trim_prompt_piece,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_ERROR_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_RATELIMIT_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_TIMEOUT_MESSAGE,
 )
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.models import InferenceSection
@@ -51,8 +58,8 @@ from onyx.configs.agent_configs import AGENT_MIN_ORIG_QUESTION_DOCS
 from onyx.configs.agent_configs import (
     AGENT_TIMEOUT_OVERWRITE_LLM_REFINED_ANSWER_GENERATION,
 )
-from onyx.prompts.agent_search import AGENT_LLM_ERROR_MESSAGE
-from onyx.prompts.agent_search import AGENT_LLM_TIMEOUT_MESSAGE
+from onyx.llm.chat_llm import LLMRateLimitError
+from onyx.llm.chat_llm import LLMTimeoutError
 from onyx.prompts.agent_search import (
     REFINED_ANSWER_PROMPT_W_SUB_QUESTIONS,
 )
@@ -64,6 +71,9 @@ from onyx.prompts.agent_search import (
 )
 from onyx.prompts.agent_search import UNKNOWN_ANSWER
 from onyx.tools.tool_implementations.search.search_tool import yield_search_responses
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
 def generate_refined_answer(
@@ -269,12 +279,21 @@ def generate_refined_answer(
             )
             streamed_tokens.append(content)
 
-    except openai.APITimeoutError:
+    except LLMTimeoutError:
         agent_error = AgentError(
             error_type="timeout",
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result="LLM Timeout Error",
         )
+        logger.error("LLM Timeout Error - generate refined answer")
+
+    except LLMRateLimitError:
+        agent_error = AgentError(
+            error_type="rate limit",
+            error_message=AGENT_LLM_RATELIMIT_MESSAGE,
+            error_result="LLM Rate Limit Error",
+        )
+        logger.error("LLM Rate Limit Error - generate refined answer")
 
     except Exception:
         agent_error = AgentError(
@@ -282,7 +301,7 @@ def generate_refined_answer(
             error_message=AGENT_LLM_ERROR_MESSAGE,
             error_result="LLM Error",
         )
-
+        logger.error("General LLM Error - generate refined answer")
     if agent_error:
         write_custom_event(
             "initial_agent_answer",

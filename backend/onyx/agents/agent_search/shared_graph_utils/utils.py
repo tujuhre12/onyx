@@ -10,7 +10,6 @@ from typing import Literal
 from typing import TypedDict
 from uuid import UUID
 
-import openai
 from langchain_core.messages import BaseMessage
 from langchain_core.messages import HumanMessage
 from langgraph.types import StreamWriter
@@ -50,6 +49,8 @@ from onyx.context.search.models import SearchRequest
 from onyx.db.engine import get_session_context_manager
 from onyx.db.persona import get_persona_by_id
 from onyx.db.persona import Persona
+from onyx.llm.chat_llm import LLMRateLimitError
+from onyx.llm.chat_llm import LLMTimeoutError
 from onyx.llm.interfaces import LLM
 from onyx.prompts.agent_search import (
     ASSISTANT_SYSTEM_PROMPT_DEFAULT,
@@ -69,6 +70,9 @@ from onyx.tools.tool_implementations.search.search_tool import (
 from onyx.tools.tool_implementations.search.search_tool import SearchResponseSummary
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
 from onyx.tools.utils import explicit_tool_calling_supported
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 BaseMessage_Content = str | list[str | dict[str, Any]]
 
@@ -381,14 +385,21 @@ def summarize_history(
             history_context_prompt,
             timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_HISTORY_SUMMARY_GENERATION,
         )
-    except openai.APITimeoutError:
+    except LLMTimeoutError:
+        logger.error("LLM Timeout Error - summarize history")
         return (
-            history  # this is what is done at this point anyway, so wwe default to this
+            history  # this is what is done at this point anyway, so we default to this
+        )
+    except LLMRateLimitError:
+        logger.error("LLM Rate Limit Error - summarize history")
+        return (
+            history  # this is what is done at this point anyway, so we default to this
         )
 
     except Exception:
+        logger.error("General LLM Error - summarize history")
         return (
-            history  # this is what is done at this point anyway, so wwe default to this
+            history  # this is what is done at this point anyway, so we default to this
         )
     assert isinstance(history_response.content, str)
     return history_response.content

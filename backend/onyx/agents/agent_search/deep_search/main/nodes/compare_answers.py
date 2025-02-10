@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import cast
 
-import openai
 from langchain_core.messages import BaseMessage
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
@@ -12,6 +11,15 @@ from onyx.agents.agent_search.deep_search.main.states import (
 )
 from onyx.agents.agent_search.deep_search.main.states import MainState
 from onyx.agents.agent_search.models import GraphConfig
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_ERROR_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_RATELIMIT_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_TIMEOUT_MESSAGE,
+)
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
@@ -19,11 +27,14 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.chat.models import RefinedAnswerImprovement
 from onyx.configs.agent_configs import AGENT_TIMEOUT_OVERWRITE_LLM_COMPARE_ANSWERS
-from onyx.prompts.agent_search import AGENT_LLM_ERROR_MESSAGE
-from onyx.prompts.agent_search import AGENT_LLM_TIMEOUT_MESSAGE
+from onyx.llm.chat_llm import LLMRateLimitError
+from onyx.llm.chat_llm import LLMTimeoutError
 from onyx.prompts.agent_search import (
     INITIAL_REFINED_ANSWER_COMPARISON_PROMPT,
 )
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
 def compare_answers(
@@ -57,19 +68,29 @@ def compare_answers(
             msg, timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_COMPARE_ANSWERS
         )
 
-    except openai.APITimeoutError:
+    except LLMTimeoutError:
         agent_error = AgentError(
             error_type="timeout",
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result="The LLM timed out, and the answers could not be compared.",
         )
-
+        logger.error("LLM Timeout Error - compare answers")
+        # continue as True in this support step
+    except LLMRateLimitError:
+        agent_error = AgentError(
+            error_type="rate limit",
+            error_message=AGENT_LLM_RATELIMIT_MESSAGE,
+            error_result="LLM Rate Limit Error",
+        )
+        logger.error("LLM Rate Limit Error - compare answers")
+        # continue as True in this support step
     except Exception:
         agent_error = AgentError(
             error_type="LLM error",
             error_message=AGENT_LLM_ERROR_MESSAGE,
             error_result="The LLM errored out, and the answers could not be compared.",
         )
+        logger.error("General LLM Error - compare answers")
 
     if agent_error or resp is None:
         refined_answer_improvement = True

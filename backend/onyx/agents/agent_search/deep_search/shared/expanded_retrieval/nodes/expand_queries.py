@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Any
 from typing import cast
 
-import openai
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_message_runs
 from langchain_core.runnables.config import RunnableConfig
@@ -18,6 +17,15 @@ from onyx.agents.agent_search.deep_search.shared.expanded_retrieval.states impor
     QueryExpansionUpdate,
 )
 from onyx.agents.agent_search.models import GraphConfig
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_ERROR_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_RATELIMIT_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_TIMEOUT_MESSAGE,
+)
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.utils import dispatch_separated
 from onyx.agents.agent_search.shared_graph_utils.utils import (
@@ -27,11 +35,14 @@ from onyx.agents.agent_search.shared_graph_utils.utils import parse_question_id
 from onyx.configs.agent_configs import (
     AGENT_TIMEOUT_OVERWRITE_LLM_QUERY_REWRITING_GENERATION,
 )
-from onyx.prompts.agent_search import AGENT_LLM_ERROR_MESSAGE
-from onyx.prompts.agent_search import AGENT_LLM_TIMEOUT_MESSAGE
+from onyx.llm.chat_llm import LLMRateLimitError
+from onyx.llm.chat_llm import LLMTimeoutError
 from onyx.prompts.agent_search import (
     QUERY_REWRITING_PROMPT,
 )
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 BaseMessage_Content = str | list[str | dict[str, Any]]
 
@@ -75,12 +86,21 @@ def expand_queries(
             ),
             dispatch_subquery(level, question_num, writer),
         )
-    except openai.APITimeoutError:
+    except LLMTimeoutError:
         agent_error = AgentError(
             error_type="timeout",
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result="Query rewriting failed due to LLM timeout - use original question.",
         )
+        logger.error("LLM Timeout Error - expand queries")
+
+    except LLMRateLimitError:
+        agent_error = AgentError(
+            error_type="rate limit",
+            error_message=AGENT_LLM_RATELIMIT_MESSAGE,
+            error_result="LLM Rate Limit Error",
+        )
+        logger.error("LLM Rate Limit Error - expand queries")
 
     except Exception:
         agent_error = AgentError(
@@ -88,7 +108,9 @@ def expand_queries(
             error_message=AGENT_LLM_ERROR_MESSAGE,
             error_result="Query rewriting failed due to LLM error - use question.",
         )
+        logger.error("General LLM Error - expand queries")
 
+    # use subquestion as query if query generation fails
     if agent_error:
         llm_response = ""
         rewritten_queries = [question]

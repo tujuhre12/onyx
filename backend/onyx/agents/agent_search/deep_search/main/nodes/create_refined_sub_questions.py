@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Any
 from typing import cast
 
-import openai
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.runnables import RunnableConfig
@@ -23,6 +22,15 @@ from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     build_history_prompt,
 )
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_ERROR_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_RATELIMIT_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_TIMEOUT_MESSAGE,
+)
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.utils import dispatch_separated
 from onyx.agents.agent_search.shared_graph_utils.utils import (
@@ -37,12 +45,15 @@ from onyx.chat.models import StreamingError
 from onyx.configs.agent_configs import (
     AGENT_TIMEOUT_OVERWRITE_LLM_REFINED_SUBQUESTION_GENERATION,
 )
-from onyx.prompts.agent_search import AGENT_LLM_ERROR_MESSAGE
-from onyx.prompts.agent_search import AGENT_LLM_TIMEOUT_MESSAGE
+from onyx.llm.chat_llm import LLMRateLimitError
+from onyx.llm.chat_llm import LLMTimeoutError
 from onyx.prompts.agent_search import (
     REFINEMENT_QUESTION_DECOMPOSITION_PROMPT,
 )
 from onyx.tools.models import ToolCallKickoff
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 BaseMessage_Content = str | list[str | dict[str, Any]]
 
@@ -118,21 +129,28 @@ def create_refined_sub_questions(
             dispatch_subquestion(1, writer),
             sep_callback=dispatch_subquestion_sep(1, writer),
         )
-    except openai.APITimeoutError:
+    except LLMTimeoutError:
         agent_error = AgentError(
             error_type="timeout",
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result="The LLM timed out, and the subquestions could not be generated.",
-
         )
+        logger.error("LLM Timeout Error - create refined sub questions")
 
+    except LLMRateLimitError:
+        agent_error = AgentError(
+            error_type="rate limit",
+            error_message=AGENT_LLM_RATELIMIT_MESSAGE,
+            error_result="LLM Rate Limit Error",
+        )
+        logger.error("LLM Rate Limit Error - create refined sub questions")
     except Exception:
         agent_error = AgentError(
             error_type="LLM error",
             error_message=AGENT_LLM_ERROR_MESSAGE,
             error_result="The LLM errored out, and the subquestions could not be generated.",
         )
-
+        logger.error("General LLM Error - create refined sub questions")
     if agent_error:
         refined_sub_question_dict: dict[int, RefinementSubQuestion] = {}
         log_result = agent_error.error_result

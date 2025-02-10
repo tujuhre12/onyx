@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Any
 from typing import cast
 
-import openai
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
 from langchain_core.runnables import RunnableConfig
@@ -25,6 +24,15 @@ from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     build_history_prompt,
 )
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_ERROR_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_RATELIMIT_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_TIMEOUT_MESSAGE,
+)
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.utils import dispatch_separated
 from onyx.agents.agent_search.shared_graph_utils.utils import (
@@ -39,8 +47,8 @@ from onyx.configs.agent_configs import AGENT_NUM_DOCS_FOR_DECOMPOSITION
 from onyx.configs.agent_configs import (
     AGENT_TIMEOUT_OVERWRITE_LLM_SUBQUESTION_GENERATION,
 )
-from onyx.prompts.agent_search import AGENT_LLM_ERROR_MESSAGE
-from onyx.prompts.agent_search import AGENT_LLM_TIMEOUT_MESSAGE
+from onyx.llm.chat_llm import LLMRateLimitError
+from onyx.llm.chat_llm import LLMTimeoutError
 from onyx.prompts.agent_search import (
     INITIAL_DECOMPOSITION_PROMPT_QUESTIONS_AFTER_SEARCH,
 )
@@ -123,7 +131,6 @@ def decompose_orig_question(
 
     # dispatches custom events for subquestion tokens, adding in subquestion ids.
 
-
     agent_error: AgentError | None = None
     streamed_tokens: list[BaseMessage_Content] = []
 
@@ -136,19 +143,30 @@ def decompose_orig_question(
             dispatch_subquestion(0, writer),
             sep_callback=dispatch_subquestion_sep(0, writer),
         )
-    except openai.APITimeoutError:
+    except LLMTimeoutError as e:
         agent_error = AgentError(
             error_type="timeout",
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result="The LLM timed out, and the subquestions could not be generated.",
         )
-
-    except Exception:
+        logger.error("LLM Timeout Error - decompose orig question")
+        raise e  # fail loudly on this critical step
+    except LLMRateLimitError as e:
+        agent_error = AgentError(
+            error_type="rate limit",
+            error_message=AGENT_LLM_RATELIMIT_MESSAGE,
+            error_result="LLM Rate Limit Error",
+        )
+        logger.error("LLM Rate Limit Error - decompose orig question")
+        raise e
+    except Exception as e:
         agent_error = AgentError(
             error_type="LLM error",
             error_message=AGENT_LLM_ERROR_MESSAGE,
             error_result="The LLM errored out, and the subquestions could not be generated.",
         )
+        logger.error("General LLM Error - decompose orig question")
+        raise e
 
     stop_event = StreamStopInfo(
         stop_reason=StreamStopReason.FINISHED,

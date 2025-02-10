@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Any
 from typing import cast
 
-import openai
 from langchain_core.messages import merge_message_runs
 from langchain_core.runnables.config import RunnableConfig
 from langgraph.types import StreamWriter
@@ -16,6 +15,18 @@ from onyx.agents.agent_search.deep_search.initial.generate_individual_sub_answer
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     build_sub_question_answer_prompt,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_ERROR_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_RATELIMIT_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_LLM_TIMEOUT_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    LLM_ANSWER_ERROR_MESSAGE,
 )
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.utils import get_answer_citation_ids
@@ -33,9 +44,8 @@ from onyx.chat.models import StreamStopReason
 from onyx.chat.models import StreamType
 from onyx.configs.agent_configs import AGENT_MAX_ANSWER_CONTEXT_DOCS
 from onyx.configs.agent_configs import AGENT_TIMEOUT_OVERWRITE_LLM_SUBANSWER_GENERATION
-from onyx.prompts.agent_search import AGENT_LLM_ERROR_MESSAGE
-from onyx.prompts.agent_search import AGENT_LLM_TIMEOUT_MESSAGE
-from onyx.prompts.agent_search import LLM_ANSWER_ERROR_MESSAGE
+from onyx.llm.chat_llm import LLMRateLimitError
+from onyx.llm.chat_llm import LLMTimeoutError
 from onyx.prompts.agent_search import NO_RECOVERED_DOCS
 from onyx.utils.logger import setup_logger
 
@@ -118,19 +128,27 @@ def generate_sub_answer(
                 )
                 response.append(content)
 
-        except openai.APITimeoutError:
+        except LLMTimeoutError:
             agent_error = AgentError(
                 error_type="timeout",
                 error_message=AGENT_LLM_TIMEOUT_MESSAGE,
                 error_result="LLM Timeout Error",
             )
-
+            logger.error("LLM Timeout Error - generate sub answer")
+        except LLMRateLimitError:
+            agent_error = AgentError(
+                error_type="rate limit",
+                error_message=AGENT_LLM_RATELIMIT_MESSAGE,
+                error_result="LLM Rate Limit Error",
+            )
+            logger.error("LLM Rate Limit Error - generate sub answer")
         except Exception:
             agent_error = AgentError(
                 error_type="LLM error",
                 error_message=AGENT_LLM_ERROR_MESSAGE,
                 error_result="LLM Error",
             )
+            logger.error("General LLM Error - generate sub answer")
 
         if agent_error:
             answer_str = LLM_ANSWER_ERROR_MESSAGE
@@ -146,7 +164,7 @@ def generate_sub_answer(
             cited_documents = [
                 context_docs[id] for id in answer_citation_ids if id < len(context_docs)
             ]
-            log_results = ""
+            log_results = None
 
     stop_event = StreamStopInfo(
         stop_reason=StreamStopReason.FINISHED,
@@ -164,7 +182,7 @@ def generate_sub_answer(
                 graph_component="initial - generate individual sub answer",
                 node_name="generate sub answer",
                 node_start_time=node_start_time,
-                result=log_results,
+                result=log_results or "",
             )
         ],
     )
