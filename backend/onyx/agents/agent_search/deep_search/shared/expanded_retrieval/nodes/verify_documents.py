@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import cast
 
 from langchain_core.messages import HumanMessage
@@ -12,6 +13,9 @@ from onyx.agents.agent_search.deep_search.shared.expanded_retrieval.states impor
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     trim_prompt_piece,
+)
+from onyx.agents.agent_search.shared_graph_utils.utils import (
+    get_langgraph_node_log_string,
 )
 from onyx.prompts.agent_search import (
     DOCUMENT_VERIFICATION_PROMPT,
@@ -31,6 +35,8 @@ def verify_documents(
     Updates:
         verified_documents: list[InferenceSection]
     """
+
+    node_start_time = datetime.now()
 
     question = state.question
     retrieved_document_to_verify = state.retrieved_document_to_verify
@@ -59,4 +65,11 @@ def verify_documents(
 
     return DocVerificationUpdate(
         verified_documents=verified_documents,
+        log_messages=[
+            get_langgraph_node_log_string(
+                graph_component="shared - expanded retrieval",
+                node_name="verify documents",
+                node_start_time=node_start_time,
+            )
+        ],
     )

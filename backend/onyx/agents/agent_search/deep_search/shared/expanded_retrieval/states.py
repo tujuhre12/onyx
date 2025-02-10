@@ -34,7 +34,7 @@ class QueryExpansionUpdate(LoggerUpdate, BaseModel):
     log_messages: list[str] = []
 
 
-class DocVerificationUpdate(BaseModel):
+class DocVerificationUpdate(LoggerUpdate, BaseModel):
     verified_documents: Annotated[list[InferenceSection], dedup_inference_sections] = []
 
 
