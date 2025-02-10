@@ -247,10 +247,10 @@ def cloud_beat_task_generator(
 
     # these tasks should never overlap
     if not lock_beat.acquire(blocking=False):
-        task_logger.debug(f"{task} - Lock not acquired")
+        task_logger.info(f"{task} - Lock not acquired")
         return None
 
-    task_logger.debug(f"{task} - Lock acquired")
+    task_logger.info(f"{task} - Lock acquired")
     last_lock_time = time.monotonic()
     tenant_ids: list[str] | list[None] = []
 
@@ -266,7 +266,7 @@ def cloud_beat_task_generator(
             if IGNORED_SYNCING_TENANT_LIST and tenant_id in IGNORED_SYNCING_TENANT_LIST:
                 continue
 
-            task_logger.debug(
+            task_logger.info(
                 f"{task} - sending task: task_name={task_name}, tenant_id={tenant_id}"
             )
             self.app.send_task(

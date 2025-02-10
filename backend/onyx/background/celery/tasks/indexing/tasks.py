@@ -88,10 +88,10 @@ def check_for_indexing(self: Task, *, tenant_id: str | None) -> int | None:
 
     # these tasks should never overlap
     if not lock_beat.acquire(blocking=False):
-        task_logger.debug(f"{task} - Lock not acquired")
+        task_logger.info(f"{task} - Lock not acquired")
         return None
 
-    task_logger.debug(f"{task} - Lock acquired")
+    task_logger.info(f"{task} - Lock acquired")
 
     try:
         locked = True
