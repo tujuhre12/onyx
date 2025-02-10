@@ -383,7 +383,7 @@ def summarize_history(
     try:
         history_response = llm.invoke(
             history_context_prompt,
-            timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_HISTORY_SUMMARY_GENERATION,
+            timeout_override=AGENT_TIMEOUT_OVERWRITE_LLM_HISTORY_SUMMARY_GENERATION,
         )
     except LLMTimeoutError:
         logger.error("LLM Timeout Error - summarize history")

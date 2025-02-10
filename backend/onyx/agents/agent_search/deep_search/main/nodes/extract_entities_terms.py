@@ -84,7 +84,7 @@ def extract_entities_terms(
     # Grader
     llm_response = fast_llm.invoke(
         prompt=msg,
-        timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_ENTITY_TERM_EXTRACTION,
+        timeout_override=AGENT_TIMEOUT_OVERWRITE_LLM_ENTITY_TERM_EXTRACTION,
     )
 
     cleaned_response = (

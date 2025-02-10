@@ -24,6 +24,10 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
 from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_LLM_TIMEOUT_MESSAGE,
 )
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_POSITIVE_VALUE_STR,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import AgentLLMErrorType
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
@@ -77,12 +81,12 @@ def check_sub_answer(
     try:
         response = fast_llm.invoke(
             prompt=msg,
-            timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_SUBANSWER_CHECK,
+            timeout_override=AGENT_TIMEOUT_OVERWRITE_LLM_SUBANSWER_CHECK,
         )
 
     except LLMTimeoutError:
         agent_error = AgentError(
-            error_type="timeout",
+            error_type=AgentLLMErrorType.TIMEOUT,
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result="LLM Timeout Error",
         )
@@ -90,14 +94,14 @@ def check_sub_answer(
 
     except LLMRateLimitError:
         agent_error = AgentError(
-            error_type="rate limit",
+            error_type=AgentLLMErrorType.RATE_LIMIT,
             error_message=AGENT_LLM_RATELIMIT_MESSAGE,
             error_result="LLM Rate Limit Error",
         )
         logger.error("LLM Rate Limit Error - check sub answer")
     except Exception:
         agent_error = AgentError(
-            error_type="LLM error",
+            error_type=AgentLLMErrorType.GENERAL_ERROR,
             error_message=AGENT_LLM_ERROR_MESSAGE,
             error_result="LLM Error",
         )
@@ -109,7 +113,9 @@ def check_sub_answer(
     else:
         if response:
             quality_str: str = cast(str, response.content)
-            answer_quality = binary_string_test(text=quality_str, positive_value="yes")
+            answer_quality = binary_string_test(
+                text=quality_str, positive_value=AGENT_POSITIVE_VALUE_STR
+            )
 
         else:
             answer_quality = True

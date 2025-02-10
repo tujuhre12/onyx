@@ -392,7 +392,7 @@ class DefaultMultiLLM(LLM):
         tool_choice: ToolChoiceOptions | None,
         stream: bool,
         structured_response_format: dict | None = None,
-        timeout_overwrite: int | None = None,
+        timeout_override: int | None = None,
     ) -> litellm.ModelResponse | litellm.CustomStreamWrapper:
         # litellm doesn't accept LangChain BaseMessage objects, so we need to convert them
         # to a dict representation
@@ -418,7 +418,7 @@ class DefaultMultiLLM(LLM):
                 stream=stream,
                 # model params
                 temperature=0,
-                timeout=timeout_overwrite or self._timeout,
+                timeout=timeout_override or self._timeout,
                 # For now, we don't support parallel tool calls
                 # NOTE: we can't pass this in if tools are not specified
                 # or else OpenAI throws an error
@@ -463,7 +463,7 @@ class DefaultMultiLLM(LLM):
         tools: list[dict] | None = None,
         tool_choice: ToolChoiceOptions | None = None,
         structured_response_format: dict | None = None,
-        timeout_overwrite: int | None = None,
+        timeout_override: int | None = None,
     ) -> BaseMessage:
         if LOG_DANSWER_MODEL_INTERACTIONS:
             self.log_model_configs()
@@ -476,7 +476,7 @@ class DefaultMultiLLM(LLM):
                 tool_choice=tool_choice,
                 stream=False,
                 structured_response_format=structured_response_format,
-                timeout_overwrite=timeout_overwrite,
+                timeout_override=timeout_override,
             ),
         )
         choice = response.choices[0]
@@ -494,7 +494,7 @@ class DefaultMultiLLM(LLM):
         tools: list[dict] | None = None,
         tool_choice: ToolChoiceOptions | None = None,
         structured_response_format: dict | None = None,
-        timeout_overwrite: int | None = None,
+        timeout_override: int | None = None,
     ) -> Iterator[BaseMessage]:
         if LOG_DANSWER_MODEL_INTERACTIONS:
             self.log_model_configs()
@@ -505,7 +505,7 @@ class DefaultMultiLLM(LLM):
                 tools,
                 tool_choice,
                 structured_response_format,
-                timeout_overwrite,
+                timeout_override,
             )
             return
 
@@ -518,7 +518,7 @@ class DefaultMultiLLM(LLM):
                 tool_choice=tool_choice,
                 stream=True,
                 structured_response_format=structured_response_format,
-                timeout_overwrite=timeout_overwrite,
+                timeout_override=timeout_override,
             ),
         )
         try:

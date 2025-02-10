@@ -12,6 +12,9 @@ from onyx.agents.agent_search.deep_search.shared.expanded_retrieval.states impor
 )
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
+    binary_string_test,
+)
+from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     trim_prompt_piece,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
@@ -22,6 +25,12 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_LLM_TIMEOUT_MESSAGE,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AGENT_POSITIVE_VALUE_STR,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AgentLLMErrorType,
 )
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.configs.agent_configs import AGENT_TIMEOUT_OVERWRITE_LLM_DOCUMENT_VERIFICATION
@@ -73,14 +82,14 @@ def verify_documents(
 
     try:
         response = fast_llm.invoke(
-            msg, timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_DOCUMENT_VERIFICATION
+            msg, timeout_override=AGENT_TIMEOUT_OVERWRITE_LLM_DOCUMENT_VERIFICATION
         )
 
     except LLMTimeoutError:
         # In this case, we decide to continue and don't raise an error, as
         # little harm in letting some docs through that are less relevant.
         agent_error = AgentError(
-            error_type="timeout",
+            error_type=AgentLLMErrorType.TIMEOUT,
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result="The LLM timed out, and the document could not be verified.",
         )
@@ -89,7 +98,7 @@ def verify_documents(
         # In this case, we decide to continue and don't raise an error, as
         # little harm in letting some docs through that are less relevant.
         agent_error = AgentError(
-            error_type="timeout",
+            error_type=AgentLLMErrorType.RATE_LIMIT,
             error_message=AGENT_LLM_RATELIMIT_MESSAGE,
             error_result="The LLM timed out, and the document could not be verified.",
         )
@@ -99,7 +108,7 @@ def verify_documents(
         # In this case, we also do not raise an error, as little harm in
         # letting some docs through that are less relevant.
         agent_error = AgentError(
-            error_type="LLM error",
+            error_type=AgentLLMErrorType.GENERAL_ERROR,
             error_message=AGENT_LLM_ERROR_MESSAGE,
             error_result="The LLM errored out, and the document could not be verified.",
         )
@@ -109,7 +118,9 @@ def verify_documents(
 
     else:
         verified_documents = []
-        if isinstance(response.content, str) and "yes" in response.content.lower():
+        if isinstance(response.content, str) and binary_string_test(
+            text=response.content, positive_value=AGENT_POSITIVE_VALUE_STR
+        ):
             verified_documents.append(retrieved_document_to_verify)
 
     return DocVerificationUpdate(

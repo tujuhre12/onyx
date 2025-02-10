@@ -26,6 +26,9 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
 from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_LLM_TIMEOUT_MESSAGE,
 )
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AgentLLMErrorType,
+)
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.utils import dispatch_separated
 from onyx.agents.agent_search.shared_graph_utils.utils import (
@@ -82,13 +85,13 @@ def expand_queries(
         llm_response_list = dispatch_separated(
             llm.stream(
                 prompt=msg,
-                timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_QUERY_REWRITING_GENERATION,
+                timeout_override=AGENT_TIMEOUT_OVERWRITE_LLM_QUERY_REWRITING_GENERATION,
             ),
             dispatch_subquery(level, question_num, writer),
         )
     except LLMTimeoutError:
         agent_error = AgentError(
-            error_type="timeout",
+            error_type=AgentLLMErrorType.TIMEOUT,
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result="Query rewriting failed due to LLM timeout - use original question.",
         )
@@ -96,7 +99,7 @@ def expand_queries(
 
     except LLMRateLimitError:
         agent_error = AgentError(
-            error_type="rate limit",
+            error_type=AgentLLMErrorType.RATE_LIMIT,
             error_message=AGENT_LLM_RATELIMIT_MESSAGE,
             error_result="LLM Rate Limit Error",
         )
@@ -104,7 +107,7 @@ def expand_queries(
 
     except Exception:
         agent_error = AgentError(
-            error_type="LLM error",
+            error_type=AgentLLMErrorType.GENERAL_ERROR,
             error_message=AGENT_LLM_ERROR_MESSAGE,
             error_result="Query rewriting failed due to LLM error - use question.",
         )

@@ -26,6 +26,9 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_LLM_TIMEOUT_MESSAGE,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AgentLLMErrorType,
+)
+from onyx.agents.agent_search.shared_graph_utils.constants import (
     LLM_ANSWER_ERROR_MESSAGE,
 )
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
@@ -103,7 +106,7 @@ def generate_sub_answer(
         try:
             for message in fast_llm.stream(
                 prompt=msg,
-                timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_SUBANSWER_GENERATION,
+                timeout_override=AGENT_TIMEOUT_OVERWRITE_LLM_SUBANSWER_GENERATION,
             ):
                 # TODO: in principle, the answer here COULD contain images, but we don't support that yet
                 content = message.content
@@ -130,21 +133,21 @@ def generate_sub_answer(
 
         except LLMTimeoutError:
             agent_error = AgentError(
-                error_type="timeout",
+                error_type=AgentLLMErrorType.TIMEOUT,
                 error_message=AGENT_LLM_TIMEOUT_MESSAGE,
                 error_result="LLM Timeout Error",
             )
             logger.error("LLM Timeout Error - generate sub answer")
         except LLMRateLimitError:
             agent_error = AgentError(
-                error_type="rate limit",
+                error_type=AgentLLMErrorType.RATE_LIMIT,
                 error_message=AGENT_LLM_RATELIMIT_MESSAGE,
                 error_result="LLM Rate Limit Error",
             )
             logger.error("LLM Rate Limit Error - generate sub answer")
         except Exception:
             agent_error = AgentError(
-                error_type="LLM error",
+                error_type=AgentLLMErrorType.GENERAL_ERROR,
                 error_message=AGENT_LLM_ERROR_MESSAGE,
                 error_result="LLM Error",
             )

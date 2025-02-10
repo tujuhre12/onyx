@@ -31,6 +31,9 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
 from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_LLM_TIMEOUT_MESSAGE,
 )
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AgentLLMErrorType,
+)
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.models import InferenceSection
 from onyx.agents.agent_search.shared_graph_utils.models import RefinedAgentStats
@@ -253,7 +256,7 @@ def generate_refined_answer(
 
     try:
         for message in model.stream(
-            msg, timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_REFINED_ANSWER_GENERATION
+            msg, timeout_override=AGENT_TIMEOUT_OVERWRITE_LLM_REFINED_ANSWER_GENERATION
         ):
             # TODO: in principle, the answer here COULD contain images, but we don't support that yet
             content = message.content
@@ -281,7 +284,7 @@ def generate_refined_answer(
 
     except LLMTimeoutError:
         agent_error = AgentError(
-            error_type="timeout",
+            error_type=AgentLLMErrorType.TIMEOUT,
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result="LLM Timeout Error",
         )
@@ -289,7 +292,7 @@ def generate_refined_answer(
 
     except LLMRateLimitError:
         agent_error = AgentError(
-            error_type="rate limit",
+            error_type=AgentLLMErrorType.RATE_LIMIT,
             error_message=AGENT_LLM_RATELIMIT_MESSAGE,
             error_result="LLM Rate Limit Error",
         )
@@ -297,7 +300,7 @@ def generate_refined_answer(
 
     except Exception:
         agent_error = AgentError(
-            error_type="LLM error",
+            error_type=AgentLLMErrorType.GENERAL_ERROR,
             error_message=AGENT_LLM_ERROR_MESSAGE,
             error_result="LLM Error",
         )

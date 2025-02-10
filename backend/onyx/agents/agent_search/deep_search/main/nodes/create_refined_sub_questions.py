@@ -31,6 +31,9 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
 from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_LLM_TIMEOUT_MESSAGE,
 )
+from onyx.agents.agent_search.shared_graph_utils.constants import (
+    AgentLLMErrorType,
+)
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.utils import dispatch_separated
 from onyx.agents.agent_search.shared_graph_utils.utils import (
@@ -124,14 +127,14 @@ def create_refined_sub_questions(
         streamed_tokens = dispatch_separated(
             model.stream(
                 msg,
-                timeout_overwrite=AGENT_TIMEOUT_OVERWRITE_LLM_REFINED_SUBQUESTION_GENERATION,
+                timeout_override=AGENT_TIMEOUT_OVERWRITE_LLM_REFINED_SUBQUESTION_GENERATION,
             ),
             dispatch_subquestion(1, writer),
             sep_callback=dispatch_subquestion_sep(1, writer),
         )
     except LLMTimeoutError:
         agent_error = AgentError(
-            error_type="timeout",
+            error_type=AgentLLMErrorType.TIMEOUT,
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result="The LLM timed out, and the subquestions could not be generated.",
         )
@@ -139,14 +142,14 @@ def create_refined_sub_questions(
 
     except LLMRateLimitError:
         agent_error = AgentError(
-            error_type="rate limit",
+            error_type=AgentLLMErrorType.RATE_LIMIT,
             error_message=AGENT_LLM_RATELIMIT_MESSAGE,
             error_result="LLM Rate Limit Error",
         )
         logger.error("LLM Rate Limit Error - create refined sub questions")
     except Exception:
         agent_error = AgentError(
-            error_type="LLM error",
+            error_type=AgentLLMErrorType.GENERAL_ERROR,
             error_message=AGENT_LLM_ERROR_MESSAGE,
             error_result="The LLM errored out, and the subquestions could not be generated.",
         )
