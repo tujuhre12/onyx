@@ -61,14 +61,10 @@ def basic_graph_builder() -> StateGraph:
         end_key="basic_use_tool_response",
     )
 
-    graph.add_conditional_edges(
-        "basic_use_tool_response", should_continue, ["tool_call", END]
+    graph.add_edge(
+        start_key="basic_use_tool_response",
+        end_key=END,
     )
-
-    # graph.add_edge(
-    #     start_key="basic_use_tool_response",
-    #     end_key=END,
-    # )
 
     return graph
 

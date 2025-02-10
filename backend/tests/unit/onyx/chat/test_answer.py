@@ -229,7 +229,7 @@ def test_answer_with_search_call(
         )
 
         # Second call should not include tools (as we're just generating the final answer)
-        # assert "tools" not in second_call.kwargs or not second_call.kwargs["tools"]
+        assert "tools" not in second_call.kwargs or not second_call.kwargs["tools"]
         # Second call should use the returned prompt from build_next_prompt
         assert (
             second_call.kwargs["prompt"]
@@ -237,7 +237,7 @@ def test_answer_with_search_call(
         )
 
         # Verify that tool_definition was called on the mock_search_tool
-        assert mock_search_tool.tool_definition.call_count == 2
+        mock_search_tool.tool_definition.assert_called_once()
     else:
         assert mock_llm.stream.call_count == 1
 
