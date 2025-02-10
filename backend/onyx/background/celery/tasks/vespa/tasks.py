@@ -162,6 +162,7 @@ def check_for_vespa_sync_task(self: Task, *, tenant_id: str | None) -> bool | No
         # 2/3: VALIDATE: TODO
 
         # 3/3: FINALIZE
+        lock_beat.reacquire()
         keys = cast(set[Any], r_replica.smembers(OnyxRedisConstants.ACTIVE_FENCES))
         for key in keys:
             key_bytes = cast(bytes, key)
@@ -521,7 +522,10 @@ def monitor_document_set_taskset(
     bind=True,
 )
 def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool | None:
-    """This is a celery beat task that monitors and finalizes various long running tasks.
+    """NOTE(rkuo): this function will go away soon, pending a couple of other PR's to
+    move some of this work to the monitoring worker.
+
+    This is a celery beat task that monitors and finalizes various long running tasks.
 
     The name monitor_vespa_sync is a bit of a misnomer since it checks many different tasks
     now. Should change that at some point.

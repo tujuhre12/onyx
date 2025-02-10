@@ -99,6 +99,7 @@ def check_for_connector_deletion_task(
                     # clear the stop signal if it exists ... no longer needed
                     redis_connector.stop.set_fence(False)
 
+        lock_beat.reacquire()
         keys = cast(set[Any], r_replica.smembers(OnyxRedisConstants.ACTIVE_FENCES))
         for key in keys:
             key_bytes = cast(bytes, key)
@@ -110,7 +111,6 @@ def check_for_connector_deletion_task(
             key_str = key_bytes.decode("utf-8")
             if key_str.startswith(RedisConnectorDelete.FENCE_PREFIX):
                 monitor_connector_deletion_taskset(tenant_id, key_bytes, r)
-
     except SoftTimeLimitExceeded:
         task_logger.info(
             "Soft time limit exceeded, task is being terminated gracefully."

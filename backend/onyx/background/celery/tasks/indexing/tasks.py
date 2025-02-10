@@ -394,6 +394,7 @@ def check_for_indexing(self: Task, *, tenant_id: str | None) -> int | None:
             redis_client.set(OnyxRedisSignals.BLOCK_VALIDATE_INDEXING_FENCES, 1, ex=60)
 
         # 3/3: FINALIZE
+        lock_beat.reacquire()
         keys = cast(
             set[Any], redis_client_replica.smembers(OnyxRedisConstants.ACTIVE_FENCES)
         )
