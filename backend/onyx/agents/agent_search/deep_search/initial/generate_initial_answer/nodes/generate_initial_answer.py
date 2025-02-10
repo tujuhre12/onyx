@@ -38,6 +38,9 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import format_docs
 from onyx.agents.agent_search.shared_graph_utils.utils import (
+    get_deduplicated_cited_documents,
+)
+from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import relevance_from_docs
@@ -77,7 +80,11 @@ def generate_initial_answer(
     question = graph_config.inputs.search_request.query
     prompt_enrichment_components = get_prompt_enrichment_components(graph_config)
 
-    sub_questions_cited_documents = state.cited_documents
+    # get all documents cited in sub-questions
+    sub_questions_cited_documents = get_deduplicated_cited_documents(
+        state.sub_question_results
+    )
+
     orig_question_retrieval_documents = state.orig_question_retrieved_documents
 
     consolidated_context_docs: list[InferenceSection] = sub_questions_cited_documents

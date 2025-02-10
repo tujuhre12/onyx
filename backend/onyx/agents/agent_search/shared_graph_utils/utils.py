@@ -24,6 +24,10 @@ from onyx.agents.agent_search.shared_graph_utils.models import (
     EntityRelationshipTermExtraction,
 )
 from onyx.agents.agent_search.shared_graph_utils.models import PersonaPromptExpressions
+from onyx.agents.agent_search.shared_graph_utils.models import SubQuestionAnswerResults
+from onyx.agents.agent_search.shared_graph_utils.operators import (
+    dedup_inference_section_list,
+)
 from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationConfig
@@ -439,3 +443,21 @@ def remove_document_citations(text: str) -> str:
     #   \d+  - one or more digits
     #   \]   - literal ] character
     return re.sub(r"\[(?:D|Q)?\d+\]", "", text)
+
+
+def get_deduplicated_cited_documents(
+    sub_question_results: list[SubQuestionAnswerResults],
+) -> list[InferenceSection]:
+    """
+    Extract and deduplicate all cited documents from sub-question results.
+
+    Args:
+        sub_question_results: List of sub-question results containing cited documents
+
+    Returns:
+        Deduplicated list of cited documents
+    """
+    cited_docs = [
+        doc for result in sub_question_results for doc in result.cited_documents
+    ]
+    return dedup_inference_section_list(cited_docs)

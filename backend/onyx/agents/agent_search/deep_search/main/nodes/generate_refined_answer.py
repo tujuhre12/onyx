@@ -36,6 +36,9 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import format_docs
 from onyx.agents.agent_search.shared_graph_utils.utils import (
+    get_deduplicated_cited_documents,
+)
+from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import parse_question_id
@@ -80,7 +83,12 @@ def generate_refined_answer(
     )
 
     verified_reranked_documents = state.verified_reranked_documents
-    sub_questions_cited_documents = state.cited_documents
+
+    # get all documents cited in sub-questions
+    sub_questions_cited_documents = get_deduplicated_cited_documents(
+        state.sub_question_results
+    )
+
     original_question_verified_documents = (
         state.orig_question_verified_reranked_documents
     )
