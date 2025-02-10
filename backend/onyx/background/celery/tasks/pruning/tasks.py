@@ -163,6 +163,21 @@ def check_for_pruning(self: Task, *, tenant_id: str | None) -> bool | None:
                 task_logger.exception("Exception while validating pruning fences")
 
             r.set(OnyxRedisSignals.BLOCK_VALIDATE_PRUNING_FENCES, 1, ex=300)
+
+        # use a lookup table to find active fences. We still have to verify the fence
+        # exists since it is an optimization and not the source of truth.
+        keys = cast(set[Any], r_replica.smembers(OnyxRedisConstants.ACTIVE_FENCES))
+        for key in keys:
+            key_bytes = cast(bytes, key)
+
+            if not r.exists(key_bytes):
+                r.srem(OnyxRedisConstants.ACTIVE_FENCES, key_bytes)
+                continue
+
+            key_str = key_bytes.decode("utf-8")
+            if key_str.startswith(RedisConnectorPrune.FENCE_PREFIX):
+                with get_session_with_tenant(tenant_id) as db_session:
+                    monitor_ccpair_pruning_taskset(tenant_id, key_bytes, r, db_session)
     except SoftTimeLimitExceeded:
         task_logger.info(
             "Soft time limit exceeded, task is being terminated gracefully."

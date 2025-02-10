@@ -1,6 +1,5 @@
 import random
 import time
-import traceback
 from collections.abc import Callable
 from http import HTTPStatus
 from typing import Any
@@ -20,10 +19,6 @@ from onyx.access.access import get_access_for_document
 from onyx.background.celery.apps.app_base import task_logger
 from onyx.background.celery.celery_redis import celery_get_queue_length
 from onyx.background.celery.celery_redis import celery_get_unacked_task_ids
-from onyx.background.celery.tasks.doc_permission_syncing.tasks import (
-    monitor_ccpair_permissions_taskset,
-)
-from onyx.background.celery.tasks.pruning.tasks import monitor_ccpair_pruning_taskset
 from onyx.background.celery.tasks.shared.RetryDocumentIndex import RetryDocumentIndex
 from onyx.background.celery.tasks.shared.tasks import LIGHT_SOFT_TIME_LIMIT
 from onyx.background.celery.tasks.shared.tasks import LIGHT_TIME_LIMIT
@@ -35,19 +30,11 @@ from onyx.configs.constants import OnyxCeleryTask
 from onyx.configs.constants import OnyxRedisConstants
 from onyx.configs.constants import OnyxRedisLocks
 from onyx.configs.constants import OnyxRedisSignals
-from onyx.db.connector import fetch_connector_by_id
-from onyx.db.connector_credential_pair import add_deletion_failure_message
-from onyx.db.connector_credential_pair import (
-    delete_connector_credential_pair__no_commit,
-)
-from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
 from onyx.db.connector_credential_pair import get_connector_credential_pairs
 from onyx.db.document import count_documents_by_needs_sync
 from onyx.db.document import get_document
-from onyx.db.document import get_document_ids_for_connector_credential_pair
 from onyx.db.document import mark_document_as_synced
 from onyx.db.document_set import delete_document_set
-from onyx.db.document_set import delete_document_set_cc_pair_relationship__no_commit
 from onyx.db.document_set import fetch_document_sets
 from onyx.db.document_set import fetch_document_sets_for_document
 from onyx.db.document_set import get_document_set_by_id
@@ -55,7 +42,6 @@ from onyx.db.document_set import mark_document_set_as_synced
 from onyx.db.engine import get_session_with_tenant
 from onyx.db.enums import SyncStatus
 from onyx.db.enums import SyncType
-from onyx.db.index_attempt import delete_index_attempts
 from onyx.db.models import DocumentSet
 from onyx.db.models import UserGroup
 from onyx.db.search_settings import get_active_search_settings
@@ -65,7 +51,6 @@ from onyx.db.sync_record import update_sync_record_status
 from onyx.document_index.factory import get_default_document_index
 from onyx.document_index.interfaces import VespaDocumentFields
 from onyx.httpx.httpx_pool import HttpxPool
-from onyx.redis.redis_connector import RedisConnector
 from onyx.redis.redis_connector_credential_pair import RedisConnectorCredentialPair
 from onyx.redis.redis_connector_credential_pair import (
     RedisGlobalConnectorCredentialPair,
@@ -107,6 +92,7 @@ def check_for_vespa_sync_task(self: Task, *, tenant_id: str | None) -> bool | No
     time_start = time.monotonic()
 
     r = get_redis_client(tenant_id=tenant_id)
+    r_replica = get_redis_replica_client(tenant_id=tenant_id)
 
     lock_beat: RedisLock = r.lock(
         OnyxRedisLocks.CHECK_VESPA_SYNC_BEAT_LOCK,
@@ -118,6 +104,7 @@ def check_for_vespa_sync_task(self: Task, *, tenant_id: str | None) -> bool | No
         return None
 
     try:
+        # 1/3: KICKOFF
         with get_session_with_tenant(tenant_id) as db_session:
             try_generate_stale_document_sync_tasks(
                 self.app, VESPA_SYNC_MAX_TASKS, db_session, r, lock_beat, tenant_id
@@ -171,6 +158,34 @@ def check_for_vespa_sync_task(self: Task, *, tenant_id: str | None) -> bool | No
                         try_generate_user_group_sync_tasks(
                             self.app, usergroup_id, db_session, r, lock_beat, tenant_id
                         )
+
+        # 2/3: VALIDATE: TODO
+
+        # 3/3: FINALIZE
+        keys = cast(set[Any], r_replica.smembers(OnyxRedisConstants.ACTIVE_FENCES))
+        for key in keys:
+            key_bytes = cast(bytes, key)
+
+            if not r.exists(key_bytes):
+                r.srem(OnyxRedisConstants.ACTIVE_FENCES, key_bytes)
+                continue
+
+            key_str = key_bytes.decode("utf-8")
+            if key_str == RedisGlobalConnectorCredentialPair.FENCE_KEY:
+                monitor_connector_taskset(r)
+            elif key_str.startswith(RedisDocumentSet.FENCE_PREFIX):
+                with get_session_with_tenant(tenant_id) as db_session:
+                    monitor_document_set_taskset(tenant_id, key_bytes, r, db_session)
+            elif key_str.startswith(RedisUserGroup.FENCE_PREFIX):
+                monitor_usergroup_taskset = (
+                    fetch_versioned_implementation_with_fallback(
+                        "onyx.background.celery.tasks.vespa.tasks",
+                        "monitor_usergroup_taskset",
+                        noop_fallback,
+                    )
+                )
+                with get_session_with_tenant(tenant_id) as db_session:
+                    monitor_usergroup_taskset(tenant_id, key_bytes, r, db_session)
 
     except SoftTimeLimitExceeded:
         task_logger.info(
@@ -499,161 +514,6 @@ def monitor_document_set_taskset(
     rds.reset()
 
 
-def monitor_connector_deletion_taskset(
-    tenant_id: str | None, key_bytes: bytes, r: Redis
-) -> None:
-    fence_key = key_bytes.decode("utf-8")
-    cc_pair_id_str = RedisConnector.get_id_from_fence_key(fence_key)
-    if cc_pair_id_str is None:
-        task_logger.warning(f"could not parse cc_pair_id from {fence_key}")
-        return
-
-    cc_pair_id = int(cc_pair_id_str)
-
-    redis_connector = RedisConnector(tenant_id, cc_pair_id)
-
-    fence_data = redis_connector.delete.payload
-    if not fence_data:
-        task_logger.warning(
-            f"Connector deletion - fence payload invalid: cc_pair={cc_pair_id}"
-        )
-        return
-
-    if fence_data.num_tasks is None:
-        # the fence is setting up but isn't ready yet
-        return
-
-    remaining = redis_connector.delete.get_remaining()
-    task_logger.info(
-        f"Connector deletion progress: cc_pair={cc_pair_id} remaining={remaining} initial={fence_data.num_tasks}"
-    )
-    if remaining > 0:
-        with get_session_with_tenant(tenant_id) as db_session:
-            update_sync_record_status(
-                db_session=db_session,
-                entity_id=cc_pair_id,
-                sync_type=SyncType.CONNECTOR_DELETION,
-                sync_status=SyncStatus.IN_PROGRESS,
-                num_docs_synced=remaining,
-            )
-        return
-
-    with get_session_with_tenant(tenant_id) as db_session:
-        cc_pair = get_connector_credential_pair_from_id(
-            db_session=db_session,
-            cc_pair_id=cc_pair_id,
-        )
-        if not cc_pair:
-            task_logger.warning(
-                f"Connector deletion - cc_pair not found: cc_pair={cc_pair_id}"
-            )
-            return
-
-        try:
-            doc_ids = get_document_ids_for_connector_credential_pair(
-                db_session, cc_pair.connector_id, cc_pair.credential_id
-            )
-            if len(doc_ids) > 0:
-                # NOTE(rkuo): if this happens, documents somehow got added while
-                # deletion was in progress. Likely a bug gating off pruning and indexing
-                # work before deletion starts.
-                task_logger.warning(
-                    "Connector deletion - documents still found after taskset completion. "
-                    "Clearing the current deletion attempt and allowing deletion to restart: "
-                    f"cc_pair={cc_pair_id} "
-                    f"docs_deleted={fence_data.num_tasks} "
-                    f"docs_remaining={len(doc_ids)}"
-                )
-
-                # We don't want to waive off why we get into this state, but resetting
-                # our attempt and letting the deletion restart is a good way to recover
-                redis_connector.delete.reset()
-                raise RuntimeError(
-                    "Connector deletion - documents still found after taskset completion"
-                )
-
-            # clean up the rest of the related Postgres entities
-            # index attempts
-            delete_index_attempts(
-                db_session=db_session,
-                cc_pair_id=cc_pair_id,
-            )
-
-            # document sets
-            delete_document_set_cc_pair_relationship__no_commit(
-                db_session=db_session,
-                connector_id=cc_pair.connector_id,
-                credential_id=cc_pair.credential_id,
-            )
-
-            # user groups
-            cleanup_user_groups = fetch_versioned_implementation_with_fallback(
-                "onyx.db.user_group",
-                "delete_user_group_cc_pair_relationship__no_commit",
-                noop_fallback,
-            )
-            cleanup_user_groups(
-                cc_pair_id=cc_pair_id,
-                db_session=db_session,
-            )
-
-            # finally, delete the cc-pair
-            delete_connector_credential_pair__no_commit(
-                db_session=db_session,
-                connector_id=cc_pair.connector_id,
-                credential_id=cc_pair.credential_id,
-            )
-            # if there are no credentials left, delete the connector
-            connector = fetch_connector_by_id(
-                db_session=db_session,
-                connector_id=cc_pair.connector_id,
-            )
-            if not connector or not len(connector.credentials):
-                task_logger.info(
-                    "Connector deletion - Found no credentials left for connector, deleting connector"
-                )
-                db_session.delete(connector)
-            db_session.commit()
-
-            update_sync_record_status(
-                db_session=db_session,
-                entity_id=cc_pair_id,
-                sync_type=SyncType.CONNECTOR_DELETION,
-                sync_status=SyncStatus.SUCCESS,
-                num_docs_synced=fence_data.num_tasks,
-            )
-
-        except Exception as e:
-            db_session.rollback()
-            stack_trace = traceback.format_exc()
-            error_message = f"Error: {str(e)}\n\nStack Trace:\n{stack_trace}"
-            add_deletion_failure_message(db_session, cc_pair_id, error_message)
-
-            update_sync_record_status(
-                db_session=db_session,
-                entity_id=cc_pair_id,
-                sync_type=SyncType.CONNECTOR_DELETION,
-                sync_status=SyncStatus.FAILED,
-                num_docs_synced=fence_data.num_tasks,
-            )
-
-            task_logger.exception(
-                f"Connector deletion exceptioned: "
-                f"cc_pair={cc_pair_id} connector={cc_pair.connector_id} credential={cc_pair.credential_id}"
-            )
-            raise e
-
-    task_logger.info(
-        f"Connector deletion succeeded: "
-        f"cc_pair={cc_pair_id} "
-        f"connector={cc_pair.connector_id} "
-        f"credential={cc_pair.credential_id} "
-        f"docs_deleted={fence_data.num_tasks}"
-    )
-
-    redis_connector.delete.reset()
-
-
 @shared_task(
     name=OnyxCeleryTask.MONITOR_VESPA_SYNC,
     ignore_result=True,
@@ -758,45 +618,6 @@ def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool | None:
                     r.sadd(OnyxRedisConstants.ACTIVE_FENCES, key_bytes)
 
             r.set(OnyxRedisSignals.BLOCK_BUILD_FENCE_LOOKUP_TABLE, 1, ex=300)
-
-        # use a lookup table to find active fences. We still have to verify the fence
-        # exists since it is an optimization and not the source of truth.
-        keys = cast(set[Any], r_replica.smembers(OnyxRedisConstants.ACTIVE_FENCES))
-        for key in keys:
-            key_bytes = cast(bytes, key)
-
-            if not r.exists(key_bytes):
-                r.srem(OnyxRedisConstants.ACTIVE_FENCES, key_bytes)
-                continue
-
-            key_str = key_bytes.decode("utf-8")
-            if key_str == RedisGlobalConnectorCredentialPair.FENCE_KEY:
-                monitor_connector_taskset(r)
-            elif key_str.startswith(RedisDocumentSet.FENCE_PREFIX):
-                with get_session_with_tenant(tenant_id) as db_session:
-                    monitor_document_set_taskset(tenant_id, key_bytes, r, db_session)
-            elif key_str.startswith(RedisUserGroup.FENCE_PREFIX):
-                monitor_usergroup_taskset = (
-                    fetch_versioned_implementation_with_fallback(
-                        "onyx.background.celery.tasks.vespa.tasks",
-                        "monitor_usergroup_taskset",
-                        noop_fallback,
-                    )
-                )
-                with get_session_with_tenant(tenant_id) as db_session:
-                    monitor_usergroup_taskset(tenant_id, key_bytes, r, db_session)
-            elif key_str.startswith(RedisConnectorDelete.FENCE_PREFIX):
-                monitor_connector_deletion_taskset(tenant_id, key_bytes, r)
-            elif key_str.startswith(RedisConnectorPrune.FENCE_PREFIX):
-                with get_session_with_tenant(tenant_id) as db_session:
-                    monitor_ccpair_pruning_taskset(tenant_id, key_bytes, r, db_session)
-            elif key_str.startswith(RedisConnectorPermissionSync.FENCE_PREFIX):
-                with get_session_with_tenant(tenant_id) as db_session:
-                    monitor_ccpair_permissions_taskset(
-                        tenant_id, key_bytes, r, db_session
-                    )
-            else:
-                pass
     except SoftTimeLimitExceeded:
         task_logger.info(
             "Soft time limit exceeded, task is being terminated gracefully."
