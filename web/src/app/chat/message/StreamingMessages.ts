@@ -163,6 +163,8 @@ export const useStreamingMessages = (
       for (let i = 0; i < actualSubQs.length; i++) {
         const sq = actualSubQs[i];
         const dynSQ = dynamicSubQuestionsRef.current[i];
+        dynSQ.answer_done = sq.answer_done;
+
         const p = progressRef.current[i];
 
         // Wait for subquestion #0 or the previous subquestion's progress

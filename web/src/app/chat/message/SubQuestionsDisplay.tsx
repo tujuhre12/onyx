@@ -152,7 +152,7 @@ const SubQuestionDisplay: React.FC<{
     content = content.replace(/\]\](?!\()/g, "]]()");
 
     return (
-      preprocessLaTeX(content) + (!subQuestion?.is_complete ? " [*]() " : "")
+      preprocessLaTeX(content) + (!subQuestion?.answer_done ? " [*]() " : "")
     );
   };
 

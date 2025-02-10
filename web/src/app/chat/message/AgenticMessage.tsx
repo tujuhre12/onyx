@@ -444,7 +444,6 @@ export const AgenticMessage = ({
                         <div className="flex items-center gap-x-2 px-4">
                           <div className="text-black text-lg font-medium">
                             Answer
-                            {isViewingInitialAnswer ? "Original" : "Refined"}
                           </div>
 
                           <StatusRefinement

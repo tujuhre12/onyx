@@ -120,16 +120,54 @@ export function RefinemenetBadge({
   const [isHovered, setIsHovered] = useState(false);
   const [shouldShow, setShouldShow] = useState(true);
 
+  // Refs for bounding area checks
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  // Global mousemove: close tooltip if pointer goes outside both trigger & tooltip.
+  useEffect(() => {
+    function handleMouseMove(e: MouseEvent) {
+      if (!containerRef.current || !tooltipRef.current) return;
+
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const tooltipRect = tooltipRef.current.getBoundingClientRect();
+      const [x, y] = [e.clientX, e.clientY];
+
+      const inContainer =
+        x >= containerRect.left &&
+        x <= containerRect.right &&
+        y >= containerRect.top &&
+        y <= containerRect.bottom;
+
+      const inTooltip =
+        x >= tooltipRect.left &&
+        x <= tooltipRect.right &&
+        y >= tooltipRect.top &&
+        y <= tooltipRect.bottom;
+
+      // If not hovering in either region, close tooltip.
+      if (!inContainer && !inTooltip) {
+        setToolTipHoveredInternal(false);
+        setToolTipHovered(false);
+      }
+    }
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, [setToolTipHovered]);
+
   // Once "done", hide after a short delay if not hovered
   useEffect(() => {
     if (isDone) {
       const timer = setTimeout(() => {
         setShouldShow(false);
         setCanShowResponse(true);
-      }, 800); // e.g. 0.8s
+      }, 800);
       return () => clearTimeout(timer);
     }
-  }, [isDone, isHovered]);
+  }, [isDone, isHovered, setCanShowResponse]);
 
   // if (!shouldShow) {
   //   return null; // entire box disappears
@@ -142,8 +180,8 @@ export function RefinemenetBadge({
           className="relative w-fit max-w-sm"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
+          ref={containerRef}
         >
-          {/* Original snippet's tooltip usage */}
           <TooltipTrigger asChild>
             <div className="flex items-center gap-x-1 text-black text-sm font-medium cursor-pointer hover:text-blue-600 transition-colors duration-200">
               <p className="text-sm loading-text font-medium">
@@ -159,6 +197,7 @@ export function RefinemenetBadge({
           </TooltipTrigger>
           {expanded && (
             <TooltipContent
+              ref={tooltipRef}
               onMouseEnter={() => {
                 setToolTipHoveredInternal(true);
                 setToolTipHovered(true);
@@ -169,26 +208,21 @@ export function RefinemenetBadge({
               side="bottom"
               align="start"
               width="w-fit"
-              className=" -mt-1 p-4 bg-white border-2 border-border shadow-lg rounded-md"
+              className=" -mt-1 p-4 bg-[#fff] dark:bg-[#000] border-2 border-border dark:border-neutral-800 shadow-lg rounded-md"
             >
               {/* If not done, show the "Refining" box + a chevron */}
-
               {/* Expanded area: each displayed phase in order */}
 
               <div className="items-start flex flex-col gap-y-2">
                 {currentState !== StreamingPhase.WAITING ? (
                   Array.from(new Set(displayedPhases)).map((phase, index) => {
-                    const phaseIndex = displayedPhases.indexOf(phase);
-                    // The last displayed item is "running" if not COMPLETE
                     let status = ToggleState.Done;
                     if (
                       index ===
-                      Array.from(new Set(displayedPhases)).length - 1
+                        Array.from(new Set(displayedPhases)).length - 1 &&
+                      phase !== StreamingPhase.COMPLETE
                     ) {
                       status = ToggleState.InProgress;
-                    }
-                    if (phase === StreamingPhase.COMPLETE) {
-                      status = ToggleState.Done;
                     }
 
                     return (
@@ -299,7 +333,9 @@ export function StatusRefinement({
   }
   return (
     <>
-      {true ? (
+      {(!canShowResponse || isImprovement == null) &&
+      subQuestions &&
+      subQuestions.length > 0 ? (
         <RefinemenetBadge
           setToolTipHovered={setToolTipHovered}
           setCanShowResponse={setCanShowResponse}
