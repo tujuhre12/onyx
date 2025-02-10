@@ -131,9 +131,9 @@ export function RefinemenetBadge({
     }
   }, [isDone, isHovered]);
 
-  if (!shouldShow) {
-    return null; // entire box disappears
-  }
+  // if (!shouldShow) {
+  //   return null; // entire box disappears
+  // }
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -168,7 +168,8 @@ export function RefinemenetBadge({
               }}
               side="bottom"
               align="start"
-              className="w-fit  -mt-1 p-4 bg-white border-2 border-border shadow-lg rounded-md"
+              width="w-fit"
+              className=" -mt-1 p-4 bg-white border-2 border-border shadow-lg rounded-md"
             >
               {/* If not done, show the "Refining" box + a chevron */}
 
@@ -298,9 +299,7 @@ export function StatusRefinement({
   }
   return (
     <>
-      {(!canShowResponse || isImprovement == null) &&
-      subQuestions &&
-      subQuestions.length > 0 ? (
+      {true ? (
         <RefinemenetBadge
           setToolTipHovered={setToolTipHovered}
           setCanShowResponse={setCanShowResponse}
@@ -338,6 +337,7 @@ export function StatusRefinement({
                 onMouseLeave={() => setToolTipHovered(false)}
                 side="bottom"
                 align="start"
+                width="w-fit"
                 className="w-fit p-4 bg-[#fff] border-2 border-border dark:border-neutral-800 shadow-lg rounded-md"
               >
                 {/* If not done, show the "Refining" box + a chevron */}
