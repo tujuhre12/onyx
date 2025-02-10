@@ -63,9 +63,8 @@ def basic_use_tool_response(
 
     new_tool_call_chunk = AIMessageChunk(content="")
     if not agent_config.behavior.skip_gen_ai_answer_generation:
-        tmp = new_prompt_builder.build()
         stream = llm.stream(
-            prompt=tmp,
+            prompt=new_prompt_builder.build(),
             structured_response_format=structured_response_format,
             tools=[_tool.tool_definition() for _tool in agent_config.tooling.tools],
             tool_choice=None,
