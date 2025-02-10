@@ -36,7 +36,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import format_docs
 from onyx.agents.agent_search.shared_graph_utils.utils import (
-    get_deduplicated_cited_documents,
+    get_deduplicated_structured_subquestion_documents,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
@@ -85,7 +85,7 @@ def generate_refined_answer(
     verified_reranked_documents = state.verified_reranked_documents
 
     # get all documents cited in sub-questions
-    sub_questions_cited_documents = get_deduplicated_cited_documents(
+    structured_subquestion_docs = get_deduplicated_structured_subquestion_documents(
         state.sub_question_results
     )
 
@@ -94,13 +94,15 @@ def generate_refined_answer(
     )
     original_question_retrieved_documents = state.orig_question_retrieved_documents
 
-    consolidated_context_docs: list[InferenceSection] = sub_questions_cited_documents
+    consolidated_context_docs: list[
+        InferenceSection
+    ] = structured_subquestion_docs.cited_documents
 
     counter = 0
     for original_doc_number, original_doc in enumerate(
         original_question_verified_documents
     ):
-        if original_doc_number not in sub_questions_cited_documents:
+        if original_doc_number not in structured_subquestion_docs.cited_documents:
             if (
                 counter <= AGENT_MIN_ORIG_QUESTION_DOCS
                 or len(consolidated_context_docs)
@@ -120,7 +122,7 @@ def generate_refined_answer(
     # that were retrieved for the original question)
     streaming_documents = get_streaming_documents(
         relevant_docs=relevant_docs,
-        context_documents=state.context_documents,
+        context_documents=structured_subquestion_docs.context_documents,
         original_question_docs=original_question_retrieved_documents,
         max_docs=AGENT_MAX_STREAMED_DOCS_FOR_REFINED_ANSWER,
     )

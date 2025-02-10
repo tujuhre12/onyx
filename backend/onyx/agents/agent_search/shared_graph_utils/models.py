@@ -110,6 +110,11 @@ class SubQuestionAnswerResults(BaseModel):
     sub_question_retrieval_stats: AgentChunkRetrievalStats
 
 
+class StructuredSubquestionDocuments(BaseModel):
+    cited_documents: list[InferenceSection]
+    context_documents: list[InferenceSection]
+
+
 class CombinedAgentMetrics(BaseModel):
     timings: AgentTimings
     base_metrics: AgentBaseMetrics | None

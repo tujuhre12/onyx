@@ -24,6 +24,9 @@ from onyx.agents.agent_search.shared_graph_utils.models import (
     EntityRelationshipTermExtraction,
 )
 from onyx.agents.agent_search.shared_graph_utils.models import PersonaPromptExpressions
+from onyx.agents.agent_search.shared_graph_utils.models import (
+    StructuredSubquestionDocuments,
+)
 from onyx.agents.agent_search.shared_graph_utils.models import SubQuestionAnswerResults
 from onyx.agents.agent_search.shared_graph_utils.operators import (
     dedup_inference_section_list,
@@ -445,9 +448,9 @@ def remove_document_citations(text: str) -> str:
     return re.sub(r"\[(?:D|Q)?\d+\]", "", text)
 
 
-def get_deduplicated_cited_documents(
+def get_deduplicated_structured_subquestion_documents(
     sub_question_results: list[SubQuestionAnswerResults],
-) -> list[InferenceSection]:
+) -> StructuredSubquestionDocuments:
     """
     Extract and deduplicate all cited documents from sub-question results.
 
@@ -460,4 +463,10 @@ def get_deduplicated_cited_documents(
     cited_docs = [
         doc for result in sub_question_results for doc in result.cited_documents
     ]
-    return dedup_inference_section_list(cited_docs)
+    context_docs = [
+        doc for result in sub_question_results for doc in result.context_documents
+    ]
+    return StructuredSubquestionDocuments(
+        cited_documents=dedup_inference_section_list(cited_docs),
+        context_documents=dedup_inference_section_list(context_docs),
+    )
