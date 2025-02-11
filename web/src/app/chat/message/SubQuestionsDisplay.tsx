@@ -477,6 +477,9 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   const [showSummarizing, setShowSummarizing] = useState(
     finishedGenerating && !overallAnswerGenerating
   );
+  const [initiallyFinishedGenerating, setInitiallyFinishedGenerating] =
+    useState(finishedGenerating);
+  // const []
   const { dynamicSubQuestions } = useStreamingMessages(
     subQuestions,
     () => {},
@@ -490,10 +493,11 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
       () => {},
       () => {}
     );
+
   const memoizedSubQuestions = useMemo(() => {
-    return finishedGenerating ? subQuestions : dynamicSubQuestions;
-  }, [finishedGenerating, dynamicSubQuestions, subQuestions]);
-  // const memoizedSubQuestions = dynamicSubQuestions;
+    return initiallyFinishedGenerating ? subQuestions : dynamicSubQuestions;
+  }, [initiallyFinishedGenerating, dynamicSubQuestions, subQuestions]);
+
   const memoizedSecondLevelQuestions = useMemo(() => {
     return overallAnswerGenerating
       ? dynamicSecondLevelQuestions
@@ -508,12 +512,6 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
     subQuestions.filter(
       (subQuestion) => (subQuestion?.sub_queries || [])?.length > 0
     ).length == 0;
-
-  const overallAnswer =
-    memoizedSubQuestions.length > 0 &&
-    memoizedSubQuestions.filter(
-      (subQuestion) => subQuestion?.answer.length > 10
-    ).length == memoizedSubQuestions.length;
 
   const [streamedText, setStreamedText] = useState(
     finishedGenerating ? "Summarize findings" : ""
