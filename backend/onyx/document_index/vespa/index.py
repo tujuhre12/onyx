@@ -17,6 +17,7 @@ from uuid import UUID
 
 import httpx  # type: ignore
 import requests  # type: ignore
+from retry import retry
 
 from onyx.configs.chat_configs import DOC_TIME_DECAY
 from onyx.configs.chat_configs import NUM_RETURNED_HITS
@@ -549,6 +550,11 @@ class VespaIndex(DocumentIndex):
             time.monotonic() - update_start,
         )
 
+    @retry(
+        tries=3,
+        delay=1,
+        backoff=2,
+    )
     def _update_single_chunk(
         self,
         doc_chunk_id: UUID,
@@ -559,33 +565,35 @@ class VespaIndex(DocumentIndex):
     ) -> None:
         """
         Update a single "chunk" (document) in Vespa using its chunk ID.
+        Retries if we encounter transient HTTPStatusError (e.g., overload).
         """
 
         update_dict: dict[str, dict] = {"fields": {}}
 
         if fields.boost is not None:
-            update_dict["fields"][BOOST] = {"assign": fields.boost}
+            update_dict["fields"]["boost"] = {"assign": fields.boost}
 
         if fields.document_sets is not None:
-            # WeightedSet<string> needs a map { item: weight, ... }
-            update_dict["fields"][DOCUMENT_SETS] = {
+            update_dict["fields"]["document_sets"] = {
                 "assign": {document_set: 1 for document_set in fields.document_sets}
             }
 
         if fields.access is not None:
-            # Similar to above
-            update_dict["fields"][ACCESS_CONTROL_LIST] = {
+            update_dict["fields"]["access_control_list"] = {
                 "assign": {acl_entry: 1 for acl_entry in fields.access.to_acl()}
             }
 
         if fields.hidden is not None:
-            update_dict["fields"][HIDDEN] = {"assign": fields.hidden}
+            update_dict["fields"]["hidden"] = {"assign": fields.hidden}
 
         if not update_dict["fields"]:
             logger.error("Update request received but nothing to update.")
             return
 
-        vespa_url = f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{doc_chunk_id}?create=true"
+        vespa_url = (
+            f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{doc_chunk_id}"
+            "?create=true"
+        )
 
         try:
             resp = http_client.put(
@@ -595,8 +603,13 @@ class VespaIndex(DocumentIndex):
             )
             resp.raise_for_status()
         except httpx.HTTPStatusError as e:
-            error_message = f"Failed to update doc chunk {doc_chunk_id} (doc_id={doc_id}). Details: {e.response.text}"
-            logger.error(error_message)
+            # Optional: inspect the error message for "Rejecting execution due to overload"
+            # or check e.response.status_code (e.g., 429 or 503).
+            logger.error(
+                f"Failed to update doc chunk {doc_chunk_id} (doc_id={doc_id}). "
+                f"Details: {e.response.text}"
+            )
+            # Re-raise so the @retry decorator will catch and retry
             raise
 
     def update_single(
