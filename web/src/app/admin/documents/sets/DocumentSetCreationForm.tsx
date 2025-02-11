@@ -188,7 +188,7 @@ export const DocumentSetCreationForm = ({
                                   flex 
                                   cursor-pointer ` +
                                     (isSelected
-                                      ? " bg-background-background-strong"
+                                      ? " bg-background-200"
                                       : " hover:bg-accent-background-hovered")
                                   }
                                   onClick={() => {
