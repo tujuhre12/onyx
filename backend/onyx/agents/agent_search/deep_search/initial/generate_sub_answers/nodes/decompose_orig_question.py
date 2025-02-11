@@ -34,10 +34,10 @@ from onyx.chat.models import StreamType
 from onyx.chat.models import SubQuestionPiece
 from onyx.configs.agent_configs import AGENT_NUM_DOCS_FOR_DECOMPOSITION
 from onyx.prompts.agent_search import (
-    INITIAL_DECOMPOSITION_PROMPT_QUESTIONS_AFTER_SEARCH,
+    INITIAL_DECOMPOSITION_PROMPT_QUESTIONS_AFTER_SEARCH_ASSUMING_REFINEMENT,
 )
 from onyx.prompts.agent_search import (
-    INITIAL_QUESTION_DECOMPOSITION_PROMPT,
+    INITIAL_QUESTION_DECOMPOSITION_PROMPT_ASSUMING_REFINEMENT,
 )
 from onyx.utils.logger import setup_logger
 
@@ -85,15 +85,15 @@ def decompose_orig_question(
             ]
         )
 
-        decomposition_prompt = (
-            INITIAL_DECOMPOSITION_PROMPT_QUESTIONS_AFTER_SEARCH.format(
-                question=question, sample_doc_str=sample_doc_str, history=history
-            )
+        decomposition_prompt = INITIAL_DECOMPOSITION_PROMPT_QUESTIONS_AFTER_SEARCH_ASSUMING_REFINEMENT.format(
+            question=question, sample_doc_str=sample_doc_str, history=history
         )
 
     else:
-        decomposition_prompt = INITIAL_QUESTION_DECOMPOSITION_PROMPT.format(
-            question=question, history=history
+        decomposition_prompt = (
+            INITIAL_QUESTION_DECOMPOSITION_PROMPT_ASSUMING_REFINEMENT.format(
+                question=question, history=history
+            )
         )
 
     # Start decomposition

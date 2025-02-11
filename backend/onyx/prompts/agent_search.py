@@ -211,7 +211,7 @@ specific (i.e.,  'what do we do to improve product X' -> 'what do we do to impro
 create now are answered. Example: 'which products have we implemented at company A, and is this different to \
 its competitors?'  could potentially create sub-questions 'what products have we implemented at company A', \
 and 'who are the competitors of company A'. The additional round of sub-question generation which sees the \
-answers for this round of sub-question creation could then use the answer to the second sub-question \
+answers for this initial round of sub-question creation could then use the answer to the second sub-question \
 (which could be 'company B and C are competitors of company A') to then ask 'which products have we implemented \
 at company B', 'which products have we implemented at company C'...
 
@@ -294,7 +294,7 @@ could rather be 'which settings for product X have been shown to lead to poor pe
 To give you some context, you will see below also some documents that may relate to the question. Please only \
 use this information to learn what the question is approximately asking about, but do not focus on the details \
 to construct the sub-questions! Also, some of the entities, relationships and terms that are in the dataset may \
-not be in these few documents, so DO NOT focussed too much on the documents when constructing the sub-questions! \
+not be in these few documents, so DO NOT focus too much on the documents when constructing the sub-questions! \
 Decomposition and disambiguations are most important!
 
 Here are the sample docs to give you some context:
@@ -367,7 +367,7 @@ could rather be 'which settings for product X have been shown to lead to poor pe
 To give you some context, you will see below also some documents that may relate to the question. Please only \
 use this information to learn what the question is approximately asking about, but do not focus on the details \
 to construct the sub-questions! Also, some of the entities, relationships and terms that are in the dataset may \
-not be in these few documents, so DO NOT focussed too much on the documents when constructing the sub-questions! \
+not be in these few documents, so DO NOT focus too much on the documents when constructing the sub-questions! \
 Decomposition and disambiguations are most important!
 
 Here are the sample docs to give you some context:
@@ -445,7 +445,7 @@ Answer:
 """.strip()
 
 
-# Sub-Question Anser Generation
+# Sub-Question Answer Generation
 SUB_QUESTION_RAG_PROMPT = f"""
 Use the context provided below - and only the provided context - to answer the given question. \
 (Note that the answer is in service of answering a broader question, given below as 'motivation').
@@ -454,7 +454,7 @@ Again, only use the provided context and do not use your internal knowledge! If 
 question based on the context, say "{UNKNOWN_ANSWER}". It is a matter of life and death that you do NOT \
 use your internal knowledge, just the provided information!
 
-Make sure that you keep all relevant information, specifically as it concerns to the ultimate goal. \
+Make sure that you keep all relevant information, specifically as it concerns the ultimate goal. \
 (But keep other details as well.)
 
 It is critical that you provide inline citations in the format [D1], [D2], [D3], etc! \
@@ -509,7 +509,7 @@ Use the information provided below - and only the provided information - to answ
 
 The information provided below consists of:
   1) a number of answered sub-questions - these are very important to help you organize your thoughts and your answer
-  2) a number of documents that deemed relevant for the question.
+  2) a number of documents that are deemed relevant for the question.
 
 {{history}}
 
@@ -648,6 +648,86 @@ Here is the initial sub-optimal answer:
 Here are the sub-questions that were answered:
 {SEPARATOR_LINE}
 {{answered_sub_questions}}
+{SEPARATOR_LINE}
+
+Here are the sub-questions that were suggested but not answered:
+{SEPARATOR_LINE}
+{{failed_sub_questions}}
+{SEPARATOR_LINE}
+
+And here are the entities, relationships and terms extracted from the context:
+{SEPARATOR_LINE}
+{{entity_term_extraction_str}}
+{SEPARATOR_LINE}
+
+Please generate the list of good, fully contextualized sub-questions that would help to address the main question. \
+Specifically pay attention also to the entities, relationships and terms extracted, as these indicate what type of \
+objects/relationships/terms you can ask about! Do not ask about entities, terms or relationships that are not mentioned in the \
+'entities, relationships and terms' section.
+
+Again, please find questions that are NOT overlapping too much with the already answered sub-questions or those that \
+already were suggested and failed. In other words - what can we try in addition to what has been tried so far?
+
+Generate the list of questions separated by one new line like this:
+<sub-question 1>
+<sub-question 2>
+<sub-question 3>
+...""".strip()
+
+REFINEMENT_QUESTION_DECOMPOSITION_PROMPT_W_INITIAL_SUBQUESTION_ANSWERS = f"""
+An initial user question needs to be answered. An initial answer has been provided but it wasn't quite good enough. \
+Also, some sub-questions had been answered and this information has been used to provide the initial answer. \
+Some other subquestions may have been suggested based on little knowledge, but they were not directly answerable. \
+Also, some entities, relationships and terms are given to you so that you have an idea of how the available data looks like.
+
+Your role is to generate 2-4 new sub-questions that would help to answer the initial question, considering:
+
+1) The initial question
+2) The initial answer that was found to be unsatisfactory
+3) The sub-questions that were answered and their answers
+4) The sub-questions that were suggested but not answered (and that you should not repeat!)
+5) The entities, relationships and terms that were extracted from the context
+
+The individual questions should be answerable by a good RAG system. So a good idea would be to use the sub-questions to \
+resolve ambiguities and/or to separate the question for different entities that may be involved in the original question, \
+but in a way that does not duplicate questions that were already tried.
+
+Additional Guidelines:
+- The sub-questions should be specific to the question and provide richer context for the question, resolve ambiguities, \
+or address shortcoming of the initial answer
+- Each sub-question - when answered - should be relevant for the answer to the original question
+- The sub-questions should be free from comparisons, ambiguities,judgements, aggregations, or any other complications that \
+may require extra context
+- The sub-questions MUST have the full context of the original question so that it can be executed by a RAG system \
+independently without the original question available
+    Example:
+    - initial question: "What is the capital of France?"
+    - bad sub-question: "What is the name of the river there?"
+    - good sub-question: "What is the name of the river that flows through Paris?"
+- For each sub-question, please also provide a search term that can be used to retrieve relevant documents from a document store.
+- Consider specifically the sub-questions that were suggested but not answered. This is a sign that they are not answerable \
+with the available context, and you should not ask similar questions.
+ - Do not(!) create sub-questions that are clarifying question to the person who asked the question, \
+like making suggestions or asking the user for more information! This is not useful for the actual \
+question-answering process! You need to take the information from the user as it is given to you! \
+For example, should the question be of the type 'why does product X perform poorly for customer A', DO NOT create a \
+sub-question of the type 'what are the settings that customer A uses for product X?'! A valid sub-question \
+could rather be 'which settings for product X have been shown to lead to poor performance for customers?'
+
+Here is the initial question:
+{SEPARATOR_LINE}
+{{question}}
+{SEPARATOR_LINE}
+{{history}}
+
+Here is the initial sub-optimal answer:
+{SEPARATOR_LINE}
+{{base_answer}}
+{SEPARATOR_LINE}
+
+Here are the sub-questions that were answered:
+{SEPARATOR_LINE}
+{{answered_subquestions_with_answers}}
 {SEPARATOR_LINE}
 
 Here are the sub-questions that were suggested but not answered:

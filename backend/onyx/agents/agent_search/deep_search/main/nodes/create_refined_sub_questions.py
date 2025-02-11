@@ -31,7 +31,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 from onyx.agents.agent_search.shared_graph_utils.utils import make_question_id
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.prompts.agent_search import (
-    REFINEMENT_QUESTION_DECOMPOSITION_PROMPT,
+    REFINEMENT_QUESTION_DECOMPOSITION_PROMPT_W_INITIAL_SUBQUESTION_ANSWERS,
 )
 from onyx.tools.models import ToolCallKickoff
 
@@ -72,8 +72,14 @@ def create_refined_sub_questions(
 
     initial_question_answers = state.sub_question_results
 
-    addressed_question_list = [
-        x.question for x in initial_question_answers if x.verified_high_quality
+    # addressed_question_list = [
+    #     x.question for x in initial_question_answers if x.verified_high_quality
+    # ]
+
+    addressed_subquestions_with_answers = [
+        f"Subquestion: {x.question}\nSubanswer:\n{x.answer}"
+        for x in initial_question_answers
+        if x.verified_high_quality and x.answer
     ]
 
     failed_question_list = [
@@ -82,12 +88,15 @@ def create_refined_sub_questions(
 
     msg = [
         HumanMessage(
-            content=REFINEMENT_QUESTION_DECOMPOSITION_PROMPT.format(
+            content=REFINEMENT_QUESTION_DECOMPOSITION_PROMPT_W_INITIAL_SUBQUESTION_ANSWERS.format(
                 question=question,
                 history=history,
                 entity_term_extraction_str=entity_term_extraction_str,
                 base_answer=base_answer,
-                answered_sub_questions="\n - ".join(addressed_question_list),
+                # answered_sub_questions="\n - ".join(addressed_question_list),
+                answered_subquestions_with_answers="\n\n---\n\n".join(
+                    addressed_subquestions_with_answers
+                ),
                 failed_sub_questions="\n - ".join(failed_question_list),
             ),
         )
