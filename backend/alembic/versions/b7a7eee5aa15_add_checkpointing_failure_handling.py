@@ -90,6 +90,8 @@ def downgrade() -> None:
                 raise e
             print(f"Error dropping table: {e}. Retrying...")
 
+    op.execute("SET lock_timeout = DEFAULT")
+
     # Recreate the old IndexAttemptError table
     op.create_table(
         "index_attempt_errors",
