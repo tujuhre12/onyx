@@ -107,11 +107,11 @@ export function AssistantModal({
 
   const featuredAssistants = [
     ...memoizedCurrentlyVisibleAssistants.filter(
-      (assistant) => assistant.builtin_persona || assistant.is_default_persona
+      (assistant) => assistant.is_default_persona
     ),
   ];
   const allAssistants = memoizedCurrentlyVisibleAssistants.filter(
-    (assistant) => !assistant.builtin_persona && !assistant.is_default_persona
+    (assistant) => !assistant.is_default_persona
   );
 
   return (
