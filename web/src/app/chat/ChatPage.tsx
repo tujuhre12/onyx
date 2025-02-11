@@ -3089,7 +3089,7 @@ export function ChatPage({
                             <div className="mx-auto w-fit !pointer-events-none flex sticky justify-center">
                               <button
                                 onClick={() => clientScrollToBottom()}
-                                className="p-1 pointer-events-auto rounded-2xl bg-background-strong border border-border  mx-auto "
+                                className="p-1 pointer-events-auto text-neutral-700 dark:text-neutral-800 rounded-2xl bg-neutral-200 border border-border  mx-auto "
                               >
                                 <FiArrowDown size={18} />
                               </button>

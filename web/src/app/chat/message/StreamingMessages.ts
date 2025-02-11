@@ -206,6 +206,7 @@ export const useStreamingMessages = (
 
         switch (p.currentPhase) {
           case StreamingPhase.SUB_QUERIES: {
+            onComplete();
             const subQueries = sq.sub_queries || [];
             const docs = sq.context_docs?.top_documents || [];
             const hasDocs = docs.length > 0;
