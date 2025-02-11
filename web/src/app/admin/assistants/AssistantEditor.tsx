@@ -775,20 +775,6 @@ export function AssistantEditor({
                 className="[&_input]:placeholder:text-text-muted/50"
               />
 
-              {user?.role == UserRole.ADMIN && (
-                <BooleanFormField
-                  onChange={(checked) => {
-                    if (checked) {
-                      setFieldValue("is_public", true);
-                      setFieldValue("is_default_persona", true);
-                    }
-                  }}
-                  name="is_default_persona"
-                  label="Default Persona"
-                  subtext="If true, this assistant will be pinned for all new users and appear in the Featured list in the assistant explorer. This also makes the persona public."
-                />
-              )}
-
               <Separator />
 
               <TextFormField
@@ -1030,6 +1016,22 @@ export function AssistantEditor({
               {showAdvancedOptions && (
                 <>
                   <div className="max-w-4xl w-full">
+                    {user?.role == UserRole.ADMIN && (
+                      <BooleanFormField
+                        onChange={(checked) => {
+                          if (checked) {
+                            setFieldValue("is_public", true);
+                            setFieldValue("is_default_persona", true);
+                          }
+                        }}
+                        name="is_default_persona"
+                        label="Featured Assistant"
+                        subtext="If set, this assistant will be pinned for all new users and appear in the Featured list in the assistant explorer. This also makes the assistant public."
+                      />
+                    )}
+
+                    <Separator />
+
                     <div className="flex gap-x-2 items-center ">
                       <div className="block font-medium text-sm">Access</div>
                     </div>
