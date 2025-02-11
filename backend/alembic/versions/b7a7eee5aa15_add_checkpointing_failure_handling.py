@@ -42,6 +42,7 @@ def upgrade() -> None:
     )
 
     # Drop the old IndexAttemptError table
+    op.drop_index("index_attempt_id", table_name="index_attempt_errors")
     op.drop_table("index_attempt_errors")
 
     # Create the new version of the table
