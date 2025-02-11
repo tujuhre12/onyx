@@ -33,6 +33,7 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
 )
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.models import InferenceSection
+from onyx.agents.agent_search.shared_graph_utils.models import LLMNodeErrorStrings
 from onyx.agents.agent_search.shared_graph_utils.models import RefinedAgentStats
 from onyx.agents.agent_search.shared_graph_utils.operators import (
     dedup_inference_sections,
@@ -74,6 +75,12 @@ from onyx.tools.tool_implementations.search.search_tool import yield_search_resp
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
+
+_llm_node_error_strings = LLMNodeErrorStrings(
+    timeout="The LLM timed out. The refined answer could not be generated.",
+    rate_limit="The LLM encountered a rate limit. The refined answer could not be generated.",
+    general_error="The LLM encountered an error. The refined answer could not be generated.",
+)
 
 
 def generate_refined_answer(
@@ -283,7 +290,7 @@ def generate_refined_answer(
         agent_error = AgentError(
             error_type=AgentLLMErrorType.TIMEOUT,
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
-            error_result="LLM Timeout Error",
+            error_result=_llm_node_error_strings.timeout,
         )
         logger.error("LLM Timeout Error - generate refined answer")
 
@@ -291,7 +298,7 @@ def generate_refined_answer(
         agent_error = AgentError(
             error_type=AgentLLMErrorType.RATE_LIMIT,
             error_message=AGENT_LLM_RATELIMIT_MESSAGE,
-            error_result="LLM Rate Limit Error",
+            error_result=_llm_node_error_strings.rate_limit,
         )
         logger.error("LLM Rate Limit Error - generate refined answer")
 

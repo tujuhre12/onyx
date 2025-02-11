@@ -30,6 +30,7 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
     AgentLLMErrorType,
 )
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
+from onyx.agents.agent_search.shared_graph_utils.models import LLMNodeErrorStrings
 from onyx.configs.agent_configs import AGENT_TIMEOUT_OVERRIDE_LLM_DOCUMENT_VERIFICATION
 from onyx.llm.chat_llm import LLMRateLimitError
 from onyx.llm.chat_llm import LLMTimeoutError
@@ -39,6 +40,12 @@ from onyx.prompts.agent_search import (
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
+
+_llm_node_error_strings = LLMNodeErrorStrings(
+    timeout="The LLM timed out. The document could not be verified. The document will be treated as 'relevant'",
+    rate_limit="The LLM encountered a rate limit. The document could not be verified. The document will be treated as 'relevant'",
+    general_error="The LLM encountered an error. The document could not be verified. The document will be treated as 'relevant'",
+)
 
 
 def verify_documents(
@@ -88,7 +95,7 @@ def verify_documents(
         agent_error = AgentError(
             error_type=AgentLLMErrorType.TIMEOUT,
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
-            error_result="The LLM timed out, and the document could not be verified.",
+            error_result=_llm_node_error_strings.timeout,
         )
         logger.error("LLM Timeout Error - verify documents")
     except LLMRateLimitError:
@@ -97,7 +104,7 @@ def verify_documents(
         agent_error = AgentError(
             error_type=AgentLLMErrorType.RATE_LIMIT,
             error_message=AGENT_LLM_RATELIMIT_MESSAGE,
-            error_result="The LLM timed out, and the document could not be verified.",
+            error_result=_llm_node_error_strings.rate_limit,
         )
         logger.error("LLM Rate Limit Error - verify documents")
 

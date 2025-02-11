@@ -20,6 +20,7 @@ from onyx.agents.agent_search.models import GraphInputs
 from onyx.agents.agent_search.models import GraphPersistence
 from onyx.agents.agent_search.models import GraphSearchConfig
 from onyx.agents.agent_search.models import GraphTooling
+from onyx.agents.agent_search.shared_graph_utils.models import BaseMessage_Content
 from onyx.agents.agent_search.shared_graph_utils.models import (
     EntityRelationshipTermExtraction,
 )
@@ -73,8 +74,6 @@ from onyx.tools.utils import explicit_tool_calling_supported
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
-
-BaseMessage_Content = str | list[str | dict[str, Any]]
 
 
 # Post-processing

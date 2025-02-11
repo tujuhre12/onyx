@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any
 from typing import cast
 
 from langchain_core.messages import HumanMessage
@@ -34,6 +33,8 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
     AgentLLMErrorType,
 )
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
+from onyx.agents.agent_search.shared_graph_utils.models import BaseMessage_Content
+from onyx.agents.agent_search.shared_graph_utils.models import LLMNodeErrorStrings
 from onyx.agents.agent_search.shared_graph_utils.utils import dispatch_separated
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
@@ -59,7 +60,11 @@ from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
 
-BaseMessage_Content = str | list[str | dict[str, Any]]
+_llm_node_error_strings = LLMNodeErrorStrings(
+    timeout="LLM Timeout Error. Sub-questions could not be generated.",
+    rate_limit="LLM Rate Limit Error. Sub-questions could not be generated.",
+    general_error="General LLM Error. Sub-questions could not be generated.",
+)
 
 
 def decompose_orig_question(
@@ -147,7 +152,7 @@ def decompose_orig_question(
         agent_error = AgentError(
             error_type=AgentLLMErrorType.TIMEOUT,
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
-            error_result="The LLM timed out, and the subquestions could not be generated.",
+            error_result=_llm_node_error_strings.timeout,
         )
         logger.error("LLM Timeout Error - decompose orig question")
         raise e  # fail loudly on this critical step
@@ -155,7 +160,7 @@ def decompose_orig_question(
         agent_error = AgentError(
             error_type=AgentLLMErrorType.RATE_LIMIT,
             error_message=AGENT_LLM_RATELIMIT_MESSAGE,
-            error_result="LLM Rate Limit Error",
+            error_result=_llm_node_error_strings.rate_limit,
         )
         logger.error("LLM Rate Limit Error - decompose orig question")
         raise e
@@ -173,11 +178,6 @@ def decompose_orig_question(
     else:
         deomposition_response = merge_content(*streamed_tokens)
 
-        # this call should only return strings. Commenting out for efficiency
-        # assert [type(tok) == str for tok in streamed_tokens]
-
-        # use no-op cast() instead of str() which runs code
-        # list_of_subquestions = clean_and_parse_list_string(cast(str, response))
         list_of_subqs = cast(str, deomposition_response).split("\n")
 
         initial_sub_questions = [sq.strip() for sq in list_of_subqs if sq.strip() != ""]

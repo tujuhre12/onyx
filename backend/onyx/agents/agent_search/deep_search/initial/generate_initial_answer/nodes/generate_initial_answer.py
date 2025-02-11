@@ -37,6 +37,7 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
 )
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
 from onyx.agents.agent_search.shared_graph_utils.models import InitialAgentResultStats
+from onyx.agents.agent_search.shared_graph_utils.models import LLMNodeErrorStrings
 from onyx.agents.agent_search.shared_graph_utils.operators import (
     dedup_inference_sections,
 )
@@ -70,6 +71,12 @@ from onyx.prompts.agent_search import (
 )
 from onyx.prompts.agent_search import UNKNOWN_ANSWER
 from onyx.tools.tool_implementations.search.search_tool import yield_search_responses
+
+_llm_node_error_strings = LLMNodeErrorStrings(
+    timeout="LLM Timeout Error. The initial answer could not be generated.",
+    rate_limit="LLM Rate Limit Error. The initial answer could not be generated.",
+    general_error="General LLM Error. The initial answer could not be generated.",
+)
 
 
 def generate_initial_answer(
@@ -274,7 +281,7 @@ def generate_initial_answer(
             agent_error = AgentError(
                 error_type=AgentLLMErrorType.TIMEOUT,
                 error_message=AGENT_LLM_TIMEOUT_MESSAGE,
-                error_result="LLM Timeout Error",
+                error_result=_llm_node_error_strings.timeout,
             )
             logger.error("LLM Timeout Error - generate initial answer")
 
@@ -282,7 +289,7 @@ def generate_initial_answer(
             agent_error = AgentError(
                 error_type=AgentLLMErrorType.RATE_LIMIT,
                 error_message=AGENT_LLM_RATELIMIT_MESSAGE,
-                error_result="LLM Rate Limit Error",
+                error_result=_llm_node_error_strings.rate_limit,
             )
             logger.error("LLM Rate Limit Error - generate initial answer")
 

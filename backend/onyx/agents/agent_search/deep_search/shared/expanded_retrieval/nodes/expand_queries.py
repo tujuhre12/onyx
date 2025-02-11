@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any
 from typing import cast
 
 from langchain_core.messages import HumanMessage
@@ -27,6 +26,8 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
     AgentLLMErrorType,
 )
 from onyx.agents.agent_search.shared_graph_utils.models import AgentError
+from onyx.agents.agent_search.shared_graph_utils.models import BaseMessage_Content
+from onyx.agents.agent_search.shared_graph_utils.models import LLMNodeErrorStrings
 from onyx.agents.agent_search.shared_graph_utils.utils import dispatch_separated
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
@@ -44,7 +45,11 @@ from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
 
-BaseMessage_Content = str | list[str | dict[str, Any]]
+_llm_node_error_strings = LLMNodeErrorStrings(
+    timeout="Query rewriting failed due to LLM timeout - the original question will be used.",
+    rate_limit="Query rewriting failed due to LLM rate limit - the original question will be used.",
+    general_error="Query rewriting failed due to LLM error - the original question will be used.",
+)
 
 
 def expand_queries(
@@ -90,7 +95,7 @@ def expand_queries(
         agent_error = AgentError(
             error_type=AgentLLMErrorType.TIMEOUT,
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
-            error_result="Query rewriting failed due to LLM timeout - use original question.",
+            error_result=_llm_node_error_strings.timeout,
         )
         logger.error("LLM Timeout Error - expand queries")
 
@@ -98,7 +103,7 @@ def expand_queries(
         agent_error = AgentError(
             error_type=AgentLLMErrorType.RATE_LIMIT,
             error_message=AGENT_LLM_RATELIMIT_MESSAGE,
-            error_result="LLM Rate Limit Error",
+            error_result=_llm_node_error_strings.rate_limit,
         )
         logger.error("LLM Rate Limit Error - expand queries")
     # use subquestion as query if query generation fails

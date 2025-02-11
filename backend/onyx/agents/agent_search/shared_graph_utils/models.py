@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel
 
 from onyx.agents.agent_search.deep_search.main.models import (
@@ -132,3 +134,12 @@ class AgentPromptEnrichmentComponents(BaseModel):
     persona_prompts: PersonaPromptExpressions
     history: str
     date_str: str
+
+
+class LLMNodeErrorStrings(BaseModel):
+    timeout: str = "LLM Timeout Error"
+    rate_limit: str = "LLM Rate Limit Error"
+    general_error: str = "General LLM Error"
+
+
+BaseMessage_Content = str | list[str | dict[str, Any]]
