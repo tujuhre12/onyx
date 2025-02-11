@@ -28,7 +28,7 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
 from onyx.agents.agent_search.shared_graph_utils.constants import (
     LLM_ANSWER_ERROR_MESSAGE,
 )
-from onyx.agents.agent_search.shared_graph_utils.models import AgentError
+from onyx.agents.agent_search.shared_graph_utils.models import AgentErrorLoggingFormat
 from onyx.agents.agent_search.shared_graph_utils.models import LLMNodeErrorStrings
 from onyx.agents.agent_search.shared_graph_utils.utils import get_answer_citation_ids
 from onyx.agents.agent_search.shared_graph_utils.utils import (
@@ -105,7 +105,7 @@ def generate_sub_answer(
         response: list[str | list[str | dict[str, Any]]] = []
         dispatch_timings: list[float] = []
 
-        agent_error: AgentError | None = None
+        agent_error: AgentErrorLoggingFormat | None = None
 
         try:
             for message in fast_llm.stream(
@@ -136,14 +136,14 @@ def generate_sub_answer(
                 response.append(content)
 
         except LLMTimeoutError:
-            agent_error = AgentError(
+            agent_error = AgentErrorLoggingFormat(
                 error_type=AgentLLMErrorType.TIMEOUT,
                 error_message=AGENT_LLM_TIMEOUT_MESSAGE,
                 error_result=_llm_node_error_strings.timeout,
             )
             logger.error("LLM Timeout Error - generate sub answer")
         except LLMRateLimitError:
-            agent_error = AgentError(
+            agent_error = AgentErrorLoggingFormat(
                 error_type=AgentLLMErrorType.RATE_LIMIT,
                 error_message=AGENT_LLM_RATELIMIT_MESSAGE,
                 error_result=_llm_node_error_strings.rate_limit,

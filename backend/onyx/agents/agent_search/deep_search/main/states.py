@@ -17,7 +17,7 @@ from onyx.agents.agent_search.orchestration.states import ToolCallUpdate
 from onyx.agents.agent_search.orchestration.states import ToolChoiceInput
 from onyx.agents.agent_search.orchestration.states import ToolChoiceUpdate
 from onyx.agents.agent_search.shared_graph_utils.models import AgentChunkRetrievalStats
-from onyx.agents.agent_search.shared_graph_utils.models import AgentError
+from onyx.agents.agent_search.shared_graph_utils.models import AgentErrorLoggingFormat
 from onyx.agents.agent_search.shared_graph_utils.models import (
     EntityRelationshipTermExtraction,
 )
@@ -77,7 +77,7 @@ class InitialAnswerUpdate(LoggerUpdate):
     """
 
     initial_answer: str | None = None
-    error: AgentError | None = None
+    error: AgentErrorLoggingFormat | None = None
     initial_agent_stats: InitialAgentResultStats | None = None
     generated_sub_questions: list[str] = []
     agent_base_end_time: datetime | None = None
@@ -90,7 +90,7 @@ class RefinedAnswerUpdate(RefinedAgentEndStats, LoggerUpdate):
     """
 
     refined_answer: str | None = None
-    error: AgentError | None = None
+    error: AgentErrorLoggingFormat | None = None
     refined_agent_stats: RefinedAgentStats | None = None
     refined_answer_quality: bool = False
 

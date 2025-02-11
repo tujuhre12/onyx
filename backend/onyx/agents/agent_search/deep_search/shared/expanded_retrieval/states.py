@@ -21,10 +21,11 @@ from onyx.context.search.models import InferenceSection
 
 
 class ExpandedRetrievalInput(SubgraphCoreState):
-    # exception from 'no default value' in inputs - used w/o explicit setting for original question
-    # search
-    sub_question_id: str | None = None
+    # exception from 'no default value'for LangGraph input states
+    # Here, sub_question_id default Nonoe implies usage for the
+    # original question. This is sometimes needed for nested sub-graphs
 
+    sub_question_id: str | None = None
     question: str
     base_search: bool
 

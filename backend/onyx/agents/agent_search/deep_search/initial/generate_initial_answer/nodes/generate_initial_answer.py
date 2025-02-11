@@ -35,7 +35,7 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
 from onyx.agents.agent_search.shared_graph_utils.constants import (
     AgentLLMErrorType,
 )
-from onyx.agents.agent_search.shared_graph_utils.models import AgentError
+from onyx.agents.agent_search.shared_graph_utils.models import AgentErrorLoggingFormat
 from onyx.agents.agent_search.shared_graph_utils.models import InitialAgentResultStats
 from onyx.agents.agent_search.shared_graph_utils.models import LLMNodeErrorStrings
 from onyx.agents.agent_search.shared_graph_utils.operators import (
@@ -246,7 +246,7 @@ def generate_initial_answer(
         streamed_tokens: list[str | list[str | dict[str, Any]]] = [""]
         dispatch_timings: list[float] = []
 
-        agent_error: AgentError | None = None
+        agent_error: AgentErrorLoggingFormat | None = None
 
         try:
             for message in model.stream(
@@ -278,7 +278,7 @@ def generate_initial_answer(
                 streamed_tokens.append(content)
 
         except LLMTimeoutError:
-            agent_error = AgentError(
+            agent_error = AgentErrorLoggingFormat(
                 error_type=AgentLLMErrorType.TIMEOUT,
                 error_message=AGENT_LLM_TIMEOUT_MESSAGE,
                 error_result=_llm_node_error_strings.timeout,
@@ -286,7 +286,7 @@ def generate_initial_answer(
             logger.error("LLM Timeout Error - generate initial answer")
 
         except LLMRateLimitError:
-            agent_error = AgentError(
+            agent_error = AgentErrorLoggingFormat(
                 error_type=AgentLLMErrorType.RATE_LIMIT,
                 error_message=AGENT_LLM_RATELIMIT_MESSAGE,
                 error_result=_llm_node_error_strings.rate_limit,
@@ -303,7 +303,7 @@ def generate_initial_answer(
             )
             return InitialAnswerUpdate(
                 initial_answer=None,
-                error=AgentError(
+                error=AgentErrorLoggingFormat(
                     error_message=agent_error.error_message or "An LLM error occurred",
                     error_type=agent_error.error_type,
                     error_result=agent_error.error_result,

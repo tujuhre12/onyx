@@ -12,7 +12,7 @@ from onyx.agents.agent_search.deep_search.main.graph_builder import (
     main_graph_builder as main_graph_builder_a,
 )
 from onyx.agents.agent_search.deep_search.main.states import (
-    MainInput as MainInput_a,
+    MainInput as MainInput,
 )
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.utils import get_test_config
@@ -82,7 +82,7 @@ def _parse_agent_event(
 def manage_sync_streaming(
     compiled_graph: CompiledStateGraph,
     config: GraphConfig,
-    graph_input: BasicInput | MainInput_a,
+    graph_input: BasicInput | MainInput,
 ) -> Iterable[StreamEvent]:
     message_id = config.persistence.message_id if config.persistence else None
     for event in compiled_graph.stream(
@@ -96,7 +96,7 @@ def manage_sync_streaming(
 def run_graph(
     compiled_graph: CompiledStateGraph,
     config: GraphConfig,
-    input: BasicInput | MainInput_a,
+    input: BasicInput | MainInput,
 ) -> AnswerStream:
     config.behavior.perform_initial_search_decomposition = (
         INITIAL_SEARCH_DECOMPOSITION_ENABLED
@@ -127,7 +127,7 @@ def run_main_graph(
 ) -> AnswerStream:
     compiled_graph = load_compiled_graph()
 
-    input = MainInput_a(log_messages=[])
+    input = MainInput(log_messages=[])
 
     # Agent search is not a Tool per se, but this is helpful for the frontend
     yield ToolCallKickoff(
@@ -174,7 +174,7 @@ if __name__ == "__main__":
             # search_request.persona = get_persona_by_id(1, None, db_session)
             # config.perform_initial_search_path_decision = False
             config.behavior.perform_initial_search_decomposition = True
-            input = MainInput_a(log_messages=[])
+            input = MainInput(log_messages=[])
 
             tool_responses: list = []
             for output in run_graph(compiled_graph, config, input):

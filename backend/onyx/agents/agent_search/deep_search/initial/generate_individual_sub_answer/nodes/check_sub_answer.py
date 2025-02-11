@@ -25,7 +25,7 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_POSITIVE_VALUE_STR,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import AgentLLMErrorType
-from onyx.agents.agent_search.shared_graph_utils.models import AgentError
+from onyx.agents.agent_search.shared_graph_utils.models import AgentErrorLoggingFormat
 from onyx.agents.agent_search.shared_graph_utils.models import LLMNodeErrorStrings
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
@@ -80,7 +80,7 @@ def check_sub_answer(
 
     graph_config = cast(GraphConfig, config["metadata"]["config"])
     fast_llm = graph_config.tooling.fast_llm
-    agent_error: AgentError | None = None
+    agent_error: AgentErrorLoggingFormat | None = None
     response: BaseMessage | None = None
     try:
         response = fast_llm.invoke(
@@ -89,7 +89,7 @@ def check_sub_answer(
         )
 
     except LLMTimeoutError:
-        agent_error = AgentError(
+        agent_error = AgentErrorLoggingFormat(
             error_type=AgentLLMErrorType.TIMEOUT,
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result=_llm_node_error_strings.timeout,
@@ -97,7 +97,7 @@ def check_sub_answer(
         logger.error("LLM Timeout Error - check sub answer")
 
     except LLMRateLimitError:
-        agent_error = AgentError(
+        agent_error = AgentErrorLoggingFormat(
             error_type=AgentLLMErrorType.RATE_LIMIT,
             error_message=AGENT_LLM_RATELIMIT_MESSAGE,
             error_result=_llm_node_error_strings.rate_limit,

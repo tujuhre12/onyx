@@ -29,7 +29,7 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
 from onyx.agents.agent_search.shared_graph_utils.constants import (
     AgentLLMErrorType,
 )
-from onyx.agents.agent_search.shared_graph_utils.models import AgentError
+from onyx.agents.agent_search.shared_graph_utils.models import AgentErrorLoggingFormat
 from onyx.agents.agent_search.shared_graph_utils.models import LLMNodeErrorStrings
 from onyx.configs.agent_configs import AGENT_TIMEOUT_OVERRIDE_LLM_DOCUMENT_VERIFICATION
 from onyx.llm.chat_llm import LLMRateLimitError
@@ -81,7 +81,7 @@ def verify_documents(
         )
     ]
 
-    agent_error: AgentError | None = None
+    agent_error: AgentErrorLoggingFormat | None = None
     response: BaseMessage | None = None
 
     try:
@@ -92,7 +92,7 @@ def verify_documents(
     except LLMTimeoutError:
         # In this case, we decide to continue and don't raise an error, as
         # little harm in letting some docs through that are less relevant.
-        agent_error = AgentError(
+        agent_error = AgentErrorLoggingFormat(
             error_type=AgentLLMErrorType.TIMEOUT,
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result=_llm_node_error_strings.timeout,
@@ -101,7 +101,7 @@ def verify_documents(
     except LLMRateLimitError:
         # In this case, we decide to continue and don't raise an error, as
         # little harm in letting some docs through that are less relevant.
-        agent_error = AgentError(
+        agent_error = AgentErrorLoggingFormat(
             error_type=AgentLLMErrorType.RATE_LIMIT,
             error_message=AGENT_LLM_RATELIMIT_MESSAGE,
             error_result=_llm_node_error_strings.rate_limit,

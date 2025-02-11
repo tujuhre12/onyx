@@ -30,7 +30,7 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
 from onyx.agents.agent_search.shared_graph_utils.constants import (
     AgentLLMErrorType,
 )
-from onyx.agents.agent_search.shared_graph_utils.models import AgentError
+from onyx.agents.agent_search.shared_graph_utils.models import AgentErrorLoggingFormat
 from onyx.agents.agent_search.shared_graph_utils.models import BaseMessage_Content
 from onyx.agents.agent_search.shared_graph_utils.models import LLMNodeErrorStrings
 from onyx.agents.agent_search.shared_graph_utils.utils import dispatch_separated
@@ -123,7 +123,7 @@ def create_refined_sub_questions(
     # Grader
     model = graph_config.tooling.fast_llm
 
-    agent_error: AgentError | None = None
+    agent_error: AgentErrorLoggingFormat | None = None
     streamed_tokens: list[BaseMessage_Content] = []
     try:
         streamed_tokens = dispatch_separated(
@@ -135,7 +135,7 @@ def create_refined_sub_questions(
             sep_callback=dispatch_subquestion_sep(1, writer),
         )
     except LLMTimeoutError:
-        agent_error = AgentError(
+        agent_error = AgentErrorLoggingFormat(
             error_type=AgentLLMErrorType.TIMEOUT,
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result=_llm_node_error_strings.timeout,
@@ -143,7 +143,7 @@ def create_refined_sub_questions(
         logger.error("LLM Timeout Error - create refined sub questions")
 
     except LLMRateLimitError:
-        agent_error = AgentError(
+        agent_error = AgentErrorLoggingFormat(
             error_type=AgentLLMErrorType.RATE_LIMIT,
             error_message=AGENT_LLM_RATELIMIT_MESSAGE,
             error_result=_llm_node_error_strings.rate_limit,

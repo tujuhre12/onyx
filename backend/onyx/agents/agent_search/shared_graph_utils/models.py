@@ -58,7 +58,7 @@ class InitialAgentResultStats(BaseModel):
     agent_effectiveness: dict[str, float | int | None]
 
 
-class AgentError(BaseModel):
+class AgentErrorLoggingFormat(BaseModel):
     error_message: str
     error_type: str
     error_result: str | None = None

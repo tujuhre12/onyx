@@ -25,7 +25,7 @@ from onyx.agents.agent_search.shared_graph_utils.constants import (
 from onyx.agents.agent_search.shared_graph_utils.constants import (
     AgentLLMErrorType,
 )
-from onyx.agents.agent_search.shared_graph_utils.models import AgentError
+from onyx.agents.agent_search.shared_graph_utils.models import AgentErrorLoggingFormat
 from onyx.agents.agent_search.shared_graph_utils.models import BaseMessage_Content
 from onyx.agents.agent_search.shared_graph_utils.models import LLMNodeErrorStrings
 from onyx.agents.agent_search.shared_graph_utils.utils import dispatch_separated
@@ -80,7 +80,7 @@ def expand_queries(
         )
     ]
 
-    agent_error: AgentError | None = None
+    agent_error: AgentErrorLoggingFormat | None = None
     llm_response_list: list[BaseMessage_Content] = []
 
     try:
@@ -92,7 +92,7 @@ def expand_queries(
             dispatch_subquery(level, question_num, writer),
         )
     except LLMTimeoutError:
-        agent_error = AgentError(
+        agent_error = AgentErrorLoggingFormat(
             error_type=AgentLLMErrorType.TIMEOUT,
             error_message=AGENT_LLM_TIMEOUT_MESSAGE,
             error_result=_llm_node_error_strings.timeout,
@@ -100,7 +100,7 @@ def expand_queries(
         logger.error("LLM Timeout Error - expand queries")
 
     except LLMRateLimitError:
-        agent_error = AgentError(
+        agent_error = AgentErrorLoggingFormat(
             error_type=AgentLLMErrorType.RATE_LIMIT,
             error_message=AGENT_LLM_RATELIMIT_MESSAGE,
             error_result=_llm_node_error_strings.rate_limit,
