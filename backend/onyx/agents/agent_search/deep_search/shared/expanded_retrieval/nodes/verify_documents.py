@@ -18,9 +18,6 @@ from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     trim_prompt_piece,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
-    AGENT_LLM_ERROR_MESSAGE,
-)
-from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_LLM_RATELIMIT_MESSAGE,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
@@ -104,15 +101,6 @@ def verify_documents(
         )
         logger.error("LLM Rate Limit Error - verify documents")
 
-    except Exception:
-        # In this case, we also do not raise an error, as little harm in
-        # letting some docs through that are less relevant.
-        agent_error = AgentError(
-            error_type=AgentLLMErrorType.GENERAL_ERROR,
-            error_message=AGENT_LLM_ERROR_MESSAGE,
-            error_result="The LLM errored out, and the document could not be verified.",
-        )
-        logger.error("General LLM Error - verify documents")
     if agent_error or response is None:
         verified_documents = [retrieved_document_to_verify]
 

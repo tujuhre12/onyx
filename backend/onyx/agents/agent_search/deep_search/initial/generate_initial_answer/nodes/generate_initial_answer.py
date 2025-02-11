@@ -27,9 +27,6 @@ from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     trim_prompt_piece,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
-    AGENT_LLM_ERROR_MESSAGE,
-)
-from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_LLM_RATELIMIT_MESSAGE,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
@@ -288,14 +285,6 @@ def generate_initial_answer(
                 error_result="LLM Rate Limit Error",
             )
             logger.error("LLM Rate Limit Error - generate initial answer")
-
-        except Exception:
-            agent_error = AgentError(
-                error_type=AgentLLMErrorType.GENERAL_ERROR,
-                error_message=AGENT_LLM_ERROR_MESSAGE,
-                error_result="LLM Error",
-            )
-            logger.error("General LLM Error - generate initial answer")
 
         if agent_error:
             write_custom_event(

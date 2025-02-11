@@ -18,9 +18,6 @@ from onyx.agents.agent_search.deep_search.shared.expanded_retrieval.states impor
 )
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.constants import (
-    AGENT_LLM_ERROR_MESSAGE,
-)
-from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_LLM_RATELIMIT_MESSAGE,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
@@ -104,15 +101,6 @@ def expand_queries(
             error_result="LLM Rate Limit Error",
         )
         logger.error("LLM Rate Limit Error - expand queries")
-
-    except Exception:
-        agent_error = AgentError(
-            error_type=AgentLLMErrorType.GENERAL_ERROR,
-            error_message=AGENT_LLM_ERROR_MESSAGE,
-            error_result="Query rewriting failed due to LLM error - use question.",
-        )
-        logger.error("General LLM Error - expand queries")
-
     # use subquestion as query if query generation fails
     if agent_error:
         llm_response = ""

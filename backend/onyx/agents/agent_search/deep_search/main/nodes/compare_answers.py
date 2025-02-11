@@ -12,9 +12,6 @@ from onyx.agents.agent_search.deep_search.main.states import (
 from onyx.agents.agent_search.deep_search.main.states import MainState
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.constants import (
-    AGENT_LLM_ERROR_MESSAGE,
-)
-from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_LLM_RATELIMIT_MESSAGE,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
@@ -87,13 +84,6 @@ def compare_answers(
         )
         logger.error("LLM Rate Limit Error - compare answers")
         # continue as True in this support step
-    except Exception:
-        agent_error = AgentError(
-            error_type=AgentLLMErrorType.GENERAL_ERROR,
-            error_message=AGENT_LLM_ERROR_MESSAGE,
-            error_result="The LLM errored out, and the answers could not be compared.",
-        )
-        logger.error("General LLM Error - compare answers")
 
     if agent_error or resp is None:
         refined_answer_improvement = True

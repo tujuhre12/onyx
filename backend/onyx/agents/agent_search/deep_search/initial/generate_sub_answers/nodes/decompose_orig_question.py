@@ -25,9 +25,6 @@ from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     build_history_prompt,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
-    AGENT_LLM_ERROR_MESSAGE,
-)
-from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_LLM_RATELIMIT_MESSAGE,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
@@ -161,14 +158,6 @@ def decompose_orig_question(
             error_result="LLM Rate Limit Error",
         )
         logger.error("LLM Rate Limit Error - decompose orig question")
-        raise e
-    except Exception as e:
-        agent_error = AgentError(
-            error_type=AgentLLMErrorType.GENERAL_ERROR,
-            error_message=AGENT_LLM_ERROR_MESSAGE,
-            error_result="The LLM errored out, and the subquestions could not be generated.",
-        )
-        logger.error("General LLM Error - decompose orig question")
         raise e
 
     stop_event = StreamStopInfo(

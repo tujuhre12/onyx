@@ -21,6 +21,7 @@ from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
 from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import RefinedAnswerImprovement
+from onyx.chat.models import StreamingError
 from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import SubQueryPiece
 from onyx.chat.models import SubQuestionPiece
@@ -32,6 +33,7 @@ from onyx.db.engine import get_session_context_manager
 from onyx.llm.factory import get_default_llms
 from onyx.tools.tool_runner import ToolCallKickoff
 from onyx.utils.logger import setup_logger
+
 
 logger = setup_logger()
 
@@ -72,6 +74,8 @@ def _parse_agent_event(
             return cast(AnswerPacket, event["data"])
         elif event["name"] == "refined_answer_improvement":
             return cast(RefinedAnswerImprovement, event["data"])
+        elif event["name"] == "refined_sub_question_creation_error":
+            return cast(StreamingError, event["data"])
     return None
 
 

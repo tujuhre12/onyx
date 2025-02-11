@@ -23,9 +23,6 @@ from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     build_history_prompt,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
-    AGENT_LLM_ERROR_MESSAGE,
-)
-from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_LLM_RATELIMIT_MESSAGE,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
@@ -147,13 +144,7 @@ def create_refined_sub_questions(
             error_result="LLM Rate Limit Error",
         )
         logger.error("LLM Rate Limit Error - create refined sub questions")
-    except Exception:
-        agent_error = AgentError(
-            error_type=AgentLLMErrorType.GENERAL_ERROR,
-            error_message=AGENT_LLM_ERROR_MESSAGE,
-            error_result="The LLM errored out, and the subquestions could not be generated.",
-        )
-        logger.error("General LLM Error - create refined sub questions")
+
     if agent_error:
         refined_sub_question_dict: dict[int, RefinementSubQuestion] = {}
         log_result = agent_error.error_result

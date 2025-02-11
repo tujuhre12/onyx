@@ -396,12 +396,8 @@ def summarize_history(
             history  # this is what is done at this point anyway, so we default to this
         )
 
-    except Exception:
-        logger.error("General LLM Error - summarize history")
-        return (
-            history  # this is what is done at this point anyway, so we default to this
-        )
     assert isinstance(history_response.content, str)
+
     return history_response.content
 
 

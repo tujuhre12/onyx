@@ -16,9 +16,6 @@ from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
     binary_string_test,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
-    AGENT_LLM_ERROR_MESSAGE,
-)
-from onyx.agents.agent_search.shared_graph_utils.constants import (
     AGENT_LLM_RATELIMIT_MESSAGE,
 )
 from onyx.agents.agent_search.shared_graph_utils.constants import (
@@ -99,13 +96,7 @@ def check_sub_answer(
             error_result="LLM Rate Limit Error",
         )
         logger.error("LLM Rate Limit Error - check sub answer")
-    except Exception:
-        agent_error = AgentError(
-            error_type=AgentLLMErrorType.GENERAL_ERROR,
-            error_message=AGENT_LLM_ERROR_MESSAGE,
-            error_result="LLM Error",
-        )
-        logger.error("General LLM Error - check sub answer")
+
     if agent_error:
         answer_quality = True
         log_result = agent_error.error_result
