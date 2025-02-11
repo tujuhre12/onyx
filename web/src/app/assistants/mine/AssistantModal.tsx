@@ -7,7 +7,6 @@ import { useAssistants } from "@/components/context/AssistantsContext";
 import { useUser } from "@/components/user/UserProvider";
 import { FilterIcon } from "lucide-react";
 import { checkUserOwnsAssistant } from "@/lib/assistants/checkOwnership";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export const AssistantBadgeSelector = ({
   text,
@@ -116,8 +115,12 @@ export function AssistantModal({
   );
 
   return (
-    <div className="fixed inset-0 bg-neutral-950/80 bg-opacity-50 flex items-center justify-center z-50">
+    <div
+      onClick={hideModal}
+      className="fixed inset-0 bg-neutral-950/80 bg-opacity-50 flex items-center justify-center z-50"
+    >
       <div
+        onClick={(e) => e.stopPropagation()}
         className="p-0 max-w-4xl  overflow-hidden max-h-[80vh]  w-[95%] bg-background rounded-md shadow-2xl transform transition-all duration-300 ease-in-out relative w-11/12 max-w-4xl pt-10 pb-10 px-10 overflow-hidden flex flex-col"
         style={{
           position: "fixed",

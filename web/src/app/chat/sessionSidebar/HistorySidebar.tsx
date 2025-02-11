@@ -54,6 +54,7 @@ import { CircleX } from "lucide-react";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 
 interface HistorySidebarProps {
+  liveAssistant?: Persona | null;
   page: pageType;
   existingChats?: ChatSession[];
   currentChatSession?: ChatSession | null | undefined;
@@ -66,20 +67,19 @@ interface HistorySidebarProps {
   showDeleteModal?: (chatSession: ChatSession) => void;
   explicitlyUntoggle: () => void;
   showDeleteAllModal?: () => void;
-  currentAssistantId?: number | null;
   setShowAssistantsModal: (show: boolean) => void;
 }
 
 interface SortableAssistantProps {
   assistant: Persona;
-  currentAssistantId: number | null | undefined;
+  active: boolean;
   onClick: () => void;
   onUnpin: (e: React.MouseEvent) => void;
 }
 
 const SortableAssistant: React.FC<SortableAssistantProps> = ({
   assistant,
-  currentAssistantId,
+  active,
   onClick,
   onUnpin,
 }) => {
@@ -137,9 +137,7 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
           }
         }}
         className={`cursor-pointer w-full group hover:bg-background-chat-hover ${
-          currentAssistantId === assistant.id
-            ? "bg-background-chat-hover/60"
-            : ""
+          active ? "bg-accent-background-selected" : ""
         } relative flex items-center gap-x-2 py-1 px-2 rounded-md`}
       >
         <AssistantIcon assistant={assistant} size={16} className="flex-none" />
@@ -164,15 +162,27 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
         >
           {assistant.name}
         </span>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onUnpin(e);
-          }}
-          className="group-hover:block hidden absolute right-2"
-        >
-          <CircleX size={16} className="text-text-history-sidebar-button" />
-        </button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUnpin(e);
+                }}
+                className="group-hover:block hidden absolute right-2"
+              >
+                <CircleX
+                  size={16}
+                  className="text-text-history-sidebar-button"
+                />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Unpin this assistant from the sidebar
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );
@@ -181,6 +191,7 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
 export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
   (
     {
+      liveAssistant,
       reset = () => null,
       setShowAssistantsModal = () => null,
       toggled,
@@ -194,7 +205,6 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
       showShareModal,
       showDeleteModal,
       showDeleteAllModal,
-      currentAssistantId,
     },
     ref: ForwardedRef<HTMLDivElement>
   ) => {
@@ -203,6 +213,14 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
     const { user, toggleAssistantPinnedStatus } = useUser();
     const { refreshAssistants, pinnedAssistants, setPinnedAssistants } =
       useAssistants();
+
+    const pinnedAndActiveAssistants = [
+      ...pinnedAssistants,
+      ...(liveAssistant &&
+      !pinnedAssistants.some((a) => a.id === liveAssistant.id)
+        ? [liveAssistant]
+        : []),
+    ];
 
     const currentChatId = currentChatSession?.id;
 
@@ -343,17 +361,17 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
               modifiers={[restrictToVerticalAxis]}
             >
               <SortableContext
-                items={pinnedAssistants.map((a) =>
+                items={pinnedAndActiveAssistants.map((a) =>
                   a.id === 0 ? "assistant-0" : a.id
                 )}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="flex px-0  mr-4 flex-col gap-y-1 mt-1">
-                  {pinnedAssistants.map((assistant: Persona) => (
+                  {pinnedAndActiveAssistants.map((assistant: Persona) => (
                     <SortableAssistant
                       key={assistant.id === 0 ? "assistant-0" : assistant.id}
                       assistant={assistant}
-                      currentAssistantId={currentAssistantId}
+                      active={assistant.id === liveAssistant?.id}
                       onClick={() => {
                         router.push(
                           buildChatUrl(searchParams, null, assistant.id)
@@ -362,7 +380,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                       onUnpin={async (e: React.MouseEvent) => {
                         e.stopPropagation();
                         await toggleAssistantPinnedStatus(
-                          pinnedAssistants.map((a) => a.id),
+                          pinnedAndActiveAssistants.map((a) => a.id),
                           assistant.id,
                           false
                         );

@@ -97,7 +97,6 @@ import {
 } from "@/components/resizable/constants";
 import FixedLogo from "../../components/logo/FixedLogo";
 
-import { DeleteEntityModal } from "../../components/modals/DeleteEntityModal";
 import { MinimalMarkdown } from "@/components/chat/MinimalMarkdown";
 import ExceptionTraceModal from "@/components/modals/ExceptionTraceModal";
 
@@ -130,6 +129,7 @@ import {
   useSidebarShortcut,
 } from "@/lib/browserUtilities";
 import { Button } from "@/components/ui/button";
+import { ConfirmEntityModal } from "@/components/modals/ConfirmEntityModal";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -294,10 +294,10 @@ export function ChatPage({
           (assistant) => assistant.id === existingChatSessionAssistantId
         )
       : defaultAssistantId !== undefined
-        ? availableAssistants.find(
-            (assistant) => assistant.id === defaultAssistantId
-          )
-        : undefined
+      ? availableAssistants.find(
+          (assistant) => assistant.id === defaultAssistantId
+        )
+      : undefined
   );
   // Gather default temperature settings
   const search_param_temperature = searchParams.get(
@@ -307,12 +307,12 @@ export function ChatPage({
   const defaultTemperature = search_param_temperature
     ? parseFloat(search_param_temperature)
     : selectedAssistant?.tools.some(
-          (tool) =>
-            tool.in_code_tool_id === SEARCH_TOOL_ID ||
-            tool.in_code_tool_id === INTERNET_SEARCH_TOOL_ID
-        )
-      ? 0
-      : 0.7;
+        (tool) =>
+          tool.in_code_tool_id === SEARCH_TOOL_ID ||
+          tool.in_code_tool_id === INTERNET_SEARCH_TOOL_ID
+      )
+    ? 0
+    : 0.7;
 
   const setSelectedAssistantFromId = (assistantId: number) => {
     // NOTE: also intentionally look through available assistants here, so that
@@ -1244,8 +1244,8 @@ export function ChatPage({
     const currentAssistantId = alternativeAssistantOverride
       ? alternativeAssistantOverride.id
       : alternativeAssistant
-        ? alternativeAssistant.id
-        : liveAssistant.id;
+      ? alternativeAssistant.id
+      : liveAssistant.id;
 
     resetInputBar();
     let messageUpdates: Message[] | null = null;
@@ -2122,7 +2122,7 @@ export function ChatPage({
       <ChatPopup />
 
       {showDeleteAllModal && (
-        <DeleteEntityModal
+        <ConfirmEntityModal
           entityType="All Chats"
           entityName="all your chat sessions"
           onClose={() => setShowDeleteAllModal(false)}
@@ -2287,6 +2287,7 @@ export function ChatPage({
             >
               <div className="w-full relative">
                 <HistorySidebar
+                  liveAssistant={liveAssistant}
                   setShowAssistantsModal={setShowAssistantsModal}
                   explicitlyUntoggle={explicitlyUntoggle}
                   reset={() => setMessage("")}
@@ -2294,7 +2295,6 @@ export function ChatPage({
                   ref={innerSidebarElementRef}
                   toggleSidebar={toggleSidebar}
                   toggled={sidebarVisible}
-                  currentAssistantId={liveAssistant?.id}
                   existingChats={chatSessions}
                   currentChatSession={selectedChatSession}
                   folders={folders}
