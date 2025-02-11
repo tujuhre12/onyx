@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import AssistantCard from "./AssistantCard";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { useUser } from "@/components/user/UserProvider";
-import { FilterIcon } from "lucide-react";
+import { FilterIcon, XIcon } from "lucide-react";
 import { checkUserOwnsAssistant } from "@/lib/assistants/checkOwnership";
 
 export const AssistantBadgeSelector = ({
@@ -130,6 +130,15 @@ export function AssistantModal({
           margin: 0,
         }}
       >
+        <div className="absolute top-2 right-2">
+          <button
+            onClick={hideModal}
+            className="cursor-pointer text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300 transition-colors duration-200 p-2"
+            aria-label="Close modal"
+          >
+            <XIcon className="w-5 h-5" />
+          </button>
+        </div>
         <div className="flex overflow-hidden flex-col h-full">
           <div className="flex overflow-hidden flex-col h-full">
             <div className="flex flex-col sticky top-0 z-10">

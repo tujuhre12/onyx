@@ -173,7 +173,7 @@ export function PersonasTable() {
       {defaultModalOpen && personaToToggleDefault && (
         <ConfirmEntityModal
           variant="action"
-          entityType="Persona"
+          entityType="Assistant"
           entityName={personaToToggleDefault.name}
           onClose={closeDefaultModal}
           onSubmit={handleToggleDefault}
@@ -184,8 +184,8 @@ export function PersonasTable() {
           }
           additionalDetails={
             personaToToggleDefault.is_default_persona
-              ? `Removing "${personaToToggleDefault.name}" as a featured persona will not affect its visibility or accessibility.`
-              : `Setting "${personaToToggleDefault.name}" as a featured persona will make it public and visible to all users. This action cannot be undone.`
+              ? `Removing "${personaToToggleDefault.name}" as a featured assistant will not affect its visibility or accessibility.`
+              : `Setting "${personaToToggleDefault.name}" as a featured assistant will make it public and visible to all users. This action cannot be undone.`
           }
         />
       )}
@@ -195,7 +195,7 @@ export function PersonasTable() {
           "Name",
           "Description",
           "Type",
-          "Featured Persona",
+          "Featured Assistant",
           "Is Visible",
           "Delete",
         ]}

@@ -785,7 +785,7 @@ export function AssistantEditor({
                   }}
                   name="is_default_persona"
                   label="Default Persona"
-                  subtext="If true, this persona will be the default persona for the organization. This also makes the persona public."
+                  subtext="If true, this assistant will be pinned for all new users and appear in the Featured list in the assistant explorer. This also makes the persona public."
                 />
               )}
 
