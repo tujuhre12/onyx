@@ -76,7 +76,19 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table("index_attempt_errors")
+    op.execute("SET lock_timeout = '5s'")
+
+    # try a few times to drop the table, this has been observed to fail due to other locks
+    # blocking the drop
+    NUM_TRIES = 10
+    for i in range(NUM_TRIES):
+        try:
+            op.drop_table("index_attempt_errors")
+            break
+        except Exception as e:
+            if i == NUM_TRIES - 1:
+                raise e
+            print(f"Error dropping table: {e}. Retrying...")
 
     # Recreate the old IndexAttemptError table
     op.create_table(
