@@ -148,7 +148,7 @@ const AssistantCard: React.FC<{
             </div>
             {isOwnedByUser && (
               <div className="flex ml-2 relative items-center gap-x-2">
-                <Popover modal>
+                <Popover>
                   <PopoverTrigger>
                     <button
                       type="button"
