@@ -571,20 +571,20 @@ class VespaIndex(DocumentIndex):
         update_dict: dict[str, dict] = {"fields": {}}
 
         if fields.boost is not None:
-            update_dict["fields"]["boost"] = {"assign": fields.boost}
+            update_dict["fields"][BOOST] = {"assign": fields.boost}
 
         if fields.document_sets is not None:
-            update_dict["fields"]["document_sets"] = {
+            update_dict["fields"][DOCUMENT_SETS] = {
                 "assign": {document_set: 1 for document_set in fields.document_sets}
             }
 
         if fields.access is not None:
-            update_dict["fields"]["access_control_list"] = {
+            update_dict["fields"][ACCESS_CONTROL_LIST] = {
                 "assign": {acl_entry: 1 for acl_entry in fields.access.to_acl()}
             }
 
         if fields.hidden is not None:
-            update_dict["fields"]["hidden"] = {"assign": fields.hidden}
+            update_dict["fields"][HIDDEN] = {"assign": fields.hidden}
 
         if not update_dict["fields"]:
             logger.error("Update request received but nothing to update.")
@@ -603,8 +603,6 @@ class VespaIndex(DocumentIndex):
             )
             resp.raise_for_status()
         except httpx.HTTPStatusError as e:
-            # Optional: inspect the error message for "Rejecting execution due to overload"
-            # or check e.response.status_code (e.g., 429 or 503).
             logger.error(
                 f"Failed to update doc chunk {doc_chunk_id} (doc_id={doc_id}). "
                 f"Details: {e.response.text}"
