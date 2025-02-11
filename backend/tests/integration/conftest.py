@@ -68,7 +68,7 @@ def admin_user() -> DATestUser:
         user = UserManager.create(name=ADMIN_USER_NAME, is_first_user=True)
 
         # if there are other users for some reason, reset and try again
-        if user.role != UserRole.ADMIN:
+        if not UserManager.is_role(user, UserRole.ADMIN):
             print("Trying to reset")
             reset_all()
             user = UserManager.create(name=ADMIN_USER_NAME)
@@ -87,7 +87,7 @@ def admin_user() -> DATestUser:
                 is_active=True,
             )
         )
-        if user.role != UserRole.ADMIN:
+        if not UserManager.is_role(user, UserRole.ADMIN):
             reset_all()
             user = UserManager.create(name=ADMIN_USER_NAME)
             return user
