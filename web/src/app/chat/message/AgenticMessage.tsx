@@ -236,9 +236,9 @@ export const AgenticMessage = ({
   const [finishedGenerating, setFinishedGenerating] = useState(!isGenerating);
 
   useEffect(() => {
-    setFinishedGenerating(
-      streamedContent.length == finalContent.length && !isGenerating
-    );
+    if (streamedContent.length == finalContent.length && !isGenerating) {
+      setFinishedGenerating(true);
+    }
   }, [streamedContent, finalContent, isGenerating]);
 
   const openQuestion = useCallback(
