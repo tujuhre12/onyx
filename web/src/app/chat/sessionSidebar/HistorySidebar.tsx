@@ -50,8 +50,9 @@ import {
 } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { CircleX } from "lucide-react";
+import { CirclePlus, CircleX, PinIcon } from "lucide-react";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { turborepoTraceAccess } from "next/dist/build/turborepo-access-trace";
 
 interface HistorySidebarProps {
   liveAssistant?: Persona | null;
@@ -74,14 +75,16 @@ interface SortableAssistantProps {
   assistant: Persona;
   active: boolean;
   onClick: () => void;
-  onUnpin: (e: React.MouseEvent) => void;
+  onPinAction: (e: React.MouseEvent) => void;
+  pinned?: boolean;
 }
 
 const SortableAssistant: React.FC<SortableAssistantProps> = ({
   assistant,
   active,
   onClick,
-  onUnpin,
+  onPinAction,
+  pinned = true,
 }) => {
   const {
     attributes,
@@ -126,7 +129,9 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
     >
       <DragHandle
         size={16}
-        className="w-3 ml-[2px] mr-[2px] group-hover:visible invisible flex-none cursor-grab"
+        className={`w-3 ml-[2px] mr-[2px] group-hover:visible invisible flex-none cursor-grab ${
+          !pinned ? "opacity-0" : ""
+        }`}
       />
       <div
         data-testid={`assistant-[${assistant.id}]`}
@@ -168,18 +173,27 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onUnpin(e);
+                  onPinAction(e);
                 }}
                 className="group-hover:block hidden absolute right-2"
               >
-                <CircleX
-                  size={16}
-                  className="text-text-history-sidebar-button"
-                />
+                {pinned ? (
+                  <CircleX
+                    size={16}
+                    className="text-text-history-sidebar-button"
+                  />
+                ) : (
+                  <PinIcon
+                    size={16}
+                    className="text-text-history-sidebar-button"
+                  />
+                )}
               </button>
             </TooltipTrigger>
             <TooltipContent>
-              Unpin this assistant from the sidebar
+              {pinned
+                ? "Unpin this assistant from the sidebar"
+                : "Pin this assistant to the sidebar"}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -213,14 +227,6 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
     const { user, toggleAssistantPinnedStatus } = useUser();
     const { refreshAssistants, pinnedAssistants, setPinnedAssistants } =
       useAssistants();
-
-    const pinnedAndActiveAssistants = [
-      ...pinnedAssistants,
-      ...(liveAssistant &&
-      !pinnedAssistants.some((a) => a.id === liveAssistant.id)
-        ? [liveAssistant]
-        : []),
-    ];
 
     const currentChatId = currentChatSession?.id;
 
@@ -361,13 +367,13 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
               modifiers={[restrictToVerticalAxis]}
             >
               <SortableContext
-                items={pinnedAndActiveAssistants.map((a) =>
+                items={pinnedAssistants.map((a) =>
                   a.id === 0 ? "assistant-0" : a.id
                 )}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="flex px-0  mr-4 flex-col gap-y-1 mt-1">
-                  {pinnedAndActiveAssistants.map((assistant: Persona) => (
+                  {pinnedAssistants.map((assistant: Persona) => (
                     <SortableAssistant
                       key={assistant.id === 0 ? "assistant-0" : assistant.id}
                       assistant={assistant}
@@ -377,10 +383,10 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                           buildChatUrl(searchParams, null, assistant.id)
                         );
                       }}
-                      onUnpin={async (e: React.MouseEvent) => {
+                      onPinAction={async (e: React.MouseEvent) => {
                         e.stopPropagation();
                         await toggleAssistantPinnedStatus(
-                          pinnedAndActiveAssistants.map((a) => a.id),
+                          pinnedAssistants.map((a) => a.id),
                           assistant.id,
                           false
                         );
@@ -391,6 +397,31 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
                 </div>
               </SortableContext>
             </DndContext>
+            {!pinnedAssistants.some((a) => a.id === liveAssistant?.id) &&
+              liveAssistant && (
+                <div className="w-full mt-1 pr-4">
+                  <SortableAssistant
+                    pinned={false}
+                    assistant={liveAssistant}
+                    active={liveAssistant.id === liveAssistant?.id}
+                    onClick={() => {
+                      router.push(
+                        buildChatUrl(searchParams, null, liveAssistant.id)
+                      );
+                    }}
+                    onPinAction={async (e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      await toggleAssistantPinnedStatus(
+                        [...pinnedAssistants.map((a) => a.id)],
+                        liveAssistant.id,
+                        true
+                      );
+                      await refreshAssistants();
+                    }}
+                  />
+                </div>
+              )}
+
             <div className="w-full px-4">
               <button
                 onClick={() => setShowAssistantsModal(true)}

@@ -195,7 +195,7 @@ export function PersonasTable() {
           "Name",
           "Description",
           "Type",
-          "Default Persona",
+          "Featured Persona",
           "Is Visible",
           "Delete",
         ]}
@@ -242,7 +242,7 @@ export function PersonasTable() {
                     : ""
                 } select-none w-fit`}
               >
-                <div className="my-auto flex-none line-clamp-1 w-12">
+                <div className="my-auto flex-none w-22">
                   {!persona.is_default_persona ? (
                     <div className="text-error">Not Featured</div>
                   ) : (

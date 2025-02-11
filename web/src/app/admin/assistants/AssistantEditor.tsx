@@ -604,15 +604,6 @@ export function AssistantEditor({
             values.llm_model_version_override || defaultModelName || ""
           );
 
-          useEffect(() => {
-            if (values.is_default_persona && !values.is_public) {
-              setFieldValue("is_public", true);
-              setShowVisibilityWarning(true);
-            } else {
-              setShowVisibilityWarning(false);
-            }
-          }, [values.is_default_persona, values.is_public, setFieldValue]);
-
           return (
             <Form className="w-full text-text-950 assistant-editor">
               {/* Refresh starter messages when name or description changes */}
@@ -786,6 +777,12 @@ export function AssistantEditor({
 
               {user?.role == UserRole.ADMIN && (
                 <BooleanFormField
+                  onChange={(checked) => {
+                    if (checked) {
+                      setFieldValue("is_public", true);
+                      setFieldValue("is_default_persona", true);
+                    }
+                  }}
                   name="is_default_persona"
                   label="Default Persona"
                   subtext="If true, this persona will be the default persona for the organization. This also makes the persona public."
@@ -1054,6 +1051,14 @@ export function AssistantEditor({
                                       setShowVisibilityWarning(true);
                                     } else {
                                       setFieldValue("is_public", checked);
+                                      if (!checked) {
+                                        // Even though this code path should not be possible,
+                                        // we set the default persona to false to be safe
+                                        setFieldValue(
+                                          "is_default_persona",
+                                          false
+                                        );
+                                      }
                                       if (checked) {
                                         setFieldValue("selectedUsers", []);
                                         setFieldValue("selectedGroups", []);
@@ -1066,8 +1071,9 @@ export function AssistantEditor({
                             </TooltipTrigger>
                             {values.is_default_persona && (
                               <TooltipContent side="top" align="center">
-                                Default persona must be public. Set "Default
-                                Persona" to false to change visibility.
+                                Default persona must be public. Set
+                                &quot;Default Persona&quot; to false to change
+                                visibility.
                               </TooltipContent>
                             )}
                           </Tooltip>
