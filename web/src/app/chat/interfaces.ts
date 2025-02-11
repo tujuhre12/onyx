@@ -110,6 +110,7 @@ export interface Message {
   second_level_message?: string;
   second_level_subquestions?: SubQuestionDetail[] | null;
   isImprovement?: boolean | null;
+  isStreamingQuestions?: boolean;
 }
 
 export interface BackendChatSession {

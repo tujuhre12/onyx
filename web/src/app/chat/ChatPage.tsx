@@ -1122,6 +1122,7 @@ export function ChatPage({
         "Continue Generating (pick up exactly where you left off)",
     });
   };
+  const [gener, setFinishedStreaming] = useState(false);
 
   const onSubmit = async ({
     messageIdToResend,
@@ -1272,6 +1273,7 @@ export function ChatPage({
     let finalMessage: BackendMessage | null = null;
     let toolCall: ToolCallMetadata | null = null;
     let isImprovement: boolean | undefined = undefined;
+    let isStreamingQuestions = true;
 
     let initialFetchDetails: null | {
       user_message_id: number;
@@ -1442,6 +1444,15 @@ export function ChatPage({
               Object.hasOwn(packet, "stop_reason") &&
               Object.hasOwn(packet, "level_question_num")
             ) {
+              if ((packet as StreamStopInfo).stream_type == "main_answer") {
+                setFinishedStreaming(true);
+              }
+              if (
+                (packet as StreamStopInfo).stream_type == "sub_questions" &&
+                (packet as StreamStopInfo).level_question_num == undefined
+              ) {
+                isStreamingQuestions = false;
+              }
               sub_questions = constructSubQuestions(
                 sub_questions,
                 packet as StreamStopInfo
@@ -1606,6 +1617,7 @@ export function ChatPage({
                 latestChildMessageId: initialFetchDetails.assistant_message_id,
               },
               {
+                isStreamingQuestions: isStreamingQuestions,
                 is_generating: is_generating,
                 isImprovement: isImprovement,
                 messageId: initialFetchDetails.assistant_message_id!,
@@ -2635,6 +2647,12 @@ export function ChatPage({
                                     {message.sub_questions &&
                                     message.sub_questions.length > 0 ? (
                                       <AgenticMessage
+                                        isStreamingQuestions={
+                                          message.isStreamingQuestions ?? false
+                                        }
+                                        isGenerating={
+                                          message.is_generating ?? false
+                                        }
                                         docSidebarToggled={
                                           documentSidebarToggled &&
                                           (selectedMessageForDocDisplay ==

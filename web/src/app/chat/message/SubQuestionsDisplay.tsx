@@ -65,6 +65,7 @@ export interface TemporaryDisplay {
   tinyQuestion: string;
 }
 interface SubQuestionsDisplayProps {
+  isStreamingQuestions: boolean;
   docSidebarToggled: boolean;
   finishedGenerating: boolean;
   currentlyOpenQuestion?: BaseQuestionIdentifier | null;
@@ -461,6 +462,7 @@ const SubQuestionDisplay: React.FC<{
 };
 
 const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
+  isStreamingQuestions,
   finishedGenerating,
   subQuestions,
   allowStreaming,
@@ -485,13 +487,15 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
     () => {},
     () => {
       setShowSummarizing(true);
-    }
+    },
+    isStreamingQuestions
   );
   const { dynamicSubQuestions: dynamicSecondLevelQuestions } =
     useStreamingMessages(
       secondLevelQuestions || [],
       () => {},
-      () => {}
+      () => {},
+      false
     );
 
   const memoizedSubQuestions = useMemo(() => {

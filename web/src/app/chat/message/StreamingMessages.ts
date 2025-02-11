@@ -56,11 +56,18 @@ const DOC_DELAY_MS = 100;
 export const useStreamingMessages = (
   subQuestions: SubQuestionDetail[],
   allowStreaming: () => void,
-  onComplete: () => void
+  onComplete: () => void,
+  isStreamingQuestions: boolean
 ) => {
   const [dynamicSubQuestions, setDynamicSubQuestions] = useState<
     SubQuestionDetail[]
   >([]);
+
+  const isStreamingQuestionsRef = useRef(isStreamingQuestions);
+
+  useEffect(() => {
+    isStreamingQuestionsRef.current = isStreamingQuestions;
+  }, [isStreamingQuestions]);
 
   const subQuestionsRef = useRef<SubQuestionDetail[]>(subQuestions);
   useEffect(() => {
@@ -149,7 +156,11 @@ export const useStreamingMessages = (
         }
       }
 
-      if (allQuestionsComplete && !didStreamQuestion) {
+      if (
+        allQuestionsComplete &&
+        !didStreamQuestion &&
+        !isStreamingQuestionsRef.current
+      ) {
         onComplete();
       }
 

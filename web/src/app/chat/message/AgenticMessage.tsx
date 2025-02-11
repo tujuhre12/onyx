@@ -50,6 +50,8 @@ import SubQuestionsDisplay from "./SubQuestionsDisplay";
 import { StatusRefinement } from "../Refinement";
 
 export const AgenticMessage = ({
+  isStreamingQuestions,
+  isGenerating,
   docSidebarToggled,
   isImprovement,
   secondLevelAssistantMessage,
@@ -80,6 +82,8 @@ export const AgenticMessage = ({
   secondLevelSubquestions,
   toggleDocDisplay,
 }: {
+  isStreamingQuestions: boolean;
+  isGenerating: boolean;
   docSidebarToggled?: boolean;
   isImprovement?: boolean | null;
   secondLevelSubquestions?: SubQuestionDetail[] | null;
@@ -399,11 +403,12 @@ export const AgenticMessage = ({
                 <div className="w-full desktop:ml-4">
                   {subQuestions && subQuestions.length > 0 && (
                     <SubQuestionsDisplay
+                      isStreamingQuestions={isStreamingQuestions}
                       allowDocuments={() => setAllowDocuments(true)}
                       docSidebarToggled={docSidebarToggled || false}
                       finishedGenerating={
-                        finalContent.length > 2 &&
-                        streamedContent.length == finalContent.length
+                        streamedContent.length == finalContent.length &&
+                        !isGenerating
                       }
                       overallAnswerGenerating={
                         !!(

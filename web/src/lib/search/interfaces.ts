@@ -76,7 +76,7 @@ export interface StreamStopInfo {
   stop_reason: StreamStopReason;
   level?: number;
   level_question_num?: number;
-  stream_type?: "sub_answer" | "sub_questions";
+  stream_type?: "sub_answer" | "sub_questions" | "main_answer";
 }
 
 export interface ErrorMessagePacket {

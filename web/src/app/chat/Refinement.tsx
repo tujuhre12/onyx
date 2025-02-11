@@ -115,7 +115,7 @@ export function RefinemenetBadge({
   const isDone = displayedPhases.includes(StreamingPhase.COMPLETE);
 
   // Expand/collapse, hover states
-  const [expanded, setExpanded] = useState(true);
+  const [expanded] = useState(true);
   const [toolTipHoveredInternal, setToolTipHoveredInternal] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [shouldShow, setShouldShow] = useState(true);
@@ -124,7 +124,8 @@ export function RefinemenetBadge({
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  // Global mousemove: close tooltip if pointer goes outside both trigger & tooltip.
+  // Keep the tooltip open if hovered on container or tooltip
+  // Remove the old onMouseLeave calls and rely on bounding area checks
   useEffect(() => {
     function handleMouseMove(e: MouseEvent) {
       if (!containerRef.current || !tooltipRef.current) return;
@@ -145,10 +146,11 @@ export function RefinemenetBadge({
         y >= tooltipRect.top &&
         y <= tooltipRect.bottom;
 
-      // If not hovering in either region, close tooltip.
+      // If not hovering in either region, close tooltip
       if (!inContainer && !inTooltip) {
         setToolTipHoveredInternal(false);
         setToolTipHovered(false);
+        setIsHovered(false);
       }
     }
 
@@ -175,12 +177,21 @@ export function RefinemenetBadge({
 
   return (
     <TooltipProvider delayDuration={0}>
+      {/*
+        IMPORTANT: We rely on open={ isHovered || toolTipHoveredInternal }
+        to keep the tooltip visible if either the badge or tooltip is hovered.
+      */}
       <Tooltip open={isHovered || toolTipHoveredInternal}>
         <div
           className="relative w-fit max-w-sm"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
           ref={containerRef}
+          // onMouseEnter keeps the tooltip open
+          onMouseEnter={() => {
+            setIsHovered(true);
+            setToolTipHoveredInternal(true);
+            setToolTipHovered(true);
+          }}
+          // Remove the explicit onMouseLeave – the global bounding check will close it
         >
           <TooltipTrigger asChild>
             <div className="flex items-center gap-x-1 text-black text-sm font-medium cursor-pointer hover:text-blue-600 transition-colors duration-200">
@@ -198,13 +209,12 @@ export function RefinemenetBadge({
           {expanded && (
             <TooltipContent
               ref={tooltipRef}
+              // onMouseEnter keeps the tooltip open when cursor enters tooltip
               onMouseEnter={() => {
                 setToolTipHoveredInternal(true);
                 setToolTipHovered(true);
               }}
-              onMouseLeave={() => {
-                setToolTipHoveredInternal(false);
-              }}
+              // Remove onMouseLeave and rely on bounding box logic to close
               side="bottom"
               align="start"
               width="w-fit"
@@ -391,7 +401,6 @@ export function StatusRefinement({
                       </div>
                       <span className="text-neutral-800 text-sm font-medium">
                         {StreamingPhaseText[phase]}
-                        LLL
                       </span>
                     </div>
                   ))}
