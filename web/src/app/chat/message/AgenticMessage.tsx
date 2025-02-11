@@ -233,6 +233,13 @@ export const AgenticMessage = ({
   );
   const [currentlyOpenQuestion, setCurrentlyOpenQuestion] =
     useState<BaseQuestionIdentifier | null>(null);
+  const [finishedGenerating, setFinishedGenerating] = useState(!isGenerating);
+
+  useEffect(() => {
+    setFinishedGenerating(
+      streamedContent.length == finalContent.length && !isGenerating
+    );
+  }, [streamedContent, finalContent, isGenerating]);
 
   const openQuestion = useCallback(
     (question: SubQuestionDetail) => {
@@ -406,10 +413,7 @@ export const AgenticMessage = ({
                       isStreamingQuestions={isStreamingQuestions}
                       allowDocuments={() => setAllowDocuments(true)}
                       docSidebarToggled={docSidebarToggled || false}
-                      finishedGenerating={
-                        streamedContent.length == finalContent.length &&
-                        !isGenerating
-                      }
+                      finishedGenerating={finishedGenerating}
                       overallAnswerGenerating={
                         !!(
                           secondLevelSubquestions &&
