@@ -212,9 +212,9 @@ export function SlackChannelConfigFormFields({
                 label="Disable Default Configuration"
               />
               <p className="mt-2 text-sm text-gray-600 italic">
-                Warning: Disabling the default configuration means the bot won't
-                respond in Slack channels or DMs unless explicitly configured
-                for them.
+                Warning: Disabling the default configuration means the bot
+                won&apos;t respond in Slack channels or DMs unless explicitly
+                configured for them.
               </p>
             </div>
           </>
