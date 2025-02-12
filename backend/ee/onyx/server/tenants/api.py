@@ -33,6 +33,7 @@ from onyx.auth.users import current_admin_user
 from onyx.auth.users import get_redis_strategy
 from onyx.auth.users import optional_user
 from onyx.auth.users import User
+from onyx.configs.app_configs import STRIPE_SECRET_KEY
 from onyx.configs.app_configs import WEB_DOMAIN
 from onyx.configs.constants import FASTAPI_USERS_AUTH_COOKIE_NAME
 from onyx.db.auth import get_user_count
@@ -48,7 +49,7 @@ from onyx.server.settings.store import store_settings
 from onyx.utils.logger import setup_logger
 from shared_configs.contextvars import CURRENT_TENANT_ID_CONTEXTVAR
 
-stripe.api_key = "sk_test_51NwZq2HlhTYqRZibT2cssHV8E5QcLAUmaRLQPMjGb5aOxOWomVxOmzRgxf82ziDBuGdPP2GIDod8xe6DyqeGgUDi00KbsHPoT4"
+stripe.api_key = STRIPE_SECRET_KEY
 logger = setup_logger()
 router = APIRouter(prefix="/tenants")
 
@@ -149,7 +150,7 @@ def gate_product(
         CURRENT_TENANT_ID_CONTEXTVAR.reset(token)
 
 
-@router.get("/billing-information", response_model=BillingInformation)
+@router.get("/billing-information")
 async def billing_information(
     _: User = Depends(current_admin_user),
 ) -> BillingInformation:
@@ -173,7 +174,7 @@ async def create_customer_portal_session(_: User = Depends(current_admin_user)) 
         print("CREATING CUSTOMER PORTAL SESSION for ", stripe_customer_id)
         portal_session = stripe.billing_portal.Session.create(
             customer=stripe_customer_id,
-            return_url=f"{WEB_DOMAIN}/admin/cloud-settings",
+            return_url=f"{WEB_DOMAIN}/admin/billing",
         )
         logger.info(portal_session)
         return {"url": portal_session.url}
