@@ -143,12 +143,12 @@ def reset_postgres(
     setup_onyx: bool = True,
 ) -> None:
     """Reset the Postgres database."""
-    logger.info("Downgrading Postgres...")
     # this seems to hang due to locking issues, so run with a timeout with a few retries
     NUM_TRIES = 10
     TIMEOUT = 10
     success = False
     for _ in range(NUM_TRIES):
+        logger.info(f"Downgrading Postgres... ({_ + 1}/{NUM_TRIES})")
         try:
             run_with_timeout(
                 lambda: downgrade_postgres(
