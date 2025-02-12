@@ -66,6 +66,7 @@ def _run_migrations(
 
 def downgrade_postgres(
     database: str = "postgres",
+    schema: str = "public",
     config_name: str = "alembic",
     revision: str = "base",
     clear_data: bool = False,
@@ -73,8 +74,8 @@ def downgrade_postgres(
     """Downgrade Postgres database to base state."""
     if clear_data:
         if revision != "base":
-            logger.warning("Clearing data without rolling back to base state")
-        # Delete all rows to allow migrations to be rolled back
+            raise ValueError("Clearing data without rolling back to base state")
+
         conn = psycopg2.connect(
             dbname=database,
             user=POSTGRES_USER,
@@ -82,37 +83,21 @@ def downgrade_postgres(
             host=POSTGRES_HOST,
             port=POSTGRES_PORT,
         )
+        conn.autocommit = True  # Need autocommit for dropping schema
         cur = conn.cursor()
 
-        # Disable triggers to prevent foreign key constraints from being checked
-        cur.execute("SET session_replication_role = 'replica';")
+        # Drop and recreate the public schema - this removes ALL objects
+        cur.execute(f"DROP SCHEMA {schema} CASCADE;")
+        cur.execute(f"CREATE SCHEMA {schema};")
 
-        # Fetch all table names in the current database
-        cur.execute(
-            """
-            SELECT tablename
-            FROM pg_tables
-            WHERE schemaname = 'public'
-        """
-        )
+        # Restore default privileges
+        cur.execute(f"GRANT ALL ON SCHEMA {schema} TO postgres;")
+        cur.execute(f"GRANT ALL ON SCHEMA {schema} TO public;")
 
-        tables = cur.fetchall()
-
-        for table in tables:
-            table_name = table[0]
-
-            # Don't touch migration history or Kombu
-            if table_name in ("alembic_version", "kombu_message", "kombu_queue"):
-                continue
-
-            cur.execute(f'DELETE FROM "{table_name}"')
-
-        # Re-enable triggers
-        cur.execute("SET session_replication_role = 'origin';")
-
-        conn.commit()
         cur.close()
         conn.close()
+
+        return
 
     # Downgrade to base
     conn_str = build_connection_string(
@@ -157,11 +142,14 @@ def reset_postgres(
     setup_onyx: bool = True,
 ) -> None:
     """Reset the Postgres database."""
+    logger.info("Downgrading Postgres...")
     downgrade_postgres(
         database=database, config_name=config_name, revision="base", clear_data=True
     )
+    logger.info("Upgrading Postgres...")
     upgrade_postgres(database=database, config_name=config_name, revision="head")
     if setup_onyx:
+        logger.info("Setting up Postgres...")
         with get_session_context_manager() as db_session:
             setup_postgres(db_session)
 
