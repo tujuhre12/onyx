@@ -1,16 +1,17 @@
 import multiprocessing
 import os
-import sys
 import time
 from datetime import datetime
 from datetime import timezone
 from http import HTTPStatus
 from time import sleep
+from typing import Any
 
 import sentry_sdk
 from celery import shared_task
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
+from pydantic import BaseModel
 from redis import Redis
 from redis.lock import Lock as RedisLock
 
@@ -301,7 +302,7 @@ def connector_indexing_task(
         f"search_settings={search_settings_id}"
     )
 
-    attempt_found = False
+    # attempt_found = False
     n_final_progress: int | None = None
 
     # 20 is the documented default for httpx max_keepalive_connections
@@ -400,7 +401,7 @@ def connector_indexing_task(
                 raise ValueError(
                     f"Index attempt not found: index_attempt={index_attempt_id}"
                 )
-            attempt_found = True
+            # attempt_found = True
 
             cc_pair = get_connector_credential_pair_from_id(
                 db_session=db_session,
@@ -455,20 +456,20 @@ def connector_indexing_task(
             f"cc_pair={cc_pair_id} "
             f"search_settings={search_settings_id}"
         )
-        if attempt_found:
-            try:
-                with get_session_with_tenant(tenant_id) as db_session:
-                    mark_attempt_failed(
-                        index_attempt_id, db_session, failure_reason=str(e)
-                    )
-            except Exception:
-                logger.exception(
-                    "Indexing watchdog - transient exception looking up index attempt: "
-                    f"attempt={index_attempt_id} "
-                    f"tenant={tenant_id} "
-                    f"cc_pair={cc_pair_id} "
-                    f"search_settings={search_settings_id}"
-                )
+        # if attempt_found:
+        #     try:
+        #         with get_session_with_tenant(tenant_id) as db_session:
+        #             mark_attempt_failed(
+        #                 index_attempt_id, db_session, failure_reason=str(e)
+        #             )
+        #     except Exception:
+        #         logger.exception(
+        #             "Indexing watchdog - transient exception looking up index attempt: "
+        #             f"attempt={index_attempt_id} "
+        #             f"tenant={tenant_id} "
+        #             f"cc_pair={cc_pair_id} "
+        #             f"search_settings={search_settings_id}"
+        #         )
 
         raise e
     finally:
@@ -483,43 +484,71 @@ def connector_indexing_task(
     return n_final_progress
 
 
-def connector_indexing_task_wrapper(
-    index_attempt_id: int,
-    cc_pair_id: int,
-    search_settings_id: int,
-    tenant_id: str | None,
-    is_ee: bool,
-) -> int | None:
-    """Just wraps connector_indexing_task so we can log any exceptions before
-    re-raising it."""
-    result: int | None = None
+# def connector_indexing_task_wrapper(
+#     index_attempt_id: int,
+#     cc_pair_id: int,
+#     search_settings_id: int,
+#     tenant_id: str | None,
+#     is_ee: bool,
+# ) -> int | None:
+#     """Just wraps connector_indexing_task so we can log any exceptions before
+#     re-raising it."""
+#     result: int | None = None
 
-    try:
-        result = connector_indexing_task(
-            index_attempt_id,
-            cc_pair_id,
-            search_settings_id,
-            tenant_id,
-            is_ee,
+#     try:
+#         result = connector_indexing_task(
+#             index_attempt_id,
+#             cc_pair_id,
+#             search_settings_id,
+#             tenant_id,
+#             is_ee,
+#         )
+#     except Exception:
+#         logger.exception(
+#             f"connector_indexing_task exceptioned: "
+#             f"tenant={tenant_id} "
+#             f"index_attempt={index_attempt_id} "
+#             f"cc_pair={cc_pair_id} "
+#             f"search_settings={search_settings_id}"
+#         )
+
+#         # There is a cloud related bug outside of our code
+#         # where spawned tasks return with an exit code of 1.
+#         # Unfortunately, exceptions also return with an exit code of 1,
+#         # so just raising an exception isn't informative
+#         # Exiting with 255 makes it possible to distinguish between normal exits
+#         # and exceptions.
+#         sys.exit(255)
+
+#     return result
+
+
+class ConnectorIndexingContext(BaseModel):
+    tenant_id: str | None
+    cc_pair_id: int
+    search_settings_id: int
+    index_attempt_id: int
+
+
+class ConnectorIndexingLogBuilder:
+    def __init__(self, ctx: ConnectorIndexingContext):
+        self.ctx = ctx
+
+    def build(self, msg: str, **kwargs: Any) -> str:
+        msg_final = (
+            f"{msg}: "
+            f"tenant_id={self.ctx.tenant_id} "
+            f"attempt={self.ctx.index_attempt_id} "
+            f"cc_pair={self.ctx.cc_pair_id} "
+            f"search_settings={self.ctx.search_settings_id}"
         )
-    except Exception:
-        logger.exception(
-            f"connector_indexing_task exceptioned: "
-            f"tenant={tenant_id} "
-            f"index_attempt={index_attempt_id} "
-            f"cc_pair={cc_pair_id} "
-            f"search_settings={search_settings_id}"
-        )
 
-        # There is a cloud related bug outside of our code
-        # where spawned tasks return with an exit code of 1.
-        # Unfortunately, exceptions also return with an exit code of 1,
-        # so just raising an exception isn't informative
-        # Exiting with 255 makes it possible to distinguish between normal exits
-        # and exceptions.
-        sys.exit(255)
+        # Append extra keyword arguments in logfmt style
+        if kwargs:
+            extra_logfmt = " ".join(f"{key}={value}" for key, value in kwargs.items())
+            msg_final = f"{msg_final} {extra_logfmt}"
 
-    return result
+        return msg_final
 
 
 @shared_task(
@@ -536,11 +565,20 @@ def connector_indexing_proxy_task(
     tenant_id: str | None,
 ) -> None:
     """celery tasks are forked, but forking is unstable.  This proxies work to a spawned task."""
+    ctx = ConnectorIndexingContext(
+        tenant_id=tenant_id,
+        cc_pair_id=cc_pair_id,
+        search_settings_id=search_settings_id,
+        index_attempt_id=index_attempt_id,
+    )
+
+    log_builder = ConnectorIndexingLogBuilder(ctx)
+
     task_logger.info(
-        f"Indexing watchdog - starting: attempt={index_attempt_id} "
-        f"cc_pair={cc_pair_id} "
-        f"search_settings={search_settings_id} "
-        f"mp_start_method={multiprocessing.get_start_method()}"
+        log_builder.build(
+            "Indexing watchdog - starting",
+            mp_start_method=str(multiprocessing.get_start_method()),
+        )
     )
 
     if not self.request.id:
@@ -549,7 +587,7 @@ def connector_indexing_proxy_task(
     client = SimpleJobClient()
 
     job = client.submit(
-        connector_indexing_task_wrapper,
+        connector_indexing_task,
         index_attempt_id,
         cc_pair_id,
         search_settings_id,
@@ -559,18 +597,10 @@ def connector_indexing_proxy_task(
     )
 
     if not job:
-        task_logger.info(
-            f"Indexing watchdog - spawn failed: attempt={index_attempt_id} "
-            f"cc_pair={cc_pair_id} "
-            f"search_settings={search_settings_id}"
-        )
+        task_logger.info(log_builder.build("Indexing watchdog - spawn failed"))
         return
 
-    task_logger.info(
-        f"Indexing watchdog - spawn succeeded: attempt={index_attempt_id} "
-        f"cc_pair={cc_pair_id} "
-        f"search_settings={search_settings_id}"
-    )
+    task_logger.info(log_builder.build("Indexing watchdog - spawn succeeded"))
 
     redis_connector = RedisConnector(tenant_id, cc_pair_id)
     redis_connector_index = redis_connector.new_index(search_settings_id)
@@ -595,9 +625,9 @@ def connector_indexing_proxy_task(
                     if job.process:
                         exit_code = job.process.exitcode
 
-                    # seeing odd behavior where spawned tasks usually return exit code 1 in the cloud,
-                    # even though logging clearly indicates successful completion
-                    # to work around this, we ignore the job error state if the completion signal is OK
+                    # In EKS, there is odd behavior where successful tasks return exit code 1 in the cloud
+                    # due to the set_spawn_method not sticking. We've since fixed this, but the following
+                    # is a safe workaround. We ignore the job error state if the completion signal is OK.
                     status_int = redis_connector_index.get_completion()
                     if status_int:
                         status_enum = HTTPStatus(status_int)
@@ -605,26 +635,33 @@ def connector_indexing_proxy_task(
                             ignore_exitcode = True
 
                     if not ignore_exitcode:
-                        raise RuntimeError("Spawned task exceptioned.")
+                        with get_session_with_tenant(tenant_id) as db_session:
+                            failure_reason = (
+                                f"Spawned task exceptioned: exit_code={exit_code}"
+                            )
+                            mark_attempt_failed(
+                                ctx.index_attempt_id,
+                                db_session,
+                                failure_reason=failure_reason,
+                                full_exception_trace=str(job.exception()),
+                            )
+
+                        raise RuntimeError(
+                            f"Spawned task exceptioned: "
+                            f"exit_code={exit_code} "
+                            f"traceback={job.exception()}"
+                        )
 
                     task_logger.warning(
-                        "Indexing watchdog - spawned task has non-zero exit code "
-                        "but completion signal is OK. Continuing...: "
-                        f"attempt={index_attempt_id} "
-                        f"tenant={tenant_id} "
-                        f"cc_pair={cc_pair_id} "
-                        f"search_settings={search_settings_id} "
-                        f"exit_code={exit_code}"
+                        log_builder.build(
+                            "Indexing watchdog - spawned task has non-zero exit code "
+                            "but completion signal is OK. Continuing...",
+                            exit_code=str(exit_code),
+                        )
                     )
             except Exception:
-                task_logger.error(
-                    "Indexing watchdog - spawned task exceptioned: "
-                    f"attempt={index_attempt_id} "
-                    f"tenant={tenant_id} "
-                    f"cc_pair={cc_pair_id} "
-                    f"search_settings={search_settings_id} "
-                    f"exit_code={exit_code} "
-                    f"error={job.exception()}"
+                task_logger.exception(
+                    log_builder.build("Indexing watchdog - spawned task exceptioned")
                 )
 
                 raise
@@ -636,10 +673,7 @@ def connector_indexing_proxy_task(
         # if a termination signal is detected, clean up and break
         if self.request.id and redis_connector_index.terminating(self.request.id):
             task_logger.warning(
-                "Indexing watchdog - termination signal detected: "
-                f"attempt={index_attempt_id} "
-                f"cc_pair={cc_pair_id} "
-                f"search_settings={search_settings_id}"
+                log_builder.build("Indexing watchdog - termination signal detected")
             )
 
             try:
@@ -652,12 +686,10 @@ def connector_indexing_proxy_task(
             except Exception:
                 # if the DB exceptions, we'll just get an unfriendly failure message
                 # in the UI instead of the cancellation message
-                logger.exception(
-                    "Indexing watchdog - transient exception marking index attempt as canceled: "
-                    f"attempt={index_attempt_id} "
-                    f"tenant={tenant_id} "
-                    f"cc_pair={cc_pair_id} "
-                    f"search_settings={search_settings_id}"
+                task_logger.exception(
+                    log_builder.build(
+                        "Indexing watchdog - transient exception marking index attempt as canceled"
+                    )
                 )
 
             job.cancel()
@@ -679,19 +711,13 @@ def connector_indexing_proxy_task(
         except Exception:
             # if the DB exceptioned, just restart the check.
             # polling the index attempt status doesn't need to be strongly consistent
-            logger.exception(
-                "Indexing watchdog - transient exception looking up index attempt: "
-                f"attempt={index_attempt_id} "
-                f"tenant={tenant_id} "
-                f"cc_pair={cc_pair_id} "
-                f"search_settings={search_settings_id}"
+            task_logger.exception(
+                log_builder.build(
+                    "Indexing watchdog - transient exception looking up index attempt"
+                )
             )
             continue
 
     redis_connector_index.set_watchdog(False)
-    task_logger.info(
-        f"Indexing watchdog - finished: attempt={index_attempt_id} "
-        f"cc_pair={cc_pair_id} "
-        f"search_settings={search_settings_id}"
-    )
+    task_logger.info(log_builder.build("Indexing watchdog - finished"))
     return
