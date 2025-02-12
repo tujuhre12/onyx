@@ -151,13 +151,14 @@ def reset_postgres(
         logger.info(f"Downgrading Postgres... ({_ + 1}/{NUM_TRIES})")
         try:
             run_with_timeout(
-                lambda: downgrade_postgres(
-                    database=database,
-                    config_name=config_name,
-                    revision="base",
-                    clear_data=True,
-                ),
+                downgrade_postgres,
                 TIMEOUT,
+                kwargs={
+                    "database": database,
+                    "config_name": config_name,
+                    "revision": "base",
+                    "clear_data": True,
+                },
             )
             success = True
             break
