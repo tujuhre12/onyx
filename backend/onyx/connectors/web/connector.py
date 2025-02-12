@@ -391,7 +391,6 @@ class WebConnector(LoadConnector):
                 at_least_one_doc = True
                 yield doc_batch
                 doc_batch = []
-                raise RuntimeError("Simulated exception")
 
         if doc_batch:
             playwright.stop()
