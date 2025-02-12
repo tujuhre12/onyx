@@ -1,6 +1,7 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
-from onyx.configs.constants import NotificationType
 from onyx.server.settings.models import GatingType
 
 
@@ -16,14 +17,19 @@ class CreateTenantRequest(BaseModel):
 class ProductGatingRequest(BaseModel):
     tenant_id: str
     product_gating: GatingType
-    notification: NotificationType | None = None
 
 
 class BillingInformation(BaseModel):
+    stripe_subscription_id: str
+    status: str
+    current_period_start: datetime
+    current_period_end: datetime
+    number_of_seats: int
+    cancel_at_period_end: bool
+    canceled_at: datetime | None
+    trial_start: datetime | None
+    trial_end: datetime | None
     seats: int
-    subscription_status: str
-    billing_start: str | None
-    billing_end: str | None
     payment_method_enabled: bool
 
 

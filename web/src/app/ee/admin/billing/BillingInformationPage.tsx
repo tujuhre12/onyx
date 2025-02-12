@@ -1,18 +1,24 @@
 "use client";
 
 import { CreditCard, ArrowFatUp } from "@phosphor-icons/react";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { loadStripe } from "@stripe/stripe-js";
 import { usePopup } from "@/components/admin/connectors/Popup";
-import { SettingsIcon } from "@/components/icons/icons";
 import {
-  updateSubscriptionQuantity,
   fetchCustomerPortal,
   statusToDisplay,
   useBillingInformation,
 } from "./utils";
 import { useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CircleIcon } from "lucide-react";
 
 export default function BillingInformationPage() {
   const router = useRouter();
@@ -24,9 +30,6 @@ export default function BillingInformationPage() {
     isLoading,
   } = useBillingInformation();
 
-  if (error) {
-    console.error("Failed to fetch billing information:", error);
-  }
   useEffect(() => {
     const url = new URL(window.location.href);
     if (url.searchParams.has("session_id")) {
@@ -35,17 +38,30 @@ export default function BillingInformationPage() {
           "Congratulations! Your subscription has been updated successfully.",
         type: "success",
       });
-      // Remove the session_id from the URL
       url.searchParams.delete("session_id");
       window.history.replaceState({}, "", url.toString());
-      // You might want to refresh the billing information here
-      // by calling an API endpoint to get the latest data
     }
   }, [setPopup]);
 
   if (isLoading) {
     return <div>Loading...</div>;
   }
+
+  if (error) {
+    console.error("Failed to fetch billing information:", error);
+    return (
+      <div>Error loading billing information. Please try again later.</div>
+    );
+  }
+
+  if (!billingInformation) {
+    return <div>No billing information available.</div>;
+  }
+
+  const isTrialing = billingInformation.status === "trialing";
+  const isCancelled = billingInformation.cancel_at_period_end;
+  const isExpired =
+    new Date(billingInformation.current_period_end) < new Date();
 
   const handleManageSubscription = async () => {
     try {
@@ -75,142 +91,122 @@ export default function BillingInformationPage() {
       });
     }
   };
-  if (
-    !billingInformation ||
-    !billingInformation.billing_start ||
-    !billingInformation.billing_end
-  ) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <div className="space-y-8">
-      <div className="bg-background-50 rounded-lg p-8 border border-background-200">
-        {popup}
-
-        <h2 className="text-2xl font-bold mb-6 text-text-800 flex items-center">
-          {/* <CreditCard className="mr-4 text-text-600" size={24} /> */}
-          Subscription Details
-        </h2>
-
-        <div className="space-y-4">
-          <div className="bg-white p-5 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-lg font-medium text-text-700">Seats</p>
-                <p className="text-sm text-text-500">
-                  Number of licensed users
-                </p>
-              </div>
-              <p className="text-xl font-semibold text-text-900">
-                {billingInformation.seats}
-              </p>
-            </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold flex items-center">
+            <CreditCard className="mr-4 text-text-600" size={24} />
+            Subscription Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <InfoItem
+              title="Subscription Status"
+              value={statusToDisplay(billingInformation.status)}
+            />
+            <InfoItem
+              title="Seats"
+              value={billingInformation.seats.toString()}
+            />
+            <InfoItem
+              title="Billing Start"
+              value={new Date(
+                billingInformation.current_period_start
+              ).toLocaleDateString()}
+            />
+            <InfoItem
+              title="Billing End"
+              value={new Date(
+                billingInformation.current_period_end
+              ).toLocaleDateString()}
+            />
           </div>
 
-          <div className="bg-white p-5 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-lg font-medium text-text-700">
-                  Subscription Status
-                </p>
-                <p className="text-sm text-text-500">
-                  Current state of your subscription
-                </p>
-              </div>
-              <p className="text-xl font-semibold text-text-900">
-                {statusToDisplay(billingInformation.subscription_status)}
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-lg font-medium text-text-700">
-                  Billing Start
-                </p>
-                <p className="text-sm text-text-500">
-                  Start date of current billing cycle
-                </p>
-              </div>
-              <p className="text-xl font-semibold text-text-900">
+          {isCancelled && (
+            <Alert>
+              <AlertTitle>Subscription Cancelled</AlertTitle>
+              <AlertDescription>
+                Your subscription will end on{" "}
                 {new Date(
-                  billingInformation.billing_start
+                  billingInformation.current_period_end
                 ).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
+                . You can resubscribe to continue using the service after this
+                date.
+              </AlertDescription>
+            </Alert>
+          )}
 
-          <div className="bg-white p-5 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-lg font-medium text-text-700">Billing End</p>
-                <p className="text-sm text-text-500">
-                  End date of current billing cycle
-                </p>
-              </div>
-              <p className="text-xl font-semibold text-text-900">
-                {new Date(billingInformation.billing_end).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-        </div>
+          {isTrialing && (
+            <Alert>
+              <CircleIcon className="h-4 w-4" />
+              <AlertTitle>Trial Period</AlertTitle>
+              <AlertDescription>
+                Your trial ends on{" "}
+                {billingInformation.trial_end
+                  ? new Date(billingInformation.trial_end).toLocaleDateString()
+                  : "N/A"}
+                .
+                {!billingInformation.payment_method_enabled &&
+                  " Add a payment method to continue using the service after the trial."}
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {!billingInformation.payment_method_enabled && (
-          <div className="mt-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
-            <p className="font-bold">Notice:</p>
-            <p>
-              You&apos;ll need to add a payment method before your trial ends to
-              continue using the service.
-            </p>
-          </div>
-        )}
+          {!billingInformation.payment_method_enabled && (
+            <Alert variant="destructive">
+              <AlertTitle>Payment Method Required</AlertTitle>
+              <AlertDescription>
+                You need to add a payment method before your trial ends to
+                continue using the service.
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {billingInformation.subscription_status === "trialing" ? (
-          <div className="bg-white p-5 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md mt-8">
-            <p className="text-lg font-medium text-text-700">
-              No cap on users during trial
-            </p>
-          </div>
-        ) : (
-          <div className="flex items-center space-x-4 mt-8">
-            <div className="flex items-center space-x-4">
-              <p className="text-lg font-medium text-text-700">
-                Current Seats:
-              </p>
-              <p className="text-xl font-semibold text-text-900">
-                {billingInformation.seats}
-              </p>
-            </div>
-            <p className="text-sm text-text-500">
-              Seats automatically update based on adding, removing, or inviting
-              users.
-            </p>
-          </div>
-        )}
-      </div>
+          {isExpired && (
+            <Alert variant="destructive">
+              <AlertTitle>Subscription Expired</AlertTitle>
+              <AlertDescription>
+                Your subscription has expired. Please resubscribe to continue
+                using the service.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
 
-      <div className="bg-white p-5 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <p className="text-lg font-medium text-text-700">
-              Manage Subscription
-            </p>
-            <p className="text-sm text-text-500">
-              View your plan, update payment, or change subscription
-            </p>
-          </div>
-          <SettingsIcon className="text-text-600" size={20} />
-        </div>
-        <button
-          onClick={handleManageSubscription}
-          className="bg-background-600 text-white px-4 py-2 rounded-md hover:bg-background-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-text-500 focus:ring-opacity-50 font-medium shadow-sm text-sm flex items-center justify-center"
-        >
-          <ArrowFatUp className="mr-2" size={16} />
-          Manage Subscription
-        </button>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-medium">
+            Manage Subscription
+          </CardTitle>
+          <CardDescription>
+            View your plan, update payment, or change subscription
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={handleManageSubscription} className="w-full">
+            <ArrowFatUp className="mr-2" size={16} />
+            Manage Subscription
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+interface InfoItemProps {
+  title: string;
+  value: string;
+}
+
+function InfoItem({ title, value }: InfoItemProps) {
+  return (
+    <div className="bg-background-50 p-4 rounded-lg">
+      <p className="text-sm font-medium text-text-500">{title}</p>
+      <p className="text-lg font-semibold text-text-900">{value}</p>
     </div>
   );
 }
