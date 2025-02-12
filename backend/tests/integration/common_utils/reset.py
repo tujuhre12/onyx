@@ -25,6 +25,7 @@ from onyx.indexing.models import IndexingSetting
 from onyx.setup import setup_postgres
 from onyx.setup import setup_vespa
 from onyx.utils.logger import setup_logger
+from tests.integration.common_utils.timeout import run_with_timeout
 
 logger = setup_logger()
 
@@ -143,9 +144,31 @@ def reset_postgres(
 ) -> None:
     """Reset the Postgres database."""
     logger.info("Downgrading Postgres...")
-    downgrade_postgres(
-        database=database, config_name=config_name, revision="base", clear_data=True
-    )
+    # this seems to hang due to locking issues, so run with a timeout with a few retries
+    NUM_TRIES = 10
+    TIMEOUT = 10
+    success = False
+    for _ in range(NUM_TRIES):
+        try:
+            run_with_timeout(
+                lambda: downgrade_postgres(
+                    database=database,
+                    config_name=config_name,
+                    revision="base",
+                    clear_data=True,
+                ),
+                TIMEOUT,
+            )
+            success = True
+            break
+        except TimeoutError:
+            logger.warning(
+                f"Postgres downgrade timed out, retrying... ({_ + 1}/{NUM_TRIES})"
+            )
+
+    if not success:
+        raise RuntimeError("Postgres downgrade failed after 10 timeouts.")
+
     logger.info("Upgrading Postgres...")
     upgrade_postgres(database=database, config_name=config_name, revision="head")
     if setup_onyx:
