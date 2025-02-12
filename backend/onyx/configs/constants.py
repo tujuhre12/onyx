@@ -323,6 +323,7 @@ class OnyxRedisSignals:
     BLOCK_VALIDATE_PERMISSION_SYNC_FENCES = (
         "signal:block_validate_permission_sync_fences"
     )
+    BLOCK_PRUNING = "signal:block_pruning"
     BLOCK_VALIDATE_PRUNING_FENCES = "signal:block_validate_pruning_fences"
     BLOCK_BUILD_FENCE_LOOKUP_TABLE = "signal:block_build_fence_lookup_table"
 
@@ -354,6 +355,9 @@ class OnyxCeleryTask:
 
     CLOUD_BEAT_TASK_GENERATOR = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_generate_beat_tasks"
     CLOUD_MONITOR_ALEMBIC = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_monitor_alembic"
+    CLOUD_MONITOR_CELERY_QUEUES = (
+        f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_monitor_celery_queues"
+    )
 
     CHECK_FOR_CONNECTOR_DELETION = "check_for_connector_deletion_task"
     CHECK_FOR_VESPA_SYNC_TASK = "check_for_vespa_sync_task"

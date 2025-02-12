@@ -850,13 +850,26 @@ def cloud_check_alembic() -> bool | None:
     return True
 
 
-@shared_task(name=OnyxCeleryTask.MONITOR_CELERY_QUEUES, ignore_result=True, bind=True)
-def monitor_celery_queues(
+@shared_task(
+    name=OnyxCeleryTask.CLOUD_MONITOR_CELERY_QUEUES, ignore_result=True, bind=True
+)
+def cloud_monitor_celery_queues(
     self: Task,
+) -> None:
+    return monitor_celery_queues_helper(self)
+
+
+@shared_task(name=OnyxCeleryTask.MONITOR_CELERY_QUEUES, ignore_result=True, bind=True)
+def monitor_celery_queues(self: Task, *, tenant_id: str | None) -> None:
+    return monitor_celery_queues_helper(self)
+
+
+def monitor_celery_queues_helper(
+    task: Task,
 ) -> None:
     """A task to monitor all celery queue lengths."""
 
-    r_celery = self.app.broker_connection().channel().client  # type: ignore
+    r_celery = task.app.broker_connection().channel().client  # type: ignore
     n_celery = celery_get_queue_length("celery", r_celery)
     n_indexing = celery_get_queue_length(OnyxCeleryQueues.CONNECTOR_INDEXING, r_celery)
     n_sync = celery_get_queue_length(OnyxCeleryQueues.VESPA_METADATA_SYNC, r_celery)
@@ -872,14 +885,14 @@ def monitor_celery_queues(
         OnyxCeleryQueues.DOC_PERMISSIONS_UPSERT, r_celery
     )
 
-    prefetched = celery_get_unacked_task_ids(
+    n_indexing_prefetched = celery_get_unacked_task_ids(
         OnyxCeleryQueues.CONNECTOR_INDEXING, r_celery
     )
 
     task_logger.info(
         f"Queue lengths: celery={n_celery} "
         f"indexing={n_indexing} "
-        f"indexing_prefetched={len(prefetched)} "
+        f"indexing_prefetched={len(n_indexing_prefetched)} "
         f"sync={n_sync} "
         f"deletion={n_deletion} "
         f"pruning={n_pruning} "

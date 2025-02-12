@@ -56,7 +56,7 @@ beat_task_templates.extend(
         {
             "name": "check-for-pruning",
             "task": OnyxCeleryTask.CHECK_FOR_PRUNING,
-            "schedule": timedelta(hours=1),
+            "schedule": timedelta(seconds=20),
             "options": {
                 "priority": OnyxCeleryPriority.MEDIUM,
                 "expires": BEAT_EXPIRES_DEFAULT,
@@ -149,7 +149,7 @@ beat_cloud_tasks: list[dict] = [
     },
     {
         "name": f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_monitor-celery-queues",
-        "task": OnyxCeleryTask.MONITOR_CELERY_QUEUES,
+        "task": OnyxCeleryTask.CLOUD_MONITOR_CELERY_QUEUES,
         "schedule": timedelta(seconds=60),
         "options": {
             "queue": OnyxCeleryQueues.MONITORING,

@@ -122,34 +122,39 @@ def check_for_pruning(self: Task, *, tenant_id: str | None) -> bool | None:
         return None
 
     try:
-        cc_pair_ids: list[int] = []
-        with get_session_with_tenant(tenant_id) as db_session:
-            cc_pairs = get_connector_credential_pairs(db_session)
-            for cc_pair_entry in cc_pairs:
-                cc_pair_ids.append(cc_pair_entry.id)
+        # the entire task needs to run frequently in order to finalize pruning
 
-        for cc_pair_id in cc_pair_ids:
-            lock_beat.reacquire()
+        # but pruning only kicks off once per hour
+        if not r.exists(OnyxRedisSignals.BLOCK_PRUNING):
+            cc_pair_ids: list[int] = []
             with get_session_with_tenant(tenant_id) as db_session:
-                cc_pair = get_connector_credential_pair_from_id(
-                    db_session=db_session,
-                    cc_pair_id=cc_pair_id,
-                )
-                if not cc_pair:
-                    continue
+                cc_pairs = get_connector_credential_pairs(db_session)
+                for cc_pair_entry in cc_pairs:
+                    cc_pair_ids.append(cc_pair_entry.id)
 
-                if not _is_pruning_due(cc_pair):
-                    continue
+            for cc_pair_id in cc_pair_ids:
+                lock_beat.reacquire()
+                with get_session_with_tenant(tenant_id) as db_session:
+                    cc_pair = get_connector_credential_pair_from_id(
+                        db_session=db_session,
+                        cc_pair_id=cc_pair_id,
+                    )
+                    if not cc_pair:
+                        continue
 
-                payload_id = try_creating_prune_generator_task(
-                    self.app, cc_pair, db_session, r, tenant_id
-                )
-                if not payload_id:
-                    continue
+                    if not _is_pruning_due(cc_pair):
+                        continue
 
-                task_logger.info(
-                    f"Pruning queued: cc_pair={cc_pair.id} id={payload_id}"
-                )
+                    payload_id = try_creating_prune_generator_task(
+                        self.app, cc_pair, db_session, r, tenant_id
+                    )
+                    if not payload_id:
+                        continue
+
+                    task_logger.info(
+                        f"Pruning queued: cc_pair={cc_pair.id} id={payload_id}"
+                    )
+            r.set(OnyxRedisSignals.BLOCK_PRUNING, 1, ex=3600)
 
         # we want to run this less frequently than the overall task
         lock_beat.reacquire()
