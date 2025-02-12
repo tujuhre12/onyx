@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from ee.onyx.auth.users import current_cloud_superuser
 from ee.onyx.auth.users import generate_anonymous_user_jwt_token
 from ee.onyx.configs.app_configs import ANONYMOUS_USER_COOKIE_NAME
-from ee.onyx.configs.app_configs import STRIPE_SECRET_KEY
 from ee.onyx.server.tenants.access import control_plane_dep
 from ee.onyx.server.tenants.anonymous_user_path import get_anonymous_user_path
 from ee.onyx.server.tenants.anonymous_user_path import (
@@ -18,6 +17,7 @@ from ee.onyx.server.tenants.anonymous_user_path import (
 from ee.onyx.server.tenants.anonymous_user_path import modify_anonymous_user_path
 from ee.onyx.server.tenants.anonymous_user_path import validate_anonymous_user_path
 from ee.onyx.server.tenants.billing import fetch_billing_information
+from ee.onyx.server.tenants.billing import fetch_stripe_checkout_session
 from ee.onyx.server.tenants.billing import fetch_tenant_stripe_information
 from ee.onyx.server.tenants.models import AnonymousUserPath
 from ee.onyx.server.tenants.models import BillingInformation
@@ -48,7 +48,7 @@ from onyx.server.settings.store import store_settings
 from onyx.utils.logger import setup_logger
 from shared_configs.contextvars import CURRENT_TENANT_ID_CONTEXTVAR
 
-stripe.api_key = STRIPE_SECRET_KEY
+stripe.api_key = "sk_test_51NwZq2HlhTYqRZibT2cssHV8E5QcLAUmaRLQPMjGb5aOxOWomVxOmzRgxf82ziDBuGdPP2GIDod8xe6DyqeGgUDi00KbsHPoT4"
 logger = setup_logger()
 router = APIRouter(prefix="/tenants")
 
@@ -169,6 +169,8 @@ async def create_customer_portal_session(_: User = Depends(current_admin_user)) 
         if not stripe_customer_id:
             raise HTTPException(status_code=400, detail="Stripe customer ID not found")
         logger.info(stripe_customer_id)
+
+        print("CREATING CUSTOMER PORTAL SESSION for ", stripe_customer_id)
         portal_session = stripe.billing_portal.Session.create(
             customer=stripe_customer_id,
             return_url=f"{WEB_DOMAIN}/admin/cloud-settings",
@@ -177,6 +179,18 @@ async def create_customer_portal_session(_: User = Depends(current_admin_user)) 
         return {"url": portal_session.url}
     except Exception as e:
         logger.exception("Failed to create customer portal session")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/create-subscription-session")
+async def create_resubscription_session(_: User = Depends(current_admin_user)) -> dict:
+    try:
+        tenant_id = CURRENT_TENANT_ID_CONTEXTVAR.get()
+        session_id = fetch_stripe_checkout_session(tenant_id)
+        return {"sessionId": session_id}
+
+    except Exception as e:
+        logger.exception("Failed to create resubscription session")
         raise HTTPException(status_code=500, detail=str(e))
 
 

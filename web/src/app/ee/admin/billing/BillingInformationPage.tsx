@@ -75,7 +75,11 @@ export default function BillingInformationPage() {
       });
     }
   };
-  if (!billingInformation) {
+  if (
+    !billingInformation ||
+    !billingInformation.billing_start ||
+    !billingInformation.billing_end
+  ) {
     return <div>Loading...</div>;
   }
 

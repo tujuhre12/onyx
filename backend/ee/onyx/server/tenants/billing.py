@@ -14,6 +14,20 @@ stripe.api_key = STRIPE_SECRET_KEY
 logger = setup_logger()
 
 
+def fetch_stripe_checkout_session(tenant_id: str) -> str:
+    token = generate_data_plane_token()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    url = f"{CONTROL_PLANE_API_BASE_URL}/create-checkout-session"
+    params = {"tenant_id": tenant_id}
+    response = requests.post(url, headers=headers, params=params)
+    response.raise_for_status()
+    print(response.json())
+    return response.json()["sessionId"]
+
+
 def fetch_tenant_stripe_information(tenant_id: str) -> dict:
     token = generate_data_plane_token()
     headers = {
