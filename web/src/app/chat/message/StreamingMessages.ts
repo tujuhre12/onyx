@@ -128,6 +128,7 @@ export const useStreamingMessages = (
       // Stream high-level questions sequentially
       let didStreamQuestion = false;
       let allQuestionsComplete = true;
+
       for (let i = 0; i < actualSubQs.length; i++) {
         const sq = actualSubQs[i];
         const p = progressRef.current[i];
@@ -145,6 +146,8 @@ export const useStreamingMessages = (
                 p.questionDone = true;
               }
               didStreamQuestion = true;
+              allQuestionsComplete = false;
+
               // Break after streaming one question to ensure sequential behavior
               break;
             }
@@ -206,7 +209,6 @@ export const useStreamingMessages = (
 
         switch (p.currentPhase) {
           case StreamingPhase.SUB_QUERIES: {
-            onComplete();
             const subQueries = sq.sub_queries || [];
             const docs = sq.context_docs?.top_documents || [];
             const hasDocs = docs.length > 0;
