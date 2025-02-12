@@ -153,7 +153,8 @@ const SubQuestionDisplay: React.FC<{
     content = content.replace(/\]\](?!\()/g, "]]()");
 
     return (
-      preprocessLaTeX(content) + (!subQuestion?.answer_done ? " [*]() " : "")
+      preprocessLaTeX(content) +
+      (subQuestion?.answer_streaming ? " [*]() " : "")
     );
   };
 
@@ -526,7 +527,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
   const [shownDocuments, setShownDocuments] = useState(documents);
 
   useEffect(() => {
-    if (documents && documents.length > 0) {
+    if (canShowSummarizing && documents && documents.length > 0) {
       setTimeout(
         () => {
           setShownDocuments(documents);
@@ -534,7 +535,7 @@ const SubQuestionsDisplay: React.FC<SubQuestionsDisplayProps> = ({
         finishedGenerating ? 0 : 800
       );
     }
-  }, [documents]);
+  }, [documents, canShowSummarizing]);
 
   useEffect(() => {
     if (

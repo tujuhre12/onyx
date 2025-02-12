@@ -220,7 +220,7 @@ export interface SubQuestionDetail extends BaseQuestionIdentifier {
   context_docs?: { top_documents: OnyxDocument[] } | null;
   is_complete?: boolean;
   is_stopped?: boolean;
-  answer_done?: boolean;
+  answer_streaming?: boolean;
 }
 
 export interface SubQueryDetail {
@@ -247,9 +247,6 @@ export const constructSubQuestions = (
   }
 
   const updatedSubQuestions = [...subQuestions];
-  // .filter(
-  //   (sq) => sq.level_question_num !== 0
-  // );
 
   if ("stop_reason" in newDetail) {
     const { level, level_question_num } = newDetail;
@@ -258,7 +255,7 @@ export const constructSubQuestions = (
     );
     if (subQuestion) {
       if (newDetail.stream_type == "sub_answer") {
-        subQuestion.answer_done = true;
+        subQuestion.answer_streaming = false;
       } else {
         subQuestion.is_complete = true;
         subQuestion.is_stopped = true;

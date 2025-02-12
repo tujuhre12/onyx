@@ -174,7 +174,7 @@ export const useStreamingMessages = (
       for (let i = 0; i < actualSubQs.length; i++) {
         const sq = actualSubQs[i];
         const dynSQ = dynamicSubQuestionsRef.current[i];
-        dynSQ.answer_done = sq.answer_done;
+        dynSQ.answer_streaming = sq.answer_streaming;
 
         const p = progressRef.current[i];
 

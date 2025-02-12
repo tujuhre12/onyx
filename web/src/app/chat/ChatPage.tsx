@@ -1446,6 +1446,7 @@ export function ChatPage({
             ) {
               if ((packet as StreamStopInfo).stream_type == "main_answer") {
                 setFinishedStreaming(true);
+                updateChatState("streaming", frozenSessionId);
               }
               if (
                 (packet as StreamStopInfo).stream_type == "sub_questions" &&
@@ -1458,6 +1459,7 @@ export function ChatPage({
                 packet as StreamStopInfo
               );
             } else if (Object.hasOwn(packet, "sub_question")) {
+              updateChatState("toolBuilding", frozenSessionId);
               is_generating = true;
               sub_questions = constructSubQuestions(
                 sub_questions,
