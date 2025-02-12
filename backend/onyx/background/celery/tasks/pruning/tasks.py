@@ -497,7 +497,7 @@ def connector_pruning_generator_task(
     )
 
 
-"""Monitoring pruning utils, called in monitor_vespa_sync"""
+"""Monitoring pruning utils"""
 
 
 def monitor_ccpair_pruning_taskset(

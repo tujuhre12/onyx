@@ -1,4 +1,3 @@
-import random
 import time
 from collections.abc import Callable
 from http import HTTPStatus
@@ -17,19 +16,15 @@ from tenacity import RetryError
 
 from onyx.access.access import get_access_for_document
 from onyx.background.celery.apps.app_base import task_logger
-from onyx.background.celery.celery_redis import celery_get_queue_length
-from onyx.background.celery.celery_redis import celery_get_unacked_task_ids
 from onyx.background.celery.tasks.shared.RetryDocumentIndex import RetryDocumentIndex
 from onyx.background.celery.tasks.shared.tasks import LIGHT_SOFT_TIME_LIMIT
 from onyx.background.celery.tasks.shared.tasks import LIGHT_TIME_LIMIT
 from onyx.configs.app_configs import JOB_TIMEOUT
 from onyx.configs.app_configs import VESPA_SYNC_MAX_TASKS
 from onyx.configs.constants import CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT
-from onyx.configs.constants import OnyxCeleryQueues
 from onyx.configs.constants import OnyxCeleryTask
 from onyx.configs.constants import OnyxRedisConstants
 from onyx.configs.constants import OnyxRedisLocks
-from onyx.configs.constants import OnyxRedisSignals
 from onyx.db.connector_credential_pair import get_connector_credential_pairs
 from onyx.db.document import count_documents_by_needs_sync
 from onyx.db.document import get_document
@@ -55,15 +50,10 @@ from onyx.redis.redis_connector_credential_pair import RedisConnectorCredentialP
 from onyx.redis.redis_connector_credential_pair import (
     RedisGlobalConnectorCredentialPair,
 )
-from onyx.redis.redis_connector_delete import RedisConnectorDelete
-from onyx.redis.redis_connector_doc_perm_sync import RedisConnectorPermissionSync
-from onyx.redis.redis_connector_index import RedisConnectorIndex
-from onyx.redis.redis_connector_prune import RedisConnectorPrune
 from onyx.redis.redis_document_set import RedisDocumentSet
 from onyx.redis.redis_pool import get_redis_client
 from onyx.redis.redis_pool import get_redis_replica_client
 from onyx.redis.redis_pool import redis_lock_dump
-from onyx.redis.redis_pool import SCAN_ITER_COUNT_DEFAULT
 from onyx.redis.redis_usergroup import RedisUserGroup
 from onyx.utils.logger import setup_logger
 from onyx.utils.variable_functionality import fetch_versioned_implementation
@@ -72,7 +62,6 @@ from onyx.utils.variable_functionality import (
 )
 from onyx.utils.variable_functionality import global_version
 from onyx.utils.variable_functionality import noop_fallback
-from shared_configs.configs import MULTI_TENANT
 
 logger = setup_logger()
 
@@ -516,137 +505,6 @@ def monitor_document_set_taskset(
 
 
 @shared_task(
-    name=OnyxCeleryTask.MONITOR_VESPA_SYNC,
-    ignore_result=True,
-    soft_time_limit=300,
-    bind=True,
-)
-def monitor_vespa_sync(self: Task, tenant_id: str | None) -> bool | None:
-    """NOTE(rkuo): this function will go away soon, pending a couple of other PR's to
-    move some of this work to the monitoring worker.
-
-    This is a celery beat task that monitors and finalizes various long running tasks.
-
-    The name monitor_vespa_sync is a bit of a misnomer since it checks many different tasks
-    now. Should change that at some point.
-
-    It scans for fence values and then gets the counts of any associated tasksets.
-    For many tasks, the count is 0, that means all tasks finished and we should clean up.
-
-    This task lock timeout is CELERY_METADATA_SYNC_BEAT_LOCK_TIMEOUT seconds, so don't
-    do anything too expensive in this function!
-
-    Returns True if the task actually did work, False if it exited early to prevent overlap
-    """
-    task_logger.info(f"monitor_vespa_sync starting: tenant={tenant_id}")
-
-    time_start = time.monotonic()
-
-    r = get_redis_client(tenant_id=tenant_id)
-
-    # Replica usage notes
-    #
-    # False negatives are OK. (aka fail to to see a key that exists on the master).
-    # We simply skip the monitoring work and it will be caught on the next pass.
-    #
-    # False positives are not OK, and are possible if we clear a fence on the master and
-    # then read from the replica. In this case, monitoring work could be done on a fence
-    # that no longer exists. To avoid this, we scan from the replica, but double check
-    # the result on the master.
-    r_replica = get_redis_replica_client(tenant_id=tenant_id)
-
-    lock_beat: RedisLock = r.lock(
-        OnyxRedisLocks.MONITOR_VESPA_SYNC_BEAT_LOCK,
-        timeout=CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT,
-    )
-
-    # prevent overlapping tasks
-    if not lock_beat.acquire(blocking=False):
-        return None
-
-    try:
-        # print current queue lengths
-        time.monotonic()
-        # we don't need every tenant polling redis for this info.
-        if not MULTI_TENANT or random.randint(1, 10) == 10:
-            r_celery = self.app.broker_connection().channel().client  # type: ignore
-            n_celery = celery_get_queue_length("celery", r_celery)
-            n_indexing = celery_get_queue_length(
-                OnyxCeleryQueues.CONNECTOR_INDEXING, r_celery
-            )
-            n_sync = celery_get_queue_length(
-                OnyxCeleryQueues.VESPA_METADATA_SYNC, r_celery
-            )
-            n_deletion = celery_get_queue_length(
-                OnyxCeleryQueues.CONNECTOR_DELETION, r_celery
-            )
-            n_pruning = celery_get_queue_length(
-                OnyxCeleryQueues.CONNECTOR_PRUNING, r_celery
-            )
-            n_permissions_sync = celery_get_queue_length(
-                OnyxCeleryQueues.CONNECTOR_DOC_PERMISSIONS_SYNC, r_celery
-            )
-            n_external_group_sync = celery_get_queue_length(
-                OnyxCeleryQueues.CONNECTOR_EXTERNAL_GROUP_SYNC, r_celery
-            )
-            n_permissions_upsert = celery_get_queue_length(
-                OnyxCeleryQueues.DOC_PERMISSIONS_UPSERT, r_celery
-            )
-
-            prefetched = celery_get_unacked_task_ids(
-                OnyxCeleryQueues.CONNECTOR_INDEXING, r_celery
-            )
-
-            task_logger.info(
-                f"Queue lengths: celery={n_celery} "
-                f"indexing={n_indexing} "
-                f"indexing_prefetched={len(prefetched)} "
-                f"sync={n_sync} "
-                f"deletion={n_deletion} "
-                f"pruning={n_pruning} "
-                f"permissions_sync={n_permissions_sync} "
-                f"external_group_sync={n_external_group_sync} "
-                f"permissions_upsert={n_permissions_upsert} "
-            )
-
-        # we want to run this less frequently than the overall task
-        if not r.exists(OnyxRedisSignals.BLOCK_BUILD_FENCE_LOOKUP_TABLE):
-            # build a lookup table of existing fences
-            # this is just a migration concern and should be unnecessary once
-            # lookup tables are rolled out
-            for key_bytes in r_replica.scan_iter(count=SCAN_ITER_COUNT_DEFAULT):
-                if is_fence(key_bytes) and not r.sismember(
-                    OnyxRedisConstants.ACTIVE_FENCES, key_bytes
-                ):
-                    logger.warning(f"Adding {key_bytes} to the lookup table.")
-                    r.sadd(OnyxRedisConstants.ACTIVE_FENCES, key_bytes)
-
-            r.set(OnyxRedisSignals.BLOCK_BUILD_FENCE_LOOKUP_TABLE, 1, ex=300)
-    except SoftTimeLimitExceeded:
-        task_logger.info(
-            "Soft time limit exceeded, task is being terminated gracefully."
-        )
-        return False
-    except Exception:
-        task_logger.exception("monitor_vespa_sync exceptioned.")
-        return False
-    finally:
-        if lock_beat.owned():
-            lock_beat.release()
-        else:
-            task_logger.error(
-                "monitor_vespa_sync - Lock not owned on completion: "
-                f"tenant={tenant_id}"
-                # f"timings={timings}"
-            )
-            redis_lock_dump(lock_beat, r)
-
-    time_elapsed = time.monotonic() - time_start
-    task_logger.info(f"monitor_vespa_sync finished: elapsed={time_elapsed:.2f}")
-    return True
-
-
-@shared_task(
     name=OnyxCeleryTask.VESPA_METADATA_SYNC_TASK,
     bind=True,
     soft_time_limit=LIGHT_SOFT_TIME_LIMIT,
@@ -743,23 +601,3 @@ def vespa_metadata_sync_task(
         self.retry(exc=e, countdown=countdown)
 
     return True
-
-
-def is_fence(key_bytes: bytes) -> bool:
-    key_str = key_bytes.decode("utf-8")
-    if key_str == RedisGlobalConnectorCredentialPair.FENCE_KEY:
-        return True
-    if key_str.startswith(RedisDocumentSet.FENCE_PREFIX):
-        return True
-    if key_str.startswith(RedisUserGroup.FENCE_PREFIX):
-        return True
-    if key_str.startswith(RedisConnectorDelete.FENCE_PREFIX):
-        return True
-    if key_str.startswith(RedisConnectorPrune.FENCE_PREFIX):
-        return True
-    if key_str.startswith(RedisConnectorIndex.FENCE_PREFIX):
-        return True
-    if key_str.startswith(RedisConnectorPermissionSync.FENCE_PREFIX):
-        return True
-
-    return False

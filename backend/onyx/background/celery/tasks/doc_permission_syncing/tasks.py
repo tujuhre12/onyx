@@ -773,7 +773,7 @@ class PermissionSyncCallback(IndexingHeartbeatInterface):
             raise
 
 
-"""Monitoring CCPair permissions utils, called in monitor_vespa_sync"""
+"""Monitoring CCPair permissions utils"""
 
 
 def monitor_ccpair_permissions_taskset(

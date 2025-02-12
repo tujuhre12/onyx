@@ -63,15 +63,6 @@ beat_task_templates.extend(
             },
         },
         {
-            "name": "monitor-vespa-sync",
-            "task": OnyxCeleryTask.MONITOR_VESPA_SYNC,
-            "schedule": timedelta(seconds=5),
-            "options": {
-                "priority": OnyxCeleryPriority.MEDIUM,
-                "expires": BEAT_EXPIRES_DEFAULT,
-            },
-        },
-        {
             "name": "check-for-doc-permissions-sync",
             "task": OnyxCeleryTask.CHECK_FOR_DOC_PERMISSIONS_SYNC,
             "schedule": timedelta(seconds=30),
@@ -141,15 +132,25 @@ def make_cloud_generator_task(task: dict[str, Any]) -> dict[str, Any]:
     return cloud_task
 
 
-# tasks that only run in the cloud
+# tasks that only run in the cloud and are system wide
 # the name attribute must start with ONYX_CLOUD_CELERY_TASK_PREFIX = "cloud" to be seen
 # by the DynamicTenantScheduler as system wide task and not a per tenant task
-beat_system_tasks: list[dict] = [
+beat_cloud_tasks: list[dict] = [
     # cloud specific tasks
     {
-        "name": f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check-alembic",
-        "task": OnyxCeleryTask.CLOUD_CHECK_ALEMBIC,
+        "name": f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_monitor-alembic",
+        "task": OnyxCeleryTask.CLOUD_MONITOR_ALEMBIC,
         "schedule": timedelta(hours=1),
+        "options": {
+            "queue": OnyxCeleryQueues.MONITORING,
+            "priority": OnyxCeleryPriority.HIGH,
+            "expires": BEAT_EXPIRES_DEFAULT,
+        },
+    },
+    {
+        "name": f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_monitor-celery-queues",
+        "task": OnyxCeleryTask.MONITOR_CELERY_QUEUES,
+        "schedule": timedelta(seconds=60),
         "options": {
             "queue": OnyxCeleryQueues.MONITORING,
             "priority": OnyxCeleryPriority.HIGH,
@@ -158,9 +159,25 @@ beat_system_tasks: list[dict] = [
     },
 ]
 
+# tasks that only run self hosted
 tasks_to_schedule: list[dict] = []
 if not MULTI_TENANT:
-    tasks_to_schedule = beat_task_templates
+    tasks_to_schedule.extend(
+        [
+            {
+                "name": "monitor-celery-queues",
+                "task": OnyxCeleryTask.MONITOR_CELERY_QUEUES,
+                "schedule": timedelta(seconds=10),
+                "options": {
+                    "priority": OnyxCeleryPriority.MEDIUM,
+                    "expires": BEAT_EXPIRES_DEFAULT,
+                    "queue": OnyxCeleryQueues.MONITORING,
+                },
+            },
+        ]
+    )
+
+    tasks_to_schedule.extend(beat_task_templates)
 
 
 def generate_cloud_tasks(
@@ -196,7 +213,7 @@ def generate_cloud_tasks(
 
 
 def get_cloud_tasks_to_schedule(beat_multiplier: float) -> list[dict[str, Any]]:
-    return generate_cloud_tasks(beat_system_tasks, beat_task_templates, beat_multiplier)
+    return generate_cloud_tasks(beat_cloud_tasks, beat_task_templates, beat_multiplier)
 
 
 def get_tasks_to_schedule() -> list[dict[str, Any]]:
