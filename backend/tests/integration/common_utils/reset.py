@@ -87,6 +87,16 @@ def downgrade_postgres(
         conn.autocommit = True  # Need autocommit for dropping schema
         cur = conn.cursor()
 
+        # Close any existing connections to the schema before dropping
+        cur.execute(
+            f"""
+            SELECT pg_terminate_backend(pg_stat_activity.pid)
+            FROM pg_stat_activity
+            WHERE pg_stat_activity.datname = '{database}'
+            AND pid <> pg_backend_pid();
+        """
+        )
+
         # Drop and recreate the public schema - this removes ALL objects
         cur.execute(f"DROP SCHEMA {schema} CASCADE;")
         cur.execute(f"CREATE SCHEMA {schema};")
