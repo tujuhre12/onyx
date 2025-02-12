@@ -28,6 +28,7 @@ import { WebVitals } from "./web-vitals";
 import { ThemeProvider } from "next-themes";
 import CloudError from "@/components/errorPages/CloudErrorPage";
 import Error from "@/components/errorPages/ErrorPage";
+import AccessRestrictedPage from "@/components/errorPages/AccessRestrictedPage";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -130,37 +131,13 @@ export default async function RootLayout({
     </html>
   );
 
+  if (productGating === GatingType.FULL) {
+    return getPageContent(<AccessRestrictedPage />);
+  }
+
   if (!combinedSettings) {
     return getPageContent(
       NEXT_PUBLIC_CLOUD_ENABLED ? <CloudError /> : <Error />
-    );
-  }
-
-  if (productGating === GatingType.FULL) {
-    return getPageContent(
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="mb-2 flex items-center max-w-[175px]">
-          <LogoType />
-        </div>
-        <CardSection className="w-full max-w-md">
-          <h1 className="text-2xl font-bold mb-4 text-error">
-            Access Restricted
-          </h1>
-          <p className="text-text-500 mb-4">
-            We regret to inform you that your access to Onyx has been
-            temporarily suspended due to a lapse in your subscription.
-          </p>
-          <p className="text-text-500 mb-4">
-            To reinstate your access and continue benefiting from Onyx&apos;s
-            powerful features, please update your payment information.
-          </p>
-          <p className="text-text-500">
-            If you&apos;re an admin, you can resolve this by visiting the
-            billing section. For other users, please reach out to your
-            administrator to address this matter.
-          </p>
-        </CardSection>
-      </div>
     );
   }
 

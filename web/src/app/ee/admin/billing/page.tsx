@@ -5,8 +5,8 @@ import { MdOutlineCreditCard } from "react-icons/md";
 export interface BillingInformation {
   seats: number;
   subscription_status: string;
-  billing_start: Date;
-  billing_end: Date;
+  billing_start: Date | null;
+  billing_end: Date | null;
   payment_method_enabled: boolean;
 }
 

@@ -2277,8 +2277,6 @@ export function ChatPage({
                 bg-opacity-80
                 duration-300
                 ease-in-out
-
-                
                 ${
                   !untoggled && (showHistorySidebar || sidebarVisible)
                     ? "opacity-100 w-[250px] translate-x-0"

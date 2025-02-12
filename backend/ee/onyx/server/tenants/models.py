@@ -22,8 +22,8 @@ class ProductGatingRequest(BaseModel):
 class BillingInformation(BaseModel):
     seats: int
     subscription_status: str
-    billing_start: str
-    billing_end: str
+    billing_start: str | None
+    billing_end: str | None
     payment_method_enabled: bool
 
 
