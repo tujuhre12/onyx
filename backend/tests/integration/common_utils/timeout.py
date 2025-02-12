@@ -1,4 +1,4 @@
-import concurrent.futures
+import multiprocessing
 from collections.abc import Callable
 from typing import TypeVar
 
@@ -6,11 +6,12 @@ T = TypeVar("T")
 
 
 def run_with_timeout(task: Callable[[], T], timeout: int) -> T:
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(task)
+    # Use multiprocessing to prevent a thread from blocking the main thread
+    with multiprocessing.Pool(processes=1) as pool:
+        async_result = pool.apply_async(task)
         try:
-            # Wait at most 5 seconds for the function to complete
-            result = future.result(timeout=timeout)
+            # Wait at most timeout seconds for the function to complete
+            result = async_result.get(timeout=timeout)
             return result
-        except concurrent.futures.TimeoutError:
+        except multiprocessing.TimeoutError:
             raise TimeoutError(f"Function timed out after {timeout} seconds")
