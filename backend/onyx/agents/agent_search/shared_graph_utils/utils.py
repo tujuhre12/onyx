@@ -341,8 +341,10 @@ def retrieve_search_docs(
     with get_session_context_manager() as db_session:
         for tool_response in search_tool.run(
             query=question,
-            force_no_rerank=True,
-            alternate_db_session=db_session,
+            override_kwargs={
+                "force_no_rerank": True,
+                "alternate_db_session": db_session,
+            },
         ):
             # get retrieved docs to send to the rest of the graph
             if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:

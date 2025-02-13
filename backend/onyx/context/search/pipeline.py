@@ -51,6 +51,7 @@ class SearchPipeline:
         user: User | None,
         llm: LLM,
         fast_llm: LLM,
+        skip_query_analysis: bool,
         db_session: Session,
         bypass_acl: bool = False,  # NOTE: VERY DANGEROUS, USE WITH CAUTION
         retrieval_metrics_callback: (
@@ -67,6 +68,7 @@ class SearchPipeline:
         self.user = user
         self.llm = llm
         self.fast_llm = fast_llm
+        self.skip_query_analysis = skip_query_analysis
         self.db_session = db_session
         self.bypass_acl = bypass_acl
         self.retrieval_metrics_callback = retrieval_metrics_callback
@@ -108,6 +110,7 @@ class SearchPipeline:
             search_request=self.search_request,
             user=self.user,
             llm=self.llm,
+            skip_query_analysis=self.skip_query_analysis,
             db_session=self.db_session,
             bypass_acl=self.bypass_acl,
         )

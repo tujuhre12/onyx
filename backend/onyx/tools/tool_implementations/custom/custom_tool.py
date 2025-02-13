@@ -235,7 +235,13 @@ class CustomTool(BaseTool):
 
     """Actual execution of the tool"""
 
-    def run(self, **kwargs: Any) -> Generator[ToolResponse, None, None]:
+    def run(
+        self, override_kwargs: dict[str, Any] | None = None, **kwargs: Any
+    ) -> Generator[ToolResponse, None, None]:
+        assert (
+            override_kwargs is None
+        )  # override_kwargs is not supported for custom tools
+
         request_body = kwargs.get(REQUEST_BODY)
 
         path_params = {}

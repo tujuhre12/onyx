@@ -242,7 +242,13 @@ class InternetSearchTool(Tool):
             ],
         )
 
-    def run(self, **kwargs: str) -> Generator[ToolResponse, None, None]:
+    def run(
+        self, override_kwargs: dict[str, Any] | None = None, **kwargs: str
+    ) -> Generator[ToolResponse, None, None]:
+        assert (
+            override_kwargs is None
+        )  # override_kwargs is not supported for internet search tools
+
         query = cast(str, kwargs["internet_search_query"])
 
         results = self._perform_search(query)

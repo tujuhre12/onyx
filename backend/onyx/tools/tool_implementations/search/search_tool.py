@@ -275,14 +275,28 @@ class SearchTool(Tool):
 
         yield ToolResponse(id=FINAL_CONTEXT_DOCUMENTS_ID, response=llm_docs)
 
-    def run(self, **kwargs: Any) -> Generator[ToolResponse, None, None]:
-        query = cast(str, kwargs["query"])
-        force_no_rerank = cast(bool, kwargs.get("force_no_rerank", False))
-        alternate_db_session = cast(Session, kwargs.get("alternate_db_session", None))
-        retrieved_sections_callback = cast(
-            Callable[[list[InferenceSection]], None],
-            kwargs.get("retrieved_sections_callback"),
-        )
+    def run(
+        self, override_kwargs: dict[str, Any] | None = None, **llm_kwargs: Any
+    ) -> Generator[ToolResponse, None, None]:
+        query = cast(str, llm_kwargs["query"])
+        force_no_rerank = False
+        alternate_db_session = None
+        retrieved_sections_callback = None
+        skip_query_analysis = False
+        if override_kwargs:
+            force_no_rerank = cast(bool, override_kwargs.get("force_no_rerank", False))
+            alternate_db_session = cast(
+                Session, override_kwargs.get("alternate_db_session")
+            )
+            retrieved_sections_callback = cast(
+                Callable[[list[InferenceSection]], None],
+                override_kwargs.get("retrieved_sections_callback"),
+            )
+            # TODO the main flow (user provided query) should pass through this
+            # The other ones (expanded queries) should not do query analysis, they're all "semantic"
+            skip_query_analysis = cast(
+                bool, override_kwargs.get("skip_query_analysis", False)
+            )
 
         if self.selected_sections:
             yield from self._build_response_for_specified_sections(query)
@@ -324,6 +338,7 @@ class SearchTool(Tool):
             user=self.user,
             llm=self.llm,
             fast_llm=self.fast_llm,
+            skip_query_analysis=skip_query_analysis,
             bypass_acl=self.bypass_acl,
             db_session=alternate_db_session or self.db_session,
             prompt_config=self.prompt_config,

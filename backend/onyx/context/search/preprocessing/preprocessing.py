@@ -50,11 +50,11 @@ def retrieval_preprocessing(
     search_request: SearchRequest,
     user: User | None,
     llm: LLM,
+    skip_query_analysis: bool,
     db_session: Session,
-    bypass_acl: bool = False,
-    skip_query_analysis: bool = False,
-    base_recency_decay: float = BASE_RECENCY_DECAY,
     favor_recent_decay_multiplier: float = FAVOR_RECENT_DECAY_MULTIPLIER,
+    base_recency_decay: float = BASE_RECENCY_DECAY,
+    bypass_acl: bool = False,
 ) -> SearchQuery:
     """Logic is as follows:
     Any global disables apply first

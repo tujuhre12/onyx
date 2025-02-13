@@ -255,7 +255,13 @@ class ImageGenerationTool(Tool):
                 "An error occurred during image generation. Please try again later."
             )
 
-    def run(self, **kwargs: str) -> Generator[ToolResponse, None, None]:
+    def run(
+        self, override_kwargs: dict[str, Any] | None = None, **kwargs: str
+    ) -> Generator[ToolResponse, None, None]:
+        assert (
+            override_kwargs is None
+        )  # override_kwargs is not supported for image generation tools
+
         prompt = cast(str, kwargs["prompt"])
         shape = ImageShape(kwargs.get("shape", ImageShape.SQUARE))
         format = self.output_format
