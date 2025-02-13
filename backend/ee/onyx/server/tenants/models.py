@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from onyx.server.settings.models import GatingType
+from onyx.server.settings.models import ApplicationStatus
 
 
 class CheckoutSessionCreationRequest(BaseModel):
@@ -16,7 +16,11 @@ class CreateTenantRequest(BaseModel):
 
 class ProductGatingRequest(BaseModel):
     tenant_id: str
-    product_gating: GatingType
+    application_status: ApplicationStatus
+
+
+class SubscriptionStatusResponse(BaseModel):
+    subscribed: bool
 
 
 class BillingInformation(BaseModel):
@@ -54,3 +58,8 @@ class TenantDeletionPayload(BaseModel):
 
 class AnonymousUserPath(BaseModel):
     anonymous_user_path: str | None
+
+
+class ProductGatingResponse(BaseModel):
+    updated: bool
+    error: str | None

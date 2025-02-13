@@ -13,7 +13,10 @@ import {
 import { Metadata } from "next";
 import { buildClientUrl } from "@/lib/utilsSS";
 import { Inter } from "next/font/google";
-import { EnterpriseSettings, GatingType } from "./admin/settings/interfaces";
+import {
+  EnterpriseSettings,
+  ApplicationStatus,
+} from "./admin/settings/interfaces";
 import { fetchAssistantData } from "@/lib/chat/fetchAssistantdata";
 import { AppProvider } from "@/components/context/AppProvider";
 import { PHProvider } from "./providers";
@@ -76,8 +79,9 @@ export default async function RootLayout({
   ]);
 
   const productGating =
-    combinedSettings?.settings.product_gating ?? GatingType.NONE;
+    combinedSettings?.settings.application_status ?? ApplicationStatus.ACTIVE;
 
+  // console.warn(productGating);
   const getPageContent = async (content: React.ReactNode) => (
     <html
       lang="en"
@@ -131,7 +135,7 @@ export default async function RootLayout({
     </html>
   );
 
-  if (productGating === GatingType.FULL) {
+  if (productGating === ApplicationStatus.GATED_ACCESS) {
     return getPageContent(<AccessRestrictedPage />);
   }
 

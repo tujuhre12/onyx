@@ -1,7 +1,7 @@
 import {
   CombinedSettings,
   EnterpriseSettings,
-  GatingType,
+  ApplicationStatus,
   Settings,
 } from "@/app/admin/settings/interfaces";
 import {
@@ -45,7 +45,7 @@ export async function fetchSettingsSS(): Promise<CombinedSettings | null> {
       if (results[0].status === 403 || results[0].status === 401) {
         settings = {
           auto_scroll: true,
-          product_gating: GatingType.NONE,
+          product_gating: ApplicationStatus.NONE,
           gpu_enabled: false,
           maximum_chat_retention_days: null,
           notifications: [],

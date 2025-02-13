@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from ee.onyx.auth.users import current_cloud_superuser
 from ee.onyx.auth.users import generate_anonymous_user_jwt_token
 from ee.onyx.configs.app_configs import ANONYMOUS_USER_COOKIE_NAME
+from ee.onyx.configs.app_configs import STRIPE_SECRET_KEY
 from ee.onyx.server.tenants.access import control_plane_dep
 from ee.onyx.server.tenants.anonymous_user_path import get_anonymous_user_path
 from ee.onyx.server.tenants.anonymous_user_path import (
@@ -23,6 +24,8 @@ from ee.onyx.server.tenants.models import AnonymousUserPath
 from ee.onyx.server.tenants.models import BillingInformation
 from ee.onyx.server.tenants.models import ImpersonateRequest
 from ee.onyx.server.tenants.models import ProductGatingRequest
+from ee.onyx.server.tenants.models import ProductGatingResponse
+from ee.onyx.server.tenants.models import SubscriptionStatusResponse
 from ee.onyx.server.tenants.provisioning import delete_user_from_control_plane
 from ee.onyx.server.tenants.user_mapping import get_tenant_id_for_email
 from ee.onyx.server.tenants.user_mapping import remove_all_users_from_tenant
@@ -33,14 +36,12 @@ from onyx.auth.users import current_admin_user
 from onyx.auth.users import get_redis_strategy
 from onyx.auth.users import optional_user
 from onyx.auth.users import User
-from onyx.configs.app_configs import STRIPE_SECRET_KEY
 from onyx.configs.app_configs import WEB_DOMAIN
 from onyx.configs.constants import FASTAPI_USERS_AUTH_COOKIE_NAME
 from onyx.db.auth import get_user_count
 from onyx.db.engine import get_current_tenant_id
 from onyx.db.engine import get_session
 from onyx.db.engine import get_session_with_tenant
-from onyx.db.notification import create_notification
 from onyx.db.users import delete_user_from_db
 from onyx.db.users import get_user_by_email
 from onyx.server.manage.models import UserByEmail
@@ -127,7 +128,7 @@ async def login_as_anonymous_user(
 @router.post("/product-gating")
 def gate_product(
     product_gating_request: ProductGatingRequest, _: None = Depends(control_plane_dep)
-) -> None:
+) -> ProductGatingResponse:
     """
     Gating the product means that the product is not available to the tenant.
     They will be directed to the billing page.
@@ -135,29 +136,30 @@ def gate_product(
     1) User has ended free trial without adding payment method
     2) User's card has declined
     """
-    tenant_id = product_gating_request.tenant_id
-    token = CURRENT_TENANT_ID_CONTEXTVAR.set(tenant_id)
+    try:
+        tenant_id = product_gating_request.tenant_id
+        token = CURRENT_TENANT_ID_CONTEXTVAR.set(tenant_id)
 
-    settings = load_settings()
-    settings.product_gating = product_gating_request.product_gating
-    store_settings(settings)
+        settings = load_settings()
+        settings.application_status = product_gating_request.application_status
+        store_settings(settings)
 
-    if product_gating_request.notification:
-        with get_session_with_tenant(tenant_id) as db_session:
-            create_notification(None, product_gating_request.notification, db_session)
+        if token is not None:
+            CURRENT_TENANT_ID_CONTEXTVAR.reset(token)
 
-    if token is not None:
-        CURRENT_TENANT_ID_CONTEXTVAR.reset(token)
+        return ProductGatingResponse(updated=True, error=None)
+
+    except Exception as e:
+        logger.exception("Failed to gate product")
+        return ProductGatingResponse(updated=False, error=str(e))
 
 
 @router.get("/billing-information")
 async def billing_information(
     _: User = Depends(current_admin_user),
-) -> BillingInformation:
+) -> BillingInformation | SubscriptionStatusResponse:
     logger.info("Fetching billing information")
-    return BillingInformation(
-        **fetch_billing_information(CURRENT_TENANT_ID_CONTEXTVAR.get())
-    )
+    return fetch_billing_information(CURRENT_TENANT_ID_CONTEXTVAR.get())
 
 
 @router.post("/create-customer-portal-session")
@@ -171,7 +173,6 @@ async def create_customer_portal_session(_: User = Depends(current_admin_user)) 
             raise HTTPException(status_code=400, detail="Stripe customer ID not found")
         logger.info(stripe_customer_id)
 
-        print("CREATING CUSTOMER PORTAL SESSION for ", stripe_customer_id)
         portal_session = stripe.billing_portal.Session.create(
             customer=stripe_customer_id,
             return_url=f"{WEB_DOMAIN}/admin/billing",
