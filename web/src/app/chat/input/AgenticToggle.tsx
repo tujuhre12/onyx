@@ -86,10 +86,11 @@ export function AgenticToggle({
         </TooltipTrigger>
         <TooltipContent
           side="top"
-          className="w-72 p-4 bg-white rounded-lg shadow-lg border border-background-200 dark:border-neutral-900"
+          width="w-72"
+          className="p-4 bg-white rounded-lg shadow-lg border border-background-200 dark:border-neutral-900"
         >
           <div className="flex items-center space-x-2 mb-3">
-            <h3 className="text-sm font-semibold text-text-900">
+            <h3 className="text-sm font-semibold text-neutral-900">
               Agent Search (BETA)
             </h3>
           </div>
