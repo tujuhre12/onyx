@@ -78,7 +78,7 @@ HINT: if you are unfamiliar with the user input OR think the user input is a typ
 """
 
 
-class SearchTool(Tool):
+class SearchTool(Tool[SearchToolOverrideKwargs]):
     _NAME = "run_search"
     _DISPLAY_NAME = "Search Tool"
     _DESCRIPTION = SEARCH_TOOL_DESCRIPTION

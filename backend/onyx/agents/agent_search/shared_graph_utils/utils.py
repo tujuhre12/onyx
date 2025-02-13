@@ -58,6 +58,7 @@ from onyx.prompts.agent_search import (
 )
 from onyx.prompts.prompt_utils import handle_onyx_date_awareness
 from onyx.tools.force import ForceUseTool
+from onyx.tools.models import SearchToolOverrideKwargs
 from onyx.tools.tool_constructor import SearchToolConfig
 from onyx.tools.tool_implementations.search.search_tool import (
     SEARCH_RESPONSE_SUMMARY_ID,
@@ -344,10 +345,12 @@ def retrieve_search_docs(
     with get_session_context_manager() as db_session:
         for tool_response in search_tool.run(
             query=question,
-            override_kwargs={
-                "force_no_rerank": True,
-                "alternate_db_session": db_session,
-            },
+            override_kwargs=SearchToolOverrideKwargs(
+                force_no_rerank=True,
+                alternate_db_session=db_session,
+                retrieved_sections_callback=None,
+                skip_query_analysis=False,
+            ),
         ):
             # get retrieved docs to send to the rest of the graph
             if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
