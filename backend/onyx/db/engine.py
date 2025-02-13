@@ -207,6 +207,7 @@ class SqlEngine:
             final_engine_kwargs["pool_pre_ping"] = POSTGRES_POOL_PRE_PING
             final_engine_kwargs["pool_recycle"] = POSTGRES_POOL_RECYCLE
 
+        logger.info(f"Creating engine with kwargs: {final_engine_kwargs}")
         engine = create_engine(connection_string, **final_engine_kwargs)
 
         if USE_IAM_AUTH:
