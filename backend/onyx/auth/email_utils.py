@@ -12,7 +12,6 @@ from onyx.configs.app_configs import SMTP_USER
 from onyx.configs.app_configs import WEB_DOMAIN
 from onyx.configs.constants import TENANT_ID_COOKIE_NAME
 from onyx.db.models import User
-from shared_configs.configs import MULTI_TENANT
 
 HTML_EMAIL_TEMPLATE = """\
 <!DOCTYPE html>
@@ -32,6 +31,9 @@ HTML_EMAIL_TEMPLATE = """\
     }}
     body {{
       background-color: #f7f7f7;
+      color: #333;
+    }}
+    .body-content {{
       color: #333;
     }}
     .email-container {{
@@ -75,7 +77,7 @@ HTML_EMAIL_TEMPLATE = """\
     }}
     .footer {{
       font-size: 13px;
-      color: #6b7280;
+      color: #6A7280;
       text-align: center;
       padding: 20px;
     }}
@@ -89,7 +91,11 @@ HTML_EMAIL_TEMPLATE = """\
   <table role="presentation" class="email-container" cellpadding="0" cellspacing="0">
     <tr>
       <td class="header">
-        <img style="background-color: #ffffff;" src="https://www.onyx.app/logos/customer/onyx.png" alt="Onyx Logo">
+        <img
+          style="background-color: #ffffff; border-radius: 8px;"
+          src="https://www.onyx.app/logos/customer/onyx.png"
+          alt="Onyx Logo"
+        >
       </td>
     </tr>
     <tr>
@@ -105,8 +111,7 @@ HTML_EMAIL_TEMPLATE = """\
       <td class="footer">
         © {year} Onyx. All rights reserved.
         <br>
-        If you have any questions, reach out to
-        <a href="mailto:support@onyx.app">support@onyx.app</a>.
+        Have questions? Join our Slack community <a href="https://join.slack.com/t/onyx-dot-app/shared_invite/zt-2twesxdr6-5iQitKZQpgq~hYIZ~dv3KA">here</a>.
       </td>
     </tr>
   </table>
@@ -118,34 +123,27 @@ HTML_EMAIL_TEMPLATE = """\
 def build_html_email(
     heading: str, message: str, cta_text: str | None = None, cta_link: str | None = None
 ) -> str:
-    # Only build the fancy HTML if MULTI_TENANT is True
-    if MULTI_TENANT:
-        if cta_text and cta_link:
-            cta_block = f'<a class="cta-button" href="{cta_link}">{cta_text}</a>'
-        else:
-            cta_block = ""
-        return HTML_EMAIL_TEMPLATE.format(
-            title=heading,
-            heading=heading,
-            message=message,
-            cta_block=cta_block,
-            year=datetime.now().year,
-        )
+    if cta_text and cta_link:
+        cta_block = f'<a class="cta-button" href="{cta_link}">{cta_text}</a>'
     else:
-        # If MULTI_TENANT is False, just return the message as simple text
-        # We'll wrap it in minimal HTML so it won't break multipart
-        return f"<p>{message}</p>"
+        cta_block = ""
+    return HTML_EMAIL_TEMPLATE.format(
+        title=heading,
+        heading=heading,
+        message=message,
+        cta_block=cta_block,
+        year=datetime.now().year,
+    )
 
 
 def send_email(
     user_email: str,
     subject: str,
     html_body: str,
-    text_body: str = "",
+    text_body: str,
     mail_from: str = EMAIL_FROM,
 ) -> None:
     # Sends a multipart email. If MULTI_TENANT is True, html_body is used as HTML.
-    # If MULTI_TENANT is False, html_body won't have special formatting.
     if not EMAIL_CONFIGURED:
         raise ValueError("Email is not configured.")
 
@@ -154,9 +152,6 @@ def send_email(
     msg["To"] = user_email
     if mail_from:
         msg["From"] = mail_from
-
-    if not text_body:
-        text_body = "Please view this email in an HTML-compatible email client."
 
     part_text = MIMEText(text_body, "plain")
     part_html = MIMEText(html_body, "html")
@@ -194,9 +189,23 @@ def send_subscription_cancellation_email(user_email: str):
 
 
 def send_user_email_invite(user_email: str, current_user: User) -> None:
-    # Example that calls the subscription cancellation email (placeholder)
-    # Replace with your actual invite logic if needed
-    send_subscription_cancellation_email(user_email)
+    subject = "Invitation to Join Onyx Organization"
+    heading = "You've Been Invited!"
+    message = (
+        f"<p>You have been invited by {current_user.email} to join an organization on Onyx.</p>"
+        "<p>To join the organization, please click the button below to set a password "
+        "or login with Google and complete your registration.</p>"
+    )
+    cta_text = "Join Organization"
+    cta_link = f"{WEB_DOMAIN}/auth/signup?email={user_email}"
+    html_content = build_html_email(heading, message, cta_text, cta_link)
+    text_content = (
+        f"You have been invited by {current_user.email} to join an organization on Onyx.\n"
+        "To join the organization, please visit the following link:\n"
+        f"{WEB_DOMAIN}/auth/signup?email={user_email}\n"
+        "You'll be asked to set a password or login with Google to complete your registration."
+    )
+    send_email(user_email, subject, html_content, text_content)
 
 
 def send_forgot_password_email(
