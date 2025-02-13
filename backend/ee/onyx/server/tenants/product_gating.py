@@ -1,3 +1,5 @@
+from typing import cast
+
 from ee.onyx.configs.app_configs import GATED_TENANTS_KEY
 from onyx.configs.constants import ONYX_CLOUD_TENANT_ID
 from onyx.redis.redis_pool import get_redis_replica_client
@@ -45,4 +47,4 @@ def store_product_gating(tenant_id: str, application_status: ApplicationStatus) 
 
 def get_gated_tenants() -> set[str]:
     redis_client = get_redis_replica_client(tenant_id=ONYX_CLOUD_TENANT_ID)
-    return set(redis_client.smembers(GATED_TENANTS_KEY))
+    return cast(set[str], redis_client.smembers(GATED_TENANTS_KEY))
