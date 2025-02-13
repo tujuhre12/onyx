@@ -197,7 +197,7 @@ class SqlEngine:
         )
 
         # Start with base kwargs that are valid for all pool types
-        final_engine_kwargs = {**cls.DEFAULT_ENGINE_KWARGS, **engine_kwargs}
+        final_engine_kwargs = {**engine_kwargs}
 
         if POSTGRES_USE_NULL_POOL:
             final_engine_kwargs["poolclass"] = pool.NullPool
