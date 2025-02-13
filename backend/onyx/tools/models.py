@@ -66,6 +66,9 @@ class SearchToolOverrideKwargs(BaseModel):
     retrieved_sections_callback: Callable[[list[InferenceSection]], None] | None
     skip_query_analysis: bool
 
+    class Config:
+        arbitrary_types_allowed = True
+
 
 CHAT_SESSION_ID_PLACEHOLDER = "CHAT_SESSION_ID"
 MESSAGE_ID_PLACEHOLDER = "MESSAGE_ID"
