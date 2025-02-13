@@ -189,22 +189,25 @@ class SqlEngine:
     _engine: Engine | None = None
     _lock: threading.Lock = threading.Lock()
     _app_name: str = POSTGRES_UNKNOWN_APP_NAME
-    DEFAULT_ENGINE_KWARGS = {
-        "pool_size": 20,
-        "max_overflow": 5,
-        "pool_pre_ping": POSTGRES_POOL_PRE_PING,
-        "pool_recycle": POSTGRES_POOL_RECYCLE,
-    }
 
     @classmethod
     def _init_engine(cls, **engine_kwargs: Any) -> Engine:
         connection_string = build_connection_string(
             db_api=SYNC_DB_API, app_name=cls._app_name + "_sync", use_iam=USE_IAM_AUTH
         )
-        merged_kwargs = {**cls.DEFAULT_ENGINE_KWARGS, **engine_kwargs}
+
+        # Start with base kwargs that are valid for all pool types
+        final_engine_kwargs = {**cls.DEFAULT_ENGINE_KWARGS, **engine_kwargs}
+
         if POSTGRES_USE_NULL_POOL:
-            merged_kwargs["poolclass"] = pool.NullPool
-        engine = create_engine(connection_string, **merged_kwargs)
+            final_engine_kwargs["poolclass"] = pool.NullPool
+        else:
+            final_engine_kwargs["pool_size"] = 20
+            final_engine_kwargs["max_overflow"] = 5
+            final_engine_kwargs["pool_pre_ping"] = POSTGRES_POOL_PRE_PING
+            final_engine_kwargs["pool_recycle"] = POSTGRES_POOL_RECYCLE
+
+        engine = create_engine(connection_string, **final_engine_kwargs)
 
         if USE_IAM_AUTH:
             event.listen(engine, "do_connect", provide_iam_token)
@@ -303,14 +306,21 @@ def get_sqlalchemy_async_engine() -> AsyncEngine:
 
         connect_args["ssl"] = ssl_context
 
+        engine_kwargs = {
+            "connect_args": connect_args,
+            "pool_pre_ping": POSTGRES_POOL_PRE_PING,
+            "pool_recycle": POSTGRES_POOL_RECYCLE,
+        }
+
+        if POSTGRES_USE_NULL_POOL:
+            engine_kwargs["poolclass"] = pool.NullPool
+        else:
+            engine_kwargs["pool_size"] = POSTGRES_API_SERVER_POOL_SIZE
+            engine_kwargs["max_overflow"] = POSTGRES_API_SERVER_POOL_OVERFLOW
+
         _ASYNC_ENGINE = create_async_engine(
             connection_string,
-            connect_args=connect_args,
-            pool_size=POSTGRES_API_SERVER_POOL_SIZE,
-            max_overflow=POSTGRES_API_SERVER_POOL_OVERFLOW,
-            pool_pre_ping=POSTGRES_POOL_PRE_PING,
-            pool_recycle=POSTGRES_POOL_RECYCLE,
-            poolclass=pool.NullPool if POSTGRES_USE_NULL_POOL else None,
+            **engine_kwargs,
         )
 
         if USE_IAM_AUTH:
