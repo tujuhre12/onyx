@@ -27,6 +27,7 @@ from ee.onyx.server.tenants.models import ProductGatingRequest
 from ee.onyx.server.tenants.models import ProductGatingResponse
 from ee.onyx.server.tenants.models import SubscriptionSessionResponse
 from ee.onyx.server.tenants.models import SubscriptionStatusResponse
+from ee.onyx.server.tenants.product_gating import store_product_gating
 from ee.onyx.server.tenants.provisioning import delete_user_from_control_plane
 from ee.onyx.server.tenants.user_mapping import get_tenant_id_for_email
 from ee.onyx.server.tenants.user_mapping import remove_all_users_from_tenant
@@ -46,8 +47,6 @@ from onyx.db.engine import get_session_with_tenant
 from onyx.db.users import delete_user_from_db
 from onyx.db.users import get_user_by_email
 from onyx.server.manage.models import UserByEmail
-from onyx.server.settings.store import load_settings
-from onyx.server.settings.store import store_settings
 from onyx.utils.logger import setup_logger
 from shared_configs.contextvars import CURRENT_TENANT_ID_CONTEXTVAR
 
@@ -133,21 +132,12 @@ def gate_product(
     """
     Gating the product means that the product is not available to the tenant.
     They will be directed to the billing page.
-    We gate the product when
-    1) User has ended free trial without adding payment method
-    2) User's card has declined
+    We gate the product when their subscription has ended.
     """
     try:
-        tenant_id = product_gating_request.tenant_id
-        token = CURRENT_TENANT_ID_CONTEXTVAR.set(tenant_id)
-
-        settings = load_settings()
-        settings.application_status = product_gating_request.application_status
-        store_settings(settings)
-
-        if token is not None:
-            CURRENT_TENANT_ID_CONTEXTVAR.reset(token)
-
+        store_product_gating(
+            product_gating_request.tenant_id, product_gating_request.application_status
+        )
         return ProductGatingResponse(updated=True, error=None)
 
     except Exception as e:
