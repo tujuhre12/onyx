@@ -94,12 +94,12 @@ export function AgenticToggle({
               Agent Search (BETA)
             </h3>
           </div>
-          <p className="text-xs text-text-600 mb-2">
+          <p className="text-xs text-neutarl-600  dark:text-neutral-700 mb-2">
             Use AI agents to break down questions and run deep iterative
             research through promising pathways. Gives more thorough and
             accurate responses but takes slightly longer.
           </p>
-          <ul className="text-xs text-text-600 list-disc list-inside">
+          <ul className="text-xs text-text-600 dark:text-neutral-700 list-disc list-inside">
             <li>Improved accuracy of search results</li>
             <li>Less hallucinations</li>
             <li>More comprehensive answers</li>

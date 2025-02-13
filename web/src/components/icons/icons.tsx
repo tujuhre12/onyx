@@ -1394,12 +1394,25 @@ export const GoogleSitesIcon = ({
 }: IconProps) => (
   <LogoIcon size={size} className={className} src={googleSitesIcon} />
 );
-
 export const ZendeskIcon = ({
   size = 16,
   className = defaultTailwindCSS,
 }: IconProps) => (
-  <LogoIcon size={size} className={className} src={zendeskIcon} />
+  <div
+    className="rounded-full overflow-visible dark:overflow-hidden flex items-center justify-center dark:bg-[#fff]/90"
+    style={{ width: size, height: size }}
+  >
+    <LogoIcon
+      size={
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? size * 0.8
+          : size
+      }
+      className={`${className}`}
+      src={zendeskIcon}
+    />
+  </div>
 );
 
 export const DropboxIcon = ({
