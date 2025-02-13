@@ -143,7 +143,6 @@ def send_email(
     text_body: str,
     mail_from: str = EMAIL_FROM,
 ) -> None:
-    # Sends a multipart email. If MULTI_TENANT is True, html_body is used as HTML.
     if not EMAIL_CONFIGURED:
         raise ValueError("Email is not configured.")
 
