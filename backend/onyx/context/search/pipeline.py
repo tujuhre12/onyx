@@ -162,6 +162,12 @@ class SearchPipeline:
         that have a corresponding chunk.
 
         This step should be fast for any document index implementation.
+
+        Current implementation timing is approximately broken down in timing as:
+        - 200 ms to get the embedding of the query
+        - 15 ms to get chunks from the document index
+        - possibly more to get additional surrounding chunks
+        - possibly more for query expansion (multilingual)
         """
         if self._retrieved_sections is not None:
             return self._retrieved_sections
