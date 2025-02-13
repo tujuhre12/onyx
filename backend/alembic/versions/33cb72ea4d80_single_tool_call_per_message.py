@@ -22,14 +22,16 @@ def upgrade() -> None:
     op.execute(
         sa.text(
             """
-            DELETE FROM tool_call
-            WHERE id NOT IN (
-                SELECT MIN(id)
+            WITH MinIds AS (
+                SELECT MIN(id) as min_id
                 FROM tool_call
                 WHERE message_id IS NOT NULL
                 GROUP BY message_id
-            );
-        """
+            )
+            DELETE FROM tool_call
+            WHERE message_id IS NOT NULL
+            AND id NOT IN (SELECT min_id FROM MinIds);
+            """
         )
     )
 
