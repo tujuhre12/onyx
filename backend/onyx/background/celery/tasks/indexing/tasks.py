@@ -1,8 +1,10 @@
 import multiprocessing
 import os
 import time
+import traceback
 from datetime import datetime
 from datetime import timezone
+from enum import Enum
 from http import HTTPStatus
 from time import sleep
 from typing import Any
@@ -26,6 +28,7 @@ from onyx.background.celery.tasks.indexing.utils import get_unfenced_index_attem
 from onyx.background.celery.tasks.indexing.utils import IndexingCallback
 from onyx.background.celery.tasks.indexing.utils import try_creating_indexing_task
 from onyx.background.celery.tasks.indexing.utils import validate_indexing_fences
+from onyx.background.indexing.job_client import SimpleJob
 from onyx.background.indexing.job_client import SimpleJobClient
 from onyx.background.indexing.run_indexing import run_indexing_entrypoint
 from onyx.configs.app_configs import MANAGED_VESPA
@@ -67,8 +70,66 @@ from shared_configs.configs import INDEXING_MODEL_SERVER_PORT
 from shared_configs.configs import MULTI_TENANT
 from shared_configs.configs import SENTRY_DSN
 
-
 logger = setup_logger()
+
+
+class IndexingWatchdogTerminalStatus(str, Enum):
+    """The different statuses the watchdog can finish with"""
+
+    UNDEFINED = "undefined"
+    SUCCEEDED = "succeeded"
+    SPAWN_FAILED = "spawn_failed"  # connector spawn failed
+    CONNECTOR_EXCEPTIONED = "connector_exceptioned"  # the connector itself exceptioned
+    WATCHDOG_EXCEPTIONED = "watchdog_exceptioned"  # the watchdog exceptioned
+
+    # the watchdog received a termination signal
+    TERMINATED_BY_SIGNAL = "terminated_by_signal"
+
+    # the watchdog terminated the task due to no activity
+    TERMINATED_BY_ACTIVITY_TIMEOUT = "terminated_by_activity_timeout"
+
+
+class SimpleJobResult:
+    """The data we want to have when the watchdog finishes"""
+
+    def __init__(self) -> None:
+        self.status = IndexingWatchdogTerminalStatus.UNDEFINED
+        self.connector_source = None
+        self.exit_code = None
+        self.exception_str = None
+
+    status: IndexingWatchdogTerminalStatus
+    connector_source: str | None
+    exit_code: int | None
+    exception_str: str | None
+
+
+class ConnectorIndexingContext(BaseModel):
+    tenant_id: str | None
+    cc_pair_id: int
+    search_settings_id: int
+    index_attempt_id: int
+
+
+class ConnectorIndexingLogBuilder:
+    def __init__(self, ctx: ConnectorIndexingContext):
+        self.ctx = ctx
+
+    def build(self, msg: str, **kwargs: Any) -> str:
+        msg_final = (
+            f"{msg}: "
+            f"tenant_id={self.ctx.tenant_id} "
+            f"attempt={self.ctx.index_attempt_id} "
+            f"cc_pair={self.ctx.cc_pair_id} "
+            f"search_settings={self.ctx.search_settings_id}"
+        )
+
+        # Append extra keyword arguments in logfmt style
+        if kwargs:
+            extra_logfmt = " ".join(f"{key}={value}" for key, value in kwargs.items())
+            msg_final = f"{msg_final} {extra_logfmt}"
+
+        return msg_final
 
 
 def monitor_ccpair_indexing_taskset(
@@ -497,7 +558,6 @@ def connector_indexing_task(
         f"search_settings={search_settings_id}"
     )
 
-    # attempt_found = False
     n_final_progress: int | None = None
 
     # 20 is the documented default for httpx max_keepalive_connections
@@ -651,20 +711,6 @@ def connector_indexing_task(
             f"cc_pair={cc_pair_id} "
             f"search_settings={search_settings_id}"
         )
-        # if attempt_found:
-        #     try:
-        #         with get_session_with_tenant(tenant_id) as db_session:
-        #             mark_attempt_failed(
-        #                 index_attempt_id, db_session, failure_reason=str(e)
-        #             )
-        #     except Exception:
-        #         logger.exception(
-        #             "Indexing watchdog - transient exception looking up index attempt: "
-        #             f"attempt={index_attempt_id} "
-        #             f"tenant={tenant_id} "
-        #             f"cc_pair={cc_pair_id} "
-        #             f"search_settings={search_settings_id}"
-        #         )
 
         raise e
     finally:
@@ -679,71 +725,48 @@ def connector_indexing_task(
     return n_final_progress
 
 
-# def connector_indexing_task_wrapper(
-#     index_attempt_id: int,
-#     cc_pair_id: int,
-#     search_settings_id: int,
-#     tenant_id: str | None,
-#     is_ee: bool,
-# ) -> int | None:
-#     """Just wraps connector_indexing_task so we can log any exceptions before
-#     re-raising it."""
-#     result: int | None = None
+def process_job_result(
+    job: SimpleJob,
+    connector_source: str | None,
+    redis_connector_index: RedisConnectorIndex,
+    log_builder: ConnectorIndexingLogBuilder,
+) -> SimpleJobResult:
+    result = SimpleJobResult()
+    result.connector_source = connector_source
 
-#     try:
-#         result = connector_indexing_task(
-#             index_attempt_id,
-#             cc_pair_id,
-#             search_settings_id,
-#             tenant_id,
-#             is_ee,
-#         )
-#     except Exception:
-#         logger.exception(
-#             f"connector_indexing_task exceptioned: "
-#             f"tenant={tenant_id} "
-#             f"index_attempt={index_attempt_id} "
-#             f"cc_pair={cc_pair_id} "
-#             f"search_settings={search_settings_id}"
-#         )
+    if job.process:
+        result.exit_code = job.process.exitcode
 
-#         # There is a cloud related bug outside of our code
-#         # where spawned tasks return with an exit code of 1.
-#         # Unfortunately, exceptions also return with an exit code of 1,
-#         # so just raising an exception isn't informative
-#         # Exiting with 255 makes it possible to distinguish between normal exits
-#         # and exceptions.
-#         sys.exit(255)
+    if job.status != "error":
+        result.status = IndexingWatchdogTerminalStatus.SUCCEEDED
+        return result
 
-#     return result
+    ignore_exitcode = False
 
+    # In EKS, there is an edge case where successful tasks return exit
+    # code 1 in the cloud due to the set_spawn_method not sticking.
+    # We've since worked around this, but the following is a safe way to
+    # work around this issue. Basically, we ignore the job error state
+    # if the completion signal is OK.
+    status_int = redis_connector_index.get_completion()
+    if status_int:
+        status_enum = HTTPStatus(status_int)
+        if status_enum == HTTPStatus.OK:
+            ignore_exitcode = True
 
-class ConnectorIndexingContext(BaseModel):
-    tenant_id: str | None
-    cc_pair_id: int
-    search_settings_id: int
-    index_attempt_id: int
-
-
-class ConnectorIndexingLogBuilder:
-    def __init__(self, ctx: ConnectorIndexingContext):
-        self.ctx = ctx
-
-    def build(self, msg: str, **kwargs: Any) -> str:
-        msg_final = (
-            f"{msg}: "
-            f"tenant_id={self.ctx.tenant_id} "
-            f"attempt={self.ctx.index_attempt_id} "
-            f"cc_pair={self.ctx.cc_pair_id} "
-            f"search_settings={self.ctx.search_settings_id}"
+    if not ignore_exitcode:
+        result.status = IndexingWatchdogTerminalStatus.CONNECTOR_EXCEPTIONED
+        result.exception_str = job.exception()
+    else:
+        task_logger.warning(
+            log_builder.build(
+                "Indexing watchdog - spawned task has non-zero exit code "
+                "but completion signal is OK. Continuing...",
+                exit_code=str(result.exit_code),
+            )
         )
 
-        # Append extra keyword arguments in logfmt style
-        if kwargs:
-            extra_logfmt = " ".join(f"{key}={value}" for key, value in kwargs.items())
-            msg_final = f"{msg_final} {extra_logfmt}"
-
-        return msg_final
+    return result
 
 
 @shared_task(
@@ -759,7 +782,18 @@ def connector_indexing_proxy_task(
     search_settings_id: int,
     tenant_id: str | None,
 ) -> None:
-    """celery tasks are forked, but forking is unstable.  This proxies work to a spawned task."""
+    """celery out of process task execution strategy is pool=prefork, but it uses fork,
+    and forking is inherently unstable.
+
+    To work around this, we use pool=threads and proxy our work to a spawned task.
+
+    TODO(rkuo): refactor this so that there is a single return path where we canonically
+    log the result of running this function.
+    """
+    start = time.monotonic()
+
+    result = SimpleJobResult()
+
     ctx = ConnectorIndexingContext(
         tenant_id=tenant_id,
         cc_pair_id=cc_pair_id,
@@ -792,7 +826,14 @@ def connector_indexing_proxy_task(
     )
 
     if not job:
-        task_logger.info(log_builder.build("Indexing watchdog - spawn failed"))
+        result.status = IndexingWatchdogTerminalStatus.SPAWN_FAILED
+        task_logger.info(
+            log_builder.build(
+                "Indexing watchdog - finished",
+                status=str(result.status.value),
+                exit_code=str(result.exit_code),
+            )
+        )
         return
 
     task_logger.info(log_builder.build("Indexing watchdog - spawn succeeded"))
@@ -800,77 +841,82 @@ def connector_indexing_proxy_task(
     redis_connector = RedisConnector(tenant_id, cc_pair_id)
     redis_connector_index = redis_connector.new_index(search_settings_id)
 
-    while True:
-        sleep(5)
+    try:
+        with get_session_with_tenant(tenant_id) as db_session:
+            index_attempt = get_index_attempt(
+                db_session=db_session, index_attempt_id=index_attempt_id
+            )
+            if not index_attempt:
+                raise RuntimeError("Index attempt not found")
 
-        # renew watchdog signal (this has a shorter timeout than set_active)
-        redis_connector_index.set_watchdog(True)
-
-        # renew active signal
-        redis_connector_index.set_active()
-
-        # if the job is done, clean up and break
-        if job.done():
-            exit_code: int | None
-            try:
-                if job.status == "error":
-                    ignore_exitcode = False
-
-                    exit_code = None
-                    if job.process:
-                        exit_code = job.process.exitcode
-
-                    # In EKS, there is odd behavior where successful tasks return exit code 1 in the cloud
-                    # due to the set_spawn_method not sticking. We've since fixed this, but the following
-                    # is a safe workaround. We ignore the job error state if the completion signal is OK.
-                    status_int = redis_connector_index.get_completion()
-                    if status_int:
-                        status_enum = HTTPStatus(status_int)
-                        if status_enum == HTTPStatus.OK:
-                            ignore_exitcode = True
-
-                    if not ignore_exitcode:
-                        with get_session_with_tenant(tenant_id) as db_session:
-                            failure_reason = (
-                                f"Spawned task exceptioned: exit_code={exit_code}"
-                            )
-                            mark_attempt_failed(
-                                ctx.index_attempt_id,
-                                db_session,
-                                failure_reason=failure_reason,
-                                full_exception_trace=str(job.exception()),
-                            )
-
-                        raise RuntimeError(
-                            f"Spawned task exceptioned: "
-                            f"exit_code={exit_code} "
-                            f"traceback={job.exception()}"
-                        )
-
-                    task_logger.warning(
-                        log_builder.build(
-                            "Indexing watchdog - spawned task has non-zero exit code "
-                            "but completion signal is OK. Continuing...",
-                            exit_code=str(exit_code),
-                        )
-                    )
-            except Exception:
-                task_logger.exception(
-                    log_builder.build("Indexing watchdog - spawned task exceptioned")
-                )
-
-                raise
-            finally:
-                job.release()
-
-            break
-
-        # if a termination signal is detected, clean up and break
-        if self.request.id and redis_connector_index.terminating(self.request.id):
-            task_logger.warning(
-                log_builder.build("Indexing watchdog - termination signal detected")
+            result.connector_source = (
+                index_attempt.connector_credential_pair.connector.source.value
             )
 
+        while True:
+            sleep(5)
+
+            # renew watchdog signal (this has a shorter timeout than set_active)
+            redis_connector_index.set_watchdog(True)
+
+            # renew active signal
+            redis_connector_index.set_active()
+
+            # if the job is done, clean up and break
+            if job.done():
+                try:
+                    result = process_job_result(
+                        job, result.connector_source, redis_connector_index, log_builder
+                    )
+                except Exception:
+                    task_logger.exception(
+                        log_builder.build(
+                            "Indexing watchdog - spawned task exceptioned"
+                        )
+                    )
+                finally:
+                    job.release()
+                    break
+
+            # if a termination signal is detected, clean up and break
+            if self.request.id and redis_connector_index.terminating(self.request.id):
+                task_logger.warning(
+                    log_builder.build("Indexing watchdog - termination signal detected")
+                )
+
+                result.status = IndexingWatchdogTerminalStatus.TERMINATED_BY_SIGNAL
+                break
+
+            # if the spawned task is still running, restart the check once again
+            # if the index attempt is not in a finished status
+            try:
+                with get_session_with_tenant(tenant_id) as db_session:
+                    index_attempt = get_index_attempt(
+                        db_session=db_session, index_attempt_id=index_attempt_id
+                    )
+
+                    if not index_attempt:
+                        continue
+
+                    if not index_attempt.is_finished():
+                        continue
+            except Exception:
+                # if the DB exceptioned, just restart the check.
+                # polling the index attempt status doesn't need to be strongly consistent
+                task_logger.exception(
+                    log_builder.build(
+                        "Indexing watchdog - transient exception looking up index attempt"
+                    )
+                )
+                continue
+    except Exception:
+        result.status = IndexingWatchdogTerminalStatus.WATCHDOG_EXCEPTIONED
+        result.exception_str = traceback.format_exc()
+
+    elapsed = time.monotonic() - start
+    if result.exception_str is None:
+        # print without exception
+        if result.status == IndexingWatchdogTerminalStatus.TERMINATED_BY_SIGNAL:
             try:
                 with get_session_with_tenant(tenant_id) as db_session:
                     mark_attempt_canceled(
@@ -888,31 +934,46 @@ def connector_indexing_proxy_task(
                 )
 
             job.cancel()
-            break
 
-        # if the spawned task is still running, restart the check once again
-        # if the index attempt is not in a finished status
+        task_logger.info(
+            log_builder.build(
+                "Indexing watchdog - finished",
+                source=result.connector_source,
+                status=str(result.status.value),
+                exit_code=str(result.exit_code),
+                elapsed=f"{elapsed:.2f}s",
+            )
+        )
+    else:
+        # print with exception
         try:
             with get_session_with_tenant(tenant_id) as db_session:
-                index_attempt = get_index_attempt(
-                    db_session=db_session, index_attempt_id=index_attempt_id
+                failure_reason = (
+                    f"Spawned task exceptioned: exit_code={result.exit_code}"
                 )
-
-                if not index_attempt:
-                    continue
-
-                if not index_attempt.is_finished():
-                    continue
+                mark_attempt_failed(
+                    ctx.index_attempt_id,
+                    db_session,
+                    failure_reason=failure_reason,
+                    full_exception_trace=result.exception_str,
+                )
         except Exception:
-            # if the DB exceptioned, just restart the check.
-            # polling the index attempt status doesn't need to be strongly consistent
             task_logger.exception(
                 log_builder.build(
-                    "Indexing watchdog - transient exception looking up index attempt"
+                    "Indexing watchdog - transient exception marking index attempt as failed"
                 )
             )
-            continue
+
+        task_logger.warning(
+            log_builder.build(
+                "Indexing watchdog - finished",
+                source=result.connector_source,
+                status=result.status.value,
+                exit_code=str(result.exit_code),
+                exception=str(result.exception_str),
+                elapsed=f"{elapsed:.2f}s",
+            )
+        )
 
     redis_connector_index.set_watchdog(False)
-    task_logger.info(log_builder.build("Indexing watchdog - finished"))
     return
