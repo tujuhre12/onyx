@@ -144,13 +144,13 @@ jobs:
         run: |
           cd deployment/docker_compose
           docker compose -f docker-compose.multitenant-dev.yml -p onyx-stack down -v
-
+      
+      # NOTE: Use pre-ping to reduce flakiness due to dropped connections
       - name: Start Docker containers
         run: |
           cd deployment/docker_compose
           ENABLE_PAID_ENTERPRISE_EDITION_FEATURES=true \
           AUTH_TYPE=basic \
-          # Use pre-ping to reduce flakiness due to dropped connections
           POSTGRES_POOL_PRE_PING=true \
           REQUIRE_EMAIL_VERIFICATION=false \
           DISABLE_TELEMETRY=true \
@@ -197,7 +197,8 @@ jobs:
           cd backend/tests/integration/mock_services
           docker compose -f docker-compose.mock-it-services.yml \
             -p mock-it-services-stack up -d
-
+      
+      # NOTE: Use pre-ping to reduce flakiness due to dropped connections
       - name: Run Standard Integration Tests
         run: |
           echo "Running integration tests..."
