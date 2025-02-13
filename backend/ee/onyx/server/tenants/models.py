@@ -63,3 +63,7 @@ class AnonymousUserPath(BaseModel):
 class ProductGatingResponse(BaseModel):
     updated: bool
     error: str | None
+
+
+class SubscriptionSessionResponse(BaseModel):
+    sessionId: str

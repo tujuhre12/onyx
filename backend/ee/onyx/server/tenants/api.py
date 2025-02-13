@@ -25,6 +25,7 @@ from ee.onyx.server.tenants.models import BillingInformation
 from ee.onyx.server.tenants.models import ImpersonateRequest
 from ee.onyx.server.tenants.models import ProductGatingRequest
 from ee.onyx.server.tenants.models import ProductGatingResponse
+from ee.onyx.server.tenants.models import SubscriptionSessionResponse
 from ee.onyx.server.tenants.models import SubscriptionStatusResponse
 from ee.onyx.server.tenants.provisioning import delete_user_from_control_plane
 from ee.onyx.server.tenants.user_mapping import get_tenant_id_for_email
@@ -185,11 +186,13 @@ async def create_customer_portal_session(_: User = Depends(current_admin_user)) 
 
 
 @router.post("/create-subscription-session")
-async def create_resubscription_session(_: User = Depends(current_admin_user)) -> dict:
+async def create_subscription_session(
+    _: User = Depends(current_admin_user),
+) -> SubscriptionSessionResponse:
     try:
         tenant_id = CURRENT_TENANT_ID_CONTEXTVAR.get()
         session_id = fetch_stripe_checkout_session(tenant_id)
-        return {"sessionId": session_id}
+        return SubscriptionSessionResponse(sessionId=session_id)
 
     except Exception as e:
         logger.exception("Failed to create resubscription session")
