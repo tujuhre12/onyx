@@ -114,6 +114,7 @@ jobs:
             -e POSTGRES_USER=postgres \
             -e POSTGRES_PASSWORD=password \
             -e POSTGRES_DB=postgres \
+            -e POSTGRES_USE_NULL_POOL=true \
             -e VESPA_HOST=index \
             -e REDIS_HOST=cache \
             -e API_SERVER_HOST=api_server \
@@ -152,6 +153,7 @@ jobs:
           ENABLE_PAID_ENTERPRISE_EDITION_FEATURES=true \
           AUTH_TYPE=basic \
           POSTGRES_POOL_PRE_PING=true \
+          POSTGRES_USE_NULL_POOL=true \
           REQUIRE_EMAIL_VERIFICATION=false \
           DISABLE_TELEMETRY=true \
           IMAGE_TAG=test \

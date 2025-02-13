@@ -18,6 +18,7 @@ import boto3
 from fastapi import HTTPException
 from fastapi import Request
 from sqlalchemy import event
+from sqlalchemy import pool
 from sqlalchemy import text
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine import Engine
@@ -39,6 +40,7 @@ from onyx.configs.app_configs import POSTGRES_PASSWORD
 from onyx.configs.app_configs import POSTGRES_POOL_PRE_PING
 from onyx.configs.app_configs import POSTGRES_POOL_RECYCLE
 from onyx.configs.app_configs import POSTGRES_PORT
+from onyx.configs.app_configs import POSTGRES_USE_NULL_POOL
 from onyx.configs.app_configs import POSTGRES_USER
 from onyx.configs.constants import POSTGRES_UNKNOWN_APP_NAME
 from onyx.configs.constants import SSL_CERT_FILE
@@ -200,6 +202,8 @@ class SqlEngine:
             db_api=SYNC_DB_API, app_name=cls._app_name + "_sync", use_iam=USE_IAM_AUTH
         )
         merged_kwargs = {**cls.DEFAULT_ENGINE_KWARGS, **engine_kwargs}
+        if POSTGRES_USE_NULL_POOL:
+            merged_kwargs["poolclass"] = pool.NullPool
         engine = create_engine(connection_string, **merged_kwargs)
 
         if USE_IAM_AUTH:
@@ -306,6 +310,7 @@ def get_sqlalchemy_async_engine() -> AsyncEngine:
             max_overflow=POSTGRES_API_SERVER_POOL_OVERFLOW,
             pool_pre_ping=POSTGRES_POOL_PRE_PING,
             pool_recycle=POSTGRES_POOL_RECYCLE,
+            poolclass=pool.NullPool if POSTGRES_USE_NULL_POOL else None,
         )
 
         if USE_IAM_AUTH:
