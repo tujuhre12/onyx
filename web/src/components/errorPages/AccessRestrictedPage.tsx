@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/lib/user";
 import { loadStripe } from "@stripe/stripe-js";
+import { NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY } from "@/lib/constants";
 
 const fetchResubscriptionSession = async () => {
   const response = await fetch("/api/tenants/create-subscription-session", {
@@ -60,11 +61,14 @@ export default function AccessRestricted() {
   const handleResubscribe = async () => {
     setIsLoading(true);
     setError(null);
+    if (!NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+      setError("Stripe public key not found");
+      setIsLoading(false);
+      return;
+    }
     try {
       const { sessionId } = await fetchResubscriptionSession();
-      const stripe = await loadStripe(
-        "pk_test_51NwZq2HlhTYqRZibiKRTTabTc54crtxg05tZnj4uiau8Gb6rnQq9ueVrbi6IMY7FDzM0P36mQs3Ovi9jDVsyUj4S00KUpkQLrt"
-      );
+      const stripe = await loadStripe(NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
       if (stripe) {
         await stripe.redirectToCheckout({ sessionId });
