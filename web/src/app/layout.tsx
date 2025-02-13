@@ -81,7 +81,6 @@ export default async function RootLayout({
   const productGating =
     combinedSettings?.settings.application_status ?? ApplicationStatus.ACTIVE;
 
-  // console.warn(productGating);
   const getPageContent = async (content: React.ReactNode) => (
     <html
       lang="en"

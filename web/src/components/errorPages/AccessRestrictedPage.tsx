@@ -91,13 +91,13 @@ export default function AccessRestricted() {
           suspended due to a lapse in your subscription.
         </p>
         <p>
-          To reinstate your access and continue benefiting from Onyx's powerful
-          features, please update your payment information.
+          To reinstate your access and continue benefiting from Onyx&apos;s
+          powerful features, please update your payment information.
         </p>
         <p>
-          If you're an admin, you can manage your subscription by clicking the
-          button below. For other users, please reach out to your administrator
-          to address this matter.
+          If you&apos;re an admin, you can manage your subscription by clicking
+          the button below. For other users, please reach out to your
+          administrator to address this matter.
         </p>
         <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
           <Button
