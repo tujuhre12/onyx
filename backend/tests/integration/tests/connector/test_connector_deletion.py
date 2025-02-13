@@ -137,7 +137,10 @@ def test_connector_deletion(reset: None, vespa_client: vespa_fixture) -> None:
             connector_credential_pair_id=cc_pair_1.id,
             failure=ConnectorFailure(
                 failure_message="Test error",
-                failed_document=None,
+                failed_document=DocumentFailure(
+                    document_id=cc_pair_1.documents[0].id,
+                    document_link=None,
+                ),
                 failed_entity=None,
             ),
             db_session=db_session,
