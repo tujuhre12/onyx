@@ -167,7 +167,7 @@ def send_email(
         raise e
 
 
-def send_subscription_cancellation_email(user_email: str):
+def send_subscription_cancellation_email(user_email: str) -> None:
     # Example usage of the reusable HTML
     subject = "Your Onyx Subscription Has Been Canceled"
     heading = "Subscription Canceled"
