@@ -21,6 +21,7 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 from sqlalchemy.orm import Session
 
 from onyx import __version__
+from onyx.auth.email_utils import send_user_email_invite
 from onyx.auth.schemas import UserCreate
 from onyx.auth.schemas import UserRead
 from onyx.auth.schemas import UserUpdate
@@ -211,6 +212,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # fill up Postgres connection pools
     await warm_up_connections()
+    print("Sending email invite")
+    send_user_email_invite("pablo@onyx.app", None)
 
     if not MULTI_TENANT:
         # We cache this at the beginning so there is no delay in the first telemetry
