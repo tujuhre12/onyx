@@ -15,7 +15,6 @@ from pydantic import ValidationError
 from redis import Redis
 from redis.exceptions import LockError
 from redis.lock import Lock as RedisLock
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ee.onyx.db.connector_credential_pair import get_all_auto_sync_cc_pairs
@@ -463,20 +462,11 @@ def update_external_document_permissions_task(
 
     try:
         with get_session_with_tenant(tenant_id) as db_session:
-            try:
-                # Add the users to the DB if they don't exist
-                batch_add_ext_perm_user_if_not_exists(
-                    db_session=db_session,
-                    emails=list(external_access.external_user_emails),
-                )
-            except IntegrityError:
-                db_session.rollback()
-                task_logger.error(
-                    "IntegrityError (likely 'UniqueViolation') occurred while adding users. "
-                    f"Emails: {list(external_access.external_user_emails)}. Retrying once."
-                )
-                return False
-
+            batch_add_ext_perm_user_if_not_exists(
+                db_session=db_session,
+                emails=list(external_access.external_user_emails),
+                continue_on_error=True,
+            )
             # Then upsert the document's external permissions
             created_new_doc = upsert_document_external_perms(
                 db_session=db_session,
