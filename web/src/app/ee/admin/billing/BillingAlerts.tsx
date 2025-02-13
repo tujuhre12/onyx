@@ -1,13 +1,14 @@
 import React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CircleAlert, Info } from "lucide-react";
+import { BillingInformation, BillingStatus } from "./interfaces";
 
-interface BillingAlertsProps {
-  billingInformation: any;
-}
-
-export function BillingAlerts({ billingInformation }: BillingAlertsProps) {
-  const isTrialing = billingInformation.status === "trialing";
+export function BillingAlerts({
+  billingInformation,
+}: {
+  billingInformation: BillingInformation;
+}) {
+  const isTrialing = billingInformation.status === BillingStatus.TRIALING;
   const isCancelled = billingInformation.cancel_at_period_end;
   const isExpired =
     new Date(billingInformation.current_period_end) < new Date();
