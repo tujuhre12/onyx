@@ -146,7 +146,7 @@ def retrieval_preprocessing(
     is_keyword, extracted_keywords = (
         parallel_results[run_query_analysis.result_id]
         if run_query_analysis
-        else (None, None)
+        else (False, None)
     )
 
     all_query_terms = query.split()

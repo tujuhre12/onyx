@@ -218,7 +218,10 @@ def get_test_config(
         using_tool_calling_llm=using_tool_calling_llm,
     )
 
-    chat_session_id = os.environ.get("ONYX_AS_CHAT_SESSION_ID")
+    chat_session_id = (
+        os.environ.get("ONYX_AS_CHAT_SESSION_ID")
+        or "00000000-0000-0000-0000-000000000000"
+    )
     assert (
         chat_session_id is not None
     ), "ONYX_AS_CHAT_SESSION_ID must be set for backend tests"
