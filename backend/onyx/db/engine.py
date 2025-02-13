@@ -201,6 +201,10 @@ class SqlEngine:
 
         if POSTGRES_USE_NULL_POOL:
             final_engine_kwargs["poolclass"] = pool.NullPool
+            if "pool_size" in final_engine_kwargs:
+                del final_engine_kwargs["pool_size"]
+            if "max_overflow" in final_engine_kwargs:
+                del final_engine_kwargs["max_overflow"]
         else:
             final_engine_kwargs["pool_size"] = 20
             final_engine_kwargs["max_overflow"] = 5
