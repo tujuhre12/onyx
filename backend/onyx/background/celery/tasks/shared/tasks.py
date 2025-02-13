@@ -254,14 +254,9 @@ def cloud_beat_task_generator(
     try:
         tenant_ids = get_all_tenant_ids()
         gated_tenants = get_gated_tenants()
-        task_logger.info(f"Gated tenants: {gated_tenants}")
         for tenant_id in tenant_ids:
-            task_logger.info(f"Tenant ID: {tenant_id}")
             if tenant_id in gated_tenants:
-                task_logger.info(f"Skipping gated tenant: {tenant_id}")
                 continue
-            else:
-                task_logger.info(f"Processing tenant: {tenant_id}")
 
             current_time = time.monotonic()
             if current_time - last_lock_time >= (CELERY_GENERIC_BEAT_LOCK_TIMEOUT / 4):
