@@ -351,6 +351,7 @@ def index_doc_batch(
             document_ids=[doc.id for doc in filtered_documents],
             db_session=db_session,
         )
+        db_session.commit()
         return IndexingPipelineResult(
             new_docs=0,
             total_docs=len(filtered_documents),

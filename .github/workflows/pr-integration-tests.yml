@@ -150,6 +150,8 @@ jobs:
           cd deployment/docker_compose
           ENABLE_PAID_ENTERPRISE_EDITION_FEATURES=true \
           AUTH_TYPE=basic \
+          # Use pre-ping to reduce flakiness due to dropped connections
+          POSTGRES_POOL_PRE_PING=true \
           REQUIRE_EMAIL_VERIFICATION=false \
           DISABLE_TELEMETRY=true \
           IMAGE_TAG=test \
@@ -205,6 +207,7 @@ jobs:
             -e POSTGRES_USER=postgres \
             -e POSTGRES_PASSWORD=password \
             -e POSTGRES_DB=postgres \
+            -e POSTGRES_POOL_PRE_PING=true \
             -e VESPA_HOST=index \
             -e REDIS_HOST=cache \
             -e API_SERVER_HOST=api_server \
