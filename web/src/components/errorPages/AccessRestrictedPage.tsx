@@ -43,7 +43,6 @@ export default function AccessRestricted() {
       }
 
       const { url } = await response.json();
-      alert(url);
 
       if (!url) {
         throw new Error("No portal URL returned from the server");
