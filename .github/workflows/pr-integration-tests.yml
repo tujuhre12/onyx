@@ -146,7 +146,7 @@ jobs:
           cd deployment/docker_compose
           docker compose -f docker-compose.multitenant-dev.yml -p onyx-stack down -v
       
-      # NOTE: Use pre-ping to reduce flakiness due to dropped connections
+      # NOTE: Use pre-ping/null pool to reduce flakiness due to dropped connections
       - name: Start Docker containers
         run: |
           cd deployment/docker_compose
@@ -200,7 +200,7 @@ jobs:
           docker compose -f docker-compose.mock-it-services.yml \
             -p mock-it-services-stack up -d
       
-      # NOTE: Use pre-ping to reduce flakiness due to dropped connections
+      # NOTE: Use pre-ping/null to reduce flakiness due to dropped connections
       - name: Run Standard Integration Tests
         run: |
           echo "Running integration tests..."
@@ -211,6 +211,7 @@ jobs:
             -e POSTGRES_PASSWORD=password \
             -e POSTGRES_DB=postgres \
             -e POSTGRES_POOL_PRE_PING=true \
+            -e POSTGRES_USE_NULL_POOL=true \
             -e VESPA_HOST=index \
             -e REDIS_HOST=cache \
             -e API_SERVER_HOST=api_server \
