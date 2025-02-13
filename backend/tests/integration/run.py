@@ -75,7 +75,7 @@ def run_single_test(
 
 
 def worker(
-    test_queue: queue.Queue[str | None],
+    test_queue: queue.Queue[str],
     instance_queue: queue.Queue[int],
     result_queue: multiprocessing.Queue,
     shared_services_config: SharedServicesConfig,
@@ -85,8 +85,9 @@ def worker(
     """Worker process that runs tests on available instances."""
     while True:
         # Get the next test from the queue
-        test = test_queue.get()
-        if test is None:  # Sentinel value indicating no more tests
+        try:
+            test = test_queue.get(block=False)
+        except queue.Empty:
             test_queue.task_done()
             break
 
@@ -134,7 +135,7 @@ def worker(
 
 
 def main() -> None:
-    NUM_INSTANCES = 10
+    NUM_INSTANCES = 6
 
     # Get all tests
     tests = list_all_tests(Path(__file__).parent)
@@ -149,7 +150,7 @@ def main() -> None:
     shared_services_config, deployment_configs = run_x_instances(NUM_INSTANCES)
 
     # Create queues and lock
-    test_queue: queue.Queue[str | None] = queue.Queue()
+    test_queue: queue.Queue[str] = queue.Queue()
     instance_queue: queue.Queue[int] = queue.Queue()
     result_queue: multiprocessing.Queue = multiprocessing.Queue()
     reset_lock: LockType = multiprocessing.Lock()
@@ -161,11 +162,6 @@ def main() -> None:
     # Fill the test queue with all tests
     for test in tests:
         test_queue.put(test)
-
-    # Add sentinel values to signal workers to exit
-    for _ in range(NUM_INSTANCES):
-        test_queue.put(None)
-
     # Start worker threads
     workers = []
     for _ in range(NUM_INSTANCES):
@@ -201,6 +197,7 @@ def main() -> None:
             time.sleep(0.1)  # Avoid busy waiting
 
         # Collect results
+        print("Collecting results")
         results: list[TestResult] = []
         while not result_queue.empty():
             results.append(result_queue.get())
@@ -208,16 +205,35 @@ def main() -> None:
         # Print results
         print("\nTest Results:")
         failed = False
+        failed_tests: list[str] = []
+        total_tests = len(results)
+        passed_tests = 0
+
         for result in results:
             status = "✅ PASSED" if result.success else "❌ FAILED"
             print(f"{status} - {result.test_name}")
-            if not result.success:
+            if result.success:
+                passed_tests += 1
+            else:
                 failed = True
+                failed_tests.append(result.test_name)
                 print("Error output:")
                 print(result.error)
                 print("Test output:")
                 print(result.output)
                 print("-" * 80)
+
+        # Print summary
+        print("\nTest Summary:")
+        print(f"Total Tests: {total_tests}")
+        print(f"Passed: {passed_tests}")
+        print(f"Failed: {len(failed_tests)}")
+
+        if failed_tests:
+            print("\nFailed Tests:")
+            for test_name in failed_tests:
+                print(f"❌ {test_name}")
+            print()
 
         if failed:
             sys.exit(1)
