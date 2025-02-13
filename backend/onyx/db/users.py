@@ -21,10 +21,7 @@ from onyx.db.models import Persona__User
 from onyx.db.models import SamlAccount
 from onyx.db.models import User
 from onyx.db.models import User__UserGroup
-from onyx.setup import setup_logger
 from onyx.utils.variable_functionality import fetch_ee_implementation_or_noop
-
-logger = setup_logger()
 
 
 def validate_user_role_update(requested_role: UserRole, current_role: UserRole) -> None:
@@ -292,9 +289,6 @@ def batch_add_ext_perm_user_if_not_exists(
         db_session.commit()
     except IntegrityError:
         db_session.rollback()
-        logger.warning(
-            "IntegrityError occurred during batch insert. Falling back to individual inserts."
-        )
         if not continue_on_error:
             raise
         for user in new_users:
@@ -303,7 +297,6 @@ def batch_add_ext_perm_user_if_not_exists(
                 db_session.commit()
             except IntegrityError:
                 db_session.rollback()
-                logger.warning(f"Skipping duplicate user: {user.email}")
                 continue
     # Fetch all users again to ensure we have the most up-to-date list
     all_users, _ = _get_users_by_emails(db_session, lower_emails)
