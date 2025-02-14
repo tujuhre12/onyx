@@ -356,9 +356,11 @@ def start_shared_services(run_id: uuid.UUID) -> SharedServicesConfig:
     )
     atexit.register(cleanup_pid, process.pid)
 
-    return SharedServicesConfig(
+    shared_services_config = SharedServicesConfig(
         run_id, postgres_port, vespa_port, vespa_tenant_port, model_server_port
     )
+    print(f"Shared services config: {shared_services_config}")
+    return shared_services_config
 
 
 def prepare_vespa(instance_ids: list[int], vespa_tenant_port: int) -> None:
