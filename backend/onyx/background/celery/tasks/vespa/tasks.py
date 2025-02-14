@@ -229,6 +229,9 @@ def try_generate_stale_document_sync_tasks(
 
     docs_to_skip: set[str] = set()
 
+    # Seems like between the initial start of the check for vespa sync task and
+    # the actual sync task, the lock is released (likely due to lengthy fetches in the DB) when many many docs are required.
+
     # rkuo: we could technically sync all stale docs in one big pass.
     # but I feel it's more understandable to group the docs by cc_pair
     total_tasks_generated = 0
@@ -492,13 +495,21 @@ def monitor_document_set_taskset(
             task_logger.info(
                 f"Successfully synced document set: document_set={document_set_id}"
             )
-        update_sync_record_status(
-            db_session=db_session,
-            entity_id=document_set_id,
-            sync_type=SyncType.DOCUMENT_SET,
-            sync_status=SyncStatus.SUCCESS,
-            num_docs_synced=initial_count,
-        )
+
+        try:
+            update_sync_record_status(
+                db_session=db_session,
+                entity_id=document_set_id,
+                sync_type=SyncType.DOCUMENT_SET,
+                sync_status=SyncStatus.SUCCESS,
+                num_docs_synced=initial_count,
+            )
+        except Exception:
+            task_logger.exception(
+                "update_sync_record_status exceptioned. "
+                f"document_set_id={document_set_id}"
+                "Resetting document set regardless."
+            )
 
     rds.reset()
 
