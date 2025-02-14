@@ -350,13 +350,14 @@ def delete_chat_session(
     user_id: UUID | None,
     chat_session_id: UUID,
     db_session: Session,
+    include_deleted: bool = False,
     hard_delete: bool = HARD_DELETE_CHATS,
 ) -> None:
     chat_session = get_chat_session_by_id(
         chat_session_id=chat_session_id, user_id=user_id, db_session=db_session
     )
 
-    if chat_session.deleted:
+    if chat_session.deleted and not include_deleted:
         raise ValueError("Cannot delete an already deleted chat session")
 
     if hard_delete:
