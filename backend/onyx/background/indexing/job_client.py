@@ -20,6 +20,16 @@ from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
 
+
+class SimpleJobException(Exception):
+    """lets us raise an exception that will return a specific error code"""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        code: int | None = kwargs.pop("code", None)
+        self.code = code
+        super().__init__(*args, **kwargs)
+
+
 JobStatusType = (
     Literal["error"]
     | Literal["finished"]
@@ -59,12 +69,18 @@ def _initializer(
     # Proceed with executing the target function
     try:
         return func(*args, **kwargs)
-    except Exception:
-        logger.exception("SimpleJob exceptioned")
+    except SimpleJobException as e:
+        logger.exception("SimpleJob raised an SimpleJobException")
         error_msg = traceback.format_exc()
         queue.put(error_msg)  # Send the exception to the parent process
 
-        sys.exit(255)  # use a specific exit code when we handle a top level exception
+        sys.exit(e.code)  # use the given exit code
+    except Exception:
+        logger.exception("SimpleJob raised an exception")
+        error_msg = traceback.format_exc()
+        queue.put(error_msg)  # Send the exception to the parent process
+
+        sys.exit(255)  # use 255 to indicate a generic exception
 
 
 def _run_in_process(

@@ -30,6 +30,7 @@ from onyx.background.celery.tasks.indexing.utils import try_creating_indexing_ta
 from onyx.background.celery.tasks.indexing.utils import validate_indexing_fences
 from onyx.background.indexing.job_client import SimpleJob
 from onyx.background.indexing.job_client import SimpleJobClient
+from onyx.background.indexing.job_client import SimpleJobException
 from onyx.background.indexing.run_indexing import run_indexing_entrypoint
 from onyx.configs.app_configs import MANAGED_VESPA
 from onyx.configs.app_configs import VESPA_CLOUD_CERT_PATH
@@ -74,11 +75,29 @@ logger = setup_logger()
 
 
 class IndexingWatchdogTerminalStatus(str, Enum):
-    """The different statuses the watchdog can finish with"""
+    """The different statuses the watchdog can finish with.
+
+    TODO: create broader success/failure/abort categories
+    """
 
     UNDEFINED = "undefined"
+
     SUCCEEDED = "succeeded"
+
     SPAWN_FAILED = "spawn_failed"  # connector spawn failed
+
+    BLOCKED_BY_DELETION = "blocked_by_deletion"
+    BLOCKED_BY_STOP_SIGNAL = "blocked_by_stop_signal"
+    FENCE_NOT_FOUND = "fence_not_found"  # fence does not exist
+    FENCE_READINESS_TIMEOUT = (
+        "fence_readiness_timeout"  # fence exists but wasn't ready within the timeout
+    )
+    FENCE_MISMATCH = "fence_mismatch"  # task and fence metadata mismatch
+    TASK_ALREADY_RUNNING = "task_already_running"  # task appears to be running already
+    INDEX_ATTEMPT_MISMATCH = (
+        "index_attempt_mismatch"  # expected index attempt metadata not found in db
+    )
+
     CONNECTOR_EXCEPTIONED = "connector_exceptioned"  # the connector itself exceptioned
     WATCHDOG_EXCEPTIONED = "watchdog_exceptioned"  # the watchdog exceptioned
 
@@ -87,6 +106,34 @@ class IndexingWatchdogTerminalStatus(str, Enum):
 
     # the watchdog terminated the task due to no activity
     TERMINATED_BY_ACTIVITY_TIMEOUT = "terminated_by_activity_timeout"
+
+    @property
+    def code(self) -> int:
+        _ENUM_TO_CODE: dict[IndexingWatchdogTerminalStatus, int] = {
+            IndexingWatchdogTerminalStatus.BLOCKED_BY_DELETION: 248,
+            IndexingWatchdogTerminalStatus.BLOCKED_BY_STOP_SIGNAL: 249,
+            IndexingWatchdogTerminalStatus.FENCE_NOT_FOUND: 250,
+            IndexingWatchdogTerminalStatus.FENCE_READINESS_TIMEOUT: 251,
+            IndexingWatchdogTerminalStatus.FENCE_MISMATCH: 252,
+            IndexingWatchdogTerminalStatus.TASK_ALREADY_RUNNING: 253,
+            IndexingWatchdogTerminalStatus.INDEX_ATTEMPT_MISMATCH: 254,
+        }
+
+        return _ENUM_TO_CODE[self]
+
+    @classmethod
+    def from_code(cls, code: int) -> "IndexingWatchdogTerminalStatus":
+        _CODE_TO_ENUM: dict[int, IndexingWatchdogTerminalStatus] = {
+            248: IndexingWatchdogTerminalStatus.BLOCKED_BY_DELETION,
+            249: IndexingWatchdogTerminalStatus.BLOCKED_BY_STOP_SIGNAL,
+            250: IndexingWatchdogTerminalStatus.FENCE_NOT_FOUND,
+            251: IndexingWatchdogTerminalStatus.FENCE_READINESS_TIMEOUT,
+            252: IndexingWatchdogTerminalStatus.FENCE_MISMATCH,
+            253: IndexingWatchdogTerminalStatus.TASK_ALREADY_RUNNING,
+            254: IndexingWatchdogTerminalStatus.INDEX_ATTEMPT_MISMATCH,
+        }
+
+        return _CODE_TO_ENUM[code]
 
 
 class SimpleJobResult:
@@ -574,19 +621,21 @@ def connector_indexing_task(
     r = get_redis_client(tenant_id=tenant_id)
 
     if redis_connector.delete.fenced:
-        raise RuntimeError(
+        raise SimpleJobException(
             f"Indexing will not start because connector deletion is in progress: "
             f"attempt={index_attempt_id} "
             f"cc_pair={cc_pair_id} "
-            f"fence={redis_connector.delete.fence_key}"
+            f"fence={redis_connector.delete.fence_key}",
+            code=IndexingWatchdogTerminalStatus.BLOCKED_BY_DELETION.code,
         )
 
     if redis_connector.stop.fenced:
-        raise RuntimeError(
+        raise SimpleJobException(
             f"Indexing will not start because a connector stop signal was detected: "
             f"attempt={index_attempt_id} "
             f"cc_pair={cc_pair_id} "
-            f"fence={redis_connector.stop.fence_key}"
+            f"fence={redis_connector.stop.fence_key}",
+            code=IndexingWatchdogTerminalStatus.BLOCKED_BY_STOP_SIGNAL.code,
         )
 
     # this wait is needed to avoid a race condition where
@@ -595,19 +644,24 @@ def connector_indexing_task(
     start = time.monotonic()
     while True:
         if time.monotonic() - start > CELERY_TASK_WAIT_FOR_FENCE_TIMEOUT:
-            raise ValueError(
+            raise SimpleJobException(
                 f"connector_indexing_task - timed out waiting for fence to be ready: "
-                f"fence={redis_connector.permissions.fence_key}"
+                f"fence={redis_connector.permissions.fence_key}",
+                code=IndexingWatchdogTerminalStatus.FENCE_READINESS_TIMEOUT.code,
             )
 
         if not redis_connector_index.fenced:  # The fence must exist
-            raise ValueError(
-                f"connector_indexing_task - fence not found: fence={redis_connector_index.fence_key}"
+            raise SimpleJobException(
+                f"connector_indexing_task - fence not found: fence={redis_connector_index.fence_key}",
+                code=IndexingWatchdogTerminalStatus.FENCE_NOT_FOUND.code,
             )
 
         payload = redis_connector_index.payload  # The payload must exist
         if not payload:
-            raise ValueError("connector_indexing_task: payload invalid or not found")
+            raise SimpleJobException(
+                "connector_indexing_task: payload invalid or not found",
+                code=IndexingWatchdogTerminalStatus.FENCE_NOT_FOUND.code,
+            )
 
         if payload.index_attempt_id is None or payload.celery_task_id is None:
             logger.info(
@@ -617,10 +671,11 @@ def connector_indexing_task(
             continue
 
         if payload.index_attempt_id != index_attempt_id:
-            raise ValueError(
+            raise SimpleJobException(
                 f"connector_indexing_task - id mismatch. Task may be left over from previous run.: "
                 f"task_index_attempt={index_attempt_id} "
-                f"payload_index_attempt={payload.index_attempt_id}"
+                f"payload_index_attempt={payload.index_attempt_id}",
+                code=IndexingWatchdogTerminalStatus.FENCE_MISMATCH.code,
             )
 
         logger.info(
@@ -644,7 +699,14 @@ def connector_indexing_task(
             f"cc_pair={cc_pair_id} "
             f"search_settings={search_settings_id}"
         )
-        return None
+
+        raise SimpleJobException(
+            f"Indexing task already running, exiting...: "
+            f"index_attempt={index_attempt_id} "
+            f"cc_pair={cc_pair_id} "
+            f"search_settings={search_settings_id}",
+            code=IndexingWatchdogTerminalStatus.TASK_ALREADY_RUNNING.code,
+        )
 
     payload.started = datetime.now(timezone.utc)
     redis_connector_index.set_fence(payload)
@@ -653,8 +715,9 @@ def connector_indexing_task(
         with get_session_with_tenant(tenant_id) as db_session:
             attempt = get_index_attempt(db_session, index_attempt_id)
             if not attempt:
-                raise ValueError(
-                    f"Index attempt not found: index_attempt={index_attempt_id}"
+                raise SimpleJobException(
+                    f"Index attempt not found: index_attempt={index_attempt_id}",
+                    code=IndexingWatchdogTerminalStatus.INDEX_ATTEMPT_MISMATCH.code,
                 )
             # attempt_found = True
 
@@ -664,16 +727,21 @@ def connector_indexing_task(
             )
 
             if not cc_pair:
-                raise ValueError(f"cc_pair not found: cc_pair={cc_pair_id}")
+                raise SimpleJobException(
+                    f"cc_pair not found: cc_pair={cc_pair_id}",
+                    code=IndexingWatchdogTerminalStatus.INDEX_ATTEMPT_MISMATCH.code,
+                )
 
             if not cc_pair.connector:
-                raise ValueError(
-                    f"Connector not found: cc_pair={cc_pair_id} connector={cc_pair.connector_id}"
+                raise SimpleJobException(
+                    f"Connector not found: cc_pair={cc_pair_id} connector={cc_pair.connector_id}",
+                    code=IndexingWatchdogTerminalStatus.INDEX_ATTEMPT_MISMATCH.code,
                 )
 
             if not cc_pair.credential:
-                raise ValueError(
-                    f"Credential not found: cc_pair={cc_pair_id} credential={cc_pair.credential_id}"
+                raise SimpleJobException(
+                    f"Credential not found: cc_pair={cc_pair_id} credential={cc_pair.credential_id}",
+                    code=IndexingWatchdogTerminalStatus.INDEX_ATTEMPT_MISMATCH.code,
                 )
 
         # define a callback class
@@ -754,10 +822,8 @@ def process_job_result(
         if status_enum == HTTPStatus.OK:
             ignore_exitcode = True
 
-    if not ignore_exitcode:
-        result.status = IndexingWatchdogTerminalStatus.CONNECTOR_EXCEPTIONED
-        result.exception_str = job.exception()
-    else:
+    if ignore_exitcode:
+        result.status = IndexingWatchdogTerminalStatus.SUCCEEDED
         task_logger.warning(
             log_builder.build(
                 "Indexing watchdog - spawned task has non-zero exit code "
@@ -765,6 +831,9 @@ def process_job_result(
                 exit_code=str(result.exit_code),
             )
         )
+    else:
+        result.status = IndexingWatchdogTerminalStatus.CONNECTOR_EXCEPTIONED
+        result.exception_str = job.exception()
 
     return result
 
