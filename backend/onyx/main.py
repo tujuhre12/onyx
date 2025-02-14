@@ -247,7 +247,7 @@ def log_http_error(request: Request, exc: Exception) -> JSONResponse:
         logger.debug(f"Authentication failed: {str(exc)}")
 
     elif status_code == 404 and request.url.path == "/metrics":
-        # Log 404 errors for the /metrics endpoint with debug level (spammy)
+        # Log 404 errors for the /metrics endpoint with debug level
         logger.debug(f"404 error for /metrics endpoint: {str(exc)}")
 
     elif status_code >= 400:

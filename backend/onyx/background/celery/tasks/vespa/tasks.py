@@ -78,6 +78,10 @@ logger = setup_logger()
 def check_for_vespa_sync_task(self: Task, *, tenant_id: str | None) -> bool | None:
     """Runs periodically to check if any document needs syncing.
     Generates sets of tasks for Celery if syncing is needed."""
+
+    # Useful for debugging timing issues with reacquisitions. TODO: remove once more generalized logging is in place
+    task_logger.info("check_for_vespa_sync_task started")
+
     time_start = time.monotonic()
 
     r = get_redis_client(tenant_id=tenant_id)
@@ -228,9 +232,6 @@ def try_generate_stale_document_sync_tasks(
     )
 
     docs_to_skip: set[str] = set()
-
-    # Seems like between the initial start of the check for vespa sync task and
-    # the actual sync task, the lock is released (likely due to lengthy fetches in the DB) when many many docs are required.
 
     # rkuo: we could technically sync all stale docs in one big pass.
     # but I feel it's more understandable to group the docs by cc_pair
