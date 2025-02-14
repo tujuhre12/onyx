@@ -107,9 +107,12 @@ class IndexingWatchdogTerminalStatus(str, Enum):
     # the watchdog terminated the task due to no activity
     TERMINATED_BY_ACTIVITY_TIMEOUT = "terminated_by_activity_timeout"
 
+    OUT_OF_MEMORY = "out_of_memory"
+
     @property
     def code(self) -> int:
         _ENUM_TO_CODE: dict[IndexingWatchdogTerminalStatus, int] = {
+            IndexingWatchdogTerminalStatus.OUT_OF_MEMORY: 137,
             IndexingWatchdogTerminalStatus.BLOCKED_BY_DELETION: 248,
             IndexingWatchdogTerminalStatus.BLOCKED_BY_STOP_SIGNAL: 249,
             IndexingWatchdogTerminalStatus.FENCE_NOT_FOUND: 250,
@@ -117,6 +120,7 @@ class IndexingWatchdogTerminalStatus(str, Enum):
             IndexingWatchdogTerminalStatus.FENCE_MISMATCH: 252,
             IndexingWatchdogTerminalStatus.TASK_ALREADY_RUNNING: 253,
             IndexingWatchdogTerminalStatus.INDEX_ATTEMPT_MISMATCH: 254,
+            IndexingWatchdogTerminalStatus.CONNECTOR_EXCEPTIONED: 255,
         }
 
         return _ENUM_TO_CODE[self]
@@ -124,6 +128,7 @@ class IndexingWatchdogTerminalStatus(str, Enum):
     @classmethod
     def from_code(cls, code: int) -> "IndexingWatchdogTerminalStatus":
         _CODE_TO_ENUM: dict[int, IndexingWatchdogTerminalStatus] = {
+            137: IndexingWatchdogTerminalStatus.OUT_OF_MEMORY,
             248: IndexingWatchdogTerminalStatus.BLOCKED_BY_DELETION,
             249: IndexingWatchdogTerminalStatus.BLOCKED_BY_STOP_SIGNAL,
             250: IndexingWatchdogTerminalStatus.FENCE_NOT_FOUND,
@@ -131,9 +136,13 @@ class IndexingWatchdogTerminalStatus(str, Enum):
             252: IndexingWatchdogTerminalStatus.FENCE_MISMATCH,
             253: IndexingWatchdogTerminalStatus.TASK_ALREADY_RUNNING,
             254: IndexingWatchdogTerminalStatus.INDEX_ATTEMPT_MISMATCH,
+            255: IndexingWatchdogTerminalStatus.CONNECTOR_EXCEPTIONED,
         }
 
-        return _CODE_TO_ENUM[code]
+        if code in _CODE_TO_ENUM:
+            return _CODE_TO_ENUM[code]
+
+        return IndexingWatchdogTerminalStatus.UNDEFINED
 
 
 class SimpleJobResult:
@@ -832,7 +841,9 @@ def process_job_result(
             )
         )
     else:
-        result.status = IndexingWatchdogTerminalStatus.CONNECTOR_EXCEPTIONED
+        if result.exit_code is not None:
+            result.status = IndexingWatchdogTerminalStatus.from_code(result.exit_code)
+
         result.exception_str = job.exception()
 
     return result
