@@ -508,7 +508,7 @@ def monitor_document_set_taskset(
         except Exception:
             task_logger.exception(
                 "update_sync_record_status exceptioned. "
-                f"document_set_id={document_set_id}"
+                f"document_set_id={document_set_id} "
                 "Resetting document set regardless."
             )
 
