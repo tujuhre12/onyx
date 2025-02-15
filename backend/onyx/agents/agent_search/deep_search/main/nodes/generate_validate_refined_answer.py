@@ -254,10 +254,11 @@ def generate_validate_refined_answer(
         else REFINED_ANSWER_PROMPT_WO_SUB_QUESTIONS
     )
 
-    if AGENT_ANSWER_GENERATION_BY_FAST_LLM:
-        model = graph_config.tooling.fast_llm
-    else:
-        model = graph_config.tooling.primary_llm
+    model = (
+        graph_config.tooling.fast_llm
+        if AGENT_ANSWER_GENERATION_BY_FAST_LLM
+        else graph_config.tooling.primary_llm
+    )
 
     relevant_docs_str = format_docs(answer_generation_documents.context_documents)
     relevant_docs_str = trim_prompt_piece(

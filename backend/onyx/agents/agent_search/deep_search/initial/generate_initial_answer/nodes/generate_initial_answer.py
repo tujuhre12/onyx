@@ -231,10 +231,11 @@ def generate_initial_answer(
 
         sub_questions = all_sub_questions  # Replace the original assignment
 
-        if AGENT_ANSWER_GENERATION_BY_FAST_LLM:
-            model = graph_config.tooling.fast_llm
-        else:
-            model = graph_config.tooling.primary_llm
+        model = (
+            graph_config.tooling.fast_llm
+            if AGENT_ANSWER_GENERATION_BY_FAST_LLM
+            else graph_config.tooling.primary_llm
+        )
 
         doc_context = format_docs(answer_generation_documents.context_documents)
         doc_context = trim_prompt_piece(
