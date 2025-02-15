@@ -47,24 +47,24 @@ def _create_indexable_chunks(
 ) -> tuple[list[Document], list[DocMetadataAwareIndexChunk]]:
     ids_to_documents = {}
     chunks = []
+    chunk_count_by_doc_id = {}
     for preprocessed_doc in preprocessed_docs:
+        doc_id = preprocessed_doc["url"]  # For Web connector, the URL is the ID
+        chunk_count_by_doc_id[doc_id] = chunk_count_by_doc_id.get(doc_id, 0) + 1
+
         document = Document(
-            id=preprocessed_doc["url"],  # For Web connector, the URL is the ID
-            # The section is not really used past this point since we have already done the other processing
-            # for the chunking and embedding.
-            sections=[
-                Section(text=preprocessed_doc["content"], link=preprocessed_doc["url"])
-            ],
+            id=doc_id,
+            sections=[Section(text=preprocessed_doc["content"], link=doc_id)],
             source=DocumentSource.WEB,
             semantic_identifier=preprocessed_doc["title"],
             metadata={},
             doc_updated_at=None,
             primary_owners=[],
             secondary_owners=[],
-            chunk_count=1,
+            chunk_count=preprocessed_doc["chunk_ind"] + 1,
         )
-        if preprocessed_doc["chunk_ind"] == 0:
-            ids_to_documents[document.id] = document
+
+        ids_to_documents[document.id] = document
 
         chunk = DocMetadataAwareIndexChunk(
             chunk_id=preprocessed_doc["chunk_ind"],
@@ -92,6 +92,7 @@ def _create_indexable_chunks(
             boost=DEFAULT_BOOST,
             large_chunk_id=None,
         )
+
         chunks.append(chunk)
 
     return list(ids_to_documents.values()), chunks
@@ -192,6 +193,7 @@ def seed_initial_documents(
         last_successful_index_time=last_index_time,
         seeding_flow=True,
     )
+
     cc_pair_id = cast(int, result.data)
     processed_docs = fetch_versioned_implementation(
         "onyx.seeding.load_docs",
@@ -243,10 +245,12 @@ def seed_initial_documents(
 
     # Since we bypass the indexing flow, we need to manually update the chunk count
     for doc in docs:
+        print("Updating chunk count for doc", doc.id, "to", doc.chunk_count)
         db_session.execute(
             update(DbDocument)
             .where(DbDocument.id == doc.id)
             .values(chunk_count=doc.chunk_count)
         )
 
+    db_session.commit()  # KEY!
     kv_store.store(KV_DOCUMENTS_SEEDED_KEY, True)
