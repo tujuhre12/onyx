@@ -159,6 +159,11 @@ function ConnectorRow({
           Paused
         </Badge>
       );
+    } else if (
+      ccPairsIndexingStatus.cc_pair_status ===
+      ConnectorCredentialPairStatus.INVALID
+    ) {
+      return <Badge variant="invalid">Invalid</Badge>;
     }
 
     // ACTIVE case

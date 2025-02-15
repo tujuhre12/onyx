@@ -42,6 +42,7 @@ from onyx.configs.constants import OnyxCeleryTask
 from onyx.configs.constants import OnyxRedisConstants
 from onyx.configs.constants import OnyxRedisLocks
 from onyx.configs.constants import OnyxRedisSignals
+from onyx.connectors.interfaces import ConnectorValidationError
 from onyx.db.connector import mark_ccpair_with_indexing_trigger
 from onyx.db.connector_credential_pair import fetch_connector_credential_pairs
 from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
@@ -283,10 +284,13 @@ def monitor_ccpair_indexing_taskset(
                     index_attempt = get_index_attempt(
                         db_session, payload.index_attempt_id
                     )
+                    print("INEDE ATMPTE")
+                    print(index_attempt.status)
                     if index_attempt:
                         if (
                             index_attempt.status != IndexingStatus.CANCELED
                             and index_attempt.status != IndexingStatus.FAILED
+                            and index_attempt.status != IndexingStatus.INVALID
                         ):
                             mark_attempt_failed(
                                 index_attempt_id=payload.index_attempt_id,
@@ -991,9 +995,14 @@ def connector_indexing_proxy_task(
                     )
                 )
                 continue
-    except Exception:
+    except Exception as e:
+        task_logger.error("Indexing watchdog - exceptioned ||")
+        task_logger.error(type(e))
         result.status = IndexingWatchdogTerminalStatus.WATCHDOG_EXCEPTIONED
-        result.exception_str = traceback.format_exc()
+        if isinstance(e, ConnectorValidationError):
+            result.exception_str = str(e)
+        else:
+            result.exception_str = traceback.format_exc()
 
     # handle exit and reporting
     elapsed = time.monotonic() - start

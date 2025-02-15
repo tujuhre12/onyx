@@ -24,6 +24,9 @@ from onyx.background.celery.tasks.pruning.tasks import (
 from onyx.background.celery.versioned_apps.primary import app as primary_app
 from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import OnyxCeleryTask
+from onyx.connectors.factory import instantiate_connector
+from onyx.connectors.interfaces import ConnectorValidationError
+from onyx.db.connector import fetch_connector_by_id
 from onyx.db.connector_credential_pair import add_credential_to_connector
 from onyx.db.connector_credential_pair import (
     get_connector_credential_pair_from_id_for_user,
@@ -32,6 +35,7 @@ from onyx.db.connector_credential_pair import remove_credential_from_connector
 from onyx.db.connector_credential_pair import (
     update_connector_credential_pair_from_id,
 )
+from onyx.db.credentials import fetch_credential_by_id_for_user
 from onyx.db.document import get_document_counts_for_cc_pairs
 from onyx.db.document import get_documents_for_cc_pair
 from onyx.db.engine import CURRENT_TENANT_ID_CONTEXTVAR
@@ -572,6 +576,24 @@ def associate_credential_to_connector(
     )
 
     try:
+        # Validate the connector settings
+        connector = fetch_connector_by_id(connector_id, db_session)
+        credential = fetch_credential_by_id_for_user(
+            credential_id,
+            user,
+            db_session,
+            get_editable=False,
+        )
+        runnable_connector = instantiate_connector(
+            db_session=db_session,
+            source=connector.source,
+            input_type=connector.input_type,
+            connector_specific_config=connector.connector_specific_config,
+            credential=credential,
+            tenant_id=tenant_id,
+        )
+        runnable_connector.validate_connector_settings()
+
         response = add_credential_to_connector(
             db_session=db_session,
             user=user,
@@ -596,9 +618,21 @@ def associate_credential_to_connector(
         )
 
         return response
+
+    except ConnectorValidationError as e:
+        logger.error(f"Connector validation error: {e}")
+        raise HTTPException(
+            status_code=400, detail="Connector validation error: " + str(e)
+        )
+
     except IntegrityError as e:
         logger.error(f"IntegrityError: {e}")
         raise HTTPException(status_code=400, detail="Name must be unique")
+
+    except Exception as e:
+        logger.error(type(e))
+        logger.error(f"Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail="Unexpected error")
 
 
 @router.delete("/connector/{connector_id}/credential/{credential_id}")

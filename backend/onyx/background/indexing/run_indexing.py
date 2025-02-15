@@ -17,6 +17,7 @@ from onyx.configs.constants import DocumentSource
 from onyx.configs.constants import MilestoneRecordType
 from onyx.connectors.connector_runner import ConnectorRunner
 from onyx.connectors.factory import instantiate_connector
+from onyx.connectors.interfaces import ConnectorValidationError
 from onyx.connectors.models import Document
 from onyx.connectors.models import IndexAttemptMetadata
 from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
@@ -76,6 +77,10 @@ def _get_connector_runner(
             credential=attempt.connector_credential_pair.credential,
             tenant_id=tenant_id,
         )
+
+        # validate the connector settings
+        runnable_connector.validate_connector_settings()
+
     except Exception as e:
         logger.exception(f"Unable to instantiate connector due to {e}")
 
@@ -422,8 +427,30 @@ def _run_indexing(
             logger.exception(
                 f"Connector run exceptioned after elapsed time: {time.time() - start_time} seconds"
             )
+            logger.error(type(e))
 
-            if isinstance(e, ConnectorStopSignal):
+            if isinstance(e, ConnectorValidationError):
+                logger.error("Connector validation error")
+                logger.error(e)
+                with get_session_with_tenant(tenant_id) as db_session_temp:
+                    mark_attempt_canceled(
+                        index_attempt_id,
+                        db_session_temp,
+                        reason=str(e),
+                    )
+
+                    if ctx.is_primary:
+                        update_connector_credential_pair(
+                            db_session=db_session_temp,
+                            connector_id=ctx.connector_id,
+                            credential_id=ctx.credential_id,
+                            status=ConnectorCredentialPairStatus.INVALID,
+                            net_docs=net_doc_change,
+                        )
+
+                raise e
+
+            elif isinstance(e, ConnectorStopSignal):
                 with get_session_with_tenant(tenant_id) as db_session_temp:
                     mark_attempt_canceled(
                         index_attempt_id,

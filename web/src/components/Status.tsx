@@ -84,6 +84,12 @@ export function IndexAttemptStatus({
         Canceled
       </Badge>
     );
+  } else if (status === "invalid") {
+    badge = (
+      <Badge variant="invalid" icon={FiAlertTriangle}>
+        Invalid
+      </Badge>
+    );
   } else {
     badge = (
       <Badge variant="outline" icon={FiMinus}>
@@ -118,6 +124,12 @@ export function CCPairStatus({
     badge = (
       <Badge variant="paused" icon={FiPauseCircle}>
         Paused
+      </Badge>
+    );
+  } else if (status === "invalid") {
+    badge = (
+      <Badge variant="invalid" icon={FiAlertTriangle}>
+        Invalid
       </Badge>
     );
   } else if (status === "failed") {

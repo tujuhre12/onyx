@@ -9,7 +9,6 @@ from onyx.connectors.models import Document
 from onyx.connectors.models import SlimDocument
 from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
 
-
 SecondsSinceUnixEpoch = float
 
 GenerateDocumentsOutput = Iterator[list[Document]]
@@ -40,6 +39,15 @@ class BaseConnector(abc.ABC):
             else:
                 raise RuntimeError(custom_parser_req_msg)
         return metadata_lines
+
+    def validate_connector_settings(self) -> None:
+        """
+        Override this if your connector needs to validate credentials or settings.
+        Raise an exception if invalid, otherwise do nothing.
+
+        Default is a no-op (always successful).
+        """
+        raise ConnectorValidationError("HI")
 
 
 # Large set update or reindex, generally pulling a complete state or from a savestate file
@@ -105,3 +113,15 @@ class EventConnector(BaseConnector):
     @abc.abstractmethod
     def handle_event(self, event: Any) -> GenerateDocumentsOutput:
         raise NotImplementedError
+
+
+class ConnectorValidationError(Exception):
+    """General exception for connector validation errors."""
+
+
+class CredentialExpiredError(ConnectorValidationError):
+    """Raised when a connector's credential is expired."""
+
+
+class InsufficientPermissionsError(ConnectorValidationError):
+    """Raised when the credential does not have sufficient API permissions."""
