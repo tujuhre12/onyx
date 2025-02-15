@@ -26,6 +26,7 @@ from onyx.context.search.postprocessing.postprocessing import rerank_sections
 from onyx.context.search.postprocessing.postprocessing import should_rerank
 from onyx.db.engine import get_session_context_manager
 from onyx.db.search_settings import get_current_search_settings
+from onyx.utils.gpu_utils import gpu_status_request
 from onyx.utils.timing import log_function_time
 
 
@@ -62,23 +63,36 @@ def rerank_documents(
             if not search_settings.disable_rerank_for_streaming:
                 rerank_settings = RerankingDetails.from_db_model(search_settings)
 
+    # Initial default: no reranking. Will be overwritten below if reranking is warranted
+    reranked_documents = verified_documents
+
     if should_rerank(rerank_settings) and len(verified_documents) > 0:
         if len(verified_documents) > 1:
-            reranked_documents = rerank_sections(
-                query_str=question,
-                # if runnable, then rerank_settings is not None
-                rerank_settings=cast(RerankingDetails, rerank_settings),
-                sections_to_rerank=verified_documents,
+            is_local_rerank = (
+                rerank_settings is not None and rerank_settings.rerank_api_url is None
             )
+            no_gpu_available = not gpu_status_request()
+
+            if is_local_rerank and no_gpu_available:
+                logger.info("Use of local rerank model without GPU, skipping reranking")
+            # No reranking, stay with verified_documents as default
+
+            else:
+                # Reranking is warranted, use the rerank_sections functon
+                reranked_documents = rerank_sections(
+                    query_str=question,
+                    # if runnable, then rerank_settings is not None
+                    rerank_settings=cast(RerankingDetails, rerank_settings),
+                    sections_to_rerank=verified_documents,
+                )
         else:
             logger.warning(
                 f"{len(verified_documents)} verified document(s) found, skipping reranking"
             )
-            reranked_documents = verified_documents
+            # No reranking, stay with verified_documents as default
     else:
         logger.warning("No reranking settings found, using unranked documents")
-        reranked_documents = verified_documents
-
+        # No reranking, stay with verified_documents as default
     if AGENT_RERANKING_STATS:
         fit_scores = get_fit_scores(verified_documents, reranked_documents)
     else:
