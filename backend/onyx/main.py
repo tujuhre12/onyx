@@ -250,7 +250,6 @@ def log_http_error(request: Request, exc: Exception) -> JSONResponse:
         logger.debug(f"404 error for /metrics endpoint: {str(exc)}")
 
     elif status_code >= 400:
-        print("FORMATTING ERROR")
         error_msg = f"{str(exc)}\n"
         error_msg += "".join(traceback.format_tb(exc.__traceback__))
         logger.error(error_msg)
