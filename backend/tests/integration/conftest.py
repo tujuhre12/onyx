@@ -1,11 +1,9 @@
 import os
-from collections.abc import Generator
 
 import pytest
 from sqlalchemy.orm import Session
 
 from onyx.auth.schemas import UserRole
-from onyx.db.engine import get_session_context_manager
 from onyx.db.search_settings import get_current_search_settings
 from tests.integration.common_utils.constants import ADMIN_USER_NAME
 from tests.integration.common_utils.constants import GENERAL_HEADERS
@@ -37,10 +35,17 @@ def load_env_vars(env_file: str = ".env") -> None:
 load_env_vars()
 
 
-@pytest.fixture
-def db_session() -> Generator[Session, None, None]:
-    with get_session_context_manager() as session:
-        yield session
+"""NOTE: for some reason using this seems to lead to misc
+`sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) server closed the connection unexpectedly`
+errors.
+
+Commenting out till we can get to the bottom of it. For now, just using
+instantiate the session directly within the test.
+"""
+# @pytest.fixture
+# def db_session() -> Generator[Session, None, None]:
+#     with get_session_context_manager() as session:
+#         yield session
 
 
 @pytest.fixture

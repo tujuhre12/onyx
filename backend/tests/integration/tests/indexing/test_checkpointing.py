@@ -5,13 +5,13 @@ from datetime import timezone
 
 import httpx
 import pytest
-from sqlalchemy.orm import Session
 
 from onyx.configs.constants import DocumentSource
 from onyx.connectors.models import ConnectorCheckpoint
 from onyx.connectors.models import ConnectorFailure
 from onyx.connectors.models import EntityFailure
 from onyx.connectors.models import InputType
+from onyx.db.engine import get_session_context_manager
 from onyx.db.enums import IndexingStatus
 from tests.integration.common_utils.constants import MOCK_CONNECTOR_SERVER_HOST
 from tests.integration.common_utils.constants import MOCK_CONNECTOR_SERVER_PORT
@@ -41,7 +41,6 @@ def mock_server_client() -> httpx.Client:
 
 def test_mock_connector_basic_flow(
     mock_server_client: httpx.Client,
-    db_session: Session,
     vespa_client: vespa_fixture,
     admin_user: DATestUser,
 ) -> None:
@@ -98,11 +97,12 @@ def test_mock_connector_basic_flow(
     assert finished_index_attempt.status == IndexingStatus.SUCCESS
 
     # Verify results
-    documents = DocumentManager.fetch_documents_for_cc_pair(
-        cc_pair_id=cc_pair.id,
-        db_session=db_session,
-        vespa_client=vespa_client,
-    )
+    with get_session_context_manager() as db_session:
+        documents = DocumentManager.fetch_documents_for_cc_pair(
+            cc_pair_id=cc_pair.id,
+            db_session=db_session,
+            vespa_client=vespa_client,
+        )
     assert len(documents) == 1
     assert documents[0].id == test_doc.id
 
@@ -115,7 +115,6 @@ def test_mock_connector_basic_flow(
 
 def test_mock_connector_with_failures(
     mock_server_client: httpx.Client,
-    db_session: Session,
     vespa_client: vespa_fixture,
     admin_user: DATestUser,
 ) -> None:
@@ -171,11 +170,12 @@ def test_mock_connector_with_failures(
     assert finished_index_attempt.status == IndexingStatus.COMPLETED_WITH_ERRORS
 
     # Verify results: doc1 should be indexed and doc2 should have an error entry
-    documents = DocumentManager.fetch_documents_for_cc_pair(
-        cc_pair_id=cc_pair.id,
-        db_session=db_session,
-        vespa_client=vespa_client,
-    )
+    with get_session_context_manager() as db_session:
+        documents = DocumentManager.fetch_documents_for_cc_pair(
+            cc_pair_id=cc_pair.id,
+            db_session=db_session,
+            vespa_client=vespa_client,
+        )
     assert len(documents) == 1
     assert documents[0].id == doc1.id
 
@@ -191,7 +191,6 @@ def test_mock_connector_with_failures(
 
 def test_mock_connector_failure_recovery(
     mock_server_client: httpx.Client,
-    db_session: Session,
     vespa_client: vespa_fixture,
     admin_user: DATestUser,
 ) -> None:
@@ -262,11 +261,12 @@ def test_mock_connector_failure_recovery(
     assert finished_index_attempt.status == IndexingStatus.COMPLETED_WITH_ERRORS
 
     # Verify initial state: doc1 indexed, doc2 failed
-    documents = DocumentManager.fetch_documents_for_cc_pair(
-        cc_pair_id=cc_pair.id,
-        db_session=db_session,
-        vespa_client=vespa_client,
-    )
+    with get_session_context_manager() as db_session:
+        documents = DocumentManager.fetch_documents_for_cc_pair(
+            cc_pair_id=cc_pair.id,
+            db_session=db_session,
+            vespa_client=vespa_client,
+        )
     assert len(documents) == 1
     assert documents[0].id == doc1.id
 
@@ -325,11 +325,12 @@ def test_mock_connector_failure_recovery(
     assert finished_second_index_attempt.status == IndexingStatus.SUCCESS
 
     # Verify both documents are now indexed
-    documents = DocumentManager.fetch_documents_for_cc_pair(
-        cc_pair_id=cc_pair.id,
-        db_session=db_session,
-        vespa_client=vespa_client,
-    )
+    with get_session_context_manager() as db_session:
+        documents = DocumentManager.fetch_documents_for_cc_pair(
+            cc_pair_id=cc_pair.id,
+            db_session=db_session,
+            vespa_client=vespa_client,
+        )
     assert len(documents) == 2
     document_ids = {doc.id for doc in documents}
     assert doc2.id in document_ids
@@ -350,7 +351,6 @@ def test_mock_connector_failure_recovery(
 
 def test_mock_connector_checkpoint_recovery(
     mock_server_client: httpx.Client,
-    db_session: Session,
     vespa_client: vespa_fixture,
     admin_user: DATestUser,
 ) -> None:
@@ -429,11 +429,12 @@ def test_mock_connector_checkpoint_recovery(
     assert finished_index_attempt.status == IndexingStatus.FAILED
 
     # Verify initial state: both docs should be indexed
-    documents = DocumentManager.fetch_documents_for_cc_pair(
-        cc_pair_id=cc_pair.id,
-        db_session=db_session,
-        vespa_client=vespa_client,
-    )
+    with get_session_context_manager() as db_session:
+        documents = DocumentManager.fetch_documents_for_cc_pair(
+            cc_pair_id=cc_pair.id,
+            db_session=db_session,
+            vespa_client=vespa_client,
+        )
     assert len(documents) == 101  # 100 docs from first batch + doc2
     document_ids = {doc.id for doc in documents}
     assert doc2.id in document_ids
@@ -495,11 +496,12 @@ def test_mock_connector_checkpoint_recovery(
     assert finished_recovery_attempt.status == IndexingStatus.SUCCESS
 
     # Verify results
-    documents = DocumentManager.fetch_documents_for_cc_pair(
-        cc_pair_id=cc_pair.id,
-        db_session=db_session,
-        vespa_client=vespa_client,
-    )
+    with get_session_context_manager() as db_session:
+        documents = DocumentManager.fetch_documents_for_cc_pair(
+            cc_pair_id=cc_pair.id,
+            db_session=db_session,
+            vespa_client=vespa_client,
+        )
     assert len(documents) == 102  # 100 docs from first batch + doc2 + doc3
     document_ids = {doc.id for doc in documents}
     assert doc3.id in document_ids
