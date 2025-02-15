@@ -47,14 +47,12 @@ def _create_indexable_chunks(
 ) -> tuple[list[Document], list[DocMetadataAwareIndexChunk]]:
     ids_to_documents = {}
     chunks = []
-    chunk_count_by_doc_id = {}
     for preprocessed_doc in preprocessed_docs:
-        doc_id = preprocessed_doc["url"]  # For Web connector, the URL is the ID
-        chunk_count_by_doc_id[doc_id] = chunk_count_by_doc_id.get(doc_id, 0) + 1
-
         document = Document(
-            id=doc_id,
-            sections=[Section(text=preprocessed_doc["content"], link=doc_id)],
+            id=preprocessed_doc["url"],  # For Web connector, the URL is the ID
+            sections=[
+                Section(text=preprocessed_doc["content"], link=preprocessed_doc["url"])
+            ],
             source=DocumentSource.WEB,
             semantic_identifier=preprocessed_doc["title"],
             metadata={},
