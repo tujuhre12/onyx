@@ -110,7 +110,7 @@ class IndexingWatchdogTerminalStatus(str, Enum):
 
     OUT_OF_MEMORY = "out_of_memory"
 
-    PROCESS_SIGNAL_SIGILL = "process_signal_sigkill"
+    PROCESS_SIGNAL_SIGKILL = "process_signal_sigkill"
 
     @property
     def code(self) -> int:
