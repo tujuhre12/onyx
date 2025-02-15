@@ -245,12 +245,11 @@ def seed_initial_documents(
 
     # Since we bypass the indexing flow, we need to manually update the chunk count
     for doc in docs:
-        print("Updating chunk count for doc", doc.id, "to", doc.chunk_count)
         db_session.execute(
             update(DbDocument)
             .where(DbDocument.id == doc.id)
             .values(chunk_count=doc.chunk_count)
         )
 
-    db_session.commit()  # KEY!
+    db_session.commit()
     kv_store.store(KV_DOCUMENTS_SEEDED_KEY, True)

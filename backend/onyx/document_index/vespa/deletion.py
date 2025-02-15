@@ -17,8 +17,6 @@ CONTENT_SUMMARY = "content_summary"
 @retry(tries=10, delay=1, backoff=2)
 def _retryable_http_delete(http_client: httpx.Client, url: str) -> None:
     res = http_client.delete(url)
-    print("in the retryable http delete", res)
-    print("status is", res.status_code)
     res.raise_for_status()
 
 
