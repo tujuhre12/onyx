@@ -885,7 +885,9 @@ class OAuth2AuthorizeResponse(BaseModel):
 
 
 def generate_state_token(
-    data: Dict[str, str], secret: SecretType, lifetime_seconds: int = 3600
+    data: Dict[str, str],
+    secret: SecretType,
+    lifetime_seconds: int = AUTH_COOKIE_EXPIRE_TIME_SECONDS,
 ) -> str:
     data["aud"] = STATE_TOKEN_AUDIENCE
 

@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from ee.onyx.server.tenants.product_gating import get_gated_tenants
 from onyx.background.celery.apps.app_base import task_logger
 from onyx.background.celery.celery_redis import celery_get_queue_length
 from onyx.background.celery.celery_redis import celery_get_unacked_task_ids
@@ -758,10 +759,12 @@ def cloud_check_alembic() -> bool | None:
     out_of_date_tenants: dict[str, str] = {}
     top_revision: str = ""
     tenant_ids: list[str] | list[None] = []
+    gated_tenants: list[str] = []
 
     try:
         # map tenant_id to revision (or ALEMBIC_NULL_REVISION if the query fails)
         tenant_ids = get_all_tenant_ids()
+        gated_tenants = get_gated_tenants()
         for tenant_id in tenant_ids:
             current_time = time.monotonic()
             if current_time - last_lock_time >= (CELERY_GENERIC_BEAT_LOCK_TIMEOUT / 4):
@@ -835,6 +838,7 @@ def cloud_check_alembic() -> bool | None:
             f"num_out_of_date_tenants={len(out_of_date_tenants)} "
             f"num_tenants={len(tenant_ids)} "
             f"revision={top_revision}"
+            f"gated_tenants={gated_tenants}"
         )
 
         num_to_log = min(5, len(out_of_date_tenants))
