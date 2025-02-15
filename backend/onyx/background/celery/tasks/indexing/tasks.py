@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import re
 import time
 import traceback
 from datetime import datetime
@@ -109,7 +110,7 @@ class IndexingWatchdogTerminalStatus(str, Enum):
 
     OUT_OF_MEMORY = "out_of_memory"
 
-    PROCESS_SIGNAL_SIGKILL = "process_signal_sigkill"
+    PROCESS_SIGNAL_SIGILL = "process_signal_sigkill"
 
     @property
     def code(self) -> int:
@@ -187,6 +188,9 @@ class ConnectorIndexingLogBuilder:
         if kwargs:
             extra_logfmt = " ".join(f"{key}={value}" for key, value in kwargs.items())
             msg_final = f"{msg_final} {extra_logfmt}"
+
+        # Ensure final log line has no newline/carriage-return characters
+        msg_final = re.sub(r"[\r\n]+", " ", msg_final)
 
         return msg_final
 
