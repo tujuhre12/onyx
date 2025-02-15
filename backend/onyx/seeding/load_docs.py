@@ -50,6 +50,8 @@ def _create_indexable_chunks(
     for preprocessed_doc in preprocessed_docs:
         document = Document(
             id=preprocessed_doc["url"],  # For Web connector, the URL is the ID
+            # The section is not really used past this point since we have already done the other processing
+            # for the chunking and embedding.
             sections=[
                 Section(text=preprocessed_doc["content"], link=preprocessed_doc["url"])
             ],
