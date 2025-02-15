@@ -61,6 +61,7 @@ class BookstackConnector(LoadConnector, PollConnector):
             )
 
         batch = bookstack_client.get(endpoint, params=params).get("data", [])
+
         doc_batch = [transformer(bookstack_client, item) for item in batch]
 
         return doc_batch, len(batch)
@@ -197,20 +198,31 @@ class BookstackConnector(LoadConnector, PollConnector):
         for endpoint, transform in transform_by_endpoint.items():
             start_ind = 0
             while True:
-                doc_batch, num_results = self._get_doc_batch(
-                    batch_size=self.batch_size,
-                    bookstack_client=self.bookstack_client,
-                    endpoint=endpoint,
-                    transformer=transform,
-                    start_ind=start_ind,
-                    start=start,
-                    end=end,
-                )
-                start_ind += num_results
-                if doc_batch:
-                    yield doc_batch
+                try:
+                    doc_batch, num_results = self._get_doc_batch(
+                        batch_size=self.batch_size,
+                        bookstack_client=self.bookstack_client,
+                        endpoint=endpoint,
+                        transformer=transform,
+                        start_ind=start_ind,
+                        start=start,
+                        end=end,
+                    )
+                    start_ind += num_results
+                    if doc_batch:
+                        yield doc_batch
 
-                if num_results < self.batch_size:
+                    if num_results < self.batch_size:
+                        break
+                    else:
+                        time.sleep(0.2)
+                except Exception as e:
+                    # Handle case where user hasn't properly set up permissions for the API key and we
+                    # fail on a specific resource (e.g. /books, /chapters, etc.)
+
+                    if (
+                        "BookStack Client request failed with status 403: Forbidden"
+                        in str(e)
+                    ):
+                        raise
                     break
-                else:
-                    time.sleep(0.2)
