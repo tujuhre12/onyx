@@ -15,10 +15,12 @@ from onyx.configs.app_configs import POSTGRES_HOST
 from onyx.configs.app_configs import POSTGRES_PASSWORD
 from onyx.configs.app_configs import POSTGRES_PORT
 from onyx.configs.app_configs import POSTGRES_USER
+from onyx.configs.app_configs import REDIS_PORT
 from onyx.db.engine import build_connection_string
 from onyx.db.engine import get_all_tenant_ids
 from onyx.db.engine import get_session_context_manager
 from onyx.db.engine import get_session_with_tenant
+from onyx.db.engine import SqlEngine
 from onyx.db.engine import SYNC_DB_API
 from onyx.db.search_settings import get_current_search_settings
 from onyx.db.swap_index import check_index_swap
@@ -26,6 +28,7 @@ from onyx.document_index.document_index_utils import get_multipass_config
 from onyx.document_index.vespa.index import DOCUMENT_ID_ENDPOINT
 from onyx.document_index.vespa.index import VespaIndex
 from onyx.indexing.models import IndexingSetting
+from onyx.redis.redis_pool import redis_pool
 from onyx.setup import setup_postgres
 from onyx.setup import setup_vespa
 from onyx.utils.logger import setup_logger
@@ -38,6 +41,7 @@ def _run_migrations(
     config_name: str,
     postgres_host: str,
     postgres_port: str,
+    redis_port: int,
     direction: str = "upgrade",
     revision: str = "head",
     schema: str = "public",
@@ -56,6 +60,8 @@ def _run_migrations(
         "POSTGRES_HOST": postgres_host,
         "POSTGRES_PORT": postgres_port,
         "POSTGRES_DB": database,
+        # some migrations call redis directly, so we need to pass the port
+        "REDIS_PORT": str(redis_port),
     }
 
     alembic_cfg.cmd_opts = SimpleNamespace()  # type: ignore
@@ -95,6 +101,7 @@ def downgrade_postgres(
     clear_data: bool = False,
     postgres_host: str = POSTGRES_HOST,
     postgres_port: str = POSTGRES_PORT,
+    redis_port: int = REDIS_PORT,
 ) -> None:
     """Downgrade Postgres database to base state."""
     if clear_data:
@@ -141,6 +148,7 @@ def downgrade_postgres(
         config_name=config_name,
         postgres_host=postgres_host,
         postgres_port=postgres_port,
+        redis_port=redis_port,
         direction="downgrade",
         revision=revision,
     )
@@ -152,6 +160,7 @@ def upgrade_postgres(
     revision: str = "head",
     postgres_host: str = POSTGRES_HOST,
     postgres_port: str = POSTGRES_PORT,
+    redis_port: int = REDIS_PORT,
 ) -> None:
     """Upgrade Postgres database to latest version."""
     _run_migrations(
@@ -159,6 +168,7 @@ def upgrade_postgres(
         config_name=config_name,
         postgres_host=postgres_host,
         postgres_port=postgres_port,
+        redis_port=redis_port,
         direction="upgrade",
         revision=revision,
     )
@@ -170,6 +180,7 @@ def reset_postgres(
     setup_onyx: bool = True,
     postgres_host: str = POSTGRES_HOST,
     postgres_port: str = POSTGRES_PORT,
+    redis_port: int = REDIS_PORT,
 ) -> None:
     """Reset the Postgres database."""
     downgrade_postgres(
@@ -179,6 +190,7 @@ def reset_postgres(
         clear_data=True,
         postgres_host=postgres_host,
         postgres_port=postgres_port,
+        redis_port=redis_port,
     )
     upgrade_postgres(
         database=database,
@@ -186,6 +198,7 @@ def reset_postgres(
         revision="head",
         postgres_host=postgres_host,
         postgres_port=postgres_port,
+        redis_port=redis_port,
     )
     if setup_onyx:
         logger.info("Setting up Postgres...")
@@ -193,9 +206,16 @@ def reset_postgres(
             setup_postgres(db_session)
 
 
-def reset_vespa() -> None:
-    """Wipe all data from the Vespa index."""
+def reset_vespa(
+    skip_creating_indices: bool, document_id_endpoint: str = DOCUMENT_ID_ENDPOINT
+) -> None:
+    """Wipe all data from the Vespa index.
 
+    Args:
+        skip_creating_indices: If True, the indices will not be recreated.
+            This is useful if the indices already exist and you do not want to
+            recreate them (e.g. when running parallel tests).
+    """
     with get_session_context_manager() as db_session:
         # swap to the correct default model
         check_index_swap(db_session)
@@ -204,18 +224,21 @@ def reset_vespa() -> None:
         multipass_config = get_multipass_config(search_settings)
         index_name = search_settings.index_name
 
-    success = setup_vespa(
-        document_index=VespaIndex(
-            index_name=index_name,
-            secondary_index_name=None,
-            large_chunks_enabled=multipass_config.enable_large_chunks,
-            secondary_large_chunks_enabled=None,
-        ),
-        index_setting=IndexingSetting.from_db_model(search_settings),
-        secondary_index_setting=None,
-    )
-    if not success:
-        raise RuntimeError("Could not connect to Vespa within the specified timeout.")
+    if not skip_creating_indices:
+        success = setup_vespa(
+            document_index=VespaIndex(
+                index_name=index_name,
+                secondary_index_name=None,
+                large_chunks_enabled=multipass_config.enable_large_chunks,
+                secondary_large_chunks_enabled=None,
+            ),
+            index_setting=IndexingSetting.from_db_model(search_settings),
+            secondary_index_setting=None,
+        )
+        if not success:
+            raise RuntimeError(
+                "Could not connect to Vespa within the specified timeout."
+            )
 
     for _ in range(5):
         try:
@@ -226,7 +249,7 @@ def reset_vespa() -> None:
                 if continuation:
                     params = {**params, "continuation": continuation}
                 response = requests.delete(
-                    DOCUMENT_ID_ENDPOINT.format(index_name=index_name), params=params
+                    document_id_endpoint.format(index_name=index_name), params=params
                 )
                 response.raise_for_status()
 
@@ -344,13 +367,23 @@ def reset_all(
     database: str = "postgres",
     postgres_host: str = POSTGRES_HOST,
     postgres_port: str = POSTGRES_PORT,
+    redis_port: int = REDIS_PORT,
     silence_logs: bool = False,
+    skip_creating_indices: bool = False,
+    document_id_endpoint: str = DOCUMENT_ID_ENDPOINT,
 ) -> None:
     if not silence_logs:
         with contextlib.redirect_stdout(sys.stdout), contextlib.redirect_stderr(
             sys.stderr
         ):
-            _do_reset(database, postgres_host, postgres_port)
+            _do_reset(
+                database,
+                postgres_host,
+                postgres_port,
+                redis_port,
+                skip_creating_indices,
+                document_id_endpoint,
+            )
         return
 
     # Store original logging levels
@@ -371,7 +404,14 @@ def reset_all(
         with contextlib.redirect_stdout(stdout_redirect), contextlib.redirect_stderr(
             stderr_redirect
         ):
-            _do_reset(database, postgres_host, postgres_port)
+            _do_reset(
+                database,
+                postgres_host,
+                postgres_port,
+                redis_port,
+                skip_creating_indices,
+                document_id_endpoint,
+            )
     except Exception as e:
         print(stdout_redirect.getvalue(), file=sys.stdout)
         print(stderr_redirect.getvalue(), file=sys.stderr)
@@ -382,15 +422,40 @@ def reset_all(
             logger_.setLevel(level)
 
 
-def _do_reset(database: str, postgres_host: str, postgres_port: str) -> None:
+def _do_reset(
+    database: str,
+    postgres_host: str,
+    postgres_port: str,
+    redis_port: int,
+    skip_creating_indices: bool,
+    document_id_endpoint: str,
+) -> None:
+    """NOTE: should only be be running in one worker/thread a time."""
+
+    # force re-create the engine to allow for the same worker to reset
+    # different databases
+    with SqlEngine._lock:
+        SqlEngine._engine = SqlEngine._init_engine(
+            host=postgres_host,
+            port=postgres_port,
+            db=database,
+        )
+
+    # same with redis
+    redis_pool._init_pools(redis_port=redis_port)
+
     logger.info("Resetting Postgres...")
     reset_postgres(
         database=database,
         postgres_host=postgres_host,
         postgres_port=postgres_port,
+        redis_port=redis_port,
     )
     logger.info("Resetting Vespa...")
-    reset_vespa()
+    reset_vespa(
+        skip_creating_indices=skip_creating_indices,
+        document_id_endpoint=document_id_endpoint,
+    )
 
 
 def reset_all_multitenant() -> None:

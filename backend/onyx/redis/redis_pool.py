@@ -146,10 +146,10 @@ class RedisPool:
                     cls._instance._init_pools()
         return cls._instance
 
-    def _init_pools(self) -> None:
-        self._pool = RedisPool.create_pool(ssl=REDIS_SSL)
+    def _init_pools(self, redis_port: int = REDIS_PORT) -> None:
+        self._pool = RedisPool.create_pool(port=redis_port, ssl=REDIS_SSL)
         self._replica_pool = RedisPool.create_pool(
-            host=REDIS_REPLICA_HOST, ssl=REDIS_SSL
+            host=REDIS_REPLICA_HOST, port=redis_port, ssl=REDIS_SSL
         )
 
     def get_client(self, tenant_id: str | None) -> Redis:

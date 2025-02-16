@@ -49,7 +49,6 @@ def run_single_test(
             "VESPA_PORT": str(shared_services_config.vespa_port),
             "VESPA_TENANT_PORT": str(shared_services_config.vespa_tenant_port),
         }
-        print("Env: ", env)
         result = subprocess.run(
             ["pytest", processed_test_name, "-v"],
             env=env,
@@ -114,7 +113,15 @@ def worker(
                 reset_all(
                     database=deployment_config.postgres_db,
                     postgres_port=str(shared_services_config.postgres_port),
+                    redis_port=deployment_config.redis_port,
                     silence_logs=True,
+                    # indices are created during the kickoff process, no need to recreate them
+                    skip_creating_indices=True,
+                    # use the special vespa port
+                    document_id_endpoint=(
+                        f"http://localhost:{shared_services_config.vespa_port}"
+                        "/document/v1/default/{{index_name}}/docid"
+                    ),
                 )
         except Exception as e:
             # Log the error and put it in the result queue
@@ -137,15 +144,16 @@ def worker(
 
 
 def main() -> None:
-    NUM_INSTANCES = 1
+    NUM_INSTANCES = 2
 
     # Get all tests
-    tests = list_all_tests(Path(__file__).parent)
+    tests = list_all_tests(Path(__file__).parent / "tests")
+    tests += list_all_tests(Path(__file__).parent / "connector_job_tests")
     print(f"Found {len(tests)} tests to run")
 
     # For debugging
     # tests = [test for test in tests if "openai_assistants_api" in test]
-    tests = tests[:2]
+    tests = tests[:10]
     print(f"Running {len(tests)} tests")
 
     # Start all instances at once

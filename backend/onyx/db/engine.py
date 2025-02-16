@@ -191,9 +191,16 @@ class SqlEngine:
     _app_name: str = POSTGRES_UNKNOWN_APP_NAME
 
     @classmethod
-    def _init_engine(cls, **engine_kwargs: Any) -> Engine:
+    def _init_engine(
+        cls, host: str, port: str, db: str, **engine_kwargs: Any
+    ) -> Engine:
         connection_string = build_connection_string(
-            db_api=SYNC_DB_API, app_name=cls._app_name + "_sync", use_iam=USE_IAM_AUTH
+            db_api=SYNC_DB_API,
+            host=host,
+            port=port,
+            db=db,
+            app_name=cls._app_name + "_sync",
+            use_iam=USE_IAM_AUTH,
         )
 
         # Start with base kwargs that are valid for all pool types
@@ -231,15 +238,19 @@ class SqlEngine:
     def init_engine(cls, **engine_kwargs: Any) -> None:
         with cls._lock:
             if not cls._engine:
-                cls._engine = cls._init_engine(**engine_kwargs)
+                cls._engine = cls._init_engine(
+                    host=engine_kwargs.get("host", POSTGRES_HOST),
+                    port=engine_kwargs.get("port", POSTGRES_PORT),
+                    db=engine_kwargs.get("db", POSTGRES_DB),
+                    **engine_kwargs,
+                )
 
     @classmethod
     def get_engine(cls) -> Engine:
         if not cls._engine:
-            with cls._lock:
-                if not cls._engine:
-                    cls._engine = cls._init_engine()
-        return cls._engine
+            cls.init_engine()
+
+        return cls._engine  # type: ignore
 
     @classmethod
     def set_app_name(cls, app_name: str) -> None:

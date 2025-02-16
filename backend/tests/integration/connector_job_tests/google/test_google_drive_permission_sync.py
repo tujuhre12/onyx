@@ -118,6 +118,7 @@ def test_google_permission_sync(
         GoogleDriveService, str, DATestCCPair, DATestUser, DATestUser, DATestUser
     ],
 ) -> None:
+    print("Running test_google_permission_sync")
     (
         drive_service,
         drive_id,
