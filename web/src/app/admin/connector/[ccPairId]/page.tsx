@@ -337,10 +337,11 @@ function Main({ ccPairId }: { ccPairId: number }) {
           <Callout type="warning" title="Invalid Connector State">
             This connector is in an invalid state. Please update your
             credentials or create a new connector before re-indexing if you
-            haven't already done so.
+            haven&apos;t already done so.
           </Callout>
         </div>
       )}
+
       <Separator />
       <ConfigDisplay
         connectorSpecificConfig={ccPair.connector.connector_specific_config}

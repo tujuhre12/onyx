@@ -118,10 +118,22 @@ class EventConnector(BaseConnector):
 class ConnectorValidationError(Exception):
     """General exception for connector validation errors."""
 
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(self.message)
+
 
 class CredentialExpiredError(ConnectorValidationError):
     """Raised when a connector's credential is expired."""
 
+    def __init__(self, message: str = "Credential has expired"):
+        super().__init__(message)
+
 
 class InsufficientPermissionsError(ConnectorValidationError):
     """Raised when the credential does not have sufficient API permissions."""
+
+    def __init__(
+        self, message: str = "Insufficient permissions for the requested operation"
+    ):
+        super().__init__(message)

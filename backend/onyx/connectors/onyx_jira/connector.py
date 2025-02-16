@@ -12,8 +12,11 @@ from onyx.configs.app_configs import JIRA_CONNECTOR_LABELS_TO_SKIP
 from onyx.configs.app_configs import JIRA_CONNECTOR_MAX_TICKET_SIZE
 from onyx.configs.constants import DocumentSource
 from onyx.connectors.cross_connector_utils.miscellaneous_utils import time_str_to_utc
+from onyx.connectors.interfaces import ConnectorValidationError
+from onyx.connectors.interfaces import CredentialExpiredError
 from onyx.connectors.interfaces import GenerateDocumentsOutput
 from onyx.connectors.interfaces import GenerateSlimDocumentOutput
+from onyx.connectors.interfaces import InsufficientPermissionsError
 from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import PollConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
@@ -271,6 +274,57 @@ class JiraConnector(LoadConnector, PollConnector, SlimConnector):
                 slim_doc_batch = []
 
         yield slim_doc_batch
+
+    def validate_connector_settings(self) -> None:
+        """
+        Validates that the current connector settings and credentials are valid for the Jira connector.
+        Raises:
+            ConnectorMissingCredentialError: If no Jira client/credentials are loaded.
+            ConnectorValidationError: For general validation errors (including an out-of-date Jira library).
+            CredentialExpiredError: If the token is invalid or expired.
+            InsufficientPermissionsError: If the token does not have enough permissions for this project.
+        """
+        # 1. Ensure the Jira client is loaded
+        if self._jira_client is None:
+            raise ConnectorValidationError("Jira credentials not loaded.")
+
+        # 2. Validate required connector settings, e.g., the Jira project
+        if not self._jira_project:
+            raise ConnectorValidationError(
+                "Invalid connector settings: 'jira_project' must be provided."
+            )
+
+        # 3. Attempt a small test call to Jira to verify credentials and permissions
+        try:
+            # Try fetching the configured Jira project details
+            self.jira_client.project(self._jira_project)
+
+        except Exception as e:
+            # Jira might raise JIRAError or other exceptions; handle status codes or fallback to a generic error
+            status_code = getattr(e, "status_code", None)
+            if status_code == 401:
+                raise CredentialExpiredError(
+                    "Jira credential appears to be expired or invalid (HTTP 401)."
+                )
+            elif status_code == 403:
+                raise InsufficientPermissionsError(
+                    "Your Jira token does not have sufficient permissions for this project (HTTP 403)."
+                )
+            elif status_code == 404:
+                raise ConnectorValidationError(
+                    f"Jira project not found with key: {self._jira_project}"
+                )
+            elif status_code == 429:
+                raise ConnectorValidationError(
+                    "Validation failed due to Jira rate-limits being exceeded. Please try again later."
+                )
+            else:
+                raise ConnectorValidationError(
+                    f"Unexpected Jira error during validation: {e}"
+                )
+
+        # If we made it this far, validation checks have passed
+        logger.info("Jira connector settings have been successfully validated.")
 
 
 if __name__ == "__main__":

@@ -93,8 +93,8 @@ function ReIndexPopup({
               title="Previous Indexing Attempt was Invalid"
             >
               This connector is in an invalid state. Please update the
-              credentials or configuration before re-indexing if you haven't
-              already done so.
+              credentials or configuration before re-indexing if you
+              haven&apos;t already done so.
             </Callout>
           </div>
         )}

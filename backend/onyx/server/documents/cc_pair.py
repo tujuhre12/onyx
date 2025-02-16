@@ -26,6 +26,7 @@ from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import OnyxCeleryTask
 from onyx.connectors.factory import instantiate_connector
 from onyx.connectors.interfaces import ConnectorValidationError
+from onyx.db.connector import delete_connector
 from onyx.db.connector import fetch_connector_by_id
 from onyx.db.connector_credential_pair import add_credential_to_connector
 from onyx.db.connector_credential_pair import (
@@ -584,14 +585,20 @@ def associate_credential_to_connector(
             db_session,
             get_editable=False,
         )
-        runnable_connector = instantiate_connector(
-            db_session=db_session,
-            source=connector.source,
-            input_type=connector.input_type,
-            connector_specific_config=connector.connector_specific_config,
-            credential=credential,
-            tenant_id=tenant_id,
-        )
+        try:
+            runnable_connector = instantiate_connector(
+                db_session=db_session,
+                source=connector.source,
+                input_type=connector.input_type,
+                connector_specific_config=connector.connector_specific_config,
+                credential=credential,
+                tenant_id=tenant_id,
+            )
+        except Exception as e:
+            error_msg = f"Unexpected error creating connector: {e}"
+            logger.error(error_msg)
+            raise ConnectorValidationError(error_msg)
+
         runnable_connector.validate_connector_settings()
 
         response = add_credential_to_connector(
@@ -621,6 +628,10 @@ def associate_credential_to_connector(
 
     except ConnectorValidationError as e:
         logger.error(f"Connector validation error: {e}")
+        logger.error(f"Deleting connector: {connector_id}")
+        response = delete_connector(db_session, connector_id)
+        db_session.commit()
+        logger.error(f"Connector deletion response: {response}")
         raise HTTPException(
             status_code=400, detail="Connector validation error: " + str(e)
         )
@@ -631,7 +642,7 @@ def associate_credential_to_connector(
 
     except Exception as e:
         logger.error(type(e))
-        logger.error(f"Unexpected error: {e}")
+        logger.exception(f"Unexpected error: {e}")
         raise HTTPException(status_code=500, detail="Unexpected error")
 
 
