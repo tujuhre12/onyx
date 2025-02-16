@@ -105,11 +105,13 @@ export function CCPairStatus({
   status,
   disabled,
   isDeleting,
+  isInvalid,
   size = "md",
 }: {
   status: ValidStatuses;
   disabled: boolean;
   isDeleting: boolean;
+  isInvalid: boolean;
   size?: "xs" | "sm" | "md" | "lg";
 }) {
   let badge;
@@ -126,7 +128,7 @@ export function CCPairStatus({
         Paused
       </Badge>
     );
-  } else if (status === "invalid") {
+  } else if (isInvalid) {
     badge = (
       <Badge variant="invalid" icon={FiAlertTriangle}>
         Invalid

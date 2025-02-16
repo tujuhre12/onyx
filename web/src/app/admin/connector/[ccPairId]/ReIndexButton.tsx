@@ -9,14 +9,16 @@ import { buildCCPairInfoUrl } from "./lib";
 import { useState } from "react";
 import { Modal } from "@/components/Modal";
 import { Separator } from "@/components/ui/separator";
-
+import { Callout } from "@/components/ui/callout";
 function ReIndexPopup({
+  isInvalid,
   connectorId,
   credentialId,
   ccPairId,
   setPopup,
   hide,
 }: {
+  isInvalid: boolean;
   connectorId: number;
   credentialId: number;
   ccPairId: number;
@@ -84,6 +86,18 @@ function ReIndexPopup({
           <b>NOTE:</b> depending on the number of documents stored in the
           source, this may take a long time.
         </Text>
+        {isInvalid && (
+          <div className="mt-2">
+            <Callout
+              type="warning"
+              title="Previous Indexing Attempt was Invalid"
+            >
+              This connector is in an invalid state. Please update the
+              credentials or configuration before re-indexing if you haven't
+              already done so.
+            </Callout>
+          </div>
+        )}
       </div>
     </Modal>
   );
@@ -96,6 +110,7 @@ export function ReIndexButton({
   isDisabled,
   isIndexing,
   isDeleting,
+  isInvalid,
 }: {
   ccPairId: number;
   connectorId: number;
@@ -103,6 +118,7 @@ export function ReIndexButton({
   isDisabled: boolean;
   isIndexing: boolean;
   isDeleting: boolean;
+  isInvalid: boolean;
 }) {
   const { popup, setPopup } = usePopup();
   const [reIndexPopupVisible, setReIndexPopupVisible] = useState(false);
@@ -111,6 +127,7 @@ export function ReIndexButton({
     <>
       {reIndexPopupVisible && (
         <ReIndexPopup
+          isInvalid={isInvalid}
           connectorId={connectorId}
           credentialId={credentialId}
           ccPairId={ccPairId}

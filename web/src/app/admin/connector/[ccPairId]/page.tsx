@@ -265,6 +265,9 @@ function Main({ ccPairId }: { ccPairId: number }) {
           <div className="ml-auto flex gap-x-2">
             <ReIndexButton
               ccPairId={ccPair.id}
+              isInvalid={
+                ccPair.status === ConnectorCredentialPairStatus.INVALID
+              }
               connectorId={ccPair.connector.id}
               credentialId={ccPair.credential.id}
               isDisabled={
@@ -283,6 +286,7 @@ function Main({ ccPairId }: { ccPairId: number }) {
         status={ccPair.last_index_attempt_status || "not_started"}
         disabled={ccPair.status === ConnectorCredentialPairStatus.PAUSED}
         isDeleting={isDeleting}
+        isInvalid={ccPair.status === ConnectorCredentialPairStatus.INVALID}
       />
       <div className="text-sm mt-1">
         Creator:{" "}
