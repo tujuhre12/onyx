@@ -1,9 +1,9 @@
 import os
 
 import pytest
-from sqlalchemy.orm import Session
 
 from onyx.auth.schemas import UserRole
+from onyx.db.engine import get_session_context_manager
 from onyx.db.search_settings import get_current_search_settings
 from tests.integration.common_utils.constants import ADMIN_USER_NAME
 from tests.integration.common_utils.constants import GENERAL_HEADERS
@@ -49,9 +49,10 @@ instantiate the session directly within the test.
 
 
 @pytest.fixture
-def vespa_client(db_session: Session) -> vespa_fixture:
-    search_settings = get_current_search_settings(db_session)
-    return vespa_fixture(index_name=search_settings.index_name)
+def vespa_client() -> vespa_fixture:
+    with get_session_context_manager() as db_session:
+        search_settings = get_current_search_settings(db_session)
+        return vespa_fixture(index_name=search_settings.index_name)
 
 
 @pytest.fixture
