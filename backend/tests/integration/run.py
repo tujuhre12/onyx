@@ -13,7 +13,6 @@ from tests.integration.common_utils.reset import reset_all
 from tests.integration.introspection import list_all_tests
 from tests.integration.kickoff import BACKEND_DIR_PATH
 from tests.integration.kickoff import DeploymentConfig
-from tests.integration.kickoff import get_db_name
 from tests.integration.kickoff import run_x_instances
 from tests.integration.kickoff import SharedServicesConfig
 
@@ -45,7 +44,8 @@ def run_single_test(
             "PYTHONPATH": ".",
             "GUARANTEED_FRESH_SETUP": "true",
             "POSTGRES_PORT": str(shared_services_config.postgres_port),
-            "POSTGRES_DB": get_db_name(deployment_config.instance_num),
+            "POSTGRES_DB": deployment_config.postgres_db,
+            "REDIS_PORT": str(deployment_config.redis_port),
             "VESPA_PORT": str(shared_services_config.vespa_port),
             "VESPA_TENANT_PORT": str(shared_services_config.vespa_tenant_port),
         }
