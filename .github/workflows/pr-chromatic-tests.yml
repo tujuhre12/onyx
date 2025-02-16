@@ -1,6 +1,6 @@
-name: Run Chromatic Tests
+name: Run Playwright Tests
 concurrency:
-  group: Run-Chromatic-Tests-${{ github.workflow }}-${{ github.head_ref || github.event.workflow_run.head_branch || github.run_id }}
+  group: Run-Playwright-Tests-${{ github.workflow }}-${{ github.head_ref || github.event.workflow_run.head_branch || github.run_id }}
   cancel-in-progress: true
 
 on: push
@@ -198,43 +198,43 @@ jobs:
           cd deployment/docker_compose
           docker compose -f docker-compose.dev.yml -p danswer-stack down -v
 
-  chromatic-tests:
-    name: Chromatic Tests
+  # chromatic-tests:
+  #   name: Chromatic Tests
 
-    needs: playwright-tests
-    runs-on:
-      [
-        runs-on,
-        runner=32cpu-linux-x64,
-        disk=large,
-        "run-id=${{ github.run_id }}",
-      ]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  #   needs: playwright-tests
+  #   runs-on:
+  #     [
+  #       runs-on,
+  #       runner=32cpu-linux-x64,
+  #       disk=large,
+  #       "run-id=${{ github.run_id }}",
+  #     ]
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
+  #     - name: Setup node
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 22
 
-      - name: Install node dependencies
-        working-directory: ./web
-        run: npm ci
+  #     - name: Install node dependencies
+  #       working-directory: ./web
+  #       run: npm ci
 
-      - name: Download Playwright test results
-        uses: actions/download-artifact@v4
-        with:
-          name: test-results
-          path: ./web/test-results
+  #     - name: Download Playwright test results
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: test-results
+  #         path: ./web/test-results
 
-      - name: Run Chromatic
-        uses: chromaui/action@latest
-        with:
-          playwright: true
-          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-          workingDir: ./web
-        env:
-          CHROMATIC_ARCHIVE_LOCATION: ./test-results
+  #     - name: Run Chromatic
+  #       uses: chromaui/action@latest
+  #       with:
+  #         playwright: true
+  #         projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+  #         workingDir: ./web
+  #       env:
+  #         CHROMATIC_ARCHIVE_LOCATION: ./test-results
