@@ -72,6 +72,47 @@ jobs:
             echo "All integration tests passed successfully."
           fi
 
+      - name: Collect log files
+        if: success() || failure()
+        run: |
+          # Create a directory for logs
+          mkdir -p ${{ github.workspace }}/logs
+          mkdir -p ${{ github.workspace }}/logs/shared_services
+          
+          # Copy all relevant log files
+          cp /tmp/api_server_*.txt ${{ github.workspace }}/logs/ || true
+          cp /tmp/background_*.txt ${{ github.workspace }}/logs/ || true
+          cp /tmp/shared_model_server.txt ${{ github.workspace }}/logs/ || true
+          
+          # Collect logs from shared services (Docker containers)
+          # Note: using a wildcard for the UUID part of the stack name
+          docker ps -a --filter "name=base-onyx-" --format "{{.Names}}" | while read container; do
+            echo "Collecting logs from $container"
+            docker logs $container > "${{ github.workspace }}/logs/shared_services/${container}.log" 2>&1 || true
+          done
+          
+          # Also collect Redis container logs
+          docker ps -a --filter "name=redis-onyx-" --format "{{.Names}}" | while read container; do
+            echo "Collecting logs from $container"
+            docker logs $container > "${{ github.workspace }}/logs/shared_services/${container}.log" 2>&1 || true
+          done
+          
+          # List collected logs
+          echo "Collected log files:"
+          ls -l ${{ github.workspace }}/logs/
+          echo "Collected shared services logs:"
+          ls -l ${{ github.workspace }}/logs/shared_services/
+
+      - name: Upload logs
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-logs
+          path: |
+            ${{ github.workspace }}/logs/
+            ${{ github.workspace }}/logs/shared_services/
+          retention-days: 5
+
       # save before stopping the containers so the logs can be captured
       # - name: Save Docker logs
       #   if: success() || failure()

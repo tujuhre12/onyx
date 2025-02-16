@@ -137,16 +137,16 @@ def worker(
 
 
 def main() -> None:
-    NUM_INSTANCES = 6
+    NUM_INSTANCES = 1
 
     # Get all tests
     tests = list_all_tests(Path(__file__).parent)
     print(f"Found {len(tests)} tests to run")
 
     # For debugging
-    # tests = [test for test in tests if "openai_assistants_api" in test]
-    # tests = tests[:2]
-    # print(f"Running {len(tests)} tests")
+    tests = [test for test in tests if "openai_assistants_api" in test]
+    tests = tests[:2]
+    print(f"Running {len(tests)} tests")
 
     # Start all instances at once
     shared_services_config, deployment_configs = run_x_instances(NUM_INSTANCES)
