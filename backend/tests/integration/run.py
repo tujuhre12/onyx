@@ -33,9 +33,7 @@ def run_single_test(
 ) -> None:
     """Run a single test with the given API port."""
     test_path, test_name = test_name.split("::")
-    processed_test_name = (
-        f"tests/integration/{test_path.replace('.', '/')}.py::{test_name}"
-    )
+    processed_test_name = f"{test_path.replace('.', '/')}.py::{test_name}"
     print(f"Running test: {processed_test_name}")
     try:
         env = {
@@ -147,8 +145,13 @@ def main() -> None:
     NUM_INSTANCES = 2
 
     # Get all tests
-    tests = list_all_tests(Path(__file__).parent / "tests")
-    tests += list_all_tests(Path(__file__).parent / "connector_job_tests")
+    prefixes = ["tests", "connector_job_tests"]
+    tests = []
+    for prefix in prefixes:
+        tests += [
+            f"{prefix}/{test_path}"
+            for test_path in list_all_tests(Path(__file__).parent / prefix)
+        ]
     print(f"Found {len(tests)} tests to run")
 
     # For debugging
