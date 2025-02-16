@@ -28,11 +28,11 @@ from onyx.background.celery.tasks.indexing.utils import get_unfenced_index_attem
 from onyx.background.celery.tasks.indexing.utils import IndexingCallback
 from onyx.background.celery.tasks.indexing.utils import try_creating_indexing_task
 from onyx.background.celery.tasks.indexing.utils import validate_indexing_fences
-from onyx.background.indexing.job_client import SimpleJob
 from onyx.background.indexing.checkpointing_utils import cleanup_checkpoint
 from onyx.background.indexing.checkpointing_utils import (
     get_index_attempts_with_old_checkpoints,
 )
+from onyx.background.indexing.job_client import SimpleJob
 from onyx.background.indexing.job_client import SimpleJobClient
 from onyx.background.indexing.job_client import SimpleJobException
 from onyx.background.indexing.run_indexing import run_indexing_entrypoint
