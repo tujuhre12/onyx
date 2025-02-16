@@ -4,12 +4,17 @@ from typing import Any
 
 from dropbox import Dropbox  # type: ignore
 from dropbox.exceptions import ApiError  # type:ignore
+from dropbox.exceptions import AuthError  # type:ignore
+from dropbox.exceptions import HttpError  # type:ignore
 from dropbox.files import FileMetadata  # type:ignore
 from dropbox.files import FolderMetadata  # type:ignore
 
 from onyx.configs.app_configs import INDEX_BATCH_SIZE
 from onyx.configs.constants import DocumentSource
+from onyx.connectors.interfaces import ConnectorValidationError
+from onyx.connectors.interfaces import CredentialInvalidError
 from onyx.connectors.interfaces import GenerateDocumentsOutput
+from onyx.connectors.interfaces import InsufficientPermissionsError
 from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import PollConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
@@ -140,6 +145,52 @@ class DropboxConnector(LoadConnector, PollConnector):
             yield batch
 
         return None
+
+    # NOTE
+    def validate_connector_settings(self) -> None:
+        """
+        Validates that the current connector settings and credentials are valid for the Dropbox connector.
+        Raises:
+            ConnectorMissingCredentialError: If no Dropbox client/credentials are loaded.
+            CredentialExpiredError: If the token is invalid or expired.
+            InsufficientPermissionsError: If the token does not have enough permissions for the requested action.
+            ConnectorValidationError: For all other validation errors.
+        """
+        if self.dropbox_client is None:
+            raise ConnectorMissingCredentialError("Dropbox credentials not loaded.")
+
+        try:
+            # Attempt a small test call to verify credentials. If this fails due to
+            # an invalid or expired token, Dropbox raises `AuthError`.
+            # If we can successfully list the root folder, we assume minimal permissions are granted.
+            self.dropbox_client.files_list_folder(path="", limit=1)
+        except AuthError as e:
+            logger.exception(f"Failed to validate Dropbox credentials: {e}")
+            raise CredentialInvalidError(f"Dropbox credential is invalid: {e.error}")
+        except ApiError as e:
+            # If we know from the error details that it's a permission issue, raise that;
+            # otherwise treat it as a general validation error.
+            # Dropbox does not consistently return an HTTP status like 403 for permission errors,
+            # so we rely on the error object:
+            if (
+                e.error is not None
+                and "insufficient_permissions" in str(e.error).lower()
+            ):
+                raise InsufficientPermissionsError(
+                    "Your Dropbox token does not have sufficient permissions."
+                )
+            raise ConnectorValidationError(
+                f"Unexpected Dropbox error during validation: {e.user_message_text or e}"
+            )
+        except HttpError as e:
+            # A broader HTTP error. We can attempt to parse status code if available, otherwise generalize.
+            # e can contain HTTP info, but not always. Raise a generic validation error by default.
+            raise ConnectorValidationError(f"Unexpected Dropbox HTTP error: {e}")
+        except Exception as exc:
+            # Catch-all for anything else
+            raise ConnectorValidationError(
+                f"Unexpected error during Dropbox settings validation: {exc}"
+            )
 
 
 if __name__ == "__main__":
