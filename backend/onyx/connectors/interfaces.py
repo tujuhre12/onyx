@@ -40,6 +40,7 @@ class BaseConnector(abc.ABC):
                 raise RuntimeError(custom_parser_req_msg)
         return metadata_lines
 
+    @abc.abstractmethod
     def validate_connector_settings(self) -> None:
         """
         Override this if your connector needs to validate credentials or settings.

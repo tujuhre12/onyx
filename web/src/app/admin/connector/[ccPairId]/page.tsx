@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import EditPropertyModal from "@/components/modals/EditPropertyModal";
 
 import * as Yup from "yup";
+import { Callout } from "@/components/ui/callout";
 
 // synchronize these validations with the SQLAlchemy connector class until we have a
 // centralized schema for both frontend and backend
@@ -330,6 +331,16 @@ function Main({ ccPairId }: { ccPairId: number }) {
             />
           </>
         )}
+
+      {ccPair.status === ConnectorCredentialPairStatus.INVALID && (
+        <div className="mt-2">
+          <Callout type="warning" title="Invalid Connector State">
+            This connector is in an invalid state. Please update your
+            credentials or create a new connector before re-indexing if you
+            haven't already done so.
+          </Callout>
+        </div>
+      )}
       <Separator />
       <ConfigDisplay
         connectorSpecificConfig={ccPair.connector.connector_specific_config}

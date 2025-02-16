@@ -163,7 +163,11 @@ function ConnectorRow({
       ccPairsIndexingStatus.cc_pair_status ===
       ConnectorCredentialPairStatus.INVALID
     ) {
-      return <Badge variant="invalid">Invalid</Badge>;
+      return (
+        <Badge circle variant="invalid">
+          Invalid
+        </Badge>
+      );
     }
 
     // ACTIVE case

@@ -9,6 +9,7 @@ from typing import cast
 from github import Github
 from github import RateLimitExceededException
 from github import Repository
+from github.GithubException import GithubException
 from github.Issue import Issue
 from github.PaginatedList import PaginatedList
 from github.PullRequest import PullRequest
@@ -16,7 +17,10 @@ from github.PullRequest import PullRequest
 from onyx.configs.app_configs import GITHUB_CONNECTOR_BASE_URL
 from onyx.configs.app_configs import INDEX_BATCH_SIZE
 from onyx.configs.constants import DocumentSource
+from onyx.connectors.interfaces import ConnectorValidationError
+from onyx.connectors.interfaces import CredentialExpiredError
 from onyx.connectors.interfaces import GenerateDocumentsOutput
+from onyx.connectors.interfaces import InsufficientPermissionsError
 from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import PollConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
@@ -25,7 +29,6 @@ from onyx.connectors.models import Document
 from onyx.connectors.models import Section
 from onyx.utils.batching import batch_generator
 from onyx.utils.logger import setup_logger
-
 
 logger = setup_logger()
 
@@ -225,6 +228,71 @@ class GithubConnector(LoadConnector, PollConnector):
             adjusted_start_datetime = epoch
 
         return self._fetch_from_github(adjusted_start_datetime, end_datetime)
+
+    def validate_connector_settings(self) -> None:
+        """
+        Validates that the current connector settings and credentials are valid.
+        Raises:
+            ConnectorMissingCredentialError: If no GitHub client/credentials are loaded.
+            ConnectorValidationError: For general validation errors (including an out-of-date GitHub library).
+            CredentialExpiredError: If the token is invalid or expired.
+            InsufficientPermissionsError: If the token does not have enough permissions for this repo.
+        """
+        # 1. Ensure the GitHub client is loaded (i.e., credentials were provided).
+        if self.github_client is None:
+            raise ConnectorMissingCredentialError("GitHub credentials not loaded.")
+
+        # 3. Validate required connector settings, e.g. repo_owner/repo_name
+        if not self.repo_owner or not self.repo_name:
+            raise ConnectorValidationError(
+                "Invalid connector settings: 'repo_owner' and 'repo_name' must be provided."
+            )
+
+        # 4. Attempt a small test call to GitHub to verify credentials and permissions.
+        try:
+            test_repo = self.github_client.get_repo(
+                f"{self.repo_owner}/{self.repo_name}"
+            )
+            # For a more robust permission check, try an action requiring relevant permissions:
+            test_repo.get_contents(
+                ""
+            )  # e.g., listing repo contents to confirm read access
+
+        except RateLimitExceededException:
+            # If you want to treat rate-limit exhaustion as a validation issue, you can raise here:
+            raise ConnectorValidationError(
+                "Validation failed due to GitHub rate-limits being exceeded. Please try again later."
+            )
+
+        except GithubException as e:
+            if e.status == 401:
+                # Typically indicates invalid/expired token
+                raise CredentialExpiredError(
+                    "GitHub credential appears to be expired or invalid (HTTP 401)."
+                )
+            elif e.status == 403:
+                # Typically indicates insufficient permissions on the repo
+                raise InsufficientPermissionsError(
+                    "Your GitHub token does not have sufficient permissions for this repository (HTTP 403)."
+                )
+            elif e.status == 404:
+                # Repository not found
+                raise ConnectorValidationError(
+                    f"GitHub repository not found with name: {self.repo_owner}/{self.repo_name}"
+                )
+            else:
+                # Any other GitHub-specific errors that might occur
+                raise ConnectorValidationError(
+                    f"Unexpected GitHub error (status={e.status}): {e.data}"
+                )
+        except Exception as exc:
+            # Catch-all for anything else
+            raise ConnectorValidationError(
+                f"Unexpected error during GitHub settings validation: {exc}"
+            )
+
+        # If we made it here, validation checks have passed.
+        logger.info("GitHub connector settings have been successfully validated.")
 
 
 if __name__ == "__main__":
