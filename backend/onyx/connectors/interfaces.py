@@ -129,6 +129,13 @@ class UnexpectedError(ConnectorValidationError):
         super().__init__(message)
 
 
+class CredentialInvalidError(ConnectorValidationError):
+    """Raised when a connector's credential is invalid."""
+
+    def __init__(self, message: str = "Credential is invalid"):
+        super().__init__(message)
+
+
 class CredentialExpiredError(ConnectorValidationError):
     """Raised when a connector's credential is expired."""
 
