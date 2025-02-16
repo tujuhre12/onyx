@@ -284,8 +284,6 @@ def monitor_ccpair_indexing_taskset(
                     index_attempt = get_index_attempt(
                         db_session, payload.index_attempt_id
                     )
-                    print("INEDE ATMPTE")
-                    print(index_attempt.status)
                     if index_attempt:
                         if (
                             index_attempt.status != IndexingStatus.CANCELED

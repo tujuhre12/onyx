@@ -585,6 +585,11 @@ def associate_credential_to_connector(
             db_session,
             get_editable=False,
         )
+        if not credential:
+            raise HTTPException(status_code=400, detail="Credential not found")
+        if not connector:
+            raise HTTPException(status_code=400, detail="Connector not found")
+
         try:
             runnable_connector = instantiate_connector(
                 db_session=db_session,
