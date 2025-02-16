@@ -142,7 +142,7 @@ def worker(
 
 
 def main() -> None:
-    NUM_INSTANCES = 2
+    NUM_INSTANCES = 7
 
     # Get all tests
     prefixes = ["tests", "connector_job_tests"]
@@ -159,7 +159,7 @@ def main() -> None:
 
     # For debugging
     # tests = [test for test in tests if "openai_assistants_api" in test]
-    tests = tests[:2]
+    # tests = tests[:2]
     print(f"Running {len(tests)} tests")
 
     # Start all instances at once
