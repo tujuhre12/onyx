@@ -39,18 +39,20 @@ def run_single_test(
     )
     print(f"Running test: {processed_test_name}")
     try:
+        env = {
+            **os.environ,
+            "API_SERVER_PORT": str(deployment_config.api_port),
+            "PYTHONPATH": ".",
+            "GUARANTEED_FRESH_SETUP": "true",
+            "POSTGRES_PORT": str(shared_services_config.postgres_port),
+            "POSTGRES_DB": get_db_name(deployment_config.instance_num),
+            "VESPA_PORT": str(shared_services_config.vespa_port),
+            "VESPA_TENANT_PORT": str(shared_services_config.vespa_tenant_port),
+        }
+        print("Env: ", env)
         result = subprocess.run(
             ["pytest", processed_test_name, "-v"],
-            env={
-                **os.environ,
-                "API_SERVER_PORT": str(deployment_config.api_port),
-                "PYTHONPATH": ".",
-                "GUARANTEED_FRESH_SETUP": "true",
-                "POSTGRES_PORT": str(shared_services_config.postgres_port),
-                "POSTGRES_DB": get_db_name(deployment_config.instance_num),
-                "VESPA_PORT": str(shared_services_config.vespa_port),
-                "VESPA_TENANT_PORT": str(shared_services_config.vespa_tenant_port),
-            },
+            env=env,
             cwd=str(BACKEND_DIR_PATH),
             capture_output=True,
             text=True,
