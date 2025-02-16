@@ -994,8 +994,6 @@ def connector_indexing_proxy_task(
                 )
                 continue
     except Exception as e:
-        task_logger.error("Indexing watchdog - exceptioned ||")
-        task_logger.error(type(e))
         result.status = IndexingWatchdogTerminalStatus.WATCHDOG_EXCEPTIONED
         if isinstance(e, ConnectorValidationError):
             result.exception_str = str(e)

@@ -24,6 +24,7 @@ from onyx.connectors.interfaces import InsufficientPermissionsError
 from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import PollConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
+from onyx.connectors.interfaces import UnexpectedError
 from onyx.connectors.models import ConnectorMissingCredentialError
 from onyx.connectors.models import Document
 from onyx.connectors.models import Section
@@ -287,7 +288,7 @@ class GithubConnector(LoadConnector, PollConnector):
                 )
         except Exception as exc:
             # Catch-all for anything else
-            raise ConnectorValidationError(
+            raise UnexpectedError(
                 f"Unexpected error during GitHub settings validation: {exc}"
             )
 

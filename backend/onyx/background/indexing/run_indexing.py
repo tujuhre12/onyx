@@ -430,8 +430,6 @@ def _run_indexing(
             logger.error(type(e))
 
             if isinstance(e, ConnectorValidationError):
-                logger.error("Connector validation error")
-                logger.error(e)
                 with get_session_with_tenant(tenant_id) as db_session_temp:
                     mark_attempt_canceled(
                         index_attempt_id,
@@ -445,7 +443,6 @@ def _run_indexing(
                             connector_id=ctx.connector_id,
                             credential_id=ctx.credential_id,
                             status=ConnectorCredentialPairStatus.INVALID,
-                            net_docs=net_doc_change,
                         )
 
                 raise e
