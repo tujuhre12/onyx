@@ -197,9 +197,14 @@ class SqlEngine:
         )
 
         # Start with base kwargs that are valid for all pool types
-        final_engine_kwargs = {**engine_kwargs}
+        final_engine_kwargs: dict[str, Any] = {}
 
         if POSTGRES_USE_NULL_POOL:
+            # if null pool is specified, then we need to make sure that
+            # we remove any passed in kwargs related to pool size that would
+            # cause the initialization to fail
+            final_engine_kwargs.update(engine_kwargs)
+
             final_engine_kwargs["poolclass"] = pool.NullPool
             if "pool_size" in final_engine_kwargs:
                 del final_engine_kwargs["pool_size"]
@@ -210,6 +215,9 @@ class SqlEngine:
             final_engine_kwargs["max_overflow"] = 5
             final_engine_kwargs["pool_pre_ping"] = POSTGRES_POOL_PRE_PING
             final_engine_kwargs["pool_recycle"] = POSTGRES_POOL_RECYCLE
+
+            # any passed in kwargs override the defaults
+            final_engine_kwargs.update(engine_kwargs)
 
         logger.info(f"Creating engine with kwargs: {final_engine_kwargs}")
         engine = create_engine(connection_string, **final_engine_kwargs)
