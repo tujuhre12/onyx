@@ -64,6 +64,14 @@ jobs:
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v ${{ github.workspace }}/test_logs:/tmp \
             --network host \
+            -e OPENAI_API_KEY=${OPENAI_API_KEY} \
+            -e SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN} \
+            -e CONFLUENCE_TEST_SPACE_URL=${CONFLUENCE_TEST_SPACE_URL} \
+            -e CONFLUENCE_USER_NAME=${CONFLUENCE_USER_NAME} \
+            -e CONFLUENCE_ACCESS_TOKEN=${CONFLUENCE_ACCESS_TOKEN} \
+            -e TEST_WEB_HOSTNAME=test-runner \
+            -e MOCK_CONNECTOR_SERVER_HOST=mock_connector_server \
+            -e MOCK_CONNECTOR_SERVER_PORT=8001 \
             danswer/danswer-integration:test \
             python /app/tests/integration/run.py
         continue-on-error: true

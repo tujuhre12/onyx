@@ -11,6 +11,7 @@ from pathlib import Path
 
 from tests.integration.common_utils.reset import reset_all
 from tests.integration.introspection import list_all_tests
+from tests.integration.introspection import load_env_vars
 from tests.integration.kickoff import BACKEND_DIR_PATH
 from tests.integration.kickoff import DeploymentConfig
 from tests.integration.kickoff import run_x_instances
@@ -87,7 +88,6 @@ def worker(
         try:
             test = test_queue.get(block=False)
         except queue.Empty:
-            test_queue.task_done()
             break
 
         # Get an available instance
@@ -154,9 +154,12 @@ def main() -> None:
         ]
     print(f"Found {len(tests)} tests to run")
 
+    # load env vars which will be passed into the tests
+    load_env_vars(os.environ.get("IT_ENV_FILE_PATH", ".env"))
+
     # For debugging
     # tests = [test for test in tests if "openai_assistants_api" in test]
-    tests = tests[:10]
+    tests = tests[:2]
     print(f"Running {len(tests)} tests")
 
     # Start all instances at once
