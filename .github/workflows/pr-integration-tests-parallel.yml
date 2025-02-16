@@ -52,11 +52,17 @@ jobs:
           # Print a message indicating that tests are starting
           echo "Running integration tests..."
           
+          # Create a directory for test logs that will be mounted into the container
+          mkdir -p ${{ github.workspace }}/test_logs
+          chmod 777 ${{ github.workspace }}/test_logs
+          
           # Run the integration tests in a Docker container
           # Mount the Docker socket to allow Docker-in-Docker (DinD)
+          # Mount the test_logs directory to capture logs
           # Use host network for easier communication with other services
           docker run \
             -v /var/run/docker.sock:/var/run/docker.sock \
+            -v ${{ github.workspace }}/test_logs:/tmp \
             --network host \
             danswer/danswer-integration:test \
             python /app/tests/integration/run.py
@@ -79,10 +85,10 @@ jobs:
           mkdir -p ${{ github.workspace }}/logs
           mkdir -p ${{ github.workspace }}/logs/shared_services
           
-          # Copy all relevant log files
-          cp /tmp/api_server_*.txt ${{ github.workspace }}/logs/ || true
-          cp /tmp/background_*.txt ${{ github.workspace }}/logs/ || true
-          cp /tmp/shared_model_server.txt ${{ github.workspace }}/logs/ || true
+          # Copy all relevant log files from the mounted directory
+          cp ${{ github.workspace }}/test_logs/api_server_*.txt ${{ github.workspace }}/logs/ || true
+          cp ${{ github.workspace }}/test_logs/background_*.txt ${{ github.workspace }}/logs/ || true
+          cp ${{ github.workspace }}/test_logs/shared_model_server.txt ${{ github.workspace }}/logs/ || true
           
           # Collect logs from shared services (Docker containers)
           # Note: using a wildcard for the UUID part of the stack name

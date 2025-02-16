@@ -144,7 +144,7 @@ def main() -> None:
     print(f"Found {len(tests)} tests to run")
 
     # For debugging
-    tests = [test for test in tests if "openai_assistants_api" in test]
+    # tests = [test for test in tests if "openai_assistants_api" in test]
     tests = tests[:2]
     print(f"Running {len(tests)} tests")
 
