@@ -7,6 +7,7 @@ from onyx.db.engine import get_session_context_manager
 from onyx.db.search_settings import get_current_search_settings
 from tests.integration.common_utils.constants import ADMIN_USER_NAME
 from tests.integration.common_utils.constants import GENERAL_HEADERS
+from tests.integration.common_utils.constants import GUARANTEED_FRESH_SETUP
 from tests.integration.common_utils.managers.user import build_email
 from tests.integration.common_utils.managers.user import DEFAULT_PASSWORD
 from tests.integration.common_utils.managers.user import UserManager
@@ -57,6 +58,10 @@ def vespa_client() -> vespa_fixture:
 
 @pytest.fixture
 def reset() -> None:
+    if GUARANTEED_FRESH_SETUP:
+        print("GUARANTEED_FRESH_SETUP is true, skipping reset")
+        return None
+
     reset_all()
 
 

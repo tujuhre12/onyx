@@ -29,7 +29,6 @@ from onyx.indexing.models import IndexingSetting
 from onyx.setup import setup_postgres
 from onyx.setup import setup_vespa
 from onyx.utils.logger import setup_logger
-from tests.integration.common_utils.constants import GUARANTEED_FRESH_SETUP
 
 logger = setup_logger()
 
@@ -384,9 +383,6 @@ def reset_all(
 
 
 def _do_reset(database: str, postgres_host: str, postgres_port: str) -> None:
-    if GUARANTEED_FRESH_SETUP:
-        return None
-
     logger.info("Resetting Postgres...")
     reset_postgres(
         database=database,
