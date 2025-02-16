@@ -26,7 +26,6 @@ from onyx.context.search.postprocessing.postprocessing import rerank_sections
 from onyx.context.search.postprocessing.postprocessing import should_rerank
 from onyx.db.engine import get_session_context_manager
 from onyx.db.search_settings import get_current_search_settings
-from onyx.utils.gpu_utils import gpu_status_request
 from onyx.utils.timing import log_function_time
 
 
@@ -56,6 +55,7 @@ def rerank_documents(
 
     # Note that these are passed in values from the API and are overrides which are typically None
     rerank_settings = graph_config.inputs.search_request.rerank_settings
+    allow_agent_reranking = graph_config.behavior.allow_agent_reranking
 
     if rerank_settings is None:
         with get_session_context_manager() as db_session:
@@ -68,12 +68,7 @@ def rerank_documents(
 
     if should_rerank(rerank_settings) and len(verified_documents) > 0:
         if len(verified_documents) > 1:
-            is_local_rerank = (
-                rerank_settings is not None and rerank_settings.rerank_api_url is None
-            )
-            no_gpu_available = not gpu_status_request()
-
-            if is_local_rerank and no_gpu_available:
+            if not allow_agent_reranking:
                 logger.info("Use of local rerank model without GPU, skipping reranking")
             # No reranking, stay with verified_documents as default
 

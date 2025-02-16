@@ -1,5 +1,6 @@
 from collections import defaultdict
 from collections.abc import Callable
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -29,6 +30,7 @@ from onyx.tools.force import ForceUseTool
 from onyx.tools.tool import Tool
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
 from onyx.tools.utils import explicit_tool_calling_supported
+from onyx.utils.gpu_utils import gpu_status_request
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -80,6 +82,15 @@ class Answer:
             and not skip_explicit_tool_calling
         )
 
+        rerank_settings = search_request.rerank_settings
+
+        rerank_config_is_local = (
+            rerank_settings is not None and rerank_settings.rerank_provider_type is None
+        )
+        allow_agent_reranking = (
+            cast(bool, gpu_status_request()) or rerank_config_is_local
+        )
+
         self.graph_inputs = GraphInputs(
             search_request=search_request,
             prompt_builder=prompt_builder,
@@ -104,6 +115,7 @@ class Answer:
             use_agentic_search=use_agentic_search,
             skip_gen_ai_answer_generation=skip_gen_ai_answer_generation,
             allow_refinement=True,
+            allow_agent_reranking=allow_agent_reranking,
         )
         self.graph_config = GraphConfig(
             inputs=self.graph_inputs,
