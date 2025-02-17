@@ -622,15 +622,6 @@ class NotionConnector(LoadConnector, PollConnector):
                 break
 
     def validate_connector_settings(self) -> None:
-        """
-        Validates that the current connector settings and credentials are valid for the Notion connector.
-        Raises:
-            ConnectorMissingCredentialError: If no Notion credentials are loaded.
-            CredentialExpiredError: If the token is invalid or expired (HTTP 401).
-            InsufficientPermissionsError: If the token does not have enough permissions (HTTP 403).
-            ConnectorValidationError: For all other validation errors, such as rate-limits (HTTP 429) or general errors.
-        """
-
         # 1. Ensure the Notion credentials are loaded
         if "Authorization" not in self.headers or not self.headers["Authorization"]:
             raise ConnectorValidationError("Notion credentials not loaded.")
