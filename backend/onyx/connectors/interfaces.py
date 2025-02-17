@@ -146,6 +146,8 @@ class CheckpointConnector(BaseConnector):
         ```
         """
         raise NotImplementedError
+
+
 class ConnectorValidationError(Exception):
     """General exception for connector validation errors."""
 
@@ -154,7 +156,7 @@ class ConnectorValidationError(Exception):
         super().__init__(self.message)
 
 
-class UnexpectedError(ConnectorValidationError):
+class UnexpectedError(Exception):
     """Raised when an unexpected error occurs during connector validation."""
 
     def __init__(self, message: str = "Unexpected error during connector validation"):

@@ -21,6 +21,7 @@ from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import PollConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
 from onyx.connectors.interfaces import SlimConnector
+from onyx.connectors.interfaces import UnexpectedError
 from onyx.connectors.models import ConnectorMissingCredentialError
 from onyx.connectors.models import Document
 from onyx.connectors.models import Section
@@ -276,24 +277,20 @@ class JiraConnector(LoadConnector, PollConnector, SlimConnector):
         yield slim_doc_batch
 
     def validate_connector_settings(self) -> None:
-        # 1. Ensure the Jira client is loaded
         if self._jira_client is None:
-            raise ConnectorValidationError("Jira credentials not loaded.")
+            raise ConnectorMissingCredentialError("Jira")
 
-        # 2. Validate required connector settings, e.g., the Jira project
         if not self._jira_project:
             raise ConnectorValidationError(
                 "Invalid connector settings: 'jira_project' must be provided."
             )
 
-        # 3. Attempt a small test call to Jira to verify credentials and permissions
         try:
-            # Try fetching the configured Jira project details
             self.jira_client.project(self._jira_project)
 
         except Exception as e:
-            # Jira might raise JIRAError or other exceptions; handle status codes or fallback to a generic error
             status_code = getattr(e, "status_code", None)
+
             if status_code == 401:
                 raise CredentialExpiredError(
                     "Jira credential appears to be expired or invalid (HTTP 401)."
@@ -311,12 +308,7 @@ class JiraConnector(LoadConnector, PollConnector, SlimConnector):
                     "Validation failed due to Jira rate-limits being exceeded. Please try again later."
                 )
             else:
-                raise ConnectorValidationError(
-                    f"Unexpected Jira error during validation: {e}"
-                )
-
-        # If we made it this far, validation checks have passed
-        logger.info("Jira connector settings have been successfully validated.")
+                raise UnexpectedError(f"Unexpected Jira error during validation: {e}")
 
 
 if __name__ == "__main__":

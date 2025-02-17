@@ -5,7 +5,6 @@ from typing import Any
 from dropbox import Dropbox  # type: ignore
 from dropbox.exceptions import ApiError  # type:ignore
 from dropbox.exceptions import AuthError  # type:ignore
-from dropbox.exceptions import HttpError  # type:ignore
 from dropbox.files import FileMetadata  # type:ignore
 from dropbox.files import FolderMetadata  # type:ignore
 
@@ -18,6 +17,7 @@ from onyx.connectors.interfaces import InsufficientPermissionsError
 from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import PollConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
+from onyx.connectors.interfaces import UnexpectedError
 from onyx.connectors.models import ConnectorMissingCredentialError
 from onyx.connectors.models import Document
 from onyx.connectors.models import Section
@@ -166,11 +166,9 @@ class DropboxConnector(LoadConnector, PollConnector):
             raise ConnectorValidationError(
                 f"Unexpected Dropbox error during validation: {e.user_message_text or e}"
             )
-        except HttpError as e:
-            raise ConnectorValidationError(f"Unexpected Dropbox HTTP error: {e}")
-        except Exception as exc:
-            raise ConnectorValidationError(
-                f"Unexpected error during Dropbox settings validation: {exc}"
+        except Exception as e:
+            raise UnexpectedError(
+                f"Unexpected error during Dropbox settings validation: {e}"
             )
 
 
