@@ -112,6 +112,8 @@ class IndexingWatchdogTerminalStatus(str, Enum):
 
     PROCESS_SIGNAL_SIGKILL = "process_signal_sigkill"
 
+    CONNECTOR_VALIDATION_ERROR = "connector_validation_error"
+
     @property
     def code(self) -> int:
         _ENUM_TO_CODE: dict[IndexingWatchdogTerminalStatus, int] = {
