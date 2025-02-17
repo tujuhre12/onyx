@@ -43,14 +43,14 @@ from onyx.agents.agent_search.deep_search.main.states import MainState
 from onyx.agents.agent_search.deep_search.refinement.consolidate_sub_answers.graph_builder import (
     answer_refined_query_graph_builder,
 )
-from onyx.agents.agent_search.orchestration.nodes.basic_use_tool_response import (
-    basic_use_tool_response,
-)
-from onyx.agents.agent_search.orchestration.nodes.llm_tool_choice import llm_tool_choice
+from onyx.agents.agent_search.orchestration.nodes.call_tool import tool_call
+from onyx.agents.agent_search.orchestration.nodes.choose_tool import llm_tool_choice
 from onyx.agents.agent_search.orchestration.nodes.prepare_tool_input import (
     prepare_tool_input,
 )
-from onyx.agents.agent_search.orchestration.nodes.tool_call import tool_call
+from onyx.agents.agent_search.orchestration.nodes.use_tool_response import (
+    basic_use_tool_response,
+)
 from onyx.agents.agent_search.shared_graph_utils.utils import get_test_config
 from onyx.utils.logger import setup_logger
 
