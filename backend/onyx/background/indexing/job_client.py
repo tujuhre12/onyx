@@ -77,12 +77,10 @@ def _initializer(
 
         sys.exit(e.code)  # use the given exit code
     except ConnectorValidationError as e:
-        logger.error("Connector validation error")
-        logger.error(str(e))
         error_msg = str(e)
         queue.put(error_msg)  # Send the exception to the parent process
 
-        sys.exit(255)  # use 255 to indicate a generic exception
+        sys.exit(256)  # use 256 to indicate a connector validation error
     except Exception:
         logger.exception("SimpleJob raised an exception")
         error_msg = traceback.format_exc()

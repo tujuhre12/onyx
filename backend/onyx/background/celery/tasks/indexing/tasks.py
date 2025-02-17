@@ -125,6 +125,7 @@ class IndexingWatchdogTerminalStatus(str, Enum):
             IndexingWatchdogTerminalStatus.TASK_ALREADY_RUNNING: 253,
             IndexingWatchdogTerminalStatus.INDEX_ATTEMPT_MISMATCH: 254,
             IndexingWatchdogTerminalStatus.CONNECTOR_EXCEPTIONED: 255,
+            IndexingWatchdogTerminalStatus.CONNECTOR_VALIDATION_ERROR: 256,
         }
 
         return _ENUM_TO_CODE[self]
@@ -141,6 +142,7 @@ class IndexingWatchdogTerminalStatus(str, Enum):
             253: IndexingWatchdogTerminalStatus.TASK_ALREADY_RUNNING,
             254: IndexingWatchdogTerminalStatus.INDEX_ATTEMPT_MISMATCH,
             255: IndexingWatchdogTerminalStatus.CONNECTOR_EXCEPTIONED,
+            256: IndexingWatchdogTerminalStatus.CONNECTOR_VALIDATION_ERROR,
         }
 
         if code in _CODE_TO_ENUM:
