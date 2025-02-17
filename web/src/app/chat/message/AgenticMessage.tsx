@@ -48,6 +48,7 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import SubQuestionsDisplay from "./SubQuestionsDisplay";
 import { StatusRefinement } from "../Refinement";
+import { Button } from "@/components/ui/button";
 
 export const AgenticMessage = ({
   isStreamingQuestions,
@@ -82,7 +83,9 @@ export const AgenticMessage = ({
   secondLevelSubquestions,
   toggleDocDisplay,
   error,
+  resubmit,
 }: {
+  resubmit?: () => void;
   isStreamingQuestions: boolean;
   isGenerating: boolean;
   docSidebarToggled?: boolean;
@@ -494,9 +497,18 @@ export const AgenticMessage = ({
                             content
                           )}
                           {error && (
-                            <p className="mt-2 text-red-700 text-sm my-auto">
-                              {error}
-                            </p>
+                            <div className="mt-2 text-red-700 text-sm">
+                              <p className="mb-2">{error}</p>
+                              {resubmit && (
+                                <Button
+                                  onClick={resubmit}
+                                  variant="default"
+                                  size="xs"
+                                >
+                                  Resubmit
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -510,9 +522,18 @@ export const AgenticMessage = ({
                   ) : (
                     <>
                       {error && (
-                        <p className="mt-2 mx-4 text-red-700 text-sm my-auto">
-                          {error}
-                        </p>
+                        <div className="mt-2 text-red-700 text-sm">
+                          <p className="mb-2">{error}</p>
+                          {resubmit && (
+                            <Button
+                              onClick={resubmit}
+                              variant="default"
+                              size="xs"
+                            >
+                              Resubmit
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </>
                   )}

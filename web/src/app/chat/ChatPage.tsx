@@ -1147,6 +1147,7 @@ export function ChatPage({
   } = {}) => {
     let frozenSessionId = currentSessionId();
     updateCanContinue(false, frozenSessionId);
+    setUncaughtError(null);
 
     if (currentChatState() != "input") {
       if (currentChatState() == "uploading") {
@@ -1274,6 +1275,7 @@ export function ChatPage({
     let toolCall: ToolCallMetadata | null = null;
     let isImprovement: boolean | undefined = undefined;
     let isStreamingQuestions = true;
+    let isAgentic: boolean = false;
 
     let initialFetchDetails: null | {
       user_message_id: number;
@@ -1426,6 +1428,9 @@ export function ChatPage({
                 second_level_generating = true;
               }
             }
+            if (Object.hasOwn(packet, "is_agentic")) {
+              isAgentic = (packet as any).is_agentic;
+            }
 
             if (Object.hasOwn(packet, "refined_answer_improvement")) {
               isImprovement = (packet as RefinedAnswerImprovement)
@@ -1459,6 +1464,7 @@ export function ChatPage({
               );
             } else if (Object.hasOwn(packet, "sub_question")) {
               updateChatState("toolBuilding", frozenSessionId);
+              isAgentic = true;
               is_generating = true;
               sub_questions = constructSubQuestions(
                 sub_questions,
@@ -1656,6 +1662,7 @@ export function ChatPage({
                 sub_questions: sub_questions,
                 second_level_generating: second_level_generating,
                 agentic_docs: agenticDocs,
+                is_agentic: isAgentic,
               },
             ]);
           }
@@ -2090,6 +2097,26 @@ export function ChatPage({
 
   const [sharedChatSession, setSharedChatSession] =
     useState<ChatSession | null>();
+
+  const handleResubmitLastMessage = () => {
+    // Grab the last user-type message
+    const lastUserMsg = messageHistory
+      .slice()
+      .reverse()
+      .find((m) => m.type === "user");
+    if (!lastUserMsg) {
+      setPopup({
+        message: "No previously-submitted user message found.",
+        type: "error",
+      });
+      return;
+    }
+    // We call onSubmit, passing a `messageOverride`
+    onSubmit({
+      messageIdToResend: lastUserMsg.messageId,
+      messageOverride: lastUserMsg.message,
+    });
+  };
 
   const showShareModal = (chatSession: ChatSession) => {
     setSharedChatSession(chatSession);
@@ -2661,9 +2688,9 @@ export function ChatPage({
                                         : null
                                     }
                                   >
-                                    {message.sub_questions &&
-                                    message.sub_questions.length > 0 ? (
+                                    {message.is_agentic ? (
                                       <AgenticMessage
+                                        resubmit={handleResubmitLastMessage}
                                         error={uncaughtError}
                                         isStreamingQuestions={
                                           message.isStreamingQuestions ?? false
@@ -3022,6 +3049,14 @@ export function ChatPage({
                                               Show stack trace.
                                             </span>
                                           )}
+
+                                          <Button
+                                            onClick={handleResubmitLastMessage}
+                                            variant="default"
+                                            size="xs"
+                                          >
+                                            Resubmit
+                                          </Button>
                                         </p>
                                       }
                                     />
