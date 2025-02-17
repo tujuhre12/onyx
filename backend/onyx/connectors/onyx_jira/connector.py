@@ -21,7 +21,6 @@ from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import PollConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
 from onyx.connectors.interfaces import SlimConnector
-from onyx.connectors.interfaces import UnexpectedError
 from onyx.connectors.models import ConnectorMissingCredentialError
 from onyx.connectors.models import Document
 from onyx.connectors.models import Section
@@ -308,7 +307,7 @@ class JiraConnector(LoadConnector, PollConnector, SlimConnector):
                     "Validation failed due to Jira rate-limits being exceeded. Please try again later."
                 )
             else:
-                raise UnexpectedError(f"Unexpected Jira error during validation: {e}")
+                raise Exception(f"Unexpected Jira error during validation: {e}")
 
 
 if __name__ == "__main__":

@@ -19,12 +19,12 @@ from onyx.configs.app_configs import INDEX_BATCH_SIZE
 from onyx.configs.constants import DocumentSource
 from onyx.connectors.interfaces import ConnectorValidationError
 from onyx.connectors.interfaces import CredentialExpiredError
+from onyx.connectors.interfaces import Exception
 from onyx.connectors.interfaces import GenerateDocumentsOutput
 from onyx.connectors.interfaces import InsufficientPermissionsError
 from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import PollConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
-from onyx.connectors.interfaces import UnexpectedError
 from onyx.connectors.models import ConnectorMissingCredentialError
 from onyx.connectors.models import Document
 from onyx.connectors.models import Section
@@ -268,7 +268,7 @@ class GithubConnector(LoadConnector, PollConnector):
                     f"Unexpected GitHub error (status={e.status}): {e.data}"
                 )
         except Exception as exc:
-            raise UnexpectedError(
+            raise Exception(
                 f"Unexpected error during GitHub settings validation: {exc}"
             )
 

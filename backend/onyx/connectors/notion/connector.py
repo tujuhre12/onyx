@@ -23,7 +23,6 @@ from onyx.connectors.interfaces import InsufficientPermissionsError
 from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import PollConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
-from onyx.connectors.interfaces import UnexpectedError
 from onyx.connectors.models import ConnectorMissingCredentialError
 from onyx.connectors.models import Document
 from onyx.connectors.models import Section
@@ -671,12 +670,12 @@ class NotionConnector(LoadConnector, PollConnector):
                     "Please try again later."
                 )
             else:
-                raise UnexpectedError(
+                raise Exception(
                     f"Unexpected Notion HTTP error (status={status_code}): {http_err}"
                 ) from http_err
 
         except Exception as exc:
-            raise UnexpectedError(
+            raise Exception(
                 f"Unexpected error during Notion settings validation: {exc}"
             )
 
