@@ -407,7 +407,7 @@ def handle_new_chat_message(
     ):
         raise HTTPException(status_code=400, detail="Empty chat message is invalid")
 
-    with get_session_with_tenant(tenant_id) as db_session:
+    with get_session_with_tenant(tenant_id=tenant_id) as db_session:
         create_milestone_and_report(
             user=user,
             distinct_id=user.email if user else tenant_id or "N/A",

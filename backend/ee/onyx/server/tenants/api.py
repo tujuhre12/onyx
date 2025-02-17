@@ -204,7 +204,7 @@ async def impersonate_user(
     """Allows a cloud superuser to impersonate another user by generating an impersonation JWT token"""
     tenant_id = get_tenant_id_for_email(impersonate_request.email)
 
-    with get_session_with_tenant(tenant_id) as tenant_session:
+    with get_session_with_tenant(tenant_id=tenant_id) as tenant_session:
         user_to_impersonate = get_user_by_email(
             impersonate_request.email, tenant_session
         )

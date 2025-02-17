@@ -16,7 +16,7 @@ from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.models import BasicExpertInfo
 from onyx.connectors.models import Document
 from onyx.connectors.models import Section
-from onyx.db.engine import get_session_with_current_tenant
+from onyx.db.engine import get_session_with_tenant
 from onyx.file_processing.extract_file_text import detect_encoding
 from onyx.file_processing.extract_file_text import extract_file_text
 from onyx.file_processing.extract_file_text import get_file_ext
@@ -181,7 +181,7 @@ class LocalFileConnector(LoadConnector):
         documents: list[Document] = []
         token = CURRENT_TENANT_ID_CONTEXTVAR.set(self.tenant_id)
 
-        with get_session_with_current_tenant(self.tenant_id) as db_session:
+        with get_session_with_tenant(tenant_id=self.tenant_id) as db_session:
             for file_path in self.file_locations:
                 current_datetime = datetime.now(timezone.utc)
                 files = _read_files_and_metadata(

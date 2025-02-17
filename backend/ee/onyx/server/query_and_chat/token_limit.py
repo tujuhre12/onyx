@@ -53,7 +53,7 @@ User rate limits
 
 
 def _user_is_rate_limited(user_id: UUID, tenant_id: str) -> None:
-    with get_session_with_tenant(tenant_id) as db_session:
+    with get_session_with_tenant(tenant_id=tenant_id) as db_session:
         user_rate_limits = fetch_all_user_token_rate_limits(
             db_session=db_session, enabled_only=True, ordered=False
         )
@@ -94,7 +94,7 @@ User Group rate limits
 
 
 def _user_is_rate_limited_by_group(user_id: UUID, tenant_id: str | None) -> None:
-    with get_session_with_tenant(tenant_id) as db_session:
+    with get_session_with_tenant(tenant_id=tenant_id) as db_session:
         group_rate_limits = _fetch_all_user_group_rate_limits(user_id, db_session)
 
         if group_rate_limits:

@@ -193,7 +193,7 @@ def verify_email_is_invited(email: str) -> None:
 
 
 def verify_email_in_whitelist(email: str, tenant_id: str | None = None) -> None:
-    with get_session_with_tenant(tenant_id) as db_session:
+    with get_session_with_tenant(tenant_id=tenant_id) as db_session:
         if not get_user_by_email(email, db_session):
             verify_email_is_invited(email)
 

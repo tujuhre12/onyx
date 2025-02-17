@@ -54,7 +54,7 @@ Global rate limits
 
 
 def _user_is_rate_limited_by_global(tenant_id: str | None) -> None:
-    with get_session_with_tenant(tenant_id) as db_session:
+    with get_session_with_tenant(tenant_id=tenant_id) as db_session:
         global_rate_limits = fetch_all_global_token_rate_limits(
             db_session=db_session, enabled_only=True, ordered=False
         )

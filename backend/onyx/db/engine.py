@@ -416,10 +416,12 @@ def get_session_with_shared_schema() -> Generator[Session, None, None]:
 
 
 @contextmanager
-def get_session_with_tenant(*, tenant_id: str) -> Generator[Session, None, None]:
+def get_session_with_tenant(*, tenant_id: str | None) -> Generator[Session, None, None]:
     """
     Generate a database session for a specific tenant.
     """
+    if tenant_id is None:
+        tenant_id = POSTGRES_DEFAULT_SCHEMA
 
     engine = get_sqlalchemy_engine()
 
@@ -465,7 +467,7 @@ def set_search_path_on_checkout(
 
 def get_session_generator_with_tenant() -> Generator[Session, None, None]:
     tenant_id = get_current_tenant_id()
-    with get_session_with_tenant(tenant_id) as session:
+    with get_session_with_tenant(tenant_id=tenant_id) as session:
         yield session
 
 

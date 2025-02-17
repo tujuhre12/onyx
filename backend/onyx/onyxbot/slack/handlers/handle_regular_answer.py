@@ -87,7 +87,7 @@ def handle_regular_answer(
     user = None
     if message_info.is_bot_dm:
         if message_info.email:
-            with get_session_with_tenant(tenant_id) as db_session:
+            with get_session_with_tenant(tenant_id=tenant_id) as db_session:
                 user = get_user_by_email(message_info.email, db_session)
 
     document_set_names: list[str] | None = None
@@ -96,7 +96,7 @@ def handle_regular_answer(
     # This way slack flow always has a persona
     persona = slack_channel_config.persona
     if not persona:
-        with get_session_with_tenant(tenant_id) as db_session:
+        with get_session_with_tenant(tenant_id=tenant_id) as db_session:
             persona = get_persona_by_id(DEFAULT_PERSONA_ID, user, db_session)
             document_set_names = [
                 document_set.name for document_set in persona.document_sets
@@ -157,7 +157,7 @@ def handle_regular_answer(
     def _get_slack_answer(
         new_message_request: CreateChatMessageRequest, onyx_user: User | None
     ) -> ChatOnyxBotResponse:
-        with get_session_with_tenant(tenant_id) as db_session:
+        with get_session_with_tenant(tenant_id=tenant_id) as db_session:
             packets = stream_chat_message_objects(
                 new_msg_req=new_message_request,
                 user=onyx_user,
@@ -197,7 +197,7 @@ def handle_regular_answer(
             enable_auto_detect_filters=auto_detect_filters,
         )
 
-        with get_session_with_tenant(tenant_id) as db_session:
+        with get_session_with_tenant(tenant_id=tenant_id) as db_session:
             answer_request = prepare_chat_message_request(
                 message_text=user_message.message,
                 user=user,
