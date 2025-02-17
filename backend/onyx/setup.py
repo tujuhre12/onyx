@@ -251,8 +251,9 @@ def setup_vespa(
 
             logger.notice("Vespa setup complete.")
             return True
-        except Exception:
-            logger.notice(
+        except Exception as e:
+            logger.error(f"Vespa setup failed: {e}")
+            logger.exception(
                 f"Vespa setup did not succeed. The Vespa service may not be ready yet. Retrying in {WAIT_SECONDS} seconds."
             )
             time.sleep(WAIT_SECONDS)
@@ -364,7 +365,8 @@ def setup_vespa_multitenant(supported_indices: list[SupportedEmbeddingModel]) ->
 
             logger.notice("Vespa setup complete.")
             return True
-        except Exception:
+        except Exception as e:
+            logger.exception(f"Vespa setup failed: {e}")
             logger.notice(
                 f"Vespa setup did not succeed. The Vespa service may not be ready yet. Retrying in {WAIT_SECONDS} seconds."
             )

@@ -26,7 +26,7 @@ from onyx.auth.users import exceptions
 from onyx.configs.app_configs import CONTROL_PLANE_API_BASE_URL
 from onyx.configs.app_configs import DEV_MODE
 from onyx.configs.constants import MilestoneRecordType
-from onyx.db.engine import get_session_with_tenant
+from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.engine import get_sqlalchemy_engine
 from onyx.db.llm import update_default_provider
 from onyx.db.llm import upsert_cloud_embedding_provider
@@ -118,7 +118,7 @@ async def provision_tenant(tenant_id: str, email: str) -> None:
         # Await the Alembic migrations
         await asyncio.to_thread(run_alembic_migrations, tenant_id)
 
-        with get_session_with_tenant(tenant_id) as db_session:
+        with get_session_with_current_tenant(tenant_id) as db_session:
             configure_default_api_keys(db_session)
 
             current_search_settings = (
@@ -134,7 +134,7 @@ async def provision_tenant(tenant_id: str, email: str) -> None:
 
         add_users_to_tenant([email], tenant_id)
 
-        with get_session_with_tenant(tenant_id) as db_session:
+        with get_session_with_current_tenant(tenant_id) as db_session:
             create_milestone_and_report(
                 user=None,
                 distinct_id=tenant_id,

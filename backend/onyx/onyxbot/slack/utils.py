@@ -30,7 +30,7 @@ from onyx.configs.onyxbot_configs import (
 )
 from onyx.connectors.slack.utils import make_slack_api_rate_limited
 from onyx.connectors.slack.utils import SlackTextCleaner
-from onyx.db.engine import get_session_with_tenant
+from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.users import get_user_by_email
 from onyx.llm.exceptions import GenAIDisabledException
 from onyx.llm.factory import get_default_llms
@@ -583,7 +583,7 @@ def slack_usage_report(
         logger.warning("Unable to find sender email")
 
     if sender_email is not None:
-        with get_session_with_tenant(tenant_id) as db_session:
+        with get_session_with_current_tenant(tenant_id) as db_session:
             onyx_user = get_user_by_email(email=sender_email, db_session=db_session)
 
     optional_telemetry(

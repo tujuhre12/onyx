@@ -24,6 +24,7 @@ task_logger = get_task_logger(__name__)
 
 celery_app = Celery(__name__)
 celery_app.config_from_object("onyx.background.celery.configs.beat")
+celery_app.Task = app_base.TenantAwareTask  # type: ignore [misc]
 
 
 class DynamicTenantScheduler(PersistentScheduler):
@@ -132,6 +133,7 @@ class DynamicTenantScheduler(PersistentScheduler):
                         f"Adding options to task {tenant_task_name}: {options}"
                     )
                     tenant_task["options"] = options
+
                 new_schedule[tenant_task_name] = tenant_task
 
         return new_schedule

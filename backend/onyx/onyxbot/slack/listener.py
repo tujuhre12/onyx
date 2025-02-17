@@ -35,7 +35,7 @@ from onyx.context.search.retrieval.search_runner import (
     download_nltk_data,
 )
 from onyx.db.engine import get_all_tenant_ids
-from onyx.db.engine import get_session_with_tenant
+from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.models import SlackBot
 from onyx.db.search_settings import get_current_search_settings
 from onyx.db.slack_bot import fetch_slack_bots
@@ -251,7 +251,7 @@ class SlackbotHandler:
         """
         all_tenants = get_all_tenant_ids()
 
-        token: Token[str]
+        token: Token[str | None]
 
         # 1) Try to acquire locks for new tenants
         for tenant_id in all_tenants:
@@ -300,7 +300,7 @@ class SlackbotHandler:
                 tenant_id or POSTGRES_DEFAULT_SCHEMA
             )
             try:
-                with get_session_with_tenant(tenant_id) as db_session:
+                with get_session_with_current_tenant(tenant_id) as db_session:
                     bots: list[SlackBot] = []
                     try:
                         bots = list(fetch_slack_bots(db_session=db_session))
@@ -340,7 +340,7 @@ class SlackbotHandler:
             redis_client = get_redis_client(tenant_id=tenant_id)
 
             try:
-                with get_session_with_tenant(tenant_id) as db_session:
+                with get_session_with_current_tenant(tenant_id) as db_session:
                     # Attempt to fetch Slack bots
                     try:
                         bots = list(fetch_slack_bots(db_session=db_session))
@@ -564,7 +564,7 @@ def prefilter_requests(req: SocketModeRequest, client: TenantSocketModeClient) -
             channel_name, _ = get_channel_name_from_id(
                 client=client.web_client, channel_id=channel
             )
-            with get_session_with_tenant(client.tenant_id) as db_session:
+            with get_session_with_current_tenant(client.tenant_id) as db_session:
                 slack_channel_config = get_slack_channel_config_for_bot_and_channel(
                     db_session=db_session,
                     slack_bot_id=client.slack_bot_id,
@@ -788,13 +788,13 @@ def process_message(
         client=client.web_client, channel_id=channel
     )
 
-    token: Token[str] | None = None
+    token: Token[str | None] | None = None
     # Set the current tenant ID at the beginning for all DB calls within this thread
     if client.tenant_id:
         logger.info(f"Setting tenant ID to {client.tenant_id}")
         token = CURRENT_TENANT_ID_CONTEXTVAR.set(client.tenant_id)
     try:
-        with get_session_with_tenant(client.tenant_id) as db_session:
+        with get_session_with_current_tenant(client.tenant_id) as db_session:
             slack_channel_config = get_slack_channel_config_for_bot_and_channel(
                 db_session=db_session,
                 slack_bot_id=client.slack_bot_id,

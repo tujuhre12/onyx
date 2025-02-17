@@ -14,7 +14,7 @@ from onyx.configs.app_configs import POSTGRES_USER
 from onyx.db.engine import build_connection_string
 from onyx.db.engine import get_all_tenant_ids
 from onyx.db.engine import get_session_context_manager
-from onyx.db.engine import get_session_with_tenant
+from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.engine import SYNC_DB_API
 from onyx.db.search_settings import get_current_search_settings
 from onyx.db.swap_index import check_index_swap
@@ -287,7 +287,7 @@ def reset_vespa_multitenant() -> None:
     """Wipe all data from the Vespa index for all tenants."""
 
     for tenant_id in get_all_tenant_ids():
-        with get_session_with_tenant(tenant_id=tenant_id) as db_session:
+        with get_session_with_current_tenant(tenant_id=tenant_id) as db_session:
             # swap to the correct default model for each tenant
             check_index_swap(db_session)
 
