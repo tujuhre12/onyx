@@ -253,7 +253,7 @@ class GithubConnector(LoadConnector, PollConnector):
         except GithubException as e:
             if e.status == 401:
                 raise CredentialExpiredError(
-                    "GitHub credential appears to be expired or invalid (HTTP 401)."
+                    "GitHub credential appears to be invalid or expired (HTTP 401)."
                 )
             elif e.status == 403:
                 raise InsufficientPermissionsError(
