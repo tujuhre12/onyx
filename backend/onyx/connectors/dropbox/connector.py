@@ -146,32 +146,16 @@ class DropboxConnector(LoadConnector, PollConnector):
 
         return None
 
-    # NOTE
     def validate_connector_settings(self) -> None:
-        """
-        Validates that the current connector settings and credentials are valid for the Dropbox connector.
-        Raises:
-            ConnectorMissingCredentialError: If no Dropbox client/credentials are loaded.
-            CredentialExpiredError: If the token is invalid or expired.
-            InsufficientPermissionsError: If the token does not have enough permissions for the requested action.
-            ConnectorValidationError: For all other validation errors.
-        """
         if self.dropbox_client is None:
             raise ConnectorMissingCredentialError("Dropbox credentials not loaded.")
 
         try:
-            # Attempt a small test call to verify credentials. If this fails due to
-            # an invalid or expired token, Dropbox raises `AuthError`.
-            # If we can successfully list the root folder, we assume minimal permissions are granted.
             self.dropbox_client.files_list_folder(path="", limit=1)
         except AuthError as e:
             logger.exception(f"Failed to validate Dropbox credentials: {e}")
             raise CredentialInvalidError(f"Dropbox credential is invalid: {e.error}")
         except ApiError as e:
-            # If we know from the error details that it's a permission issue, raise that;
-            # otherwise treat it as a general validation error.
-            # Dropbox does not consistently return an HTTP status like 403 for permission errors,
-            # so we rely on the error object:
             if (
                 e.error is not None
                 and "insufficient_permissions" in str(e.error).lower()
@@ -183,11 +167,8 @@ class DropboxConnector(LoadConnector, PollConnector):
                 f"Unexpected Dropbox error during validation: {e.user_message_text or e}"
             )
         except HttpError as e:
-            # A broader HTTP error. We can attempt to parse status code if available, otherwise generalize.
-            # e can contain HTTP info, but not always. Raise a generic validation error by default.
             raise ConnectorValidationError(f"Unexpected Dropbox HTTP error: {e}")
         except Exception as exc:
-            # Catch-all for anything else
             raise ConnectorValidationError(
                 f"Unexpected error during Dropbox settings validation: {exc}"
             )

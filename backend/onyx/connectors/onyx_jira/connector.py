@@ -276,14 +276,6 @@ class JiraConnector(LoadConnector, PollConnector, SlimConnector):
         yield slim_doc_batch
 
     def validate_connector_settings(self) -> None:
-        """
-        Validates that the current connector settings and credentials are valid for the Jira connector.
-        Raises:
-            ConnectorMissingCredentialError: If no Jira client/credentials are loaded.
-            ConnectorValidationError: For general validation errors (including an out-of-date Jira library).
-            CredentialExpiredError: If the token is invalid or expired.
-            InsufficientPermissionsError: If the token does not have enough permissions for this project.
-        """
         # 1. Ensure the Jira client is loaded
         if self._jira_client is None:
             raise ConnectorValidationError("Jira credentials not loaded.")
