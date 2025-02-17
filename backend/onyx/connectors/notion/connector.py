@@ -24,6 +24,7 @@ from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import PollConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
 from onyx.connectors.interfaces import UnexpectedError
+from onyx.connectors.models import ConnectorMissingCredentialError
 from onyx.connectors.models import Document
 from onyx.connectors.models import Section
 from onyx.utils.batching import batch_generator
@@ -622,11 +623,9 @@ class NotionConnector(LoadConnector, PollConnector):
                 break
 
     def validate_connector_settings(self) -> None:
-        # 1. Ensure the Notion credentials are loaded
         if "Authorization" not in self.headers or not self.headers["Authorization"]:
-            raise ConnectorValidationError("Notion credentials not loaded.")
+            raise ConnectorMissingCredentialError("Notion credentials not loaded.")
 
-        # 2. Attempt a small test call to Notion to verify credentials and permissions
         try:
             # We'll do a minimal search call (page_size=1) to confirm accessibility
             if self.root_page_id:
@@ -672,22 +671,14 @@ class NotionConnector(LoadConnector, PollConnector):
                     "Please try again later."
                 )
             else:
-                raise ConnectorValidationError(
+                raise UnexpectedError(
                     f"Unexpected Notion HTTP error (status={status_code}): {http_err}"
                 ) from http_err
 
-        except requests.exceptions.RequestException as req_exc:
-            raise ConnectorValidationError(
-                f"Unexpected network error during Notion validation: {req_exc}"
-            ) from req_exc
         except Exception as exc:
-            # Catch-all for anything else
             raise UnexpectedError(
                 f"Unexpected error during Notion settings validation: {exc}"
             )
-
-        # 3. If we made it here, validation checks have passed
-        logger.info("Notion connector settings have been successfully validated.")
 
 
 if __name__ == "__main__":

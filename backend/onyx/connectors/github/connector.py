@@ -272,8 +272,6 @@ class GithubConnector(LoadConnector, PollConnector):
                 f"Unexpected error during GitHub settings validation: {exc}"
             )
 
-        logger.info("GitHub connector settings have been successfully validated.")
-
 
 if __name__ == "__main__":
     import os
