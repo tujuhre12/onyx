@@ -14,6 +14,7 @@ from onyx.configs.constants import DocumentSource
 from onyx.connectors.google_utils.shared_constants import (
     DB_CREDENTIALS_DICT_SERVICE_ACCOUNT_KEY,
 )
+from onyx.db.enums import ConnectorCredentialPairStatus
 from onyx.db.models import ConnectorCredentialPair
 from onyx.db.models import Credential
 from onyx.db.models import Credential__UserGroup
@@ -244,7 +245,14 @@ def swap_credentials_connector(
     # Update the existing pair with the new credential
     existing_pair.credential_id = new_credential_id
     existing_pair.credential = new_credential
-
+    print("SAPPING")
+    # print(existing_pair.connector.status)
+    #
+    # Update ccpair status if it's in INVALID state
+    if existing_pair.status == ConnectorCredentialPairStatus.INVALID:
+        existing_pair.status = ConnectorCredentialPairStatus.ACTIVE
+    print("SAPPING2")
+    print(existing_pair.status)
     # Commit the changes
     db_session.commit()
 

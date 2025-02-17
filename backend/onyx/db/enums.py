@@ -8,7 +8,6 @@ class IndexingStatus(str, PyEnum):
     CANCELED = "canceled"
     FAILED = "failed"
     COMPLETED_WITH_ERRORS = "completed_with_errors"
-    INVALID = "invalid"
 
     def is_terminal(self) -> bool:
         terminal_states = {
@@ -16,7 +15,6 @@ class IndexingStatus(str, PyEnum):
             IndexingStatus.COMPLETED_WITH_ERRORS,
             IndexingStatus.CANCELED,
             IndexingStatus.FAILED,
-            IndexingStatus.INVALID,
         }
         return self in terminal_states
 

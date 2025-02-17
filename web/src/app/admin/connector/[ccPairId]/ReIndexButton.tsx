@@ -9,16 +9,14 @@ import { buildCCPairInfoUrl } from "./lib";
 import { useState } from "react";
 import { Modal } from "@/components/Modal";
 import { Separator } from "@/components/ui/separator";
-import { Callout } from "@/components/ui/callout";
+
 function ReIndexPopup({
-  isInvalid,
   connectorId,
   credentialId,
   ccPairId,
   setPopup,
   hide,
 }: {
-  isInvalid: boolean;
   connectorId: number;
   credentialId: number;
   ccPairId: number;
@@ -86,18 +84,6 @@ function ReIndexPopup({
           <b>NOTE:</b> depending on the number of documents stored in the
           source, this may take a long time.
         </Text>
-        {isInvalid && (
-          <div className="mt-2">
-            <Callout
-              type="warning"
-              title="Previous Indexing Attempt was Invalid"
-            >
-              This connector is in an invalid state. Please update the
-              credentials or configuration before re-indexing if you
-              haven&apos;t already done so.
-            </Callout>
-          </div>
-        )}
       </div>
     </Modal>
   );
@@ -127,7 +113,6 @@ export function ReIndexButton({
     <>
       {reIndexPopupVisible && (
         <ReIndexPopup
-          isInvalid={isInvalid}
           connectorId={connectorId}
           credentialId={credentialId}
           ccPairId={ccPairId}
@@ -142,15 +127,17 @@ export function ReIndexButton({
         onClick={() => {
           setReIndexPopupVisible(true);
         }}
-        disabled={isDisabled || isDeleting}
+        disabled={isDisabled || isDeleting || isInvalid}
         tooltip={
-          isDeleting
-            ? "Cannot index while connector is deleting"
-            : isIndexing
-              ? "Indexing is already in progress"
-              : isDisabled
-                ? "Connector must be re-enabled before indexing"
-                : undefined
+          isInvalid
+            ? "Connector is in an invalid state. Please update the credentials or configuration before re-indexing."
+            : isDeleting
+              ? "Cannot index while connector is deleting"
+              : isIndexing
+                ? "Indexing is already in progress"
+                : isDisabled
+                  ? "Connector must be re-enabled before indexing"
+                  : undefined
         }
       >
         Index

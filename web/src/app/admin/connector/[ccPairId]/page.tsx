@@ -336,8 +336,7 @@ function Main({ ccPairId }: { ccPairId: number }) {
         <div className="mt-2">
           <Callout type="warning" title="Invalid Connector State">
             This connector is in an invalid state. Please update your
-            credentials or create a new connector before re-indexing if you
-            haven&apos;t already done so.
+            credentials or create a new connector before re-indexing.
           </Callout>
         </div>
       )}

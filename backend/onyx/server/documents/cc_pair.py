@@ -24,10 +24,9 @@ from onyx.background.celery.tasks.pruning.tasks import (
 from onyx.background.celery.versioned_apps.primary import app as primary_app
 from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import OnyxCeleryTask
-from onyx.connectors.factory import instantiate_connector
+from onyx.connectors.factory import validate_ccpair_for_user
 from onyx.connectors.interfaces import ConnectorValidationError
 from onyx.db.connector import delete_connector
-from onyx.db.connector import fetch_connector_by_id
 from onyx.db.connector_credential_pair import add_credential_to_connector
 from onyx.db.connector_credential_pair import (
     get_connector_credential_pair_from_id_for_user,
@@ -36,7 +35,6 @@ from onyx.db.connector_credential_pair import remove_credential_from_connector
 from onyx.db.connector_credential_pair import (
     update_connector_credential_pair_from_id,
 )
-from onyx.db.credentials import fetch_credential_by_id_for_user
 from onyx.db.document import get_document_counts_for_cc_pairs
 from onyx.db.document import get_documents_for_cc_pair
 from onyx.db.engine import CURRENT_TENANT_ID_CONTEXTVAR
@@ -577,34 +575,9 @@ def associate_credential_to_connector(
     )
 
     try:
-        # Validate the connector settings
-        connector = fetch_connector_by_id(connector_id, db_session)
-        credential = fetch_credential_by_id_for_user(
-            credential_id,
-            user,
-            db_session,
-            get_editable=False,
+        validate_ccpair_for_user(
+            connector_id, credential_id, db_session, user, tenant_id
         )
-        if not credential:
-            raise HTTPException(status_code=400, detail="Credential not found")
-        if not connector:
-            raise HTTPException(status_code=400, detail="Connector not found")
-
-        try:
-            runnable_connector = instantiate_connector(
-                db_session=db_session,
-                source=connector.source,
-                input_type=connector.input_type,
-                connector_specific_config=connector.connector_specific_config,
-                credential=credential,
-                tenant_id=tenant_id,
-            )
-        except Exception as e:
-            error_msg = f"Unexpected error creating connector: {e}"
-            logger.error(error_msg)
-            raise ConnectorValidationError(error_msg)
-
-        runnable_connector.validate_connector_settings()
 
         response = add_credential_to_connector(
             db_session=db_session,

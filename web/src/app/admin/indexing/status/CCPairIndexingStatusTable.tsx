@@ -164,7 +164,11 @@ function ConnectorRow({
       ConnectorCredentialPairStatus.INVALID
     ) {
       return (
-        <Badge circle variant="invalid">
+        <Badge
+          tooltip="Connector is in an invalid state. Please update the credentials or create a new connector."
+          circle
+          variant="invalid"
+        >
           Invalid
         </Badge>
       );

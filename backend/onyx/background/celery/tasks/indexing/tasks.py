@@ -288,7 +288,6 @@ def monitor_ccpair_indexing_taskset(
                         if (
                             index_attempt.status != IndexingStatus.CANCELED
                             and index_attempt.status != IndexingStatus.FAILED
-                            and index_attempt.status != IndexingStatus.INVALID
                         ):
                             mark_attempt_failed(
                                 index_attempt_id=payload.index_attempt_id,
