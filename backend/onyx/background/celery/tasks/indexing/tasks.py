@@ -104,6 +104,9 @@ class IndexingWatchdogTerminalStatus(str, Enum):
         "index_attempt_mismatch"  # expected index attempt metadata not found in db
     )
 
+    CONNECTOR_VALIDATION_ERROR = (
+        "connector_validation_error"  # the connector validation failed
+    )
     CONNECTOR_EXCEPTIONED = "connector_exceptioned"  # the connector itself exceptioned
     WATCHDOG_EXCEPTIONED = "watchdog_exceptioned"  # the watchdog exceptioned
 
@@ -122,6 +125,7 @@ class IndexingWatchdogTerminalStatus(str, Enum):
         _ENUM_TO_CODE: dict[IndexingWatchdogTerminalStatus, int] = {
             IndexingWatchdogTerminalStatus.PROCESS_SIGNAL_SIGKILL: -9,
             IndexingWatchdogTerminalStatus.OUT_OF_MEMORY: 137,
+            IndexingWatchdogTerminalStatus.CONNECTOR_VALIDATION_ERROR: 247,
             IndexingWatchdogTerminalStatus.BLOCKED_BY_DELETION: 248,
             IndexingWatchdogTerminalStatus.BLOCKED_BY_STOP_SIGNAL: 249,
             IndexingWatchdogTerminalStatus.FENCE_NOT_FOUND: 250,
@@ -138,6 +142,7 @@ class IndexingWatchdogTerminalStatus(str, Enum):
     def from_code(cls, code: int) -> "IndexingWatchdogTerminalStatus":
         _CODE_TO_ENUM: dict[int, IndexingWatchdogTerminalStatus] = {
             -9: IndexingWatchdogTerminalStatus.PROCESS_SIGNAL_SIGKILL,
+            247: IndexingWatchdogTerminalStatus.CONNECTOR_VALIDATION_ERROR,
             248: IndexingWatchdogTerminalStatus.BLOCKED_BY_DELETION,
             249: IndexingWatchdogTerminalStatus.BLOCKED_BY_STOP_SIGNAL,
             250: IndexingWatchdogTerminalStatus.FENCE_NOT_FOUND,
@@ -146,7 +151,6 @@ class IndexingWatchdogTerminalStatus(str, Enum):
             253: IndexingWatchdogTerminalStatus.TASK_ALREADY_RUNNING,
             254: IndexingWatchdogTerminalStatus.INDEX_ATTEMPT_MISMATCH,
             255: IndexingWatchdogTerminalStatus.CONNECTOR_EXCEPTIONED,
-            256: IndexingWatchdogTerminalStatus.CONNECTOR_VALIDATION_ERROR,
         }
 
         if code in _CODE_TO_ENUM:
@@ -790,6 +794,15 @@ def connector_indexing_task(
         # get back the total number of indexed docs and return it
         n_final_progress = redis_connector_index.get_progress()
         redis_connector_index.set_generator_complete(HTTPStatus.OK.value)
+    except ConnectorValidationError:
+        raise SimpleJobException(
+            f"Indexing task failed: attempt={index_attempt_id} "
+            f"tenant={tenant_id} "
+            f"cc_pair={cc_pair_id} "
+            f"search_settings={search_settings_id}",
+            code=IndexingWatchdogTerminalStatus.CONNECTOR_VALIDATION_ERROR.code,
+        )
+
     except Exception as e:
         logger.exception(
             f"Indexing spawned task failed: attempt={index_attempt_id} "
@@ -797,8 +810,8 @@ def connector_indexing_task(
             f"cc_pair={cc_pair_id} "
             f"search_settings={search_settings_id}"
         )
-
         raise e
+
     finally:
         if lock.owned():
             lock.release()
