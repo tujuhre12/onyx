@@ -19,7 +19,6 @@ from onyx.configs.app_configs import INDEX_BATCH_SIZE
 from onyx.configs.constants import DocumentSource
 from onyx.connectors.interfaces import ConnectorValidationError
 from onyx.connectors.interfaces import CredentialExpiredError
-from onyx.connectors.interfaces import Exception
 from onyx.connectors.interfaces import GenerateDocumentsOutput
 from onyx.connectors.interfaces import InsufficientPermissionsError
 from onyx.connectors.interfaces import LoadConnector
