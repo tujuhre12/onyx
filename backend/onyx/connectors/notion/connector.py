@@ -651,7 +651,7 @@ class NotionConnector(LoadConnector, PollConnector):
             res.raise_for_status()
 
         except requests.exceptions.HTTPError as http_err:
-            status_code = res.status_code if "res" in locals() else None
+            status_code = http_err.response.status_code if http_err.response else None
 
             if status_code == 401:
                 raise CredentialExpiredError(
