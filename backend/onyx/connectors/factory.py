@@ -169,7 +169,7 @@ def validate_ccpair_for_user(
     db_session: Session,
     user: User | None,
     tenant_id: str | None,
-):
+) -> None:
     # Validate the connector settings
     connector = fetch_connector_by_id(connector_id, db_session)
     credential = fetch_credential_by_id_for_user(
