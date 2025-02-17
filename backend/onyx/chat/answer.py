@@ -1,6 +1,5 @@
 from collections import defaultdict
 from collections.abc import Callable
-from typing import cast
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -84,12 +83,11 @@ class Answer:
 
         rerank_settings = search_request.rerank_settings
 
-        rerank_config_is_local = (
-            rerank_settings is not None and rerank_settings.rerank_provider_type is None
+        using_cloud_reranking = (
+            rerank_settings is not None
+            and rerank_settings.rerank_provider_type is not None
         )
-        allow_agent_reranking = (
-            cast(bool, gpu_status_request()) or rerank_config_is_local
-        )
+        allow_agent_reranking = gpu_status_request() or using_cloud_reranking
 
         self.graph_inputs = GraphInputs(
             search_request=search_request,
@@ -105,7 +103,6 @@ class Answer:
             force_use_tool=force_use_tool,
             using_tool_calling_llm=using_tool_calling_llm,
         )
-        assert db_session, "db_session must be provided for agentic persistence"
         self.graph_persistence = GraphPersistence(
             db_session=db_session,
             chat_session_id=chat_session_id,
