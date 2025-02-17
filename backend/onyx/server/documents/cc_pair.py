@@ -605,11 +605,13 @@ def associate_credential_to_connector(
         return response
 
     except ConnectorValidationError as e:
-        logger.error(f"Connector validation error: {e}")
-        logger.error(f"Deleting connector: {connector_id}")
-        response = delete_connector(db_session, connector_id)
+        # If validation fails, delete the connector and commit the changes
+        # Ensures we don't leave invalid connectors in the database
+        # NOTE: consensus is that it makes sense to unify connector and ccpair creation flows
+        # which would rid us of needing to handle cases like these
+        delete_connector(db_session, connector_id)
         db_session.commit()
-        logger.error(f"Connector deletion response: {response}")
+
         raise HTTPException(
             status_code=400, detail="Connector validation error: " + str(e)
         )
@@ -618,9 +620,7 @@ def associate_credential_to_connector(
         logger.error(f"IntegrityError: {e}")
         raise HTTPException(status_code=400, detail="Name must be unique")
 
-    except Exception as e:
-        logger.error(type(e))
-        logger.exception(f"Unexpected error: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Unexpected error")
 
 

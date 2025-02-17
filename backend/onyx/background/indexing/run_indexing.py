@@ -430,6 +430,9 @@ def _run_indexing(
             logger.error(type(e))
 
             if isinstance(e, ConnectorValidationError):
+                # On validation errors during indexing, we want to cancel the indexing attempt
+                # and mark the CCPair as invalid. This prevents the connector from being
+                # used in the future until the credentials are updated.
                 with get_session_with_tenant(tenant_id) as db_session_temp:
                     mark_attempt_canceled(
                         index_attempt_id,

@@ -995,6 +995,7 @@ def connector_indexing_proxy_task(
     except Exception as e:
         result.status = IndexingWatchdogTerminalStatus.WATCHDOG_EXCEPTIONED
         if isinstance(e, ConnectorValidationError):
+            # No need to expose full stack trace for validation errors
             result.exception_str = str(e)
         else:
             result.exception_str = traceback.format_exc()

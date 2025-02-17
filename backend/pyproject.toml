@@ -7,7 +7,11 @@ enable_error_code = ["possibly-undefined"]
 
 [[tool.mypy.overrides]]
 module = "alembic.versions.*"
-disable_error_code = ["var-annotated", "abstract"]
+disable_error_code = ["var-annotated"]
+
+[[tool.mypy.overrides]]
+module = "alembic_tenants.versions.*"
+disable_error_code = ["var-annotated"]
 
 [tool.ruff]
 ignore = []
