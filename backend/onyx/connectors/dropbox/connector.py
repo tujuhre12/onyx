@@ -17,7 +17,6 @@ from onyx.connectors.interfaces import InsufficientPermissionsError
 from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import PollConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
-from onyx.connectors.interfaces import UnexpectedError
 from onyx.connectors.models import ConnectorMissingCredentialError
 from onyx.connectors.models import Document
 from onyx.connectors.models import Section
@@ -153,7 +152,7 @@ class DropboxConnector(LoadConnector, PollConnector):
         try:
             self.dropbox_client.files_list_folder(path="", limit=1)
         except AuthError as e:
-            logger.exception(f"Failed to validate Dropbox credentials: {e}")
+            logger.exception("Failed to validate Dropbox credentials")
             raise CredentialInvalidError(f"Dropbox credential is invalid: {e.error}")
         except ApiError as e:
             if (
@@ -167,9 +166,7 @@ class DropboxConnector(LoadConnector, PollConnector):
                 f"Unexpected Dropbox error during validation: {e.user_message_text or e}"
             )
         except Exception as e:
-            raise UnexpectedError(
-                f"Unexpected error during Dropbox settings validation: {e}"
-            )
+            raise Exception(f"Unexpected error during Dropbox settings validation: {e}")
 
 
 if __name__ == "__main__":

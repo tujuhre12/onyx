@@ -623,7 +623,7 @@ class NotionConnector(LoadConnector, PollConnector):
                 break
 
     def validate_connector_settings(self) -> None:
-        if "Authorization" not in self.headers or not self.headers["Authorization"]:
+        if not self.headers.get("Authorization"):
             raise ConnectorMissingCredentialError("Notion credentials not loaded.")
 
         try:
