@@ -42,8 +42,8 @@ from onyx.configs.app_configs import WEB_DOMAIN
 from onyx.configs.constants import FASTAPI_USERS_AUTH_COOKIE_NAME
 from onyx.db.auth import get_user_count
 from onyx.db.engine import get_session
-from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.engine import get_session_with_shared_schema
+from onyx.db.engine import get_session_with_tenant
 from onyx.db.users import delete_user_from_db
 from onyx.db.users import get_user_by_email
 from onyx.server.manage.models import UserByEmail
@@ -204,7 +204,7 @@ async def impersonate_user(
     """Allows a cloud superuser to impersonate another user by generating an impersonation JWT token"""
     tenant_id = get_tenant_id_for_email(impersonate_request.email)
 
-    with get_session_with_current_tenant(tenant_id) as tenant_session:
+    with get_session_with_tenant(tenant_id) as tenant_session:
         user_to_impersonate = get_user_by_email(
             impersonate_request.email, tenant_session
         )

@@ -36,6 +36,7 @@ from onyx.context.search.retrieval.search_runner import (
 )
 from onyx.db.engine import get_all_tenant_ids
 from onyx.db.engine import get_session_with_current_tenant
+from onyx.db.engine import get_session_with_tenant
 from onyx.db.models import SlackBot
 from onyx.db.search_settings import get_current_search_settings
 from onyx.db.slack_bot import fetch_slack_bots
@@ -300,7 +301,7 @@ class SlackbotHandler:
                 tenant_id or POSTGRES_DEFAULT_SCHEMA
             )
             try:
-                with get_session_with_current_tenant(tenant_id) as db_session:
+                with get_session_with_tenant(tenant_id) as db_session:
                     bots: list[SlackBot] = []
                     try:
                         bots = list(fetch_slack_bots(db_session=db_session))
@@ -340,7 +341,7 @@ class SlackbotHandler:
             redis_client = get_redis_client(tenant_id=tenant_id)
 
             try:
-                with get_session_with_current_tenant(tenant_id) as db_session:
+                with get_session_with_tenant(tenant_id) as db_session:
                     # Attempt to fetch Slack bots
                     try:
                         bots = list(fetch_slack_bots(db_session=db_session))

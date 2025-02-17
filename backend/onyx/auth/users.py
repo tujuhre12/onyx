@@ -86,7 +86,7 @@ from onyx.db.auth import get_user_db
 from onyx.db.auth import SQLAlchemyUserAdminDB
 from onyx.db.engine import get_async_session
 from onyx.db.engine import get_async_session_with_tenant
-from onyx.db.engine import get_session_with_current_tenant
+from onyx.db.engine import get_session_with_tenant
 from onyx.db.models import AccessToken
 from onyx.db.models import OAuthAccount
 from onyx.db.models import User
@@ -193,7 +193,7 @@ def verify_email_is_invited(email: str) -> None:
 
 
 def verify_email_in_whitelist(email: str, tenant_id: str | None = None) -> None:
-    with get_session_with_current_tenant(tenant_id) as db_session:
+    with get_session_with_tenant(tenant_id) as db_session:
         if not get_user_by_email(email, db_session):
             verify_email_is_invited(email)
 
@@ -487,7 +487,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         try:
             user_count = await get_user_count()
 
-            with get_session_with_current_tenant(tenant_id=tenant_id) as db_session:
+            with get_session_with_tenant(tenant_id=tenant_id) as db_session:
                 if user_count == 1:
                     create_milestone_and_report(
                         user=user,

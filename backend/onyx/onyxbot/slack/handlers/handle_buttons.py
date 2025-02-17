@@ -12,6 +12,7 @@ from onyx.configs.onyxbot_configs import DANSWER_FOLLOWUP_EMOJI
 from onyx.connectors.slack.utils import expert_info_from_slack_id
 from onyx.connectors.slack.utils import make_slack_api_rate_limited
 from onyx.db.engine import get_session_with_current_tenant
+from onyx.db.engine import get_session_with_tenant
 from onyx.db.feedback import create_chat_message_feedback
 from onyx.db.feedback import create_doc_retrieval_feedback
 from onyx.onyxbot.slack.blocks import build_follow_up_resolved_blocks
@@ -155,7 +156,7 @@ def handle_slack_feedback(
 ) -> None:
     message_id, doc_id, doc_rank = decompose_action_id(feedback_id)
 
-    with get_session_with_current_tenant(tenant_id) as db_session:
+    with get_session_with_tenant(tenant_id) as db_session:
         if feedback_type in [LIKE_BLOCK_ACTION_ID, DISLIKE_BLOCK_ACTION_ID]:
             create_chat_message_feedback(
                 is_positive=feedback_type == LIKE_BLOCK_ACTION_ID,

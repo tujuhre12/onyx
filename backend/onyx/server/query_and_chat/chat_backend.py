@@ -45,7 +45,7 @@ from onyx.db.chat import set_as_latest_chat_message
 from onyx.db.chat import translate_db_message_to_chat_message_detail
 from onyx.db.chat import update_chat_session
 from onyx.db.engine import get_session
-from onyx.db.engine import get_session_with_current_tenant
+from onyx.db.engine import get_session_with_tenant
 from onyx.db.feedback import create_chat_message_feedback
 from onyx.db.feedback import create_doc_retrieval_feedback
 from onyx.db.models import User
@@ -407,7 +407,7 @@ def handle_new_chat_message(
     ):
         raise HTTPException(status_code=400, detail="Empty chat message is invalid")
 
-    with get_session_with_current_tenant(tenant_id) as db_session:
+    with get_session_with_tenant(tenant_id) as db_session:
         create_milestone_and_report(
             user=user,
             distinct_id=user.email if user else tenant_id or "N/A",
