@@ -47,6 +47,7 @@ from onyx.configs.constants import OnyxCeleryTask
 from onyx.configs.constants import OnyxRedisConstants
 from onyx.configs.constants import OnyxRedisLocks
 from onyx.configs.constants import OnyxRedisSignals
+from onyx.connectors.interfaces import ConnectorValidationError
 from onyx.db.connector import mark_ccpair_with_indexing_trigger
 from onyx.db.connector_credential_pair import fetch_connector_credential_pairs
 from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
@@ -145,6 +146,7 @@ class IndexingWatchdogTerminalStatus(str, Enum):
             253: IndexingWatchdogTerminalStatus.TASK_ALREADY_RUNNING,
             254: IndexingWatchdogTerminalStatus.INDEX_ATTEMPT_MISMATCH,
             255: IndexingWatchdogTerminalStatus.CONNECTOR_EXCEPTIONED,
+            256: IndexingWatchdogTerminalStatus.CONNECTOR_VALIDATION_ERROR,
         }
 
         if code in _CODE_TO_ENUM:
@@ -996,9 +998,13 @@ def connector_indexing_proxy_task(
                     )
                 )
                 continue
-    except Exception:
+    except Exception as e:
         result.status = IndexingWatchdogTerminalStatus.WATCHDOG_EXCEPTIONED
-        result.exception_str = traceback.format_exc()
+        if isinstance(e, ConnectorValidationError):
+            # No need to expose full stack trace for validation errors
+            result.exception_str = str(e)
+        else:
+            result.exception_str = traceback.format_exc()
 
     # handle exit and reporting
     elapsed = time.monotonic() - start

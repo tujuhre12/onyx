@@ -15,6 +15,7 @@ from typing import Literal
 from typing import Optional
 
 from onyx.configs.constants import POSTGRES_CELERY_WORKER_INDEXING_CHILD_APP_NAME
+from onyx.connectors.interfaces import ConnectorValidationError
 from onyx.db.engine import SqlEngine
 from onyx.utils.logger import setup_logger
 
@@ -75,6 +76,11 @@ def _initializer(
         queue.put(error_msg)  # Send the exception to the parent process
 
         sys.exit(e.code)  # use the given exit code
+    except ConnectorValidationError as e:
+        error_msg = str(e)
+        queue.put(error_msg)  # Send the exception to the parent process
+
+        sys.exit(256)  # use 256 to indicate a connector validation error
     except Exception:
         logger.exception("SimpleJob raised an exception")
         error_msg = traceback.format_exc()
