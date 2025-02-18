@@ -10,12 +10,9 @@ import { PopupSpec } from "@/components/admin/connectors/Popup";
 import { useUser } from "@/components/user/UserProvider";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Label, SubLabel } from "@/components/admin/connectors/Field";
+import { SubLabel } from "@/components/admin/connectors/Field";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
-import { useChatContext } from "@/components/context/ChatContext";
-import { InputPromptsSection } from "./InputPromptsSection";
 import { LLMSelector } from "@/components/llm/LLMSelector";
-import { ModeToggle } from "./ThemeToggle";
 import {
   Select,
   SelectContent,
@@ -43,18 +40,12 @@ export function UserSettingsModal({
   onClose: () => void;
   defaultModel: string | null;
 }) {
-  const {
-    refreshUser,
-    user,
-    updateUserAutoScroll,
-    updateUserShortcuts,
-    updateUserTemperatureOverrideEnabled,
-  } = useUser();
+  const { refreshUser, user, updateUserAutoScroll, updateUserShortcuts } =
+    useUser();
   const containerRef = useRef<HTMLDivElement>(null);
   const messageRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
   const [selectedTheme, setSelectedTheme] = useState(theme);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -199,7 +190,6 @@ export function UserSettingsModal({
 
       if (response.ok) {
         setPopup({ message: "Password changed successfully", type: "success" });
-        setIsChangingPassword(false);
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
