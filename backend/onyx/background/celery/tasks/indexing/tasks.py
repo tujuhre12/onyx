@@ -910,7 +910,7 @@ def connector_indexing_proxy_task(
         cc_pair_id,
         search_settings_id,
         global_version.is_ee_version(),
-        tenant_id,  # NOTE: this must be the last argument
+        tenant_id=tenant_id,  # NOTE: this must be the last argument
     )
 
     if not job:
