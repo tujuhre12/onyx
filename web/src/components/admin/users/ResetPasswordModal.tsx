@@ -63,7 +63,7 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
 
   return (
     <Modal onOutsideClick={onClose} width="rounded-lg w-full max-w-md">
-      <div className="p-6 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100">
+      <div className="p- text-neutral-900 dark:text-neutral-100">
         <h2 className="text-2xl font-bold mb-4">Reset Password</h2>
         <p className="mb-4">
           Are you sure you want to reset the password for {user.email}?

@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from fastapi_users.exceptions import InvalidPasswordException
 from sqlalchemy.orm import Session
 
 from onyx.auth.users import current_admin_user
@@ -24,12 +25,16 @@ async def change_my_password(
     current_user: User = Depends(current_user),
 ) -> None:
     """A user can change their own password by submitting old & new passwords."""
-    await user_manager.change_password_if_old_matches(
-        user=current_user,
-        old_password=form_data.old_password,
-        new_password=form_data.new_password,
-    )
-    return None
+    try:
+        await user_manager.change_password_if_old_matches(
+            user=current_user,
+            old_password=form_data.old_password,
+            new_password=form_data.new_password,
+        )
+    except InvalidPasswordException as e:
+        raise HTTPException(status_code=400, detail=str(e.reason))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"An error occurred: {str(e)}")
 
 
 @router.post("/reset_password")

@@ -35,6 +35,18 @@ import { useUser } from "@/components/user/UserProvider";
 import { LeaveOrganizationButton } from "./buttons/LeaveOrganizationButton";
 import { NEXT_PUBLIC_CLOUD_ENABLED } from "@/lib/constants";
 import ResetPasswordModal from "./ResetPasswordModal";
+import {
+  MoreHorizontal,
+  LogOut,
+  UserMinus,
+  UserX,
+  KeyRound,
+} from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const ITEMS_PER_PAGE = 10;
 const PAGES_PER_BATCH = 2;
@@ -44,6 +56,15 @@ interface Props {
   setPopup: (spec: PopupSpec) => void;
   q: string;
   invitedUsersMutate: () => void;
+}
+
+interface ActionMenuProps {
+  user: User;
+  currentUser: User | null;
+  setPopup: (spec: PopupSpec) => void;
+  refresh: () => void;
+  invitedUsersMutate: () => void;
+  handleResetPassword: (user: User) => void;
 }
 
 const SignedUpUserTable = ({
@@ -209,6 +230,77 @@ const SignedUpUserTable = ({
     );
   };
 
+  const ActionMenu: React.FC<ActionMenuProps> = ({
+    user,
+    currentUser,
+    setPopup,
+    refresh,
+    invitedUsersMutate,
+    handleResetPassword,
+  }) => {
+    const buttonClassName = "w-full justify-start";
+
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">Open menu</span>
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-48">
+          <div className="grid gap-2">
+            {NEXT_PUBLIC_CLOUD_ENABLED && user.id === currentUser?.id ? (
+              <LeaveOrganizationButton
+                user={user}
+                setPopup={setPopup}
+                mutate={refresh}
+                className={buttonClassName}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Leave Organization</span>
+              </LeaveOrganizationButton>
+            ) : (
+              <>
+                {!user.is_active && (
+                  <DeleteUserButton
+                    user={user}
+                    setPopup={setPopup}
+                    mutate={refresh}
+                    className={buttonClassName}
+                  >
+                    <UserMinus className="mr-2 h-4 w-4" />
+                    <span>Delete User</span>
+                  </DeleteUserButton>
+                )}
+                <DeactivateUserButton
+                  user={user}
+                  deactivate={user.is_active}
+                  setPopup={setPopup}
+                  mutate={refresh}
+                  className={buttonClassName}
+                >
+                  <UserX className="mr-2 h-4 w-4" />
+                  <span>{user.is_active ? "Deactivate" : "Activate"} User</span>
+                </DeactivateUserButton>
+              </>
+            )}
+            {user.password_configured && (
+              <Button
+                variant="ghost"
+                className={buttonClassName}
+                onClick={() => handleResetPassword(user)}
+              >
+                <KeyRound className="mr-2 h-4 w-4" />
+                <span>Reset Password</span>
+              </Button>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+    );
+  };
+
   const renderActionButtons = (user: User) => {
     if (user.role === UserRole.SLACK_USER) {
       return (
@@ -221,39 +313,14 @@ const SignedUpUserTable = ({
       );
     }
     return (
-      <div className="gap-x-2 w-full justify-end  flex ">
-        {NEXT_PUBLIC_CLOUD_ENABLED && user.id === currentUser?.id ? (
-          <LeaveOrganizationButton
-            user={user}
-            setPopup={setPopup}
-            mutate={refresh}
-          />
-        ) : (
-          <>
-            {!user.is_active && (
-              <DeleteUserButton
-                user={user}
-                setPopup={setPopup}
-                mutate={refresh}
-              />
-            )}
-            <DeactivateUserButton
-              user={user}
-              deactivate={user.is_active}
-              setPopup={setPopup}
-              mutate={refresh}
-            />
-          </>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleResetPassword(user)}
-          className="w-min"
-        >
-          Reset Password
-        </Button>
-      </div>
+      <ActionMenu
+        user={user}
+        currentUser={currentUser}
+        setPopup={setPopup}
+        refresh={refresh}
+        invitedUsersMutate={invitedUsersMutate}
+        handleResetPassword={handleResetPassword}
+      />
     );
   };
 

@@ -209,44 +209,52 @@ export function UserSettingsModal({
       setIsLoading(false);
     }
   };
+  const showPasswordSection = user?.password_configured;
 
   return (
-    <Modal onOutsideClick={onClose} width="rounded-lg w-full max-w-3xl">
+    <Modal
+      onOutsideClick={onClose}
+      width={`rounded-lg w-full ${
+        showPasswordSection ? "max-w-3xl" : "max-w-xl"
+      }`}
+    >
       <div className="p-2">
         <h2 className="text-xl font-bold mb-4">User Settings</h2>
         <Separator className="mb-6" />
         <div className="flex">
-          <div className="w-1/4 pr-4">
-            <nav>
-              <ul className="space-y-2">
-                <li>
-                  <button
-                    className={`w-full text-base text-left py-2 px-4 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 ${
-                      activeSection === "settings"
-                        ? "bg-neutral-100 dark:bg-neutral-700 font-semibold"
-                        : ""
-                    }`}
-                    onClick={() => setActiveSection("settings")}
-                  >
-                    Settings
-                  </button>
-                </li>
-                <li>
-                  <button
-                    className={`w-full text-left py-2 px-4 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 ${
-                      activeSection === "password"
-                        ? "bg-neutral-100 dark:bg-neutral-700 font-semibold"
-                        : ""
-                    }`}
-                    onClick={() => setActiveSection("password")}
-                  >
-                    Password
-                  </button>
-                </li>
-              </ul>
-            </nav>
-          </div>
-          <div className="w-3/4 pl-4">
+          {showPasswordSection && (
+            <div className="w-1/4 pr-4">
+              <nav>
+                <ul className="space-y-2">
+                  <li>
+                    <button
+                      className={`w-full text-base text-left py-2 px-4 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 ${
+                        activeSection === "settings"
+                          ? "bg-neutral-100 dark:bg-neutral-700 font-semibold"
+                          : ""
+                      }`}
+                      onClick={() => setActiveSection("settings")}
+                    >
+                      Settings
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      className={`w-full text-left py-2 px-4 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 ${
+                        activeSection === "password"
+                          ? "bg-neutral-100 dark:bg-neutral-700 font-semibold"
+                          : ""
+                      }`}
+                      onClick={() => setActiveSection("password")}
+                    >
+                      Password
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          )}
+          <div className={`${showPasswordSection ? "w-3/4 pl-4" : "w-full"}`}>
             {activeSection === "settings" && (
               <div className="space-y-6">
                 <div>
