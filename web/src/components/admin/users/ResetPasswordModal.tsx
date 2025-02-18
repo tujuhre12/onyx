@@ -72,7 +72,9 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
           <div className="mb-4">
             <p className="font-semibold">New Password:</p>
             <div className="flex items-center bg-neutral-200 dark:bg-neutral-700 p-2 rounded">
-              <p className="flex-grow">{newPassword}</p>
+              <p data-testid="new-password" className="flex-grow">
+                {newPassword}
+              </p>
               <Button
                 onClick={handleCopyPassword}
                 variant="ghost"
