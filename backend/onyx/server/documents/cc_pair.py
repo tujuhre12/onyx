@@ -650,6 +650,9 @@ def associate_credential_to_connector(
         return response
 
     except ConnectorValidationError as e:
+        print("EXCEPTINO 1")
+        print(type(e))
+
         # If validation fails, delete the connector and commit the changes
         # Ensures we don't leave invalid connectors in the database
         # NOTE: consensus is that it makes sense to unify connector and ccpair creation flows
@@ -665,7 +668,8 @@ def associate_credential_to_connector(
         logger.error(f"IntegrityError: {e}")
         raise HTTPException(status_code=400, detail="Name must be unique")
 
-    except Exception:
+    except Exception as e:
+        logger.exception(f"Unexpected error: {e}")
         raise HTTPException(status_code=500, detail="Unexpected error")
 
 
