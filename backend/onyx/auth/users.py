@@ -1,5 +1,7 @@
 import json
+import random
 import secrets
+import string
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime
@@ -141,6 +143,30 @@ def get_display_email(email: str | None, space_less: bool = False) -> str:
         return name.replace("API_KEY__", "API Key: ")
 
     return email or ""
+
+
+def generate_password():
+    lowercase_letters = string.ascii_lowercase
+    uppercase_letters = string.ascii_uppercase
+    digits = string.digits
+    special_characters = string.punctuation
+
+    # Ensure at least one of each required character type
+    password = [
+        random.choice(uppercase_letters),
+        random.choice(digits),
+        random.choice(special_characters),
+    ]
+
+    # Fill the rest with a mix of characters
+    remaining_length = 12 - len(password)
+    all_characters = lowercase_letters + uppercase_letters + digits + special_characters
+    password.extend(random.choice(all_characters) for _ in range(remaining_length))
+
+    # Shuffle the password to randomize the position of the required characters
+    random.shuffle(password)
+
+    return "".join(password)
 
 
 def user_needs_to_be_verified() -> bool:
@@ -597,19 +623,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
     async def reset_password_as_admin(self, user_id: uuid.UUID) -> str:
         """Admin-only. Generate a random password for a user and return it."""
-        user = await self.get(user_id)  # from BaseUserManager, fetches by ID or raises
-        import random
-        import string
-
-        def generate_password():
-            characters = string.ascii_letters + string.digits + string.punctuation
-            password = "".join(random.choice(characters) for _ in range(11))
-            password = random.choice(string.ascii_uppercase) + password
-            return password
-
+        user = await self.get(user_id)
         new_password = generate_password()
         await self._update(user, {"password": new_password})
-
         return new_password
 
     async def change_password_if_old_matches(

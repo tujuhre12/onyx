@@ -221,16 +221,7 @@ const SignedUpUserTable = ({
       );
     }
     return (
-      <>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleResetPassword(user)}
-          className="mr-2"
-        >
-          <RefreshCcw className="w-4 h-4 mr-2" />
-          Reset Password
-        </Button>
+      <div className="gap-x-2 w-full justify-end  flex ">
         {NEXT_PUBLIC_CLOUD_ENABLED && user.id === currentUser?.id ? (
           <LeaveOrganizationButton
             user={user}
@@ -239,12 +230,6 @@ const SignedUpUserTable = ({
           />
         ) : (
           <>
-            <DeactivateUserButton
-              user={user}
-              deactivate={user.is_active}
-              setPopup={setPopup}
-              mutate={refresh}
-            />
             {!user.is_active && (
               <DeleteUserButton
                 user={user}
@@ -252,9 +237,23 @@ const SignedUpUserTable = ({
                 mutate={refresh}
               />
             )}
+            <DeactivateUserButton
+              user={user}
+              deactivate={user.is_active}
+              setPopup={setPopup}
+              mutate={refresh}
+            />
           </>
         )}
-      </>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleResetPassword(user)}
+          className="w-min"
+        >
+          Reset Password
+        </Button>
+      </div>
     );
   };
 
@@ -304,7 +303,7 @@ const SignedUpUserTable = ({
                   <TableCell className="text-center w-[140px]">
                     <i>{user.is_active ? "Active" : "Inactive"}</i>
                   </TableCell>
-                  <TableCell className="text-right w-[300px]">
+                  <TableCell className="text-right  w-[300px] ">
                     {renderActionButtons(user)}
                   </TableCell>
                 </TableRow>
