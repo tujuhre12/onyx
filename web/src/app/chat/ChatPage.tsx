@@ -2875,11 +2875,7 @@ export function ChatPage({
                                           currentAlternativeAssistant
                                         }
                                         messageId={message.messageId}
-                                        content={
-                                          message.message +
-                                          " " +
-                                          message.messageId
-                                        }
+                                        content={message.message}
                                         files={message.files}
                                         query={
                                           messageHistory[i]?.query || undefined
