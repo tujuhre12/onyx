@@ -210,7 +210,7 @@ def validate_ccpair_for_user(
             tenant_id=tenant_id,
         )
     except Exception as e:
-        error_msg = f"Unexpected error creating connector: {e}"
+        error_msg = str(e)
         raise ConnectorValidationError(error_msg)
 
     runnable_connector.validate_connector_settings()
