@@ -21,9 +21,9 @@ from onyx.configs.constants import DocumentSource
 from onyx.configs.constants import MilestoneRecordType
 from onyx.connectors.connector_runner import ConnectorRunner
 from onyx.connectors.factory import instantiate_connector
+from onyx.connectors.interfaces import ConnectorValidationError
 from onyx.connectors.models import ConnectorCheckpoint
 from onyx.connectors.models import ConnectorFailure
-from onyx.connectors.interfaces import ConnectorValidationError
 from onyx.connectors.models import Document
 from onyx.connectors.models import IndexAttemptMetadata
 from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
@@ -89,6 +89,7 @@ def _get_connector_runner(
         )
 
         # validate the connector settings
+
         runnable_connector.validate_connector_settings()
 
     except Exception as e:
