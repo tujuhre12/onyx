@@ -126,7 +126,9 @@ export function ReIndexButton({
           ccPairStatus == ConnectorCredentialPairStatus.PAUSED
         }
         tooltip={getCCPairStatusMessage(isDisabled, isIndexing, ccPairStatus)}
-      ></Button>
+      >
+        Re-Index
+      </Button>
     </>
   );
 }

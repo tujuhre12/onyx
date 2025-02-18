@@ -24,7 +24,6 @@ from onyx.connectors.interfaces import InsufficientPermissionsError
 from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import PollConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
-from onyx.connectors.interfaces import UnexpectedError
 from onyx.connectors.models import ConnectorMissingCredentialError
 from onyx.connectors.models import Document
 from onyx.connectors.models import Section
@@ -253,7 +252,7 @@ class GithubConnector(LoadConnector, PollConnector):
         except GithubException as e:
             if e.status == 401:
                 raise CredentialExpiredError(
-                    "GitHub credential appears to be expired or invalid (HTTP 401)."
+                    "GitHub credential appears to be invalid or expired (HTTP 401)."
                 )
             elif e.status == 403:
                 raise InsufficientPermissionsError(
@@ -268,11 +267,9 @@ class GithubConnector(LoadConnector, PollConnector):
                     f"Unexpected GitHub error (status={e.status}): {e.data}"
                 )
         except Exception as exc:
-            raise UnexpectedError(
+            raise Exception(
                 f"Unexpected error during GitHub settings validation: {exc}"
             )
-
-        logger.info("GitHub connector settings have been successfully validated.")
 
 
 if __name__ == "__main__":

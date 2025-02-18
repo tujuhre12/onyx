@@ -146,6 +146,8 @@ class CheckpointConnector(BaseConnector):
         ```
         """
         raise NotImplementedError
+
+
 class ConnectorValidationError(Exception):
     """General exception for connector validation errors."""
 
@@ -154,10 +156,22 @@ class ConnectorValidationError(Exception):
         super().__init__(self.message)
 
 
-class UnexpectedError(ConnectorValidationError):
-    """Raised when an unexpected error occurs during connector validation."""
+class UnexpectedError(Exception):
+    """Raised when an unexpected error occurs during connector validation.
+
+    Unexpected errors don't necessarily mean the credential is invalid,
+    but rather that there was an error during the validation process
+    or we encountered a currently unhandled error case.
+    """
 
     def __init__(self, message: str = "Unexpected error during connector validation"):
+        super().__init__(message)
+
+
+class CredentialInvalidError(ConnectorValidationError):
+    """Raised when a connector's credential is invalid."""
+
+    def __init__(self, message: str = "Credential is invalid"):
         super().__init__(message)
 
 
