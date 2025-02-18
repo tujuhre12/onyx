@@ -145,7 +145,7 @@ def get_display_email(email: str | None, space_less: bool = False) -> str:
     return email or ""
 
 
-def generate_password():
+def generate_password() -> str:
     lowercase_letters = string.ascii_lowercase
     uppercase_letters = string.ascii_uppercase
     digits = string.digits
