@@ -595,6 +595,49 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
             return user
 
+    async def reset_password_as_admin(self, user_id: uuid.UUID) -> str:
+        """Admin-only. Generate a random password for a user and return it."""
+        user = await self.get(user_id)  # from BaseUserManager, fetches by ID or raises
+        import random
+        import string
+
+        def generate_password():
+            characters = string.ascii_letters + string.digits + string.punctuation
+            password = "".join(random.choice(characters) for _ in range(11))
+            password = random.choice(string.ascii_uppercase) + password
+            return password
+
+        new_password = generate_password()
+        await self._update(user, {"password": new_password})
+
+        return new_password
+
+    async def change_password_if_old_matches(
+        self, user: User, old_password: str, new_password: str
+    ) -> None:
+        """
+        For normal users to change password if they know the old one.
+        Raises 400 if old password doesn't match.
+        """
+        verified, updated_password_hash = self.password_helper.verify_and_update(
+            old_password, user.hashed_password
+        )
+        if not verified:
+            # Raise some HTTPException (or your custom exception) if old password is invalid:
+            from fastapi import HTTPException, status
+
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid current password",
+            )
+
+        # If the hash was upgraded behind the scenes, we can keep it before setting the new password:
+        if updated_password_hash:
+            user.hashed_password = updated_password_hash
+
+        # Now apply and validate the new password
+        await self._update(user, {"password": new_password})
+
 
 async def get_user_manager(
     user_db: SQLAlchemyUserDatabase = Depends(get_user_db),

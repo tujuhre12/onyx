@@ -29,12 +29,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const ITEMS_PER_PAGE = 10;
-const PAGES_PER_BATCH = 2;
+import { Button } from "@/components/ui/button";
+import { RefreshCcw } from "lucide-react";
 import { useUser } from "@/components/user/UserProvider";
 import { LeaveOrganizationButton } from "./buttons/LeaveOrganizationButton";
 import { NEXT_PUBLIC_CLOUD_ENABLED } from "@/lib/constants";
+import ResetPasswordModal from "./ResetPasswordModal";
+
+const ITEMS_PER_PAGE = 10;
+const PAGES_PER_BATCH = 2;
 
 interface Props {
   invitedUsers: InvitedUserSnapshot[];
@@ -55,6 +58,7 @@ const SignedUpUserTable = ({
   }>({});
 
   const [selectedRoles, setSelectedRoles] = useState<UserRole[]>([]);
+  const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
 
   const {
     currentPageData: pageOfUsers,
@@ -111,6 +115,10 @@ const SignedUpUserTable = ({
   const removeRole = (roleEnum: UserRole) => {
     setSelectedRoles((prev) => prev.filter((role) => role !== roleEnum)); // Remove role from selected roles
     toggleRole(roleEnum); // Deselect the role in filters
+  };
+
+  const handleResetPassword = (user: User) => {
+    setResetPasswordUser(user);
   };
 
   // --------------
@@ -212,22 +220,39 @@ const SignedUpUserTable = ({
         />
       );
     }
-    return NEXT_PUBLIC_CLOUD_ENABLED && user.id === currentUser?.id ? (
-      <LeaveOrganizationButton
-        user={user}
-        setPopup={setPopup}
-        mutate={refresh}
-      />
-    ) : (
+    return (
       <>
-        <DeactivateUserButton
-          user={user}
-          deactivate={user.is_active}
-          setPopup={setPopup}
-          mutate={refresh}
-        />
-        {!user.is_active && (
-          <DeleteUserButton user={user} setPopup={setPopup} mutate={refresh} />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleResetPassword(user)}
+          className="mr-2"
+        >
+          <RefreshCcw className="w-4 h-4 mr-2" />
+          Reset Password
+        </Button>
+        {NEXT_PUBLIC_CLOUD_ENABLED && user.id === currentUser?.id ? (
+          <LeaveOrganizationButton
+            user={user}
+            setPopup={setPopup}
+            mutate={refresh}
+          />
+        ) : (
+          <>
+            <DeactivateUserButton
+              user={user}
+              deactivate={user.is_active}
+              setPopup={setPopup}
+              mutate={refresh}
+            />
+            {!user.is_active && (
+              <DeleteUserButton
+                user={user}
+                setPopup={setPopup}
+                mutate={refresh}
+              />
+            )}
+          </>
         )}
       </>
     );
@@ -279,7 +304,7 @@ const SignedUpUserTable = ({
                   <TableCell className="text-center w-[140px]">
                     <i>{user.is_active ? "Active" : "Inactive"}</i>
                   </TableCell>
-                  <TableCell className="text-right w-[200px]">
+                  <TableCell className="text-right w-[300px]">
                     {renderActionButtons(user)}
                   </TableCell>
                 </TableRow>
@@ -293,6 +318,13 @@ const SignedUpUserTable = ({
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={goToPage}
+        />
+      )}
+      {resetPasswordUser && (
+        <ResetPasswordModal
+          user={resetPasswordUser}
+          onClose={() => setResetPasswordUser(null)}
+          setPopup={setPopup}
         />
       )}
     </>
