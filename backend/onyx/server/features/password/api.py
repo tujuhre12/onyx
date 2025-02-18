@@ -34,7 +34,9 @@ async def change_my_password(
     except InvalidPasswordException as e:
         raise HTTPException(status_code=400, detail=str(e.reason))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"An error occurred: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"An unexpected error occurred: {str(e)}"
+        )
 
 
 @router.post("/reset_password")

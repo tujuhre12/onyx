@@ -153,15 +153,15 @@ def generate_password() -> str:
 
     # Ensure at least one of each required character type
     password = [
-        random.choice(uppercase_letters),
-        random.choice(digits),
-        random.choice(special_characters),
+        secrets.choice(uppercase_letters),
+        secrets.choice(digits),
+        secrets.choice(special_characters),
     ]
 
     # Fill the rest with a mix of characters
     remaining_length = 12 - len(password)
     all_characters = lowercase_letters + uppercase_letters + digits + special_characters
-    password.extend(random.choice(all_characters) for _ in range(remaining_length))
+    password.extend(secrets.choice(all_characters) for _ in range(remaining_length))
 
     # Shuffle the password to randomize the position of the required characters
     random.shuffle(password)
