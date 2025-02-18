@@ -911,7 +911,6 @@ def connector_indexing_proxy_task(
         search_settings_id,
         global_version.is_ee_version(),
         tenant_id,  # NOTE: this must be the last argument
-        pure=False,
     )
 
     if not job:
