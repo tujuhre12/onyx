@@ -183,6 +183,7 @@ def update_cc_pair_status(
 
     Returns HTTPStatus.OK if everything finished.
     """
+
     cc_pair = get_connector_credential_pair_from_id_for_user(
         cc_pair_id=cc_pair_id,
         db_session=db_session,
