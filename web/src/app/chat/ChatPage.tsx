@@ -2695,6 +2695,11 @@ export function ChatPage({
                                     ? messageHistory[i + 1]?.documents
                                     : undefined;
 
+                                const nextMessage =
+                                  messageHistory[i + 1]?.type === "assistant"
+                                    ? messageHistory[i + 1]
+                                    : undefined;
+
                                 return (
                                   <div
                                     className="text-text"
@@ -2723,7 +2728,10 @@ export function ChatPage({
                                             selectedMessageForDocDisplay ==
                                               secondLevelMessage?.messageId)
                                         }
-                                        isImprovement={message.isImprovement}
+                                        isImprovement={
+                                          message.isImprovement ||
+                                          nextMessage?.isImprovement
+                                        }
                                         secondLevelGenerating={
                                           (message.second_level_generating &&
                                             currentSessionChatState !==
