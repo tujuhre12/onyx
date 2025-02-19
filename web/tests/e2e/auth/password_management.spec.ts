@@ -1,6 +1,6 @@
 import { test, expect } from "@chromatic-com/playwright";
 import { loginAsRandomUser, loginAs } from "../utils/auth";
-import { TEST_ADMIN_CREDENTIALS } from "../constants";
+import { TEST_ADMIN2_CREDENTIALS, TEST_ADMIN_CREDENTIALS } from "../constants";
 
 test("User changes password and logs in with new password", async ({
   page,
@@ -43,12 +43,13 @@ test("User changes password and logs in with new password", async ({
   await expect(page.getByText("Explore Assistants")).toBeVisible();
 });
 
-test.use({ storageState: "admin_auth.json" });
+test.use({ storageState: "admin2_auth.json" });
 
 test("Admin resets own password and logs in with new password", async ({
   page,
 }) => {
-  const { email: adminEmail, password: adminPassword } = TEST_ADMIN_CREDENTIALS;
+  const { email: adminEmail, password: adminPassword } =
+    TEST_ADMIN2_CREDENTIALS;
   // Navigate to admin panel
   await page.goto("http://localhost:3000/admin/indexing/status");
 

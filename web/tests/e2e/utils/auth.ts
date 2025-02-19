@@ -1,11 +1,23 @@
 import { Page } from "@playwright/test";
-import { TEST_ADMIN_CREDENTIALS, TEST_USER_CREDENTIALS } from "../constants";
+import {
+  TEST_ADMIN2_CREDENTIALS,
+  TEST_ADMIN_CREDENTIALS,
+  TEST_USER_CREDENTIALS,
+} from "../constants";
 
 // Basic function which logs in a user (either admin or regular user) to the application
 // It handles both successful login attempts and potential timeouts, with a retry mechanism
-export async function loginAs(page: Page, userType: "admin" | "user") {
+export async function loginAs(
+  page: Page,
+  userType: "admin" | "user" | "admin2"
+) {
   const { email, password } =
-    userType === "admin" ? TEST_ADMIN_CREDENTIALS : TEST_USER_CREDENTIALS;
+    userType === "admin"
+      ? TEST_ADMIN_CREDENTIALS
+      : userType === "admin2"
+        ? TEST_ADMIN2_CREDENTIALS
+        : TEST_USER_CREDENTIALS;
+
   await page.goto("http://localhost:3000/auth/login", { timeout: 1000 });
 
   await page.fill("#email", email);
@@ -71,4 +83,13 @@ export async function loginAsRandomUser(page: Page) {
   }
 
   return { email, password };
+}
+
+export async function inviteAdmin2AsAdmin1(page: Page) {
+  await page.goto("http://localhost:3000/admin/users");
+  await page
+    .getByRole("row", { name: "admin2_user@test.com Active" })
+    .getByRole("combobox")
+    .click();
+  await page.getByLabel("Admin").click();
 }
