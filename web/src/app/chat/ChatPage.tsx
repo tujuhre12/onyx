@@ -1350,7 +1350,6 @@ export function ChatPage({
         if (stack.isEmpty()) {
           await delay(0.5);
         }
-        console.log("STACK", stack.isEmpty());
 
         if (!stack.isEmpty() && !controller.signal.aborted) {
           const packet = stack.nextPacket();
@@ -1569,7 +1568,10 @@ export function ChatPage({
                   };
                 }
               );
-            } else if (Object.hasOwn(packet, "error")) {
+            } else if (
+              Object.hasOwn(packet, "error") &&
+              (packet as any).error != null
+            ) {
               if (
                 sub_questions.length > 0 &&
                 sub_questions
@@ -1582,9 +1584,6 @@ export function ChatPage({
                 setAlternativeGeneratingAssistant(null);
                 setSubmittedMessage("");
 
-                // return;
-                console.log("ERROR 1");
-                console.log(JSON.stringify(packet));
                 throw new Error((packet as StreamingError).error);
               } else {
                 error = (packet as StreamingError).error;
@@ -1672,9 +1671,7 @@ export function ChatPage({
           }
         }
       }
-      alert("DONE INSIDE");
     } catch (e: any) {
-      alert("ERROR");
       const errorMsg = e.message;
       upsertToCompleteMessageMap({
         messages: [
@@ -1702,14 +1699,11 @@ export function ChatPage({
         completeMessageMapOverride: currentMessageMap(completeMessageDetail),
       });
     }
-    alert("DONE OUTSIDE");
     setAgenticGenerating(false);
     resetRegenerationState(currentSessionId());
 
     updateChatState("input");
-    alert("DONE");
     if (isNewSession) {
-      alert("NEW SESSION");
       if (finalMessage) {
         setSelectedMessageForDocDisplay(finalMessage.message_id);
       }
