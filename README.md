@@ -54,9 +54,9 @@ https://private-user-images.githubusercontent.com/32520769/414509312-48392e83-95
 
 
 ## Deployment
-> To try it out for free and get started in seconds, check out **[Onyx Cloud](https://cloud.onyx.app/signup)**.
+**To try it out for free and get started in seconds, check out [Onyx Cloud](https://cloud.onyx.app/signup)**.
 
-Onyx can easily be run locally (even on a laptop) or deployed on a virtual machine with a single
+Onyx can also be run locally (even on a laptop) or deployed on a virtual machine with a single
 `docker compose` command. Checkout our [docs](https://docs.onyx.app/quickstart) to learn more.
 
 We also have built-in support for high-availability/scalable deployment on Kubernetes.
@@ -106,8 +106,7 @@ There are two editions of Onyx:
 
 - Onyx Community Edition (CE) is available freely under the MIT Expat license. Simply follow the Deployment guide above.
 - Onyx Enterprise Edition (EE) includes extra features that are primarily useful for larger organizations.
-
-For details, check out [our website](https://www.onyx.app/pricing).
+For feature details, check out [our website](https://www.onyx.app/pricing).
 
 To try the Onyx Enterprise Edition:
 1. Checkout [Onyx Cloud](https://cloud.onyx.app/signup).
