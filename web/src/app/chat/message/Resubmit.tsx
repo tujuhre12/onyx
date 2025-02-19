@@ -10,7 +10,7 @@ interface ResubmitProps {
 export const Resubmit: React.FC<ResubmitProps> = ({ resubmit }) => {
   return (
     <div className="flex flex-col items-center justify-center gap-y-2 mt-4">
-      <p className="text-sm text-neutral-700">
+      <p className="text-sm text-neutral-700 dark:text-neutral-300">
         There was an error with the response.
       </p>
       <Button
