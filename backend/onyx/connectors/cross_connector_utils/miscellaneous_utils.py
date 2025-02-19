@@ -25,9 +25,11 @@ def datetime_to_utc(dt: datetime) -> datetime:
 
 
 def time_str_to_utc(datetime_str: str) -> datetime:
-    # Attempt to fix '(GMT+08:00)', '(GMT+03:30)', etc.
-    # Example: "Mon, 23 Dec 2024 17:10:32 +0800 (GMT+08:00)" => "Mon, 23 Dec 2024 17:10:32 +0800"
-    datetime_str = re.sub(r"\(GMT[+\-]\d{2}:\d{2}\)", "", datetime_str).strip()
+    # Remove all timezone abbreviations in parentheses
+    datetime_str = re.sub(r"\([A-Z]+\)", "", datetime_str).strip()
+
+    # Remove any remaining parentheses and their contents
+    datetime_str = re.sub(r"\(.*?\)", "", datetime_str).strip()
 
     try:
         dt = parse(datetime_str)
