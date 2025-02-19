@@ -68,7 +68,7 @@ const UserRoleDropdown = ({
         onValueChange={handleChange}
         disabled={isSettingRole}
       >
-        <SelectTrigger>
+        <SelectTrigger data-testid={`user-role-dropdown-trigger-${user.email}`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -93,6 +93,7 @@ const UserRoleDropdown = ({
                 <SelectItem
                   key={role}
                   value={role}
+                  data-testid={`user-role-dropdown-${role}`}
                   title={INVALID_ROLE_HOVER_TEXT[role] ?? ""}
                   data-tooltip-delay="0"
                 >

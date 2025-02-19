@@ -7,7 +7,6 @@ async function globalSetup(config: FullConfig) {
   const adminContext = await browser.newContext();
   const adminPage = await adminContext.newPage();
   await loginAs(adminPage, "admin");
-  // await inviteAdmin2AsAdmin1(adminPage);
   await adminContext.storageState({ path: "admin_auth.json" });
   await adminContext.close();
 
@@ -29,6 +28,22 @@ async function globalSetup(config: FullConfig) {
   const adminPage2 = await adminContext2.newPage();
   await inviteAdmin2AsAdmin1(adminPage2);
   await adminContext2.close();
+
+  // Test admin2 access after invitation
+  const admin2TestContext = await browser.newContext({
+    storageState: "admin2_auth.json",
+  });
+  const admin2TestPage = await admin2TestContext.newPage();
+  await admin2TestPage.goto("http://localhost:3000/admin/indexing/status");
+
+  // Ensure we stay on the admin page
+  if (admin2TestPage.url() !== "http://localhost:3000/admin/indexing/status") {
+    throw new Error(
+      `Admin2 was not able to access the admin page after invitation. Actual URL: ${admin2TestPage.url()}`
+    );
+  }
+
+  await admin2TestContext.close();
 
   await browser.close();
 }

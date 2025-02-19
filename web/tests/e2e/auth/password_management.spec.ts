@@ -55,13 +55,26 @@ test("Admin resets own password and logs in with new password", async ({
 
   // Check if redirected to login page
   if (page.url().includes("/auth/login")) {
-    await loginAs(page, "admin");
+    await loginAs(page, "admin2");
   }
 
   // Navigate to Users page in admin panel
   await page.goto("http://localhost:3000/admin/users");
 
+  await page.waitForTimeout(500);
   // Find the admin user and click on it
+  // Log current URL
+  console.log("Current URL:", page.url());
+  // Log current rows
+  const rows = await page.$$eval("tr", (rows) =>
+    rows.map((row) => row.textContent)
+  );
+  console.log("Current rows:", rows);
+
+  // Log admin email we're looking for
+  console.log("Admin email:", adminEmail);
+
+  // Attempt to find and click the row
   await page
     .getByRole("row", { name: adminEmail + " Active" })
     .getByRole("button")

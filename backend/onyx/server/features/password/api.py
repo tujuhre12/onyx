@@ -24,7 +24,9 @@ async def change_my_password(
     user_manager: UserManager = Depends(get_user_manager),
     current_user: User = Depends(current_user),
 ) -> None:
-    """A user can change their own password by submitting old & new passwords."""
+    """
+    Change the password for the current user.
+    """
     try:
         await user_manager.change_password_if_old_matches(
             user=current_user,
@@ -46,6 +48,9 @@ async def admin_reset_user_password(
     db_session: Session = Depends(get_session),
     _: User = Depends(current_admin_user),
 ) -> UserResetResponse:
+    """
+    Reset the password for a user (admin only).
+    """
     user = get_user_by_email(user_reset_request.user_email, db_session)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

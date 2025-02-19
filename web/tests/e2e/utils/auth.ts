@@ -87,9 +87,35 @@ export async function loginAsRandomUser(page: Page) {
 
 export async function inviteAdmin2AsAdmin1(page: Page) {
   await page.goto("http://localhost:3000/admin/users");
+  // Wait for 400ms to ensure the page has loaded completely
+  await page.waitForTimeout(400);
+
+  // Log all currently visible test ids
+  const testIds = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll("[data-testid]")).map((el) =>
+      el.getAttribute("data-testid")
+    );
+  });
+  console.log("Currently visible test ids:", testIds);
+
   await page
-    .getByRole("row", { name: "admin2_user@test.com Active" })
-    .getByRole("combobox")
+    .getByTestId("user-role-dropdown-trigger-admin2_user@test.com")
     .click();
-  await page.getByLabel("Admin").click();
+
+  // Log all currently visible test ids
+  const testIds2 = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll("[data-testid]")).map((el) =>
+      el.getAttribute("data-testid")
+    );
+  });
+  console.log("Currently visible test ids:", testIds2);
+
+  const adminOptions = await page
+    .getByTestId("user-role-dropdown-admin")
+    .count();
+  console.log(
+    `Number of elements with 'user-role-dropdown-admin' test id: ${adminOptions}`
+  );
+
+  await page.getByTestId("user-role-dropdown-admin").click();
 }
