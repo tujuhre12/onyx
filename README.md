@@ -32,13 +32,19 @@ Onyx can be deployed securely anywhere and for any scale - on a laptop, on-premi
 
 
 <h3>Feature Showcase</h3>
-Deep research over your team's knowledge:
+
+**Deep research over your team's knowledge:**
+
 ![Onyx Agent Search Silent Demo](https://github.com/onyx-dot-app/onyx/releases/download/v0.21.1/OnyxAgentSearchSilentDemo.gif)
 
-Use Onyx as a secure AI Chat with any LLM:
+
+**Use Onyx as a secure AI Chat with any LLM:**
+
 ![Onyx Chat Silent Demo](https://github.com/onyx-dot-app/onyx/releases/download/v0.21.1/OnyxChatSilentDemo.gif)
 
-Easily set up connectors to your apps:
+
+**Easily set up connectors to your apps:**
+
 ![Onyx Connector Silent Demo](https://github.com/onyx-dot-app/onyx/releases/download/v0.21.1/OnyxConnectorSilentDemo.gif)
 
 
