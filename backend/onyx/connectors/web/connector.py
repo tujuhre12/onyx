@@ -197,12 +197,12 @@ def extract_urls_from_sitemap(sitemap_url: str) -> list[str]:
 
         return urls
     except requests.RequestException as e:
-        raise RuntimeError(f"Failed to fetch sitemap from {sitemap_url}: {str(e)}")
+        raise RuntimeError(f"Failed to fetch sitemap from {sitemap_url}: {e}")
     except ValueError as e:
-        raise RuntimeError(f"Error processing sitemap {sitemap_url}: {str(e)}")
+        raise RuntimeError(f"Error processing sitemap {sitemap_url}: {e}")
     except Exception as e:
         raise RuntimeError(
-            f"Unexpected error while processing sitemap {sitemap_url}: {str(e)}"
+            f"Unexpected error while processing sitemap {sitemap_url}: {e}"
         )
 
 
