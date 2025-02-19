@@ -98,24 +98,37 @@ export async function inviteAdmin2AsAdmin1(page: Page) {
   });
   console.log("Currently visible test ids:", testIds);
 
-  await page
-    .getByTestId("user-role-dropdown-trigger-admin2_user@test.com")
-    .click();
+  try {
+    // Wait for the dropdown trigger to be visible and click it
+    await page
+      .getByTestId("user-role-dropdown-trigger-admin2_user@test.com")
+      .waitFor({ state: "visible", timeout: 5000 });
+    await page
+      .getByTestId("user-role-dropdown-trigger-admin2_user@test.com")
+      .click();
 
-  // Log all currently visible test ids
-  const testIds2 = await page.evaluate(() => {
-    return Array.from(document.querySelectorAll("[data-testid]")).map((el) =>
-      el.getAttribute("data-testid")
-    );
-  });
-  console.log("Currently visible test ids:", testIds2);
+    // Wait for the admin option to be visible
+    await page
+      .getByTestId("user-role-dropdown-admin")
+      .waitFor({ state: "visible", timeout: 5000 });
 
-  const adminOptions = await page
-    .getByTestId("user-role-dropdown-admin")
-    .count();
-  console.log(
-    `Number of elements with 'user-role-dropdown-admin' test id: ${adminOptions}`
-  );
+    // Click the admin option
+    await page.getByTestId("user-role-dropdown-admin").click();
 
-  await page.getByTestId("user-role-dropdown-admin").click();
+    // Wait for any potential loading or update to complete
+    await page.waitForTimeout(1000);
+
+    // Verify that the change was successful (you may need to adjust this based on your UI)
+    const newRole = await page
+      .getByTestId("user-role-dropdown-trigger-admin2_user@test.com")
+      .textContent();
+    if (newRole?.toLowerCase().includes("admin")) {
+      console.log("Successfully invited admin2 as admin");
+    } else {
+      throw new Error("Failed to update user role to admin");
+    }
+  } catch (error) {
+    console.error("Error inviting admin2 as admin:", error);
+    throw error;
+  }
 }
