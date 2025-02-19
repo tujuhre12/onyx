@@ -50,6 +50,9 @@ import "katex/dist/katex.min.css";
 import SubQuestionsDisplay from "./SubQuestionsDisplay";
 import { StatusRefinement } from "../Refinement";
 import { copyAll, handleCopy } from "./copyingUtils";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { ErrorBanner, Resubmit } from "./Resubmit";
 
 export const AgenticMessage = ({
   isStreamingQuestions,
@@ -84,7 +87,9 @@ export const AgenticMessage = ({
   secondLevelSubquestions,
   toggleDocDisplay,
   error,
+  resubmit,
 }: {
+  resubmit?: () => void;
   isStreamingQuestions: boolean;
   isGenerating: boolean;
   docSidebarToggled?: boolean;
@@ -268,8 +273,8 @@ export const AgenticMessage = ({
               ? docs
               : agenticDocs
             : agenticDocs && agenticDocs.length > 0
-              ? agenticDocs
-              : docs
+            ? agenticDocs
+            : docs
         }
         subQuestions={[
           ...(subQuestions || []),
@@ -437,8 +442,8 @@ export const AgenticMessage = ({
                         !allowDocuments
                           ? []
                           : isViewingInitialAnswer
-                            ? docs!
-                            : agenticDocs!
+                          ? docs!
+                          : agenticDocs!
                       }
                       toggleDocumentSelection={() => {
                         toggleDocumentSelection!(!isViewingInitialAnswer);
@@ -503,9 +508,7 @@ export const AgenticMessage = ({
                             content
                           )}
                           {error && (
-                            <p className="mt-2 text-red-700 text-sm my-auto">
-                              {error}
-                            </p>
+                            <ErrorBanner error={error} resubmit={resubmit} />
                           )}
                         </div>
                       </div>
@@ -513,15 +516,13 @@ export const AgenticMessage = ({
                   ) : isComplete ? (
                     error && (
                       <p className="mt-2 mx-4 text-red-700 text-sm my-auto">
-                        {error}
+                        <ErrorBanner error={error} resubmit={resubmit} />
                       </p>
                     )
                   ) : (
                     <>
                       {error && (
-                        <p className="mt-2 mx-4 text-red-700 text-sm my-auto">
-                          {error}
-                        </p>
+                        <ErrorBanner error={error} resubmit={resubmit} />
                       )}
                     </>
                   )}
