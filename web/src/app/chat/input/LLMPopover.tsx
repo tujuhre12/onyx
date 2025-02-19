@@ -209,14 +209,20 @@ export default function LLMPopover({
                       <TooltipTrigger asChild>
                         <span
                           id={`visible-${name}`}
-                          className="line-clamp-1 flex-grow"
+                          className="line-clamp-1 break-all flex-grow"
                         >
                           {getDisplayNameForModel(name)}
                         </span>
                       </TooltipTrigger>
                       {truncatedNames[name] && (
-                        <TooltipContent>
-                          {getDisplayNameForModel(name)}
+                        <TooltipContent
+                          side="right"
+                          sideOffset={5}
+                          className="z-50"
+                        >
+                          <p className="text-xs max-w-[200px] whitespace-normal break-words">
+                            {getDisplayNameForModel(name)}
+                          </p>
                         </TooltipContent>
                       )}
                     </Tooltip>
