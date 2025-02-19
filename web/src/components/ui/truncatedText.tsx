@@ -19,7 +19,7 @@ interface TruncatedTextProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 /**
- * Renders `text` in a single line. If the text is truncated,
+ * Renders passed in text on a single line. If text is truncated,
  * shows a tooltip on hover with the full text.
  */
 export function TruncatedText({
