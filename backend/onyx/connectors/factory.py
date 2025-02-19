@@ -195,6 +195,10 @@ def validate_ccpair_for_user(
         db_session,
         get_editable=False,
     )
+
+    if connector.source == DocumentSource.INGESTION_API:
+        return
+
     if not credential:
         raise ValueError("Credential not found")
     if not connector:
