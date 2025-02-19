@@ -326,11 +326,6 @@ def generate_initial_answer(
             )
             logger.error("LLM Rate Limit Error - generate initial answer")
 
-        agent_error = AgentErrorLog(
-            error_type=AgentLLMErrorType.TIMEOUT,
-            error_message=AGENT_LLM_TIMEOUT_MESSAGE,
-            error_result=_llm_node_error_strings.timeout,
-        )
         if agent_error:
             write_custom_event(
                 "initial_agent_answer",
