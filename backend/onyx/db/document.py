@@ -60,9 +60,8 @@ def count_documents_by_needs_sync(session: Session) -> int:
     This function executes the query and returns the count of
     documents matching the criteria."""
 
-    count = (
-        session.query(func.count(DbDocument.id.distinct()))
-        .select_from(DbDocument)
+    return (
+        session.query(DbDocument.id)
         .join(
             DocumentByConnectorCredentialPair,
             DbDocument.id == DocumentByConnectorCredentialPair.id,
@@ -73,10 +72,8 @@ def count_documents_by_needs_sync(session: Session) -> int:
                 DbDocument.last_synced.is_(None),
             )
         )
-        .scalar()
+        .count()
     )
-
-    return count
 
 
 def construct_document_select_for_connector_credential_pair_by_needs_sync(
