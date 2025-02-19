@@ -130,6 +130,7 @@ import {
 } from "@/lib/browserUtilities";
 import { Button } from "@/components/ui/button";
 import { ConfirmEntityModal } from "@/components/modals/ConfirmEntityModal";
+import { ErrorBanner, Resubmit } from "./message/Resubmit";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -3035,29 +3036,18 @@ export function ChatPage({
                                       currentPersona={liveAssistant}
                                       messageId={message.messageId}
                                       content={
-                                        <p className="text-red-700 text-sm my-auto">
-                                          {message.message}
-                                          {message.stackTrace && (
-                                            <span
-                                              onClick={() =>
-                                                setStackTraceModalContent(
-                                                  message.stackTrace!
-                                                )
-                                              }
-                                              className="ml-2 cursor-pointer underline"
-                                            >
-                                              Show stack trace.
-                                            </span>
-                                          )}
-
-                                          <Button
-                                            onClick={handleResubmitLastMessage}
-                                            variant="default"
-                                            size="xs"
-                                          >
-                                            Resubmit
-                                          </Button>
-                                        </p>
+                                        <ErrorBanner
+                                          resubmit={handleResubmitLastMessage}
+                                          error={message.message}
+                                          showStackTrace={
+                                            message.stackTrace
+                                              ? () =>
+                                                  setStackTraceModalContent(
+                                                    message.stackTrace!
+                                                  )
+                                              : undefined
+                                          }
+                                        />
                                       }
                                     />
                                   </div>
