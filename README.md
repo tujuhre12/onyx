@@ -35,7 +35,7 @@ Onyx can be deployed securely anywhere and for any scale - on a laptop, on-premi
 
 **Deep research over your team's knowledge:**
 
-![Onyx Agent Search Silent Demo](https://github.com/onyx-dot-app/onyx/releases/download/v0.21.1/OnyxAgentSearchSilentDemo.gif)
+![Onyx Agent Search Silent Demo](https://github.com/onyx-dot-app/onyx/releases/download/v0.21.1/OnyxAgentSearchSilentDemo15fps.gif)
 
 
 **Use Onyx as a secure AI Chat with any LLM:**
