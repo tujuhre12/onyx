@@ -585,7 +585,6 @@ def connector_indexing_task(
     cc_pair_id: int,
     search_settings_id: int,
     is_ee: bool,
-    *,
     tenant_id: str | None,
 ) -> int | None:
     """Indexing task. For a cc pair, this task pulls all document IDs from the source
@@ -910,7 +909,7 @@ def connector_indexing_proxy_task(
         cc_pair_id,
         search_settings_id,
         global_version.is_ee_version(),
-        tenant_id=tenant_id,  # NOTE: this must be the last argument
+        tenant_id,
     )
 
     if not job:
