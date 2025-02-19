@@ -625,8 +625,9 @@ The information provided below consists of a number of documents that were deeme
 
 Again, you should be sure that the answer is supported by the information provided!
 
-It is critical that you provide proper inline citations to documents in the format [D1], [D2], [D3], etc! \
-It is important that the citation is close to the information it supports. \
+It is critical that you provide proper *inline* citations to documents in the format [D1], [D2], [D3], etc! \
+It is important that each citation is close to the information it supports! So please try not to list all citations at the \
+end of your answer unless absolutely needed. \
 If you have multiple citations, please cite for example as [D1][D3], or [D2][D4], etc. \
 Citations are very important for the user!
 
