@@ -54,7 +54,8 @@ https://private-user-images.githubusercontent.com/32520769/414509312-48392e83-95
 
 
 ## Deployment
-**To try it out for free and get started in seconds, check out [Onyx Cloud](https://cloud.onyx.app/signup)**.
+> [!TIP]  
+> To try it out for free and get started in seconds, check out **[Onyx Cloud](https://cloud.onyx.app/signup)**.
 
 Onyx can also be run locally (even on a laptop) or deployed on a virtual machine with a single
 `docker compose` command. Checkout our [docs](https://docs.onyx.app/quickstart) to learn more.
