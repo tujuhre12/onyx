@@ -33,6 +33,7 @@ import { FiAlertTriangle } from "react-icons/fi";
 
 import { Slider } from "@/components/ui/slider";
 import { useUser } from "@/components/user/UserProvider";
+import { TruncatedText } from "@/components/ui/truncatedText";
 
 interface LLMPopoverProps {
   llmProviders: LLMProviderDescriptor[];
@@ -101,45 +102,6 @@ export default function LLMPopover({
     llmOverrideManager.temperature ?? 0.5
   );
 
-  const [truncatedNames, setTruncatedNames] = useState<{
-    [key: string]: boolean;
-  }>({});
-
-  const checkTruncation = useCallback(
-    (
-      name: string,
-      visibleRef: HTMLSpanElement | null,
-      hiddenRef: HTMLSpanElement | null
-    ) => {
-      if (visibleRef && hiddenRef) {
-        const visibleWidth = visibleRef.offsetWidth;
-        const fullTextWidth = hiddenRef.offsetWidth;
-        setTruncatedNames((prev) => {
-          const isTruncated = fullTextWidth > visibleWidth;
-          if (prev[name] !== isTruncated) {
-            return { ...prev, [name]: isTruncated };
-          }
-          return prev;
-        });
-      }
-    },
-    []
-  );
-
-  const checkAllTruncations = useCallback(() => {
-    llmOptions.forEach(({ name }) => {
-      const visibleRef = document.getElementById(`visible-${name}`);
-      const hiddenRef = document.getElementById(`hidden-${name}`);
-      checkTruncation(name, visibleRef, hiddenRef);
-    });
-  }, [llmOptions, checkTruncation]);
-
-  useLayoutEffect(() => {
-    checkAllTruncations();
-    window.addEventListener("resize", checkAllTruncations);
-    return () => window.removeEventListener("resize", checkAllTruncations);
-  }, [checkAllTruncations]);
-
   useEffect(() => {
     setLocalTemperature(llmOverrideManager.temperature ?? 0.5);
   }, [llmOverrideManager.temperature]);
@@ -204,35 +166,7 @@ export default function LLMPopover({
                     size: 16,
                     className: "flex-none my-auto text-black",
                   })}
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span
-                          id={`visible-${name}`}
-                          className="line-clamp-1 break-all flex-grow"
-                        >
-                          {getDisplayNameForModel(name)}
-                        </span>
-                      </TooltipTrigger>
-                      {truncatedNames[name] && (
-                        <TooltipContent
-                          side="right"
-                          sideOffset={5}
-                          className="z-50"
-                        >
-                          <p className="text-xs max-w-[200px] whitespace-normal break-words">
-                            {getDisplayNameForModel(name)}
-                          </p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
-                  <span
-                    id={`hidden-${name}`}
-                    className="absolute left-[-9999px] whitespace-nowrap"
-                  >
-                    {getDisplayNameForModel(name)}
-                  </span>
+                  <TruncatedText text={getDisplayNameForModel(name)} />
                   {(() => {
                     if (currentAssistant?.llm_model_version_override === name) {
                       return (

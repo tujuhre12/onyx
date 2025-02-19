@@ -752,7 +752,8 @@ const MODEL_DISPLAY_NAMES: { [key: string]: string } = {
 };
 
 export function getDisplayNameForModel(modelName: string): string {
-  return MODEL_DISPLAY_NAMES[modelName] || modelName;
+  return "amazon.titan-text-express-v1asdlfasdfa;lsjdfailsdjfaoisdjf";
+  // return MODEL_DISPLAY_NAMES[modelName] || modelName;
 }
 
 export const defaultModelsByProvider: { [name: string]: string[] } = {
