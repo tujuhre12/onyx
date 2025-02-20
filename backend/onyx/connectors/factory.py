@@ -55,9 +55,8 @@ from onyx.connectors.zendesk.connector import ZendeskConnector
 from onyx.connectors.zulip.connector import ZulipConnector
 from onyx.db.connector import fetch_connector_by_id
 from onyx.db.credentials import backend_update_credential_json
-from onyx.db.credentials import fetch_credential_by_id_for_user
+from onyx.db.credentials import fetch_credential_by_id
 from onyx.db.models import Credential
-from onyx.db.models import User
 
 
 class ConnectorMissingException(Exception):
@@ -184,17 +183,14 @@ def validate_ccpair_for_user(
     connector_id: int,
     credential_id: int,
     db_session: Session,
-    user: User | None,
     tenant_id: str | None,
     enforce_creation: bool = True,
 ) -> bool:
     # Validate the connector settings
     connector = fetch_connector_by_id(connector_id, db_session)
-    credential = fetch_credential_by_id_for_user(
+    credential = fetch_credential_by_id(
         credential_id,
-        user,
         db_session,
-        get_editable=False,
     )
 
     if not connector:
