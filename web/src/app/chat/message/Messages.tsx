@@ -71,6 +71,8 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { copyAll, handleCopy } from "./copyingUtils";
+import Link from "next/link";
+import { NoDocuments } from "./NoDocuments";
 
 const TOOLS_WITH_CUSTOM_HANDLING = [
   SEARCH_TOOL_NAME,
@@ -485,7 +487,7 @@ export const AIMessage = ({
                         />
                       )}
 
-                    {docs && docs.length > 0 && (
+                    {docs && docs.length > 0 ? (
                       <div
                         className={`mobile:hidden ${
                           (query ||
@@ -518,6 +520,8 @@ export const AIMessage = ({
                           </div>
                         </div>
                       </div>
+                    ) : (
+                      <NoDocuments />
                     )}
 
                     {content || files ? (
@@ -746,8 +750,8 @@ function MessageSwitcher({
                   disableForStreaming
                     ? () => null
                     : currentPage === 1
-                      ? undefined
-                      : handlePrevious
+                    ? undefined
+                    : handlePrevious
                 }
               />
             </div>
@@ -774,8 +778,8 @@ function MessageSwitcher({
                   disableForStreaming
                     ? () => null
                     : currentPage === totalPages
-                      ? undefined
-                      : handleNext
+                    ? undefined
+                    : handleNext
                 }
               />
             </div>
