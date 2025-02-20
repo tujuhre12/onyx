@@ -196,13 +196,14 @@ def validate_ccpair_for_user(
         get_editable=False,
     )
 
+    if not connector:
+        raise ValueError("Connector not found")
+
     if connector.source == DocumentSource.INGESTION_API:
         return
 
     if not credential:
         raise ValueError("Credential not found")
-    if not connector:
-        raise ValueError("Connector not found")
 
     try:
         runnable_connector = instantiate_connector(
