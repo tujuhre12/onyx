@@ -186,7 +186,8 @@ def validate_ccpair_for_user(
     db_session: Session,
     user: User | None,
     tenant_id: str | None,
-) -> None:
+    enforce_creation: bool = True,
+) -> bool:
     # Validate the connector settings
     connector = fetch_connector_by_id(connector_id, db_session)
     credential = fetch_credential_by_id_for_user(
@@ -195,10 +196,15 @@ def validate_ccpair_for_user(
         db_session,
         get_editable=False,
     )
-    if not credential:
-        raise ValueError("Credential not found")
+
     if not connector:
         raise ValueError("Connector not found")
+
+    if connector.source == DocumentSource.INGESTION_API:
+        return False
+
+    if not credential:
+        raise ValueError("Credential not found")
 
     try:
         runnable_connector = instantiate_connector(
@@ -210,6 +216,10 @@ def validate_ccpair_for_user(
             tenant_id=tenant_id,
         )
     except Exception as e:
-        raise ConnectorValidationError(str(e))
+        if enforce_creation:
+            raise ConnectorValidationError(str(e))
+        else:
+            return False
 
     runnable_connector.validate_connector_settings()
+    return True
