@@ -17,7 +17,7 @@ test("Model persistence across page refresh", async ({ page }) => {
 
   // Step 1: Send initial message
   await sendMessage(page, "Initial message");
-  
+
   // Step 2: Switch to a different model
   const targetModel = "GPT 4 Turbo"; // Using a model we know exists from llm_ordering.spec.ts
   await switchModel(page, targetModel);
