@@ -68,6 +68,22 @@ const nextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: "/api/docs/:path*", // catch /api/docs and /api/docs/...
+        destination: "http://localhost:8000/docs/:path*",
+      },
+      {
+        source: "/api/docs", // if you also need the exact /api/docs
+        destination: "http://localhost:8000/docs",
+      },
+      {
+        source: "/openapi.json",
+        destination: "http://localhost:8000/openapi.json",
+      },
+    ];
+  },
 };
 
 // Sentry configuration for error monitoring:

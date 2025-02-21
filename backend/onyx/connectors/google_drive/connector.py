@@ -568,6 +568,7 @@ class GoogleDriveConnector(LoadConnector, PollConnector, SlimConnector):
         callback: IndexingHeartbeatInterface | None = None,
     ) -> GenerateSlimDocumentOutput:
         slim_batch = []
+        # ERROR here.
         for file in self._fetch_drive_items(
             is_slim=True,
             start=start,

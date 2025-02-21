@@ -14,6 +14,7 @@ from fastapi import Request
 from fastapi import status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from httpx_oauth.clients.google import GoogleOAuth2
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -28,8 +29,6 @@ from onyx.auth.users import auth_backend
 from onyx.auth.users import create_onyx_oauth_router
 from onyx.auth.users import fastapi_users
 from onyx.configs.app_configs import APP_API_PREFIX
-from onyx.configs.app_configs import APP_HOST
-from onyx.configs.app_configs import APP_PORT
 from onyx.configs.app_configs import AUTH_RATE_LIMITING_ENABLED
 from onyx.configs.app_configs import AUTH_TYPE
 from onyx.configs.app_configs import DISABLE_GENERATIVE_AI
@@ -105,7 +104,6 @@ from onyx.utils.telemetry import get_or_generate_uuid
 from onyx.utils.telemetry import optional_telemetry
 from onyx.utils.telemetry import RecordType
 from onyx.utils.variable_functionality import fetch_versioned_implementation
-from onyx.utils.variable_functionality import global_version
 from onyx.utils.variable_functionality import set_is_ee_based_on_env_variable
 from shared_configs.configs import CORS_ALLOWED_ORIGIN
 from shared_configs.configs import MULTI_TENANT
@@ -263,7 +261,12 @@ def log_http_error(request: Request, exc: Exception) -> JSONResponse:
 
 
 def get_application() -> FastAPI:
-    application = FastAPI(title="Onyx Backend", version=__version__, lifespan=lifespan)
+    application = FastAPI(
+        title="Onyx Backend",
+        version=__version__,
+        openapi_url="/openapi.json",
+        lifespan=lifespan,
+    )
     if SENTRY_DSN:
         sentry_sdk.init(
             dsn=SENTRY_DSN,
@@ -397,8 +400,27 @@ def get_application() -> FastAPI:
     if LOG_ENDPOINT_LATENCY:
         add_latency_logging_middleware(application, logger)
 
-    # Ensure all routes have auth enabled or are explicitly marked as public
+    # # Ensure all routes have auth enabled or are explicitly marked as public
     check_router_auth(application)
+
+    # @application.get("/")
+    # async def root():
+    #     return {"message": "Hello World"}
+
+    def custom_openapi():
+        if application.openapi_schema:
+            return application.openapi_schema
+        openapi_schema = get_openapi(
+            title=application.title,
+            version=application.version,
+            description="Your API description here",
+            routes=application.routes,
+        )
+        # Force OpenAPI version 2.0 instead of 3.1.0
+        application.openapi_schema = openapi_schema
+        return application.openapi_schema
+
+    application.openapi = custom_openapi
 
     return application
 
@@ -406,15 +428,20 @@ def get_application() -> FastAPI:
 # NOTE: needs to be outside of the `if __name__ == "__main__"` block so that the
 # app is exportable
 set_is_ee_based_on_env_variable()
+# app = get_application()
 app = fetch_versioned_implementation(module="onyx.main", attribute="get_application")
 
+# from fastapi import FastAPI
+
+# app = FastAPI()
+
+# @app.get("/")
+# async def root():
+#     return {"message": "Hello World"}
+
+# @app.get("/hi")
+# async def docs():
+#     return {"message": "Hello World"}
 
 if __name__ == "__main__":
-    logger.notice(
-        f"Starting Onyx Backend version {__version__} on http://{APP_HOST}:{str(APP_PORT)}/"
-    )
-
-    if global_version.is_ee_version():
-        logger.notice("Running Enterprise Edition")
-
-    uvicorn.run(app, host=APP_HOST, port=APP_PORT)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

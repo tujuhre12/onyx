@@ -61,20 +61,20 @@ export async function OPTIONS(
 }
 
 async function handleRequest(request: NextRequest, path: string[]) {
-  if (
-    process.env.NODE_ENV !== "development" &&
-    // NOTE: Set this environment variable to 'true' for preview environments
-    // Where you want finer-grained control over API access
-    process.env.OVERRIDE_API_PRODUCTION !== "true"
-  ) {
-    return NextResponse.json(
-      {
-        message:
-          "This API is only available in development mode. In production, something else (e.g. nginx) should handle this.",
-      },
-      { status: 404 }
-    );
-  }
+  // if (
+  //   process.env.NODE_ENV !== "development" &&
+  //   // NOTE: Set this environment variable to 'true' for preview environments
+  //   // Where you want finer-grained control over API access
+  //   process.env.OVERRIDE_API_PRODUCTION !== "true"
+  // ) {
+  //   return NextResponse.json(
+  //     {
+  //       message:
+  //         "This API is only available in development mode. In production, something else (e.g. nginx) should handle this.",
+  //     },
+  //     { status: 404 }
+  //   );
+  // }
 
   try {
     const backendUrl = new URL(`${INTERNAL_URL}/${path.join("/")}`);
@@ -87,14 +87,17 @@ async function handleRequest(request: NextRequest, path: string[]) {
       backendUrl.searchParams.append(key, value);
     });
 
-    const response = await fetch(backendUrl, {
+    const fetchDetails = {
       method: request.method,
       headers: request.headers,
       body: request.body,
       signal: request.signal,
       // @ts-ignore
       duplex: "half",
-    });
+    };
+    console.log(fetchDetails);
+    console.log("BACKEND URL: ", backendUrl);
+    const response = await fetch(backendUrl, fetchDetails);
 
     // Check if the response is a stream
     if (
