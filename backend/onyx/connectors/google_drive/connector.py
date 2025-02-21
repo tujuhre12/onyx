@@ -223,7 +223,6 @@ class GoogleDriveConnector(LoadConnector, PollConnector, SlimConnector):
         try:
             self._primary_admin_email = credentials[DB_CREDENTIALS_PRIMARY_ADMIN_KEY]
         except KeyError:
-            logger.debug(f"Credentials: {credentials}")  # TODO: remove
             raise ValueError(
                 "Primary admin email missing, "
                 "should not call this property "
