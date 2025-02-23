@@ -62,7 +62,7 @@ def document_by_cc_pair_cleanup_task(
     document_id: str,
     connector_id: int,
     credential_id: int,
-    flow_type: str | None,
+    flow_type: str,  # "prune" or "delete"
     tenant_id: str | None,
 ) -> bool:
     """A lightweight subtask used to clean up document to cc pair relationships.

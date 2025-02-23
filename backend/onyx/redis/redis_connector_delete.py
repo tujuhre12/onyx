@@ -18,7 +18,6 @@ from onyx.configs.constants import OnyxRedisConstants
 from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
 from onyx.db.document import construct_document_select_for_connector_credential_pair
 from onyx.db.models import Document as DbDocument
-from onyx.redis.redis_pool import SCAN_ITER_COUNT_DEFAULT
 
 
 class RedisConnectorDeletePayload(BaseModel):
@@ -190,12 +189,10 @@ class RedisConnectorDelete:
         heartbeat_prefix = f"{RedisConnectorDelete.SUBTASK_HEARTBEAT_PREFIX}_{id}"
 
         now = time.time()
-        for subtask_id_bytes in r.sscan_iter(
-            taskset_key, count=SCAN_ITER_COUNT_DEFAULT
-        ):
+        for subtask_id_bytes in r.sscan_iter(taskset_key):
             subtask_id = subtask_id_bytes.decode("utf-8")
             hb_key = f"{heartbeat_prefix}:{subtask_id}"
-            last_beat = r.get(hb_key)
+            last_beat = cast(bytes, r.get(hb_key))
 
             if last_beat:
                 # Compare times
