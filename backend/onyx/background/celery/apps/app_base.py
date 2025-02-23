@@ -27,10 +27,8 @@ from onyx.document_index.vespa.shared_utils.utils import wait_for_vespa_with_tim
 from onyx.httpx.httpx_pool import HttpxPool
 from onyx.redis.redis_connector import RedisConnector
 from onyx.redis.redis_connector_credential_pair import RedisConnectorCredentialPair
-from onyx.redis.redis_connector_delete import RedisConnectorDelete
 from onyx.redis.redis_connector_doc_perm_sync import RedisConnectorPermissionSync
 from onyx.redis.redis_connector_ext_group_sync import RedisConnectorExternalGroupSync
-from onyx.redis.redis_connector_prune import RedisConnectorPrune
 from onyx.redis.redis_document_set import RedisDocumentSet
 from onyx.redis.redis_pool import get_redis_client
 from onyx.redis.redis_pool import get_shared_redis_client
@@ -160,17 +158,17 @@ def on_task_postrun(
             r.srem(rug.taskset_key, task_id)
         return
 
-    if task_id.startswith(RedisConnectorDelete.PREFIX):
-        cc_pair_id = RedisConnector.get_id_from_task_id(task_id)
-        if cc_pair_id is not None:
-            RedisConnectorDelete.remove_from_taskset(int(cc_pair_id), task_id, r)
-        return
+    # if task_id.startswith(RedisConnectorDelete.PREFIX):
+    #     cc_pair_id = RedisConnector.get_id_from_task_id(task_id)
+    #     if cc_pair_id is not None:
+    #         RedisConnectorDelete.remove_from_taskset(int(cc_pair_id), task_id, r)
+    #     return
 
-    if task_id.startswith(RedisConnectorPrune.SUBTASK_PREFIX):
-        cc_pair_id = RedisConnector.get_id_from_task_id(task_id)
-        if cc_pair_id is not None:
-            RedisConnectorPrune.remove_from_taskset(int(cc_pair_id), task_id, r)
-        return
+    # if task_id.startswith(RedisConnectorPrune.SUBTASK_PREFIX):
+    #     cc_pair_id = RedisConnector.get_id_from_task_id(task_id)
+    #     if cc_pair_id is not None:
+    #         RedisConnectorPrune.remove_from_taskset(int(cc_pair_id), task_id, r)
+    #     return
 
     if task_id.startswith(RedisConnectorPermissionSync.SUBTASK_PREFIX):
         cc_pair_id = RedisConnector.get_id_from_task_id(task_id)

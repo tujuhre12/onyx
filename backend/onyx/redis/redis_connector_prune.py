@@ -65,7 +65,9 @@ class RedisConnectorPrune:
         self.generator_progress_key = f"{self.GENERATOR_PROGRESS_PREFIX}_{id}"
         self.generator_complete_key = f"{self.GENERATOR_COMPLETE_PREFIX}_{id}"
 
-        self.taskset_key = f"{self.TASKSET_PREFIX}_{id}"
+        self.taskset_key = (
+            f"{self.TASKSET_PREFIX}_{id}"  # connectorpruning_taskset_{id}
+        )
 
         self.subtask_prefix: str = f"{self.SUBTASK_PREFIX}_{id}"
         self.active_key = f"{self.ACTIVE_PREFIX}_{id}"
@@ -203,6 +205,7 @@ class RedisConnectorPrune:
                     document_id=doc_id,
                     connector_id=cc_pair.connector_id,
                     credential_id=cc_pair.credential_id,
+                    flow_type="prune",
                     tenant_id=self.tenant_id,
                 ),
                 queue=OnyxCeleryQueues.CONNECTOR_DELETION,

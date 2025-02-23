@@ -33,6 +33,7 @@ from onyx.db.search_settings import get_active_search_settings
 from onyx.document_index.factory import get_default_document_index
 from onyx.document_index.interfaces import VespaDocumentFields
 from onyx.httpx.httpx_pool import HttpxPool
+from onyx.redis.redis_connector_delete import RedisConnectorDelete
 from onyx.redis.redis_connector_prune import RedisConnectorPrune
 from onyx.redis.redis_pool import get_redis_client
 from onyx.redis.redis_pool import redis_lock_dump
@@ -61,6 +62,7 @@ def document_by_cc_pair_cleanup_task(
     document_id: str,
     connector_id: int,
     credential_id: int,
+    flow_type: str | None,
     tenant_id: str | None,
 ) -> bool:
     """A lightweight subtask used to clean up document to cc pair relationships.
@@ -99,10 +101,14 @@ def document_by_cc_pair_cleanup_task(
                 return False
 
             cc_pair = cc_pair_local
-
-            RedisConnectorPrune.update_subtask_heartbeat(
-                cc_pair.id, request_id, get_redis_client()
-            )
+            if flow_type == "prune":
+                RedisConnectorPrune.update_subtask_heartbeat(
+                    cc_pair.id, request_id, get_redis_client()
+                )
+            elif flow_type == "delete":
+                RedisConnectorDelete.update_subtask_heartbeat(
+                    cc_pair.id, request_id, get_redis_client()
+                )
 
             action = "skip"
             chunks_affected = 0
@@ -245,11 +251,7 @@ def document_by_cc_pair_cleanup_task(
                 mark_document_as_modified(document_id, db_session)
         return False
 
-    finally:
-        if cc_pair is not None:
-            RedisConnectorPrune.remove_from_taskset(
-                cc_pair.id, request_id, get_redis_client()
-            )
+    return True
 
 
 @shared_task(
