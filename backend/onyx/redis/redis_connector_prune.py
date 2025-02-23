@@ -9,7 +9,6 @@ from pydantic import BaseModel
 from redis.lock import Lock as RedisLock
 from sqlalchemy.orm import Session
 
-from onyx.background.celery.apps.app_base import task_logger
 from onyx.configs.constants import CELERY_GENERIC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import CELERY_PRUNING_LOCK_TIMEOUT
 from onyx.configs.constants import OnyxCeleryPriority
@@ -251,25 +250,39 @@ class RedisConnectorPrune:
         for subtask_id_bytes in r.sscan_iter(taskset_key):
             subtask_id = subtask_id_bytes.decode("utf-8")
             heartbeat_key = f"{heartbeat_prefix}:{subtask_id}"
-            last_beat = r.get(heartbeat_key)
-            if last_beat:
-                last_beat_str = last_beat.decode("utf-8")
-                if now - float(last_beat_str) > threshold_s:
-                    r.srem(taskset_key, subtask_id)
-                    r.hdel(creation_times_key, subtask_id)
-                    task_logger.warning(
-                        f"Pruning subtask {subtask_id} stale (heartbeat > {threshold_s}s). Removed."
+            last_beat_raw = r.get(heartbeat_key)
+            if last_beat_raw is not None:
+                if isinstance(last_beat_raw, bytes):
+                    last_beat_str = last_beat_raw.decode("utf-8")
+                else:
+                    last_beat_str = str(last_beat_raw)
+
+                try:
+                    last_beat_val = float(last_beat_str)
+                    if now - last_beat_val > threshold_s:
+                        r.srem(taskset_key, subtask_id)
+                        r.hdel(creation_times_key, subtask_id)
+                except ValueError:
+                    raise ValueError(
+                        f"Failed to convert heartbeat to float: {last_beat_str}"
                     )
             else:
                 # Fallback: use creation time if no heartbeat exists
                 creation_time_raw = r.hget(creation_times_key, subtask_id)
-                if creation_time_raw:
-                    creation_time_str = creation_time_raw.decode("utf-8")
-                    if now - float(creation_time_str) > threshold_s:
-                        r.srem(taskset_key, subtask_id)
-                        r.hdel(creation_times_key, subtask_id)
-                        task_logger.warning(
-                            f"Pruning subtask {subtask_id} never heartbeated (created > {threshold_s}s). Removed."
+                if creation_time_raw is not None:
+                    if isinstance(creation_time_raw, bytes):
+                        creation_time_str = creation_time_raw.decode("utf-8")
+                    else:
+                        creation_time_str = str(creation_time_raw)
+
+                    try:
+                        creation_time_val = float(creation_time_str)
+                        if now - creation_time_val > threshold_s:
+                            r.srem(taskset_key, subtask_id)
+                            r.hdel(creation_times_key, subtask_id)
+                    except ValueError:
+                        raise ValueError(
+                            f"Failed to convert creation time to float: {creation_time_str}"
                         )
 
     @staticmethod
