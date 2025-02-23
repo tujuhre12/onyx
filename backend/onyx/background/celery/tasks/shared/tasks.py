@@ -18,6 +18,7 @@ from onyx.configs.constants import ONYX_CLOUD_TENANT_ID
 from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import OnyxCeleryTask
 from onyx.configs.constants import OnyxRedisLocks
+from onyx.db.connector_credential_pair import get_connector_credential_pair
 from onyx.db.document import delete_document_by_connector_credential_pair__no_commit
 from onyx.db.document import delete_documents_complete__no_commit
 from onyx.db.document import fetch_chunk_count_for_document
@@ -25,6 +26,13 @@ from onyx.db.document import get_document
 from onyx.db.document import get_document_connector_count
 from onyx.db.document import mark_document_as_modified
 from onyx.db.document import mark_document_as_synced
+from onyx.db.document_external_access import batch_add_ext_perm_user_if_not_exists
+from onyx.db.document_external_access import DocExternalAccess
+from onyx.db.document_external_access import DocumentSource
+from onyx.db.document_external_access import (
+    upsert_document_by_connector_credential_pair,
+)
+from onyx.db.document_external_access import upsert_document_external_perms
 from onyx.db.document_set import fetch_document_sets_for_document
 from onyx.db.engine import get_all_tenant_ids
 from onyx.db.engine import get_session_with_current_tenant
@@ -32,6 +40,8 @@ from onyx.db.search_settings import get_active_search_settings
 from onyx.document_index.factory import get_default_document_index
 from onyx.document_index.interfaces import VespaDocumentFields
 from onyx.httpx.httpx_pool import HttpxPool
+from onyx.redis.redis_connector_permission_sync import RedisConnectorPermissionSync
+from onyx.redis.redis_connector_prune import RedisConnectorPrune
 from onyx.redis.redis_pool import get_redis_client
 from onyx.redis.redis_pool import redis_lock_dump
 from onyx.server.documents.models import ConnectorCredentialPairIdentifier
@@ -43,6 +53,8 @@ DOCUMENT_BY_CC_PAIR_CLEANUP_MAX_RETRIES = 3
 # 5 seconds more than RetryDocumentIndex STOP_AFTER+MAX_WAIT
 LIGHT_SOFT_TIME_LIMIT = 105
 LIGHT_TIME_LIMIT = LIGHT_SOFT_TIME_LIMIT + 15
+
+DOCUMENT_PERMISSIONS_UPDATE_MAX_RETRIES = 3
 
 
 @shared_task(
@@ -80,6 +92,25 @@ def document_by_cc_pair_cleanup_task(
 
     try:
         with get_session_with_current_tenant() as db_session:
+            cc_pair = get_connector_credential_pair(
+                db_session=db_session,
+                connector_id=connector_id,
+                credential_id=credential_id,
+            )
+            if not cc_pair:
+                task_logger.warning(
+                    f"cc_pair not found for {connector_id} {credential_id}"
+                )
+                return False
+
+            request_id = (
+                self.request.id if self.request.id is not None else "missing-task-id"
+            )
+
+            RedisConnectorPrune.update_subtask_heartbeat(
+                cc_pair.id, request_id, get_redis_client()
+            )
+
             action = "skip"
             chunks_affected = 0
 
@@ -219,6 +250,9 @@ def document_by_cc_pair_cleanup_task(
                 mark_document_as_modified(document_id, db_session)
         return False
 
+    # On completion, remove subtask ID from taskset
+    request_id = self.request.id if self.request.id is not None else "missing-task-id"
+    RedisConnectorPrune.remove_from_taskset(cc_pair.id, request_id, get_redis_client())
     return True
 
 
@@ -299,5 +333,91 @@ def cloud_beat_task_generator(
         f"task={task_name} "
         f"num_tenants={len(tenant_ids)} "
         f"elapsed={time_elapsed:.2f}"
+    )
+    return True
+
+
+@shared_task(
+    name=OnyxCeleryTask.UPDATE_EXTERNAL_DOCUMENT_PERMISSIONS_TASK,
+    soft_time_limit=LIGHT_SOFT_TIME_LIMIT,
+    time_limit=LIGHT_TIME_LIMIT,
+    max_retries=DOCUMENT_PERMISSIONS_UPDATE_MAX_RETRIES,
+    bind=True,
+)
+def update_external_document_permissions_task(
+    self: Task,
+    tenant_id: str | None,
+    serialized_doc_external_access: dict,
+    source_string: str,
+    connector_id: int,
+    credential_id: int,
+) -> bool:
+    start = time.monotonic()
+
+    document_external_access = DocExternalAccess.from_dict(
+        serialized_doc_external_access
+    )
+    doc_id = document_external_access.doc_id
+    external_access = document_external_access.external_access
+
+    try:
+        with get_session_with_current_tenant() as db_session:
+            cc_pair = get_connector_credential_pair(
+                db_session=db_session,
+                connector_id=connector_id,
+                credential_id=credential_id,
+            )
+            if not cc_pair:
+                task_logger.warning(
+                    f"cc_pair not found for {connector_id} {credential_id}"
+                )
+                return False
+
+            # Update heartbeat upon task start
+            RedisConnectorPermissionSync.update_subtask_heartbeat(
+                cc_pair.id, self.request.id, get_redis_client()
+            )
+
+            # Add the users to the DB if they don't exist
+            batch_add_ext_perm_user_if_not_exists(
+                db_session=db_session,
+                emails=list(external_access.external_user_emails),
+                continue_on_error=True,
+            )
+            # Then upsert the document's external permissions
+            created_new_doc = upsert_document_external_perms(
+                db_session=db_session,
+                doc_id=doc_id,
+                external_access=external_access,
+                source_type=DocumentSource(source_string),
+            )
+
+            if created_new_doc:
+                # If a new document was created, we associate it with the cc_pair
+                upsert_document_by_connector_credential_pair(
+                    db_session=db_session,
+                    connector_id=connector_id,
+                    credential_id=credential_id,
+                    document_ids=[doc_id],
+                )
+
+            elapsed = time.monotonic() - start
+            task_logger.info(
+                f"connector_id={connector_id} "
+                f"doc={doc_id} "
+                f"action=update_permissions "
+                f"elapsed={elapsed:.2f}"
+            )
+
+    except Exception:
+        task_logger.exception(
+            f"Exception in update_external_document_permissions_task: "
+            f"connector_id={connector_id} doc_id={doc_id}"
+        )
+        return False
+
+    # On completion, remove subtask ID from taskset and creation hash
+    RedisConnectorPermissionSync.remove_from_taskset(
+        cc_pair.id, self.request.id, get_redis_client()
     )
     return True

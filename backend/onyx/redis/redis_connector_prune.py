@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from redis.lock import Lock as RedisLock
 from sqlalchemy.orm import Session
 
+from onyx.background.celery.apps.app_base import task_logger
 from onyx.configs.constants import CELERY_GENERIC_BEAT_LOCK_TIMEOUT
 from onyx.configs.constants import CELERY_PRUNING_LOCK_TIMEOUT
 from onyx.configs.constants import OnyxCeleryPriority
@@ -52,6 +53,9 @@ class RedisConnectorPrune:
     ACTIVE_PREFIX = PREFIX + "_active"
     ACTIVE_TTL = CELERY_PRUNING_LOCK_TIMEOUT * 2
 
+    SUBTASK_CREATION_TIMES_PREFIX = f"{PREFIX}_subtask_creation_times"
+    SUBTASK_HEARTBEAT_PREFIX = f"{PREFIX}_subtask_heartbeat"
+
     def __init__(self, tenant_id: str | None, id: int, redis: redis.Redis) -> None:
         self.tenant_id: str | None = tenant_id
         self.id = id
@@ -66,6 +70,9 @@ class RedisConnectorPrune:
 
         self.subtask_prefix: str = f"{self.SUBTASK_PREFIX}_{id}"
         self.active_key = f"{self.ACTIVE_PREFIX}_{id}"
+
+        self.subtask_creation_times_key = f"{self.SUBTASK_CREATION_TIMES_PREFIX}_{id}"
+        self.subtask_heartbeat_prefix = f"{self.SUBTASK_HEARTBEAT_PREFIX}_{id}"
 
     def taskset_clear(self) -> None:
         self.redis.delete(self.taskset_key)
@@ -181,16 +188,16 @@ class RedisConnectorPrune:
                 lock.reacquire()
                 last_lock_time = current_time
 
-            # celery's default task id format is "dd32ded3-00aa-4884-8b21-42f8332e7fac"
-            # the actual redis key is "celery-task-meta-dd32ded3-00aa-4884-8b21-42f8332e7fac"
-            # we prefix the task id so it's easier to keep track of who created the task
-            # aka "documentset_1_6dd32ded3-00aa-4884-8b21-42f8332e7fac"
             custom_task_id = f"{self.subtask_prefix}_{uuid4()}"
 
-            # add to the tracking taskset in redis BEFORE creating the celery task.
+            # Add to the tracking taskset in redis
             self.redis.sadd(self.taskset_key, custom_task_id)
 
-            # Priority on sync's triggered by new indexing should be medium
+            # Record creation time in a dedicated hash
+            self.redis.hset(
+                self.subtask_creation_times_key, custom_task_id, str(time.time())
+            )
+
             result = celery_app.send_task(
                 OnyxCeleryTask.DOCUMENT_BY_CC_PAIR_CLEANUP_TASK,
                 kwargs=dict(
@@ -220,8 +227,50 @@ class RedisConnectorPrune:
     @staticmethod
     def remove_from_taskset(id: int, task_id: str, r: redis.Redis) -> None:
         taskset_key = f"{RedisConnectorPrune.TASKSET_PREFIX}_{id}"
+        creation_times_key = f"{RedisConnectorPrune.SUBTASK_CREATION_TIMES_PREFIX}_{id}"
         r.srem(taskset_key, task_id)
+        r.hdel(creation_times_key, task_id)
         return
+
+    @staticmethod
+    def update_subtask_heartbeat(id: int, subtask_id: str, r: redis.Redis) -> None:
+        heartbeat_key = (
+            f"{RedisConnectorPrune.SUBTASK_HEARTBEAT_PREFIX}_{id}:{subtask_id}"
+        )
+        r.set(heartbeat_key, time.time(), ex=300)  # TTL set to 5 minutes
+
+    @staticmethod
+    def detect_stuck_subtasks(
+        id: int, r: redis.Redis, threshold_s: float = 600
+    ) -> None:
+        taskset_key = f"{RedisConnectorPrune.TASKSET_PREFIX}_{id}"
+        creation_times_key = f"{RedisConnectorPrune.SUBTASK_CREATION_TIMES_PREFIX}_{id}"
+        heartbeat_prefix = f"{RedisConnectorPrune.SUBTASK_HEARTBEAT_PREFIX}_{id}"
+        now = time.time()
+
+        for subtask_id_bytes in r.sscan_iter(taskset_key):
+            subtask_id = subtask_id_bytes.decode("utf-8")
+            heartbeat_key = f"{heartbeat_prefix}:{subtask_id}"
+            last_beat = r.get(heartbeat_key)
+            if last_beat:
+                last_beat_str = last_beat.decode("utf-8")
+                if now - float(last_beat_str) > threshold_s:
+                    r.srem(taskset_key, subtask_id)
+                    r.hdel(creation_times_key, subtask_id)
+                    task_logger.warning(
+                        f"Pruning subtask {subtask_id} stale (heartbeat > {threshold_s}s). Removed."
+                    )
+            else:
+                # Fallback: use creation time if no heartbeat exists
+                creation_time_raw = r.hget(creation_times_key, subtask_id)
+                if creation_time_raw:
+                    creation_time_str = creation_time_raw.decode("utf-8")
+                    if now - float(creation_time_str) > threshold_s:
+                        r.srem(taskset_key, subtask_id)
+                        r.hdel(creation_times_key, subtask_id)
+                        task_logger.warning(
+                            f"Pruning subtask {subtask_id} never heartbeated (created > {threshold_s}s). Removed."
+                        )
 
     @staticmethod
     def reset_all(r: redis.Redis) -> None:
