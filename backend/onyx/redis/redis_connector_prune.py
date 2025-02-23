@@ -189,6 +189,10 @@ class RedisConnectorPrune:
                 lock.reacquire()
                 last_lock_time = current_time
 
+            # celery's default task id format is "dd32ded3-00aa-4884-8b21-42f8332e7fac"
+            # the actual redis key is "celery-task-meta-dd32ded3-00aa-4884-8b21-42f8332e7fac"
+            # we prefix the task id so it's easier to keep track of who created the task
+            # aka "documentset_1_6dd32ded3-00aa-4884-8b21-42f8332e7fac"
             custom_task_id = f"{self.subtask_prefix}_{uuid4()}"
 
             # Add to the tracking taskset in redis
@@ -242,51 +246,64 @@ class RedisConnectorPrune:
         r.set(heartbeat_key, time.time(), ex=300)  # TTL set to 5 minutes
 
     @staticmethod
+    def _parse_float(val: bytes | str) -> float:
+        """
+        Safely parse the raw Redis value (bytes/str) into a float or raise ValueError.
+        """
+        if isinstance(val, bytes):
+            val_str = val.decode("utf-8")
+        else:
+            val_str = str(val)
+
+        return float(val_str)
+
+    @staticmethod
     def detect_stuck_subtasks(
-        id: int, r: redis.Redis, threshold_s: float = 600
+        id: int,
+        r: redis.Redis,
+        threshold_s: float = 600,
     ) -> None:
+        """
+        Removes stale or never-started subtasks from the pruning taskset
+        if their heartbeat or creation time exceeds threshold_s seconds.
+        """
         taskset_key = f"{RedisConnectorPrune.TASKSET_PREFIX}_{id}"
         creation_times_key = f"{RedisConnectorPrune.SUBTASK_CREATION_TIMES_PREFIX}_{id}"
         heartbeat_prefix = f"{RedisConnectorPrune.SUBTASK_HEARTBEAT_PREFIX}_{id}"
+
         now = time.time()
 
         for subtask_id_bytes in r.sscan_iter(taskset_key):
             subtask_id = subtask_id_bytes.decode("utf-8")
-            heartbeat_key = f"{heartbeat_prefix}:{subtask_id}"
-            last_beat_raw = r.get(heartbeat_key)
-            if last_beat_raw is not None:
-                if isinstance(last_beat_raw, bytes):
-                    last_beat_str = last_beat_raw.decode("utf-8")
-                else:
-                    last_beat_str = str(last_beat_raw)
+            hb_key = f"{heartbeat_prefix}:{subtask_id}"
+            last_beat_raw = cast(bytes, r.get(hb_key))
 
+            if last_beat_raw is not None:
                 try:
-                    last_beat_val = float(last_beat_str)
-                    if now - last_beat_val > threshold_s:
-                        r.srem(taskset_key, subtask_id)
-                        r.hdel(creation_times_key, subtask_id)
+                    last_beat_val = RedisConnectorPrune._parse_float(last_beat_raw)
                 except ValueError:
                     raise ValueError(
-                        f"Failed to convert heartbeat to float: {last_beat_str}"
+                        f"Failed to parse heartbeat value for subtask {subtask_id}"
                     )
-            else:
-                # Fallback: use creation time if no heartbeat exists
-                creation_time_raw = r.hget(creation_times_key, subtask_id)
-                if creation_time_raw is not None:
-                    if isinstance(creation_time_raw, bytes):
-                        creation_time_str = creation_time_raw.decode("utf-8")
-                    else:
-                        creation_time_str = str(creation_time_raw)
 
+                if now - last_beat_val > threshold_s:
+                    r.srem(taskset_key, subtask_id)
+                    r.hdel(creation_times_key, subtask_id)
+            else:
+                creation_time_raw = cast(bytes, r.hget(creation_times_key, subtask_id))
+                if creation_time_raw is not None:
                     try:
-                        creation_time_val = float(creation_time_str)
-                        if now - creation_time_val > threshold_s:
-                            r.srem(taskset_key, subtask_id)
-                            r.hdel(creation_times_key, subtask_id)
+                        creation_time_val = RedisConnectorPrune._parse_float(
+                            creation_time_raw
+                        )
                     except ValueError:
                         raise ValueError(
-                            f"Failed to convert creation time to float: {creation_time_str}"
+                            f"Failed to parse creation time value for subtask {subtask_id}"
                         )
+
+                    if now - creation_time_val > threshold_s:
+                        r.srem(taskset_key, subtask_id)
+                        r.hdel(creation_times_key, subtask_id)
 
     @staticmethod
     def reset_all(r: redis.Redis) -> None:
