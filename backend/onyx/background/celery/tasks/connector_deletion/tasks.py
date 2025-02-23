@@ -307,6 +307,9 @@ def monitor_connector_deletion_taskset(
                 # NOTE(rkuo): if this happens, documents somehow got added while
                 # deletion was in progress. Likely a bug gating off pruning and indexing
                 # work before deletion starts.
+                # This may also happen if a subtask `DOCUMENT_BY_CC_PAIR_CLEANUP_TASK` does not successfully complete
+                # but we clear the fence after a timeout.
+                # In this case, we will re-attempt deletion of the remaining documents.
                 task_logger.warning(
                     "Connector deletion - documents still found after taskset completion. "
                     "Clearing the current deletion attempt and allowing deletion to restart: "
