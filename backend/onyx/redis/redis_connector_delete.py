@@ -202,7 +202,7 @@ class RedisConnectorDelete:
                     r.hdel(creation_times_key, subtask_id)
             else:
                 # fallback to creation time
-                creation_time_raw = r.hget(creation_times_key, subtask_id)
+                creation_time_raw = cast(bytes, r.hget(creation_times_key, subtask_id))
                 if creation_time_raw:
                     if now - float(creation_time_raw) > threshold_s:
                         r.srem(taskset_key, subtask_id)
