@@ -36,7 +36,6 @@ from onyx.httpx.httpx_pool import HttpxPool
 from onyx.redis.redis_pool import get_redis_client
 from onyx.redis.redis_pool import redis_lock_dump
 from onyx.server.documents.models import ConnectorCredentialPairIdentifier
-from onyx.utils.logger import format_error_for_logging
 from shared_configs.configs import IGNORED_SYNCING_TENANT_LIST
 
 DOCUMENT_BY_CC_PAIR_CLEANUP_MAX_RETRIES = 3
