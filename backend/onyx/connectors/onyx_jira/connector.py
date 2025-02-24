@@ -170,7 +170,7 @@ class JiraConnector(LoadConnector, PollConnector, SlimConnector):
     ) -> None:
         self.batch_size = batch_size
         self.jira_base = jira_base_url.rstrip("/")  # Remove trailing slash if present
-        self._jira_project = project_key
+        self.jira_project = project_key
         self._comment_email_blacklist = comment_email_blacklist or []
         self.labels_to_skip = set(labels_to_skip)
 
@@ -189,9 +189,9 @@ class JiraConnector(LoadConnector, PollConnector, SlimConnector):
     @property
     def quoted_jira_project(self) -> str:
         # Quote the project name to handle reserved words
-        if not self._jira_project:
+        if not self.jira_project:
             return ""
-        return f'"{self._jira_project}"'
+        return f'"{self.jira_project}"'
 
     def load_credentials(self, credentials: dict[str, Any]) -> dict[str, Any] | None:
         self._jira_client = build_jira_client(
@@ -202,7 +202,7 @@ class JiraConnector(LoadConnector, PollConnector, SlimConnector):
 
     def _get_jql_query(self) -> str:
         """Get the JQL query based on whether a specific project is set"""
-        if self._jira_project:
+        if self.jira_project:
             return f"project = {self.quoted_jira_project}"
         return ""  # Empty string means all accessible projects
 
@@ -288,9 +288,9 @@ class JiraConnector(LoadConnector, PollConnector, SlimConnector):
             raise ConnectorMissingCredentialError("Jira")
 
         # If a specific project is set, validate it exists
-        if self._jira_project:
+        if self.jira_project:
             try:
-                self.jira_client.project(self._jira_project)
+                self.jira_client.project(self.jira_project)
             except Exception as e:
                 status_code = getattr(e, "status_code", None)
 
@@ -304,7 +304,7 @@ class JiraConnector(LoadConnector, PollConnector, SlimConnector):
                     )
                 elif status_code == 404:
                     raise ConnectorValidationError(
-                        f"Jira project not found with key: {self._jira_project}"
+                        f"Jira project not found with key: {self.jira_project}"
                     )
                 elif status_code == 429:
                     raise ConnectorValidationError(

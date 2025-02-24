@@ -42,7 +42,7 @@ def upgrade() -> None:
             continue
 
         # Extract project key from URL if it exists
-        new_config = {}
+        new_config: dict[str, str | None] = {}
         if project_url := old_config.get("jira_project_url"):
             # Parse the URL to get base and project
             try:
