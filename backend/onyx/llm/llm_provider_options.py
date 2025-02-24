@@ -65,12 +65,15 @@ IGNORABLE_ANTHROPIC_MODELS = [
     "claude-instant-1",
     "anthropic/claude-3-5-sonnet-20241022",
 ]
+FORCIBLY_ADD_ANTHROPIC_MODELS = [
+    "claude-3-7-sonnet-latest",
+]
 ANTHROPIC_PROVIDER_NAME = "anthropic"
 ANTHROPIC_MODEL_NAMES = [
     model
     for model in litellm.anthropic_models
     if model not in IGNORABLE_ANTHROPIC_MODELS
-][::-1]
+] + FORCIBLY_ADD_ANTHROPIC_MODELS
 
 AZURE_PROVIDER_NAME = "azure"
 
@@ -103,7 +106,7 @@ def fetch_available_well_known_llms() -> list[WellKnownLLMProviderDescriptor]:
             api_version_required=False,
             custom_config_keys=[],
             llm_names=fetch_models_for_provider(ANTHROPIC_PROVIDER_NAME),
-            default_model="claude-3-5-sonnet-20241022",
+            default_model="claude-3-7-sonnet-latest",
             default_fast_model="claude-3-5-sonnet-20241022",
         ),
         WellKnownLLMProviderDescriptor(

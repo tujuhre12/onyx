@@ -61,8 +61,9 @@ export default function LLMPopover({
 
     (llmProvider.display_model_names || llmProvider.model_names).forEach(
       (modelName) => {
-        if (!uniqueModelNames.has(modelName)) {
-          uniqueModelNames.add(modelName);
+        const displayName = getDisplayNameForModel(modelName);
+        if (!uniqueModelNames.has(displayName)) {
+          uniqueModelNames.add(displayName);
           llmOptionsByProvider[llmProvider.provider].push({
             name: modelName,
             value: structureValue(
