@@ -100,9 +100,16 @@ def _add_user_filters(
             .correlate(Persona)
         )
     else:
-        where_clause |= Persona.is_public == True  # noqa: E712
-        where_clause &= Persona.is_visible == True  # noqa: E712
+        # Group the public persona conditions
+        public_condition = (
+            Persona.is_public
+            == True & Persona.is_visible  # noqa: E712
+            == True  # noqa: E712
+        )
+
+        where_clause |= public_condition
         where_clause |= Persona__User.user_id == user.id
+
     where_clause |= Persona.user_id == user.id
 
     return stmt.where(where_clause)
