@@ -62,7 +62,7 @@ import RegenerateOption from "../RegenerateOption";
 import { LlmDescriptor } from "@/lib/hooks";
 import { ContinueGenerating } from "./ContinueMessage";
 import { MemoizedAnchor, MemoizedParagraph } from "./MemoizedTextComponents";
-import { extractCodeText, markdownToHtml, preprocessLaTeX } from "./codeUtils";
+import { extractCodeText, preprocessLaTeX } from "./codeUtils";
 import ToolResult from "../../../components/tools/ToolResult";
 import CsvContent from "../../../components/tools/CSVContent";
 import { SeeMoreBlock } from "@/components/chat/sources/SourceCard";
