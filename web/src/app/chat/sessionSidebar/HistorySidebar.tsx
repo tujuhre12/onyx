@@ -273,7 +273,6 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
         >
           <div className="px-4 pl-2">
             <LogoWithText
-              toggleChatSessionSearchModal={toggleChatSessionSearchModal}
               showArrow={true}
               toggled={toggled}
               page={page}
@@ -397,6 +396,7 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
             </div>
 
             <PagesTab
+              toggleChatSessionSearchModal={toggleChatSessionSearchModal}
               showDeleteModal={showDeleteModal}
               showShareModal={showShareModal}
               closeSidebar={removeToggle}
