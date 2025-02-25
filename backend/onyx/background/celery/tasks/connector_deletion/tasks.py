@@ -81,6 +81,21 @@ def check_for_connector_deletion_task(
         return None
 
     try:
+        # we want to run this less frequently than the overall task
+        lock_beat.reacquire()
+        if not r.exists(OnyxRedisSignals.BLOCK_VALIDATE_CONNECTOR_DELETION_FENCES):
+            # clear fences that don't have associated celery tasks in progress
+            try:
+                validate_connector_deletion_fences(
+                    tenant_id, r, r_replica, r_celery, lock_beat
+                )
+            except Exception:
+                task_logger.exception(
+                    "Exception while validating connector deletion fences"
+                )
+
+            r.set(OnyxRedisSignals.BLOCK_VALIDATE_CONNECTOR_DELETION_FENCES, 1, ex=300)
+
         # collect cc_pair_ids
         cc_pair_ids: list[int] = []
         with get_session_with_current_tenant() as db_session:
@@ -104,21 +119,6 @@ def check_for_connector_deletion_task(
                 else:
                     # clear the stop signal if it exists ... no longer needed
                     redis_connector.stop.set_fence(False)
-
-        # we want to run this less frequently than the overall task
-        lock_beat.reacquire()
-        if not r.exists(OnyxRedisSignals.BLOCK_VALIDATE_CONNECTOR_DELETION_FENCES):
-            # clear fences that don't have associated celery tasks in progress
-            try:
-                validate_connector_deletion_fences(
-                    tenant_id, r, r_replica, r_celery, lock_beat
-                )
-            except Exception:
-                task_logger.exception(
-                    "Exception while validating connector deletion fences"
-                )
-
-            r.set(OnyxRedisSignals.BLOCK_VALIDATE_CONNECTOR_DELETION_FENCES, 1, ex=300)
 
         lock_beat.reacquire()
         keys = cast(set[Any], r_replica.smembers(OnyxRedisConstants.ACTIVE_FENCES))
@@ -190,6 +190,7 @@ def try_generate_document_cc_pair_cleanup_tasks(
         return None
 
     # set a basic fence to start
+    redis_connector.delete.set_active()
     fence_payload = RedisConnectorDeletePayload(
         num_tasks=None,
         submitted=datetime.now(timezone.utc),
@@ -433,17 +434,17 @@ def validate_connector_deletion_fences(
 ) -> None:
     # building lookup table can be expensive, so we won't bother
     # validating until the queue is small
-    PERMISSION_SYNC_VALIDATION_MAX_QUEUE_LEN = 1024
+    CONNECTION_DELETION_VALIDATION_MAX_QUEUE_LEN = 1024
 
     queue_len = celery_get_queue_length(OnyxCeleryQueues.CONNECTOR_DELETION, r_celery)
-    if queue_len > PERMISSION_SYNC_VALIDATION_MAX_QUEUE_LEN:
+    if queue_len > CONNECTION_DELETION_VALIDATION_MAX_QUEUE_LEN:
         return
 
     queued_upsert_tasks = celery_get_queued_task_ids(
         OnyxCeleryQueues.CONNECTOR_DELETION, r_celery
     )
 
-    # validate all existing permission sync jobs
+    # validate all existing connector deletion jobs
     lock_beat.reacquire()
     keys = cast(set[Any], r_replica.smembers(OnyxRedisConstants.ACTIVE_FENCES))
     for key in keys:
@@ -510,7 +511,7 @@ def validate_connector_deletion_fence(
     redis_connector = RedisConnector(tenant_id, int(cc_pair_id))
 
     # check to see if the fence/payload exists
-    if not redis_connector.permissions.fenced:
+    if not redis_connector.delete.fenced:
         return
 
     # in the cloud, the payload format may have changed ...
