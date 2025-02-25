@@ -79,7 +79,7 @@ def search_chat_sessions(
         return [], False
 
     # Description matches
-    description_match = select(
+    description_match: Select = select(
         ChatSession.id.label("chat_session_id"), literal(0.5).label("search_rank")
     ).where(func.lower(ChatSession.description).like(f"%{query.lower()}%"))
 
