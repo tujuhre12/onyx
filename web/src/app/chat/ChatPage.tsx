@@ -959,37 +959,33 @@ export function ChatPage({
 
       if (isVisible) return;
 
-      // Check if all messages are currently rendered
-      if (currentVisibleRange.end < messageHistory.length) {
-        // Update visible range to include the last messages
-        updateCurrentVisibleRange({
-          start: Math.max(
-            0,
-            messageHistory.length -
-              (currentVisibleRange.end - currentVisibleRange.start)
-          ),
-          end: messageHistory.length,
-          mostVisibleMessageId: currentVisibleRange.mostVisibleMessageId,
-        });
+      // First, update the visible range to include the latest messages
+      const targetEnd = messageHistory.length;
+      const targetStart = Math.max(0, targetEnd - BUFFER_COUNT * 2);
 
-        // Wait for the state update and re-render before scrolling
-        setTimeout(() => {
-          endDivRef.current?.scrollIntoView({
+      updateCurrentVisibleRange(
+        {
+          start: targetStart,
+          end: targetEnd,
+          mostVisibleMessageId:
+            messageHistory[targetEnd - 1]?.messageId || null,
+        },
+        true
+      );
+
+      // Wait for render, then scroll
+      setTimeout(() => {
+        if (endDivRef.current) {
+          endDivRef.current.scrollIntoView({
             behavior: fast ? "auto" : "smooth",
+            block: "end",
           });
           setHasPerformedInitialScroll(true);
-        }, 100);
-      } else {
-        // If all messages are already rendered, scroll immediately
-        endDivRef.current.scrollIntoView({
-          behavior: fast ? "auto" : "smooth",
-        });
-
-        setHasPerformedInitialScroll(true);
-      }
+        }
+      }, 50);
     }, 50);
 
-    // Reset waitForScrollRef after 1.5 seconds
+    // Reset waitForScrollRef after scrolling completes
     setTimeout(() => {
       waitForScrollRef.current = false;
     }, 1500);
@@ -2005,11 +2001,37 @@ export function ChatPage({
       return;
     }
 
+    const currentRange = visibleRange.get(loadedIdSessionRef.current);
+    const prevMostVisibleMessageId = currentRange?.mostVisibleMessageId;
+
     setVisibleRange((prevState) => {
       const newState = new Map(prevState);
       newState.set(loadedIdSessionRef.current, newRange);
       return newState;
     });
+
+    // Preserve scroll position when the visible range changes
+    if (
+      prevMostVisibleMessageId &&
+      prevMostVisibleMessageId !== newRange.mostVisibleMessageId
+    ) {
+      preserveScrollPosition(prevMostVisibleMessageId);
+    }
+  };
+
+  // Add this to preserve scroll position when updating the visible range
+  const preserveScrollPosition = (prevMostVisibleMessageId: number) => {
+    if (!prevMostVisibleMessageId) return;
+
+    setTimeout(() => {
+      const messageElement = document.getElementById(
+        `message-${prevMostVisibleMessageId}`
+      );
+      if (messageElement) {
+        // Scroll to the position where this message was visible before
+        messageElement.scrollIntoView({ block: "center", behavior: "auto" });
+      }
+    }, 0);
   };
 
   //  Set first value for visibleRange state on page load / refresh.
@@ -2019,19 +2041,33 @@ export function ChatPage({
     );
 
     if (!scrollInitialized.current && upToDatemessageHistory.length > 0) {
-      const newEnd = Math.max(upToDatemessageHistory.length, BUFFER_COUNT);
-      const newStart = Math.max(0, newEnd - BUFFER_COUNT);
-      const newMostVisibleMessageId =
-        upToDatemessageHistory[newEnd - 1]?.messageId;
+      // Start with the entire message history visible if it's smaller than 2x buffer
+      if (upToDatemessageHistory.length <= BUFFER_COUNT * 2) {
+        updateCurrentVisibleRange(
+          {
+            start: 0,
+            end: upToDatemessageHistory.length,
+            mostVisibleMessageId:
+              upToDatemessageHistory[upToDatemessageHistory.length - 1]
+                ?.messageId || null,
+          },
+          true
+        );
+      } else {
+        // Otherwise, start at the end with a buffer
+        const newEnd = upToDatemessageHistory.length;
+        const newStart = Math.max(0, newEnd - BUFFER_COUNT * 2);
 
-      updateCurrentVisibleRange(
-        {
-          start: newStart,
-          end: newEnd,
-          mostVisibleMessageId: newMostVisibleMessageId,
-        },
-        true
-      );
+        updateCurrentVisibleRange(
+          {
+            start: newStart,
+            end: newEnd,
+            mostVisibleMessageId:
+              upToDatemessageHistory[newEnd - 1]?.messageId || null,
+          },
+          true
+        );
+      }
       scrollInitialized.current = true;
     }
   };
@@ -2041,8 +2077,18 @@ export function ChatPage({
     const scrollableDiv = scrollableDivRef.current;
     if (!scrollableDiv) return;
 
+    const viewportTop = scrollableDiv.scrollTop;
     const viewportHeight = scrollableDiv.clientHeight;
-    let mostVisibleMessageIndex = -1;
+    const viewportBottom = viewportTop + viewportHeight;
+
+    // Track visibility percentage for each message
+    interface MessageVisibility {
+      index: number;
+      messageId: number;
+      visibilityPercentage: number;
+    }
+
+    let messageVisibility: MessageVisibility[] = [];
 
     messageHistory.forEach((message, index) => {
       const messageElement = document.getElementById(
@@ -2050,24 +2096,48 @@ export function ChatPage({
       );
       if (messageElement) {
         const rect = messageElement.getBoundingClientRect();
-        const isVisible = rect.bottom <= viewportHeight && rect.bottom > 0;
-        if (isVisible && index > mostVisibleMessageIndex) {
-          mostVisibleMessageIndex = index;
+        const elementHeight = rect.height;
+        const elementTop =
+          rect.top -
+          scrollableDiv.getBoundingClientRect().top +
+          scrollableDiv.scrollTop;
+        const elementBottom = elementTop + elementHeight;
+
+        // Calculate how much of the element is visible
+        const visibleTop = Math.max(elementTop, viewportTop);
+        const visibleBottom = Math.min(elementBottom, viewportBottom);
+        const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+        const visibilityPercentage = visibleHeight / elementHeight;
+
+        if (visibilityPercentage > 0) {
+          messageVisibility.push({
+            index,
+            messageId: message.messageId,
+            visibilityPercentage,
+          });
         }
       }
     });
 
-    if (mostVisibleMessageIndex !== -1) {
-      const startIndex = Math.max(0, mostVisibleMessageIndex - BUFFER_COUNT);
-      const endIndex = Math.min(
+    // If we found visible messages
+    if (messageVisibility.length > 0) {
+      // Sort by visibility percentage
+      messageVisibility.sort(
+        (a, b) => b.visibilityPercentage - a.visibilityPercentage
+      );
+      const mostVisibleMessage = messageVisibility[0];
+
+      // Calculate buffer around the most visible message
+      const bufferBefore = Math.max(0, mostVisibleMessage.index - BUFFER_COUNT);
+      const bufferAfter = Math.min(
         messageHistory.length,
-        mostVisibleMessageIndex + BUFFER_COUNT + 1
+        mostVisibleMessage.index + BUFFER_COUNT + 1
       );
 
       updateCurrentVisibleRange({
-        start: startIndex,
-        end: endIndex,
-        mostVisibleMessageId: messageHistory[mostVisibleMessageIndex].messageId,
+        start: bufferBefore,
+        end: bufferAfter,
+        mostVisibleMessageId: mostVisibleMessage.messageId,
       });
     }
   };
@@ -2686,8 +2756,21 @@ export function ChatPage({
                                     : null;
                                 return (
                                   <div
+                                    className={`text-text ${
+                                      process.env.NODE_ENV === "development"
+                                        ? i >= currentVisibleRange.start &&
+                                          i < currentVisibleRange.end
+                                          ? "border-l-4 border-green-500"
+                                          : ""
+                                        : ""
+                                    }`}
                                     id={`message-${message.messageId}`}
                                     key={messageReactComponentKey}
+                                    ref={
+                                      i == messageHistory.length - 1
+                                        ? lastMessageRef
+                                        : null
+                                    }
                                   >
                                     <HumanMessage
                                       disableSwitchingForStreaming={
@@ -2789,7 +2872,14 @@ export function ChatPage({
 
                                 return (
                                   <div
-                                    className="text-text"
+                                    className={`text-text ${
+                                      process.env.NODE_ENV === "development"
+                                        ? i >= currentVisibleRange.start &&
+                                          i < currentVisibleRange.end
+                                          ? "border-l-4 border-green-500"
+                                          : ""
+                                        : ""
+                                    }`}
                                     id={`message-${message.messageId}`}
                                     key={messageReactComponentKey}
                                     ref={
@@ -3356,6 +3446,17 @@ export function ChatPage({
         </div>
         {/* Right Sidebar - DocumentSidebar */}
       </div>
+
+      {/* Debug Panel - Only visible in development mode */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="fixed right-0 top-0 bg-black bg-opacity-75 text-white p-2 z-50 text-xs">
+          <div>
+            Visible: {currentVisibleRange.start} - {currentVisibleRange.end}
+          </div>
+          <div>Most visible: {currentVisibleRange.mostVisibleMessageId}</div>
+          <div>Total messages: {messageHistory.length}</div>
+        </div>
+      )}
     </>
   );
 }
