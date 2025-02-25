@@ -947,21 +947,30 @@ export function ChatPage({
 
   const clientScrollToBottom = (fast?: boolean) => {
     waitForScrollRef.current = true;
+    // Set the flag to indicate we're programmatically scrolling
+    isScrollingProgrammaticallyRef.current = true;
 
     setTimeout(() => {
       if (!endDivRef.current || !scrollableDivRef.current) {
         console.error("endDivRef or scrollableDivRef not found");
+        isScrollingProgrammaticallyRef.current = false;
         return;
       }
 
       const rect = endDivRef.current.getBoundingClientRect();
       const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
 
-      if (isVisible) return;
+      if (isVisible) {
+        isScrollingProgrammaticallyRef.current = false;
+        return;
+      }
 
       // First, update the visible range to include the latest messages
       const targetEnd = messageHistory.length;
       const targetStart = Math.max(0, targetEnd - BUFFER_COUNT * 2);
+
+      // Update the last update time to prevent immediate re-calculation
+      lastVisibleRangeUpdateRef.current = Date.now();
 
       updateCurrentVisibleRange(
         {
@@ -982,6 +991,11 @@ export function ChatPage({
           });
           setHasPerformedInitialScroll(true);
         }
+
+        // Reset the flag after scrolling completes
+        setTimeout(() => {
+          isScrollingProgrammaticallyRef.current = false;
+        }, 300);
       }, 50);
     }, 50);
 
@@ -2023,6 +2037,9 @@ export function ChatPage({
   const preserveScrollPosition = (prevMostVisibleMessageId: number) => {
     if (!prevMostVisibleMessageId) return;
 
+    // Set the flag to indicate we're programmatically scrolling
+    isScrollingProgrammaticallyRef.current = true;
+
     setTimeout(() => {
       const messageElement = document.getElementById(
         `message-${prevMostVisibleMessageId}`
@@ -2031,6 +2048,11 @@ export function ChatPage({
         // Scroll to the position where this message was visible before
         messageElement.scrollIntoView({ block: "center", behavior: "auto" });
       }
+
+      // Reset the flag after a short delay to allow the scroll to complete
+      setTimeout(() => {
+        isScrollingProgrammaticallyRef.current = false;
+      }, 150);
     }, 0);
   };
 
@@ -2072,10 +2094,22 @@ export function ChatPage({
     }
   };
 
+  // Add a ref to track the last update time to prevent rapid oscillations
+  const lastVisibleRangeUpdateRef = useRef<number>(0);
+  // Add a ref to track if we're currently in a scroll operation triggered by code
+  const isScrollingProgrammaticallyRef = useRef<boolean>(false);
+
   const updateVisibleRangeBasedOnScroll = () => {
     if (!scrollInitialized.current) return;
     const scrollableDiv = scrollableDivRef.current;
     if (!scrollableDiv) return;
+
+    // Skip if we're programmatically scrolling to avoid feedback loops
+    if (isScrollingProgrammaticallyRef.current) return;
+
+    // Throttle updates to prevent oscillation
+    const now = Date.now();
+    if (now - lastVisibleRangeUpdateRef.current < 100) return; // 100ms throttle
 
     const viewportTop = scrollableDiv.scrollTop;
     const viewportHeight = scrollableDiv.clientHeight;
@@ -2127,18 +2161,43 @@ export function ChatPage({
       );
       const mostVisibleMessage = messageVisibility[0];
 
-      // Calculate buffer around the most visible message
-      const bufferBefore = Math.max(0, mostVisibleMessage.index - BUFFER_COUNT);
-      const bufferAfter = Math.min(
-        messageHistory.length,
-        mostVisibleMessage.index + BUFFER_COUNT + 1
-      );
+      // Get current range
+      const currentRange = visibleRange.get(loadedIdSessionRef.current);
 
-      updateCurrentVisibleRange({
-        start: bufferBefore,
-        end: bufferAfter,
-        mostVisibleMessageId: mostVisibleMessage.messageId,
-      });
+      // Only update if there's a significant change in the most visible message
+      // or if the current range doesn't include the most visible message
+      const shouldUpdate =
+        !currentRange ||
+        // If the most visible message is different and not close to the previous one
+        (currentRange.mostVisibleMessageId !== mostVisibleMessage.messageId &&
+          Math.abs(
+            messageHistory.findIndex(
+              (m) => m.messageId === currentRange.mostVisibleMessageId
+            ) - mostVisibleMessage.index
+          ) > 5) ||
+        // Or if the most visible message is outside the current range
+        mostVisibleMessage.index < currentRange.start ||
+        mostVisibleMessage.index >= currentRange.end;
+
+      if (shouldUpdate) {
+        // Calculate buffer around the most visible message
+        const bufferBefore = Math.max(
+          0,
+          mostVisibleMessage.index - BUFFER_COUNT
+        );
+        const bufferAfter = Math.min(
+          messageHistory.length,
+          mostVisibleMessage.index + BUFFER_COUNT + 1
+        );
+
+        lastVisibleRangeUpdateRef.current = now;
+
+        updateCurrentVisibleRange({
+          start: bufferBefore,
+          end: bufferAfter,
+          mostVisibleMessageId: mostVisibleMessage.messageId,
+        });
+      }
     }
   };
 
@@ -3455,6 +3514,25 @@ export function ChatPage({
           </div>
           <div>Most visible: {currentVisibleRange.mostVisibleMessageId}</div>
           <div>Total messages: {messageHistory.length}</div>
+          <div>
+            Programmatic scroll:{" "}
+            {isScrollingProgrammaticallyRef.current ? "Yes" : "No"}
+          </div>
+          <div>
+            Last update: {Date.now() - lastVisibleRangeUpdateRef.current}ms ago
+          </div>
+          <button
+            className="mt-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs"
+            onClick={() => {
+              // Reset all scroll-related state
+              isScrollingProgrammaticallyRef.current = false;
+              lastVisibleRangeUpdateRef.current = 0;
+              scrollInitialized.current = false;
+              initializeVisibleRange();
+            }}
+          >
+            Reset Scroll State
+          </button>
         </div>
       )}
     </>
