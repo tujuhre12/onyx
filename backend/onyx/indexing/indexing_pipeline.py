@@ -46,6 +46,7 @@ from onyx.indexing.models import DocMetadataAwareIndexChunk
 from onyx.indexing.vector_db_insertion import write_chunks_to_vector_db_with_backoff
 from onyx.utils.logger import setup_logger
 from onyx.utils.timing import log_function_time
+from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA
 
 logger = setup_logger()
 
@@ -159,7 +160,7 @@ def index_doc_batch_with_handler(
     index_attempt_metadata: IndexAttemptMetadata,
     db_session: Session,
     ignore_time_skip: bool = False,
-    tenant_id: str | None = None,
+    tenant_id: str = POSTGRES_DEFAULT_SCHEMA,
 ) -> IndexingPipelineResult:
     try:
         index_pipeline_result = index_doc_batch(
@@ -318,7 +319,7 @@ def index_doc_batch(
     index_attempt_metadata: IndexAttemptMetadata,
     db_session: Session,
     ignore_time_skip: bool = False,
-    tenant_id: str | None = None,
+    tenant_id: str = POSTGRES_DEFAULT_SCHEMA,
     filter_fnc: Callable[[list[Document]], list[Document]] = filter_documents,
 ) -> IndexingPipelineResult:
     """Takes different pieces of the indexing pipeline and applies it to a batch of documents
@@ -527,7 +528,7 @@ def build_indexing_pipeline(
     db_session: Session,
     chunker: Chunker | None = None,
     ignore_time_skip: bool = False,
-    tenant_id: str | None = None,
+    tenant_id: str = POSTGRES_DEFAULT_SCHEMA,
     callback: IndexingHeartbeatInterface | None = None,
 ) -> IndexingPipelineProtocol:
     """Builds a pipeline which takes in a list (batch) of docs and indexes them."""

@@ -6,6 +6,7 @@ from pydantic import Field
 from onyx.access.models import DocumentAccess
 from onyx.connectors.models import Document
 from onyx.utils.logger import setup_logger
+from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA
 from shared_configs.enums import EmbeddingProvider
 from shared_configs.model_server_models import Embedding
 
@@ -84,7 +85,7 @@ class DocMetadataAwareIndexChunk(IndexChunk):
            negative -> ranked lower.
     """
 
-    tenant_id: str | None = None
+    tenant_id: str
     access: "DocumentAccess"
     document_sets: set[str]
     boost: int
@@ -96,7 +97,7 @@ class DocMetadataAwareIndexChunk(IndexChunk):
         access: "DocumentAccess",
         document_sets: set[str],
         boost: int,
-        tenant_id: str | None,
+        tenant_id: str = POSTGRES_DEFAULT_SCHEMA,
     ) -> "DocMetadataAwareIndexChunk":
         index_chunk_data = index_chunk.model_dump()
         return cls(
