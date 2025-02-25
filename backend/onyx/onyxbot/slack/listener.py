@@ -439,7 +439,8 @@ class SlackbotHandler:
             if "not_authed" in str(e):
                 self.tenant_ids.add(tenant_id)
                 logger.error(
-                    f"Could not fetch bot name: {e} for tenant: {tenant_id}, app: {slack_bot_id}"
+                    f"Authentication error: Invalid or expired credentials for tenant: {tenant_id}, app: {slack_bot_id}. "
+                    "Error: {e}"
                 )
                 return
             # Log other Slack API errors but continue
