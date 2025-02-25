@@ -2079,20 +2079,21 @@ export function ChatPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, messageHistory]);
 
-  useLayoutEffect(() => {
-    const scrollableDiv = scrollableDivRef.current;
-
-    const handleScroll = () => {
-      updateVisibleRangeBasedOnScroll();
-    };
-
-    scrollableDiv?.addEventListener("scroll", handleScroll);
-
-    return () => {
-      scrollableDiv?.removeEventListener("scroll", handleScroll);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messageHistory]);
+  // Removing the scroll event listener for virtualization
+  // useLayoutEffect(() => {
+  //   const scrollableDiv = scrollableDivRef.current;
+  //
+  //   const handleScroll = () => {
+  //     updateVisibleRangeBasedOnScroll();
+  //   };
+  //
+  //   scrollableDiv?.addEventListener("scroll", handleScroll);
+  //
+  //   return () => {
+  //     scrollableDiv?.removeEventListener("scroll", handleScroll);
+  //   };
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [messageHistory]);
 
   const imageFileInMessageHistory = useMemo(() => {
     return messageHistory
@@ -2653,18 +2654,7 @@ export function ChatPage({
                             // NOTE: temporarily removing this to fix the scroll bug
                             // (hasPerformedInitialScroll ? "" : "invisible")
                           >
-                            {(messageHistory.length < BUFFER_COUNT
-                              ? messageHistory
-                              : messageHistory.slice(
-                                  currentVisibleRange.start,
-                                  currentVisibleRange.end
-                                )
-                            ).map((message, fauxIndex) => {
-                              const i =
-                                messageHistory.length < BUFFER_COUNT
-                                  ? fauxIndex
-                                  : fauxIndex + currentVisibleRange.start;
-
+                            {messageHistory.map((message, i) => {
                               const messageMap = currentMessageMap(
                                 completeMessageDetail
                               );
