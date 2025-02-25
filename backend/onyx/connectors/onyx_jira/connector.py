@@ -310,8 +310,8 @@ class JiraConnector(LoadConnector, PollConnector, SlimConnector):
                     raise ConnectorValidationError(
                         "Validation failed due to Jira rate-limits being exceeded. Please try again later."
                     )
-                else:
-                    raise Exception(f"Unexpected Jira error during validation: {e}")
+
+                raise RuntimeError(f"Unexpected Jira error during validation: {e}")
         else:
             # If no project specified, validate we can access the Jira API
             try:
@@ -331,8 +331,8 @@ class JiraConnector(LoadConnector, PollConnector, SlimConnector):
                     raise ConnectorValidationError(
                         "Validation failed due to Jira rate-limits being exceeded. Please try again later."
                     )
-                else:
-                    raise Exception(f"Unexpected Jira error during validation: {e}")
+
+                raise RuntimeError(f"Unexpected Jira error during validation: {e}")
 
 
 if __name__ == "__main__":
