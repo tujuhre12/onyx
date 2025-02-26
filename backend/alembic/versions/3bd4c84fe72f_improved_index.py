@@ -16,10 +16,6 @@ depends_on = None
 
 
 def upgrade() -> None:
-    import time
-
-    time.time()
-
     # Create a GIN index for full-text search on chat_message.message
     op.execute(
         """
@@ -32,7 +28,6 @@ def upgrade() -> None:
     # Commit the current transaction before creating concurrent indexes
     op.execute("COMMIT")
 
-    time.time()
     op.execute(
         """
         CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_message_tsv
@@ -42,7 +37,6 @@ def upgrade() -> None:
     )
 
     # Also add a stored tsvector column for chat_session.description
-    time.time()
     op.execute(
         """
         ALTER TABLE chat_session
@@ -54,7 +48,6 @@ def upgrade() -> None:
     # Commit again before creating the second concurrent index
     op.execute("COMMIT")
 
-    time.time()
     op.execute(
         """
         CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_session_desc_tsv
