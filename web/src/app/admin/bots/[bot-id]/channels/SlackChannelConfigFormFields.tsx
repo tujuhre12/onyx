@@ -623,10 +623,10 @@ export function SlackChannelConfigFormFields({
                 </div>
               </TooltipTrigger>
               <TooltipContent side="top" className="bg-white p-4 w-80">
-                <Label className="text-text mb-2 font-semibold">
+                <Label className="text-neutral-800 dark:text-text mb-2 font-semibold">
                   Privacy Alert
                 </Label>
-                <p className="text-sm text-text-darker mb-4">
+                <p className="text-sm text-neutral-800 dark:text-text-darker mb-4">
                   Please note that at least one of the documents accessible by
                   your OnyxBot is marked as private and may contain sensitive
                   information. These documents will be accessible to all users
