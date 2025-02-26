@@ -15,7 +15,7 @@ from onyx.db.models import ChatSession
 
 
 def search_chat_sessions(
-    user_id: Optional[UUID],
+    user_id: UUID | None,
     db_session: Session,
     query: Optional[str] = None,
     page: int = 1,
