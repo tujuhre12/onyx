@@ -631,40 +631,48 @@ def create_new_chat_message(
     refined_answer_improvement: bool | None = None,
     is_agentic: bool = False,
 ) -> ChatMessage:
-    # Create a dict of attributes to set, excluding any generated columns
-    message_attrs = {
-        "chat_session_id": chat_session_id,
-        "parent_message": parent_message.id,
-        "latest_child_message": None,
-        "message": message,
-        "rephrased_query": rephrased_query,
-        "prompt_id": prompt_id,
-        "token_count": token_count,
-        "message_type": message_type,
-        "citations": citations,
-        "files": files,
-        "tool_call": tool_call,
-        "error": error,
-        "alternate_assistant_id": alternate_assistant_id,
-        "overridden_model": overridden_model,
-        "refined_answer_improvement": refined_answer_improvement,
-        "is_agentic": is_agentic,
-    }
-
     if reserved_message_id is not None:
         # Edit existing message
         existing_message = db_session.query(ChatMessage).get(reserved_message_id)
         if existing_message is None:
             raise ValueError(f"No message found with id {reserved_message_id}")
 
-        # Update attributes one by one to avoid setting generated columns
-        for attr, value in message_attrs.items():
-            setattr(existing_message, attr, value)
-
+        existing_message.chat_session_id = chat_session_id
+        existing_message.parent_message = parent_message.id
+        existing_message.message = message
+        existing_message.rephrased_query = rephrased_query
+        existing_message.prompt_id = prompt_id
+        existing_message.token_count = token_count
+        existing_message.message_type = message_type
+        existing_message.citations = citations
+        existing_message.files = files
+        existing_message.tool_call = tool_call
+        existing_message.error = error
+        existing_message.alternate_assistant_id = alternate_assistant_id
+        existing_message.overridden_model = overridden_model
+        existing_message.refined_answer_improvement = refined_answer_improvement
+        existing_message.is_agentic = is_agentic
         new_chat_message = existing_message
     else:
-        # Create new message - use the constructor with only the non-generated columns
-        new_chat_message = ChatMessage(**message_attrs)
+        # Create new message
+        new_chat_message = ChatMessage(
+            chat_session_id=chat_session_id,
+            parent_message=parent_message.id,
+            latest_child_message=None,
+            message=message,
+            rephrased_query=rephrased_query,
+            prompt_id=prompt_id,
+            token_count=token_count,
+            message_type=message_type,
+            citations=citations,
+            files=files,
+            tool_call=tool_call,
+            error=error,
+            alternate_assistant_id=alternate_assistant_id,
+            overridden_model=overridden_model,
+            refined_answer_improvement=refined_answer_improvement,
+            is_agentic=is_agentic,
+        )
         db_session.add(new_chat_message)
 
     # SQL Alchemy will propagate this to update the reference_docs' foreign keys
