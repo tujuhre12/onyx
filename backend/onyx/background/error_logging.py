@@ -1,5 +1,5 @@
 from onyx.db.background_error import create_background_error
-from onyx.db.engine import get_session_with_current_tenant
+from onyx.db.session import get_session_with_current_tenant
 
 
 def emit_background_error(

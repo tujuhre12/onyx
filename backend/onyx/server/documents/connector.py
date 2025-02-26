@@ -81,7 +81,6 @@ from onyx.db.credentials import delete_service_account_credentials
 from onyx.db.credentials import fetch_credential_by_id_for_user
 from onyx.db.deletion_attempt import check_deletion_attempt_is_allowed
 from onyx.db.document import get_document_counts_for_cc_pairs
-from onyx.db.engine import get_session
 from onyx.db.enums import AccessType
 from onyx.db.enums import IndexingMode
 from onyx.db.index_attempt import get_index_attempts_for_cc_pair
@@ -93,6 +92,7 @@ from onyx.db.models import SearchSettings
 from onyx.db.models import User
 from onyx.db.search_settings import get_current_search_settings
 from onyx.db.search_settings import get_secondary_search_settings
+from onyx.db.session import get_session
 from onyx.file_processing.extract_file_text import convert_docx_to_txt
 from onyx.file_store.file_store import get_default_file_store
 from onyx.key_value_store.interface import KvKeyNotFoundError

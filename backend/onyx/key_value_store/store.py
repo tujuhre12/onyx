@@ -7,16 +7,16 @@ from fastapi import HTTPException
 from redis.client import Redis
 from sqlalchemy.orm import Session
 
-from onyx.db.engine import get_sqlalchemy_engine
-from onyx.db.engine import is_valid_schema_name
 from onyx.db.models import KVStore
+from onyx.db.session import get_multi_tenant_session
+from onyx.db.session import get_single_tenant_session
 from onyx.key_value_store.interface import KeyValueStore
 from onyx.key_value_store.interface import KvKeyNotFoundError
 from onyx.redis.redis_pool import get_redis_client
+from onyx.server.utils import BasicAuthenticationError
 from onyx.utils.logger import setup_logger
 from onyx.utils.special_types import JSON_ro
 from shared_configs.configs import MULTI_TENANT
-from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA
 from shared_configs.contextvars import get_current_tenant_id
 
 logger = setup_logger()
@@ -38,24 +38,13 @@ class PgRedisKVStore(KeyValueStore):
 
     @contextmanager
     def _get_session(self) -> Iterator[Session]:
-        engine = get_sqlalchemy_engine()
-        if MULTI_TENANT:
-            if self.tenant_id == POSTGRES_DEFAULT_SCHEMA:
-                raise HTTPException(status_code=401, detail="User must authenticate")
-            if not is_valid_schema_name(self.tenant_id):
-                raise HTTPException(status_code=400, detail="Invalid tenant ID")
-
-            schema_translate_map = {None: self.tenant_id}
-            with engine.connect().execution_options(
-                schema_translate_map=schema_translate_map
-            ) as connection:
-                with Session(bind=connection, expire_on_commit=False) as session:
-                    yield session
-        else:
-            # single tenant
-            with engine.connect() as connection:
-                with Session(bind=connection, expire_on_commit=False) as session:
-                    yield session
+        try:
+            if MULTI_TENANT:
+                yield from get_multi_tenant_session(self.tenant_id)
+            else:
+                yield from get_single_tenant_session()
+        except BasicAuthenticationError as e:
+            raise HTTPException(status_code=401, detail=str(e))
 
     def store(self, key: str, val: JSON_ro, encrypt: bool = False) -> None:
         # Not encrypted in Redis, but encrypted in Postgres
