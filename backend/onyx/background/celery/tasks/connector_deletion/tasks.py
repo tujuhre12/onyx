@@ -498,7 +498,7 @@ def monitor_connector_deletion_taskset(
 
 
 def validate_connector_deletion_fences(
-    tenant_id: str | None,
+    tenant_id: str,
     r: Redis,
     r_replica: Redis,
     r_celery: Redis,
@@ -538,7 +538,7 @@ def validate_connector_deletion_fences(
 
 
 def validate_connector_deletion_fence(
-    tenant_id: str | None,
+    tenant_id: str,
     key_bytes: bytes,
     queued_tasks: set[str],
     r: Redis,
