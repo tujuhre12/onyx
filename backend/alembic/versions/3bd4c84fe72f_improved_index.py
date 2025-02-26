@@ -18,10 +18,9 @@ depends_on = None
 def upgrade() -> None:
     import time
 
-    start_time = time.time()
+    time.time()
 
     # Create a GIN index for full-text search on chat_message.message
-    print("Adding message_tsv column to chat_message table...")
     op.execute(
         """
         ALTER TABLE chat_message
@@ -29,22 +28,21 @@ def upgrade() -> None:
         GENERATED ALWAYS AS (to_tsvector('english', message)) STORED;
         """
     )
-    print(f"Added message_tsv column in {time.time() - start_time:.2f} seconds")
 
-    index_start_time = time.time()
-    print("Creating GIN index on chat_message.message_tsv...")
+    # Commit the current transaction before creating concurrent indexes
+    op.execute("COMMIT")
+
+    time.time()
     op.execute(
         """
-        CREATE INDEX IF NOT EXISTS idx_chat_message_tsv
+        CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_message_tsv
         ON chat_message
         USING GIN (message_tsv)
         """
     )
-    print(f"Created chat_message index in {time.time() - index_start_time:.2f} seconds")
 
     # Also add a stored tsvector column for chat_session.description
-    session_start_time = time.time()
-    print("Adding description_tsv column to chat_session table...")
+    time.time()
     op.execute(
         """
         ALTER TABLE chat_session
@@ -52,29 +50,27 @@ def upgrade() -> None:
         GENERATED ALWAYS AS (to_tsvector('english', coalesce(description, ''))) STORED;
         """
     )
-    print(
-        f"Added description_tsv column in {time.time() - session_start_time:.2f} seconds"
-    )
 
-    session_index_start_time = time.time()
-    print("Creating GIN index on chat_session.description_tsv...")
+    # Commit again before creating the second concurrent index
+    op.execute("COMMIT")
+
+    time.time()
     op.execute(
         """
-        CREATE INDEX IF NOT EXISTS idx_chat_session_desc_tsv
+        CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_session_desc_tsv
         ON chat_session
         USING GIN (description_tsv)
         """
     )
-    print(
-        f"Created chat_session index in {time.time() - session_index_start_time:.2f} seconds"
-    )
-    print(f"Total upgrade time: {time.time() - start_time:.2f} seconds")
 
 
 def downgrade() -> None:
-    # Drop the indexes first
-    op.execute("DROP INDEX IF EXISTS idx_chat_message_tsv;")
-    op.execute("DROP INDEX IF EXISTS idx_chat_session_desc_tsv;")
+    # Drop the indexes first (use CONCURRENTLY for dropping too)
+    op.execute("COMMIT")
+    op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_chat_message_tsv;")
+
+    op.execute("COMMIT")
+    op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_chat_session_desc_tsv;")
 
     # Then drop the columns
     op.execute("ALTER TABLE chat_message DROP COLUMN IF EXISTS message_tsv;")
