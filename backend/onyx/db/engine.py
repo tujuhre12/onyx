@@ -360,7 +360,7 @@ def _set_search_path(
     """Every time a new transaction is started,
     set the search_path from the session's info."""
     tenant_id = session.info.get("tenant_id")
-    if tenant_id and MULTI_TENANT:
+    if tenant_id:
         connection.exec_driver_sql(f'SET search_path = "{tenant_id}"')
 
 
