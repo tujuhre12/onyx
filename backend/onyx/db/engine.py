@@ -193,6 +193,7 @@ class SqlEngine:
             final_engine_kwargs.update(engine_kwargs)
 
         logger.info(f"Creating engine with kwargs: {final_engine_kwargs}")
+        # echo=True here for inspecting all emitted db queries
         engine = create_engine(connection_string, **final_engine_kwargs)
 
         if USE_IAM_AUTH:
@@ -299,18 +300,6 @@ def get_sqlalchemy_async_engine() -> AsyncEngine:
                 cparams["ssl"] = ssl_context
 
     return _ASYNC_ENGINE
-
-
-# Listen for events on the synchronous Session class
-# @event.listens_for(Session, "after_begin")
-# def _set_search_path(
-#     session: Session, transaction: Any, connection: Any, *args: Any, **kwargs: Any
-# ) -> None:
-#     """Every time a new transaction is started,
-#     set the search_path from the session's info."""
-#     tenant_id = session.info.get("tenant_id")
-#     if tenant_id:
-#         connection.exec_driver_sql(f'SET search_path = "{tenant_id}"')
 
 
 async def warm_up_connections(

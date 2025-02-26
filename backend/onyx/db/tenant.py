@@ -6,11 +6,11 @@ from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA
 from shared_configs.configs import TENANT_ID_PREFIX
 
 
-def get_all_tenant_ids() -> list[str] | list[None]:
+def get_all_tenant_ids() -> list[str]:
     """Returning [None] means the only tenant is the 'public' or self hosted tenant."""
 
     if not MULTI_TENANT:
-        return [None]
+        return [POSTGRES_DEFAULT_SCHEMA]
 
     with get_session_with_shared_schema() as session:
         result = session.execute(

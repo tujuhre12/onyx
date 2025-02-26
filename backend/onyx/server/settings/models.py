@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from onyx.configs.constants import NotificationType
 from onyx.db.models import Notification as NotificationDBModel
+from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA
 
 
 class PageType(str, Enum):
@@ -47,11 +48,11 @@ class Settings(BaseModel):
     anonymous_user_enabled: bool | None = None
     pro_search_enabled: bool | None = None
 
-    temperature_override_enabled: bool = False
-    auto_scroll: bool = False
+    temperature_override_enabled: bool | None = False
+    auto_scroll: bool | None = False
 
 
 class UserSettings(Settings):
     notifications: list[Notification]
     needs_reindexing: bool
-    tenant_id: str | None = None
+    tenant_id: str = POSTGRES_DEFAULT_SCHEMA

@@ -17,10 +17,12 @@ from prometheus_client import Gauge
 from prometheus_client import start_http_server
 from redis.lock import Lock
 from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 from slack_sdk.socket_mode.request import SocketModeRequest
 from slack_sdk.socket_mode.response import SocketModeResponse
 from sqlalchemy.orm import Session
 
+from ee.onyx.server.tenants.product_gating import get_gated_tenants
 from onyx.chat.models import ThreadMessage
 from onyx.configs.app_configs import DEV_MODE
 from onyx.configs.app_configs import POD_NAME
@@ -121,13 +123,13 @@ _OFFICIAL_SLACKBOT_USER_ID = "USLACKBOT"
 class SlackbotHandler:
     def __init__(self) -> None:
         logger.info("Initializing SlackbotHandler")
-        self.tenant_ids: Set[str | None] = set()
+        self.tenant_ids: Set[str] = set()
         # The keys for these dictionaries are tuples of (tenant_id, slack_bot_id)
-        self.socket_clients: Dict[tuple[str | None, int], TenantSocketModeClient] = {}
-        self.slack_bot_tokens: Dict[tuple[str | None, int], SlackBotTokens] = {}
+        self.socket_clients: Dict[tuple[str, int], TenantSocketModeClient] = {}
+        self.slack_bot_tokens: Dict[tuple[str, int], SlackBotTokens] = {}
 
         # Store Redis lock objects here so we can release them properly
-        self.redis_locks: Dict[str | None, Lock] = {}
+        self.redis_locks: Dict[str, Lock] = {}
 
         self.running = True
         self.pod_id = self.get_pod_id()
@@ -191,7 +193,7 @@ class SlackbotHandler:
             self._shutdown_event.wait(timeout=TENANT_HEARTBEAT_INTERVAL)
 
     def _manage_clients_per_tenant(
-        self, db_session: Session, tenant_id: str | None, bot: SlackBot
+        self, db_session: Session, tenant_id: str, bot: SlackBot
     ) -> None:
         """
         - If the tokens are missing or empty, close the socket client and remove them.
@@ -249,7 +251,12 @@ class SlackbotHandler:
         - If yes, store them in self.tenant_ids and manage the socket connections.
         - If a tenant in self.tenant_ids no longer has Slack bots, remove it (and release the lock in this scope).
         """
-        all_tenants = get_all_tenant_ids()
+
+        all_tenants = [
+            tenant_id
+            for tenant_id in get_all_tenant_ids()
+            if tenant_id not in get_gated_tenants()
+        ]
 
         token: Token[str | None]
 
@@ -378,7 +385,7 @@ class SlackbotHandler:
             finally:
                 CURRENT_TENANT_ID_CONTEXTVAR.reset(token)
 
-    def _remove_tenant(self, tenant_id: str | None) -> None:
+    def _remove_tenant(self, tenant_id: str) -> None:
         """
         Helper to remove a tenant from `self.tenant_ids` and close any socket clients.
         (Lock release now happens in `acquire_tenants()`, not here.)
@@ -408,7 +415,7 @@ class SlackbotHandler:
             )
 
     def start_socket_client(
-        self, slack_bot_id: int, tenant_id: str | None, slack_bot_tokens: SlackBotTokens
+        self, slack_bot_id: int, tenant_id: str, slack_bot_tokens: SlackBotTokens
     ) -> None:
         socket_client: TenantSocketModeClient = _get_socket_client(
             slack_bot_tokens, tenant_id, slack_bot_id
@@ -416,6 +423,7 @@ class SlackbotHandler:
 
         try:
             bot_info = socket_client.web_client.auth_test()
+
             if bot_info["ok"]:
                 bot_user_id = bot_info["user_id"]
                 user_info = socket_client.web_client.users_info(user=bot_user_id)
@@ -426,9 +434,23 @@ class SlackbotHandler:
                     logger.info(
                         f"Started socket client for Slackbot with name '{bot_name}' (tenant: {tenant_id}, app: {slack_bot_id})"
                     )
+        except SlackApiError as e:
+            # Only error out if we get a not_authed error
+            if "not_authed" in str(e):
+                self.tenant_ids.add(tenant_id)
+                logger.error(
+                    f"Authentication error: Invalid or expired credentials for tenant: {tenant_id}, app: {slack_bot_id}. "
+                    "Error: {e}"
+                )
+                return
+            # Log other Slack API errors but continue
+            logger.error(
+                f"Slack API error fetching bot info: {e} for tenant: {tenant_id}, app: {slack_bot_id}"
+            )
         except Exception as e:
-            logger.warning(
-                f"Could not fetch bot name: {e} for tenant: {tenant_id}, app: {slack_bot_id}"
+            # Log other exceptions but continue
+            logger.error(
+                f"Error fetching bot info: {e} for tenant: {tenant_id}, app: {slack_bot_id}"
             )
 
         # Append the event handler
@@ -890,7 +912,7 @@ def create_process_slack_event() -> (
 
 
 def _get_socket_client(
-    slack_bot_tokens: SlackBotTokens, tenant_id: str | None, slack_bot_id: int
+    slack_bot_tokens: SlackBotTokens, tenant_id: str, slack_bot_id: int
 ) -> TenantSocketModeClient:
     # For more info on how to set this up, checkout the docs:
     # https://docs.onyx.app/slack_bot_setup
