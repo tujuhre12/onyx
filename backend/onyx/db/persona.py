@@ -101,7 +101,9 @@ def _add_user_filters(
         )
     else:
         # Group the public persona conditions
-        public_condition = Persona.is_public == True & Persona.is_visible  # noqa: E712
+        public_condition = (Persona.is_public == True) & (  # noqa: E712
+            Persona.is_visible == True  # noqa: E712
+        )
 
         where_clause |= public_condition
         where_clause |= Persona__User.user_id == user.id
