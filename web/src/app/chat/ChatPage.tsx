@@ -521,7 +521,6 @@ export function ChatPage({
           setHasPerformedInitialScroll(true);
           isInitialLoad.current = false;
         }
-        console.log("SCROLL");
         clientScrollToBottom();
 
         setTimeout(() => {
