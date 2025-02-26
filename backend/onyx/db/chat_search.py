@@ -8,7 +8,6 @@ from sqlalchemy import column
 from sqlalchemy import desc
 from sqlalchemy import func
 from sqlalchemy import select
-from sqlalchemy import text
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import Session
 
@@ -30,7 +29,7 @@ def search_chat_sessions(
 
     Returns (sessions, has_more)
     """
-    start_time = time.time()
+    time.time()
     offset_val = (page - 1) * page_size
 
     # If no query, just return the most recent sessions
@@ -48,18 +47,13 @@ def search_chat_sessions(
         if not include_deleted:
             stmt = stmt.where(ChatSession.deleted.is_(False))
 
-        query_start = time.time()
         result = db_session.execute(stmt.options(joinedload(ChatSession.persona)))
         sessions = result.scalars().all()
-        query_end = time.time()
-        print(f"No-query fetch time: {query_end - query_start:.4f}s")
 
         has_more = len(sessions) > page_size
         if has_more:
             sessions = sessions[:page_size]
 
-        total_time = time.time() - start_time
-        print(f"Total no-query search time: {total_time:.4f}s")
         return sessions, has_more
 
     # Clean up the query string
@@ -113,32 +107,10 @@ def search_chat_sessions(
         .options(joinedload(ChatSession.persona))
     )
 
-    # Time the actual query execution
-    query_start = time.time()
     session_objs = db_session.execute(final_stmt).scalars().all()
-    query_end = time.time()
-    print(f"Full-text search query time: {query_end - query_start:.4f}s")
-
-    # If you still want to debug with EXPLAIN ANALYZE, use a simpler approach:
-    # Run a separate query with the text() function instead
-    if query and query.strip():  # Only run explain for actual searches
-        try:
-            # Simple explain query that doesn't try to convert the full SQLAlchemy statement
-            explain_result = db_session.execute(
-                text(
-                    "EXPLAIN (ANALYZE, BUFFERS) SELECT 1 FROM chat_message WHERE message_tsv @@ plainto_tsquery('english', :q)"
-                ).bindparams(q=query)
-            )
-            print("Sample EXPLAIN output for text search:")
-            for row in explain_result:
-                print(row[0])
-        except Exception as e:
-            print(f"Error running EXPLAIN: {e}")
 
     has_more = len(session_objs) > page_size
     if has_more:
         session_objs = session_objs[:page_size]
 
-    total_time = time.time() - start_time
-    print(f"Total search time: {total_time:.4f}s")
     return session_objs, has_more
