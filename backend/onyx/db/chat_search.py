@@ -1,4 +1,3 @@
-import time
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -25,11 +24,14 @@ def search_chat_sessions(
     include_onyxbot_flows: bool = False,
 ) -> Tuple[List[ChatSession], bool]:
     """
-    Extremely fast full-text search on ChatSession + ChatMessage.
+    Fast full-text search on ChatSession + ChatMessage using tsvectors.
 
-    Returns (sessions, has_more)
+    If no query is provided, returns the most recent chat sessions.
+    Otherwise, searches both chat messages and session descriptions.
+
+    Returns a tuple of (sessions, has_more) where has_more indicates if
+    there are additional results beyond the requested page.
     """
-    time.time()
     offset_val = (page - 1) * page_size
 
     # If no query, just return the most recent sessions
@@ -56,10 +58,9 @@ def search_chat_sessions(
 
         return sessions, has_more
 
-    # Clean up the query string
+    # Otherwise, proceed with full-text search
     query = query.strip()
 
-    # Build base conditions that apply to both queries
     base_conditions = []
     if user_id is not None:
         base_conditions.append(ChatSession.user_id == user_id)
@@ -68,21 +69,17 @@ def search_chat_sessions(
     if not include_deleted:
         base_conditions.append(ChatSession.deleted.is_(False))
 
-    # Create references to the tsvector columns
     message_tsv = column("message_tsv")
     description_tsv = column("description_tsv")
 
-    # Create a text search expression
     ts_query = func.plainto_tsquery("english", query)
 
-    # A. Subselect of session IDs by matching description
     description_session_ids = (
         select(ChatSession.id)
         .where(*base_conditions)
         .where(description_tsv.op("@@")(ts_query))
     )
 
-    # B. Subselect of session IDs by matching messages
     message_session_ids = (
         select(ChatMessage.chat_session_id)
         .join(ChatSession, ChatMessage.chat_session_id == ChatSession.id)
@@ -90,18 +87,15 @@ def search_chat_sessions(
         .where(message_tsv.op("@@")(ts_query))
     )
 
-    # C. Union the two sets of session IDs
     combined_ids = description_session_ids.union(message_session_ids).alias(
         "combined_ids"
     )
 
-    # D. Now select the actual sessions, ordering by creation time
-    #    We do an INNER JOIN on combined_ids so we only get matched sessions.
     final_stmt = (
         select(ChatSession)
         .join(combined_ids, ChatSession.id == combined_ids.c.id)
         .order_by(desc(ChatSession.time_created))
-        .distinct()  # ensure no duplicates from the union
+        .distinct()
         .offset(offset_val)
         .limit(page_size + 1)
         .options(joinedload(ChatSession.persona))
