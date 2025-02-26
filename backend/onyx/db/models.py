@@ -25,6 +25,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import func
 from sqlalchemy import Index
 from sqlalchemy import Integer
+
 from sqlalchemy import Sequence
 from sqlalchemy import String
 from sqlalchemy import Text
@@ -1129,6 +1130,10 @@ class ToolCall(Base):
 class ChatSession(Base):
     __tablename__ = "chat_session"
 
+    # Full-text search vector for session description
+    # description_tsv = mapped_column(TSVECTOR, primary_key=False, nullable=True,
+    #                                 insertable=False, updatable=False)
+
     id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), primary_key=True, default=uuid4
     )
@@ -1207,6 +1212,10 @@ class ChatMessage(Base):
     chat_session_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("chat_session.id")
     )
+
+    # Full-text search vector for message content
+    # message_tsv = mapped_column(TSVECTOR, primary_key=False, nullable=True,
+    #                            insertable=False, updatable=False)
 
     alternate_assistant_id = mapped_column(
         Integer, ForeignKey("persona.id"), nullable=True
