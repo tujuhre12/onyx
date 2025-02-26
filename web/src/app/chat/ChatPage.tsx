@@ -1982,12 +1982,13 @@ export function ChatPage({
 
   const currentPersona = alternativeAssistant || liveAssistant;
 
+  const HORIZON_DISTANCE = 800;
   const handleScroll = useCallback(() => {
     const scrollDistance =
       endDivRef?.current?.getBoundingClientRect()?.top! -
       inputRef?.current?.getBoundingClientRect()?.top!;
     scrollDist.current = scrollDistance;
-    setAboveHorizon(scrollDist.current > 900);
+    setAboveHorizon(scrollDist.current > HORIZON_DISTANCE);
   }, []);
 
   useEffect(() => {
