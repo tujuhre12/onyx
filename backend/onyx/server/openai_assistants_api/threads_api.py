@@ -146,6 +146,7 @@ def list_threads(
                 id=chat.id,
                 name=chat.description,
                 persona_id=chat.persona_id,
+                time_created=chat.time_created.isoformat(),
                 time_updated=chat.time_updated.isoformat(),
                 shared_status=chat.shared_status,
                 folder_id=chat.folder_id,
