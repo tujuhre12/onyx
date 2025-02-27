@@ -9,6 +9,7 @@ from sqlalchemy import func
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.expression import ColumnClause
 
 from onyx.db.models import ChatMessage
 from onyx.db.models import ChatSession
@@ -56,7 +57,7 @@ def search_chat_sessions(
         if has_more:
             sessions = sessions[:page_size]
 
-        return sessions, has_more
+        return list(sessions), has_more
 
     # Otherwise, proceed with full-text search
     query = query.strip()
@@ -69,8 +70,8 @@ def search_chat_sessions(
     if not include_deleted:
         base_conditions.append(ChatSession.deleted.is_(False))
 
-    message_tsv = column("message_tsv")
-    description_tsv = column("description_tsv")
+    message_tsv: ColumnClause = column("message_tsv")
+    description_tsv: ColumnClause = column("description_tsv")
 
     ts_query = func.plainto_tsquery("english", query)
 
@@ -107,4 +108,4 @@ def search_chat_sessions(
     if has_more:
         session_objs = session_objs[:page_size]
 
-    return session_objs, has_more
+    return list(session_objs), has_more
