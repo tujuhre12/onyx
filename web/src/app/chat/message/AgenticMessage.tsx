@@ -273,8 +273,8 @@ export const AgenticMessage = ({
               ? docs
               : agenticDocs
             : agenticDocs && agenticDocs.length > 0
-            ? agenticDocs
-            : docs
+              ? agenticDocs
+              : docs
         }
         subQuestions={[
           ...(subQuestions || []),
@@ -442,8 +442,8 @@ export const AgenticMessage = ({
                         !allowDocuments
                           ? []
                           : isViewingInitialAnswer
-                          ? docs!
-                          : agenticDocs!
+                            ? docs!
+                            : agenticDocs!
                       }
                       toggleDocumentSelection={() => {
                         toggleDocumentSelection!(!isViewingInitialAnswer);
@@ -460,7 +460,6 @@ export const AgenticMessage = ({
                     finalContent.length > 8) ||
                   (files && files.length > 0) ? (
                     <>
-                      {/* <FileDisplay files={files || []} /> */}
                       <div className="w-full  py-4 flex flex-col gap-4">
                         <div className="flex items-center gap-x-2 px-4">
                           <div className="text-black text-lg font-medium">
