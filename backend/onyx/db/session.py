@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 
 from onyx.configs.app_configs import POSTGRES_IDLE_SESSIONS_TIMEOUT
-from onyx.db.engine import get_sqlalchemy_async_engine
 from onyx.db.engine import get_sqlalchemy_engine
 from onyx.db.session_schema_translate_map import (
     OnyxSchemaTranslateMapSession as OnyxSession,
@@ -21,6 +20,7 @@ from onyx.utils.logger import setup_logger
 from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA
 from shared_configs.contextvars import CURRENT_TENANT_ID_CONTEXTVAR
 from shared_configs.contextvars import get_current_tenant_id
+
 
 logger = setup_logger()
 
@@ -88,11 +88,11 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-AsyncSessionLocal = sessionmaker(  # type: ignore
-    bind=get_sqlalchemy_async_engine(),
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+# AsyncSessionLocal = sessionmaker(  # type: ignore
+#     bind=get_sqlalchemy_async_engine(),
+#     class_=AsyncSession,
+#     expire_on_commit=False,
+# )
 
 
 @asynccontextmanager
@@ -106,9 +106,7 @@ async def get_async_session_with_tenant(
         logger.error(f"Invalid tenant ID: {tenant_id}")
         raise ValueError("Invalid tenant ID")
 
-    async with AsyncSessionLocal() as session:
-        session.sync_session.info["tenant_id"] = tenant_id
-
+    async for session in OnyxSession.get_multi_tenant_async_session(tenant_id):
         if POSTGRES_IDLE_SESSIONS_TIMEOUT:
             await session.execute(
                 text(
@@ -116,7 +114,4 @@ async def get_async_session_with_tenant(
                 )
             )
 
-        try:
-            yield session
-        finally:
-            pass
+        yield session

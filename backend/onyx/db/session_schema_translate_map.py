@@ -70,6 +70,7 @@ class OnyxSchemaTranslateMapSession:
             return
 
         yield from OnyxSchemaTranslateMapSession.get_single_tenant_session()
+        return
 
     @staticmethod
     def get_multi_tenant_session(tenant_id: str) -> Generator[Session, None, None]:
@@ -99,24 +100,41 @@ class OnyxSchemaTranslateMapSession:
 
     @staticmethod
     async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-        tenant_id = get_current_tenant_id()
+        if MULTI_TENANT:
+            tenant_id = get_current_tenant_id()
+            async for session in OnyxSchemaTranslateMapSession.get_multi_tenant_async_session(
+                tenant_id
+            ):
+                yield session
+            return
+
+        async for session in OnyxSchemaTranslateMapSession.get_single_tenant_async_session():
+            yield session
+
+    @staticmethod
+    async def get_multi_tenant_async_session(
+        tenant_id: str,
+    ) -> AsyncGenerator[AsyncSession, None]:
         engine = get_sqlalchemy_async_engine()
 
-        if MULTI_TENANT:
-            if not is_valid_schema_name(tenant_id):
-                raise HTTPException(status_code=400, detail="Invalid tenant ID")
+        if not is_valid_schema_name(tenant_id):
+            raise HTTPException(status_code=400, detail="Invalid tenant ID")
 
-            # Create connection with schema translation
-            schema_translate_map = {None: tenant_id}
-            async with engine.connect() as connection:
-                connection = await connection.execution_options(
-                    schema_translate_map=schema_translate_map
-                )
-                async with AsyncSession(
-                    bind=connection, expire_on_commit=False
-                ) as async_session:
-                    yield async_session
-        else:
-            # single tenant
-            async with AsyncSession(engine, expire_on_commit=False) as async_session:
+        # Create connection with schema translation
+        schema_translate_map = {None: tenant_id}
+        async with engine.connect() as connection:
+            connection = await connection.execution_options(
+                schema_translate_map=schema_translate_map
+            )
+            async with AsyncSession(
+                bind=connection, expire_on_commit=False
+            ) as async_session:
                 yield async_session
+
+    @staticmethod
+    async def get_single_tenant_async_session() -> AsyncGenerator[AsyncSession, None]:
+        engine = get_sqlalchemy_async_engine()
+
+        # single tenant
+        async with AsyncSession(engine, expire_on_commit=False) as async_session:
+            yield async_session

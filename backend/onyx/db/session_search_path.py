@@ -8,6 +8,7 @@ Keeping this approach here while we test/iterate.
 """
 from collections.abc import AsyncGenerator
 from collections.abc import Generator
+from contextlib import asynccontextmanager
 from contextlib import contextmanager
 from typing import Any
 
@@ -16,15 +17,27 @@ from sqlalchemy import event
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import sessionmaker
 
 from onyx.configs.app_configs import POSTGRES_IDLE_SESSIONS_TIMEOUT
 from onyx.db.engine import get_sqlalchemy_async_engine
 from onyx.db.engine import get_sqlalchemy_engine
 from onyx.db.utils import is_valid_schema_name
 from onyx.server.utils import BasicAuthenticationError
+from onyx.utils.logger import setup_logger
 from shared_configs.configs import MULTI_TENANT
 from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA
 from shared_configs.contextvars import get_current_tenant_id
+
+
+logger = setup_logger()
+
+
+AsyncSessionLocal = sessionmaker(  # type: ignore
+    bind=get_sqlalchemy_async_engine(),
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
 
 
 class OnyxSearchPathSession:
@@ -112,11 +125,61 @@ class OnyxSearchPathSession:
 
     @staticmethod
     async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-        tenant_id = get_current_tenant_id()
+        if MULTI_TENANT:
+            tenant_id = get_current_tenant_id()
+            async for session in OnyxSearchPathSession.get_multi_tenant_async_session(
+                tenant_id
+            ):
+                yield session
+            return
+
+        async for session in OnyxSearchPathSession.get_single_tenant_async_session():
+            yield session
+
+    @staticmethod
+    async def get_multi_tenant_async_session(
+        tenant_id: str,
+    ) -> AsyncGenerator[AsyncSession, None]:
         engine = get_sqlalchemy_async_engine()
+
+        if not is_valid_schema_name(tenant_id):
+            raise HTTPException(status_code=400, detail="Invalid tenant ID")
+
         async with AsyncSession(engine, expire_on_commit=False) as async_session:
-            if MULTI_TENANT:
-                if not is_valid_schema_name(tenant_id):
-                    raise HTTPException(status_code=400, detail="Invalid tenant ID")
-                await async_session.execute(text(f'SET search_path = "{tenant_id}"'))
+            await async_session.execute(text(f'SET search_path = "{tenant_id}"'))
             yield async_session
+
+    @staticmethod
+    async def get_single_tenant_async_session() -> AsyncGenerator[AsyncSession, None]:
+        engine = get_sqlalchemy_async_engine()
+
+        # single tenant
+        async with AsyncSession(engine, expire_on_commit=False) as async_session:
+            yield async_session
+
+    @asynccontextmanager
+    @staticmethod
+    async def get_async_session_with_tenant(
+        tenant_id: str | None = None,
+    ) -> AsyncGenerator[AsyncSession, None]:
+        if tenant_id is None:
+            tenant_id = get_current_tenant_id()
+
+        if not is_valid_schema_name(tenant_id):
+            logger.error(f"Invalid tenant ID: {tenant_id}")
+            raise ValueError("Invalid tenant ID")
+
+        async with AsyncSessionLocal() as session:
+            session.sync_session.info["tenant_id"] = tenant_id
+
+            if POSTGRES_IDLE_SESSIONS_TIMEOUT:
+                await session.execute(
+                    text(
+                        f"SET idle_in_transaction_session_timeout = {POSTGRES_IDLE_SESSIONS_TIMEOUT}"
+                    )
+                )
+
+            try:
+                yield session
+            finally:
+                pass
