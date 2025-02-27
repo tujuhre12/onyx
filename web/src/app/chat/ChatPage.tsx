@@ -136,12 +136,8 @@ import { AgenticMessage } from "./message/AgenticMessage";
 import AssistantModal from "../assistants/mine/AssistantModal";
 import { useSidebarShortcut } from "@/lib/browserUtilities";
 import { ConfirmEntityModal } from "@/components/modals/ConfirmEntityModal";
-<<<<<<< HEAD
-import { MessageChannel } from "node:worker_threads";
 import { ChatSearchModal } from "./chat_search/ChatSearchModal";
-=======
 import { ErrorBanner } from "./message/Resubmit";
->>>>>>> db242d0b3 (add error handling)
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
