@@ -15,6 +15,18 @@ branch_labels = None
 depends_on = None
 
 
+# NOTE:
+# This migration addresses issues with the previous migration (8f43500ee275) which caused
+# an outage by creating an index without using CONCURRENTLY. This migration:
+#
+# 1. Creates more efficient full-text search capabilities using tsvector columns and GIN indexes
+# 2. Uses CONCURRENTLY for all index creation to prevent table locking
+# 3. Explicitly manages transactions with COMMIT statements to allow CONCURRENTLY to work
+# (see: https://www.postgresql.org/docs/9.4/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY)
+# (see: https://github.com/sqlalchemy/alembic/issues/277)
+# 4. Adds indexes to both chat_message and chat_session tables for comprehensive search
+
+
 def upgrade() -> None:
     # Create a GIN index for full-text search on chat_message.message
     op.execute(
