@@ -129,7 +129,6 @@ export function filterAssistants(
     (assistant) => assistant.is_visible
   );
 
-  // console.log("hasAnyConnectors", hasAnyConnectors);
   if (!hasAnyConnectors) {
     filteredAssistants = filteredAssistants.filter(
       (assistant) =>
