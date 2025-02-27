@@ -419,7 +419,7 @@ export function groupSessionsByDateRange(chatSessions: ChatSession[]) {
   };
 
   chatSessions.forEach((chatSession) => {
-    const chatSessionDate = new Date(chatSession.time_created);
+    const chatSessionDate = new Date(chatSession.time_updated);
 
     const diffTime = today.getTime() - chatSessionDate.getTime();
     const diffDays = diffTime / (1000 * 3600 * 24); // Convert time difference to days
