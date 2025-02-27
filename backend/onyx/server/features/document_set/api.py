@@ -21,9 +21,11 @@ from onyx.server.features.document_set.models import CheckDocSetPublicResponse
 from onyx.server.features.document_set.models import DocumentSet
 from onyx.server.features.document_set.models import DocumentSetCreationRequest
 from onyx.server.features.document_set.models import DocumentSetUpdateRequest
+from onyx.utils.logger import setup_logger
 from onyx.utils.variable_functionality import fetch_ee_implementation_or_noop
 from shared_configs.contextvars import get_current_tenant_id
 
+logger = setup_logger()
 
 router = APIRouter(prefix="/manage")
 
@@ -83,6 +85,7 @@ def patch_document_set(
             user=user,
         )
     except Exception as e:
+        logger.exception("patch_document_set exceptioned")
         raise HTTPException(status_code=400, detail=str(e))
 
     primary_app.send_task(

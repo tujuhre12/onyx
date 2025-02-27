@@ -71,28 +71,21 @@ def get_session_with_tenant(*, tenant_id: str | None) -> Generator[Session, None
 
 
 def get_session() -> Generator[Session, None, None]:
-    return OnyxSession.get_session()
+    yield from OnyxSession.get_session()
 
 
 def get_multi_tenant_session(tenant_id: str) -> Generator[Session, None, None]:
-    return OnyxSession.get_multi_tenant_session(tenant_id)
+    yield from OnyxSession.get_multi_tenant_session(tenant_id)
 
 
 def get_single_tenant_session() -> Generator[Session, None, None]:
-    return OnyxSession.get_single_tenant_session()
+    yield from OnyxSession.get_single_tenant_session()
 
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """Proxy method that simply delegates to `get_async_session`."""
     async for session in OnyxSession.get_async_session():
         yield session
-
-
-# AsyncSessionLocal = sessionmaker(  # type: ignore
-#     bind=get_sqlalchemy_async_engine(),
-#     class_=AsyncSession,
-#     expire_on_commit=False,
-# )
 
 
 @asynccontextmanager

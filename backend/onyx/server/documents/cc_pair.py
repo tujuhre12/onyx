@@ -652,6 +652,8 @@ def associate_credential_to_connector(
         # Ensures we don't leave invalid connectors in the database
         # NOTE: consensus is that it makes sense to unify connector and ccpair creation flows
         # which would rid us of needing to handle cases like these
+        logger.exception("ValidationError")
+
         delete_connector(db_session, connector_id)
         db_session.commit()
 
