@@ -666,8 +666,6 @@ def associate_credential_to_connector(
 
     except Exception as e:
         logger.exception(f"Unexpected error: {e}")
-        delete_connector(db_session, connector_id)
-        db_session.commit()
 
         raise HTTPException(status_code=500, detail="Unexpected error")
 
