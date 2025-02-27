@@ -344,6 +344,7 @@ def list_bot_configs(
 
 
 MAX_SLACK_PAGES = 5
+SLACK_API_CHANNELS_PER_PAGE = 100
 
 
 @router.get(
@@ -374,19 +375,19 @@ def get_all_channels_from_slack_api(
         while current_page < MAX_SLACK_PAGES:
             current_page += 1
 
-            # Make API call with    cursor if we have one
+            # Make API call with cursor if we have one
             if next_cursor:
                 response = client.users_conversations(
                     types="public_channel,private_channel",
                     exclude_archived=True,
                     cursor=next_cursor,
-                    limit=100,  # Explicitly set limit to 100 channels per page
+                    limit=SLACK_API_CHANNELS_PER_PAGE,
                 )
             else:
                 response = client.users_conversations(
                     types="public_channel,private_channel",
                     exclude_archived=True,
-                    limit=100,  # Explicitly set limit to 100 channels per page
+                    limit=SLACK_API_CHANNELS_PER_PAGE,
                 )
 
             # Add channels to our list
@@ -394,9 +395,7 @@ def get_all_channels_from_slack_api(
                 all_channels.extend(response["channels"])
 
             # Check if we need to paginate
-            if response.get("response_metadata") and response["response_metadata"].get(
-                "next_cursor"
-            ):
+            if response.get("response_metadata", {}).get("next_cursor"):
                 next_cursor = response["response_metadata"]["next_cursor"]
                 if next_cursor:
                     if current_page == MAX_SLACK_PAGES:
