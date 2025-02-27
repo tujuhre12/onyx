@@ -255,7 +255,7 @@ export function SlackChannelConfigFormFields({
                 </Field>
                 <p className="mt-2 text-sm dark:text-neutral-400 text-neutral-600">
                   Note: This list shows public and private channels where the
-                  bot is a member (up to 500 channels). If you don't see a
+                  bot is a member (up to 500 channels). If you don&apos;t see a
                   channel, make sure the bot is added to that channel in Slack
                   first, or type the channel name manually.
                 </p>
