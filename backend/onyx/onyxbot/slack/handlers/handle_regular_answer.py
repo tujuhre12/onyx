@@ -28,7 +28,6 @@ from onyx.db.models import User
 from onyx.db.persona import get_persona_by_id
 from onyx.db.persona import persona_has_search_tool
 from onyx.db.session import get_session_with_current_tenant
-from onyx.db.session import get_session_with_tenant
 from onyx.db.users import get_user_by_email
 from onyx.onyxbot.slack.blocks import build_slack_response_blocks
 from onyx.onyxbot.slack.handlers.utils import send_team_member_message
@@ -72,7 +71,6 @@ def handle_regular_answer(
     channel: str,
     logger: OnyxLoggingAdapter,
     feedback_reminder_id: str | None,
-    tenant_id: str,
     num_retries: int = DANSWER_BOT_NUM_RETRIES,
     thread_context_percent: float = MAX_THREAD_CONTEXT_PERCENTAGE,
     should_respond_with_error_msgs: bool = DANSWER_BOT_DISPLAY_ERROR_MSGS,
@@ -87,7 +85,7 @@ def handle_regular_answer(
     user = None
     if message_info.is_bot_dm:
         if message_info.email:
-            with get_session_with_tenant(tenant_id=tenant_id) as db_session:
+            with get_session_with_current_tenant() as db_session:
                 user = get_user_by_email(message_info.email, db_session)
 
     document_set_names: list[str] | None = None
@@ -96,7 +94,7 @@ def handle_regular_answer(
     # This way slack flow always has a persona
     persona = slack_channel_config.persona
     if not persona:
-        with get_session_with_tenant(tenant_id=tenant_id) as db_session:
+        with get_session_with_current_tenant() as db_session:
             persona = get_persona_by_id(DEFAULT_PERSONA_ID, user, db_session)
             document_set_names = [
                 document_set.name for document_set in persona.document_sets
@@ -157,7 +155,7 @@ def handle_regular_answer(
     def _get_slack_answer(
         new_message_request: CreateChatMessageRequest, onyx_user: User | None
     ) -> ChatOnyxBotResponse:
-        with get_session_with_tenant(tenant_id=tenant_id) as db_session:
+        with get_session_with_current_tenant() as db_session:
             packets = stream_chat_message_objects(
                 new_msg_req=new_message_request,
                 user=onyx_user,
@@ -197,7 +195,7 @@ def handle_regular_answer(
             enable_auto_detect_filters=auto_detect_filters,
         )
 
-        with get_session_with_tenant(tenant_id=tenant_id) as db_session:
+        with get_session_with_current_tenant() as db_session:
             answer_request = prepare_chat_message_request(
                 message_text=user_message.message,
                 user=user,
@@ -361,7 +359,6 @@ def handle_regular_answer(
         return True
 
     all_blocks = build_slack_response_blocks(
-        tenant_id=tenant_id,
         message_info=message_info,
         answer=answer,
         channel_conf=channel_conf,
