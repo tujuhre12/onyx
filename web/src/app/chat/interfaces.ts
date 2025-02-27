@@ -69,7 +69,7 @@ export interface ChatSession {
   id: string;
   name: string;
   persona_id: number;
-  time_created: string;
+  time_updated: string;
   shared_status: ChatSessionSharedStatus;
   folder_id: number | null;
   current_alternate_model: string;
@@ -121,7 +121,7 @@ export interface BackendChatSession {
   persona_icon_color: string | null;
   persona_icon_shape: number | null;
   messages: BackendMessage[];
-  time_created: string;
+  time_updated: string;
   shared_status: ChatSessionSharedStatus;
   current_temperature_override: number | null;
   current_alternate_model?: string;
