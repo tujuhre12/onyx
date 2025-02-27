@@ -599,7 +599,7 @@ export function SlackChannelConfigFormFields({
               />
               <CheckFormField
                 name="is_ephemeral"
-                label="Respond to as ephemeral message"
+                label="Respond to user as ephemeral message"
                 tooltip="If set, OnyxBot will respond only to the user as an ephemeral message"
               />
 
