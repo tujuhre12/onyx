@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import useSWR, { mutate } from "swr";
-import { FetchError, errorHandlingFetcher } from "@/lib/fetcher";
+import { FetchError } from "@/lib/fetcher";
 import { ErrorCallout } from "@/components/ErrorCallout";
 import { LoadingAnimation } from "@/components/Loading";
 import { PopupSpec, usePopup } from "@/components/admin/connectors/Popup";
@@ -16,54 +15,42 @@ import { GmailAuthSection, GmailJsonUploadSection } from "./Credential";
 import { usePublicCredentials, useBasicConnectorStatus } from "@/lib/hooks";
 import Title from "@/components/ui/title";
 import { useUser } from "@/components/user/UserProvider";
-import { ConnectorSnapshot } from "@/lib/connectors/connectors";
-import { buildSimilarCredentialInfoURL } from "@/app/admin/connector/[ccPairId]/lib";
-
-const useConnectorsByCredentialId = (credential_id: number | null) => {
-  let url: string | null = null;
-  if (credential_id !== null) {
-    url = `/api/manage/admin/connector?credential=${credential_id}`;
-  }
-  const swrResponse = useSWR<ConnectorSnapshot[]>(url, errorHandlingFetcher);
-
-  return {
-    ...swrResponse,
-    refreshConnectorsByCredentialId: () => mutate(url),
-  };
-};
+import {
+  useGoogleAppCredential,
+  useGoogleServiceAccountKey,
+  useGoogleCredentials,
+  useConnectorsByCredentialId,
+  checkCredentialsFetched,
+  filterUploadedCredentials,
+  checkConnectorsExist,
+  refreshAllGoogleData,
+} from "@/lib/googleConnectorHooks";
 
 export const GmailMain = () => {
   const { isAdmin, user } = useUser();
   const { popup, setPopup } = usePopup();
 
-  // tries getting the uploaded credential json
+  // Get app credential and service account key
   const {
     data: appCredentialData,
     isLoading: isAppCredentialLoading,
     error: isAppCredentialError,
-  } = useSWR<{ client_id: string }, FetchError>(
-    "/api/manage/admin/connector/gmail/app-credential",
-    errorHandlingFetcher
-  );
+  } = useGoogleAppCredential("gmail");
 
-  // tries getting the uploaded service account key
   const {
     data: serviceAccountKeyData,
     isLoading: isServiceAccountKeyLoading,
     error: isServiceAccountKeyError,
-  } = useSWR<{ service_account_email: string }, FetchError>(
-    "/api/manage/admin/connector/gmail/service-account-key",
-    errorHandlingFetcher
-  );
+  } = useGoogleServiceAccountKey("gmail");
 
-  // gets all connector statuses
+  // Get connector statuses
   const {
     data: connectorIndexingStatuses,
     isLoading: isConnectorIndexingStatusesLoading,
     error: connectorIndexingStatusesError,
   } = useBasicConnectorStatus();
 
-  // gets all public credentials
+  // Get all public credentials
   const {
     data: credentialsData,
     isLoading: isCredentialsLoading,
@@ -71,33 +58,18 @@ export const GmailMain = () => {
     refreshCredentials,
   } = usePublicCredentials();
 
-  // gets all credentials for source type gmail
+  // Get Gmail-specific credentials
   const {
     data: gmailCredentials,
     isLoading: isGmailCredentialsLoading,
     error: gmailCredentialsError,
-  } = useSWR<Credential<any>[]>(
-    buildSimilarCredentialInfoURL(ValidSources.Gmail),
-    errorHandlingFetcher,
-    { refreshInterval: 5000 }
-  );
+  } = useGoogleCredentials(ValidSources.Gmail);
 
-  // filters down to just credentials that were created via upload (there should be only one)
-  let credential_id = null;
-  if (gmailCredentials) {
-    const gmailUploadedCredentials: Credential<GmailCredentialJson>[] =
-      gmailCredentials.filter(
-        (gmailCredential) =>
-          gmailCredential.credential_json.authentication_method !==
-          "oauth_interactive"
-      );
+  // Filter uploaded credentials and get credential ID
+  const { credential_id, uploadedCredentials } =
+    filterUploadedCredentials(gmailCredentials);
 
-    if (gmailUploadedCredentials.length > 0) {
-      credential_id = gmailUploadedCredentials[0].id;
-    }
-  }
-
-  // retrieves all connectors for that credential id
+  // Get connectors for the credential ID
   const {
     data: gmailConnectors,
     isLoading: isGmailConnectorsLoading,
@@ -105,13 +77,25 @@ export const GmailMain = () => {
     refreshConnectorsByCredentialId,
   } = useConnectorsByCredentialId(credential_id);
 
-  const appCredentialSuccessfullyFetched =
-    appCredentialData ||
-    (isAppCredentialError && isAppCredentialError.status === 404);
-  const serviceAccountKeySuccessfullyFetched =
-    serviceAccountKeyData ||
-    (isServiceAccountKeyError && isServiceAccountKeyError.status === 404);
+  // Check if credentials were successfully fetched
+  const {
+    appCredentialSuccessfullyFetched,
+    serviceAccountKeySuccessfullyFetched,
+  } = checkCredentialsFetched(
+    appCredentialData,
+    isAppCredentialError,
+    serviceAccountKeyData,
+    isServiceAccountKeyError
+  );
 
+  // Handle refresh of all data
+  const handleRefresh = () => {
+    refreshCredentials();
+    refreshConnectorsByCredentialId();
+    refreshAllGoogleData(ValidSources.Gmail);
+  };
+
+  // Loading state
   if (
     (!appCredentialSuccessfullyFetched && isAppCredentialLoading) ||
     (!serviceAccountKeySuccessfullyFetched && isServiceAccountKeyLoading) ||
@@ -127,6 +111,7 @@ export const GmailMain = () => {
     );
   }
 
+  // Error states
   if (credentialsError || !credentialsData) {
     return <ErrorCallout errorTitle="Failed to load credentials." />;
   }
@@ -148,7 +133,16 @@ export const GmailMain = () => {
     );
   }
 
-  // get the actual uploaded oauth or service account credentials
+  if (gmailConnectorsError) {
+    return (
+      <ErrorCallout errorTitle="Failed to load Gmail associated connectors." />
+    );
+  }
+
+  // Check if connectors exist
+  const connectorExistsFromCredential = checkConnectorsExist(gmailConnectors);
+
+  // Get the uploaded OAuth credential
   const gmailPublicUploadedCredential:
     | Credential<GmailCredentialJson>
     | undefined = credentialsData.find(
@@ -159,6 +153,7 @@ export const GmailMain = () => {
       credential.credential_json.authentication_method !== "oauth_interactive"
   );
 
+  // Get the service account credential
   const gmailServiceAccountCredential:
     | Credential<GmailServiceAccountCredentialJson>
     | undefined = credentialsData.find(
@@ -167,24 +162,19 @@ export const GmailMain = () => {
       credential.source === "gmail"
   );
 
-  if (gmailConnectorsError) {
-    return (
-      <ErrorCallout errorTitle="Failed to load Gmail associated connectors." />
-    );
-  }
-
-  let connectorExists = false;
-  if (gmailConnectors) {
-    if (gmailConnectors.length > 0) {
-      connectorExists = true;
-    }
-  }
-
   // Filter connector statuses for Gmail
   const gmailConnectorIndexingStatuses: CCPairBasicInfo[] =
     connectorIndexingStatuses.filter(
       (connectorIndexingStatus) => connectorIndexingStatus.source === "gmail"
     );
+
+  const connectorExists =
+    connectorExistsFromCredential || gmailConnectorIndexingStatuses.length > 0;
+
+  // Check if credentials have been uploaded and processed
+  const hasUploadedCredentials =
+    Boolean(appCredentialData?.client_id) ||
+    Boolean(serviceAccountKeyData?.service_account_email);
 
   return (
     <>
@@ -197,23 +187,22 @@ export const GmailMain = () => {
         appCredentialData={appCredentialData}
         serviceAccountCredentialData={serviceAccountKeyData}
         isAdmin={isAdmin}
+        onSuccess={handleRefresh}
       />
 
-      {isAdmin && (
+      {isAdmin && hasUploadedCredentials && (
         <>
           <Title className="mb-2 mt-6 ml-auto mr-auto">
             Step 2: Authenticate with Onyx
           </Title>
           <GmailAuthSection
             setPopup={setPopup}
-            refreshCredentials={refreshCredentials}
+            refreshCredentials={handleRefresh}
             gmailPublicCredential={gmailPublicUploadedCredential}
             gmailServiceAccountCredential={gmailServiceAccountCredential}
             appCredentialData={appCredentialData}
             serviceAccountKeyData={serviceAccountKeyData}
-            connectorExists={
-              connectorExists || gmailConnectorIndexingStatuses.length > 0
-            }
+            connectorExists={connectorExists}
             user={user}
           />
         </>
