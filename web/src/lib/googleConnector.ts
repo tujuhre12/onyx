@@ -5,9 +5,15 @@ import { ConnectorSnapshot } from "@/lib/connectors/connectors";
 import { ValidSources } from "@/lib/types";
 import { buildSimilarCredentialInfoURL } from "@/app/admin/connector/[ccPairId]/lib";
 
+// Constants for service names to avoid typos
+export const GOOGLE_SERVICES = {
+  GMAIL: "gmail",
+  GOOGLE_DRIVE: "google-drive",
+} as const;
+
 export const useGoogleAppCredential = (service: "gmail" | "google_drive") => {
   const endpoint = `/api/manage/admin/connector/${
-    service === "gmail" ? "gmail" : "google-drive"
+    service === "gmail" ? GOOGLE_SERVICES.GMAIL : GOOGLE_SERVICES.GOOGLE_DRIVE
   }/app-credential`;
 
   return useSWR<{ client_id: string }, FetchError>(
@@ -20,7 +26,7 @@ export const useGoogleServiceAccountKey = (
   service: "gmail" | "google_drive"
 ) => {
   const endpoint = `/api/manage/admin/connector/${
-    service === "gmail" ? "gmail" : "google-drive"
+    service === "gmail" ? GOOGLE_SERVICES.GMAIL : GOOGLE_SERVICES.GOOGLE_DRIVE
   }/service-account-key`;
 
   return useSWR<{ service_account_email: string }, FetchError>(
@@ -105,7 +111,10 @@ export const refreshAllGoogleData = (
 ) => {
   mutate(buildSimilarCredentialInfoURL(source));
 
-  const service = source === ValidSources.Gmail ? "gmail" : "google-drive";
+  const service =
+    source === ValidSources.Gmail
+      ? GOOGLE_SERVICES.GMAIL
+      : GOOGLE_SERVICES.GOOGLE_DRIVE;
   mutate(`/api/manage/admin/connector/${service}/app-credential`);
   mutate(`/api/manage/admin/connector/${service}/service-account-key`);
 };
