@@ -5,10 +5,6 @@ import { ConnectorSnapshot } from "@/lib/connectors/connectors";
 import { ValidSources } from "@/lib/types";
 import { buildSimilarCredentialInfoURL } from "@/app/admin/connector/[ccPairId]/lib";
 
-/**
- * Hook to fetch app credentials for Google services
- * @param service - The Google service (gmail or google_drive)
- */
 export const useGoogleAppCredential = (service: "gmail" | "google_drive") => {
   const endpoint = `/api/manage/admin/connector/${
     service === "gmail" ? "gmail" : "google-drive"
@@ -20,10 +16,6 @@ export const useGoogleAppCredential = (service: "gmail" | "google_drive") => {
   );
 };
 
-/**
- * Hook to fetch service account key for Google services
- * @param service - The Google service (gmail or google_drive)
- */
 export const useGoogleServiceAccountKey = (
   service: "gmail" | "google_drive"
 ) => {
@@ -37,10 +29,6 @@ export const useGoogleServiceAccountKey = (
   );
 };
 
-/**
- * Hook to fetch credentials for a specific Google service
- * @param source - The source type (Gmail or GoogleDrive)
- */
 export const useGoogleCredentials = (
   source: ValidSources.Gmail | ValidSources.GoogleDrive
 ) => {
@@ -51,10 +39,6 @@ export const useGoogleCredentials = (
   );
 };
 
-/**
- * Hook to fetch connectors by credential ID
- * @param credential_id - The credential ID to fetch connectors for
- */
 export const useConnectorsByCredentialId = (credential_id: number | null) => {
   let url: string | null = null;
   if (credential_id !== null) {
@@ -68,9 +52,6 @@ export const useConnectorsByCredentialId = (credential_id: number | null) => {
   };
 };
 
-/**
- * Helper function to check if app credentials and service account keys were successfully fetched
- */
 export const checkCredentialsFetched = (
   appCredentialData: any,
   appCredentialError: FetchError | undefined,
@@ -91,9 +72,6 @@ export const checkCredentialsFetched = (
   };
 };
 
-/**
- * Helper function to filter uploaded credentials
- */
 export const filterUploadedCredentials = <
   T extends { authentication_method?: string },
 >(
@@ -116,28 +94,18 @@ export const filterUploadedCredentials = <
   return { credential_id, uploadedCredentials };
 };
 
-/**
- * Helper function to check if connectors exist for a credential
- */
 export const checkConnectorsExist = (
   connectors: ConnectorSnapshot[] | undefined
 ): boolean => {
   return !!connectors && connectors.length > 0;
 };
 
-/**
- * Helper function to refresh all Google connector data
- */
 export const refreshAllGoogleData = (
   source: ValidSources.Gmail | ValidSources.GoogleDrive
 ) => {
-  // Refresh credentials
   mutate(buildSimilarCredentialInfoURL(source));
 
-  // Refresh app credential
   const service = source === ValidSources.Gmail ? "gmail" : "google-drive";
   mutate(`/api/manage/admin/connector/${service}/app-credential`);
-
-  // Refresh service account key
   mutate(`/api/manage/admin/connector/${service}/service-account-key`);
 };
