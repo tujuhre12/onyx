@@ -24,7 +24,7 @@ import {
   filterUploadedCredentials,
   checkConnectorsExist,
   refreshAllGoogleData,
-} from "@/lib/googleConnectorHooks";
+} from "@/lib/googleConnector";
 
 export const GmailMain = () => {
   const { isAdmin, user } = useUser();

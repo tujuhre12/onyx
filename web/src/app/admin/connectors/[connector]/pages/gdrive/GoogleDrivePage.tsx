@@ -24,7 +24,7 @@ import {
   filterUploadedCredentials,
   checkConnectorsExist,
   refreshAllGoogleData,
-} from "@/lib/googleConnectorHooks";
+} from "@/lib/googleConnector";
 
 const GDriveMain = ({
   setPopup,
