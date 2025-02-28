@@ -395,7 +395,10 @@ def get_all_channels_from_slack_api(
                 all_channels.extend(response["channels"])
 
             # Check if we need to paginate
-            if response.get("response_metadata", {}).get("next_cursor"):
+            if (
+                "response_metadata" in response
+                and "next_cursor" in response["response_metadata"]
+            ):
                 next_cursor = response["response_metadata"]["next_cursor"]
                 if next_cursor:
                     if current_page == MAX_SLACK_PAGES:
