@@ -214,8 +214,15 @@ def create_update_persona(
             if not create_persona_request.is_public:
                 raise ValueError("Cannot make a default persona non public")
 
-            if user and user.role != UserRole.ADMIN:
-                raise ValueError("Only admins can make a default persona")
+            if user:
+                # Curators can edit default personas, but not make them
+                if (
+                    user.role == UserRole.CURATOR
+                    or user.role == UserRole.GLOBAL_CURATOR
+                ):
+                    create_persona_request.is_default_persona = None
+                elif user.role != UserRole.ADMIN:
+                    raise ValueError("Only admins can make a default persona")
 
         persona = upsert_persona(
             persona_id=persona_id,
@@ -428,7 +435,7 @@ def upsert_persona(
     remove_image: bool | None = None,
     search_start_date: datetime | None = None,
     builtin_persona: bool = False,
-    is_default_persona: bool = False,
+    is_default_persona: bool | None = None,
     label_ids: list[int] | None = None,
     chunks_above: int = CONTEXT_CHUNKS_ABOVE,
     chunks_below: int = CONTEXT_CHUNKS_BELOW,
@@ -523,7 +530,11 @@ def upsert_persona(
         existing_persona.is_visible = is_visible
         existing_persona.search_start_date = search_start_date
         existing_persona.labels = labels or []
-        existing_persona.is_default_persona = is_default_persona
+        existing_persona.is_default_persona = (
+            is_default_persona
+            if is_default_persona is not None
+            else existing_persona.is_default_persona
+        )
         # Do not delete any associations manually added unless
         # a new updated list is provided
         if document_sets is not None:
@@ -575,7 +586,9 @@ def upsert_persona(
             display_priority=display_priority,
             is_visible=is_visible,
             search_start_date=search_start_date,
-            is_default_persona=is_default_persona,
+            is_default_persona=is_default_persona
+            if is_default_persona is not None
+            else False,
             labels=labels or [],
         )
         db_session.add(new_persona)
