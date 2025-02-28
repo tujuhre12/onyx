@@ -209,6 +209,7 @@ def create_update_persona(
         if not all_prompt_ids:
             raise ValueError("No prompt IDs provided")
 
+        is_default_persona: bool | None = create_persona_request.is_default_persona
         # Default persona validation
         if create_persona_request.is_default_persona:
             if not create_persona_request.is_public:
@@ -220,7 +221,7 @@ def create_update_persona(
                     user.role == UserRole.CURATOR
                     or user.role == UserRole.GLOBAL_CURATOR
                 ):
-                    create_persona_request.is_default_persona = None
+                    is_default_persona = None
                 elif user.role != UserRole.ADMIN:
                     raise ValueError("Only admins can make a default persona")
 
@@ -248,7 +249,7 @@ def create_update_persona(
             num_chunks=create_persona_request.num_chunks,
             llm_relevance_filter=create_persona_request.llm_relevance_filter,
             llm_filter_extraction=create_persona_request.llm_filter_extraction,
-            is_default_persona=create_persona_request.is_default_persona,
+            is_default_persona=is_default_persona,
         )
 
         versioned_make_persona_private = fetch_versioned_implementation(
