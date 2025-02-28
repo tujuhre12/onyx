@@ -16,7 +16,7 @@ export function BillingAlerts({
 
   const messages: string[] = [];
 
-  if (isExpired) {
+  if (true) {
     messages.push(
       "Your subscription has expired. Please resubscribe to continue using the service."
     );
@@ -28,7 +28,7 @@ export function BillingAlerts({
       ).toLocaleDateString()}. You can resubscribe before this date to remain uninterrupted.`
     );
   }
-  if (isTrialing) {
+  if (true) {
     messages.push(
       `You're currently on a trial. Your trial ends on ${
         billingInformation.trial_end
@@ -37,7 +37,7 @@ export function BillingAlerts({
       }.`
     );
   }
-  if (noPaymentMethod) {
+  if (true) {
     messages.push(
       "You currently have no payment method on file. Please add one to avoid service interruption."
     );
