@@ -67,7 +67,6 @@ export const DriveJsonUpload = ({
       <Button
         disabled={!credentialJsonStr}
         onClick={async () => {
-          // check if the JSON is a app credential or a service account credential
           let credentialFileType: GoogleDriveCredentialJsonTypes;
           try {
             const appCredentialJson = JSON.parse(credentialJsonStr!);
@@ -178,7 +177,6 @@ export const DriveJsonUploadSection = ({
   const [localAppCredentialData, setLocalAppCredentialData] =
     useState(appCredentialData);
 
-  // Update local state when props change
   useEffect(() => {
     setLocalServiceAccountData(serviceAccountCredentialData);
     setLocalAppCredentialData(appCredentialData);
@@ -220,7 +218,6 @@ export const DriveJsonUploadSection = ({
                   mutate(
                     "/api/manage/admin/connector/google-drive/service-account-key"
                   );
-                  // Also mutate the credential endpoints to ensure Step 2 is reset
                   mutate(
                     buildSimilarCredentialInfoURL(ValidSources.GoogleDrive)
                   );
@@ -228,7 +225,6 @@ export const DriveJsonUploadSection = ({
                     message: "Successfully deleted service account key",
                     type: "success",
                   });
-                  // Immediately update local state
                   setLocalServiceAccountData(undefined);
                   handleSuccess();
                 } else {
@@ -280,7 +276,6 @@ export const DriveJsonUploadSection = ({
                   mutate(
                     "/api/manage/admin/connector/google-drive/app-credential"
                   );
-                  // Also mutate the credential endpoints to ensure Step 2 is reset
                   mutate(
                     buildSimilarCredentialInfoURL(ValidSources.GoogleDrive)
                   );
@@ -288,7 +283,6 @@ export const DriveJsonUploadSection = ({
                     message: "Successfully deleted app credentials",
                     type: "success",
                   });
-                  // Immediately update local state
                   setLocalAppCredentialData(undefined);
                   handleSuccess();
                 } else {
@@ -393,7 +387,7 @@ export const DriveAuthSection = ({
   appCredentialData,
   setPopup,
   refreshCredentials,
-  connectorAssociated, // don't allow revoke if a connector / credential pair is active with the uploaded credential
+  connectorAssociated,
   user,
 }: DriveCredentialSectionProps) => {
   const router = useRouter();
@@ -411,7 +405,6 @@ export const DriveAuthSection = ({
     setLocalGoogleDriveServiceAccountCredential,
   ] = useState(googleDriveServiceAccountCredential);
 
-  // Update local state when props change
   useEffect(() => {
     setLocalServiceAccountData(serviceAccountKeyData);
     setLocalAppCredentialData(appCredentialData);

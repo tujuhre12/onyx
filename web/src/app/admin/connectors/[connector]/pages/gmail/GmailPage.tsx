@@ -30,7 +30,6 @@ export const GmailMain = () => {
   const { isAdmin, user } = useUser();
   const { popup, setPopup } = usePopup();
 
-  // Get app credential and service account key
   const {
     data: appCredentialData,
     isLoading: isAppCredentialLoading,
@@ -43,14 +42,12 @@ export const GmailMain = () => {
     error: isServiceAccountKeyError,
   } = useGoogleServiceAccountKey("gmail");
 
-  // Get connector statuses
   const {
     data: connectorIndexingStatuses,
     isLoading: isConnectorIndexingStatusesLoading,
     error: connectorIndexingStatusesError,
   } = useBasicConnectorStatus();
 
-  // Get all public credentials
   const {
     data: credentialsData,
     isLoading: isCredentialsLoading,
@@ -58,18 +55,15 @@ export const GmailMain = () => {
     refreshCredentials,
   } = usePublicCredentials();
 
-  // Get Gmail-specific credentials
   const {
     data: gmailCredentials,
     isLoading: isGmailCredentialsLoading,
     error: gmailCredentialsError,
   } = useGoogleCredentials(ValidSources.Gmail);
 
-  // Filter uploaded credentials and get credential ID
   const { credential_id, uploadedCredentials } =
     filterUploadedCredentials(gmailCredentials);
 
-  // Get connectors for the credential ID
   const {
     data: gmailConnectors,
     isLoading: isGmailConnectorsLoading,
@@ -77,7 +71,6 @@ export const GmailMain = () => {
     refreshConnectorsByCredentialId,
   } = useConnectorsByCredentialId(credential_id);
 
-  // Check if credentials were successfully fetched
   const {
     appCredentialSuccessfullyFetched,
     serviceAccountKeySuccessfullyFetched,
@@ -88,14 +81,12 @@ export const GmailMain = () => {
     isServiceAccountKeyError
   );
 
-  // Handle refresh of all data
   const handleRefresh = () => {
     refreshCredentials();
     refreshConnectorsByCredentialId();
     refreshAllGoogleData(ValidSources.Gmail);
   };
 
-  // Loading state
   if (
     (!appCredentialSuccessfullyFetched && isAppCredentialLoading) ||
     (!serviceAccountKeySuccessfullyFetched && isServiceAccountKeyLoading) ||
@@ -111,7 +102,6 @@ export const GmailMain = () => {
     );
   }
 
-  // Error states
   if (credentialsError || !credentialsData) {
     return <ErrorCallout errorTitle="Failed to load credentials." />;
   }
@@ -139,10 +129,8 @@ export const GmailMain = () => {
     );
   }
 
-  // Check if connectors exist
   const connectorExistsFromCredential = checkConnectorsExist(gmailConnectors);
 
-  // Get the uploaded OAuth credential
   const gmailPublicUploadedCredential:
     | Credential<GmailCredentialJson>
     | undefined = credentialsData.find(
@@ -153,7 +141,6 @@ export const GmailMain = () => {
       credential.credential_json.authentication_method !== "oauth_interactive"
   );
 
-  // Get the service account credential
   const gmailServiceAccountCredential:
     | Credential<GmailServiceAccountCredentialJson>
     | undefined = credentialsData.find(
@@ -162,7 +149,6 @@ export const GmailMain = () => {
       credential.source === "gmail"
   );
 
-  // Filter connector statuses for Gmail
   const gmailConnectorIndexingStatuses: CCPairBasicInfo[] =
     connectorIndexingStatuses.filter(
       (connectorIndexingStatus) => connectorIndexingStatus.source === "gmail"
@@ -171,7 +157,6 @@ export const GmailMain = () => {
   const connectorExists =
     connectorExistsFromCredential || gmailConnectorIndexingStatuses.length > 0;
 
-  // Check if credentials have been uploaded and processed
   const hasUploadedCredentials =
     Boolean(appCredentialData?.client_id) ||
     Boolean(serviceAccountKeyData?.service_account_email);

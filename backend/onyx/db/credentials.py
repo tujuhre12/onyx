@@ -461,7 +461,6 @@ def cleanup_google_drive_credentials(db_session: Session) -> None:
 def delete_service_account_credentials(
     user: User | None, db_session: Session, source: DocumentSource
 ) -> None:
-    print("chomp chomp delete")
     credentials = fetch_credentials_for_user(db_session=db_session, user=user)
     for credential in credentials:
         if (
