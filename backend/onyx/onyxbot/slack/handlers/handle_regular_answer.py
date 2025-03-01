@@ -85,6 +85,7 @@ def handle_regular_answer(
 
     # Capture whether response mode for channel is ephemeral
     send_as_ephemeral = slack_channel_config.channel_config.get("is_ephemeral", False)
+    public_only = slack_channel_config.persona is None
 
     # If the channel mis configured to respond with an ephemeral message,
     # or the message is a dm to the Onyx bot,we should use the proper user from the email
@@ -92,7 +93,7 @@ def handle_regular_answer(
     # to public docs as other people in the channel can see the response.
 
     user = None
-    if message_info.is_bot_dm or send_as_ephemeral:
+    if (message_info.is_bot_dm or send_as_ephemeral) and not public_only:
         if message_info.email:
             with get_session_with_current_tenant() as db_session:
                 user = get_user_by_email(message_info.email, db_session)
