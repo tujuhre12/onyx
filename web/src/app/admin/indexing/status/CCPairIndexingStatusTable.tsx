@@ -468,6 +468,7 @@ export function CCPairIndexingStatusTable({
             last_finished_status: "success",
             latest_index_attempt: null,
             groups: [], // Add this line
+            is_seeded: false,
           }}
           isEditable={false}
         />

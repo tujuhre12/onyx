@@ -38,7 +38,7 @@ export function ConnectorCreatedSuccessModal() {
               Congratulations!
             </DialogTitle>
             <DialogDescription className="text-lg">
-              You've successfully created your first connector.
+              You&apos;ve successfully created your first connector.
             </DialogDescription>
           </div>
         </DialogHeader>
