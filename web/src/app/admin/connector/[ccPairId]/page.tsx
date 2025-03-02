@@ -46,6 +46,7 @@ import { IndexAttemptSnapshot } from "@/lib/types";
 import { Spinner } from "@/components/Spinner";
 import { Callout } from "@/components/ui/callout";
 import { FiAlertCircle } from "react-icons/fi";
+import { Card, CardHeader } from "@/components/ui/card";
 
 // synchronize these validations with the SQLAlchemy connector class until we have a
 // centralized schema for both frontend and backend
@@ -385,18 +386,6 @@ function Main({ ccPairId }: { ccPairId: number }) {
           status={ccPair.last_index_attempt_status || "not_started"}
           ccPairStatus={ccPair.status}
         />
-
-        {!ccPair.last_successful_index_time ? (
-          <Badge icon={FiAlertCircle} variant="destructive">
-            No successful index
-          </Badge>
-        ) : ccPair.access_type == "sync" && !ccPair.last_time_perm_sync ? (
-          <Badge icon={FiAlertCircle} variant="destructive">
-            Syncing
-          </Badge>
-        ) : (
-          <></>
-        )}
       </div>
 
       <div className="text-sm mt-1">
@@ -414,6 +403,29 @@ function Main({ ccPairId }: { ccPairId: number }) {
             : ccPair.access_type === "sync"
               ? "Sync connectors are not editable by curators unless the curator is also the owner."
               : "This connector belongs to groups where you don't have curator permissions, so it's not editable."}
+        </div>
+      )}
+
+      {(!ccPair.last_successful_index_time ||
+        (ccPair.access_type === "sync" && !ccPair.last_time_perm_sync)) && (
+        <div className="mt-4">
+          <Card className="max-w-2xl w-fit border-blue-500 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-700 p-4">
+            <div className="flex items-start gap-2">
+              <FiAlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-1" />
+              <div>
+                <h4 className="font-semibold text-blue-700 dark:text-blue-400">
+                  {!ccPair.last_successful_index_time
+                    ? "No Successful Indexing"
+                    : "Permissions Sync In Progress"}
+                </h4>
+                <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
+                  {!ccPair.last_successful_index_time
+                    ? "This connector has never been successfully indexed. Documents from this connector will not appear in search results until indexing completes successfully."
+                    : "Permissions synchronization is still in progress for this connector. Some documents may not appear in search results until this process completes."}
+                </p>
+              </div>
+            </div>
+          </Card>
         </div>
       )}
 

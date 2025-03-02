@@ -80,7 +80,7 @@ function SummaryRow({
 
       <TableCell>
         <div className="text-sm text-neutral-500 dark:text-neutral-300">
-          Complete Connectors
+          Ready Connectors
         </div>
         <div className="text-xl font-semibold">
           {summary.complete}/{summary.count}
@@ -218,25 +218,6 @@ border border-border dark:border-neutral-700
       <TableCell className="">
         <p className="lg:w-[500px] flex gap-x-2 xl:w-[600px] inline-block ellipsis truncate">
           <span>{ccPairsIndexingStatus.name}</span>
-
-          {!ccPairsIndexingStatus.last_success && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge
-                    variant="secondary"
-                    icon={FiAlertCircle}
-                    className="text-xs"
-                  >
-                    Has not been successfully indexed yet
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>This connector has not been successfully indexed yet.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
         </p>
       </TableCell>
       <TableCell>
@@ -256,7 +237,7 @@ border border-border dark:border-neutral-700
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="flex items-center">
+                  <span className="flex gap-x-1 items-center">
                     <FiAlertTriangle className="mr-1 text-yellow-600" />
                   </span>
                 </TooltipTrigger>

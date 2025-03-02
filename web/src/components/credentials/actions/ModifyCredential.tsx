@@ -15,6 +15,7 @@ import {
   Credential,
 } from "@/lib/connectors/credentials";
 import { Connector } from "@/lib/connectors/connectors";
+import { ConfirmEntityModal } from "@/components/modals/ConfirmEntityModal";
 
 const CredentialSelectionTable = ({
   credentials,
@@ -188,35 +189,16 @@ export default function ModifyCredential({
   return (
     <>
       {confirmDeletionCredential != null && (
-        <Modal
-          onOutsideClick={() => setConfirmDeletionCredential(null)}
-          className="max-w-sm"
-        >
-          <>
-            <p className="text-lg mb-2">
-              Are you sure you want to delete this credential? You cannot delete
-              credentials that are linked to live connectors.
-            </p>
-            <div className="mt-6 flex justify-between">
-              <button
-                className="rounded py-1.5 px-2 bg-background-800 text-text-200"
-                onClick={async () => {
-                  await onDeleteCredential(confirmDeletionCredential);
-                  setConfirmDeletionCredential(null);
-                }}
-              >
-                Yes
-              </button>
-              <button
-                onClick={() => setConfirmDeletionCredential(null)}
-                className="rounded py-1.5 px-2 bg-background-150 text-text-800"
-              >
-                {" "}
-                No
-              </button>
-            </div>
-          </>
-        </Modal>
+        <ConfirmEntityModal
+          entityType="Credential"
+          entityName={confirmDeletionCredential.name || "Unnamed Credential"}
+          onClose={() => setConfirmDeletionCredential(null)}
+          onSubmit={async () => {
+            await onDeleteCredential(confirmDeletionCredential);
+            setConfirmDeletionCredential(null);
+          }}
+          additionalDetails="You cannot delete credentials that are linked to live connectors."
+        />
       )}
 
       <div className="mb-0">
