@@ -92,6 +92,7 @@ from onyx.db.enums import IndexingMode
 from onyx.db.index_attempt import get_index_attempts_for_cc_pair
 from onyx.db.index_attempt import get_latest_index_attempts_by_status
 from onyx.db.index_attempt import get_latest_index_attempts_parallel
+from onyx.db.models import Connector
 from onyx.db.models import ConnectorCredentialPair
 from onyx.db.models import IndexAttempt
 from onyx.db.models import IndexingStatus
@@ -789,6 +790,7 @@ def get_connector_indexing_status(
                     if latest_index_attempt
                     else None
                 ),
+                is_seeded=is_connector_seeded(connector),
             )
         )
 
@@ -1243,7 +1245,16 @@ def get_connector_by_id(
 
 class BasicCCPairInfo(BaseModel):
     has_successful_run: bool
+    has_successful_sync_if_needs_sync: bool
+    seeded: bool
     source: DocumentSource
+
+
+def is_connector_seeded(connector: Connector) -> bool:
+    return (
+        connector.connector_specific_config.get("base_url")
+        == "https://docs.onyx.app/more/use_cases"
+    )
 
 
 @router.get("/connector-status")
@@ -1257,10 +1268,16 @@ def get_basic_connector_indexing_status(
         get_editable=False,
         user=user,
     )
+
     return [
         BasicCCPairInfo(
             has_successful_run=cc_pair.last_successful_index_time is not None,
+            has_successful_sync_if_needs_sync=(
+                cc_pair.last_time_perm_sync is not None
+                or cc_pair.access_type != AccessType.SYNC
+            ),
             source=cc_pair.connector.source,
+            seeded=is_connector_seeded(cc_pair.connector),
         )
         for cc_pair in cc_pairs
         if cc_pair.connector.source != DocumentSource.INGESTION_API

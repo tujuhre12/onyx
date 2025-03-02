@@ -62,6 +62,7 @@ export async function Layout({ children }: { children: React.ReactNode }) {
     shouldShowWelcomeModal,
     ccPairs,
     inputPrompts,
+    showNoSourcesMessage,
     proSearchToggled,
   } = data;
 
@@ -83,6 +84,7 @@ export async function Layout({ children }: { children: React.ReactNode }) {
         openedFolders,
         shouldShowWelcomeModal,
         defaultAssistantId,
+        showNoSourcesMessage,
       }}
     >
       <ClientLayout

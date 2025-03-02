@@ -37,6 +37,7 @@ export default async function Layout({
     ccPairs,
     inputPrompts,
     proSearchToggled,
+    showNoSourcesMessage,
   } = data;
 
   return (
@@ -59,6 +60,7 @@ export default async function Layout({
           openedFolders,
           shouldShowWelcomeModal,
           defaultAssistantId,
+          showNoSourcesMessage,
         }}
       >
         {children}

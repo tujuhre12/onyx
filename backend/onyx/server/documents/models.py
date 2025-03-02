@@ -319,6 +319,7 @@ class ConnectorIndexingStatus(ConnectorStatus):
     latest_index_attempt: IndexAttemptSnapshot | None
     docs_indexed: int
     in_progress: bool
+    is_seeded: bool
 
 
 class ConnectorCredentialPairIdentifier(BaseModel):

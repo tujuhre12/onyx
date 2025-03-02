@@ -26,6 +26,7 @@ import {
 } from "@/components/resizable/constants";
 import { hasCompletedWelcomeFlowSS } from "@/components/initialSetup/welcome/WelcomeModalWrapper";
 import {
+  HIDE_NO_SOURCES_MESSAGE_COOKIE_NAME,
   NEXT_PUBLIC_DEFAULT_SIDEBAR_OPEN,
   NEXT_PUBLIC_ENABLE_CHROME_EXTENSION,
 } from "../constants";
@@ -47,6 +48,7 @@ interface FetchChatDataResult {
   shouldShowWelcomeModal: boolean;
   inputPrompts: InputPrompt[];
   proSearchToggled: boolean;
+  showNoSourcesMessage: boolean;
 }
 
 export async function fetchChatData(searchParams: {
@@ -130,6 +132,21 @@ export async function fetchChatData(searchParams: {
   } else {
     console.log(`Failed to fetch connectors - ${ccPairsResponse?.status}`);
   }
+
+  const hideNoSourcesMessage =
+    requestCookies
+      .get(HIDE_NO_SOURCES_MESSAGE_COOKIE_NAME)
+      ?.value.toLowerCase() === "true";
+
+  const showNoSourcesMessage = !(
+    ccPairs.some(
+      (ccPair) =>
+        !ccPair.seeded &&
+        ccPair.has_successful_run &&
+        ccPair.has_successful_sync_if_needs_sync
+    ) || hideNoSourcesMessage
+  );
+
   const availableSources: ValidSources[] = [];
   ccPairs.forEach((ccPair) => {
     if (!availableSources.includes(ccPair.source)) {
@@ -234,5 +251,6 @@ export async function fetchChatData(searchParams: {
     shouldShowWelcomeModal,
     inputPrompts,
     proSearchToggled,
+    showNoSourcesMessage,
   };
 }

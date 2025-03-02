@@ -73,7 +73,7 @@ import { DocumentResults } from "./documentSidebar/DocumentResults";
 import { OnyxInitializingLoader } from "@/components/OnyxInitializingLoader";
 import { FeedbackModal } from "./modal/FeedbackModal";
 import { ShareChatSessionModal } from "./modal/ShareChatSessionModal";
-import { FiArrowDown } from "react-icons/fi";
+import { FiArrowDown, FiExternalLink } from "react-icons/fi";
 import { ChatIntro } from "./ChatIntro";
 import { AIMessage, HumanMessage } from "./message/Messages";
 import { StarterMessages } from "../../components/assistants/StarterMessage";
@@ -138,6 +138,10 @@ import { useSidebarShortcut } from "@/lib/browserUtilities";
 import { ConfirmEntityModal } from "@/components/modals/ConfirmEntityModal";
 import { ChatSearchModal } from "./chat_search/ChatSearchModal";
 import { ErrorBanner } from "./message/Resubmit";
+import { ExternalLinkIcon } from "lucide-react";
+import { XIcon } from "@/components/icons/icons";
+import { HIDE_NO_SOURCES_MESSAGE_COOKIE_NAME } from "@/lib/constants";
+import Link from "next/link";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -166,8 +170,18 @@ export function ChatPage({
     folders,
     shouldShowWelcomeModal,
     refreshChatSessions,
+    showNoSourcesMessage: initialShowNoSourcesMessage,
     proSearchToggled,
   } = useChatContext();
+
+  const [showNoSourcesMessage, setShowNoSourcesMessage] = useState(
+    initialShowNoSourcesMessage
+  );
+
+  const dismissNoSourcesMessage = () => {
+    Cookies.set(HIDE_NO_SOURCES_MESSAGE_COOKIE_NAME, "true");
+    setShowNoSourcesMessage(false);
+  };
 
   const defaultAssistantIdRaw = searchParams.get(SEARCH_PARAM_NAMES.PERSONA_ID);
   const defaultAssistantId = defaultAssistantIdRaw
@@ -201,6 +215,7 @@ export function ChatPage({
   // available in server-side components
   const settings = useContext(SettingsContext);
   const enterpriseSettings = settings?.enterpriseSettings;
+  const [ready, setReady] = useState(false);
 
   const [documentSidebarVisible, setDocumentSidebarVisible] = useState(false);
   const [proSearchEnabled, setProSearchEnabled] = useState(proSearchToggled);
@@ -3118,6 +3133,39 @@ export function ChatPage({
                             </div>
                           )}
 
+                          {showNoSourcesMessage && (
+                            <div className="pointer-events-auto flex items-center justify-center w-full mb-2">
+                              <div className="bg-transparent border border-neutral-200 dark:border-neutral-700 rounded-lg p-3 flex items-center justify-between w-fit shadow-sm dark:shadow-md dark:shadow-black/20">
+                                <div className="flex gap-x-2 items-center">
+                                  <p className="text-neutral-500 dark:text-neutral-300 text-sm font-medium">
+                                    No sources have been completed. Answers will
+                                    only include the seeded doc
+                                  </p>
+                                  <Link
+                                    href="/admin/indexing/status"
+                                    className="underline flex items-center inline-flex"
+                                  >
+                                    <ExternalLinkIcon
+                                      className="text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+                                      size={16}
+                                    />
+                                  </Link>
+                                </div>
+                                <div className="w-[1px] ml-2 -my-3 h-auto self-stretch bg-neutral-200 dark:bg-neutral-700"></div>
+                                <button
+                                  className="ml-2 text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+                                  aria-label="Dismiss"
+                                  onClick={dismissNoSourcesMessage}
+                                >
+                                  <XIcon
+                                    size={16}
+                                    className="text-neutral-500 cursor-pointer hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+                                  />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
                           <div className="pointer-events-auto w-[95%] mx-auto relative mb-8">
                             <ChatInputBar
                               proSearchEnabled={proSearchEnabled}
@@ -3218,7 +3266,6 @@ export function ChatPage({
           </div>
           <FixedLogo backgroundToggled={sidebarVisible || showHistorySidebar} />
         </div>
-        {/* Right Sidebar - DocumentSidebar */}
       </div>
     </>
   );

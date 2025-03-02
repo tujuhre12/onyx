@@ -35,6 +35,7 @@ interface ChatContextProps {
   refreshInputPrompts: () => Promise<void>;
   inputPrompts: InputPrompt[];
   proSearchToggled: boolean;
+  showNoSourcesMessage: boolean;
 }
 
 const ChatContext = createContext<ChatContextProps | undefined>(undefined);

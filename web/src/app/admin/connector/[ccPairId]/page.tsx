@@ -421,7 +421,7 @@ function Main({ ccPairId }: { ccPairId: number }) {
                 <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
                   {!ccPair.last_successful_index_time
                     ? "This connector has never been successfully indexed. Documents from this connector will not appear in search results until indexing completes successfully."
-                    : "Permissions synchronization is still in progress for this connector. Some documents may not appear in search results until this process completes."}
+                    : "Permissions sync is still in progress for this connector. Some documents may not appear in search results until this process completes."}
                 </p>
               </div>
             </div>

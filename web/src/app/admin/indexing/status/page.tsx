@@ -7,10 +7,19 @@ import { AdminPageTitle } from "@/components/admin/Title";
 import Link from "next/link";
 import Text from "@/components/ui/text";
 import { useConnectorCredentialIndexingStatus } from "@/lib/hooks";
-import { usePopupFromQuery } from "@/components/popup/PopupFromQuery";
+import {
+  PopupMessages,
+  usePopupFromQuery,
+} from "@/components/popup/PopupFromQuery";
 import { Button } from "@/components/ui/button";
+import { useSearchParams } from "next/navigation";
+import { ConnectorCreatedSuccessModal } from "./ConnectorCreatedSuccessModal";
+import { useMemo } from "react";
 
-function Main() {
+// Constants
+const ADD_CONNECTOR_PATH = "/admin/add-connector";
+
+const ConnectorStatusList = () => {
   const {
     data: indexAttemptData,
     isLoading: indexAttemptIsLoading,
@@ -23,10 +32,12 @@ function Main() {
     error: editableIndexAttemptError,
   } = useConnectorCredentialIndexingStatus(undefined, true);
 
+  // Handle loading state
   if (indexAttemptIsLoading || editableIndexAttemptIsLoading) {
     return <LoadingAnimation text="" />;
   }
 
+  // Handle error states
   if (
     indexAttemptError ||
     !indexAttemptData ||
@@ -42,11 +53,12 @@ function Main() {
     );
   }
 
+  // Show empty state when no connectors
   if (indexAttemptData.length === 0) {
     return (
       <Text>
         It looks like you don&apos;t have any connectors setup yet. Visit the{" "}
-        <Link className="text-link" href="/admin/add-connector">
+        <Link className="text-link" href={ADD_CONNECTOR_PATH}>
           Add Connector
         </Link>{" "}
         page to get started!
@@ -54,36 +66,59 @@ function Main() {
     );
   }
 
-  // sort by source name
-  indexAttemptData.sort((a, b) => {
-    if (a.connector.source < b.connector.source) {
-      return -1;
-    } else if (a.connector.source > b.connector.source) {
-      return 1;
-    } else {
-      return 0;
-    }
-  });
+  // Sort data by source name
+  const sortedIndexAttemptData = [...indexAttemptData].sort((a, b) =>
+    a.connector.source.localeCompare(b.connector.source)
+  );
 
   return (
-    <CCPairIndexingStatusTable
-      ccPairsIndexingStatuses={indexAttemptData}
-      editableCcPairsIndexingStatuses={editableIndexAttemptData}
-    />
+    <>
+      <CCPairIndexingStatusTable
+        ccPairsIndexingStatuses={sortedIndexAttemptData}
+        editableCcPairsIndexingStatuses={editableIndexAttemptData}
+      />
+    </>
   );
-}
+};
 
 export default function Status() {
-  const { popup } = usePopupFromQuery({
-    "connector-created": {
-      message: "Connector created successfully",
-      type: "success",
-    },
+  const searchParams = useSearchParams();
+  const justCreatedConnector =
+    searchParams.get("message") === "connector-created";
+
+  // Use data to determine if we should show the popup or modal
+  const { data: indexAttemptData, isLoading: indexAttemptIsLoading } =
+    useConnectorCredentialIndexingStatus();
+
+  // Only show popup if we're not showing the success modal and there's exactly one seeded connector
+  const showSuccessModal = useMemo(() => {
+    return (
+      !indexAttemptIsLoading &&
+      indexAttemptData &&
+      justCreatedConnector &&
+      indexAttemptData.filter((attempt) => attempt.is_seeded).length === 1
+    );
+  }, [indexAttemptIsLoading, indexAttemptData]);
+
+  // Create popup messages based on query parameters
+  const popupMessages: PopupMessages = {
     "connector-deleted": {
       message: "Connector deleted successfully",
       type: "success",
     },
-  });
+  };
+
+  // Conditionally add connector-created message
+  if (!showSuccessModal) {
+    Object.assign(popupMessages, {
+      "connector-created": {
+        message: "Connector created successfully",
+        type: "success",
+      },
+    });
+  }
+
+  const { popup } = usePopupFromQuery(popupMessages);
 
   return (
     <div className="mx-auto container">
@@ -92,13 +127,15 @@ export default function Status() {
         icon={<NotebookIcon size={32} />}
         title="Existing Connectors"
         farRightElement={
-          <Link href="/admin/add-connector">
+          <Link href={ADD_CONNECTOR_PATH}>
             <Button variant="success-reverse">Add Connector</Button>
           </Link>
         }
       />
 
-      <Main />
+      {showSuccessModal && <ConnectorCreatedSuccessModal />}
+
+      <ConnectorStatusList />
     </div>
   );
 }

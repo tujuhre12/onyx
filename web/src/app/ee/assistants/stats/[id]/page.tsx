@@ -36,6 +36,7 @@ export default async function GalleryPage(props: {
     defaultAssistantId,
     inputPrompts,
     proSearchToggled,
+    showNoSourcesMessage,
   } = data;
 
   return (
@@ -56,6 +57,7 @@ export default async function GalleryPage(props: {
         openedFolders,
         shouldShowWelcomeModal,
         defaultAssistantId,
+        showNoSourcesMessage,
       }}
     >
       {shouldShowWelcomeModal && (

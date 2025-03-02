@@ -4,7 +4,7 @@ import { usePopup } from "../admin/connectors/Popup";
 import { PopupSpec } from "../admin/connectors/Popup";
 import { useRouter } from "next/navigation";
 
-interface PopupMessages {
+export interface PopupMessages {
   [key: string]: PopupSpec;
 }
 
