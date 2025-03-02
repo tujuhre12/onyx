@@ -49,9 +49,9 @@ export function ConnectorCreatedSuccessModal() {
             Syncing in progress
           </h3>
           <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
-            It will take some time to sync your documents. You'll know it's
-            complete when the "Last Indexed" field is filled in on the
-            Connectors page.
+            It will take some time to sync your documents. You&apos;ll know
+            it&apos;s complete when the &quot;Last Indexed&quot; field is filled
+            in on the Connectors page.
           </p>
         </div>
 
