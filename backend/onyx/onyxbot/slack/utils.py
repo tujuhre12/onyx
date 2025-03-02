@@ -547,7 +547,7 @@ def read_slack_thread(
 
                 # If auto-detected filters are on, use the second block for the actual answer
                 # The first block is the auto-detected filters
-                if message.startswith("_Filters"):
+                if message is not None and message.startswith("_Filters"):
                     if len(blocks) < 2:
                         logger.warning(f"Only filter blocks found: {reply}")
                         continue

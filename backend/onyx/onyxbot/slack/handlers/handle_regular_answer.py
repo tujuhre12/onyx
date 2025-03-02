@@ -85,15 +85,15 @@ def handle_regular_answer(
 
     # Capture whether response mode for channel is ephemeral
     send_as_ephemeral = slack_channel_config.channel_config.get("is_ephemeral", False)
-    public_only = slack_channel_config.persona is None
 
     # If the channel mis configured to respond with an ephemeral message,
-    # or the message is a dm to the Onyx bot,we should use the proper user from the email
-    # Otherwise - if not ephemeral or DM to Onyx Bo- we MUST None as the user to restrict
-    # to public docs as other people in the channel can see the response.
+    # or the message is a dm to the Onyx bot, we should use the proper onyx user from the email.
+    # This will make documents privately accessible to the user available to Onyx Bot answers.
+    # Otherwise - if not ephemeral or DM to Onyx Bot - we must use None as the user to restrict
+    # to public docs.
 
     user = None
-    if (message_info.is_bot_dm or send_as_ephemeral) and not public_only:
+    if message_info.is_bot_dm or send_as_ephemeral:
         if message_info.email:
             with get_session_with_current_tenant() as db_session:
                 user = get_user_by_email(message_info.email, db_session)
@@ -155,11 +155,10 @@ def handle_regular_answer(
     history_messages = messages[:-1]
     single_message_history = slackify_message_thread(history_messages) or None
 
+    # Always check for ACL permissions, also for documnt sets that were explicitly added
+    # to the Bot by the Administrator. (Change relative to earlier behavior where all documents
+    # in an attached document set were available to all users in the channel.)
     bypass_acl = False
-    if slack_channel_config.persona and slack_channel_config.persona.document_sets:
-        # For Slack channels, use the full document set, admin will be warned when configuring it
-        # with non-public document sets
-        bypass_acl = True
 
     if not message_ts_to_respond_to and not is_bot_msg:
         # if the message is not "/onyx" command, then it should have a message ts to respond to

@@ -127,10 +127,8 @@ def _build_ephemeral_publication_block(
         and (message_info.msg_to_respond == message_info.thread_to_respond)
     ):
         respond_ts = None
-        channel_thread_str = "Channel"
     else:
         respond_ts = original_question_ts
-        channel_thread_str = "Thread"
 
     action_values_ephemeral_message_channel_config = (
         ActionValuesEphemeralMessageChannelConfig(
@@ -172,7 +170,7 @@ def _build_ephemeral_publication_block(
         elements=[
             ButtonElement(
                 action_id=SHOW_EVERYONE_ACTION_ID,
-                text=f"📢 Share with Everyone in {channel_thread_str} (Caution!)",
+                text="📢 Share with Everyone",
                 value=action_values_ephemeral_message.model_dump_json(),
             ),
             ButtonElement(

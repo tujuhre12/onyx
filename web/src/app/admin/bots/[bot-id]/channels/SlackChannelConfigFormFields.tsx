@@ -642,11 +642,14 @@ export function SlackChannelConfigFormFields({
                   Privacy Alert
                 </Label>
                 <p className="text-sm text-text-darker mb-4">
-                  Please note that at least one of the documents accessible by
-                  your OnyxBot is marked as private and may contain sensitive
-                  information. These documents will be accessible to all users
-                  of this OnyxBot. Ensure this aligns with your intended
-                  document sharing policy.
+                  Please note that if the private (ephemeral) response is *not
+                  selected*, only public documents within the selected document
+                  sets will be accessible for user queries. If the private
+                  (ephemeral) response *is selected*, user quries can also
+                  leverage documents that the user has already been granted
+                  access to. Note that users will be able to share the response
+                  with others in the channel, so please ensure that this is
+                  aligned with your company sharing policies.
                 </p>
                 <div className="space-y-2">
                   <h4 className="text-sm text-text font-medium">
