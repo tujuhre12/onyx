@@ -211,6 +211,7 @@ export type ConnectorSummary = {
   public: number;
   totalDocsIndexed: number;
   not_ready: number;
+  complete: number;
   errors: number; // New field for error count
 };
 

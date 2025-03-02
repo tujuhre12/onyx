@@ -28,6 +28,7 @@ import {
   FiPauseCircle,
   FiCheckCircle,
   FiAlertCircle,
+  FiAlertTriangle,
 } from "react-icons/fi";
 import {
   Tooltip,
@@ -74,32 +75,16 @@ function SummaryRow({
           </div>
           <SourceIcon iconSize={20} sourceType={source} />
           {getSourceDisplayName(source)}
-          {summary.not_ready > 0 && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge className="py-1 text-sm" variant="warning">
-                    {summary.not_ready} source
-                    {summary.not_ready > 1 ? "s " : " "}
-                    {summary.not_ready > 1 ? "have" : "has"} not finished
-                    indexing / syncing
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Some sources have not completed their initial indexing or sync
-                  process.
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
         </div>
       </TableCell>
 
       <TableCell>
         <div className="text-sm text-neutral-500 dark:text-neutral-300">
-          Total Connectors
+          Complete Connectors
         </div>
-        <div className="text-xl font-semibold">{summary.count}</div>
+        <div className="text-xl font-semibold">
+          {summary.complete}/{summary.count}
+        </div>
       </TableCell>
 
       <TableCell>
@@ -252,33 +237,52 @@ border border-border dark:border-neutral-700
               </Tooltip>
             </TooltipProvider>
           )}
+        </p>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-x-1">
+          {timeAgo(ccPairsIndexingStatus?.last_success) ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>{timeAgo(ccPairsIndexingStatus?.last_success)}</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Last successful indexing time</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center">
+                    <FiAlertTriangle className="mr-1 text-yellow-600" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>This connector has never been successfully indexed</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
 
           {!ccPairsIndexingStatus.perm_sync_completed &&
             ccPairsIndexingStatus.access_type === "sync" && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Badge
-                      variant="purple"
-                      icon={FiAlertCircle}
-                      className="text-xs"
-                    >
-                      Permissions sync in progress
-                    </Badge>
+                    <span className="flex items-center">
+                      <FiAlertTriangle className="mr-1 text-yellow-600" />
+                    </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>
-                      Permissions are currently being synchronized for this
-                      connector.
-                    </p>
+                    <p>Permissions sync is still in progress</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             )}
-        </p>
-      </TableCell>
-      <TableCell>
-        {timeAgo(ccPairsIndexingStatus?.last_success) || "-"}
+        </div>
       </TableCell>
       <TableCell>{getActivityBadge()}</TableCell>
       {isPaidEnterpriseFeaturesEnabled && (
@@ -380,6 +384,11 @@ export function CCPairIndexingStatusTable({
             status.last_success === null ||
             (status.connector.access_type === "sync" &&
               !status.perm_sync_completed)
+        ).length,
+        complete: statuses.filter(
+          (status) =>
+            status.last_success !== null &&
+            (status.access_type != "sync" || status.perm_sync_completed)
         ).length,
         active: statuses.filter(
           (status) =>
