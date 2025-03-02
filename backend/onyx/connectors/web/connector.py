@@ -423,8 +423,6 @@ class WebConnector(LoadConnector):
                             parsed_html.cleaned_text = document_text
                         else:
                             parsed_html.cleaned_text += "\n" + document_text
-                else:
-                    logger.info("No iframe content extracted")
 
                 doc_batch.append(
                     Document(
