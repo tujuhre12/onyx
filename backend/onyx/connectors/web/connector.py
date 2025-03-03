@@ -16,6 +16,7 @@ from oauthlib.oauth2 import BackendApplicationClient
 from playwright.sync_api import BrowserContext
 from playwright.sync_api import Playwright
 from playwright.sync_api import sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from requests_oauthlib import OAuth2Session  # type:ignore
 from urllib3.exceptions import MaxRetryError
 
@@ -42,6 +43,10 @@ from shared_configs.configs import MULTI_TENANT
 logger = setup_logger()
 
 WEB_CONNECTOR_MAX_SCROLL_ATTEMPTS = 20
+# Threshold for determining when to replace vs append iframe content
+IFRAME_TEXT_LENGTH_THRESHOLD = 700
+# Message indicating JavaScript is disabled, which often appears when scraping fails
+JAVASCRIPT_DISABLED_MESSAGE = "You have JavaScript disabled in your browser"
 
 
 class WEB_CONNECTOR_VALID_SETTINGS(str, Enum):
@@ -138,7 +143,8 @@ def get_internal_links(
         # Account for malformed backslashes in URLs
         href = href.replace("\\", "/")
 
-        if should_ignore_pound and "#" in href:
+        # "#!" indicates the page is using a hashbang URL, which is a client-side routing technique
+        if should_ignore_pound and "#" in href and "#!" not in href:
             href = href.split("#")[0]
 
         if not is_valid_url(href):
@@ -288,6 +294,7 @@ class WebConnector(LoadConnector):
         and converts them into documents"""
         visited_links: set[str] = set()
         to_visit: list[str] = self.to_visit_list
+        content_hashes = set()
 
         if not to_visit:
             raise ValueError("No URLs to visit")
@@ -302,29 +309,29 @@ class WebConnector(LoadConnector):
         playwright, context = start_playwright()
         restart_playwright = False
         while to_visit:
-            current_url = to_visit.pop()
-            if current_url in visited_links:
+            initial_url = to_visit.pop()
+            if initial_url in visited_links:
                 continue
-            visited_links.add(current_url)
+            visited_links.add(initial_url)
 
             try:
-                protected_url_check(current_url)
+                protected_url_check(initial_url)
             except Exception as e:
-                last_error = f"Invalid URL {current_url} due to {e}"
+                last_error = f"Invalid URL {initial_url} due to {e}"
                 logger.warning(last_error)
                 continue
 
-            logger.info(f"Visiting {current_url}")
+            logger.info(f"{len(visited_links)}: Visiting {initial_url}")
 
             try:
-                check_internet_connection(current_url)
+                check_internet_connection(initial_url)
                 if restart_playwright:
                     playwright, context = start_playwright()
                     restart_playwright = False
 
-                if current_url.split(".")[-1] == "pdf":
+                if initial_url.split(".")[-1] == "pdf":
                     # PDF files are not checked for links
-                    response = requests.get(current_url)
+                    response = requests.get(initial_url)
                     page_text, metadata = read_pdf_file(
                         file=io.BytesIO(response.content)
                     )
@@ -332,10 +339,10 @@ class WebConnector(LoadConnector):
 
                     doc_batch.append(
                         Document(
-                            id=current_url,
-                            sections=[Section(link=current_url, text=page_text)],
+                            id=initial_url,
+                            sections=[Section(link=initial_url, text=page_text)],
                             source=DocumentSource.WEB,
-                            semantic_identifier=current_url.split("/")[-1],
+                            semantic_identifier=initial_url.split("/")[-1],
                             metadata=metadata,
                             doc_updated_at=_get_datetime_from_last_modified_header(
                                 last_modified
@@ -347,21 +354,37 @@ class WebConnector(LoadConnector):
                     continue
 
                 page = context.new_page()
-                page_response = page.goto(current_url)
+                # wait_until="networkidle" is used to wait for the page to load completely which is necessary
+                # for the javascript heavy websites
+                try:
+                    page_response = page.goto(
+                        initial_url,
+                        wait_until="networkidle",
+                        timeout=30000,  # 30 seconds
+                    )
+                except PlaywrightTimeoutError:
+                    logger.warning(
+                        f"NetworkIdle timeout for {initial_url}, falling back to default load"
+                    )
+                    page_response = page.goto(initial_url)
                 last_modified = (
                     page_response.header_value("Last-Modified")
                     if page_response
                     else None
                 )
-                final_page = page.url
-                if final_page != current_url:
-                    logger.info(f"Redirected to {final_page}")
-                    protected_url_check(final_page)
-                    current_url = final_page
-                    if current_url in visited_links:
-                        logger.info("Redirected page already indexed")
+                final_url = page.url
+                if final_url != initial_url:
+                    protected_url_check(final_url)
+                    initial_url = final_url
+                    if initial_url in visited_links:
+                        logger.info(
+                            f"{len(visited_links)}: {initial_url} redirected to {final_url} - already indexed"
+                        )
                         continue
-                    visited_links.add(current_url)
+                    logger.info(
+                        f"{len(visited_links)}: {initial_url} redirected to {final_url}"
+                    )
+                    visited_links.add(initial_url)
 
                 if self.scroll_before_scraping:
                     scroll_attempts = 0
@@ -379,26 +402,54 @@ class WebConnector(LoadConnector):
                 soup = BeautifulSoup(content, "html.parser")
 
                 if self.recursive:
-                    internal_links = get_internal_links(base_url, current_url, soup)
+                    internal_links = get_internal_links(base_url, initial_url, soup)
                     for link in internal_links:
                         if link not in visited_links:
                             to_visit.append(link)
 
                 if page_response and str(page_response.status)[0] in ("4", "5"):
-                    last_error = f"Skipped indexing {current_url} due to HTTP {page_response.status} response"
+                    last_error = f"Skipped indexing {initial_url} due to HTTP {page_response.status} response"
                     logger.info(last_error)
                     continue
 
                 parsed_html = web_html_cleanup(soup, self.mintlify_cleanup)
 
+                """For websites containing iframes that need to be scraped,
+                the code below can extract text from within these iframes.
+                """
+                logger.info(f"Length of cleaned text {len(parsed_html.cleaned_text)}")
+                if JAVASCRIPT_DISABLED_MESSAGE in parsed_html.cleaned_text:
+                    iframe_count = page.frame_locator("iframe").locator("html").count()
+                    if iframe_count > 0:
+                        iframe_texts = (
+                            page.frame_locator("iframe")
+                            .locator("html")
+                            .all_inner_texts()
+                        )
+                        document_text = "\n".join(iframe_texts)
+                        """ 700 is the threshold value for the length of the text extracted
+                        from the iframe based on the issue faced """
+                        if len(parsed_html.cleaned_text) < IFRAME_TEXT_LENGTH_THRESHOLD:
+                            parsed_html.cleaned_text = document_text
+                        else:
+                            parsed_html.cleaned_text += "\n" + document_text
+
+                # Sometimes pages with #! will server duplicate content
+                # There are also just other ways this can happen
+                hashed_text = hash(parsed_html.cleaned_text)
+                if hashed_text in content_hashes:
+                    logger.info(f"Skipping duplicate content for {initial_url}")
+                    continue
+                content_hashes.add(hashed_text)
+
                 doc_batch.append(
                     Document(
-                        id=current_url,
+                        id=initial_url,
                         sections=[
-                            Section(link=current_url, text=parsed_html.cleaned_text)
+                            Section(link=initial_url, text=parsed_html.cleaned_text)
                         ],
                         source=DocumentSource.WEB,
-                        semantic_identifier=parsed_html.title or current_url,
+                        semantic_identifier=parsed_html.title or initial_url,
                         metadata={},
                         doc_updated_at=_get_datetime_from_last_modified_header(
                             last_modified
@@ -410,7 +461,7 @@ class WebConnector(LoadConnector):
 
                 page.close()
             except Exception as e:
-                last_error = f"Failed to fetch '{current_url}': {e}"
+                last_error = f"Failed to fetch '{initial_url}': {e}"
                 logger.exception(last_error)
                 playwright.stop()
                 restart_playwright = True
