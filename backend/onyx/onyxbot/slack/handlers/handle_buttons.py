@@ -227,7 +227,7 @@ def handle_publish_ephemeral_message_button(
     if not chat_message_id:
         raise ValueError("Missing chat_message_id in the payload")
 
-    with get_session_with_tenant(tenant_id=client.tenant_id) as db_session:
+    with get_session_with_current_tenant() as db_session:
         onyx_user = get_user_by_email(user_email, db_session)
         if not onyx_user:
             raise ValueError("Cannot determine onyx_user_id from email in payload")
@@ -282,7 +282,6 @@ def handle_publish_ephemeral_message_button(
         # remove handling of empheremal block and add AI feedback.
         all_blocks = build_slack_response_blocks(
             answer=onyx_bot_answer,
-            tenant_id=client.tenant_id,
             message_info=slack_message_info,
             channel_conf=channel_conf,
             use_citations=True,
@@ -313,7 +312,6 @@ def handle_publish_ephemeral_message_button(
 
         changed_blocks = build_slack_response_blocks(
             answer=onyx_bot_answer,
-            tenant_id=client.tenant_id,
             message_info=slack_message_info,
             channel_conf=channel_conf,
             use_citations=True,
