@@ -672,7 +672,7 @@ const MODEL_DISPLAY_NAMES: { [key: string]: string } = {
   "o3-mini": "o3 Mini",
   "o1-mini": "o1 Mini",
   "o1-preview": "o1 Preview",
-  o1: "o1",
+  "o1": "o1",
   "gpt-4": "GPT 4",
   "gpt-4o": "GPT 4o",
   "gpt-4o-2024-08-06": "GPT 4o (Structured Outputs)",
@@ -706,6 +706,10 @@ const MODEL_DISPLAY_NAMES: { [key: string]: string } = {
   "phi-3.5-mini-instruct": "Phi 3.5 Mini",
   "phi-3.5-moe-instruct": "Phi 3.5 MoE",
   "phi-3.5-vision-instruct": "Phi 3.5 Vision",
+  "phi-4": "Phi 4",
+
+  // Deepseek Models
+  "deepseek-r1": "DeepSeek R1",
 
   // Anthropic models
   "claude-3-opus-20240229": "Claude 3 Opus",
@@ -722,6 +726,8 @@ const MODEL_DISPLAY_NAMES: { [key: string]: string } = {
   "claude-3-5-haiku-20241022": "Claude 3.5 Haiku",
   "claude-3-5-haiku@20241022": "Claude 3.5 Haiku",
   "claude-3.5-haiku@20241022": "Claude 3.5 Haiku",
+  "claude-3.7-sonnet@202502019": "Claude 3.7 Sonnet",
+  "claude-3-7-sonnet-202502019": "Claude 3.7 Sonnet",
 
   // Google Models
   "gemini-1.5-pro": "Gemini 1.5 Pro",
@@ -731,10 +737,15 @@ const MODEL_DISPLAY_NAMES: { [key: string]: string } = {
   "gemini-1.5-pro-002": "Gemini 1.5 Pro (v2)",
   "gemini-1.5-flash-002": "Gemini 1.5 Flash (v2)",
   "gemini-2.0-flash-exp": "Gemini 2.0 Flash (Experimental)",
+  "gemini-2.0-flash-001": "Gemini 2.0 Flash",
+  "gemini-2.0-flash-lite-preview-02-05": "Gemini 2.0 Flash Lite (Prv)",
+  "gemini-2.0-flash-thinking-exp-01-02": "Gemini 2.0 Flash Thinking (Exp)",
+  "gemini-2.0-pro-exp-02-05": "Gemini 2.0 Pro (Exp)",
 
   // Mistral Models
   "mistral-large-2411": "Mistral Large 24.11",
   "mistral-large@2411": "Mistral Large 24.11",
+  "ministral-3b": "Ministral 3B",
 
   // Bedrock models
   "meta.llama3-1-70b-instruct-v1:0": "Llama 3.1 70B",
