@@ -41,6 +41,7 @@ import Cookies from "js-cookie";
 import { TOGGLED_CONNECTORS_COOKIE_NAME } from "@/lib/constants";
 import { usePaidEnterpriseFeaturesEnabled } from "@/components/settings/usePaidEnterpriseFeaturesEnabled";
 import { ConnectorCredentialPairStatus } from "../../connector/[ccPairId]/types";
+import { SortIcon } from "@/components/icons/icons";
 
 function SummaryRow({
   source,
@@ -434,6 +435,9 @@ export function CCPairIndexingStatusTable({
         <Button className="h-9" onClick={() => toggleSources()}>
           {!shouldExpand ? "Collapse All" : "Expand All"}
         </Button>
+        <button className="p-1 rounded-md borde border-neutral- ">
+          <SortIcon size={24} className="text-neutral-800" />
+        </button>
       </div>
       <TableBody>
         {sortedSources

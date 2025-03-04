@@ -46,7 +46,7 @@ export const DocumentSetCreationForm = ({
   }, [existingDocumentSet?.is_public]);
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-full mx-auto">
       <Formik<DocumentSetCreationRequest>
         initialValues={{
           name: existingDocumentSet?.name ?? "",
@@ -142,8 +142,8 @@ export const DocumentSetCreationForm = ({
           }
 
           return (
-            <Form className="space-y-6">
-              <div className="space-y-4">
+            <Form className="space-y-6 w-full ">
+              <div className="space-y-4 w-full">
                 <TextFormField
                   name="name"
                   label="Name:"

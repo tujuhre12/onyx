@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ConnectorStatus } from "@/lib/types";
 import { ConnectorTitle } from "@/components/admin/connectors/ConnectorTitle";
-import { Check, ChevronsUpDown, X, Search } from "lucide-react";
+import { Check, ChevronsUpDown, X, Search, LockIcon, Key } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { ErrorMessage } from "formik";
+import { FiGlobe } from "react-icons/fi";
 
 interface ConnectorMultiSelectProps {
   name: string;
@@ -91,11 +92,15 @@ export const ConnectorMultiSelect = ({
 
   return (
     <div className="flex flex-col max-w-md space-y-2 mb-4">
-      {label && <Label className="text-base font-medium mb-1">{label}</Label>}
+      {label && <Label className="text-base font-medium">{label}</Label>}
 
+      <p className="text-xs text-neutral-500 ">
+        All documents indexed by the selected connectors will be part of this
+        document set.
+      </p>
       {/* Persistent search bar */}
       <div className="relative">
-        <div className="flex items-center border border-input rounded-md bg-background focus-within:ring-1 focus-within:ring-ring focus-within:border-neutral-400 transition-colors">
+        <div className="flex items-center border border-input rounded-md border border-neutral-200 focus-within:ring-1 focus-within:ring-ring focus-within:border-neutral-400 transition-colors">
           <Search className="absolute left-3 h-4 w-4 text-neutral-500" />
           <input
             ref={inputRef}
@@ -111,25 +116,13 @@ export const ConnectorMultiSelect = ({
             className="h-9 w-full pl-9 pr-10 py-2 bg-transparent text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
             disabled={disabled}
           />
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(!open);
-              if (!open) {
-                inputRef.current?.focus();
-              }
-            }}
-            className="absolute right-3 flex items-center justify-center h-5 w-5 text-neutral-500 hover:text-neutral-700 rounded-full hover:bg-neutral-100"
-          >
-            <ChevronsUpDown className="h-3.5 w-3.5" />
-          </button>
         </div>
 
         {/* Dropdown for unselected connectors */}
         {open && (
           <div
             ref={dropdownRef}
-            className="absolute z-50 w-full mt-1 rounded-md border border-neutral-200 bg-white shadow-md max-h-[300px] overflow-auto"
+            className="absolute z-50 w-full mt-1 rounded-md border border-neutral-200 bg-white shadow-md default-scrollbar max-h-[300px] overflow-auto"
           >
             {filteredUnselectedConnectors.length === 0 ? (
               <div className="py-4 text-center text-xs text-neutral-500">
@@ -142,7 +135,7 @@ export const ConnectorMultiSelect = ({
                 {filteredUnselectedConnectors.map((connector) => (
                   <div
                     key={connector.cc_pair_id}
-                    className="flex items-center justify-between py-2 px-3 cursor-pointer hover:bg-background-50 text-xs"
+                    className="flex items-center justify-between py-2 px-3 cursor-pointer hover:bg-neutral-50 text-xs"
                     onClick={() => selectConnector(connector.cc_pair_id)}
                   >
                     <div className="flex items-center truncate mr-2">
@@ -154,9 +147,9 @@ export const ConnectorMultiSelect = ({
                         showMetadata={false}
                       />
                     </div>
-                    <div className="flex-shrink-0 text-neutral-400 hover:text-blue-500">
+                    {/* <div className="flex-shrink-0 text-neutral-400 hover:text-blue-500">
                       <Check className="h-3.5 w-3.5" />
-                    </div>
+                    </div> */}
                   </div>
                 ))}
               </div>
@@ -167,15 +160,16 @@ export const ConnectorMultiSelect = ({
 
       {/* Selected connectors display */}
       {selectedConnectors.length > 0 ? (
-        <div className="mt-3 p-3 border border-neutral-200 rounded-md bg-background-50">
-          <div className="text-xs font-medium text-neutral-700 mb-2">
-            Selected connectors:
-          </div>
+        // <div className="mt-3 p-3 border border-neutral-200 rounded-md bg-background-50">
+        <div className="mt-3 ">
+          {/* <div className="text-xs font-medium text-neutral-700 mb-2">
+            Selected:
+          </div> */}
           <div className="flex flex-wrap gap-1.5">
             {selectedConnectors.map((connector) => (
               <div
                 key={connector.cc_pair_id}
-                className="flex items-center bg-white rounded-md border border-neutral-300 shadow-sm hover:shadow-md transition-all px-2 py-1 max-w-full group text-xs"
+                className="flex items-center bg-white rounded-md border border-neutral-300 transition-all px-2 py-1 max-w-full group text-xs"
               >
                 <div className="flex items-center overflow-hidden">
                   <div className="flex-shrink-0 text-xs">
@@ -204,11 +198,6 @@ export const ConnectorMultiSelect = ({
           No connectors selected. Search and select connectors above.
         </div>
       )}
-
-      <p className="text-xs text-neutral-500 mt-1">
-        All documents indexed by the selected connectors will be part of this
-        document set.
-      </p>
 
       <ErrorMessage
         name={name}
