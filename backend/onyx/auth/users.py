@@ -528,7 +528,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                 if user_count == 1:
                     create_milestone_and_report(
                         user=user,
-                        distinct_id=user.email,
+                        distinct_id=f"{user.email}_{tenant_id}",
                         event_type=MilestoneRecordType.USER_SIGNED_UP,
                         properties=None,
                         db_session=db_session,
@@ -536,7 +536,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                 else:
                     create_milestone_and_report(
                         user=user,
-                        distinct_id=user.email,
+                        distinct_id=f"{user.email}_{tenant_id}",
                         event_type=MilestoneRecordType.MULTIPLE_USERS,
                         properties=None,
                         db_session=db_session,
