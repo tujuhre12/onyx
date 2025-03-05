@@ -1360,7 +1360,7 @@ export interface WebConfig {
 
 export interface GithubConfig {
   repo_owner: string;
-  repo_name: string; // Can be a comma-separated list of repository names
+  repositories: string; // Comma-separated list of repository names
   include_prs: boolean;
   include_issues: boolean;
 }
