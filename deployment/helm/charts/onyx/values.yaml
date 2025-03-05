@@ -377,12 +377,12 @@ redis:
     existingSecretPasswordKey: redis_password
 
 ingress:
- enabled: false
- className: ""
- api:
-  host: onyx.local
- webserver:
-  host: onyx.local
+  enabled: false
+  className: ""
+  api:
+    host: onyx.local
+  webserver:
+    host: onyx.local
 
 letsencrypt:
   enabled: false
