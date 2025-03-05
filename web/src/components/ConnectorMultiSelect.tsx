@@ -15,6 +15,7 @@ interface ConnectorMultiSelectProps {
   onChange: (selectedIds: number[]) => void;
   disabled?: boolean;
   placeholder?: string;
+  showError?: boolean;
 }
 
 export const ConnectorMultiSelect = ({
@@ -25,6 +26,7 @@ export const ConnectorMultiSelect = ({
   onChange,
   disabled = false,
   placeholder = "Search connectors...",
+  showError = false,
 }: ConnectorMultiSelectProps) => {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,6 +42,9 @@ export const ConnectorMultiSelect = ({
     (connector) => !selectedIds.includes(connector.cc_pair_id)
   );
 
+  // Check if all connectors are selected
+  const allConnectorsSelected = unselectedConnectors.length === 0;
+
   // Filter unselected connectors based on search query
   const filteredUnselectedConnectors = unselectedConnectors.filter(
     (connector) => {
@@ -48,15 +53,40 @@ export const ConnectorMultiSelect = ({
     }
   );
 
+  // Close dropdown if there are no more connectors to select
+  useEffect(() => {
+    if (allConnectorsSelected && open) {
+      setOpen(false);
+      // Blur the input to remove focus when all connectors are selected
+      inputRef.current?.blur();
+      // Clear search query when all connectors are selected
+      setSearchQuery("");
+    }
+  }, [allConnectorsSelected, open]);
+
+  // Also check when selectedIds changes to handle the case when the last connector is selected
+  useEffect(() => {
+    if (allConnectorsSelected) {
+      inputRef.current?.blur();
+      setSearchQuery("");
+    }
+  }, [allConnectorsSelected, selectedIds]);
+
   // Handle selection
   const selectConnector = (connectorId: number) => {
-    onChange([...selectedIds, connectorId]);
+    const newSelectedIds = [...selectedIds, connectorId];
+    onChange(newSelectedIds);
     setSearchQuery(""); // Clear search after selection
 
-    // Focus back on input after selection
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 0);
+    // Check if this was the last connector to select
+    const willAllBeSelected = connectors.length === newSelectedIds.length;
+
+    // Only focus back on input if there are still connectors to select
+    if (!willAllBeSelected) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
+    }
   };
 
   // Remove a selected connector
@@ -90,8 +120,16 @@ export const ConnectorMultiSelect = ({
     }
   };
 
+  // Determine the placeholder text based on whether all connectors are selected
+  const effectivePlaceholder = allConnectorsSelected
+    ? "All connectors selected"
+    : placeholder;
+
+  // Determine if the input should be disabled
+  const isInputDisabled = disabled || allConnectorsSelected;
+
   return (
-    <div className="flex flex-col max-w-md space-y-2 mb-4">
+    <div className="flex flex-col w-full space-y-2 mb-4">
       {label && <Label className="text-base font-medium">{label}</Label>}
 
       <p className="text-xs text-neutral-500 ">
@@ -100,7 +138,11 @@ export const ConnectorMultiSelect = ({
       </p>
       {/* Persistent search bar */}
       <div className="relative">
-        <div className="flex items-center border border-input rounded-md border border-neutral-200 focus-within:ring-1 focus-within:ring-ring focus-within:border-neutral-400 transition-colors">
+        <div
+          className={`flex items-center border border-input rounded-md border border-neutral-200 ${
+            allConnectorsSelected ? "bg-neutral-50" : ""
+          } focus-within:ring-1 focus-within:ring-ring focus-within:border-neutral-400 transition-colors`}
+        >
           <Search className="absolute left-3 h-4 w-4 text-neutral-500" />
           <input
             ref={inputRef}
@@ -110,16 +152,22 @@ export const ConnectorMultiSelect = ({
               setSearchQuery(e.target.value);
               setOpen(true);
             }}
-            onFocus={() => setOpen(true)}
+            onFocus={() => {
+              if (!allConnectorsSelected) {
+                setOpen(true);
+              }
+            }}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            className="h-9 w-full pl-9 pr-10 py-2 bg-transparent text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={disabled}
+            placeholder={effectivePlaceholder}
+            className={`h-9 w-full pl-9 pr-10 py-2 bg-transparent text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
+              allConnectorsSelected ? "text-neutral-500" : ""
+            }`}
+            disabled={isInputDisabled}
           />
         </div>
 
         {/* Dropdown for unselected connectors */}
-        {open && (
+        {open && !allConnectorsSelected && (
           <div
             ref={dropdownRef}
             className="absolute z-50 w-full mt-1 rounded-md border border-neutral-200 bg-white shadow-md default-scrollbar max-h-[300px] overflow-auto"
@@ -147,9 +195,6 @@ export const ConnectorMultiSelect = ({
                         showMetadata={false}
                       />
                     </div>
-                    {/* <div className="flex-shrink-0 text-neutral-400 hover:text-blue-500">
-                      <Check className="h-3.5 w-3.5" />
-                    </div> */}
                   </div>
                 ))}
               </div>
@@ -158,13 +203,8 @@ export const ConnectorMultiSelect = ({
         )}
       </div>
 
-      {/* Selected connectors display */}
       {selectedConnectors.length > 0 ? (
-        // <div className="mt-3 p-3 border border-neutral-200 rounded-md bg-background-50">
         <div className="mt-3 ">
-          {/* <div className="text-xs font-medium text-neutral-700 mb-2">
-            Selected:
-          </div> */}
           <div className="flex flex-wrap gap-1.5">
             {selectedConnectors.map((connector) => (
               <div
@@ -199,11 +239,13 @@ export const ConnectorMultiSelect = ({
         </div>
       )}
 
-      <ErrorMessage
-        name={name}
-        component="div"
-        className="text-red-500 text-xs mt-1"
-      />
+      {showError && (
+        <ErrorMessage
+          name={name}
+          component="div"
+          className="text-red-500 text-xs mt-1"
+        />
+      )}
     </div>
   );
 };
