@@ -174,7 +174,9 @@ class GithubConnector(LoadConnector, PollConnector):
         try:
             repos = []
             # Split repo_name by comma and strip whitespace
-            repo_names = [name.strip() for name in self.repositories.split(",")]
+            repo_names = [
+                name.strip() for name in (cast(str, self.repositories)).split(",")
+            ]
 
             for repo_name in repo_names:
                 if repo_name:  # Skip empty strings
@@ -398,7 +400,7 @@ if __name__ == "__main__":
 
     connector = GithubConnector(
         repo_owner=os.environ["REPO_OWNER"],
-        repo_name=os.environ["REPO_NAME"],
+        repositories=os.environ["REPOSITORIES"],
     )
     connector.load_credentials(
         {"github_access_token": os.environ["GITHUB_ACCESS_TOKEN"]}
