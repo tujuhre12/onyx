@@ -326,7 +326,7 @@ export function SettingsForm() {
 
         <Checkbox
           label="Enable Search-time Image Analysis"
-          sublabel="Analyze images at search time when a user asks about images. This provides more detailed and query-specific image analysis."
+          sublabel="Analyze images at search time when a user asks about images. This provides more detailed and query-specific image analysis but may increase search-time latency."
           checked={settings.search_time_image_analysis_enabled ?? false}
           onChange={(e) =>
             handleToggleSettingsField(
