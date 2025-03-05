@@ -7,15 +7,12 @@ import {
   MicrosoftIconSVG,
   MistralIcon,
   MetaIcon,
-  OpenAIIcon,
   GeminiIcon,
-  OpenSourceIcon,
   AnthropicSVG,
   IconProps,
   OpenAIISVG,
   DeepseekIcon,
 } from "@/components/icons/icons";
-import { FaRobot } from "react-icons/fa";
 
 export interface CustomConfigKey {
   name: string;
@@ -77,7 +74,10 @@ export interface LLMProviderDescriptor {
 }
 
 export const getProviderIcon = (providerName: string, modelName?: string) => {
-  const modelIconMap: Record<string, ({ size, className }: IconProps) => JSX.Element> = {
+  const modelIconMap: Record<
+    string,
+    ({ size, className }: IconProps) => JSX.Element
+  > = {
     amazon: AmazonIcon,
     phi: MicrosoftIconSVG,
     mistral: MistralIcon,
