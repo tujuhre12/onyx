@@ -315,7 +315,7 @@ export function SettingsForm() {
         <Checkbox
           label="Enable Image Extraction and Analysis"
           sublabel="Extract and analyze images from documents during indexing. This allows the system to process images and create searchable descriptions of them."
-          checked={settings.image_extraction_and_analysis_enabled}
+          checked={settings.image_extraction_and_analysis_enabled ?? false}
           onChange={(e) =>
             handleToggleSettingsField(
               "image_extraction_and_analysis_enabled",
@@ -327,7 +327,7 @@ export function SettingsForm() {
         <Checkbox
           label="Enable Search-time Image Analysis"
           sublabel="Analyze images at search time when a user asks about images. This provides more detailed and query-specific image analysis."
-          checked={settings.search_time_image_analysis_enabled}
+          checked={settings.search_time_image_analysis_enabled ?? false}
           onChange={(e) =>
             handleToggleSettingsField(
               "search_time_image_analysis_enabled",
@@ -339,7 +339,7 @@ export function SettingsForm() {
         <IntegerInput
           label="Maximum Image Size for Analysis (MB)"
           sublabel="Images larger than this size will not be analyzed to prevent excessive resource usage."
-          value={settings.image_analysis_max_size_mb}
+          value={settings.image_analysis_max_size_mb ?? null}
           onChange={(e) => {
             const value = e.target.value ? parseInt(e.target.value) : null;
             if (value !== null && !isNaN(value) && value > 0) {

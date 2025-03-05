@@ -2,7 +2,7 @@ from onyx.configs.app_configs import DEFAULT_IMAGE_ANALYSIS_MAX_SIZE_MB
 from onyx.server.settings.store import load_settings
 
 
-def get_image_extraction_and_analysis_enabled():
+def get_image_extraction_and_analysis_enabled() -> bool:
     """Get image extraction and analysis enabled setting from workspace settings or fallback to environment variable"""
     try:
         settings = load_settings()
@@ -14,7 +14,7 @@ def get_image_extraction_and_analysis_enabled():
     return False
 
 
-def get_search_time_image_analysis_enabled():
+def get_search_time_image_analysis_enabled() -> bool:
     """Get search time image analysis enabled setting from workspace settings or fallback to environment variable"""
     try:
         settings = load_settings()
@@ -26,7 +26,7 @@ def get_search_time_image_analysis_enabled():
     return False
 
 
-def get_image_analysis_max_size_mb():
+def get_image_analysis_max_size_mb() -> int:
     """Get image analysis max size MB setting from workspace settings or fallback to environment variable"""
     try:
         settings = load_settings()

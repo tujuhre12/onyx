@@ -23,9 +23,9 @@ export interface Settings {
   query_history_type: QueryHistoryType;
 
   // Image processing settings
-  image_extraction_and_analysis_enabled: boolean;
-  search_time_image_analysis_enabled: boolean;
-  image_analysis_max_size_mb: number;
+  image_extraction_and_analysis_enabled?: boolean;
+  search_time_image_analysis_enabled?: boolean;
+  image_analysis_max_size_mb?: number;
 }
 
 export enum NotificationType {
