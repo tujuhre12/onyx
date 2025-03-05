@@ -384,6 +384,10 @@ ingress:
  webserver:
   host: onyx.local
 
+letsencrypt:
+  enabled: false
+  email: "abc@abc.com"
+
 auth:
   # existingSecret onyx-secret for storing smtp, oauth, slack, and other secrets
   # keys are lowercased version of env vars (e.g. SMTP_USER -> smtp_user)
