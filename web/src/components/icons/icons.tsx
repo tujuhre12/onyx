@@ -1150,10 +1150,12 @@ export const MetaIcon = ({
   className = defaultTailwindCSS,
 }: IconProps) => <LogoIcon size={size} className={className} src={metaSVG} />;
 
-export const DeepseekIcon =({
+export const DeepseekIcon = ({
   size = 16,
   className = defaultTailwindCSS,
-}: IconProps) => <LogoIcon size={size} className={className} src={deepseekSVG} />;
+}: IconProps) => (
+  <LogoIcon size={size} className={className} src={deepseekSVG} />
+);
 
 export const MicrosoftIconSVG = ({
   size = 16,

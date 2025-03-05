@@ -672,7 +672,8 @@ const MODEL_DISPLAY_NAMES: { [key: string]: string } = {
   "o3-mini": "o3 Mini",
   "o1-mini": "o1 Mini",
   "o1-preview": "o1 Preview",
-  "o1": "o1",
+
+  o1: "o1",
   "gpt-4": "GPT 4",
   "gpt-4o": "GPT 4o",
   "gpt-4o-2024-08-06": "GPT 4o (Structured Outputs)",
