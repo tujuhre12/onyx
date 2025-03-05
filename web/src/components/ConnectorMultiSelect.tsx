@@ -1,11 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ConnectorStatus } from "@/lib/types";
 import { ConnectorTitle } from "@/components/admin/connectors/ConnectorTitle";
-import { Check, ChevronsUpDown, X, Search, LockIcon, Key } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { X, Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { ErrorMessage } from "formik";
-import { FiGlobe } from "react-icons/fi";
 
 interface ConnectorMultiSelectProps {
   name: string;
@@ -33,7 +31,6 @@ export const ConnectorMultiSelect = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Get selected and unselected connectors
   const selectedConnectors = connectors.filter((connector) =>
     selectedIds.includes(connector.cc_pair_id)
   );
@@ -42,10 +39,8 @@ export const ConnectorMultiSelect = ({
     (connector) => !selectedIds.includes(connector.cc_pair_id)
   );
 
-  // Check if all connectors are selected
   const allConnectorsSelected = unselectedConnectors.length === 0;
 
-  // Filter unselected connectors based on search query
   const filteredUnselectedConnectors = unselectedConnectors.filter(
     (connector) => {
       const connectorName = connector.name || connector.connector.source;
@@ -53,18 +48,14 @@ export const ConnectorMultiSelect = ({
     }
   );
 
-  // Close dropdown if there are no more connectors to select
   useEffect(() => {
     if (allConnectorsSelected && open) {
       setOpen(false);
-      // Blur the input to remove focus when all connectors are selected
       inputRef.current?.blur();
-      // Clear search query when all connectors are selected
       setSearchQuery("");
     }
   }, [allConnectorsSelected, open]);
 
-  // Also check when selectedIds changes to handle the case when the last connector is selected
   useEffect(() => {
     if (allConnectorsSelected) {
       inputRef.current?.blur();
@@ -72,16 +63,13 @@ export const ConnectorMultiSelect = ({
     }
   }, [allConnectorsSelected, selectedIds]);
 
-  // Handle selection
   const selectConnector = (connectorId: number) => {
     const newSelectedIds = [...selectedIds, connectorId];
     onChange(newSelectedIds);
-    setSearchQuery(""); // Clear search after selection
+    setSearchQuery("");
 
-    // Check if this was the last connector to select
     const willAllBeSelected = connectors.length === newSelectedIds.length;
 
-    // Only focus back on input if there are still connectors to select
     if (!willAllBeSelected) {
       setTimeout(() => {
         inputRef.current?.focus();
@@ -89,12 +77,10 @@ export const ConnectorMultiSelect = ({
     }
   };
 
-  // Remove a selected connector
   const removeConnector = (connectorId: number) => {
     onChange(selectedIds.filter((id) => id !== connectorId));
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -113,19 +99,16 @@ export const ConnectorMultiSelect = ({
     };
   }, []);
 
-  // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       setOpen(false);
     }
   };
 
-  // Determine the placeholder text based on whether all connectors are selected
   const effectivePlaceholder = allConnectorsSelected
     ? "All connectors selected"
     : placeholder;
 
-  // Determine if the input should be disabled
   const isInputDisabled = disabled || allConnectorsSelected;
 
   return (
@@ -136,7 +119,6 @@ export const ConnectorMultiSelect = ({
         All documents indexed by the selected connectors will be part of this
         document set.
       </p>
-      {/* Persistent search bar */}
       <div className="relative">
         <div
           className={`flex items-center border border-input rounded-md border border-neutral-200 ${
@@ -166,7 +148,6 @@ export const ConnectorMultiSelect = ({
           />
         </div>
 
-        {/* Dropdown for unselected connectors */}
         {open && !allConnectorsSelected && (
           <div
             ref={dropdownRef}
