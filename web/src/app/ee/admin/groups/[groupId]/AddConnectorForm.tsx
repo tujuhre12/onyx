@@ -36,8 +36,12 @@ export const AddConnectorForm: React.FC<AddConnectorFormProps> = ({
     .filter((ccPair) => ccPair.access_type === "private");
 
   return (
-    <Modal title="Add New Connector" onOutsideClick={() => onClose()}>
-      <div className="px-6 pt-4 pb-12">
+    <Modal
+      className="max-w-3xl"
+      title="Add New Connector"
+      onOutsideClick={() => onClose()}
+    >
+      <div className="px-6 pt-4">
         <ConnectorMultiSelect
           name="connectors"
           label="Select Connectors"

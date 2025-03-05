@@ -197,16 +197,6 @@ export const FilterComponent = forwardRef<
             <DropdownMenuLabel className="text-base font-medium">
               Filter Connectors
             </DropdownMenuLabel>
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-xs"
-                onClick={clearFilters}
-              >
-                Clear All
-              </Button>
-            )}
           </div>
           <DropdownMenuSeparator />
 
