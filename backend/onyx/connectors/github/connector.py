@@ -389,6 +389,7 @@ class GithubConnector(LoadConnector, PollConnector):
                 raise ConnectorValidationError(
                     f"Unexpected GitHub error (status={e.status}): {e.data}"
                 )
+
         except Exception as exc:
             raise Exception(
                 f"Unexpected error during GitHub settings validation: {exc}"
