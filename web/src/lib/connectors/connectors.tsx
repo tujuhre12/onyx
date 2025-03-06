@@ -192,7 +192,7 @@ export const connectorConfigs: Record<
                 type: "text",
                 query: "Enter the repository name(s):",
                 label: "Repository Name(s)",
-                name: "repo_name",
+                name: "repositories",
                 optional: false,
                 description:
                   "For multiple repositories, enter comma-separated names (e.g., repo1,repo2,repo3)",
