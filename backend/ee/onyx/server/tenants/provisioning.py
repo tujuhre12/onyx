@@ -333,7 +333,7 @@ async def delete_user_from_control_plane(tenant_id: str, email: str) -> None:
                 )
 
 
-async def complete_tenant_setup(tenant_id: str, email: str) -> None:
+async def complete_tenant_setup(tenant_id: str) -> None:
     """Complete the tenant setup process after user creation.
 
     This function handles the remaining steps of tenant provisioning after the initial
@@ -374,9 +374,7 @@ async def complete_tenant_setup(tenant_id: str, email: str) -> None:
                 user=None,
                 distinct_id=tenant_id,
                 event_type=MilestoneRecordType.TENANT_CREATED,
-                properties={
-                    "email": email,
-                },
+                properties={},
                 db_session=db_session,
             )
 

@@ -13,6 +13,7 @@ from typing import Optional
 from typing import Tuple
 
 import jwt
+import sqlalchemy.exc
 from email_validator import EmailNotValidError
 from email_validator import EmailUndeliverableError
 from email_validator import validate_email
@@ -243,6 +244,29 @@ class SimpleUserManager(UUIDIDMixin, BaseUserManager[MinimalUser, uuid.UUID]):
     verification_token_secret = USER_AUTH_SECRET
     verification_token_lifetime_seconds = AUTH_COOKIE_EXPIRE_TIME_SECONDS
     user_db: SQLAlchemyUserDatabase[MinimalUser, uuid.UUID]
+
+    async def get(self, id: uuid.UUID) -> MinimalUser:
+        """Get a user by id, with error handling for partial database provisioning."""
+        try:
+            return await super().get(id)
+        except sqlalchemy.exc.ProgrammingError as e:
+            # Handle database schema mismatch during partial provisioning
+            if "column user.temperature_override_enabled does not exist" in str(e):
+                # Create a minimal user with just the required fields
+                # This is a temporary solution during partial provisioning
+                from onyx.db.models import MinimalUser
+
+                return MinimalUser(
+                    id=id,
+                    email="temp@example.com",  # Will be replaced with actual data
+                    hashed_password="",
+                    is_active=True,
+                    is_verified=True,
+                    is_superuser=False,
+                    role="BASIC",
+                )
+            # Re-raise other database errors
+            raise
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
@@ -688,6 +712,12 @@ async def get_user_manager(
     yield UserManager(user_db)
 
 
+async def get_minimal_user_manager(
+    user_db: SQLAlchemyUserDatabase = Depends(get_user_db),
+) -> AsyncGenerator[SimpleUserManager, None]:
+    yield SimpleUserManager(user_db)
+
+
 cookie_transport = CookieTransport(
     cookie_max_age=SESSION_EXPIRE_TIME_SECONDS,
     cookie_secure=WEB_DOMAIN.startswith("https"),
@@ -697,6 +727,10 @@ cookie_transport = CookieTransport(
 
 def get_redis_strategy() -> RedisStrategy:
     return TenantAwareRedisStrategy()
+
+
+def get_minimal_redis_strategy() -> RedisStrategy:
+    return CustomRedisStrategy()
 
 
 def get_database_strategy(
@@ -764,12 +798,137 @@ class TenantAwareRedisStrategy(RedisStrategy[User, uuid.UUID]):
         await redis.delete(f"{self.key_prefix}{token}")
 
 
+class CustomRedisStrategy(RedisStrategy[MinimalUser, uuid.UUID]):
+    """
+    A custom strategy that fetches the actual async Redis connection inside each method.
+    We do NOT pass a synchronous or "coroutine" redis object to the constructor.
+    """
+
+    def __init__(
+        self,
+        lifetime_seconds: Optional[int] = SESSION_EXPIRE_TIME_SECONDS,
+        key_prefix: str = REDIS_AUTH_KEY_PREFIX,
+    ):
+        self.lifetime_seconds = lifetime_seconds
+        self.key_prefix = key_prefix
+
+    async def write_token(self, user: MinimalUser) -> str:
+        redis = await get_async_redis_connection()
+
+        tenant_id, is_newly_created = await fetch_ee_implementation_or_noop(
+            "onyx.server.tenants.provisioning",
+            "get_or_provision_tenant",
+            async_return_default_schema,
+        )(email=user.email)
+
+        token_data = {
+            "sub": str(user.id),
+            "tenant_id": tenant_id,
+        }
+        token = secrets.token_urlsafe()
+        await redis.set(
+            f"{self.key_prefix}{token}",
+            json.dumps(token_data),
+            ex=self.lifetime_seconds,
+        )
+        return token
+
+    async def read_token(
+        self,
+        token: Optional[str],
+        user_manager: BaseUserManager[MinimalUser, uuid.UUID],
+    ) -> Optional[MinimalUser]:
+        redis = await get_async_redis_connection()
+        token_data_str = await redis.get(f"{self.key_prefix}{token}")
+        if not token_data_str:
+            return None
+
+        try:
+            token_data = json.loads(token_data_str)
+            user_id = token_data["sub"]
+            parsed_id = user_manager.parse_id(user_id)
+            return await user_manager.get(parsed_id)
+        except (exceptions.UserNotExists, exceptions.InvalidID, KeyError):
+            return None
+
+    async def destroy_token(self, token: str, user: MinimalUser) -> None:
+        """Properly delete the token from async redis."""
+        redis = await get_async_redis_connection()
+        await redis.delete(f"{self.key_prefix}{token}")
+
+
+# class CustomRedisStrategy(RedisStrategy[MinimalUser, uuid.UUID]):
+#     """Custom Redis strategy that handles database schema mismatches during partial provisioning."""
+
+#     def __init__(
+#         self,
+#         lifetime_seconds: Optional[int] = SESSION_EXPIRE_TIME_SECONDS,
+#         key_prefix: str = REDIS_AUTH_KEY_PREFIX,
+#     ):
+#         self.lifetime_seconds = lifetime_seconds
+#         self.key_prefix = key_prefix
+
+#     async def read_token(
+#         self, token: Optional[str], user_manager: BaseUserManager[MinimalUser, uuid.UUID]
+#     ) -> Optional[MinimalUser]:
+#         try:
+#             redis = await get_async_redis_connection()
+#             token_data_str = await redis.get(f"{self.key_prefix}{token}")
+#             if not token_data_str:
+#                 return None
+
+#             try:
+#                 token_data = json.loads(token_data_str)
+#                 user_id = token_data["sub"]
+#                 parsed_id = user_manager.parse_id(user_id)
+#                 return await user_manager.get(parsed_id)
+#             except (exceptions.UserNotExists, exceptions.InvalidID, KeyError):
+#                 return None
+#         except sqlalchemy.exc.ProgrammingError as e:
+#             # Handle database schema mismatch during partial provisioning
+#             if "column user.temperature_override_enabled does not exist" in str(e):
+#                 # Return None to allow unauthenticated access during partial provisioning
+#                 return None
+#             # Re-raise other database errors
+#             raise
+
+#     async def write_token(self, user: MinimalUser) -> str:
+#         redis = await get_async_redis_connection()
+
+#         token = generate_jwt(
+#             data={"sub": str(user.id)},
+#             secret=USER_AUTH_SECRET,
+#             lifetime_seconds=self.lifetime_seconds,
+#         )
+
+#         await redis.set(
+#             f"{self.key_prefix}{token}",
+#             json.dumps({"sub": str(user.id)}),
+#             ex=self.lifetime_seconds,
+#         )
+
+#         return token
+
+#     async def destroy_token(self, token: str, user: MinimalUser) -> None:
+#         """Properly delete the token from async redis."""
+#         redis = await get_async_redis_connection()
+#         await redis.delete(f"{self.key_prefix}{token}")
+
+
 if AUTH_BACKEND == AuthBackend.REDIS:
     auth_backend = AuthenticationBackend(
         name="redis", transport=cookie_transport, get_strategy=get_redis_strategy
     )
+    minimal_auth_backend = AuthenticationBackend(
+        name="redis",
+        transport=cookie_transport,
+        get_strategy=get_minimal_redis_strategy,
+    )
 elif AUTH_BACKEND == AuthBackend.POSTGRES:
     auth_backend = AuthenticationBackend(
+        name="postgres", transport=cookie_transport, get_strategy=get_database_strategy
+    )
+    minimal_auth_backend = AuthenticationBackend(
         name="postgres", transport=cookie_transport, get_strategy=get_database_strategy
     )
 else:
@@ -818,12 +977,39 @@ fastapi_users = FastAPIUserWithLogoutRouter[User, uuid.UUID](
     get_user_manager, [auth_backend]
 )
 
+fastapi_minimal_users = FastAPIUserWithLogoutRouter[MinimalUser, uuid.UUID](
+    get_minimal_user_manager, [minimal_auth_backend]
+)
 
 # NOTE: verified=REQUIRE_EMAIL_VERIFICATION is not used here since we
 # take care of that in `double_check_user` ourself. This is needed, since
 # we want the /me endpoint to still return a user even if they are not
 # yet verified, so that the frontend knows they exist
 optional_fastapi_current_user = fastapi_users.current_user(active=True, optional=True)
+
+
+optional_minimal_user_dependency = fastapi_minimal_users.current_user(
+    active=True, optional=True
+)
+
+
+async def optional_minimal_user(
+    user: MinimalUser | None = Depends(optional_minimal_user_dependency),
+) -> MinimalUser | None:
+    """NOTE: `request` and `db_session` are not used here, but are included
+    for the EE version of this function."""
+    print("I AM IN THIS FUNCTION 1")
+    try:
+        print("I AM IN THIS FUNCTION 2")
+        return user
+    except sqlalchemy.exc.ProgrammingError as e:
+        print("I AM IN THIS FUNCTION 3")
+        # Handle database schema mismatch during partial provisioning
+        if "column user.temperature_override_enabled does not exist" in str(e):
+            # Return None to allow unauthenticated access during partial provisioning
+            return None
+        # Re-raise other database errors
+        raise
 
 
 async def optional_user_(
