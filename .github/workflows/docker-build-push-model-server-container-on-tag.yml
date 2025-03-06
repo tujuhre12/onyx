@@ -44,7 +44,7 @@ jobs:
       changed: "true"
     steps:
       - name: Bypass check and set output
-        run: echo "changed=true" >> $GITHUB_ENV
+        run: echo "changed=true" >> $GITHUB_OUTPUT
         
   build-amd64:
     needs: [check_model_server_changes]
