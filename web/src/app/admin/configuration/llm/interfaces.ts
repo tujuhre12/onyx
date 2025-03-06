@@ -91,7 +91,7 @@ export const getProviderIcon = (providerName: string, modelName?: string) => {
   };
 
   // First check if provider name directly matches an icon
-  if (providerName?.toLowerCase() in iconMap) {
+  if (providerName.toLowerCase() in iconMap) {
     return iconMap[providerName.toLowerCase()];
   }
 
