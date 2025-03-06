@@ -20,7 +20,7 @@ depends_on = None
 def upgrade() -> None:
     # Create new_available_tenant table
     op.create_table(
-        "new_available_tenant",
+        "available_tenant",
         sa.Column("tenant_id", sa.String(), nullable=False),
         sa.Column("alembic_version", sa.String(), nullable=False),
         sa.Column("date_created", sa.DateTime(), nullable=False),
@@ -30,4 +30,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Drop new_available_tenant table
-    op.drop_table("new_available_tenant")
+    op.drop_table("available_tenant")

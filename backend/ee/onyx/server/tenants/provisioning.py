@@ -31,8 +31,8 @@ from onyx.db.engine import get_sqlalchemy_engine
 from onyx.db.llm import update_default_provider
 from onyx.db.llm import upsert_cloud_embedding_provider
 from onyx.db.llm import upsert_llm_provider
+from onyx.db.models import AvailableTenant
 from onyx.db.models import IndexModelStatus
-from onyx.db.models import NewAvailableTenant
 from onyx.db.models import SearchSettings
 from onyx.db.models import UserTenantMapping
 from onyx.llm.llm_provider_options import ANTHROPIC_MODEL_NAMES
@@ -361,8 +361,8 @@ async def get_available_tenant() -> str | None:
         with Session(get_sqlalchemy_engine()) as db_session:
             # Get the oldest available tenant
             available_tenant = (
-                db_session.query(NewAvailableTenant)
-                .order_by(NewAvailableTenant.date_created)
+                db_session.query(AvailableTenant)
+                .order_by(AvailableTenant.date_created)
                 .first()
             )
 

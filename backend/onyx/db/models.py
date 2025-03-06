@@ -2310,8 +2310,8 @@ class UserTenantMapping(Base):
         return value.lower() if value else value
 
 
-class NewAvailableTenant(Base):
-    __tablename__ = "new_available_tenant"
+class AvailableTenant(Base):
+    __tablename__ = "available_tenant"
     """
     These entries will only exist ephemerally and are meant to be picked up by new users on registration.
     """

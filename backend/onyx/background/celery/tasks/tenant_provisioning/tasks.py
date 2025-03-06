@@ -10,7 +10,11 @@ from celery import Task
 from redis.lock import Lock as RedisLock
 from sqlalchemy.orm import Session
 
+from ee.onyx.server.tenants.provisioning import setup_tenant
+from ee.onyx.server.tenants.schema_management import create_schema_if_not_exists
+from ee.onyx.server.tenants.schema_management import get_current_alembic_version
 from onyx.background.celery.apps.app_base import task_logger
+from onyx.configs.app_configs import JOB_TIMEOUT
 from onyx.configs.app_configs import TARGET_AVAILABLE_TENANTS
 from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import OnyxCeleryQueues
@@ -34,9 +38,8 @@ _TENANT_PROVISIONING_TIME_LIMIT = 60 * 10  # 10 minutes
 @shared_task(
     name=OnyxCeleryTask.CHECK_AVAILABLE_TENANTS,
     ignore_result=True,
-    soft_time_limit=_TENANT_PROVISIONING_SOFT_TIME_LIMIT,
-    time_limit=_TENANT_PROVISIONING_TIME_LIMIT,
-    queue=OnyxCeleryQueues.PRIMARY,
+    soft_time_limit=JOB_TIMEOUT,
+    trail=False,
     bind=True,
 )
 def check_available_tenants(self: Task) -> None:
@@ -44,9 +47,9 @@ def check_available_tenants(self: Task) -> None:
     Check if we have enough pre-provisioned tenants available.
     If not, trigger the pre-provisioning of new tenants.
     """
-    task_logger.warning("STARTING CHECK_AVAILABLE_TENANTS")
+    task_logger.info("STARTING CHECK_AVAILABLE_TENANTS")
     if not MULTI_TENANT:
-        task_logger.warning(
+        task_logger.info(
             "Multi-tenancy is not enabled, skipping tenant pre-provisioning"
         )
         return
@@ -59,7 +62,7 @@ def check_available_tenants(self: Task) -> None:
 
     # These tasks should never overlap
     if not lock_check.acquire(blocking=False):
-        task_logger.warning(
+        task_logger.info(
             "Skipping check_available_tenants task because it is already running"
         )
         return
@@ -79,7 +82,7 @@ def check_available_tenants(self: Task) -> None:
             0, target_available_tenants - available_tenants_count
         )
 
-        task_logger.warning(
+        task_logger.info(
             f"Available tenants: {available_tenants_count}, "
             f"Target: {target_available_tenants}, "
             f"To provision: {tenants_to_provision}"
@@ -112,9 +115,9 @@ def pre_provision_tenant(self: Task) -> None:
     This function fully sets up the tenant with all necessary configurations,
     so it's ready to be assigned to a user immediately.
     """
-    task_logger.warning("STARTING PRE_PROVISION_TENANT")
+    task_logger.info("STARTING PRE_PROVISION_TENANT")
     if not MULTI_TENANT:
-        task_logger.warning(
+        task_logger.info(
             "Multi-tenancy is not enabled, skipping tenant pre-provisioning"
         )
         return
@@ -126,7 +129,7 @@ def pre_provision_tenant(self: Task) -> None:
 
     # Allow multiple pre-provisioning tasks to run, but ensure they don't overlap
     if not lock_provision.acquire(blocking=False):
-        task_logger.warning(
+        task_logger.info(
             "Skipping pre_provision_tenant task because it is already running"
         )
         return
@@ -134,33 +137,30 @@ def pre_provision_tenant(self: Task) -> None:
     try:
         # Generate a new tenant ID
         tenant_id = TENANT_ID_PREFIX + str(uuid.uuid4())
-        task_logger.warning(f"Starting pre-provisioning for tenant {tenant_id}")
+        task_logger.info(f"Starting pre-provisioning for tenant {tenant_id}")
 
         # Import here to avoid circular imports
-        from ee.onyx.server.tenants.schema_management import create_schema_if_not_exists
-        from ee.onyx.server.tenants.schema_management import get_current_alembic_version
-        from ee.onyx.server.tenants.provisioning import setup_tenant
 
         # Create the schema for the new tenant
         schema_created = create_schema_if_not_exists(tenant_id)
         if schema_created:
-            task_logger.warning(f"Created schema for tenant '{tenant_id}'")
+            task_logger.info(f"Created schema for tenant '{tenant_id}'")
         else:
-            task_logger.warning(f"Schema already exists for tenant '{tenant_id}'")
+            task_logger.info(f"Schema already exists for tenant '{tenant_id}'")
 
         # Set up the tenant with all necessary configurations
-        task_logger.warning(f"Setting up tenant configuration for '{tenant_id}'")
+        task_logger.info(f"Setting up tenant configuration for '{tenant_id}'")
         asyncio.run(setup_tenant(tenant_id))
-        task_logger.warning(f"Tenant configuration completed for '{tenant_id}'")
+        task_logger.info(f"Tenant configuration completed for '{tenant_id}'")
 
         # Get the current Alembic version
         alembic_version = get_current_alembic_version(tenant_id)
-        task_logger.warning(
+        task_logger.info(
             f"Tenant '{tenant_id}' using Alembic version: {alembic_version}"
         )
 
         # Store the pre-provisioned tenant in the database
-        task_logger.warning(f"Storing pre-provisioned tenant '{tenant_id}' in database")
+        task_logger.info(f"Storing pre-provisioned tenant '{tenant_id}' in database")
         with Session(get_sqlalchemy_engine()) as db_session:
             new_tenant = AvailableTenant(
                 tenant_id=tenant_id,
@@ -170,7 +170,7 @@ def pre_provision_tenant(self: Task) -> None:
             db_session.add(new_tenant)
             db_session.commit()
 
-        task_logger.warning(f"Successfully pre-provisioned tenant {tenant_id}")
+        task_logger.info(f"Successfully pre-provisioned tenant {tenant_id}")
 
     except Exception as e:
         task_logger.exception(f"Error in pre_provision_tenant task: {e}")

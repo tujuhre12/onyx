@@ -49,19 +49,6 @@ celery_app = Celery(__name__)
 celery_app.config_from_object("onyx.background.celery.configs.primary")
 celery_app.Task = app_base.TenantAwareTask  # type: ignore [misc]
 
-# Import tasks to ensure they are registered with Celery
-import onyx.background.celery.tasks.connector_deletion.tasks  # noqa
-import onyx.background.celery.tasks.doc_permission_syncing.tasks  # noqa
-import onyx.background.celery.tasks.external_group_syncing.tasks  # noqa
-import onyx.background.celery.tasks.indexing.tasks  # noqa
-import onyx.background.celery.tasks.llm_model_update.tasks  # noqa
-import onyx.background.celery.tasks.monitoring.tasks  # noqa
-import onyx.background.celery.tasks.periodic.tasks  # noqa
-import onyx.background.celery.tasks.periodic.tenant_provisioning  # noqa
-import onyx.background.celery.tasks.pruning.tasks  # noqa
-import onyx.background.celery.tasks.shared.tasks  # noqa
-import onyx.background.celery.tasks.vespa.tasks  # noqa
-
 
 @signals.task_prerun.connect
 def on_task_prerun(
