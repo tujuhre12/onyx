@@ -2,6 +2,7 @@ import json
 import random
 import secrets
 import string
+import time
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime
@@ -299,6 +300,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         safe: bool = False,
         request: Optional[Request] = None,
     ) -> User:
+        start_time = time.time()
         # We verify the password here to make sure it's valid before we proceed
         await self.validate_password(
             user_create.password, cast(schemas.UC, user_create)
@@ -320,6 +322,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             referral_source=referral_source,
             request=request,
         )
+        print(f"Tenant ID: {tenant_id}, Is newly created: {is_newly_created}")
+        print("duration: ", time.time() - start_time)
         user: User
 
         async with get_async_session_with_tenant(tenant_id) as db_session:

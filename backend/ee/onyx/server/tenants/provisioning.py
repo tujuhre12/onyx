@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 import uuid
 
 import aiohttp  # Async HTTP client
@@ -90,7 +91,15 @@ async def create_tenant(email: str, referral_source: str | None = None) -> str:
     tenant_id = TENANT_ID_PREFIX + str(uuid.uuid4())
     try:
         # Provision tenant on data plane
+        start_time = time.time()
         await provision_tenant(tenant_id, email)
+        duration = time.time() - start_time
+        logger.error(
+            f"Tenant provisioning for {tenant_id} completed in {duration:.2f} seconds"
+        )
+        print(
+            f"Tenant provisioning for {tenant_id} completed in {duration:.2f} seconds"
+        )
         # Notify control plane
         if not DEV_MODE:
             await notify_control_plane(tenant_id, email, referral_source)
@@ -122,7 +131,18 @@ async def provision_tenant(tenant_id: str, email: str) -> None:
         token = CURRENT_TENANT_ID_CONTEXTVAR.set(tenant_id)
 
         # Await the Alembic migrations up to the specified revision
+        start_time = time.time()
         await asyncio.to_thread(run_alembic_migrations, tenant_id, "465f78d9b7f9")
+        duration = time.time() - start_time
+        print(
+            f"Alembic migrations for tenant {tenant_id} completed in {duration:.2f} seconds"
+        )
+        logger.info(
+            f"Alembic migrations for tenant {tenant_id} completed in {duration:.2f} seconds"
+        )
+        logger.error(
+            f"Alembic migrations for tenant {tenant_id} completed in {duration:.2f} seconds"
+        )
 
         # Add users to tenant - this is needed for authentication
         add_users_to_tenant([email], tenant_id)
