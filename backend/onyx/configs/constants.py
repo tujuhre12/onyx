@@ -385,6 +385,7 @@ class OnyxCeleryTask:
     CLOUD_MONITOR_CELERY_QUEUES = (
         f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_monitor_celery_queues"
     )
+    CHECK_AVAILABLE_TENANTS = f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check_available_tenants"
 
     CHECK_FOR_CONNECTOR_DELETION = "check_for_connector_deletion_task"
     CHECK_FOR_VESPA_SYNC_TASK = "check_for_vespa_sync_task"
@@ -402,7 +403,6 @@ class OnyxCeleryTask:
     MONITOR_CELERY_QUEUES = "monitor_celery_queues"
 
     # Tenant pre-provisioning
-    CHECK_AVAILABLE_TENANTS = "check_available_tenants"
     PRE_PROVISION_TENANT = "pre_provision_tenant"
 
     KOMBU_MESSAGE_CLEANUP_TASK = "kombu_message_cleanup_task"
