@@ -100,6 +100,15 @@ beat_task_templates.extend(
                 "queue": OnyxCeleryQueues.MONITORING,
             },
         },
+        {
+            "name": "check-available-tenants",
+            "task": OnyxCeleryTask.CHECK_AVAILABLE_TENANTS,
+            "schedule": timedelta(minutes=5),
+            "options": {
+                "priority": OnyxCeleryPriority.MEDIUM,
+                "expires": BEAT_EXPIRES_DEFAULT,
+            },
+        },
     ]
 )
 
