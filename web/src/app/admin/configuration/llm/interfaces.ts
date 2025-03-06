@@ -1,16 +1,12 @@
 import {
   AnthropicIcon,
   AmazonIcon,
-  AWSIcon,
-  AzureIcon,
   CPUIcon,
   MicrosoftIconSVG,
   MistralIcon,
   MetaIcon,
   GeminiIcon,
-  AnthropicSVG,
   IconProps,
-  OpenAIISVG,
   DeepseekIcon,
   OpenAISVG,
 } from "@/components/icons/icons";
