@@ -67,10 +67,12 @@ async def get_or_provision_tenant(
     if referral_source and request:
         await submit_to_hubspot(email, referral_source, request)
 
+    tenant_id: str | None = None
     try:
         # First, check if the user already has a tenant
         tenant_id = get_tenant_id_for_email(email)
         return tenant_id
+
     except exceptions.UserNotExists:
         # User doesn't exist, so we need to create a new tenant or assign an existing one
         try:
@@ -78,25 +80,8 @@ async def get_or_provision_tenant(
             tenant_id = await get_available_tenant()
 
             if tenant_id:
-                # If we have a pre-provisioned tenant, just add the user to it
-                add_users_to_tenant([email], tenant_id)
-
-                # Create milestone record
-                with get_session_with_tenant(tenant_id=tenant_id) as db_session:
-                    create_milestone_and_report(
-                        user=None,
-                        distinct_id=tenant_id,
-                        event_type=MilestoneRecordType.TENANT_CREATED,
-                        properties={
-                            "email": email,
-                        },
-                        db_session=db_session,
-                    )
-
-                # Notify control plane
-                if not DEV_MODE:
-                    await notify_control_plane(tenant_id, email, referral_source)
-
+                # If we have a pre-provisioned tenant, assign it to the user
+                await assign_tenant_to_user(tenant_id, email, referral_source)
                 logger.info(
                     f"Assigned pre-provisioned tenant {tenant_id} to user {email}"
                 )
@@ -125,9 +110,11 @@ async def create_tenant(email: str, referral_source: str | None = None) -> str:
     try:
         # Provision tenant on data plane
         await provision_tenant(tenant_id, email)
-        # Notify control plane
-        if not DEV_MODE:
+
+        # Notify control plane if not already done in provision_tenant
+        if not DEV_MODE and referral_source:
             await notify_control_plane(tenant_id, email, referral_source)
+
     except Exception as e:
         logger.error(f"Tenant provisioning failed: {e}")
         await rollback_tenant_provisioning(tenant_id)
@@ -145,56 +132,25 @@ async def provision_tenant(tenant_id: str, email: str) -> None:
         )
 
     logger.debug(f"Provisioning tenant {tenant_id} for user {email}")
-    token = None
 
     try:
+        # Create the schema for the tenant
         if not create_schema_if_not_exists(tenant_id):
             logger.debug(f"Created schema for tenant {tenant_id}")
         else:
             logger.debug(f"Schema already exists for tenant {tenant_id}")
 
-        token = CURRENT_TENANT_ID_CONTEXTVAR.set(tenant_id)
+        # Set up the tenant with all necessary configurations
+        await setup_tenant(tenant_id)
 
-        # Await the Alembic migrations
-        await asyncio.to_thread(run_alembic_migrations, tenant_id)
-
-        with get_session_with_tenant(tenant_id=tenant_id) as db_session:
-            configure_default_api_keys(db_session)
-
-            current_search_settings = (
-                db_session.query(SearchSettings)
-                .filter_by(status=IndexModelStatus.FUTURE)
-                .first()
-            )
-            cohere_enabled = (
-                current_search_settings is not None
-                and current_search_settings.provider_type == EmbeddingProvider.COHERE
-            )
-            setup_onyx(db_session, tenant_id, cohere_enabled=cohere_enabled)
-
-        # Add the user to the tenant
-        add_users_to_tenant([email], tenant_id)
-
-        # Create milestone record
-        with get_session_with_tenant(tenant_id=tenant_id) as db_session:
-            create_milestone_and_report(
-                user=None,
-                distinct_id=tenant_id,
-                event_type=MilestoneRecordType.TENANT_CREATED,
-                properties={
-                    "email": email,
-                },
-                db_session=db_session,
-            )
+        # Assign the tenant to the user
+        await assign_tenant_to_user(tenant_id, email)
 
     except Exception as e:
         logger.exception(f"Failed to create tenant {tenant_id}")
         raise HTTPException(
             status_code=500, detail=f"Failed to create tenant: {str(e)}"
         )
-    finally:
-        if token is not None:
-            CURRENT_TENANT_ID_CONTEXTVAR.reset(token)
 
 
 async def notify_control_plane(
@@ -422,3 +378,66 @@ async def get_available_tenant() -> str | None:
         logger.error(f"Error getting available tenant: {e}")
 
     return None
+
+
+async def setup_tenant(tenant_id: str) -> None:
+    """
+    Set up a tenant with all necessary configurations.
+    This is a centralized function that handles all tenant setup logic.
+    """
+    token = None
+    try:
+        token = CURRENT_TENANT_ID_CONTEXTVAR.set(tenant_id)
+
+        # Run Alembic migrations
+        await asyncio.to_thread(run_alembic_migrations, tenant_id)
+
+        # Configure the tenant with default settings
+        with get_session_with_tenant(tenant_id=tenant_id) as db_session:
+            # Configure default API keys
+            configure_default_api_keys(db_session)
+
+            # Set up Onyx with appropriate settings
+            current_search_settings = (
+                db_session.query(SearchSettings)
+                .filter_by(status=IndexModelStatus.FUTURE)
+                .first()
+            )
+            cohere_enabled = (
+                current_search_settings is not None
+                and current_search_settings.provider_type == EmbeddingProvider.COHERE
+            )
+            setup_onyx(db_session, tenant_id, cohere_enabled=cohere_enabled)
+
+    except Exception as e:
+        logger.exception(f"Failed to set up tenant {tenant_id}")
+        raise e
+    finally:
+        if token is not None:
+            CURRENT_TENANT_ID_CONTEXTVAR.reset(token)
+
+
+async def assign_tenant_to_user(
+    tenant_id: str, email: str, referral_source: str | None = None
+) -> None:
+    """
+    Assign a tenant to a user and perform necessary operations.
+    """
+    # Add the user to the tenant
+    add_users_to_tenant([email], tenant_id)
+
+    # Create milestone record
+    with get_session_with_tenant(tenant_id=tenant_id) as db_session:
+        create_milestone_and_report(
+            user=None,
+            distinct_id=tenant_id,
+            event_type=MilestoneRecordType.TENANT_CREATED,
+            properties={
+                "email": email,
+            },
+            db_session=db_session,
+        )
+
+    # Notify control plane
+    if not DEV_MODE:
+        await notify_control_plane(tenant_id, email, referral_source)

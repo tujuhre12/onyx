@@ -20,7 +20,7 @@ BEAT_EXPIRES_DEFAULT = 15 * 60  # 15 minutes (in seconds)
 # hack to slow down task dispatch in the cloud until
 # we have a better implementation (backpressure, etc)
 # Note that DynamicTenantScheduler can adjust the runtime value for this via Redis
-CLOUD_BEAT_MULTIPLIER_DEFAULT = 8.0
+CLOUD_BEAT_MULTIPLIER_DEFAULT = 0.5
 
 # tasks that run in either self-hosted on cloud
 beat_task_templates: list[dict] = []
@@ -100,15 +100,6 @@ beat_task_templates.extend(
                 "queue": OnyxCeleryQueues.MONITORING,
             },
         },
-        {
-            "name": "check-available-tenants",
-            "task": OnyxCeleryTask.CHECK_AVAILABLE_TENANTS,
-            "schedule": timedelta(minutes=5),
-            "options": {
-                "priority": OnyxCeleryPriority.MEDIUM,
-                "expires": BEAT_EXPIRES_DEFAULT,
-            },
-        },
     ]
 )
 
@@ -173,6 +164,15 @@ beat_cloud_tasks: list[dict] = [
         "options": {
             "queue": OnyxCeleryQueues.MONITORING,
             "priority": OnyxCeleryPriority.HIGH,
+            "expires": BEAT_EXPIRES_DEFAULT,
+        },
+    },
+    {
+        "name": f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check-available-tenants",
+        "task": OnyxCeleryTask.CHECK_AVAILABLE_TENANTS,
+        "schedule": timedelta(seconds=10),
+        "options": {
+            "priority": OnyxCeleryPriority.MEDIUM,
             "expires": BEAT_EXPIRES_DEFAULT,
         },
     },

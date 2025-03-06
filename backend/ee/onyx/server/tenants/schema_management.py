@@ -85,7 +85,7 @@ def get_current_alembic_version(tenant_id: str) -> str:
 
     # Set the search path to the tenant's schema
     with engine.connect() as connection:
-        connection.execute(text(f"SET search_path TO {tenant_id}"))
+        connection.execute(text(f'SET search_path TO "{tenant_id}"'))
 
         # Get the current version from the alembic_version table
         context = MigrationContext.configure(connection)
