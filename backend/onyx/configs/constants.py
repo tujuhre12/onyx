@@ -321,6 +321,8 @@ class OnyxRedisLocks:
         "da_lock:check_connector_external_group_sync_beat"
     )
     MONITOR_BACKGROUND_PROCESSES_LOCK = "da_lock:monitor_background_processes"
+    CHECK_AVAILABLE_TENANTS_LOCK = "da_lock:check_available_tenants"
+    PRE_PROVISION_TENANT_LOCK = "da_lock:pre_provision_tenant"
 
     CONNECTOR_DOC_PERMISSIONS_SYNC_LOCK_PREFIX = (
         "da_lock:connector_doc_permissions_sync"
@@ -398,6 +400,10 @@ class OnyxCeleryTask:
 
     MONITOR_BACKGROUND_PROCESSES = "monitor_background_processes"
     MONITOR_CELERY_QUEUES = "monitor_celery_queues"
+
+    # Tenant pre-provisioning
+    CHECK_AVAILABLE_TENANTS = "check_available_tenants"
+    PRE_PROVISION_TENANT = "pre_provision_tenant"
 
     KOMBU_MESSAGE_CLEANUP_TASK = "kombu_message_cleanup_task"
     CONNECTOR_PERMISSION_SYNC_GENERATOR_TASK = (
