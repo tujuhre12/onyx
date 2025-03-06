@@ -464,14 +464,22 @@ def index_doc_batch(
             ),
         )
 
-        all_returned_doc_ids = {
-            record.document_id for record in insertion_records
-        }.union(
-            {
-                record.failed_document.document_id
-                for record in vector_db_write_failures
-                if record.failed_document
-            }
+        all_returned_doc_ids = (
+            {record.document_id for record in insertion_records}
+            .union(
+                {
+                    record.failed_document.document_id
+                    for record in vector_db_write_failures
+                    if record.failed_document
+                }
+            )
+            .union(
+                {
+                    record.failed_document.document_id
+                    for record in embedding_failures
+                    if record.failed_document
+                }
+            )
         )
         if all_returned_doc_ids != set(updatable_ids):
             raise RuntimeError(
