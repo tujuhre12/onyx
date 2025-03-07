@@ -172,6 +172,7 @@ beat_cloud_tasks: list[dict] = [
         "task": OnyxCeleryTask.CHECK_AVAILABLE_TENANTS,
         "schedule": timedelta(minutes=10),
         "options": {
+            "queue": OnyxCeleryQueues.MONITORING,
             "priority": OnyxCeleryPriority.HIGH,
             "expires": BEAT_EXPIRES_DEFAULT,
         },
