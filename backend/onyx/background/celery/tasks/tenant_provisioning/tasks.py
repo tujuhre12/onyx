@@ -37,6 +37,7 @@ _TENANT_PROVISIONING_TIME_LIMIT = 60 * 10  # 10 minutes
 
 @shared_task(
     name=OnyxCeleryTask.CHECK_AVAILABLE_TENANTS,
+    queue=OnyxCeleryQueues.MONITORING,
     ignore_result=True,
     soft_time_limit=JOB_TIMEOUT,
     trail=False,
@@ -106,7 +107,7 @@ def check_available_tenants(self: Task) -> None:
     ignore_result=True,
     soft_time_limit=_TENANT_PROVISIONING_SOFT_TIME_LIMIT,
     time_limit=_TENANT_PROVISIONING_TIME_LIMIT,
-    queue=OnyxCeleryQueues.PRIMARY,
+    queue=OnyxCeleryQueues.MONITORING,
     bind=True,
 )
 def pre_provision_tenant(self: Task) -> None:
