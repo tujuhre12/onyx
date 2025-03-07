@@ -56,5 +56,5 @@ def emit_process_memory(
             f"vms_mb={memory_info.vms / (1024 * 1024):.2f} "
             f"cpu={cpu_percent:.2f}{metadata_str}"
         )
-    except Exception as e:
-        logger.error(f"Error monitoring worker memory: {e}")
+    except Exception:
+        logger.exception("Error monitoring process memory.")

@@ -223,7 +223,4 @@ volumes:
       type: none
       o: bind
       device: ${DANSWER_VESPA_DATA_DIR:-./vespa_data}
-  # Created by the container itself
-  model_cache_huggingface:
-  indexing_huggingface_model_cache:
   log_store:  # for logs that we don't want to lose on container restarts
