@@ -139,8 +139,6 @@ def pre_provision_tenant(self: Task) -> None:
         tenant_id = TENANT_ID_PREFIX + str(uuid.uuid4())
         task_logger.info(f"Starting pre-provisioning for tenant {tenant_id}")
 
-        # Import here to avoid circular imports
-
         # Create the schema for the new tenant
         schema_created = create_schema_if_not_exists(tenant_id)
         if schema_created:
