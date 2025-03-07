@@ -1,5 +1,4 @@
 import os
-import logging
 
 import pytest
 
@@ -42,25 +41,8 @@ def test_confluence_connector_permissions(
     for slim_doc_batch in confluence_connector.retrieve_all_slim_documents():
         all_slim_doc_ids.update([doc.id for doc in slim_doc_batch])
 
-    # Log the IDs for debugging
-    logging.info(f"Number of full doc IDs: {len(all_full_doc_ids)}")
-    logging.info(f"Number of slim doc IDs: {len(all_slim_doc_ids)}")
-    logging.info(f"Number of full doc IDs: {len(all_full_doc_ids)}")
-    logging.info(f"Number of slim doc IDs: {len(all_slim_doc_ids)}")
-    
     # Find IDs that are in full but not in slim
     difference = all_full_doc_ids - all_slim_doc_ids
-    if difference:
-        logging.error(f"Found {len(difference)} IDs in full docs but not in slim docs")
-        logging.error(f"Sample of missing IDs: {list(difference)[:5]}")
-        print(f"Found {len(difference)} IDs in full docs but not in slim docs")
-        print(f"Sample of missing IDs: {list(difference)[:5]}")
-        
-        # Log some examples of the IDs from both sets for comparison
-        logging.error(f"Sample full doc IDs: {list(all_full_doc_ids)[:5]}")
-        logging.error(f"Sample slim doc IDs: {list(all_slim_doc_ids)[:5]}")
-        print(f"Sample full doc IDs: {list(all_full_doc_ids)[:5]}")
-        print(f"Sample slim doc IDs: {list(all_slim_doc_ids)[:5]}")
 
     # The set of full doc IDs should be always be a subset of the slim doc IDs
     assert all_full_doc_ids.issubset(all_slim_doc_ids), \
