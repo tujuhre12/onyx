@@ -170,9 +170,9 @@ beat_cloud_tasks: list[dict] = [
     {
         "name": f"{ONYX_CLOUD_CELERY_TASK_PREFIX}_check-available-tenants",
         "task": OnyxCeleryTask.CHECK_AVAILABLE_TENANTS,
-        "schedule": timedelta(seconds=10),
+        "schedule": timedelta(minutes=10),
         "options": {
-            "priority": OnyxCeleryPriority.MEDIUM,
+            "priority": OnyxCeleryPriority.HIGH,
             "expires": BEAT_EXPIRES_DEFAULT,
         },
     },
