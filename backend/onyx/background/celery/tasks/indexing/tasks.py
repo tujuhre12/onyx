@@ -1032,7 +1032,7 @@ def connector_indexing_proxy_task(
             pid = job.process.pid
             if pid is not None:
                 # Only emit memory info once per minute (60 seconds)
-                current_time = time.time()
+                current_time = time.monotonic()
                 if current_time - last_memory_emit_time >= 60.0:
                     emit_process_memory(
                         pid,
