@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from enum import Enum
 from typing import Any
@@ -208,7 +209,7 @@ class ConnectorCheckpoint(BaseModel):
         """String representation of the checkpoint, with truncation for large checkpoint content."""
         MAX_CHECKPOINT_CONTENT_CHARS = 1000
 
-        content_str = str(self.checkpoint_content)
+        content_str = json.dumps(self.checkpoint_content)
         if len(content_str) > MAX_CHECKPOINT_CONTENT_CHARS:
             content_str = content_str[: MAX_CHECKPOINT_CONTENT_CHARS - 3] + "..."
         return f"ConnectorCheckpoint(checkpoint_content={content_str}, has_more={self.has_more})"
