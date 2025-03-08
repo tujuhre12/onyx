@@ -1,23 +1,43 @@
 # backend/onyx/background/celery/memory_monitoring.py
 import logging
 import os
+import tempfile
 from logging.handlers import RotatingFileHandler
 
 import psutil
 
+from onyx.utils.logger import is_running_in_container
 from onyx.utils.logger import setup_logger
 
 # Regular application logger
 logger = setup_logger()
 
 # Set up a dedicated memory monitoring logger
-MEMORY_LOG_DIR = "/var/log/persisted-logs/memory"
+# Use environment variable with fallback
+MEMORY_LOG_BASE_DIR = os.environ.get("MEMORY_LOG_BASE_DIR")
+if MEMORY_LOG_BASE_DIR is None:
+    # If not specified, follow the pattern used in setup_logger
+    MEMORY_LOG_BASE_DIR = (
+        "/var/log/persisted-logs" if is_running_in_container() else "./log"
+    )
+
+# Create the memory directory path
+MEMORY_LOG_DIR = os.path.join(MEMORY_LOG_BASE_DIR, "memory")
 MEMORY_LOG_FILE = os.path.join(MEMORY_LOG_DIR, "memory_usage.log")
 MEMORY_LOG_MAX_BYTES = 10 * 1024 * 1024  # 10MB
 MEMORY_LOG_BACKUP_COUNT = 5  # Keep 5 backup files
 
-# Ensure log directory exists
-os.makedirs(MEMORY_LOG_DIR, exist_ok=True)
+# Ensure log directory exists with error handling
+try:
+    os.makedirs(MEMORY_LOG_DIR, exist_ok=True)
+except PermissionError:
+    # Fall back to a temporary directory if we can't create the preferred one
+    MEMORY_LOG_DIR = os.path.join(tempfile.gettempdir(), "onyx_memory_logs")
+    MEMORY_LOG_FILE = os.path.join(MEMORY_LOG_DIR, "memory_usage.log")
+    os.makedirs(MEMORY_LOG_DIR, exist_ok=True)
+    logger.warning(
+        f"Could not create memory log directory at original location. Using {MEMORY_LOG_DIR} instead."
+    )
 
 # Create a dedicated logger for memory monitoring
 memory_logger = logging.getLogger("memory_monitoring")
