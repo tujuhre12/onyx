@@ -20,6 +20,7 @@ from onyx.connectors.models import Document
 from onyx.connectors.models import DocumentFailure
 from onyx.connectors.models import ImageSection
 from onyx.connectors.models import IndexAttemptMetadata
+from onyx.db.chunk import update_chunk_boost_components__no_commit
 from onyx.connectors.models import IndexingDocument
 from onyx.connectors.models import Section
 from onyx.connectors.models import TextSection
@@ -612,6 +613,15 @@ def index_doc_batch(
     )
 
     updatable_ids = [doc.id for doc in ctx.updatable_docs]
+    updatable_chunk_data = [
+        {
+            "chunk_id": chunk.chunk_id,
+            "document_id": chunk.source_document.id,
+            "boost_score": score,
+        }
+        for chunk, score in zip(chunks_with_embeddings, chunk_content_scores)
+        if score != 1.0
+    ]
 
     # Acquires a lock on the documents so that no other process can modify them
     # NOTE: don't need to acquire till here, since this is when the actual race condition
@@ -749,6 +759,10 @@ def index_doc_batch(
             credential_id=index_attempt_metadata.credential_id,
             document_ids=[doc.id for doc in filtered_documents],
             db_session=db_session,
+        )
+
+        update_chunk_boost_components__no_commit(
+            chunk_data=updatable_chunk_data, db_session=db_session
         )
 
         db_session.commit()
