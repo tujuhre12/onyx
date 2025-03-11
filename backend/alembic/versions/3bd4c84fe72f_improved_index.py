@@ -39,7 +39,7 @@ ALEMBIC_MIGRATION_LOCK_KEY = int(
 # 4. Adds indexes to both chat_message and chat_session tables for comprehensive search
 
 
-def upgrade():
+def upgrade() -> None:
     # Use PostgreSQL advisory locks to ensure only one migration runs at a time
     connection = op.get_bind()
 
