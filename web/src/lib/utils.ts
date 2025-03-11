@@ -29,7 +29,6 @@ export const ALLOWED_URL_PROTOCOLS = [
  * We use this with the urlTransform prop in ReactMarkdown
  */
 export function transformLinkUri(href: string) {
-  console.log("transformLinkUri", href);
   if (!href) return href;
 
   const url = href.trim();
@@ -45,9 +44,7 @@ export function transformLinkUri(href: string) {
     }
   } catch (e) {
     // If it's not a valid URL with protocol, return the original href
-    console.log("transformLinkUri", href);
     return href;
   }
-  console.log("transformLinkUri", href);
   return href;
 }
