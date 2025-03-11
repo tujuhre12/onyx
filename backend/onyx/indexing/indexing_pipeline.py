@@ -620,7 +620,6 @@ def index_doc_batch(
             "boost_score": score,
         }
         for chunk, score in zip(chunks_with_embeddings, chunk_content_scores)
-        if score != 1.0
     ]
 
     # Acquires a lock on the documents so that no other process can modify them
@@ -761,6 +760,7 @@ def index_doc_batch(
             db_session=db_session,
         )
 
+        # save the chunk boost components to postgres
         update_chunk_boost_components__no_commit(
             chunk_data=updatable_chunk_data, db_session=db_session
         )

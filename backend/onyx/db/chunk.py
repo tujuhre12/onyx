@@ -21,8 +21,8 @@ def update_chunk_boost_components__no_commit(
         return
 
     for data in chunk_data:
-        chunk_in_doc_id = str(data.get("chunk_id", ""))
-        if len(chunk_in_doc_id) == 0:
+        chunk_in_doc_id = int(data.get("chunk_id", -1))
+        if chunk_in_doc_id < 0:
             raise ValueError(f"Chunk ID is empty for chunk {data}")
         chunk_stats = (
             db_session.query(ChunkStats)
@@ -33,19 +33,25 @@ def update_chunk_boost_components__no_commit(
             .first()
         )
 
-        boost_components = {"information_content_boost": data["boost_score"]}
+        # skip chunks without boost score
+        if data.get("boost_score") is None:
+            continue
+
+        score = data["boost_score"]
+        # this will be the only boost component for now
+        boost_components = {"information_content_boost": score}
 
         if chunk_stats:
             # Update existing record
-            if chunk_stats.chunk_boost_components:
-                chunk_stats.chunk_boost_components.update(boost_components)
-            else:
-                chunk_stats.chunk_boost_components = boost_components
+            chunk_stats.chunk_boost_components = boost_components
             chunk_stats.last_modified = datetime.now(timezone.utc)
+            db_session.add(chunk_stats)
         else:
+            # do not save new chunks with a neutral boost score
+            if score == 1.0:
+                continue
             # Create new record
             chunk_stats = ChunkStats(
-                # id=data["chunk_id"],
                 document_id=data["document_id"],
                 chunk_in_doc_id=chunk_in_doc_id,
                 chunk_boost_components=boost_components,
