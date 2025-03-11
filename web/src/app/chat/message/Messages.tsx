@@ -71,39 +71,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { copyAll, handleCopy } from "./copyingUtils";
-
-// Add support for custom URL protocols
-const allowedProtocols = [
-  "http:",
-  "https:",
-  "mailto:",
-  "tel:",
-  "slack:",
-  "vscode:",
-  "file:",
-  "sms:",
-  "spotify:",
-  "zoommtg:",
-];
-
-// Function to override default URL sanitization in ReactMarkdown
-function transformLinkUri(href: string) {
-  const url = href.trim();
-  try {
-    const parsedUrl = new URL(url);
-    if (
-      allowedProtocols.some((protocol) =>
-        parsedUrl.protocol.startsWith(protocol)
-      )
-    ) {
-      return url;
-    }
-  } catch (e) {
-    // If it's not a valid URL with protocol, let ReactMarkdown handle it normally
-    return href;
-  }
-  return href;
-}
+import { transformLinkUri } from "@/lib/utils";
 
 const TOOLS_WITH_CUSTOM_HANDLING = [
   SEARCH_TOOL_NAME,
