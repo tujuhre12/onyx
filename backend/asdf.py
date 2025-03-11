@@ -10,7 +10,7 @@ import time
 ALEMBIC_CONFIG = "alembic.ini"
 
 # Time to wait between attempts (in seconds)
-WAIT_TIME = 10
+WAIT_TIME = 0
 
 print("Starting continuous alembic upgrade attempts")
 print(f"Using config: {ALEMBIC_CONFIG}")
