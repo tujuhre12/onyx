@@ -9,6 +9,9 @@ from alembic import op
 import time
 from sqlalchemy import text
 
+from onyx.redis.redis_pool import get_redis_client
+from onyx.configs.app_configs import ALEMBIC_MIGRATION_LOCK_KEY
+
 # revision identifiers, used by Alembic.
 revision = "3bd4c84fe72f"
 down_revision = "8f43500ee275"
@@ -29,17 +32,45 @@ depends_on = None
 
 
 def upgrade():
+    # # Use Redis to ensure only one migration runs at a time
+    redis_client = get_redis_client()
+
+    # Try to acquire lock (without expiration)
+    if not redis_client.set(ALEMBIC_MIGRATION_LOCK_KEY, "1", nx=True):
+        raise Exception("Migration already in progress. Try again later.")
+
     # --- PART 1: chat_message table ---
     # Step 1: Add nullable column (quick, minimal locking)
-    # op.execute("ALTER TABLE chat_message DROP COLUMN IF EXISTS message_tsv")
-    # op.execute("DROP TRIGGER IF EXISTS chat_message_tsv_trigger ON chat_message")
-    # op.execute("DROP FUNCTION IF EXISTS update_chat_message_tsv()")
-    # op.execute("ALTER TABLE chat_message DROP COLUMN IF EXISTS message_tsv")
-    # # Drop chat_session tsv trigger if it exists
-    # op.execute("DROP TRIGGER IF EXISTS chat_session_tsv_trigger ON chat_session")
-    # op.execute("DROP FUNCTION IF EXISTS update_chat_session_tsv()")
-    # op.execute("ALTER TABLE chat_session DROP COLUMN IF EXISTS title_tsv")
-    # raise Exception("Stop here")
+    op.execute("ALTER TABLE chat_message DROP COLUMN IF EXISTS message_tsv_gen")
+    op.execute("ALTER TABLE chat_message DROP COLUMN IF EXISTS message_tsv")
+    op.execute("DROP TRIGGER IF EXISTS chat_message_tsv_trigger ON chat_message")
+    op.execute("DROP FUNCTION IF EXISTS update_chat_message_tsv()")
+    op.execute("ALTER TABLE chat_message DROP COLUMN IF EXISTS message_tsv")
+    # Drop chat_session tsv trigger if it exists
+    op.execute("DROP TRIGGER IF EXISTS chat_session_tsv_trigger ON chat_session")
+    op.execute("DROP FUNCTION IF EXISTS update_chat_session_tsv()")
+    op.execute("ALTER TABLE chat_session DROP COLUMN IF EXISTS title_tsv")
+
+    # Drop all indexes that will be created later (using CONCURRENTLY to avoid locking)
+    op.execute("COMMIT")  # Required for CONCURRENTLY
+    op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_chat_message_tsv")
+    op.execute("COMMIT")
+    op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_chat_message_tsv_gen")
+    op.execute("COMMIT")
+    op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_chat_session_desc_tsv")
+    op.execute("COMMIT")
+    op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_chat_session_desc_tsv_gen")
+    op.execute("COMMIT")
+    op.execute("DROP INDEX CONCURRENTLY IF EXISTS idx_chat_message_message_lower")
+    op.execute("COMMIT")
+
+    # Drop any column on chat_session that will be created
+    op.execute("ALTER TABLE chat_session DROP COLUMN IF EXISTS description_tsv")
+    op.execute("ALTER TABLE chat_session DROP COLUMN IF EXISTS description_tsv_gen")
+
+    # Begin a new transaction before continuing
+    op.execute("BEGIN")
+
     time.time()
     op.execute("ALTER TABLE chat_message ADD COLUMN IF NOT EXISTS message_tsv tsvector")
 
