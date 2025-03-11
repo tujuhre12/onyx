@@ -1,7 +1,7 @@
 """add new available tenant table
 
 Revision ID: 3b45e0018bf1
-Revises: 34e3630c7f32
+Revises: ac842f85f932
 Create Date: 2025-03-06 09:55:18.229910
 
 """
@@ -12,7 +12,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "3b45e0018bf1"
-down_revision = "34e3630c7f32"
+down_revision = "ac842f85f932"
 branch_labels = None
 depends_on = None
 
