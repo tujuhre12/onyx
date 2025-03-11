@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from datetime import timedelta
 from datetime import timezone
 
 import jwt
@@ -31,9 +32,12 @@ from onyx.auth.users import current_admin_user
 from onyx.auth.users import current_curator_or_admin_user
 from onyx.auth.users import current_user
 from onyx.auth.users import optional_user
+from onyx.configs.app_configs import AUTH_BACKEND
 from onyx.configs.app_configs import AUTH_TYPE
+from onyx.configs.app_configs import AuthBackend
 from onyx.configs.app_configs import DEV_MODE
 from onyx.configs.app_configs import ENABLE_EMAIL_INVITES
+from onyx.configs.app_configs import REDIS_AUTH_KEY_PREFIX
 from onyx.configs.app_configs import SESSION_EXPIRE_TIME_SECONDS
 from onyx.configs.app_configs import VALID_EMAIL_DOMAINS
 from onyx.configs.constants import AuthType
@@ -50,6 +54,7 @@ from onyx.db.users import get_total_filtered_users_count
 from onyx.db.users import get_user_by_email
 from onyx.db.users import validate_user_role_update
 from onyx.key_value_store.factory import get_kv_store
+from onyx.redis.redis_pool import get_raw_redis_client
 from onyx.server.documents.models import PaginatedReturn
 from onyx.server.manage.models import AllUsersResponse
 from onyx.server.manage.models import AutoScrollRequest
@@ -506,6 +511,44 @@ def get_current_token_expiration_jwt(
         return None
 
 
+def get_current_token_expiration_redis(
+    user: User | None, request: Request
+) -> datetime | None:
+    if user is None:
+        return None
+    try:
+        print("retrieving token data from Redis")
+        # Get the token from the request
+        token = request.cookies.get(FASTAPI_USERS_AUTH_COOKIE_NAME)
+        if not token:
+            logger.debug("No auth token cookie found")
+            return None
+
+        # Get the Redis client
+        redis = get_raw_redis_client()
+        redis_key = REDIS_AUTH_KEY_PREFIX + token
+
+        # Get the TTL of the token
+        ttl = redis.ttl(redis_key)
+        if ttl <= 0:
+            logger.error("Token has expired or doesn't exist in Redis")
+            return None
+
+        # Calculate the creation time based on TTL and session expiry
+        # Current time minus (total session length minus remaining TTL)
+        current_time = datetime.now()
+        token_creation_time = current_time - timedelta(
+            seconds=(SESSION_EXPIRE_TIME_SECONDS - ttl)
+        )
+
+        print(f"Calculated token creation time: {token_creation_time}")
+        return token_creation_time
+
+    except Exception as e:
+        logger.error(f"Error retrieving token expiration from Redis: {e}")
+        return None
+
+
 def get_current_token_creation(
     user: User | None, db_session: Session
 ) -> datetime | None:
@@ -533,6 +576,7 @@ def get_current_token_creation(
 
 @router.get("/me")
 def verify_user_logged_in(
+    request: Request,
     user: User | None = Depends(optional_user),
     db_session: Session = Depends(get_session),
 ) -> UserInfo:
@@ -558,8 +602,12 @@ def verify_user_logged_in(
         )
 
     token_created_at = (
-        None if MULTI_TENANT else get_current_token_creation(user, db_session)
+        get_current_token_expiration_redis(user, request)
+        if AUTH_BACKEND == AuthBackend.REDIS
+        else get_current_token_creation(user, db_session)
     )
+
+    print(f"token_created_at: {token_created_at}")
 
     team_name = fetch_ee_implementation_or_noop(
         "onyx.server.tenants.user_mapping", "get_tenant_id_for_email", None

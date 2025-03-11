@@ -8,17 +8,41 @@ import { getSecondsUntilExpiration } from "@/lib/time";
 import { User } from "@/lib/types";
 import { mockedRefreshToken, refreshToken } from "./refreshUtils";
 import { NEXT_PUBLIC_CUSTOM_REFRESH_URL } from "@/lib/constants";
+import { Button } from "../ui/button";
+import { logout } from "@/lib/user";
+import { usePathname, useRouter } from "next/navigation";
+import Cookies from "js-cookie";
+import { SUPPRESS_EXPIRATION_WARNING_COOKIE_NAME } from "../resizable/constants";
 
 export const HealthCheckBanner = () => {
+  const router = useRouter();
   const { error } = useSWR("/api/health", errorHandlingFetcher);
   const [expired, setExpired] = useState(false);
   const [secondsUntilExpiration, setSecondsUntilExpiration] = useState<
     number | null
   >(null);
-  const { data: user, mutate: mutateUser } = useSWR<User>(
-    "/api/me",
-    errorHandlingFetcher
-  );
+
+  const [showExpirationWarning, setShowExpirationWarning] = useState(false);
+  const pathname = usePathname();
+
+  const {
+    data: user,
+    mutate: mutateUser,
+    error: userError,
+  } = useSWR<User>("/api/me", errorHandlingFetcher);
+
+  // Handle 403 errors from the /api/me endpoint
+  useEffect(() => {
+    if (userError && userError.status === 403) {
+      console.log("Received 403 from /api/me, logging out user");
+
+      logout().then(() => {
+        if (!pathname.includes("/auth")) {
+          router.push("/auth/login");
+        }
+      });
+    }
+  }, [userError, router]);
 
   const updateExpirationTime = useCallback(async () => {
     const updatedUser = await mutateUser();
@@ -120,8 +144,100 @@ export const HealthCheckBanner = () => {
         clearInterval(refreshIntervalId);
         clearTimeout(expireTimeoutId);
       };
+    } else {
+      let warningTimeoutId: NodeJS.Timeout;
+      let expireTimeoutId: NodeJS.Timeout;
+
+      const scheduleWarningAndExpire = () => {
+        if (secondsUntilExpiration !== null) {
+          const warningThreshold = 5 * 6000; // 5 minutes
+
+          // Check if there's a cookie to suppress the warning
+          const suppressWarning = Cookies.get(
+            SUPPRESS_EXPIRATION_WARNING_COOKIE_NAME
+          );
+
+          if (suppressWarning) {
+            console.debug("Suppressing expiration warning due to cookie");
+            setShowExpirationWarning(false);
+          } else if (secondsUntilExpiration <= warningThreshold) {
+            setShowExpirationWarning(true);
+          } else {
+            const timeUntilWarning =
+              (secondsUntilExpiration - warningThreshold) * 1000;
+            warningTimeoutId = setTimeout(() => {
+              // Check again for cookie when timeout fires
+              if (!Cookies.get(SUPPRESS_EXPIRATION_WARNING_COOKIE_NAME)) {
+                console.debug("Session about to expire. Showing warning.");
+                setShowExpirationWarning(true);
+              }
+            }, timeUntilWarning);
+          }
+
+          const timeUntilExpire = (secondsUntilExpiration + 10) * 1000;
+          expireTimeoutId = setTimeout(() => {
+            console.debug("Session expired. Setting expired state to true.");
+            setShowExpirationWarning(false);
+            setExpired(true);
+            // Remove the cookie when session actually expires
+            Cookies.remove(SUPPRESS_EXPIRATION_WARNING_COOKIE_NAME);
+          }, timeUntilExpire);
+        }
+      };
+
+      scheduleWarningAndExpire();
+
+      return () => {
+        clearTimeout(warningTimeoutId);
+        clearTimeout(expireTimeoutId);
+      };
     }
   }, [secondsUntilExpiration, user, mutateUser, updateExpirationTime]);
+
+  // Function to handle the "Continue Session" button
+  const handleContinueSession = () => {
+    // Set a cookie that will expire when the session expires
+    if (secondsUntilExpiration) {
+      // Calculate expiry in days (js-cookie uses days for expiration)
+      const expiryDays = secondsUntilExpiration / (60 * 60 * 24);
+      Cookies.set(SUPPRESS_EXPIRATION_WARNING_COOKIE_NAME, "true", {
+        expires: expiryDays,
+        path: "/",
+      });
+
+      console.debug(`Set cookie to suppress warnings for ${expiryDays} days`);
+      setShowExpirationWarning(false);
+    }
+  };
+
+  if (showExpirationWarning) {
+    return (
+      <Modal
+        width="w-1/3"
+        className="overflow-y-hidden flex flex-col"
+        title="Your Session Is About To Expire"
+      >
+        <div className="flex flex-col gap-y-4">
+          <p className="text-sm">
+            Your session will expire soon (in {secondsUntilExpiration} seconds).
+            Would you like to continue your session or log out?
+          </p>
+          <div className="flex flex-row gap-x-2 justify-end mt-4">
+            <Button onClick={handleContinueSession}>Continue Session</Button>
+            <Button
+              onClick={async () => {
+                await logout();
+                router.push("/auth/login");
+              }}
+              variant="outline"
+            >
+              Log Out
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   if (!error && !expired) {
     return null;
@@ -132,25 +248,11 @@ export const HealthCheckBanner = () => {
   );
 
   if (error instanceof RedirectError || expired) {
-    return (
-      <Modal
-        width="w-1/4"
-        className="overflow-y-hidden flex flex-col"
-        title="You've been logged out"
-      >
-        <div className="flex flex-col gap-y-4">
-          <p className="text-sm">
-            Your session has expired. Please log in again to continue.
-          </p>
-          <a
-            href="/auth/login"
-            className="w-full mt-4 mx-auto rounded-md text-text-200 py-2 bg-background-900 text-center hover:bg-emphasis animtate duration-300 transition-bg"
-          >
-            Log in
-          </a>
-        </div>
-      </Modal>
-    );
+    if (!pathname.includes("/auth")) {
+      alert(pathname);
+      router.push("/auth/login");
+    }
+    return null;
   } else {
     return (
       <div className="fixed top-0 left-0 z-[101] w-full text-xs mx-auto bg-gradient-to-r from-red-900 to-red-700 p-2 rounded-sm border-hidden text-text-200">

@@ -160,6 +160,20 @@ class RedisPool:
     def get_replica_client(self, tenant_id: str) -> Redis:
         return TenantRedis(tenant_id, connection_pool=self._replica_pool)
 
+    def get_raw_client(self) -> Redis:
+        """
+        Returns a Redis client with direct access to the primary connection pool,
+        without tenant prefixing.
+        """
+        return redis.Redis(connection_pool=self._pool)
+
+    def get_raw_replica_client(self) -> Redis:
+        """
+        Returns a Redis client with direct access to the replica connection pool,
+        without tenant prefixing.
+        """
+        return redis.Redis(connection_pool=self._replica_pool)
+
     @staticmethod
     def create_pool(
         host: str = REDIS_HOST,
@@ -249,6 +263,23 @@ def get_shared_redis_replica_client() -> Redis:
     return redis_pool.get_replica_client(DEFAULT_REDIS_PREFIX)
 
 
+# New functions to get Redis clients without tenant prefixing
+def get_raw_redis_client() -> Redis:
+    """
+    Returns a Redis client that doesn't apply tenant prefixing to keys.
+    Use this only when you need to access Redis directly without tenant isolation.
+    """
+    return redis_pool.get_raw_client()
+
+
+def get_raw_redis_replica_client() -> Redis:
+    """
+    Returns a Redis replica client that doesn't apply tenant prefixing to keys.
+    Use this only when you need to access Redis replicas directly without tenant isolation.
+    """
+    return redis_pool.get_raw_replica_client()
+
+
 SSL_CERT_REQS_MAP = {
     "none": ssl.CERT_NONE,
     "optional": ssl.CERT_OPTIONAL,
@@ -305,6 +336,34 @@ async def get_async_redis_connection() -> aioredis.Redis:
 
     # Return the established connection (or pool) for all future operations
     return _async_redis_connection
+
+
+def retrieve_auth_token_data_from_redis_sync(request: Request) -> dict | None:
+    token = request.cookies.get(FASTAPI_USERS_AUTH_COOKIE_NAME)
+    if not token:
+        logger.debug("No auth token cookie found")
+        return None
+
+    try:
+        redis = get_raw_redis_client()
+        redis_key = REDIS_AUTH_KEY_PREFIX + token
+        token_data_str = redis.get(redis_key)
+
+        if not token_data_str:
+            logger.debug(f"Token key {redis_key} not found or expired in Redis")
+            return None
+
+        return json.loads(token_data_str)
+    except json.JSONDecodeError:
+        logger.error("Error decoding token data from Redis")
+        return None
+    except Exception as e:
+        logger.error(
+            f"Unexpected error in retrieve_auth_token_data_from_redis_sync: {str(e)}"
+        )
+        raise ValueError(
+            f"Unexpected error in retrieve_auth_token_data_from_redis_sync: {str(e)}"
+        )
 
 
 async def retrieve_auth_token_data_from_redis(request: Request) -> dict | None:
