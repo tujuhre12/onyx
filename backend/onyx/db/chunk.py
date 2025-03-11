@@ -40,9 +40,7 @@ def update_chunk_boost_components__no_commit(
         score = data["boost_score"]
 
         if chunk_stats:
-            chunk_boost_components = dict(chunk_stats.chunk_boost_components)
-            chunk_boost_components["information_content_boost"] = score
-            chunk_stats.chunk_boost_components = chunk_boost_components
+            chunk_stats.information_content_boost = score
             chunk_stats.last_modified = datetime.now(timezone.utc)
             db_session.add(chunk_stats)
         else:
@@ -50,13 +48,10 @@ def update_chunk_boost_components__no_commit(
             if score == 1.0:
                 continue
             # Create new record
-            # this will be the only boost component for now
-            chunk_boost_components = {"information_content_boost": score}
-
             chunk_stats = ChunkStats(
                 document_id=data["document_id"],
                 chunk_in_doc_id=chunk_in_doc_id,
-                chunk_boost_components=chunk_boost_components,
+                information_content_boost=score,
             )
             db_session.add(chunk_stats)
 

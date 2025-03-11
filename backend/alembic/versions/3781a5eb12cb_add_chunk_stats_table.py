@@ -7,7 +7,6 @@ Create Date: 2025-03-10 10:02:30.586666
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "3781a5eb12cb"
@@ -28,7 +27,7 @@ def upgrade() -> None:
             index=True,
         ),
         sa.Column("chunk_in_doc_id", sa.Integer(), nullable=False),
-        sa.Column("chunk_boost_components", postgresql.JSONB(), nullable=True),
+        sa.Column("information_content_boost", sa.Float(), nullable=True),
         sa.Column(
             "last_modified",
             sa.DateTime(timezone=True),
