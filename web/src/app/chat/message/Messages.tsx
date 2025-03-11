@@ -72,6 +72,39 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { copyAll, handleCopy } from "./copyingUtils";
 
+// Add support for custom URL protocols
+const allowedProtocols = [
+  "http:",
+  "https:",
+  "mailto:",
+  "tel:",
+  "slack:",
+  "vscode:",
+  "file:",
+  "sms:",
+  "spotify:",
+  "zoommtg:",
+];
+
+// Function to override default URL sanitization in ReactMarkdown
+function transformLinkUri(href: string) {
+  const url = href.trim();
+  try {
+    const parsedUrl = new URL(url);
+    if (
+      allowedProtocols.some((protocol) =>
+        parsedUrl.protocol.startsWith(protocol)
+      )
+    ) {
+      return url;
+    }
+  } catch (e) {
+    // If it's not a valid URL with protocol, let ReactMarkdown handle it normally
+    return href;
+  }
+  return href;
+}
+
 const TOOLS_WITH_CUSTOM_HANDLING = [
   SEARCH_TOOL_NAME,
   INTERNET_SEARCH_TOOL_NAME,
@@ -348,7 +381,7 @@ export const AIMessage = ({
       a: anchorCallback,
       p: paragraphCallback,
       b: ({ node, className, children }: any) => {
-        return <span className={className}>||||{children}</span>;
+        return <span className={className}>{children}</span>;
       },
       code: ({ node, className, children }: any) => {
         const codeText = extractCodeText(
@@ -381,6 +414,7 @@ export const AIMessage = ({
         components={markdownComponents}
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[[rehypePrism, { ignoreMissing: true }], rehypeKatex]}
+        urlTransform={transformLinkUri}
       >
         {finalContent}
       </ReactMarkdown>
