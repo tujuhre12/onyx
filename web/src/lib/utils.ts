@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { ALLOWED_URL_PROTOCOLS } from "./constants";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -8,20 +9,6 @@ export function cn(...inputs: ClassValue[]) {
 export const truncateString = (str: string, maxLength: number) => {
   return str.length > maxLength ? str.slice(0, maxLength - 1) + "..." : str;
 };
-
-// Add support for custom URL protocols in markdown links
-export const ALLOWED_URL_PROTOCOLS = [
-  "http:",
-  "https:",
-  "mailto:",
-  "tel:",
-  "slack:",
-  "vscode:",
-  "file:",
-  "sms:",
-  "spotify:",
-  "zoommtg:",
-];
 
 /**
  * Custom URL transformer function for ReactMarkdown
@@ -39,7 +26,6 @@ export function transformLinkUri(href: string) {
         parsedUrl.protocol.startsWith(protocol)
       )
     ) {
-      console.log("transformLinkUri", url);
       return url;
     }
   } catch (e) {
