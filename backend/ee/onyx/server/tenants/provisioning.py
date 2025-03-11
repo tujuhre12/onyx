@@ -560,3 +560,5 @@ async def assign_tenant_to_user(
     # Notify control plane with retry logic
     if not DEV_MODE:
         await notify_control_plane(tenant_id, email, referral_source)
+
+
