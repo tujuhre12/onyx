@@ -10,8 +10,8 @@ from onyx.access.access import get_access_for_documents
 from onyx.access.models import DocumentAccess
 from onyx.configs.app_configs import MAX_DOCUMENT_CHARS
 from onyx.configs.constants import DEFAULT_BOOST
-from onyx.configs.model_configs import USE_INFORMATION_CONTENT_CLASSIFICATION
 from onyx.configs.llm_configs import get_image_extraction_and_analysis_enabled
+from onyx.configs.model_configs import USE_INFORMATION_CONTENT_CLASSIFICATION
 from onyx.connectors.cross_connector_utils.miscellaneous_utils import (
     get_experts_stores_representations,
 )
@@ -20,10 +20,10 @@ from onyx.connectors.models import Document
 from onyx.connectors.models import DocumentFailure
 from onyx.connectors.models import ImageSection
 from onyx.connectors.models import IndexAttemptMetadata
-from onyx.db.chunk import update_chunk_boost_components__no_commit
 from onyx.connectors.models import IndexingDocument
 from onyx.connectors.models import Section
 from onyx.connectors.models import TextSection
+from onyx.db.chunk import update_chunk_boost_components__no_commit
 from onyx.db.document import fetch_chunk_counts_for_documents
 from onyx.db.document import get_documents_by_ids
 from onyx.db.document import mark_document_as_indexed_for_cc_pair__no_commit
@@ -57,10 +57,10 @@ from onyx.indexing.models import DocMetadataAwareIndexChunk
 from onyx.indexing.models import IndexChunk
 from onyx.indexing.models import UpdatableChunkData
 from onyx.indexing.vector_db_insertion import write_chunks_to_vector_db_with_backoff
+from onyx.llm.factory import get_default_llm_with_vision
 from onyx.natural_language_processing.search_nlp_models import (
     InformationContentClassificationModel,
 )
-from onyx.llm.factory import get_default_llm_with_vision
 from onyx.utils.logger import setup_logger
 from onyx.utils.timing import log_function_time
 from shared_configs.configs import (
