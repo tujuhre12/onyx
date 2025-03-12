@@ -512,9 +512,15 @@ def get_current_auth_token_expiration_jwt(
         return None
 
 
-def get_current_auth_token_expiration_redis(
+def get_current_auth_token_creation_redis(
     user: User | None, request: Request
 ) -> datetime | None:
+    """Calculate the token creation time from Redis TTL information.
+
+    This function retrieves the authentication token from cookies,
+    checks its TTL in Redis, and calculates when the token was created.
+    Despite the function name, it returns the token creation time, not the expiration time.
+    """
     if user is None:
         return None
     try:
@@ -536,7 +542,7 @@ def get_current_auth_token_expiration_redis(
 
         # Calculate the creation time based on TTL and session expiry
         # Current time minus (total session length minus remaining TTL)
-        current_time = datetime.now()
+        current_time = datetime.now(timezone.utc)
         token_creation_time = current_time - timedelta(
             seconds=(SESSION_EXPIRE_TIME_SECONDS - ttl)
         )
@@ -601,7 +607,7 @@ def verify_user_logged_in(
         )
 
     token_created_at = (
-        get_current_auth_token_expiration_redis(user, request)
+        get_current_auth_token_creation_redis(user, request)
         if AUTH_BACKEND == AuthBackend.REDIS
         else get_current_token_creation(user, db_session)
     )

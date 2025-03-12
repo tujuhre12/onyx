@@ -101,7 +101,6 @@ export const HealthCheckBanner = () => {
 
         while (retryCount < maxRetries) {
           try {
-            console.debug("Attempting token refresh");
             const refreshTokenData = await refreshToken(refreshUrl);
             if (!refreshTokenData) {
               throw new Error("Failed to refresh token");
@@ -204,10 +203,6 @@ export const HealthCheckBanner = () => {
   if (!error && !expired) {
     return null;
   }
-
-  console.debug(
-    `Rendering HealthCheckBanner. Error: ${error}, Expired: ${expired}`
-  );
 
   if (error instanceof RedirectError || expired) {
     if (!pathname.includes("/auth")) {
