@@ -455,6 +455,8 @@ def get_tenant_by_domain_from_control_plane(
     except Exception as e:
         logger.error(f"Error fetching tenant by domain: {str(e)}")
         return None
+
+
 async def get_available_tenant() -> str | None:
     """
     Get an available pre-provisioned tenant from the NewAvailableTenant table.
@@ -540,8 +542,6 @@ async def assign_tenant_to_user(
     """
     # First, add the user to the tenant in a transaction
 
-
-    
     try:
         add_users_to_tenant([email], tenant_id)
 
@@ -563,5 +563,3 @@ async def assign_tenant_to_user(
     # Notify control plane with retry logic
     if not DEV_MODE:
         await notify_control_plane(tenant_id, email, referral_source)
-
-
