@@ -13,6 +13,9 @@ import { usePaidEnterpriseFeaturesEnabled } from "@/components/settings/usePaidE
 import { Modal } from "@/components/Modal";
 import { NEXT_PUBLIC_CLOUD_ENABLED } from "@/lib/constants";
 import { AnonymousUserPath } from "./AnonymousUserPath";
+import { useChatContext } from "@/components/context/ChatContext";
+import { LLMSelector } from "@/components/llm/LLMSelector";
+import { useVisionProviders } from "./hooks/useVisionProviders";
 
 export function Checkbox({
   label,
@@ -109,7 +112,17 @@ export function SettingsForm() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [chatRetention, setChatRetention] = useState("");
   const { popup, setPopup } = usePopup();
+  const { llmProviders } = useChatContext();
   const isEnterpriseEnabled = usePaidEnterpriseFeaturesEnabled();
+
+  // Pass setPopup to the hook
+  const {
+    visionProviders,
+    visionLLM,
+    isLoading: isLoadingVisionProviders,
+    setVisionLLM,
+    updateDefaultVisionProvider,
+  } = useVisionProviders(setPopup);
 
   const combinedSettings = useContext(SettingsContext);
 
@@ -120,6 +133,7 @@ export function SettingsForm() {
         combinedSettings.settings.maximum_chat_retention_days?.toString() || ""
       );
     }
+    // We don't need to fetch vision providers here anymore as the hook handles it
   }, []);
 
   if (!settings) {
@@ -354,6 +368,48 @@ export function SettingsForm() {
           id="image-analysis-max-size"
           placeholder="Enter maximum size in MB"
         />
+        {/* Default Vision LLM Section */}
+        <div className="mt-4">
+          <Label>Default Vision LLM</Label>
+          <SubLabel>
+            Select the default LLM to use for image analysis and vision
+            features. Only LLMs that support image input are shown.
+          </SubLabel>
+
+          <div className="mt-2 max-w-xs">
+            {!visionProviders || visionProviders.length === 0 ? (
+              <div className="text-sm text-gray-500">
+                No vision providers found. Please add a vision provider.
+              </div>
+            ) : visionProviders.length > 0 ? (
+              <>
+                <LLMSelector
+                  userSettings={false}
+                  llmProviders={visionProviders.map((provider) => ({
+                    ...provider,
+                    model_names: provider.vision_models,
+                    display_model_names: provider.vision_models,
+                  }))}
+                  currentLlm={visionLLM}
+                  onSelect={(value) => setVisionLLM(value)}
+                />
+                <Button
+                  onClick={() => updateDefaultVisionProvider(visionLLM)}
+                  className="mt-2"
+                  variant="default"
+                  size="sm"
+                >
+                  Set Default Vision LLM
+                </Button>
+              </>
+            ) : (
+              <div className="text-sm text-gray-500">
+                No vision-capable LLMs found. Please add an LLM provider that
+                supports image input.
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

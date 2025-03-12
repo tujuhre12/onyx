@@ -30,9 +30,18 @@ class VisionEnabledConnector:
         Sets self.image_analysis_llm to the LLM instance or None if disabled.
         """
         self.image_analysis_llm: LLM | None = None
+        print("get_image_extraction_and_analysis_enabled()")
+        self.image_analysis_llm = get_default_llm_with_vision()
+        print("image_analysis_llm")
+        print(self.image_analysis_llm.config.model_name)
+        logger.error(self.image_analysis_llm.config.model_name)
+
         if get_image_extraction_and_analysis_enabled():
             try:
                 self.image_analysis_llm = get_default_llm_with_vision()
+                print("image_analysis_llm")
+                print(self.image_analysis_llm.config.model_name)
+                logger.error(self.image_analysis_llm.config.model_name)
                 if self.image_analysis_llm is None:
                     logger.warning(
                         "No LLM with vision found; image summarization will be disabled"

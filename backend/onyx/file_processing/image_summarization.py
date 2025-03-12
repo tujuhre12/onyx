@@ -6,10 +6,10 @@ from langchain_core.messages import HumanMessage
 from langchain_core.messages import SystemMessage
 from PIL import Image
 
+from onyx.configs.app_configs import IMAGE_SUMMARIZATION_SYSTEM_PROMPT
+from onyx.configs.app_configs import IMAGE_SUMMARIZATION_USER_PROMPT
 from onyx.llm.interfaces import LLM
 from onyx.llm.utils import message_to_string
-from onyx.prompts.image_analysis import IMAGE_SUMMARIZATION_SYSTEM_PROMPT
-from onyx.prompts.image_analysis import IMAGE_SUMMARIZATION_USER_PROMPT
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
