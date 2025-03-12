@@ -125,8 +125,12 @@ def get_default_llm_with_vision(
     with get_session_with_current_tenant() as db_session:
         # Try the default vision provider first
         default_provider = fetch_default_vision_provider(db_session)
-        if default_provider and model_supports_image_input(
-            default_provider.default_vision_model, default_provider.provider
+        if (
+            default_provider
+            and default_provider.default_vision_model
+            and model_supports_image_input(
+                default_provider.default_vision_model, default_provider.provider
+            )
         ):
             return create_vision_llm(
                 default_provider, default_provider.default_vision_model

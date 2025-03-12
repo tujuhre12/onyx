@@ -34,7 +34,6 @@ class VisionEnabledConnector:
         if get_image_extraction_and_analysis_enabled():
             try:
                 self.image_analysis_llm = get_default_llm_with_vision()
-                logger.error(self.image_analysis_llm.config.model_name)
                 if self.image_analysis_llm is None:
                     logger.warning(
                         "No LLM with vision found; image summarization will be disabled"
