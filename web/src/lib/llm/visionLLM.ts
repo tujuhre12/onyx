@@ -1,8 +1,5 @@
-import { VisionProvider } from "@/app/admin/settings/interfaces";
+import { VisionProvider } from "@/app/admin/configuration/llm/interfaces";
 
-/**
- * Fetches all LLM providers that support vision capabilities
- */
 export async function fetchVisionProviders(): Promise<VisionProvider[]> {
   const response = await fetch("/api/admin/llm/vision-providers", {
     headers: {
@@ -17,9 +14,6 @@ export async function fetchVisionProviders(): Promise<VisionProvider[]> {
   return response.json();
 }
 
-/**
- * Sets a provider and model as the default vision provider
- */
 export async function setDefaultVisionProvider(
   providerId: number,
   visionModel: string

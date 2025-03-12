@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { VisionProvider } from "../interfaces";
+import { VisionProvider } from "@/app/admin/configuration/llm/interfaces";
 import {
   fetchVisionProviders,
   setDefaultVisionProvider,
-} from "@/lib/api/visionLLM";
+} from "@/lib/llm/visionLLM";
 import { destructureValue, structureValue } from "@/lib/llm/utils";
 
 // Define a type for the popup setter function

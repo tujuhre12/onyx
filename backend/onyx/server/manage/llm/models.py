@@ -111,7 +111,6 @@ class FullLLMProvider(LLMProvider):
         )
 
 
-# Define VisionProviderResponse after FullLLMProvider
 class VisionProviderResponse(FullLLMProvider):
     """Response model for vision providers endpoint, including vision-specific fields."""
 

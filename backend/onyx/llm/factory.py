@@ -5,6 +5,7 @@ from onyx.configs.app_configs import DISABLE_GENERATIVE_AI
 from onyx.configs.model_configs import GEN_AI_MODEL_FALLBACK_MAX_TOKENS
 from onyx.configs.model_configs import GEN_AI_TEMPERATURE
 from onyx.db.engine import get_session_context_manager
+from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.llm import fetch_default_provider
 from onyx.db.llm import fetch_default_vision_provider
 from onyx.db.llm import fetch_existing_llm_providers
@@ -100,61 +101,53 @@ def get_default_llm_with_vision(
     1. Use the designated default vision provider if it exists and supports image input
     2. Fall back to the first LLM provider that supports image input
 
-    Returns None if no providers exist, raises ValueError if no provider supports images.
+    Returns None if no providers exist or if no provider supports images.
     """
     if DISABLE_GENERATIVE_AI:
         raise GenAIDisabledException()
 
-    def create_vision_llm(provider: FullLLMProvider):
+    def create_vision_llm(provider: FullLLMProvider, model: str) -> LLM:
         """Helper to create an LLM if the provider supports image input."""
-        model_name = provider.default_vision_model
+        return get_llm(
+            provider=provider.provider,
+            model=model,
+            deployment_name=provider.deployment_name,
+            api_key=provider.api_key,
+            api_base=provider.api_base,
+            api_version=provider.api_version,
+            custom_config=provider.custom_config,
+            timeout=timeout,
+            temperature=temperature,
+            additional_headers=additional_headers,
+            long_term_logger=long_term_logger,
+        )
 
-        if not model_name:
-            return None
-
-        if model_supports_image_input(model_name, provider.provider):
-            return get_llm(
-                provider=provider.provider,
-                model=model_name,
-                deployment_name=provider.deployment_name,
-                api_key=provider.api_key,
-                api_base=provider.api_base,
-                api_version=provider.api_version,
-                custom_config=provider.custom_config,
-                timeout=timeout,
-                temperature=temperature,
-                additional_headers=additional_headers,
-                long_term_logger=long_term_logger,
+    with get_session_with_current_tenant() as db_session:
+        # Try the default vision provider first
+        default_provider = fetch_default_vision_provider(db_session)
+        if default_provider and model_supports_image_input(
+            default_provider.default_vision_model, default_provider.provider
+        ):
+            return create_vision_llm(
+                default_provider, default_provider.default_vision_model
             )
-        return None
 
-    with get_session_context_manager() as db_session:
-        # 1. Try the default vision provider first
-        default_vision_provider = fetch_default_vision_provider(db_session)
-        print("default_vision_provider")
-        print(default_vision_provider.provider)
-        print(default_vision_provider.default_vision_model)
-        if default_vision_provider:
-            llm = create_vision_llm(default_vision_provider)
-            print("llm")
-            print(llm.config.model_name)
-
-            if llm:
-                return llm
-
-        # 2. Fall back to searching all providers
+        # Fall back to searching all providers
         providers = fetch_existing_llm_providers(db_session)
 
     if not providers:
         return None
 
-    # Try each provider until we find one that supports image input
+    # Find the first provider that supports image input
     for provider in providers:
-        llm = create_vision_llm(provider)
-        if llm:
-            return llm
+        if provider.default_vision_model and model_supports_image_input(
+            provider.default_vision_model, provider.provider
+        ):
+            return create_vision_llm(
+                FullLLMProvider.from_model(provider), provider.default_vision_model
+            )
 
-    raise ValueError("No LLM provider found that supports image input")
+    return None
 
 
 def get_default_llms(

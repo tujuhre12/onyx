@@ -216,39 +216,32 @@ def get_vision_capable_providers(
 
     for provider in providers:
         vision_models = []
-        if provider.model_names:
-            for model_name in provider.model_names:
-                if model_supports_image_input(model_name, provider.provider):
-                    vision_models.append(model_name)
-                    print(f"Vision model found: {provider.provider}/{model_name}")
-        elif provider.display_model_names:
-            for model_name in provider.display_model_names:
-                if model_supports_image_input(model_name, provider.provider):
-                    vision_models.append(model_name)
-                    print(f"Vision model found: {provider.provider}/{model_name}")
-        else:
-            if provider.default_model_name and model_supports_image_input(
-                provider.default_model_name, provider.provider
-            ):
-                vision_models.append(provider.default_model_name)
-                logger.debug(
-                    f"Vision model found: {provider.provider}/{provider.default_model_name}"
-                )
 
+        # Check model names in priority order
+        model_names_to_check = []
+        if provider.model_names:
+            model_names_to_check = provider.model_names
+        elif provider.display_model_names:
+            model_names_to_check = provider.display_model_names
+        elif provider.default_model_name:
+            model_names_to_check = [provider.default_model_name]
+
+        # Check each model for vision capability
+        for model_name in model_names_to_check:
+            if model_supports_image_input(model_name, provider.provider):
+                vision_models.append(model_name)
+                logger.debug(f"Vision model found: {provider.provider}/{model_name}")
+
+        # Only include providers with at least one vision-capable model
         if vision_models:
-            # Only include providers that have at least one vision-capable model
             provider_dict = FullLLMProvider.from_model(provider).model_dump()
             provider_dict["vision_models"] = vision_models
             logger.info(
                 f"Vision provider: {provider.provider} with models: {vision_models}"
             )
-
-            # Create a properly typed Pydantic model
-            vision_provider = VisionProviderResponse(**provider_dict)
-            vision_providers.append(vision_provider)
+            vision_providers.append(VisionProviderResponse(**provider_dict))
 
     logger.info(f"Found {len(vision_providers)} vision-capable providers")
-
     return vision_providers
 
 
