@@ -264,7 +264,6 @@ class ConfluenceConnector(
                         self.confluence_client,
                         attachment,
                         page_id,
-                        page_title,
                     )
 
                     if result and result.text:
@@ -355,7 +354,7 @@ class ConfluenceConnector(
             # Now get attachments for that page:
             attachment_query = self._construct_attachment_query(page["id"])
             # We'll use the page's XML to provide context if we summarize an image
-            confluence_xml = page.get("body", {}).get("storage", {}).get("value", "")
+            page.get("body", {}).get("storage", {}).get("value", "")
 
             for attachment in self.confluence_client.paginated_cql_retrieval(
                 cql=attachment_query,
@@ -374,7 +373,6 @@ class ConfluenceConnector(
                         confluence_client=self.confluence_client,
                         attachment=attachment,
                         page_id=page["id"],
-                        page_context=confluence_xml,
                     )
                     if response is None:
                         continue

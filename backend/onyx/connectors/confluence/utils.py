@@ -112,7 +112,6 @@ def process_attachment(
     confluence_client: "OnyxConfluence",
     attachment: dict[str, Any],
     parent_content_id: str | None,
-    page_context: str,
 ) -> AttachmentProcessingResult:
     """
     Processes a Confluence attachment. If it's a document, extracts text,
@@ -139,7 +138,7 @@ def process_attachment(
 
         attachment_size = attachment["extensions"]["fileSize"]
 
-        if not media_type.startswith("image/") or not llm:
+        if not media_type.startswith("image/"):
             if attachment_size > CONFLUENCE_CONNECTOR_ATTACHMENT_SIZE_THRESHOLD:
                 logger.warning(
                     f"Skipping {attachment_link} due to size. "
@@ -295,7 +294,6 @@ def convert_attachment_to_content(
     confluence_client: "OnyxConfluence",
     attachment: dict[str, Any],
     page_id: str,
-    page_context: str,
 ) -> tuple[str | None, str | None] | None:
     """
     Facade function which:
@@ -311,7 +309,7 @@ def convert_attachment_to_content(
         )
         return None
 
-    result = process_attachment(confluence_client, attachment, page_context)
+    result = process_attachment(confluence_client, attachment, page_id)
     if result.error is not None:
         logger.warning(
             f"Attachment {attachment['title']} encountered error: {result.error}"
