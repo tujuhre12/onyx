@@ -493,10 +493,11 @@ export const DriveAuthSection = ({
                 label="Primary Admin Email:"
                 subtext="Enter the email of an admin/owner of the Google Organization that owns the Google Drive(s) you want to index."
               />
+              ss
               <div className="flex">
-                <TremorButton type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting}>
                   Create Credential
-                </TremorButton>
+                </Button>
               </div>
             </Form>
           )}
