@@ -22,7 +22,7 @@ def upgrade() -> None:
         sa.Column(
             "is_default_vision_provider",
             sa.Boolean(),
-            nullable=False,
+            nullable=True,
             server_default=sa.false(),
         ),
     )
