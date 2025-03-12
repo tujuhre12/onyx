@@ -5,10 +5,11 @@ from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from onyx.db.models import ChunkStats
+from onyx.indexing.models import UpdatableChunkData
 
 
 def update_chunk_boost_components__no_commit(
-    chunk_data: list[dict],
+    chunk_data: list[UpdatableChunkData],
     db_session: Session,
 ) -> None:
     """Updates the chunk_boost_components for chunks in the database.
@@ -21,23 +22,20 @@ def update_chunk_boost_components__no_commit(
         return
 
     for data in chunk_data:
-        chunk_in_doc_id = int(data.get("chunk_id", -1))
+        chunk_in_doc_id = int(data.chunk_id)
         if chunk_in_doc_id < 0:
             raise ValueError(f"Chunk ID is empty for chunk {data}")
+
+        chunk_document_id = f"{data.document_id}" f"__{chunk_in_doc_id}"
         chunk_stats = (
             db_session.query(ChunkStats)
             .filter(
-                ChunkStats.document_id == data["document_id"],
-                ChunkStats.chunk_in_doc_id == chunk_in_doc_id,
+                ChunkStats.id == chunk_document_id,
             )
             .first()
         )
 
-        # skip chunks without boost score
-        if data.get("boost_score") is None:
-            continue
-
-        score = data["boost_score"]
+        score = data.boost_score
 
         if chunk_stats:
             chunk_stats.information_content_boost = score
@@ -49,7 +47,7 @@ def update_chunk_boost_components__no_commit(
                 continue
             # Create new record
             chunk_stats = ChunkStats(
-                document_id=data["document_id"],
+                document_id=data.document_id,
                 chunk_in_doc_id=chunk_in_doc_id,
                 information_content_boost=score,
             )

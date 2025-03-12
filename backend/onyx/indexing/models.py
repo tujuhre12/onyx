@@ -184,3 +184,9 @@ class IndexingSetting(EmbeddingModelDetail):
 class MultipassConfig(BaseModel):
     multipass_indexing: bool
     enable_large_chunks: bool
+
+
+class UpdatableChunkData(BaseModel):
+    chunk_id: int
+    document_id: str
+    boost_score: float

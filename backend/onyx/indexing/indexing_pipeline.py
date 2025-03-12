@@ -55,6 +55,7 @@ from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
 from onyx.indexing.models import DocAwareChunk
 from onyx.indexing.models import DocMetadataAwareIndexChunk
 from onyx.indexing.models import IndexChunk
+from onyx.indexing.models import UpdatableChunkData
 from onyx.indexing.vector_db_insertion import write_chunks_to_vector_db_with_backoff
 from onyx.natural_language_processing.search_nlp_models import (
     InformationContentClassificationModel,
@@ -65,6 +66,7 @@ from onyx.utils.timing import log_function_time
 from shared_configs.configs import (
     INDEXING_INFORMATION_CONTENT_CLASSIFICATION_CUTOFF_LENGTH,
 )
+
 
 logger = setup_logger()
 
@@ -614,11 +616,11 @@ def index_doc_batch(
 
     updatable_ids = [doc.id for doc in ctx.updatable_docs]
     updatable_chunk_data = [
-        {
-            "chunk_id": chunk.chunk_id,
-            "document_id": chunk.source_document.id,
-            "boost_score": score,
-        }
+        UpdatableChunkData(
+            chunk_id=chunk.chunk_id,
+            document_id=chunk.source_document.id,
+            boost_score=score,
+        )
         for chunk, score in zip(chunks_with_embeddings, chunk_content_scores)
     ]
 
