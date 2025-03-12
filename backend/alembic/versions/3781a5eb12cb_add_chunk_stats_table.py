@@ -1,7 +1,7 @@
 """add chunk stats table
 
 Revision ID: 3781a5eb12cb
-Revises: 3934b1bc7b62
+Revises: df46c75b714e
 Create Date: 2025-03-10 10:02:30.586666
 
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "3781a5eb12cb"
-down_revision = "3934b1bc7b62"
+down_revision = "df46c75b714e"
 branch_labels = None
 depends_on = None
 
