@@ -539,6 +539,9 @@ async def assign_tenant_to_user(
     for control plane notifications.
     """
     # First, add the user to the tenant in a transaction
+
+
+    
     try:
         add_users_to_tenant([email], tenant_id)
 
