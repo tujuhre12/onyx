@@ -22,6 +22,7 @@ from onyx.llm.factory import get_llm
 from onyx.llm.llm_provider_options import fetch_available_well_known_llms
 from onyx.llm.llm_provider_options import WellKnownLLMProviderDescriptor
 from onyx.llm.utils import litellm_exception_to_error_msg
+from onyx.llm.utils import model_supports_image_input
 from onyx.llm.utils import test_llm
 from onyx.server.manage.llm.models import FullLLMProvider
 from onyx.server.manage.llm.models import LLMProviderDescriptor
@@ -207,7 +208,6 @@ def get_vision_capable_providers(
     db_session: Session = Depends(get_session),
 ) -> list[VisionProviderResponse]:
     """Return a list of LLM providers and their models that support image input"""
-    from onyx.llm.utils import model_supports_image_input
 
     providers = fetch_existing_llm_providers(db_session)
     vision_providers = []

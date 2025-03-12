@@ -112,14 +112,12 @@ export function SettingsForm() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [chatRetention, setChatRetention] = useState("");
   const { popup, setPopup } = usePopup();
-  const { llmProviders } = useChatContext();
   const isEnterpriseEnabled = usePaidEnterpriseFeaturesEnabled();
 
   // Pass setPopup to the hook
   const {
     visionProviders,
     visionLLM,
-    isLoading: isLoadingVisionProviders,
     setVisionLLM,
     updateDefaultVisionProvider,
   } = useVisionProviders(setPopup);

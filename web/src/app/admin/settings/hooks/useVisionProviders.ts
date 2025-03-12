@@ -83,11 +83,11 @@ export function useVisionProviders(setPopup: SetPopup) {
 
         await setDefaultVisionProvider(providerObj.id, modelName);
 
-        setVisionLLM(llmValue);
         setPopup({
           message: "Default vision provider updated successfully!",
           type: "success",
         });
+        setVisionLLM(llmValue);
 
         // Refresh the list to reflect the change
         await loadVisionProviders();

@@ -276,6 +276,10 @@ def update_default_vision_provider(
             raise ValueError(
                 f"Model '{model_to_validate}' for provider '{new_default.provider}' does not support image input"
             )
+    else:
+        raise ValueError(
+            f"Model '{vision_model}' is not a valid model for provider '{new_default.provider}'"
+        )
 
     existing_default = db_session.scalar(
         select(LLMProviderModel).where(

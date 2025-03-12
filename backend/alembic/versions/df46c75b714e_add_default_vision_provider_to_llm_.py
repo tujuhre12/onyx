@@ -20,7 +20,10 @@ def upgrade() -> None:
     op.add_column(
         "llm_provider",
         sa.Column(
-            "is_default_vision_provider", sa.Boolean(), nullable=True, unique=True
+            "is_default_vision_provider",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.false(),
         ),
     )
     op.add_column(
