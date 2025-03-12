@@ -656,6 +656,7 @@ IMAGE_SUMMARIZATION_SYSTEM_PROMPT = os.environ.get(
     DEFAULT_IMAGE_SUMMARIZATION_SYSTEM_PROMPT,
 )
 
+# The user prompt for image summarization - the image filename will be automatically prepended
 IMAGE_SUMMARIZATION_USER_PROMPT = os.environ.get(
     "IMAGE_SUMMARIZATION_USER_PROMPT",
     DEFAULT_IMAGE_SUMMARIZATION_USER_PROMPT,

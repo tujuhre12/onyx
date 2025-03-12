@@ -62,7 +62,7 @@ def summarize_image_with_error_handling(
         image_data: The raw image bytes
         context_name: Name or title of the image for context
         system_prompt: System prompt to use for the LLM
-        user_prompt_template: Template for the user prompt, should contain {title} placeholder
+        user_prompt_template: User prompt to use (without title)
 
     Returns:
         The image summary text, or None if summarization failed or is disabled
@@ -70,7 +70,10 @@ def summarize_image_with_error_handling(
     if llm is None:
         return None
 
-    user_prompt = user_prompt_template.format(title=context_name)
+    # Prepend the image filename to the user prompt
+    user_prompt = (
+        f"The image has the file name '{context_name}'.\n{user_prompt_template}"
+    )
     return summarize_image_pipeline(llm, image_data, user_prompt, system_prompt)
 
 

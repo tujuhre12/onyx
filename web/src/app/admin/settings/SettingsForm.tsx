@@ -372,8 +372,9 @@ export function SettingsForm() {
         <div className="mt-4">
           <Label>Default Vision LLM</Label>
           <SubLabel>
-            Select the default LLM to use for image analysis and vision
-            features. Only LLMs that support image input are shown.
+            Select the default LLM to use for image analysis. This model will be
+            utilized during image indexing and at query time for search results,
+            if the above settings are enabled.
           </SubLabel>
 
           <div className="mt-2 max-w-xs">

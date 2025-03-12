@@ -8,7 +8,6 @@ Therefore, write a concise summary of the image that is optimized for retrieval.
 
 # Prompt for generating image descriptions with filename context
 DEFAULT_IMAGE_SUMMARIZATION_USER_PROMPT = """
-The image has the file name '{title}'.
 Describe precisely and concisely what the image shows.
 """
 
