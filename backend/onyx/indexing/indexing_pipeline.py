@@ -342,9 +342,14 @@ def process_image_sections(documents: list[Document]) -> list[IndexingDocument]:
     Returns:
         List of IndexingDocument objects with processed_sections as list[Section]
     """
-    # Get the vision LLM
-    llm = get_default_llm_with_vision()
-    if not llm or not get_image_extraction_and_analysis_enabled():
+    # Check if image extraction and analysis is enabled before trying to get a vision LLM
+    if not get_image_extraction_and_analysis_enabled():
+        llm = None
+    else:
+        # Only get the vision LLM if image processing is enabled
+        llm = get_default_llm_with_vision()
+
+    if not llm:
         logger.warning(
             "No vision-capable LLM available. Image sections will not be processed."
         )
