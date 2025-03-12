@@ -338,34 +338,6 @@ async def get_async_redis_connection() -> aioredis.Redis:
     return _async_redis_connection
 
 
-def retrieve_auth_token_data_from_redis_sync(request: Request) -> dict | None:
-    token = request.cookies.get(FASTAPI_USERS_AUTH_COOKIE_NAME)
-    if not token:
-        logger.debug("No auth token cookie found")
-        return None
-
-    try:
-        redis = get_raw_redis_client()
-        redis_key = REDIS_AUTH_KEY_PREFIX + token
-        token_data_str = redis.get(redis_key)
-
-        if not token_data_str:
-            logger.debug(f"Token key {redis_key} not found or expired in Redis")
-            return None
-
-        return json.loads(token_data_str)
-    except json.JSONDecodeError:
-        logger.error("Error decoding token data from Redis")
-        return None
-    except Exception as e:
-        logger.error(
-            f"Unexpected error in retrieve_auth_token_data_from_redis_sync: {str(e)}"
-        )
-        raise ValueError(
-            f"Unexpected error in retrieve_auth_token_data_from_redis_sync: {str(e)}"
-        )
-
-
 async def retrieve_auth_token_data_from_redis(request: Request) -> dict | None:
     token = request.cookies.get(FASTAPI_USERS_AUTH_COOKIE_NAME)
     if not token:

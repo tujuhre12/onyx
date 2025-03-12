@@ -3,66 +3,97 @@
 import { errorHandlingFetcher, RedirectError } from "@/lib/fetcher";
 import useSWR from "swr";
 import { Modal } from "../Modal";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { getSecondsUntilExpiration } from "@/lib/time";
 import { User } from "@/lib/types";
-import { mockedRefreshToken, refreshToken } from "./refreshUtils";
+import { refreshToken } from "./refreshUtils";
 import { NEXT_PUBLIC_CUSTOM_REFRESH_URL } from "@/lib/constants";
 import { Button } from "../ui/button";
 import { logout } from "@/lib/user";
 import { usePathname, useRouter } from "next/navigation";
-import Cookies from "js-cookie";
-import { SUPPRESS_EXPIRATION_WARNING_COOKIE_NAME } from "../resizable/constants";
-
 export const HealthCheckBanner = () => {
   const router = useRouter();
   const { error } = useSWR("/api/health", errorHandlingFetcher);
   const [expired, setExpired] = useState(false);
-  const [secondsUntilExpiration, setSecondsUntilExpiration] = useState<
-    number | null
-  >(null);
-
-  const [showExpirationWarning, setShowExpirationWarning] = useState(false);
+  const [showLoggedOutModal, setShowLoggedOutModal] = useState(false);
   const pathname = usePathname();
+  const expirationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timer | null>(null);
 
+  // Reduce revalidation frequency with dedicated SWR config
   const {
     data: user,
     mutate: mutateUser,
     error: userError,
-  } = useSWR<User>("/api/me", errorHandlingFetcher);
+  } = useSWR<User>("/api/me", errorHandlingFetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 30000, // 30 seconds
+  });
 
   // Handle 403 errors from the /api/me endpoint
   useEffect(() => {
     if (userError && userError.status === 403) {
-      console.log("Received 403 from /api/me, logging out user");
-
       logout().then(() => {
         if (!pathname.includes("/auth")) {
-          router.push("/auth/login");
+          setShowLoggedOutModal(true);
         }
       });
     }
-  }, [userError, router]);
+  }, [userError, pathname]);
 
-  const updateExpirationTime = useCallback(async () => {
-    const updatedUser = await mutateUser();
+  // Function to handle the "Log in" button click
+  const handleLogin = () => {
+    setShowLoggedOutModal(false);
+    router.push("/auth/login");
+  };
 
-    if (updatedUser) {
-      const seconds = getSecondsUntilExpiration(updatedUser);
-      setSecondsUntilExpiration(seconds);
-      console.debug(`Updated seconds until expiration:! ${seconds}`);
-    }
-  }, [mutateUser]);
+  // Function to set up expiration timeout
+  const setupExpirationTimeout = useCallback(
+    (secondsUntilExpiration: number) => {
+      // Clear any existing timeout
+      if (expirationTimeoutRef.current) {
+        clearTimeout(expirationTimeoutRef.current);
+      }
 
+      // Set timeout to show logout modal when session expires
+      const timeUntilExpire = (secondsUntilExpiration + 10) * 1000;
+      expirationTimeoutRef.current = setTimeout(() => {
+        setExpired(true);
+
+        if (!pathname.includes("/auth")) {
+          setShowLoggedOutModal(true);
+        }
+      }, timeUntilExpire);
+    },
+    [pathname]
+  );
+
+  // Clean up any timeouts/intervals when component unmounts
   useEffect(() => {
-    updateExpirationTime();
-  }, [user, updateExpirationTime]);
+    return () => {
+      if (expirationTimeoutRef.current) {
+        clearTimeout(expirationTimeoutRef.current);
+      }
 
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Set up token refresh logic if custom refresh URL exists
   useEffect(() => {
+    if (!user) return;
+
+    const secondsUntilExpiration = getSecondsUntilExpiration(user);
+    if (secondsUntilExpiration === null) return;
+
+    // Set up expiration timeout based on current user data
+    setupExpirationTimeout(secondsUntilExpiration);
+
     if (NEXT_PUBLIC_CUSTOM_REFRESH_URL) {
       const refreshUrl = NEXT_PUBLIC_CUSTOM_REFRESH_URL;
-      let refreshIntervalId: NodeJS.Timer;
-      let expireTimeoutId: NodeJS.Timeout;
 
       const attemptTokenRefresh = async () => {
         let retryCount = 0;
@@ -70,9 +101,7 @@ export const HealthCheckBanner = () => {
 
         while (retryCount < maxRetries) {
           try {
-            // NOTE: This is a mocked refresh token for testing purposes.
-            // const refreshTokenData = mockedRefreshToken();
-
+            console.debug("Attempting token refresh");
             const refreshTokenData = await refreshToken(refreshUrl);
             if (!refreshTokenData) {
               throw new Error("Failed to refresh token");
@@ -91,10 +120,25 @@ export const HealthCheckBanner = () => {
             if (!response.ok) {
               throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            // Wait for backend to process the token
             await new Promise((resolve) => setTimeout(resolve, 4000));
 
-            await mutateUser(undefined, { revalidate: true });
-            updateExpirationTime();
+            // Get updated user data
+            const updatedUser = await mutateUser();
+
+            if (updatedUser) {
+              // Reset expiration timeout with new expiration time
+              const newSecondsUntilExpiration =
+                getSecondsUntilExpiration(updatedUser);
+              if (newSecondsUntilExpiration !== null) {
+                setupExpirationTimeout(newSecondsUntilExpiration);
+                console.debug(
+                  `Token refreshed, new expiration in ${newSecondsUntilExpiration} seconds`
+                );
+              }
+            }
+
             break; // Success - exit the retry loop
           } catch (error) {
             console.error(
@@ -117,122 +161,40 @@ export const HealthCheckBanner = () => {
         }
       };
 
-      const scheduleRefreshAndExpire = () => {
-        if (secondsUntilExpiration !== null) {
-          const refreshInterval = 60 * 15; // 15 mins
-          refreshIntervalId = setInterval(
-            attemptTokenRefresh,
-            refreshInterval * 1000
-          );
+      // Set up refresh interval
+      const refreshInterval = 60 * 15; // 15 mins
 
-          const timeUntilExpire = (secondsUntilExpiration + 10) * 1000;
-          expireTimeoutId = setTimeout(() => {
-            console.debug("Session expired. Setting expired state to true.");
-            setExpired(true);
-          }, timeUntilExpire);
+      // Clear any existing interval
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
 
-          // if we're going to timeout before the next refresh, kick off a refresh now!
-          if (secondsUntilExpiration < refreshInterval) {
-            attemptTokenRefresh();
-          }
-        }
-      };
+      refreshIntervalRef.current = setInterval(
+        attemptTokenRefresh,
+        refreshInterval * 1000
+      );
 
-      scheduleRefreshAndExpire();
-
-      return () => {
-        clearInterval(refreshIntervalId);
-        clearTimeout(expireTimeoutId);
-      };
-    } else {
-      let warningTimeoutId: NodeJS.Timeout;
-      let expireTimeoutId: NodeJS.Timeout;
-
-      const scheduleWarningAndExpire = () => {
-        if (secondsUntilExpiration !== null) {
-          const warningThreshold = 5 * 6000; // 5 minutes
-
-          // Check if there's a cookie to suppress the warning
-          const suppressWarning = Cookies.get(
-            SUPPRESS_EXPIRATION_WARNING_COOKIE_NAME
-          );
-
-          if (suppressWarning) {
-            console.debug("Suppressing expiration warning due to cookie");
-            setShowExpirationWarning(false);
-          } else if (secondsUntilExpiration <= warningThreshold) {
-            setShowExpirationWarning(true);
-          } else {
-            const timeUntilWarning =
-              (secondsUntilExpiration - warningThreshold) * 1000;
-            warningTimeoutId = setTimeout(() => {
-              // Check again for cookie when timeout fires
-              if (!Cookies.get(SUPPRESS_EXPIRATION_WARNING_COOKIE_NAME)) {
-                console.debug("Session about to expire. Showing warning.");
-                setShowExpirationWarning(true);
-              }
-            }, timeUntilWarning);
-          }
-
-          const timeUntilExpire = (secondsUntilExpiration + 10) * 1000;
-          expireTimeoutId = setTimeout(() => {
-            console.debug("Session expired. Setting expired state to true.");
-            setShowExpirationWarning(false);
-            setExpired(true);
-            // Remove the cookie when session actually expires
-            Cookies.remove(SUPPRESS_EXPIRATION_WARNING_COOKIE_NAME);
-          }, timeUntilExpire);
-        }
-      };
-
-      scheduleWarningAndExpire();
-
-      return () => {
-        clearTimeout(warningTimeoutId);
-        clearTimeout(expireTimeoutId);
-      };
+      // If we're going to expire before the next refresh, kick off a refresh now
+      if (secondsUntilExpiration < refreshInterval) {
+        attemptTokenRefresh();
+      }
     }
-  }, [secondsUntilExpiration, user, mutateUser, updateExpirationTime]);
+  }, [user, setupExpirationTimeout, mutateUser]);
 
-  // Function to handle the "Continue Session" button
-  const handleContinueSession = () => {
-    // Set a cookie that will expire when the session expires
-    if (secondsUntilExpiration) {
-      // Calculate expiry in days (js-cookie uses days for expiration)
-      const expiryDays = secondsUntilExpiration / (60 * 60 * 24);
-      Cookies.set(SUPPRESS_EXPIRATION_WARNING_COOKIE_NAME, "true", {
-        expires: expiryDays,
-        path: "/",
-      });
-
-      console.debug(`Set cookie to suppress warnings for ${expiryDays} days`);
-      setShowExpirationWarning(false);
-    }
-  };
-
-  if (showExpirationWarning) {
+  // Logged out modal
+  if (showLoggedOutModal) {
     return (
       <Modal
         width="w-1/3"
         className="overflow-y-hidden flex flex-col"
-        title="Your Session Is About To Expire"
+        title="You Have Been Logged Out"
       >
         <div className="flex flex-col gap-y-4">
           <p className="text-sm">
-            Your session will expire soon (in {secondsUntilExpiration} seconds).
-            Would you like to continue your session or log out?
+            Your session has expired. Please log in again to continue.
           </p>
           <div className="flex flex-row gap-x-2 justify-end mt-4">
-            <Button onClick={handleContinueSession}>Continue Session</Button>
-            <Button
-              onClick={async () => {
-                await logout();
-                router.push("/auth/login");
-              }}
-              variant="outline"
-            >
-              Log Out
-            </Button>
+            <Button onClick={handleLogin}>Log In</Button>
           </div>
         </div>
       </Modal>
@@ -249,8 +211,7 @@ export const HealthCheckBanner = () => {
 
   if (error instanceof RedirectError || expired) {
     if (!pathname.includes("/auth")) {
-      alert(pathname);
-      router.push("/auth/login");
+      setShowLoggedOutModal(true);
     }
     return null;
   } else {

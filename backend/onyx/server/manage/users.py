@@ -2,6 +2,7 @@ import re
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
+from typing import cast
 
 import jwt
 from email_validator import EmailNotValidError
@@ -482,7 +483,7 @@ async def get_user_role(user: User = Depends(current_user)) -> UserRoleResponse:
     return UserRoleResponse(role=user.role)
 
 
-def get_current_token_expiration_jwt(
+def get_current_auth_token_expiration_jwt(
     user: User | None, request: Request
 ) -> datetime | None:
     if user is None:
@@ -511,13 +512,12 @@ def get_current_token_expiration_jwt(
         return None
 
 
-def get_current_token_expiration_redis(
+def get_current_auth_token_expiration_redis(
     user: User | None, request: Request
 ) -> datetime | None:
     if user is None:
         return None
     try:
-        print("retrieving token data from Redis")
         # Get the token from the request
         token = request.cookies.get(FASTAPI_USERS_AUTH_COOKIE_NAME)
         if not token:
@@ -529,7 +529,7 @@ def get_current_token_expiration_redis(
         redis_key = REDIS_AUTH_KEY_PREFIX + token
 
         # Get the TTL of the token
-        ttl = redis.ttl(redis_key)
+        ttl = cast(int, redis.ttl(redis_key))
         if ttl <= 0:
             logger.error("Token has expired or doesn't exist in Redis")
             return None
@@ -541,7 +541,6 @@ def get_current_token_expiration_redis(
             seconds=(SESSION_EXPIRE_TIME_SECONDS - ttl)
         )
 
-        print(f"Calculated token creation time: {token_creation_time}")
         return token_creation_time
 
     except Exception as e:
@@ -602,12 +601,10 @@ def verify_user_logged_in(
         )
 
     token_created_at = (
-        get_current_token_expiration_redis(user, request)
+        get_current_auth_token_expiration_redis(user, request)
         if AUTH_BACKEND == AuthBackend.REDIS
         else get_current_token_creation(user, db_session)
     )
-
-    print(f"token_created_at: {token_created_at}")
 
     team_name = fetch_ee_implementation_or_noop(
         "onyx.server.tenants.user_mapping", "get_tenant_id_for_email", None

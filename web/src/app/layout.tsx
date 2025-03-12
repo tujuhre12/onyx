@@ -30,8 +30,6 @@ import { ThemeProvider } from "next-themes";
 import CloudError from "@/components/errorPages/CloudErrorPage";
 import Error from "@/components/errorPages/ErrorPage";
 import AccessRestrictedPage from "@/components/errorPages/AccessRestrictedPage";
-import { cookies } from "next/headers";
-import { TokenPayload } from "@/components/auth/AuthMonitor";
 
 const inter = Inter({
   subsets: ["latin"],
