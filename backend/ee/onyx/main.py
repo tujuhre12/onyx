@@ -131,13 +131,6 @@ def get_application() -> FastAPI:
             prefix="/auth",
         )
 
-        # Add refresh token endpoint for OIDC
-        include_auth_router_with_prefix(
-            application,
-            fastapi_users.get_refresh_router(auth_backend),
-            prefix="/auth",
-        )
-
     elif AUTH_TYPE == AuthType.SAML:
         include_auth_router_with_prefix(
             application,

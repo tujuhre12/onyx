@@ -360,13 +360,6 @@ def get_application() -> FastAPI:
             prefix="/users",
         )
 
-        # Add refresh token endpoint
-        include_auth_router_with_prefix(
-            application,
-            fastapi_users.get_refresh_router(auth_backend),
-            prefix="/auth",
-        )
-
     if AUTH_TYPE == AuthType.GOOGLE_OAUTH:
         # For Google OAuth, refresh tokens are requested by:
         # 1. Adding the right scopes
