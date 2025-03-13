@@ -423,8 +423,7 @@ def get_application() -> FastAPI:
 # NOTE: needs to be outside of the `if __name__ == "__main__"` block so that the
 # app is exportable
 set_is_ee_based_on_env_variable()
-# Call get_application() to get the actual application instance
-app = fetch_versioned_implementation(module="onyx.main", attribute="get_application")()
+app = fetch_versioned_implementation(module="onyx.main", attribute="get_application")
 
 
 if __name__ == "__main__":
