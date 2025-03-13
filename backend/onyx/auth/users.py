@@ -1195,10 +1195,9 @@ def get_oauth_router(
 
         # For Google OAuth, add parameters to request refresh tokens
         if oauth_client.name == "google":
-            if "?" in authorization_url:
-                authorization_url += "&access_type=offline&prompt=consent"
-            else:
-                authorization_url += "?access_type=offline&prompt=consent"
+            authorization_url = add_url_params(
+                authorization_url, {"access_type": "offline", "prompt": "consent"}
+            )
 
         return OAuth2AuthorizeResponse(authorization_url=authorization_url)
 
