@@ -117,9 +117,7 @@ def _get_slack_document_access(
 
         if callback:
             if callback.should_stop():
-                raise RuntimeError(
-                    "_get_slack_document_access: Stop signal detected"
-                )
+                raise RuntimeError("_get_slack_document_access: Stop signal detected")
 
             callback.progress("_get_slack_document_access", 1)
 
@@ -138,6 +136,12 @@ def slack_doc_sync(
         token=cc_pair.credential.credential_json["slack_bot_token"]
     )
     user_id_to_email_map = fetch_user_id_to_email_map(slack_client)
+    if not user_id_to_email_map:
+        raise ValueError(
+            "No user id to email map found. Please check to make sure that "
+            "your Slack bot token has the `users:read.email` scope"
+        )
+
     workspace_permissions = _fetch_workspace_permissions(
         user_id_to_email_map=user_id_to_email_map,
     )
