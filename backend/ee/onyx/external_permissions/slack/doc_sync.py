@@ -118,7 +118,7 @@ def _get_slack_document_access(
         if callback:
             if callback.should_stop():
                 raise RuntimeError(
-                    "_get_slack_document_ids_and_channels: Stop signal detected"
+                    "_get_slack_document_access: Stop signal detected"
                 )
 
             callback.progress("_get_slack_document_access", 1)
