@@ -121,7 +121,7 @@ def _get_slack_document_access(
                     "_get_slack_document_ids_and_channels: Stop signal detected"
                 )
 
-            callback.progress("_get_slack_document_ids_and_channels", 1)
+            callback.progress("_get_slack_document_access", 1)
 
 
 def slack_doc_sync(
