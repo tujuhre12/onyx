@@ -695,6 +695,7 @@ T = TypeVar("T")
 ID = TypeVar("ID")
 
 
+# Protocol for strategies that support token refreshing without inheritance.
 class RefreshableStrategy(Protocol, Generic[T, ID]):
     """Protocol for authentication strategies that support token refreshing."""
 

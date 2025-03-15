@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { User } from "@/lib/types";
 import { NO_AUTH_USER_ID } from "@/lib/extension/constants";
 
-/**
- * Custom hook for handling JWT token refresh for current user
- */
+// Refresh token every 10 minutes (600000ms)
+// This is shorter than the session expiry time to ensure tokens stay valid
+const REFRESH_INTERVAL = 600000;
+
+//  Custom hook for handling JWT token refresh for current user
 export function useTokenRefresh(
   user: User | null,
   onRefreshFail: () => Promise<void>
@@ -17,10 +19,6 @@ export function useTokenRefresh(
 
   useEffect(() => {
     if (!user || user.id === NO_AUTH_USER_ID) return;
-
-    // Refresh token every 10 minutes (600000ms)
-    // This is shorter than the session expiry time to ensure tokens stay valid
-    const REFRESH_INTERVAL = 600000;
 
     const refreshTokenPeriodically = async () => {
       try {
