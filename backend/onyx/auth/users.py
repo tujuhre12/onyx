@@ -7,9 +7,9 @@ from collections.abc import AsyncGenerator
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
+from typing import Any
 from typing import cast
 from typing import Dict
-from typing import Generic
 from typing import List
 from typing import Optional
 from typing import Protocol
@@ -691,15 +691,15 @@ cookie_transport = CookieTransport(
 )
 
 
-T = TypeVar("T")
-ID = TypeVar("ID")
+T = TypeVar("T", covariant=True)
+ID = TypeVar("ID", contravariant=True)
 
 
 # Protocol for strategies that support token refreshing without inheritance.
-class RefreshableStrategy(Protocol, Generic[T, ID]):
+class RefreshableStrategy(Protocol):
     """Protocol for authentication strategies that support token refreshing."""
 
-    async def refresh_token(self, token: str, user: T) -> str:
+    async def refresh_token(self, token: Optional[str], user: Any) -> str:
         """
         Refresh an existing token by extending its lifetime.
         Returns either the same token with extended expiration or a new token.
@@ -792,13 +792,21 @@ class TenantAwareRedisStrategy(RedisStrategy[User, uuid.UUID]):
 class RefreshableDatabaseStrategy(DatabaseStrategy[User, uuid.UUID, AccessToken]):
     """Database strategy with token refreshing capabilities."""
 
-    async def refresh_token(self, token: str, user: User) -> str:
+    def __init__(
+        self,
+        access_token_db: AccessTokenDatabase[AccessToken],
+        lifetime_seconds: Optional[int] = None,
+    ):
+        super().__init__(access_token_db, lifetime_seconds)
+        self._access_token_db = access_token_db
+
+    async def refresh_token(self, token: Optional[str], user: User) -> str:
         """Refresh a token by updating its expiration time in the database."""
         if token is None:
             return await self.write_token(user)
 
         # Find the token in database
-        access_token = await self.access_token_db.get_by_token(token)
+        access_token = await self._access_token_db.get_by_token(token)
 
         if access_token is None:
             # Token not found, create new one
@@ -806,9 +814,9 @@ class RefreshableDatabaseStrategy(DatabaseStrategy[User, uuid.UUID, AccessToken]
 
         # Update expiration time
         new_expires = datetime.now(timezone.utc) + timedelta(
-            seconds=self.lifetime_seconds
+            seconds=float(self.lifetime_seconds or SESSION_EXPIRE_TIME_SECONDS)
         )
-        await self.access_token_db.update(access_token, {"expires": new_expires})
+        await self._access_token_db.update(access_token, {"expires": new_expires})
 
         return token
 
@@ -917,7 +925,9 @@ class FastAPIUserWithLogoutRouter(FastAPIUsers[models.UP, models.ID]):
 
                 # Check if user has OAuth accounts that need refreshing
                 await check_and_refresh_oauth_tokens(
-                    user=user, db_session=db_session, user_manager=user_manager
+                    user=cast(User, user),
+                    db_session=db_session,
+                    user_manager=cast(Any, user_manager),
                 )
 
                 # Check if strategy supports refreshing
@@ -927,7 +937,8 @@ class FastAPIUserWithLogoutRouter(FastAPIUsers[models.UP, models.ID]):
 
                 if supports_refresh:
                     try:
-                        new_token = await strategy.refresh_token(token, user)
+                        refresh_method = getattr(strategy, "refresh_token")
+                        new_token = await refresh_method(token, user)
                         logger.info(
                             f"Successfully refreshed session token for user {user.email}"
                         )

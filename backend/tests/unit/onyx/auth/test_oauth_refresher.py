@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from onyx.auth.oauth_refresher import _test_expire_oauth_token
 from onyx.auth.oauth_refresher import check_and_refresh_oauth_tokens
@@ -16,8 +17,11 @@ from onyx.db.models import OAuthAccount
 
 @pytest.mark.asyncio
 async def test_refresh_oauth_token_success(
-    mock_user, mock_oauth_account, mock_user_manager, mock_db_session
-):
+    mock_user: MagicMock,
+    mock_oauth_account: MagicMock,
+    mock_user_manager: MagicMock,
+    mock_db_session: AsyncSession,
+) -> None:
     """Test successful OAuth token refresh."""
     # Mock HTTP client and response
     mock_response = MagicMock()
@@ -63,8 +67,11 @@ async def test_refresh_oauth_token_success(
 
 @pytest.mark.asyncio
 async def test_refresh_oauth_token_failure(
-    mock_user, mock_oauth_account, mock_user_manager, mock_db_session
-):
+    mock_user: MagicMock,
+    mock_oauth_account: MagicMock,
+    mock_user_manager: MagicMock,
+    mock_db_session: AsyncSession,
+) -> bool:
     """Test OAuth token refresh failure due to HTTP error."""
     # Mock HTTP client with error response
     mock_response = MagicMock()
@@ -92,12 +99,16 @@ async def test_refresh_oauth_token_failure(
     assert result is False
     mock_client.post.assert_called_once()
     mock_user_manager.user_db.update_oauth_account.assert_not_called()
+    return True
 
 
 @pytest.mark.asyncio
 async def test_refresh_oauth_token_no_refresh_token(
-    mock_user, mock_oauth_account, mock_user_manager, mock_db_session
-):
+    mock_user: MagicMock,
+    mock_oauth_account: MagicMock,
+    mock_user_manager: MagicMock,
+    mock_db_session: AsyncSession,
+) -> None:
     """Test OAuth token refresh when no refresh token is available."""
     # Set refresh token to None
     mock_oauth_account.refresh_token = None
@@ -114,8 +125,10 @@ async def test_refresh_oauth_token_no_refresh_token(
 
 @pytest.mark.asyncio
 async def test_check_and_refresh_oauth_tokens(
-    mock_user, mock_user_manager, mock_db_session
-):
+    mock_user: MagicMock,
+    mock_user_manager: MagicMock,
+    mock_db_session: AsyncSession,
+) -> None:
     """Test checking and refreshing multiple OAuth tokens."""
     # Create mock user with OAuth accounts
     now_timestamp = datetime.now(timezone.utc).timestamp()
@@ -161,7 +174,7 @@ async def test_check_and_refresh_oauth_tokens(
 
 
 @pytest.mark.asyncio
-async def test_get_oauth_accounts_requiring_refresh_token(mock_user):
+async def test_get_oauth_accounts_requiring_refresh_token(mock_user: MagicMock) -> None:
     """Test identifying OAuth accounts that need refresh tokens."""
     # Create accounts with and without refresh tokens
     account_with_token = MagicMock(spec=OAuthAccount)
@@ -198,7 +211,9 @@ async def test_get_oauth_accounts_requiring_refresh_token(mock_user):
 
 
 @pytest.mark.asyncio
-async def test_check_oauth_account_has_refresh_token(mock_user, mock_oauth_account):
+async def test_check_oauth_account_has_refresh_token(
+    mock_user: MagicMock, mock_oauth_account: MagicMock
+) -> None:
     """Test checking if an OAuth account has a refresh token."""
     # Test with refresh token
     mock_oauth_account.refresh_token = "refresh_token"
@@ -224,8 +239,11 @@ async def test_check_oauth_account_has_refresh_token(mock_user, mock_oauth_accou
 
 @pytest.mark.asyncio
 async def test_test_expire_oauth_token(
-    mock_user, mock_oauth_account, mock_user_manager, mock_db_session
-):
+    mock_user: MagicMock,
+    mock_oauth_account: MagicMock,
+    mock_user_manager: MagicMock,
+    mock_db_session: AsyncSession,
+) -> None:
     """Test the testing utility function for token expiration."""
     # Set up the mock account
     mock_oauth_account.oauth_name = "google"

@@ -1,9 +1,13 @@
 from datetime import datetime
 from datetime import timezone
 from typing import Any
+from typing import cast
+from typing import Dict
+from typing import List
 from typing import Optional
 
 import httpx
+from fastapi_users.manager import BaseUserManager
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from onyx.configs.app_configs import OAUTH_CLIENT_ID
@@ -27,7 +31,7 @@ async def _test_expire_oauth_token(
     user: User,
     oauth_account: OAuthAccount,
     db_session: AsyncSession,
-    user_manager: Any,
+    user_manager: BaseUserManager[User, Any],
     expire_in_seconds: int = 10,
 ) -> bool:
     """
@@ -40,10 +44,10 @@ async def _test_expire_oauth_token(
             (datetime.now(timezone.utc).timestamp() + expire_in_seconds)
         )
 
-        updated_data = {"expires_at": new_expires_at}
+        updated_data: Dict[str, Any] = {"expires_at": new_expires_at}
 
         await user_manager.user_db.update_oauth_account(
-            user, oauth_account, updated_data
+            user, cast(Any, oauth_account), updated_data
         )
 
         return True
@@ -56,7 +60,7 @@ async def refresh_oauth_token(
     user: User,
     oauth_account: OAuthAccount,
     db_session: AsyncSession,
-    user_manager: Any,
+    user_manager: BaseUserManager[User, Any],
 ) -> bool:
     """
     Attempt to refresh an OAuth token that's about to expire or has expired.
@@ -110,7 +114,7 @@ async def refresh_oauth_token(
                 )
 
             # Update the OAuth account
-            updated_data = {
+            updated_data: Dict[str, Any] = {
                 "access_token": new_access_token,
                 "refresh_token": new_refresh_token,
             }
@@ -129,7 +133,7 @@ async def refresh_oauth_token(
 
             # Update the OAuth account
             await user_manager.user_db.update_oauth_account(
-                user, oauth_account, updated_data
+                user, cast(Any, oauth_account), updated_data
             )
 
             logger.info(f"Successfully refreshed OAuth token for {user.email}")
@@ -143,7 +147,7 @@ async def refresh_oauth_token(
 async def check_and_refresh_oauth_tokens(
     user: User,
     db_session: AsyncSession,
-    user_manager: Any,
+    user_manager: BaseUserManager[User, Any],
 ) -> None:
     """
     Check if any OAuth tokens are expired or about to expire and refresh them.
@@ -188,7 +192,7 @@ async def check_oauth_account_has_refresh_token(
     return bool(oauth_account.refresh_token)
 
 
-async def get_oauth_accounts_requiring_refresh_token(user: User) -> list[OAuthAccount]:
+async def get_oauth_accounts_requiring_refresh_token(user: User) -> List[OAuthAccount]:
     """
     Returns a list of OAuth accounts for a user that are missing refresh tokens.
     These accounts will need re-authentication to get refresh tokens.
