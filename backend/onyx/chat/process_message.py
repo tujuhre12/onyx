@@ -358,24 +358,37 @@ def stream_chat_message_objects(
     llm: LLM
 
     test_questions = [
-        "weather in Munich",
-        "weather in New York",
-        # "what is the overlap between finance and economics",
-        # "effects taking vitamin c pills vs eating veggies health outcomes",
-        # "professions people good math",
-        # "biomedical engineers design cutting-edge medical equipment important skill set",
-        # "How do biomedical engineers design cutting-edge medical equipment? And what is the most important skill set?",
-        # "average power output US nuclear power plant",
-        # "typical power range small modular reactors",
-        # "SMRs power industry",
-        # "best use case Onyx AI company",
-        # "techniques calculate square root",
-        # "daily vitamin C requirement adult women",
-        # "boil ocean",
-        # "best soccer player ever"
+        "big bang vs steady state theory",
+        "astronomy",
+        "trace energy momentum tensor conformal field theory",
+        "evidence Big Bang",
+        "Neil Armstrong play tennis moon",
+        "current temperature Hawaii New York Munich",
+        "win quadradoodle",
+        "best practices coding Java",
+        "classes related software engineering",
+        "current temperature Munich",
+        "what is the most important concept in biology",
+        "subfields of finance",
+        "what is the overlap between finance and economics",
+        "effects taking vitamin c pills vs eating veggies health outcomes",
+        "professions people good math",
+        "biomedical engineers design cutting-edge medical equipment important skill set",
+        "How do biomedical engineers design cutting-edge medical equipment? And what is the most important skill set?",
+        "average power output US nuclear power plant",
+        "typical power range small modular reactors",
+        "SMRs power industry",
+        "best use case Onyx AI company",
+        "techniques calculate square root",
+        "daily vitamin C requirement adult women",
+        "boil ocean",
+        "best soccer player ever",
     ]
 
-    for test_question in test_questions:
+    for test_question_num, test_question in enumerate(test_questions):
+        logger.info(
+            f"------- Running test question {test_question_num + 1} of {len(test_questions)}"
+        )
         try:
             user_id = user.id if user is not None else None
 

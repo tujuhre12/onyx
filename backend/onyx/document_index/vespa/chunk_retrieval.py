@@ -333,7 +333,8 @@ def query_vespa(
 
     search_time = 0.0
 
-    for query_alpha in [0.4, 0.7, 1.0]:
+    alphas: list[float] = [0.4, 0.7, 1.0]
+    for query_alpha in alphas:
         date_time_start = datetime.now()
 
         # Create a mutable copy of the query_params
@@ -408,14 +409,15 @@ def query_vespa(
         date_time_end = datetime.now()
         search_time += (date_time_end - date_time_start).microseconds / 1000000
 
+    avg_search_time = search_time / len(alphas)
     ranking_stats.append(
         (
             "Timing",
             query_alpha,
             cast(str, query_params["query"]).strip(),
             "",
-            "",
-            search_time,
+            "Avg:",
+            avg_search_time,
         )
     )
 
@@ -426,6 +428,7 @@ def query_vespa(
 
     inference_chunks = [_vespa_hit_to_inference_chunk(hit) for hit in filtered_hits]
     # Good Debugging Spot
+    logger.info(f"Search done for all alphs - avg timing: {avg_search_time}")
     return inference_chunks
 
 
