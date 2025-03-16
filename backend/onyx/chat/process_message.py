@@ -357,620 +357,660 @@ def stream_chat_message_objects(
 
     llm: LLM
 
-    try:
-        user_id = user.id if user is not None else None
+    test_questions = [
+        "weather in Munich",
+        "weather in New York",
+        # "what is the overlap between finance and economics",
+        # "effects taking vitamin c pills vs eating veggies health outcomes",
+        # "professions people good math",
+        # "biomedical engineers design cutting-edge medical equipment important skill set",
+        # "How do biomedical engineers design cutting-edge medical equipment? And what is the most important skill set?",
+        # "average power output US nuclear power plant",
+        # "typical power range small modular reactors",
+        # "SMRs power industry",
+        # "best use case Onyx AI company",
+        # "techniques calculate square root",
+        # "daily vitamin C requirement adult women",
+        # "boil ocean",
+        # "best soccer player ever"
+    ]
 
-        chat_session = get_chat_session_by_id(
-            chat_session_id=new_msg_req.chat_session_id,
-            user_id=user_id,
-            db_session=db_session,
-        )
-
-        message_text = new_msg_req.message
-        chat_session_id = new_msg_req.chat_session_id
-        parent_id = new_msg_req.parent_message_id
-        reference_doc_ids = new_msg_req.search_doc_ids
-        retrieval_options = new_msg_req.retrieval_options
-        alternate_assistant_id = new_msg_req.alternate_assistant_id
-
-        # permanent "log" store, used primarily for debugging
-        long_term_logger = LongTermLogger(
-            metadata={"user_id": str(user_id), "chat_session_id": str(chat_session_id)}
-        )
-
-        if alternate_assistant_id is not None:
-            # Allows users to specify a temporary persona (assistant) in the chat session
-            # this takes highest priority since it's user specified
-            persona = get_persona_by_id(
-                alternate_assistant_id,
-                user=user,
-                db_session=db_session,
-                is_for_edit=False,
-            )
-        elif new_msg_req.persona_override_config:
-            # Certain endpoints allow users to specify arbitrary persona settings
-            # this should never conflict with the alternate_assistant_id
-            persona = persona = create_temporary_persona(
-                db_session=db_session,
-                persona_config=new_msg_req.persona_override_config,
-                user=user,
-            )
-        else:
-            persona = chat_session.persona
-
-        if not persona:
-            raise RuntimeError("No persona specified or found for chat session")
-
-        multi_assistant_milestone, _is_new = create_milestone_if_not_exists(
-            user=user,
-            event_type=MilestoneRecordType.MULTIPLE_ASSISTANTS,
-            db_session=db_session,
-        )
-
-        update_user_assistant_milestone(
-            milestone=multi_assistant_milestone,
-            user_id=str(user.id) if user else NO_AUTH_USER_ID,
-            assistant_id=persona.id,
-            db_session=db_session,
-        )
-
-        _, just_hit_multi_assistant_milestone = check_multi_assistant_milestone(
-            milestone=multi_assistant_milestone,
-            db_session=db_session,
-        )
-
-        if just_hit_multi_assistant_milestone:
-            mt_cloud_telemetry(
-                distinct_id=tenant_id,
-                event=MilestoneRecordType.MULTIPLE_ASSISTANTS,
-                properties=None,
-            )
-
-        # If a prompt override is specified via the API, use that with highest priority
-        # but for saving it, we are just mapping it to an existing prompt
-        prompt_id = new_msg_req.prompt_id
-        if prompt_id is None and persona.prompts:
-            prompt_id = sorted(persona.prompts, key=lambda x: x.id)[-1].id
-
-        if reference_doc_ids is None and retrieval_options is None:
-            raise RuntimeError(
-                "Must specify a set of documents for chat or specify search options"
-            )
-
+    for test_question in test_questions:
         try:
-            llm, fast_llm = get_llms_for_persona(
-                persona=persona,
-                llm_override=new_msg_req.llm_override or chat_session.llm_override,
-                additional_headers=litellm_additional_headers,
-                long_term_logger=long_term_logger,
-            )
-        except GenAIDisabledException:
-            raise RuntimeError("LLM is disabled. Can't use chat flow without LLM.")
+            user_id = user.id if user is not None else None
 
-        llm_provider = llm.config.model_provider
-        llm_model_name = llm.config.model_name
-
-        llm_tokenizer = get_tokenizer(
-            model_name=llm_model_name,
-            provider_type=llm_provider,
-        )
-        llm_tokenizer_encode_func = cast(
-            Callable[[str], list[int]], llm_tokenizer.encode
-        )
-
-        search_settings = get_current_search_settings(db_session)
-        document_index = get_default_document_index(search_settings, None)
-
-        # Every chat Session begins with an empty root message
-        root_message = get_or_create_root_message(
-            chat_session_id=chat_session_id, db_session=db_session
-        )
-
-        if parent_id is not None:
-            parent_message = get_chat_message(
-                chat_message_id=parent_id,
+            chat_session = get_chat_session_by_id(
+                chat_session_id=new_msg_req.chat_session_id,
                 user_id=user_id,
                 db_session=db_session,
             )
-        else:
-            parent_message = root_message
 
-        user_message = None
+            # message_text = new_msg_req.message
+            message_text = test_question
+            chat_session_id = new_msg_req.chat_session_id
+            parent_id = new_msg_req.parent_message_id
+            reference_doc_ids = new_msg_req.search_doc_ids
+            retrieval_options = new_msg_req.retrieval_options
+            alternate_assistant_id = new_msg_req.alternate_assistant_id
 
-        if new_msg_req.regenerate:
-            final_msg, history_msgs = create_chat_chain(
-                stop_at_message_id=parent_id,
-                chat_session_id=chat_session_id,
-                db_session=db_session,
+            # permanent "log" store, used primarily for debugging
+            long_term_logger = LongTermLogger(
+                metadata={
+                    "user_id": str(user_id),
+                    "chat_session_id": str(chat_session_id),
+                }
             )
 
-        elif not use_existing_user_message:
-            # Create new message at the right place in the tree and update the parent's child pointer
-            # Don't commit yet until we verify the chat message chain
-            user_message = create_new_chat_message(
-                chat_session_id=chat_session_id,
-                parent_message=parent_message,
-                prompt_id=prompt_id,
-                message=message_text,
-                token_count=len(llm_tokenizer_encode_func(message_text)),
-                message_type=MessageType.USER,
-                files=None,  # Need to attach later for optimization to only load files once in parallel
-                db_session=db_session,
-                commit=False,
-            )
-            # re-create linear history of messages
-            final_msg, history_msgs = create_chat_chain(
-                chat_session_id=chat_session_id, db_session=db_session
-            )
-            if final_msg.id != user_message.id:
-                db_session.rollback()
-                raise RuntimeError(
-                    "The new message was not on the mainline. "
-                    "Be sure to update the chat pointers before calling this."
+            if alternate_assistant_id is not None:
+                # Allows users to specify a temporary persona (assistant) in the chat session
+                # this takes highest priority since it's user specified
+                persona = get_persona_by_id(
+                    alternate_assistant_id,
+                    user=user,
+                    db_session=db_session,
+                    is_for_edit=False,
                 )
-
-            # NOTE: do not commit user message - it will be committed when the
-            # assistant message is successfully generated
-        else:
-            # re-create linear history of messages
-            final_msg, history_msgs = create_chat_chain(
-                chat_session_id=chat_session_id, db_session=db_session
-            )
-            if existing_assistant_message_id is None:
-                if final_msg.message_type != MessageType.USER:
-                    raise RuntimeError(
-                        "The last message was not a user message. Cannot call "
-                        "`stream_chat_message_objects` with `is_regenerate=True` "
-                        "when the last message is not a user message."
-                    )
+            elif new_msg_req.persona_override_config:
+                # Certain endpoints allow users to specify arbitrary persona settings
+                # this should never conflict with the alternate_assistant_id
+                persona = persona = create_temporary_persona(
+                    db_session=db_session,
+                    persona_config=new_msg_req.persona_override_config,
+                    user=user,
+                )
             else:
-                if final_msg.id != existing_assistant_message_id:
+                persona = chat_session.persona
+
+            if not persona:
+                raise RuntimeError("No persona specified or found for chat session")
+
+            multi_assistant_milestone, _is_new = create_milestone_if_not_exists(
+                user=user,
+                event_type=MilestoneRecordType.MULTIPLE_ASSISTANTS,
+                db_session=db_session,
+            )
+
+            update_user_assistant_milestone(
+                milestone=multi_assistant_milestone,
+                user_id=str(user.id) if user else NO_AUTH_USER_ID,
+                assistant_id=persona.id,
+                db_session=db_session,
+            )
+
+            _, just_hit_multi_assistant_milestone = check_multi_assistant_milestone(
+                milestone=multi_assistant_milestone,
+                db_session=db_session,
+            )
+
+            if just_hit_multi_assistant_milestone:
+                mt_cloud_telemetry(
+                    distinct_id=tenant_id,
+                    event=MilestoneRecordType.MULTIPLE_ASSISTANTS,
+                    properties=None,
+                )
+
+            # If a prompt override is specified via the API, use that with highest priority
+            # but for saving it, we are just mapping it to an existing prompt
+            prompt_id = new_msg_req.prompt_id
+            if prompt_id is None and persona.prompts:
+                prompt_id = sorted(persona.prompts, key=lambda x: x.id)[-1].id
+
+            if reference_doc_ids is None and retrieval_options is None:
+                raise RuntimeError(
+                    "Must specify a set of documents for chat or specify search options"
+                )
+
+            try:
+                llm, fast_llm = get_llms_for_persona(
+                    persona=persona,
+                    llm_override=new_msg_req.llm_override or chat_session.llm_override,
+                    additional_headers=litellm_additional_headers,
+                    long_term_logger=long_term_logger,
+                )
+            except GenAIDisabledException:
+                raise RuntimeError("LLM is disabled. Can't use chat flow without LLM.")
+
+            llm_provider = llm.config.model_provider
+            llm_model_name = llm.config.model_name
+
+            llm_tokenizer = get_tokenizer(
+                model_name=llm_model_name,
+                provider_type=llm_provider,
+            )
+            llm_tokenizer_encode_func = cast(
+                Callable[[str], list[int]], llm_tokenizer.encode
+            )
+
+            search_settings = get_current_search_settings(db_session)
+            document_index = get_default_document_index(search_settings, None)
+
+            # Every chat Session begins with an empty root message
+            root_message = get_or_create_root_message(
+                chat_session_id=chat_session_id, db_session=db_session
+            )
+
+            if parent_id is not None:
+                parent_message = get_chat_message(
+                    chat_message_id=parent_id,
+                    user_id=user_id,
+                    db_session=db_session,
+                )
+            else:
+                parent_message = root_message
+
+            user_message = None
+
+            if new_msg_req.regenerate:
+                final_msg, history_msgs = create_chat_chain(
+                    stop_at_message_id=parent_id,
+                    chat_session_id=chat_session_id,
+                    db_session=db_session,
+                )
+
+            elif not use_existing_user_message:
+                # Create new message at the right place in the tree and update the parent's child pointer
+                # Don't commit yet until we verify the chat message chain
+                user_message = create_new_chat_message(
+                    chat_session_id=chat_session_id,
+                    parent_message=parent_message,
+                    prompt_id=prompt_id,
+                    message=message_text,
+                    token_count=len(llm_tokenizer_encode_func(message_text)),
+                    message_type=MessageType.USER,
+                    files=None,  # Need to attach later for optimization to only load files once in parallel
+                    db_session=db_session,
+                    commit=False,
+                )
+                # re-create linear history of messages
+                final_msg, history_msgs = create_chat_chain(
+                    chat_session_id=chat_session_id, db_session=db_session
+                )
+                if final_msg.id != user_message.id:
+                    db_session.rollback()
                     raise RuntimeError(
-                        "The last message was not the existing assistant message. "
-                        f"Final message id: {final_msg.id}, "
-                        f"existing assistant message id: {existing_assistant_message_id}"
+                        "The new message was not on the mainline. "
+                        "Be sure to update the chat pointers before calling this."
                     )
 
-        # load all files needed for this chat chain in memory
-        files = load_all_chat_files(
-            history_msgs, new_msg_req.file_descriptors, db_session
-        )
-        req_file_ids = [f["id"] for f in new_msg_req.file_descriptors]
-        latest_query_files = [file for file in files if file.file_id in req_file_ids]
+                # NOTE: do not commit user message - it will be committed when the
+                # assistant message is successfully generated
+            else:
+                # re-create linear history of messages
+                final_msg, history_msgs = create_chat_chain(
+                    chat_session_id=chat_session_id, db_session=db_session
+                )
+                if existing_assistant_message_id is None:
+                    if final_msg.message_type != MessageType.USER:
+                        raise RuntimeError(
+                            "The last message was not a user message. Cannot call "
+                            "`stream_chat_message_objects` with `is_regenerate=True` "
+                            "when the last message is not a user message."
+                        )
+                else:
+                    if final_msg.id != existing_assistant_message_id:
+                        raise RuntimeError(
+                            "The last message was not the existing assistant message. "
+                            f"Final message id: {final_msg.id}, "
+                            f"existing assistant message id: {existing_assistant_message_id}"
+                        )
 
-        if user_message:
-            attach_files_to_chat_message(
-                chat_message=user_message,
-                files=[
-                    new_file.to_file_descriptor() for new_file in latest_query_files
-                ],
+            # load all files needed for this chat chain in memory
+            files = load_all_chat_files(
+                history_msgs, new_msg_req.file_descriptors, db_session
+            )
+            req_file_ids = [f["id"] for f in new_msg_req.file_descriptors]
+            latest_query_files = [
+                file for file in files if file.file_id in req_file_ids
+            ]
+
+            if user_message:
+                attach_files_to_chat_message(
+                    chat_message=user_message,
+                    files=[
+                        new_file.to_file_descriptor() for new_file in latest_query_files
+                    ],
+                    db_session=db_session,
+                    commit=False,
+                )
+
+            selected_db_search_docs = None
+            selected_sections: list[InferenceSection] | None = None
+            if reference_doc_ids:
+                identifier_tuples = get_doc_query_identifiers_from_model(
+                    search_doc_ids=reference_doc_ids,
+                    chat_session=chat_session,
+                    user_id=user_id,
+                    db_session=db_session,
+                    enforce_chat_session_id_for_search_docs=enforce_chat_session_id_for_search_docs,
+                )
+
+                # Generates full documents currently
+                # May extend to use sections instead in the future
+                selected_sections = inference_sections_from_ids(
+                    doc_identifiers=identifier_tuples,
+                    document_index=document_index,
+                )
+                document_pruning_config = DocumentPruningConfig(
+                    is_manually_selected_docs=True
+                )
+
+                # In case the search doc is deleted, just don't include it
+                # though this should never happen
+                db_search_docs_or_none = [
+                    get_db_search_doc_by_id(doc_id=doc_id, db_session=db_session)
+                    for doc_id in reference_doc_ids
+                ]
+
+                selected_db_search_docs = [
+                    db_sd for db_sd in db_search_docs_or_none if db_sd
+                ]
+
+            else:
+                document_pruning_config = DocumentPruningConfig(
+                    max_chunks=int(
+                        persona.num_chunks
+                        if persona.num_chunks is not None
+                        else default_num_chunks
+                    ),
+                    max_window_percentage=max_document_percentage,
+                )
+
+            # we don't need to reserve a message id if we're using an existing assistant message
+            reserved_message_id = (
+                final_msg.id
+                if existing_assistant_message_id is not None
+                else reserve_message_id(
+                    db_session=db_session,
+                    chat_session_id=chat_session_id,
+                    parent_message=user_message.id
+                    if user_message is not None
+                    else parent_message.id,
+                    message_type=MessageType.ASSISTANT,
+                )
+            )
+            yield MessageResponseIDInfo(
+                user_message_id=user_message.id if user_message else None,
+                reserved_assistant_message_id=reserved_message_id,
+            )
+
+            overridden_model = (
+                new_msg_req.llm_override.model_version
+                if new_msg_req.llm_override
+                else None
+            )
+
+            # Cannot determine these without the LLM step or breaking out early
+            partial_response = partial(
+                create_new_chat_message,
+                chat_session_id=chat_session_id,
+                # if we're using an existing assistant message, then this will just be an
+                # update operation, in which case the parent should be the parent of
+                # the latest. If we're creating a new assistant message, then the parent
+                # should be the latest message (latest user message)
+                parent_message=(
+                    final_msg
+                    if existing_assistant_message_id is None
+                    else parent_message
+                ),
+                prompt_id=prompt_id,
+                overridden_model=overridden_model,
+                # message=,
+                # rephrased_query=,
+                # token_count=,
+                message_type=MessageType.ASSISTANT,
+                alternate_assistant_id=new_msg_req.alternate_assistant_id,
+                # error=,
+                # reference_docs=,
                 db_session=db_session,
                 commit=False,
+                reserved_message_id=reserved_message_id,
+                is_agentic=new_msg_req.use_agentic_search,
             )
 
-        selected_db_search_docs = None
-        selected_sections: list[InferenceSection] | None = None
-        if reference_doc_ids:
-            identifier_tuples = get_doc_query_identifiers_from_model(
-                search_doc_ids=reference_doc_ids,
-                chat_session=chat_session,
-                user_id=user_id,
-                db_session=db_session,
-                enforce_chat_session_id_for_search_docs=enforce_chat_session_id_for_search_docs,
+            prompt_override = (
+                new_msg_req.prompt_override or chat_session.prompt_override
             )
-
-            # Generates full documents currently
-            # May extend to use sections instead in the future
-            selected_sections = inference_sections_from_ids(
-                doc_identifiers=identifier_tuples,
-                document_index=document_index,
-            )
-            document_pruning_config = DocumentPruningConfig(
-                is_manually_selected_docs=True
-            )
-
-            # In case the search doc is deleted, just don't include it
-            # though this should never happen
-            db_search_docs_or_none = [
-                get_db_search_doc_by_id(doc_id=doc_id, db_session=db_session)
-                for doc_id in reference_doc_ids
-            ]
-
-            selected_db_search_docs = [
-                db_sd for db_sd in db_search_docs_or_none if db_sd
-            ]
-
-        else:
-            document_pruning_config = DocumentPruningConfig(
-                max_chunks=int(
-                    persona.num_chunks
-                    if persona.num_chunks is not None
-                    else default_num_chunks
-                ),
-                max_window_percentage=max_document_percentage,
-            )
-
-        # we don't need to reserve a message id if we're using an existing assistant message
-        reserved_message_id = (
-            final_msg.id
-            if existing_assistant_message_id is not None
-            else reserve_message_id(
-                db_session=db_session,
-                chat_session_id=chat_session_id,
-                parent_message=user_message.id
-                if user_message is not None
-                else parent_message.id,
-                message_type=MessageType.ASSISTANT,
-            )
-        )
-        yield MessageResponseIDInfo(
-            user_message_id=user_message.id if user_message else None,
-            reserved_assistant_message_id=reserved_message_id,
-        )
-
-        overridden_model = (
-            new_msg_req.llm_override.model_version if new_msg_req.llm_override else None
-        )
-
-        # Cannot determine these without the LLM step or breaking out early
-        partial_response = partial(
-            create_new_chat_message,
-            chat_session_id=chat_session_id,
-            # if we're using an existing assistant message, then this will just be an
-            # update operation, in which case the parent should be the parent of
-            # the latest. If we're creating a new assistant message, then the parent
-            # should be the latest message (latest user message)
-            parent_message=(
-                final_msg if existing_assistant_message_id is None else parent_message
-            ),
-            prompt_id=prompt_id,
-            overridden_model=overridden_model,
-            # message=,
-            # rephrased_query=,
-            # token_count=,
-            message_type=MessageType.ASSISTANT,
-            alternate_assistant_id=new_msg_req.alternate_assistant_id,
-            # error=,
-            # reference_docs=,
-            db_session=db_session,
-            commit=False,
-            reserved_message_id=reserved_message_id,
-            is_agentic=new_msg_req.use_agentic_search,
-        )
-
-        prompt_override = new_msg_req.prompt_override or chat_session.prompt_override
-        if new_msg_req.persona_override_config:
-            prompt_config = PromptConfig(
-                system_prompt=new_msg_req.persona_override_config.prompts[
-                    0
-                ].system_prompt,
-                task_prompt=new_msg_req.persona_override_config.prompts[0].task_prompt,
-                datetime_aware=new_msg_req.persona_override_config.prompts[
-                    0
-                ].datetime_aware,
-                include_citations=new_msg_req.persona_override_config.prompts[
-                    0
-                ].include_citations,
-            )
-        elif prompt_override:
-            if not final_msg.prompt:
-                raise ValueError(
-                    "Prompt override cannot be applied, no base prompt found."
+            if new_msg_req.persona_override_config:
+                prompt_config = PromptConfig(
+                    system_prompt=new_msg_req.persona_override_config.prompts[
+                        0
+                    ].system_prompt,
+                    task_prompt=new_msg_req.persona_override_config.prompts[
+                        0
+                    ].task_prompt,
+                    datetime_aware=new_msg_req.persona_override_config.prompts[
+                        0
+                    ].datetime_aware,
+                    include_citations=new_msg_req.persona_override_config.prompts[
+                        0
+                    ].include_citations,
                 )
-            prompt_config = PromptConfig.from_model(
-                final_msg.prompt,
-                prompt_override=prompt_override,
-            )
-        elif final_msg.prompt:
-            prompt_config = PromptConfig.from_model(final_msg.prompt)
-        else:
-            prompt_config = PromptConfig.from_model(persona.prompts[0])
+            elif prompt_override:
+                if not final_msg.prompt:
+                    raise ValueError(
+                        "Prompt override cannot be applied, no base prompt found."
+                    )
+                prompt_config = PromptConfig.from_model(
+                    final_msg.prompt,
+                    prompt_override=prompt_override,
+                )
+            elif final_msg.prompt:
+                prompt_config = PromptConfig.from_model(final_msg.prompt)
+            else:
+                prompt_config = PromptConfig.from_model(persona.prompts[0])
 
-        answer_style_config = AnswerStyleConfig(
-            citation_config=CitationConfig(
-                all_docs_useful=selected_db_search_docs is not None
-            ),
-            document_pruning_config=document_pruning_config,
-            structured_response_format=new_msg_req.structured_response_format,
-        )
-
-        tool_dict = construct_tools(
-            persona=persona,
-            prompt_config=prompt_config,
-            db_session=db_session,
-            user=user,
-            llm=llm,
-            fast_llm=fast_llm,
-            search_tool_config=SearchToolConfig(
-                answer_style_config=answer_style_config,
+            answer_style_config = AnswerStyleConfig(
+                citation_config=CitationConfig(
+                    all_docs_useful=selected_db_search_docs is not None
+                ),
                 document_pruning_config=document_pruning_config,
-                retrieval_options=retrieval_options or RetrievalDetails(),
+                structured_response_format=new_msg_req.structured_response_format,
+            )
+
+            tool_dict = construct_tools(
+                persona=persona,
+                prompt_config=prompt_config,
+                db_session=db_session,
+                user=user,
+                llm=llm,
+                fast_llm=fast_llm,
+                search_tool_config=SearchToolConfig(
+                    answer_style_config=answer_style_config,
+                    document_pruning_config=document_pruning_config,
+                    retrieval_options=retrieval_options or RetrievalDetails(),
+                    rerank_settings=new_msg_req.rerank_settings,
+                    selected_sections=selected_sections,
+                    chunks_above=new_msg_req.chunks_above,
+                    chunks_below=new_msg_req.chunks_below,
+                    full_doc=new_msg_req.full_doc,
+                    latest_query_files=latest_query_files,
+                    bypass_acl=bypass_acl,
+                ),
+                internet_search_tool_config=InternetSearchToolConfig(
+                    answer_style_config=answer_style_config,
+                ),
+                image_generation_tool_config=ImageGenerationToolConfig(
+                    additional_headers=litellm_additional_headers,
+                ),
+                custom_tool_config=CustomToolConfig(
+                    chat_session_id=chat_session_id,
+                    message_id=user_message.id if user_message else None,
+                    additional_headers=custom_tool_additional_headers,
+                ),
+            )
+
+            tools: list[Tool] = []
+            for tool_list in tool_dict.values():
+                tools.extend(tool_list)
+
+            # TODO: unify message history with single message history
+            message_history = [
+                PreviousMessage.from_chat_message(msg, files) for msg in history_msgs
+            ]
+
+            search_request = SearchRequest(
+                query=final_msg.message,
+                evaluation_type=(
+                    LLMEvaluationType.BASIC
+                    if persona.llm_relevance_filter
+                    else LLMEvaluationType.SKIP
+                ),
+                human_selected_filters=(
+                    retrieval_options.filters if retrieval_options else None
+                ),
+                persona=persona,
+                offset=(retrieval_options.offset if retrieval_options else None),
+                limit=retrieval_options.limit if retrieval_options else None,
                 rerank_settings=new_msg_req.rerank_settings,
-                selected_sections=selected_sections,
                 chunks_above=new_msg_req.chunks_above,
                 chunks_below=new_msg_req.chunks_below,
                 full_doc=new_msg_req.full_doc,
-                latest_query_files=latest_query_files,
-                bypass_acl=bypass_acl,
-            ),
-            internet_search_tool_config=InternetSearchToolConfig(
-                answer_style_config=answer_style_config,
-            ),
-            image_generation_tool_config=ImageGenerationToolConfig(
-                additional_headers=litellm_additional_headers,
-            ),
-            custom_tool_config=CustomToolConfig(
-                chat_session_id=chat_session_id,
-                message_id=user_message.id if user_message else None,
-                additional_headers=custom_tool_additional_headers,
-            ),
-        )
+                enable_auto_detect_filters=(
+                    retrieval_options.enable_auto_detect_filters
+                    if retrieval_options
+                    else None
+                ),
+            )
 
-        tools: list[Tool] = []
-        for tool_list in tool_dict.values():
-            tools.extend(tool_list)
-
-        # TODO: unify message history with single message history
-        message_history = [
-            PreviousMessage.from_chat_message(msg, files) for msg in history_msgs
-        ]
-
-        search_request = SearchRequest(
-            query=final_msg.message,
-            evaluation_type=(
-                LLMEvaluationType.BASIC
-                if persona.llm_relevance_filter
-                else LLMEvaluationType.SKIP
-            ),
-            human_selected_filters=(
-                retrieval_options.filters if retrieval_options else None
-            ),
-            persona=persona,
-            offset=(retrieval_options.offset if retrieval_options else None),
-            limit=retrieval_options.limit if retrieval_options else None,
-            rerank_settings=new_msg_req.rerank_settings,
-            chunks_above=new_msg_req.chunks_above,
-            chunks_below=new_msg_req.chunks_below,
-            full_doc=new_msg_req.full_doc,
-            enable_auto_detect_filters=(
-                retrieval_options.enable_auto_detect_filters
-                if retrieval_options
-                else None
-            ),
-        )
-
-        force_use_tool = _get_force_search_settings(new_msg_req, tools)
-        prompt_builder = AnswerPromptBuilder(
-            user_message=default_build_user_message(
-                user_query=final_msg.message,
-                prompt_config=prompt_config,
-                files=latest_query_files,
+            force_use_tool = _get_force_search_settings(new_msg_req, tools)
+            prompt_builder = AnswerPromptBuilder(
+                user_message=default_build_user_message(
+                    user_query=final_msg.message,
+                    prompt_config=prompt_config,
+                    files=latest_query_files,
+                    single_message_history=single_message_history,
+                ),
+                system_message=default_build_system_message(prompt_config, llm.config),
+                message_history=message_history,
+                llm_config=llm.config,
+                raw_user_query=final_msg.message,
+                raw_user_uploaded_files=latest_query_files or [],
                 single_message_history=single_message_history,
-            ),
-            system_message=default_build_system_message(prompt_config, llm.config),
-            message_history=message_history,
-            llm_config=llm.config,
-            raw_user_query=final_msg.message,
-            raw_user_uploaded_files=latest_query_files or [],
-            single_message_history=single_message_history,
-        )
+            )
 
-        # LLM prompt building, response capturing, etc.
+            # LLM prompt building, response capturing, etc.
 
-        answer = Answer(
-            prompt_builder=prompt_builder,
-            is_connected=is_connected,
-            latest_query_files=latest_query_files,
-            answer_style_config=answer_style_config,
-            llm=(
-                llm
-                or get_main_llm_from_tuple(
-                    get_llms_for_persona(
-                        persona=persona,
-                        llm_override=(
-                            new_msg_req.llm_override or chat_session.llm_override
-                        ),
-                        additional_headers=litellm_additional_headers,
-                    )
-                )
-            ),
-            fast_llm=fast_llm,
-            force_use_tool=force_use_tool,
-            search_request=search_request,
-            chat_session_id=chat_session_id,
-            current_agent_message_id=reserved_message_id,
-            tools=tools,
-            db_session=db_session,
-            use_agentic_search=new_msg_req.use_agentic_search,
-        )
-
-        # reference_db_search_docs = None
-        # qa_docs_response = None
-        # # any files to associate with the AI message e.g. dall-e generated images
-        # ai_message_files = []
-        # dropped_indices = None
-        # tool_result = None
-
-        # TODO: different channels for stored info when it's coming from the agent flow
-        info_by_subq: dict[SubQuestionKey, AnswerPostInfo] = defaultdict(
-            lambda: AnswerPostInfo(ai_message_files=[])
-        )
-        refined_answer_improvement = True
-        for packet in answer.processed_streamed_output:
-            if isinstance(packet, ToolResponse):
-                level, level_question_num = (
-                    (packet.level, packet.level_question_num)
-                    if isinstance(packet, ExtendedToolResponse)
-                    else BASIC_KEY
-                )
-                assert level is not None
-                assert level_question_num is not None
-                info = info_by_subq[
-                    SubQuestionKey(level=level, question_num=level_question_num)
-                ]
-                # TODO: don't need to dedupe here when we do it in agent flow
-                if packet.id == SEARCH_RESPONSE_SUMMARY_ID:
-                    (
-                        info.qa_docs_response,
-                        info.reference_db_search_docs,
-                        info.dropped_indices,
-                    ) = _handle_search_tool_response_summary(
-                        packet=packet,
-                        db_session=db_session,
-                        selected_search_docs=selected_db_search_docs,
-                        # Deduping happens at the last step to avoid harming quality by dropping content early on
-                        dedupe_docs=(
-                            retrieval_options.dedupe_docs
-                            if retrieval_options
-                            else False
-                        ),
-                    )
-                    yield info.qa_docs_response
-                elif packet.id == SECTION_RELEVANCE_LIST_ID:
-                    relevance_sections = packet.response
-
-                    if info.reference_db_search_docs is None:
-                        logger.warning(
-                            "No reference docs found for relevance filtering"
+            answer = Answer(
+                prompt_builder=prompt_builder,
+                is_connected=is_connected,
+                latest_query_files=latest_query_files,
+                answer_style_config=answer_style_config,
+                llm=(
+                    llm
+                    or get_main_llm_from_tuple(
+                        get_llms_for_persona(
+                            persona=persona,
+                            llm_override=(
+                                new_msg_req.llm_override or chat_session.llm_override
+                            ),
+                            additional_headers=litellm_additional_headers,
                         )
-                        continue
-
-                    llm_indices = relevant_sections_to_indices(
-                        relevance_sections=relevance_sections,
-                        items=[
-                            translate_db_search_doc_to_server_search_doc(doc)
-                            for doc in info.reference_db_search_docs
-                        ],
                     )
+                ),
+                fast_llm=fast_llm,
+                force_use_tool=force_use_tool,
+                search_request=search_request,
+                chat_session_id=chat_session_id,
+                current_agent_message_id=reserved_message_id,
+                tools=tools,
+                db_session=db_session,
+                use_agentic_search=new_msg_req.use_agentic_search,
+            )
 
-                    if info.dropped_indices:
-                        llm_indices = drop_llm_indices(
-                            llm_indices=llm_indices,
-                            search_docs=info.reference_db_search_docs,
-                            dropped_indices=info.dropped_indices,
+            # reference_db_search_docs = None
+            # qa_docs_response = None
+            # # any files to associate with the AI message e.g. dall-e generated images
+            # ai_message_files = []
+            # dropped_indices = None
+            # tool_result = None
+
+            # TODO: different channels for stored info when it's coming from the agent flow
+            info_by_subq: dict[SubQuestionKey, AnswerPostInfo] = defaultdict(
+                lambda: AnswerPostInfo(ai_message_files=[])
+            )
+            refined_answer_improvement = True
+            for packet in answer.processed_streamed_output:
+                if isinstance(packet, ToolResponse):
+                    level, level_question_num = (
+                        (packet.level, packet.level_question_num)
+                        if isinstance(packet, ExtendedToolResponse)
+                        else BASIC_KEY
+                    )
+                    assert level is not None
+                    assert level_question_num is not None
+                    info = info_by_subq[
+                        SubQuestionKey(level=level, question_num=level_question_num)
+                    ]
+                    # TODO: don't need to dedupe here when we do it in agent flow
+                    if packet.id == SEARCH_RESPONSE_SUMMARY_ID:
+                        (
+                            info.qa_docs_response,
+                            info.reference_db_search_docs,
+                            info.dropped_indices,
+                        ) = _handle_search_tool_response_summary(
+                            packet=packet,
+                            db_session=db_session,
+                            selected_search_docs=selected_db_search_docs,
+                            # Deduping happens at the last step to avoid harming quality by dropping content early on
+                            dedupe_docs=(
+                                retrieval_options.dedupe_docs
+                                if retrieval_options
+                                else False
+                            ),
+                        )
+                        yield info.qa_docs_response
+                    elif packet.id == SECTION_RELEVANCE_LIST_ID:
+                        relevance_sections = packet.response
+
+                        if info.reference_db_search_docs is None:
+                            logger.warning(
+                                "No reference docs found for relevance filtering"
+                            )
+                            continue
+
+                        llm_indices = relevant_sections_to_indices(
+                            relevance_sections=relevance_sections,
+                            items=[
+                                translate_db_search_doc_to_server_search_doc(doc)
+                                for doc in info.reference_db_search_docs
+                            ],
                         )
 
-                    yield LLMRelevanceFilterResponse(
-                        llm_selected_doc_indices=llm_indices
-                    )
-                elif packet.id == FINAL_CONTEXT_DOCUMENTS_ID:
-                    yield FinalUsedContextDocsResponse(
-                        final_context_docs=packet.response
-                    )
+                        if info.dropped_indices:
+                            llm_indices = drop_llm_indices(
+                                llm_indices=llm_indices,
+                                search_docs=info.reference_db_search_docs,
+                                dropped_indices=info.dropped_indices,
+                            )
 
-                elif packet.id == IMAGE_GENERATION_RESPONSE_ID:
-                    img_generation_response = cast(
-                        list[ImageGenerationResponse], packet.response
-                    )
+                        yield LLMRelevanceFilterResponse(
+                            llm_selected_doc_indices=llm_indices
+                        )
+                    elif packet.id == FINAL_CONTEXT_DOCUMENTS_ID:
+                        yield FinalUsedContextDocsResponse(
+                            final_context_docs=packet.response
+                        )
 
-                    file_ids = save_files(
-                        urls=[img.url for img in img_generation_response if img.url],
-                        base64_files=[
-                            img.image_data
-                            for img in img_generation_response
-                            if img.image_data
-                        ],
-                    )
-                    info.ai_message_files.extend(
-                        [
-                            FileDescriptor(id=str(file_id), type=ChatFileType.IMAGE)
-                            for file_id in file_ids
-                        ]
-                    )
-                    yield FileChatDisplay(
-                        file_ids=[str(file_id) for file_id in file_ids]
-                    )
-                elif packet.id == INTERNET_SEARCH_RESPONSE_ID:
-                    (
-                        info.qa_docs_response,
-                        info.reference_db_search_docs,
-                    ) = _handle_internet_search_tool_response_summary(
-                        packet=packet,
-                        db_session=db_session,
-                    )
-                    yield info.qa_docs_response
-                elif packet.id == CUSTOM_TOOL_RESPONSE_ID:
-                    custom_tool_response = cast(CustomToolCallSummary, packet.response)
+                    elif packet.id == IMAGE_GENERATION_RESPONSE_ID:
+                        img_generation_response = cast(
+                            list[ImageGenerationResponse], packet.response
+                        )
 
-                    if (
-                        custom_tool_response.response_type == "image"
-                        or custom_tool_response.response_type == "csv"
-                    ):
-                        file_ids = custom_tool_response.tool_result.file_ids
+                        file_ids = save_files(
+                            urls=[
+                                img.url for img in img_generation_response if img.url
+                            ],
+                            base64_files=[
+                                img.image_data
+                                for img in img_generation_response
+                                if img.image_data
+                            ],
+                        )
                         info.ai_message_files.extend(
                             [
-                                FileDescriptor(
-                                    id=str(file_id),
-                                    type=(
-                                        ChatFileType.IMAGE
-                                        if custom_tool_response.response_type == "image"
-                                        else ChatFileType.CSV
-                                    ),
-                                )
+                                FileDescriptor(id=str(file_id), type=ChatFileType.IMAGE)
                                 for file_id in file_ids
                             ]
                         )
                         yield FileChatDisplay(
                             file_ids=[str(file_id) for file_id in file_ids]
                         )
-                    else:
-                        yield CustomToolResponse(
-                            response=custom_tool_response.tool_result,
-                            tool_name=custom_tool_response.tool_name,
+                    elif packet.id == INTERNET_SEARCH_RESPONSE_ID:
+                        (
+                            info.qa_docs_response,
+                            info.reference_db_search_docs,
+                        ) = _handle_internet_search_tool_response_summary(
+                            packet=packet,
+                            db_session=db_session,
                         )
-                elif packet.id == SEARCH_DOC_CONTENT_ID and include_contexts:
-                    yield cast(OnyxContexts, packet.response)
+                        yield info.qa_docs_response
+                    elif packet.id == CUSTOM_TOOL_RESPONSE_ID:
+                        custom_tool_response = cast(
+                            CustomToolCallSummary, packet.response
+                        )
 
-            elif isinstance(packet, StreamStopInfo):
-                if packet.stop_reason == StreamStopReason.FINISHED:
+                        if (
+                            custom_tool_response.response_type == "image"
+                            or custom_tool_response.response_type == "csv"
+                        ):
+                            file_ids = custom_tool_response.tool_result.file_ids
+                            info.ai_message_files.extend(
+                                [
+                                    FileDescriptor(
+                                        id=str(file_id),
+                                        type=(
+                                            ChatFileType.IMAGE
+                                            if custom_tool_response.response_type
+                                            == "image"
+                                            else ChatFileType.CSV
+                                        ),
+                                    )
+                                    for file_id in file_ids
+                                ]
+                            )
+                            yield FileChatDisplay(
+                                file_ids=[str(file_id) for file_id in file_ids]
+                            )
+                        else:
+                            yield CustomToolResponse(
+                                response=custom_tool_response.tool_result,
+                                tool_name=custom_tool_response.tool_name,
+                            )
+                    elif packet.id == SEARCH_DOC_CONTENT_ID and include_contexts:
+                        yield cast(OnyxContexts, packet.response)
+
+                elif isinstance(packet, StreamStopInfo):
+                    if packet.stop_reason == StreamStopReason.FINISHED:
+                        yield packet
+                elif isinstance(packet, RefinedAnswerImprovement):
+                    refined_answer_improvement = packet.refined_answer_improvement
                     yield packet
-            elif isinstance(packet, RefinedAnswerImprovement):
-                refined_answer_improvement = packet.refined_answer_improvement
-                yield packet
+                else:
+                    if isinstance(packet, ToolCallFinalResult):
+                        level, level_question_num = (
+                            (packet.level, packet.level_question_num)
+                            if packet.level is not None
+                            and packet.level_question_num is not None
+                            else BASIC_KEY
+                        )
+                        info = info_by_subq[
+                            SubQuestionKey(level=level, question_num=level_question_num)
+                        ]
+                        info.tool_result = packet
+                    yield cast(ChatPacket, packet)
+            logger.debug("Reached end of stream")
+        except ValueError as e:
+            logger.exception("Failed to process chat message.")
+
+            error_msg = str(e)
+            yield StreamingError(error=error_msg)
+            db_session.rollback()
+            return
+
+        except Exception as e:
+            logger.exception(f"Failed to process chat message due to {e}")
+            error_msg = str(e)
+            stack_trace = traceback.format_exc()
+
+            if isinstance(e, ToolCallException):
+                yield StreamingError(error=error_msg, stack_trace=stack_trace)
             else:
-                if isinstance(packet, ToolCallFinalResult):
-                    level, level_question_num = (
-                        (packet.level, packet.level_question_num)
-                        if packet.level is not None
-                        and packet.level_question_num is not None
-                        else BASIC_KEY
-                    )
-                    info = info_by_subq[
-                        SubQuestionKey(level=level, question_num=level_question_num)
-                    ]
-                    info.tool_result = packet
-                yield cast(ChatPacket, packet)
-        logger.debug("Reached end of stream")
-    except ValueError as e:
-        logger.exception("Failed to process chat message.")
+                if llm:
+                    client_error_msg = litellm_exception_to_error_msg(e, llm)
+                    if llm.config.api_key and len(llm.config.api_key) > 2:
+                        error_msg = error_msg.replace(
+                            llm.config.api_key, "[REDACTED_API_KEY]"
+                        )
+                        stack_trace = stack_trace.replace(
+                            llm.config.api_key, "[REDACTED_API_KEY]"
+                        )
 
-        error_msg = str(e)
-        yield StreamingError(error=error_msg)
-        db_session.rollback()
-        return
-
-    except Exception as e:
-        logger.exception(f"Failed to process chat message due to {e}")
-        error_msg = str(e)
-        stack_trace = traceback.format_exc()
-
-        if isinstance(e, ToolCallException):
-            yield StreamingError(error=error_msg, stack_trace=stack_trace)
-        else:
-            if llm:
-                client_error_msg = litellm_exception_to_error_msg(e, llm)
-                if llm.config.api_key and len(llm.config.api_key) > 2:
-                    error_msg = error_msg.replace(
-                        llm.config.api_key, "[REDACTED_API_KEY]"
-                    )
-                    stack_trace = stack_trace.replace(
-                        llm.config.api_key, "[REDACTED_API_KEY]"
+                    yield StreamingError(
+                        error=client_error_msg, stack_trace=stack_trace
                     )
 
-                yield StreamingError(error=client_error_msg, stack_trace=stack_trace)
-
-        db_session.rollback()
-        return
+            db_session.rollback()
+            return
 
     # Post-LLM answer processing
     try:
