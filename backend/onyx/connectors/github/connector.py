@@ -1,8 +1,11 @@
+import copy
 import time
+from collections.abc import Generator
 from collections.abc import Iterator
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
+from enum import Enum
 from typing import Any
 from typing import cast
 
@@ -13,6 +16,8 @@ from github.GithubException import GithubException
 from github.Issue import Issue
 from github.PaginatedList import PaginatedList
 from github.PullRequest import PullRequest
+from pydantic import BaseModel
+from typing_extensions import override
 
 from onyx.configs.app_configs import GITHUB_CONNECTOR_BASE_URL
 from onyx.configs.app_configs import INDEX_BATCH_SIZE
@@ -21,9 +26,9 @@ from onyx.connectors.exceptions import ConnectorValidationError
 from onyx.connectors.exceptions import CredentialExpiredError
 from onyx.connectors.exceptions import InsufficientPermissionsError
 from onyx.connectors.exceptions import UnexpectedValidationError
-from onyx.connectors.interfaces import GenerateDocumentsOutput
-from onyx.connectors.interfaces import LoadConnector
-from onyx.connectors.interfaces import PollConnector
+from onyx.connectors.interfaces import CheckpointConnector
+from onyx.connectors.interfaces import ConnectorCheckpoint
+from onyx.connectors.interfaces import ConnectorFailure
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
 from onyx.connectors.models import ConnectorMissingCredentialError
 from onyx.connectors.models import Document
@@ -48,7 +53,7 @@ def _sleep_after_rate_limit_exception(github_client: Github) -> None:
 
 def _get_batch_rate_limited(
     git_objs: PaginatedList, page_num: int, github_client: Github, attempt_num: int = 0
-) -> list[Any]:
+) -> list[PullRequest | Issue]:
     if attempt_num > _MAX_NUM_RATE_LIMIT_RETRIES:
         raise RuntimeError(
             "Re-tried fetching batch too many times. Something is going wrong with fetching objects from Github"
@@ -71,7 +76,7 @@ def _get_batch_rate_limited(
 
 def _batch_github_objects(
     git_objs: PaginatedList, github_client: Github, batch_size: int
-) -> Iterator[list[Any]]:
+) -> Iterator[list[PullRequest | Issue]]:
     page_num = 0
     while True:
         batch = _get_batch_rate_limited(git_objs, page_num, github_client)
@@ -122,7 +127,24 @@ def _convert_issue_to_document(issue: Issue) -> Document:
     )
 
 
-class GithubConnector(LoadConnector, PollConnector):
+class GithubConnectorStage(Enum):
+    START = "start"
+    PRS = "prs"
+    ISSUES = "issues"
+
+
+class StageCompletion(BaseModel):
+    stage: GithubConnectorStage
+    curr_page: int
+
+
+class GithubConnectorCheckpoint(ConnectorCheckpoint):
+    current_repo_id: int | None = None
+    stage: GithubConnectorStage
+    curr_page: int
+
+
+class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
     def __init__(
         self,
         repo_owner: str,
@@ -217,10 +239,15 @@ class GithubConnector(LoadConnector, PollConnector):
             return self._get_all_repos(github_client, attempt_num + 1)
 
     def _fetch_from_github(
-        self, start: datetime | None = None, end: datetime | None = None
-    ) -> GenerateDocumentsOutput:
+        self,
+        checkpoint: GithubConnectorCheckpoint,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> Generator[Document | ConnectorFailure, None, GithubConnectorCheckpoint]:
         if self.github_client is None:
             raise ConnectorMissingCredentialError("GitHub")
+
+        checkpoint = copy.deepcopy(checkpoint)
 
         repos = []
         if self.repositories:
@@ -234,55 +261,116 @@ class GithubConnector(LoadConnector, PollConnector):
             # All repositories
             repos = self._get_all_repos(self.github_client)
 
+        # sorting allows saving less state
+        repos = sorted(repos, key=lambda x: x.id)
+        if checkpoint.current_repo_id is not None:
+            found_repo = False
+            for ind, repo in enumerate(repos):
+                if repo.id == checkpoint.current_repo_id:
+                    repos = repos[ind:]
+                    found_repo = True
+                    break
+            if not found_repo:
+                raise ValueError(
+                    f"Repository id stored in checkpoint {checkpoint.current_repo_id} not found in list of repos."
+                )
+
         for repo in repos:
-            if self.include_prs:
+            # If we are resuming from a checkpoint, the current repo id will be the
+            # first repo in the list. If we get here from a new loop iteration or empty checkpoint,
+            # we are on a new repo and need to reset the checkpoint
+            if repo.id != checkpoint.current_repo_id:
+                checkpoint.current_repo_id = repo.id
+                checkpoint.stage = GithubConnectorStage.PRS
+                checkpoint.curr_page = 0
+
+            if self.include_prs and checkpoint.stage == GithubConnectorStage.PRS:
                 logger.info(f"Fetching PRs for repo: {repo.name}")
                 pull_requests = repo.get_pulls(
                     state=self.state_filter, sort="updated", direction="desc"
                 )
 
-                for pr_batch in _batch_github_objects(
-                    pull_requests, self.github_client, self.batch_size
-                ):
-                    doc_batch: list[Document] = []
+                doc_batch: list[Document] = []
+                while True:
+                    pr_batch = _get_batch_rate_limited(
+                        pull_requests, checkpoint.curr_page, self.github_client
+                    )
+                    checkpoint.curr_page += 1
+                    done_with_prs = False
                     for pr in pr_batch:
+                        # we iterate backwards in time, so at this point we stop processing prs
                         if start is not None and pr.updated_at < start:
-                            yield doc_batch
+                            yield from doc_batch
+                            done_with_prs = True
                             break
+                        # Skip PRs updated after the end date
                         if end is not None and pr.updated_at > end:
                             continue
                         doc_batch.append(_convert_pr_to_document(cast(PullRequest, pr)))
-                    yield doc_batch
 
-            if self.include_issues:
+                    # if we went past the start date during the loop or there are no more
+                    # prs to get, we move on to issues
+                    if done_with_prs or len(pr_batch) == 0:
+                        checkpoint.stage = GithubConnectorStage.ISSUES
+                        checkpoint.curr_page = 0
+                        break
+
+                    # if we have enough PRs, yield them and return the checkpoint
+                    if len(doc_batch) >= self.batch_size:
+                        yield from doc_batch
+                        return checkpoint
+
+            if self.include_issues and checkpoint.stage == GithubConnectorStage.ISSUES:
                 logger.info(f"Fetching issues for repo: {repo.name}")
                 issues = repo.get_issues(
                     state=self.state_filter, sort="updated", direction="desc"
                 )
 
-                for issue_batch in _batch_github_objects(
-                    issues, self.github_client, self.batch_size
-                ):
-                    doc_batch = []
-                    for issue in issue_batch:
-                        issue = cast(Issue, issue)
+                doc_batch = []
+                while True:
+                    issue_batch = _get_batch_rate_limited(
+                        issues, checkpoint.curr_page, self.github_client
+                    )
+                    checkpoint.curr_page += 1
+                    done_with_issues = False
+                    for issue in cast(list[Issue], issue_batch):
+                        # we iterate backwards in time, so at this point we stop processing prs
                         if start is not None and issue.updated_at < start:
-                            yield doc_batch
+                            yield from doc_batch
+                            done_with_issues = True
                             break
+                        # Skip PRs updated after the end date
                         if end is not None and issue.updated_at > end:
                             continue
+
                         if issue.pull_request is not None:
                             # PRs are handled separately
                             continue
+
                         doc_batch.append(_convert_issue_to_document(issue))
-                    yield doc_batch
 
-    def load_from_state(self) -> GenerateDocumentsOutput:
-        return self._fetch_from_github()
+                    # if we went past the start date during the loop or there are no more
+                    # issues to get, we leave the loop and move on to the next repo
+                    if done_with_issues or len(issue_batch) == 0:
+                        checkpoint.stage = GithubConnectorStage.PRS
+                        checkpoint.curr_page = 0
+                        break
 
-    def poll_source(
-        self, start: SecondsSinceUnixEpoch, end: SecondsSinceUnixEpoch
-    ) -> GenerateDocumentsOutput:
+                    # if we have enough issues, yield them and return the checkpoint
+                    if len(doc_batch) >= self.batch_size:
+                        yield from doc_batch
+                        return checkpoint
+
+        checkpoint.has_more = False
+        return checkpoint
+
+    @override
+    def load_from_checkpoint(
+        self,
+        start: SecondsSinceUnixEpoch,
+        end: SecondsSinceUnixEpoch,
+        checkpoint: GithubConnectorCheckpoint,
+    ) -> Generator[Document | ConnectorFailure, None, GithubConnectorCheckpoint]:
         start_datetime = datetime.utcfromtimestamp(start)
         end_datetime = datetime.utcfromtimestamp(end)
 
@@ -295,7 +383,9 @@ class GithubConnector(LoadConnector, PollConnector):
         if adjusted_start_datetime < epoch:
             adjusted_start_datetime = epoch
 
-        return self._fetch_from_github(adjusted_start_datetime, end_datetime)
+        return self._fetch_from_github(
+            checkpoint, start=adjusted_start_datetime, end=end_datetime
+        )
 
     def validate_connector_settings(self) -> None:
         if self.github_client is None:
@@ -397,6 +487,16 @@ class GithubConnector(LoadConnector, PollConnector):
                 f"Unexpected error during GitHub settings validation: {exc}"
             )
 
+    def validate_checkpoint_json(
+        self, checkpoint_json: str
+    ) -> GithubConnectorCheckpoint:
+        return GithubConnectorCheckpoint.model_validate_json(checkpoint_json)
+
+    def build_dummy_checkpoint(self) -> GithubConnectorCheckpoint:
+        return GithubConnectorCheckpoint(
+            stage=GithubConnectorStage.PRS, curr_page=0, has_more=True
+        )
+
 
 if __name__ == "__main__":
     import os
@@ -408,5 +508,7 @@ if __name__ == "__main__":
     connector.load_credentials(
         {"github_access_token": os.environ["GITHUB_ACCESS_TOKEN"]}
     )
-    document_batches = connector.load_from_state()
+    document_batches = connector.load_from_checkpoint(
+        0, time.time(), connector.build_dummy_checkpoint()
+    )
     print(next(document_batches))
