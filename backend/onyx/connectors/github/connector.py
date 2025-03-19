@@ -1,7 +1,6 @@
 import copy
 import time
 from collections.abc import Generator
-from collections.abc import Iterator
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
@@ -16,7 +15,6 @@ from github.GithubException import GithubException
 from github.Issue import Issue
 from github.PaginatedList import PaginatedList
 from github.PullRequest import PullRequest
-from pydantic import BaseModel
 from typing_extensions import override
 
 from onyx.configs.app_configs import GITHUB_CONNECTOR_BASE_URL
@@ -34,7 +32,6 @@ from onyx.connectors.interfaces import SecondsSinceUnixEpoch
 from onyx.connectors.models import ConnectorMissingCredentialError
 from onyx.connectors.models import Document
 from onyx.connectors.models import TextSection
-from onyx.utils.batching import batch_generator
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -73,21 +70,6 @@ def _get_batch_rate_limited(
         return _get_batch_rate_limited(
             git_objs, page_num, github_client, attempt_num + 1
         )
-
-
-def _batch_github_objects(
-    git_objs: PaginatedList, github_client: Github, batch_size: int
-) -> Iterator[list[PullRequest | Issue]]:
-    page_num = 0
-    while True:
-        batch = _get_batch_rate_limited(git_objs, page_num, github_client)
-        page_num += 1
-
-        if not batch:
-            break
-
-        for mini_batch in batch_generator(batch, batch_size=batch_size):
-            yield mini_batch
 
 
 def _convert_pr_to_document(pull_request: PullRequest) -> Document:
@@ -132,11 +114,6 @@ class GithubConnectorStage(Enum):
     START = "start"
     PRS = "prs"
     ISSUES = "issues"
-
-
-class StageCompletion(BaseModel):
-    stage: GithubConnectorStage
-    curr_page: int
 
 
 class GithubConnectorCheckpoint(ConnectorCheckpoint):
