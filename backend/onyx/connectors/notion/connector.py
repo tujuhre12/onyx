@@ -454,11 +454,16 @@ class NotionConnector(LoadConnector, PollConnector):
             # without a critical failure
             self.indexed_pages.add(page.id)
 
-            page_title = (
-                self._read_page_title(page) or f"Untitled Page with ID {page.id}"
-            )
+            raw_page_title = self._read_page_title(page)
+            page_title = raw_page_title or f"Untitled Page with ID {page.id}"
 
             if not page_blocks:
+                if not raw_page_title:
+                    logger.warning(
+                        f"No blocks OR title found for page with ID '{page.id}'. Skipping."
+                    )
+                    continue
+
                 logger.debug(f"No blocks found for page with ID '{page.id}'")
                 """
                 Something like:
