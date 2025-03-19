@@ -449,7 +449,48 @@ export default function AddConnector({
 
             {formStep == 0 && (
               <CardSection>
-                <Title className="mb-2 text-lg">Select a credential</Title>
+                <div className="flex items-center justify-between mb-2">
+                  <Title className="text-lg">Select a credential</Title>
+                  <div className="flex gap-4">
+                    <Button
+                      variant="success-reverse"
+                      className="text-sm"
+                      onClick={async () => {
+                        if (oauthDetails && oauthDetails.oauth_enabled) {
+                          if (oauthDetails.additional_kwargs.length > 0) {
+                            setCreateCredentialFormToggle(true);
+                          } else {
+                            const redirectUrl =
+                              await getConnectorOauthRedirectUrl(connector, {});
+                            if (redirectUrl) {
+                              window.location.href = redirectUrl;
+                            } else {
+                              setCreateCredentialFormToggle((prev) => !prev);
+                            }
+                          }
+                        } else {
+                          setCreateCredentialFormToggle((prev) => !prev);
+                        }
+                      }}
+                    >
+                      Enter Manually
+                    </Button>
+
+                    {oauthSupportedSources.includes(connector) &&
+                      (NEXT_PUBLIC_CLOUD_ENABLED || NEXT_PUBLIC_TEST_ENV) && (
+                        <Button
+                          variant="success-reverse"
+                          onClick={handleAuthorize}
+                          disabled={isAuthorizing}
+                          hidden={!isAuthorizeVisible}
+                        >
+                          {isAuthorizing
+                            ? "Authorizing..."
+                            : `Create via ${getSourceDisplayName(connector)}`}
+                        </Button>
+                      )}
+                  </div>
+                </div>
 
                 {connector == ValidSources.Gmail ? (
                   <GmailMain />
@@ -464,63 +505,6 @@ export default function AddConnector({
                       onDeleteCredential={onDeleteCredential}
                       onSwitch={onSwap}
                     />
-                    {!createCredentialFormToggle && (
-                      <div className="mt-6 flex space-x-4">
-                        {/* Button to pop up a form to manually enter credentials */}
-                        <Button
-                          variant="secondary"
-                          className="mt-6 text-sm mr-4"
-                          onClick={async () => {
-                            if (oauthDetails && oauthDetails.oauth_enabled) {
-                              if (oauthDetails.additional_kwargs.length > 0) {
-                                setCreateCredentialFormToggle(true);
-                              } else {
-                                const redirectUrl =
-                                  await getConnectorOauthRedirectUrl(
-                                    connector,
-                                    {}
-                                  );
-                                // if redirect is supported, just use it
-                                if (redirectUrl) {
-                                  window.location.href = redirectUrl;
-                                } else {
-                                  setCreateCredentialFormToggle(
-                                    (createConnectorToggle) =>
-                                      !createConnectorToggle
-                                  );
-                                }
-                              }
-                            } else {
-                              setCreateCredentialFormToggle(
-                                (createConnectorToggle) =>
-                                  !createConnectorToggle
-                              );
-                            }
-                          }}
-                        >
-                          Create New
-                        </Button>
-                        {/* Button to sign in via OAuth */}
-                        {oauthSupportedSources.includes(connector) &&
-                          (NEXT_PUBLIC_CLOUD_ENABLED ||
-                            NEXT_PUBLIC_TEST_ENV) && (
-                            <Button
-                              variant="navigate"
-                              onClick={handleAuthorize}
-                              className="mt-6 "
-                              disabled={isAuthorizing}
-                              hidden={!isAuthorizeVisible}
-                            >
-                              {isAuthorizing
-                                ? "Authorizing..."
-                                : `Authorize with ${getSourceDisplayName(
-                                    connector
-                                  )}`}
-                            </Button>
-                          )}
-                      </div>
-                    )}
-
                     {createCredentialFormToggle && (
                       <Modal
                         className="max-w-3xl rounded-lg"
