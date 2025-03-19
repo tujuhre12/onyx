@@ -412,6 +412,8 @@ async def embed_text(
     reduced_dimension: int | None,
     gpu_type: str = "UNKNOWN",
 ) -> list[Embedding]:
+    embeddings: list[Embedding]
+
     if not all(texts):
         logger.error("Empty strings provided for embedding")
         raise ValueError("Empty strings are not allowed for embedding.")
@@ -463,11 +465,17 @@ async def embed_text(
             logger.error(error_message)
             raise ValueError(error_message)
 
+        num_floats = 0
+        for embedding in embeddings:
+            num_floats += len(embedding)
+
         elapsed = time.monotonic() - start
         logger.info(
             f"event=embedding_provider "
             f"texts={len(texts)} "
             f"chars={total_chars} "
+            f"embeddings={len(embeddings)} "
+            f"embedding_floats={num_floats} "
             f"provider={provider_type} "
             f"elapsed={elapsed:.2f}"
         )
@@ -493,6 +501,10 @@ async def embed_text(
             for embedding in embeddings_vectors
         ]
 
+        num_floats = 0
+        for embedding in embeddings:
+            num_floats += len(embedding)
+
         elapsed = time.monotonic() - start
         logger.info(
             f"Successfully embedded {len(texts)} texts with {total_chars} total characters "
@@ -502,6 +514,8 @@ async def embed_text(
             f"event=embedding_model "
             f"texts={len(texts)} "
             f"chars={total_chars} "
+            f"embeddings={len(embeddings)} "
+            f"embedding_floats={num_floats} "
             f"model={model_name} "
             f"gpu={gpu_type} "
             f"elapsed={elapsed:.2f}"
