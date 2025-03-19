@@ -27,6 +27,7 @@ from onyx.connectors.exceptions import CredentialExpiredError
 from onyx.connectors.exceptions import InsufficientPermissionsError
 from onyx.connectors.exceptions import UnexpectedValidationError
 from onyx.connectors.interfaces import CheckpointConnector
+from onyx.connectors.interfaces import CheckpointOutput
 from onyx.connectors.interfaces import ConnectorCheckpoint
 from onyx.connectors.interfaces import ConnectorFailure
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
@@ -370,16 +371,16 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
         start: SecondsSinceUnixEpoch,
         end: SecondsSinceUnixEpoch,
         checkpoint: GithubConnectorCheckpoint,
-    ) -> Generator[Document | ConnectorFailure, None, GithubConnectorCheckpoint]:
-        start_datetime = datetime.utcfromtimestamp(start)
-        end_datetime = datetime.utcfromtimestamp(end)
+    ) -> CheckpointOutput[GithubConnectorCheckpoint]:
+        start_datetime = datetime.fromtimestamp(start, tz=timezone.utc)
+        end_datetime = datetime.fromtimestamp(end, tz=timezone.utc)
 
         # Move start time back by 3 hours, since some Issues/PRs are getting dropped
         # Could be due to delayed processing on GitHub side
         # The non-updated issues since last poll will be shortcut-ed and not embedded
         adjusted_start_datetime = start_datetime - timedelta(hours=3)
 
-        epoch = datetime.utcfromtimestamp(0)
+        epoch = datetime.fromtimestamp(0, tz=timezone.utc)
         if adjusted_start_datetime < epoch:
             adjusted_start_datetime = epoch
 
