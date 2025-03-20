@@ -31,6 +31,7 @@ from onyx.connectors.interfaces import ConnectorFailure
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
 from onyx.connectors.models import ConnectorMissingCredentialError
 from onyx.connectors.models import Document
+from onyx.connectors.models import DocumentFailure
 from onyx.connectors.models import TextSection
 from onyx.utils.logger import setup_logger
 
@@ -287,7 +288,21 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
                             and pr.updated_at.replace(tzinfo=timezone.utc) > end
                         ):
                             continue
-                        doc_batch.append(_convert_pr_to_document(cast(PullRequest, pr)))
+                        try:
+                            doc_batch.append(
+                                _convert_pr_to_document(cast(PullRequest, pr))
+                            )
+                        except Exception as e:
+                            error_msg = f"Error converting PR to document: {e}"
+                            logger.error(error_msg)
+                            yield ConnectorFailure(
+                                failed_document=DocumentFailure(
+                                    document_id=str(pr.id), document_link=pr.html_url
+                                ),
+                                failure_message=error_msg,
+                                exception=e,
+                            )
+                            continue
 
                     # if we went past the start date during the loop or there are no more
                     # prs to get, we move on to issues
@@ -300,6 +315,7 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
                     if len(doc_batch) > 0:
                         yield from doc_batch
                         return checkpoint
+
             checkpoint.stage = GithubConnectorStage.ISSUES
 
             if self.include_issues and checkpoint.stage == GithubConnectorStage.ISSUES:
@@ -335,7 +351,20 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
                             # PRs are handled separately
                             continue
 
-                        doc_batch.append(_convert_issue_to_document(issue))
+                        try:
+                            doc_batch.append(_convert_issue_to_document(issue))
+                        except Exception as e:
+                            error_msg = f"Error converting issue to document: {e}"
+                            logger.error(error_msg)
+                            yield ConnectorFailure(
+                                failed_document=DocumentFailure(
+                                    document_id=str(issue.id),
+                                    document_link=issue.html_url,
+                                ),
+                                failure_message=error_msg,
+                                exception=e,
+                            )
+                            continue
 
                     # if we went past the start date during the loop or there are no more
                     # issues to get, we leave the loop and move on to the next repo
