@@ -1,5 +1,6 @@
 import copy
 import time
+from bisect import bisect_left
 from collections.abc import Generator
 from datetime import datetime
 from datetime import timedelta
@@ -18,7 +19,6 @@ from github.PullRequest import PullRequest
 from typing_extensions import override
 
 from onyx.configs.app_configs import GITHUB_CONNECTOR_BASE_URL
-from onyx.configs.app_configs import INDEX_BATCH_SIZE
 from onyx.configs.constants import DocumentSource
 from onyx.connectors.exceptions import ConnectorValidationError
 from onyx.connectors.exceptions import CredentialExpiredError
@@ -58,6 +58,7 @@ def _get_batch_rate_limited(
         )
 
     try:
+        # defaults to 30 items per page, can be set to as high as 100
         objs = list(git_objs.get_page(page_num))
         # fetch all data here to disable lazy loading later
         # this is needed to capture the rate limit exception here (if one occurs)
@@ -127,14 +128,12 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
         self,
         repo_owner: str,
         repositories: str | None = None,
-        batch_size: int = INDEX_BATCH_SIZE,
         state_filter: str = "all",
         include_prs: bool = True,
         include_issues: bool = False,
     ) -> None:
         self.repo_owner = repo_owner
         self.repositories = repositories
-        self.batch_size = batch_size
         self.state_filter = state_filter
         self.include_prs = include_prs
         self.include_issues = include_issues
@@ -242,13 +241,11 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
         # sorting allows saving less state
         repos = sorted(repos, key=lambda x: x.id)
         if checkpoint.current_repo_id is not None:
-            found_repo = False
-            for ind, repo in enumerate(repos):
-                if repo.id == checkpoint.current_repo_id:
-                    repos = repos[ind:]
-                    found_repo = True
-                    break
-            if not found_repo:
+            ids = [repo.id for repo in repos]
+            ind = bisect_left(ids, checkpoint.current_repo_id)  # binary search
+            if ind < len(repos) and repos[ind].id == checkpoint.current_repo_id:
+                repos = repos[ind:]
+            else:
                 raise ValueError(
                     f"Repository id stored in checkpoint {checkpoint.current_repo_id} not found in list of repos."
                 )
@@ -277,12 +274,18 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
                     done_with_prs = False
                     for pr in pr_batch:
                         # we iterate backwards in time, so at this point we stop processing prs
-                        if start is not None and pr.updated_at < start:
+                        if (
+                            start is not None
+                            and pr.updated_at.replace(tzinfo=timezone.utc) < start
+                        ):
                             yield from doc_batch
                             done_with_prs = True
                             break
                         # Skip PRs updated after the end date
-                        if end is not None and pr.updated_at > end:
+                        if (
+                            end is not None
+                            and pr.updated_at.replace(tzinfo=timezone.utc) > end
+                        ):
                             continue
                         doc_batch.append(_convert_pr_to_document(cast(PullRequest, pr)))
 
@@ -293,8 +296,8 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
                         checkpoint.curr_page = 0
                         break
 
-                    # if we have enough PRs, yield them and return the checkpoint
-                    if len(doc_batch) >= self.batch_size:
+                    # if we found any PRs on the page, yield them and return the checkpoint
+                    if len(doc_batch) > 0:
                         yield from doc_batch
                         return checkpoint
 
@@ -313,12 +316,18 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
                     done_with_issues = False
                     for issue in cast(list[Issue], issue_batch):
                         # we iterate backwards in time, so at this point we stop processing prs
-                        if start is not None and issue.updated_at < start:
+                        if (
+                            start is not None
+                            and issue.updated_at.replace(tzinfo=timezone.utc) < start
+                        ):
                             yield from doc_batch
                             done_with_issues = True
                             break
                         # Skip PRs updated after the end date
-                        if end is not None and issue.updated_at > end:
+                        if (
+                            end is not None
+                            and issue.updated_at.replace(tzinfo=timezone.utc) > end
+                        ):
                             continue
 
                         if issue.pull_request is not None:
@@ -334,8 +343,8 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
                         checkpoint.curr_page = 0
                         break
 
-                    # if we have enough issues, yield them and return the checkpoint
-                    if len(doc_batch) >= self.batch_size:
+                    # if we found any issues on the page, yield them and return the checkpoint
+                    if len(doc_batch) > 0:
                         yield from doc_batch
                         return checkpoint
 
