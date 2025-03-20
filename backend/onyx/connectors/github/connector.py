@@ -300,6 +300,7 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
                     if len(doc_batch) > 0:
                         yield from doc_batch
                         return checkpoint
+            checkpoint.stage = GithubConnectorStage.ISSUES
 
             if self.include_issues and checkpoint.stage == GithubConnectorStage.ISSUES:
                 logger.info(f"Fetching issues for repo: {repo.name}")
