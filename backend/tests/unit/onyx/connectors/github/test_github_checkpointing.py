@@ -15,11 +15,13 @@ from github.Issue import Issue
 from github.PullRequest import PullRequest
 from github.RateLimit import RateLimit
 from github.Repository import Repository
+from github.Requester import Requester
 
 from onyx.connectors.exceptions import ConnectorValidationError
 from onyx.connectors.exceptions import CredentialExpiredError
 from onyx.connectors.exceptions import InsufficientPermissionsError
 from onyx.connectors.github.connector import GithubConnector
+from onyx.connectors.github.connector import SerializedRepository
 from onyx.connectors.models import Document
 from tests.unit.onyx.connectors.utils import load_everything_from_checkpoint_connector
 
@@ -46,6 +48,8 @@ def mock_github_client() -> MagicMock:
     mock.get_user = MagicMock()
     # Add proper return typing for get_rate_limit method
     mock.get_rate_limit = MagicMock(return_value=MagicMock(spec=RateLimit))
+    # Add requester for repository deserialization
+    mock.requester = MagicMock(spec=Requester)
     return mock
 
 
@@ -120,6 +124,14 @@ def create_mock_repo() -> Callable[..., MagicMock]:
         mock_repo = MagicMock(spec=Repository)
         mock_repo.name = name
         mock_repo.id = id
+        mock_repo.raw_headers = {"status": "200 OK", "content-type": "application/json"}
+        mock_repo.raw_data = {
+            "id": str(id),
+            "name": name,
+            "full_name": f"test-org/{name}",
+            "private": str(False),
+            "description": "Test repository",
+        }
         return mock_repo
 
     return _create_mock_repo
@@ -135,7 +147,6 @@ def test_load_from_checkpoint_happy_path(
     """Test loading from checkpoint - happy path"""
     # Set up mocked repo
     mock_repo = create_mock_repo()
-
     github_connector.github_client = mock_github_client
     mock_github_client.get_repo.return_value = mock_repo
 
@@ -157,40 +168,43 @@ def test_load_from_checkpoint_happy_path(
         [],
     ]
 
-    # Call load_from_checkpoint
-    end_time = time.time()
-    outputs = load_everything_from_checkpoint_connector(github_connector, 0, end_time)
+    # Mock SerializedRepository.to_Repository to return our mock repo
+    with patch.object(SerializedRepository, "to_Repository", return_value=mock_repo):
+        # Call load_from_checkpoint
+        end_time = time.time()
+        outputs = load_everything_from_checkpoint_connector(
+            github_connector, 0, end_time
+        )
 
-    for output in outputs:
-        print()
-        print(output)
-        print()
+        # Check that we got all documents and final has_more=False
+        assert len(outputs) == 3
 
-    # Check that we got all documents and final has_more=False
-    assert len(outputs) == 3
+        # Check first batch (PRs)
+        first_batch = outputs[0]
+        assert len(first_batch.items) == 2
+        assert isinstance(first_batch.items[0], Document)
+        assert first_batch.items[0].id == "https://github.com/test-org/test-repo/pull/1"
+        assert isinstance(first_batch.items[1], Document)
+        assert first_batch.items[1].id == "https://github.com/test-org/test-repo/pull/2"
+        assert first_batch.next_checkpoint.curr_page == 1
 
-    # Check first batch (PRs)
-    first_batch = outputs[0]
-    assert len(first_batch.items) == 2
-    assert isinstance(first_batch.items[0], Document)
-    assert first_batch.items[0].id == "https://github.com/test-org/test-repo/pull/1"
-    assert isinstance(first_batch.items[1], Document)
-    assert first_batch.items[1].id == "https://github.com/test-org/test-repo/pull/2"
-    assert first_batch.next_checkpoint.curr_page == 1
+        # Check second batch (Issues)
+        second_batch = outputs[1]
+        assert len(second_batch.items) == 2
+        assert isinstance(second_batch.items[0], Document)
+        assert (
+            second_batch.items[0].id == "https://github.com/test-org/test-repo/issues/1"
+        )
+        assert isinstance(second_batch.items[1], Document)
+        assert (
+            second_batch.items[1].id == "https://github.com/test-org/test-repo/issues/2"
+        )
+        assert second_batch.next_checkpoint.has_more
 
-    # Check second batch (Issues)
-    second_batch = outputs[1]
-    assert len(second_batch.items) == 2
-    assert isinstance(second_batch.items[0], Document)
-    assert second_batch.items[0].id == "https://github.com/test-org/test-repo/issues/1"
-    assert isinstance(second_batch.items[1], Document)
-    assert second_batch.items[1].id == "https://github.com/test-org/test-repo/issues/2"
-    assert second_batch.next_checkpoint.has_more
-
-    # Check third batch (finished checkpoint)
-    third_batch = outputs[2]
-    assert len(third_batch.items) == 0
-    assert third_batch.next_checkpoint.has_more is False
+        # Check third batch (finished checkpoint)
+        third_batch = outputs[2]
+        assert len(third_batch.items) == 0
+        assert third_batch.next_checkpoint.has_more is False
 
 
 def test_load_from_checkpoint_with_rate_limit(
@@ -221,24 +235,26 @@ def test_load_from_checkpoint_with_rate_limit(
     mock_rate_limit.core.reset = datetime.now(timezone.utc)
     github_connector.github_client.get_rate_limit.return_value = mock_rate_limit
 
-    # Call load_from_checkpoint
-    end_time = time.time()
-    with patch(
-        "onyx.connectors.github.connector._sleep_after_rate_limit_exception"
-    ) as mock_sleep:
-        outputs = load_everything_from_checkpoint_connector(
-            github_connector, 0, end_time
-        )
+    # Mock SerializedRepository.to_Repository to return our mock repo
+    with patch.object(SerializedRepository, "to_Repository", return_value=mock_repo):
+        # Call load_from_checkpoint
+        end_time = time.time()
+        with patch(
+            "onyx.connectors.github.connector._sleep_after_rate_limit_exception"
+        ) as mock_sleep:
+            outputs = load_everything_from_checkpoint_connector(
+                github_connector, 0, end_time
+            )
 
-        assert mock_sleep.call_count == 1
+            assert mock_sleep.call_count == 1
 
-    # Check that we got the document after rate limit was handled
-    assert len(outputs) >= 1
-    assert len(outputs[0].items) == 1
-    assert isinstance(outputs[0].items[0], Document)
-    assert outputs[0].items[0].id == "https://github.com/test-org/test-repo/pull/1"
+        # Check that we got the document after rate limit was handled
+        assert len(outputs) >= 1
+        assert len(outputs[0].items) == 1
+        assert isinstance(outputs[0].items[0], Document)
+        assert outputs[0].items[0].id == "https://github.com/test-org/test-repo/pull/1"
 
-    assert outputs[-1].next_checkpoint.has_more is False
+        assert outputs[-1].next_checkpoint.has_more is False
 
 
 def test_load_from_checkpoint_with_empty_repo(
@@ -258,14 +274,18 @@ def test_load_from_checkpoint_with_empty_repo(
     mock_repo.get_issues.return_value = MagicMock()
     mock_repo.get_issues.return_value.get_page.return_value = []
 
-    # Call load_from_checkpoint
-    end_time = time.time()
-    outputs = load_everything_from_checkpoint_connector(github_connector, 0, end_time)
+    # Mock SerializedRepository.to_Repository to return our mock repo
+    with patch.object(SerializedRepository, "to_Repository", return_value=mock_repo):
+        # Call load_from_checkpoint
+        end_time = time.time()
+        outputs = load_everything_from_checkpoint_connector(
+            github_connector, 0, end_time
+        )
 
-    # Check that we got no documents
-    assert len(outputs) == 1
-    assert len(outputs[0].items) == 0
-    assert not outputs[0].next_checkpoint.has_more
+        # Check that we got no documents
+        assert len(outputs) == 1
+        assert len(outputs[0].items) == 0
+        assert not outputs[0].next_checkpoint.has_more
 
 
 def test_load_from_checkpoint_with_prs_only(
@@ -295,18 +315,22 @@ def test_load_from_checkpoint_with_prs_only(
         [],
     ]
 
-    # Call load_from_checkpoint
-    end_time = time.time()
-    outputs = load_everything_from_checkpoint_connector(github_connector, 0, end_time)
+    # Mock SerializedRepository.to_Repository to return our mock repo
+    with patch.object(SerializedRepository, "to_Repository", return_value=mock_repo):
+        # Call load_from_checkpoint
+        end_time = time.time()
+        outputs = load_everything_from_checkpoint_connector(
+            github_connector, 0, end_time
+        )
 
-    # Check that we only got PRs
-    assert len(outputs) >= 1
-    assert len(outputs[0].items) == 2
-    assert all(
-        isinstance(doc, Document) and "pull" in doc.id for doc in outputs[0].items
-    )  # All documents should be PRs
+        # Check that we only got PRs
+        assert len(outputs) >= 1
+        assert len(outputs[0].items) == 2
+        assert all(
+            isinstance(doc, Document) and "pull" in doc.id for doc in outputs[0].items
+        )  # All documents should be PRs
 
-    assert outputs[-1].next_checkpoint.has_more is False
+        assert outputs[-1].next_checkpoint.has_more is False
 
 
 def test_load_from_checkpoint_with_issues_only(
@@ -336,19 +360,23 @@ def test_load_from_checkpoint_with_issues_only(
         [],
     ]
 
-    # Call load_from_checkpoint
-    end_time = time.time()
-    outputs = load_everything_from_checkpoint_connector(github_connector, 0, end_time)
+    # Mock SerializedRepository.to_Repository to return our mock repo
+    with patch.object(SerializedRepository, "to_Repository", return_value=mock_repo):
+        # Call load_from_checkpoint
+        end_time = time.time()
+        outputs = load_everything_from_checkpoint_connector(
+            github_connector, 0, end_time
+        )
 
-    # Check that we only got issues
-    assert len(outputs) >= 1
-    assert len(outputs[0].items) == 2
-    assert all(
-        isinstance(doc, Document) and "issues" in doc.id for doc in outputs[0].items
-    )  # All documents should be issues
-    assert outputs[0].next_checkpoint.has_more
+        # Check that we only got issues
+        assert len(outputs) >= 1
+        assert len(outputs[0].items) == 2
+        assert all(
+            isinstance(doc, Document) and "issues" in doc.id for doc in outputs[0].items
+        )  # All documents should be issues
+        assert outputs[0].next_checkpoint.has_more
 
-    assert outputs[-1].next_checkpoint.has_more is False
+        assert outputs[-1].next_checkpoint.has_more is False
 
 
 @pytest.mark.parametrize(

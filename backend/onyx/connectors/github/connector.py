@@ -1,6 +1,5 @@
 import copy
 import time
-from bisect import bisect_left
 from collections.abc import Generator
 from datetime import datetime
 from datetime import timedelta
@@ -16,6 +15,8 @@ from github.GithubException import GithubException
 from github.Issue import Issue
 from github.PaginatedList import PaginatedList
 from github.PullRequest import PullRequest
+from github.Requester import Requester
+from pydantic import BaseModel
 from typing_extensions import override
 
 from onyx.configs.app_configs import GITHUB_CONNECTOR_BASE_URL
@@ -85,7 +86,9 @@ def _convert_pr_to_document(pull_request: PullRequest) -> Document:
         # updated_at is UTC time but is timezone unaware, explicitly add UTC
         # as there is logic in indexing to prevent wrong timestamped docs
         # due to local time discrepancies with UTC
-        doc_updated_at=pull_request.updated_at.replace(tzinfo=timezone.utc),
+        doc_updated_at=pull_request.updated_at.replace(tzinfo=timezone.utc)
+        if pull_request.updated_at
+        else None,
         metadata={
             "merged": str(pull_request.merged),
             "state": pull_request.state,
@@ -112,6 +115,19 @@ def _convert_issue_to_document(issue: Issue) -> Document:
     )
 
 
+class SerializedRepository(BaseModel):
+    # id is part of the raw_data as well, just pulled out for convenience
+    id: int
+    headers: dict[str, str | int]
+    raw_data: dict[str, str]
+
+    def to_Repository(self, requester: Requester) -> Repository.Repository:
+        return Repository.Repository(
+            requester, self.headers, self.raw_data, completed=True
+        )
+
+
+# Repository.Repository(self.github_client._Github__requester, repos[0]._headers, repos[0].raw_data, completed=True)
 class GithubConnectorStage(Enum):
     START = "start"
     PRS = "prs"
@@ -119,9 +135,11 @@ class GithubConnectorStage(Enum):
 
 
 class GithubConnectorCheckpoint(ConnectorCheckpoint):
-    current_repo_id: int | None = None
     stage: GithubConnectorStage
     curr_page: int
+
+    cached_repo_ids: list[int] | None = None
+    cached_repo: SerializedRepository | None = None
 
 
 class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
@@ -227,158 +245,166 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
 
         checkpoint = copy.deepcopy(checkpoint)
 
-        repos = []
-        if self.repositories:
-            if "," in self.repositories:
-                # Multiple repositories specified
-                repos = self._get_github_repos(self.github_client)
+        # First run of the connector, fetch all repos and store in checkpoint
+        if checkpoint.cached_repo_ids is None:
+            repos = []
+            if self.repositories:
+                if "," in self.repositories:
+                    # Multiple repositories specified
+                    repos = self._get_github_repos(self.github_client)
+                else:
+                    # Single repository (backward compatibility)
+                    repos = [self._get_github_repo(self.github_client)]
             else:
-                # Single repository (backward compatibility)
-                repos = [self._get_github_repo(self.github_client)]
-        else:
-            # All repositories
-            repos = self._get_all_repos(self.github_client)
+                # All repositories
+                repos = self._get_all_repos(self.github_client)
+            if not repos:
+                checkpoint.has_more = False
+                return checkpoint
 
-        # sorting allows saving less state
-        repos = sorted(repos, key=lambda x: x.id)
-        if checkpoint.current_repo_id is not None:
-            ids = [repo.id for repo in repos]
-            ind = bisect_left(ids, checkpoint.current_repo_id)  # binary search
-            if ind < len(repos) and repos[ind].id == checkpoint.current_repo_id:
-                repos = repos[ind:]
-            else:
-                raise ValueError(
-                    f"Repository id stored in checkpoint {checkpoint.current_repo_id} not found in list of repos."
+            print("REPOS" + "\n" * 50)
+
+            checkpoint.cached_repo_ids = sorted([repo.id for repo in repos])
+            print(repos)
+            checkpoint.cached_repo = SerializedRepository(
+                id=checkpoint.cached_repo_ids[0],
+                headers=repos[0].raw_headers,
+                raw_data=repos[0].raw_data,
+            )
+            checkpoint.stage = GithubConnectorStage.PRS
+            checkpoint.curr_page = 0
+
+        assert checkpoint.cached_repo is not None, "No repo saved in checkpoint"
+        repo = checkpoint.cached_repo.to_Repository(self.github_client.requester)
+
+        if self.include_prs and checkpoint.stage == GithubConnectorStage.PRS:
+            logger.info(f"Fetching PRs for repo: {repo.name}")
+            pull_requests = repo.get_pulls(
+                state=self.state_filter, sort="updated", direction="desc"
+            )
+
+            doc_batch: list[Document] = []
+            while True:
+                pr_batch = _get_batch_rate_limited(
+                    pull_requests, checkpoint.curr_page, self.github_client
                 )
-
-        for repo in repos:
-            # If we are resuming from a checkpoint, the current repo id will be the
-            # first repo in the list. If we get here from a new loop iteration or empty checkpoint,
-            # we are on a new repo and need to reset the checkpoint
-            if repo.id != checkpoint.current_repo_id:
-                checkpoint.current_repo_id = repo.id
-                checkpoint.stage = GithubConnectorStage.PRS
-                checkpoint.curr_page = 0
-
-            if self.include_prs and checkpoint.stage == GithubConnectorStage.PRS:
-                logger.info(f"Fetching PRs for repo: {repo.name}")
-                pull_requests = repo.get_pulls(
-                    state=self.state_filter, sort="updated", direction="desc"
-                )
-
-                doc_batch: list[Document] = []
-                while True:
-                    pr_batch = _get_batch_rate_limited(
-                        pull_requests, checkpoint.curr_page, self.github_client
-                    )
-                    checkpoint.curr_page += 1
-                    done_with_prs = False
-                    for pr in pr_batch:
-                        # we iterate backwards in time, so at this point we stop processing prs
-                        if (
-                            start is not None
-                            and pr.updated_at.replace(tzinfo=timezone.utc) < start
-                        ):
-                            yield from doc_batch
-                            done_with_prs = True
-                            break
-                        # Skip PRs updated after the end date
-                        if (
-                            end is not None
-                            and pr.updated_at.replace(tzinfo=timezone.utc) > end
-                        ):
-                            continue
-                        try:
-                            doc_batch.append(
-                                _convert_pr_to_document(cast(PullRequest, pr))
-                            )
-                        except Exception as e:
-                            error_msg = f"Error converting PR to document: {e}"
-                            logger.error(error_msg)
-                            yield ConnectorFailure(
-                                failed_document=DocumentFailure(
-                                    document_id=str(pr.id), document_link=pr.html_url
-                                ),
-                                failure_message=error_msg,
-                                exception=e,
-                            )
-                            continue
-
-                    # if we went past the start date during the loop or there are no more
-                    # prs to get, we move on to issues
-                    if done_with_prs or len(pr_batch) == 0:
-                        checkpoint.stage = GithubConnectorStage.ISSUES
-                        checkpoint.curr_page = 0
-                        break
-
-                    # if we found any PRs on the page, yield them and return the checkpoint
-                    if len(doc_batch) > 0:
+                checkpoint.curr_page += 1
+                done_with_prs = False
+                for pr in pr_batch:
+                    # we iterate backwards in time, so at this point we stop processing prs
+                    if (
+                        start is not None
+                        and pr.updated_at
+                        and pr.updated_at.replace(tzinfo=timezone.utc) < start
+                    ):
                         yield from doc_batch
-                        return checkpoint
-
-            checkpoint.stage = GithubConnectorStage.ISSUES
-
-            if self.include_issues and checkpoint.stage == GithubConnectorStage.ISSUES:
-                logger.info(f"Fetching issues for repo: {repo.name}")
-                issues = repo.get_issues(
-                    state=self.state_filter, sort="updated", direction="desc"
-                )
-
-                doc_batch = []
-                while True:
-                    issue_batch = _get_batch_rate_limited(
-                        issues, checkpoint.curr_page, self.github_client
-                    )
-                    checkpoint.curr_page += 1
-                    done_with_issues = False
-                    for issue in cast(list[Issue], issue_batch):
-                        # we iterate backwards in time, so at this point we stop processing prs
-                        if (
-                            start is not None
-                            and issue.updated_at.replace(tzinfo=timezone.utc) < start
-                        ):
-                            yield from doc_batch
-                            done_with_issues = True
-                            break
-                        # Skip PRs updated after the end date
-                        if (
-                            end is not None
-                            and issue.updated_at.replace(tzinfo=timezone.utc) > end
-                        ):
-                            continue
-
-                        if issue.pull_request is not None:
-                            # PRs are handled separately
-                            continue
-
-                        try:
-                            doc_batch.append(_convert_issue_to_document(issue))
-                        except Exception as e:
-                            error_msg = f"Error converting issue to document: {e}"
-                            logger.error(error_msg)
-                            yield ConnectorFailure(
-                                failed_document=DocumentFailure(
-                                    document_id=str(issue.id),
-                                    document_link=issue.html_url,
-                                ),
-                                failure_message=error_msg,
-                                exception=e,
-                            )
-                            continue
-
-                    # if we went past the start date during the loop or there are no more
-                    # issues to get, we leave the loop and move on to the next repo
-                    if done_with_issues or len(issue_batch) == 0:
-                        checkpoint.stage = GithubConnectorStage.PRS
-                        checkpoint.curr_page = 0
+                        done_with_prs = True
                         break
+                    # Skip PRs updated after the end date
+                    if (
+                        end is not None
+                        and pr.updated_at
+                        and pr.updated_at.replace(tzinfo=timezone.utc) > end
+                    ):
+                        continue
+                    try:
+                        doc_batch.append(_convert_pr_to_document(cast(PullRequest, pr)))
+                    except Exception as e:
+                        error_msg = f"Error converting PR to document: {e}"
+                        logger.error(error_msg)
+                        yield ConnectorFailure(
+                            failed_document=DocumentFailure(
+                                document_id=str(pr.id), document_link=pr.html_url
+                            ),
+                            failure_message=error_msg,
+                            exception=e,
+                        )
+                        continue
 
-                    # if we found any issues on the page, yield them and return the checkpoint
-                    if len(doc_batch) > 0:
+                # if we went past the start date during the loop or there are no more
+                # prs to get, we move on to issues
+                if done_with_prs or len(pr_batch) == 0:
+                    checkpoint.stage = GithubConnectorStage.ISSUES
+                    checkpoint.curr_page = 0
+                    break
+
+                # if we found any PRs on the page, yield them and return the checkpoint
+                if len(doc_batch) > 0:
+                    yield from doc_batch
+                    return checkpoint
+
+        checkpoint.stage = GithubConnectorStage.ISSUES
+
+        if self.include_issues and checkpoint.stage == GithubConnectorStage.ISSUES:
+            logger.info(f"Fetching issues for repo: {repo.name}")
+            issues = repo.get_issues(
+                state=self.state_filter, sort="updated", direction="desc"
+            )
+
+            doc_batch = []
+            while True:
+                issue_batch = _get_batch_rate_limited(
+                    issues, checkpoint.curr_page, self.github_client
+                )
+                checkpoint.curr_page += 1
+                done_with_issues = False
+                for issue in cast(list[Issue], issue_batch):
+                    # we iterate backwards in time, so at this point we stop processing prs
+                    if (
+                        start is not None
+                        and issue.updated_at.replace(tzinfo=timezone.utc) < start
+                    ):
                         yield from doc_batch
-                        return checkpoint
+                        done_with_issues = True
+                        break
+                    # Skip PRs updated after the end date
+                    if (
+                        end is not None
+                        and issue.updated_at.replace(tzinfo=timezone.utc) > end
+                    ):
+                        continue
 
-        checkpoint.has_more = False
+                    if issue.pull_request is not None:
+                        # PRs are handled separately
+                        continue
+
+                    try:
+                        doc_batch.append(_convert_issue_to_document(issue))
+                    except Exception as e:
+                        error_msg = f"Error converting issue to document: {e}"
+                        logger.error(error_msg)
+                        yield ConnectorFailure(
+                            failed_document=DocumentFailure(
+                                document_id=str(issue.id),
+                                document_link=issue.html_url,
+                            ),
+                            failure_message=error_msg,
+                            exception=e,
+                        )
+                        continue
+
+                # if we went past the start date during the loop or there are no more
+                # issues to get, we move on to the next repo
+                if done_with_issues or len(issue_batch) == 0:
+                    checkpoint.stage = GithubConnectorStage.PRS
+                    checkpoint.curr_page = 0
+                    break
+
+                # if we found any issues on the page, yield them and return the checkpoint
+                if len(doc_batch) > 0:
+                    yield from doc_batch
+                    return checkpoint
+
+        checkpoint.has_more = len(checkpoint.cached_repo_ids) > 1
+        if checkpoint.cached_repo_ids:
+            next_id = checkpoint.cached_repo_ids.pop()
+            next_repo = self.github_client.get_repo(next_id)
+            checkpoint.cached_repo = SerializedRepository(
+                id=next_id,
+                headers=next_repo.raw_headers,
+                raw_data=next_repo.raw_data,
+            )
+
         return checkpoint
 
     @override
