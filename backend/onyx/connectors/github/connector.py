@@ -493,7 +493,7 @@ if __name__ == "__main__":
         repositories=os.environ["REPOSITORIES"],
     )
     connector.load_credentials(
-        {"github_access_token": os.environ["GITHUB_ACCESS_TOKEN"]}
+        {"github_access_token": os.environ["ACCESS_TOKEN_GITHUB"]}
     )
     document_batches = connector.load_from_checkpoint(
         0, time.time(), connector.build_dummy_checkpoint()

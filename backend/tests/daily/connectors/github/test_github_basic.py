@@ -18,7 +18,7 @@ def github_connector() -> GithubConnector:
     )
     connector.load_credentials(
         {
-            "github_access_token": os.environ["GITHUB_ACCESS_TOKEN"],
+            "github_access_token": os.environ["ACCESS_TOKEN_GITHUB"],
         }
     )
     return connector
