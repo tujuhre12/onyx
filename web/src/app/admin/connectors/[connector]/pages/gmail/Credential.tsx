@@ -358,6 +358,16 @@ export const GmailJsonUploadSection = ({
                     mutate(endpoint);
                     // Also mutate the credential endpoints to ensure Step 2 is reset
                     mutate(buildSimilarCredentialInfoURL(ValidSources.Gmail));
+
+                    // Add additional mutations to refresh all credential-related endpoints
+                    mutate("/api/manage/admin/connector/gmail/credentials");
+                    mutate(
+                      "/api/manage/admin/connector/gmail/public-credential"
+                    );
+                    mutate(
+                      "/api/manage/admin/connector/gmail/service-account-credential"
+                    );
+
                     setPopup({
                       message: `Successfully deleted ${
                         localServiceAccountData
@@ -536,13 +546,6 @@ export const GmailAuthSection = ({
     return (
       <div>
         <div className="mt-4">
-          <div className="py-3 px-4 bg-background-50/30 dark:bg-background-900/20 rounded mb-4">
-            <p className="text-sm">
-              Enter the email of an admin/owner of the Google Organization that
-              owns the Gmail account(s) you want to index.
-            </p>
-          </div>
-
           <Formik
             initialValues={{
               google_primary_admin: user?.email || "",
@@ -592,7 +595,7 @@ export const GmailAuthSection = ({
             }}
           >
             {({ isSubmitting }) => (
-              <Form className="space-y-4">
+              <Form>
                 <TextFormField
                   name="google_primary_admin"
                   label="Primary Admin Email:"

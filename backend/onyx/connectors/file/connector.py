@@ -202,6 +202,8 @@ def _process_file(
         file_name=file_name,
         pdf_pass=pdf_pass,
     )
+    print("FILE NAME IS ", file_name)
+    print("text_content", text_content)
 
     # Build sections: first the text as a single Section
     sections = []
