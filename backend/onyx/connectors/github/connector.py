@@ -262,10 +262,7 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
                 checkpoint.has_more = False
                 return checkpoint
 
-            print("REPOS" + "\n" * 50)
-
             checkpoint.cached_repo_ids = sorted([repo.id for repo in repos])
-            print(repos)
             checkpoint.cached_repo = SerializedRepository(
                 id=checkpoint.cached_repo_ids[0],
                 headers=repos[0].raw_headers,
