@@ -437,7 +437,6 @@ def extract_text_and_images(
     """
 
     try:
-        print("EXTRACTING TEXT AND IMAGES")
         # Attempt unstructured if env var is set
         if get_unstructured_api_key():
             # If the user doesn't want embedded images, unstructured is fine
@@ -457,11 +456,7 @@ def extract_text_and_images(
         # so we simply extract text for now and skip images.
         if extension == ".pdf":
             file.seek(0)
-            print("FILE NAME IS ", file_name)
-            print("PDF PASS IS ", pdf_pass)
             text_content, _, images = read_pdf_file(file, pdf_pass, extract_images=True)
-            print("TEXT CONTENT IS ", text_content)
-            print("IMAGES ARE ", images)
             return (text_content, images)
 
         # For PPTX, XLSX, EML, etc., we do not show embedded image logic here.
