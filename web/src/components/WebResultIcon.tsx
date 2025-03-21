@@ -21,7 +21,7 @@ export function WebResultIcon({
   }
   return (
     <>
-      {hostname == "onyx.app" ? (
+      {hostname.includes("onyx.app") ? (
         <OnyxIcon size={size} className="dark:text-[#fff] text-[#000]" />
       ) : !error ? (
         <img
