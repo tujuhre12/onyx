@@ -111,9 +111,15 @@ async def create_tenant(email: str, referral_source: str | None = None) -> str:
         # Provision tenant on data plane
         await provision_tenant(tenant_id, email)
 
-        # Notify control plane if not already done in provision_tenant
-        if not DEV_MODE and referral_source:
-            await notify_control_plane(tenant_id, email, referral_source)
+        try:
+            # Notify control plane if not already done in provision_tenant
+            if not DEV_MODE and referral_source:
+                await notify_control_plane(tenant_id, email, referral_source)
+        except Exception:
+            logger.exception(
+                "create_tenant - notify_control_plane exceptioned. "
+                "Continuing due to likely duplicate of previous call."
+            )
 
     except Exception as e:
         logger.error(f"Tenant provisioning failed: {e}")
