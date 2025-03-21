@@ -430,10 +430,10 @@ def extract_text_and_images(
     file: IO[Any],
     file_name: str,
     pdf_pass: str | None = None,
-) -> Tuple[str, List[Tuple[bytes, str]]]:
+) -> Tuple[str, List[Tuple[bytes, str]], dict]:
     """
     Primary new function for the updated connector.
-    Returns (text_content, [(embedded_img_bytes, embedded_img_name), ...]).
+    Returns (text_content, [(embedded_img_bytes, embedded_img_name), ...], metadata).
     """
 
     try:
@@ -442,7 +442,7 @@ def extract_text_and_images(
             # If the user doesn't want embedded images, unstructured is fine
             file.seek(0)
             text_content = unstructured_to_text(file, file_name)
-            return (text_content, [])
+            return (text_content, [], {})
 
         extension = get_file_ext(file_name)
 
@@ -450,54 +450,56 @@ def extract_text_and_images(
         if extension == ".docx":
             file.seek(0)
             text_content, images = docx_to_text_and_images(file)
-            return (text_content, images)
+            return (text_content, images, {})
 
         # PDF example: we do not show complicated PDF image extraction here
         # so we simply extract text for now and skip images.
         if extension == ".pdf":
             file.seek(0)
-            text_content, _, images = read_pdf_file(file, pdf_pass, extract_images=True)
-            return (text_content, images)
+            text_content, pdf_metadata, images = read_pdf_file(
+                file, pdf_pass, extract_images=True
+            )
+            return (text_content, images, pdf_metadata)
 
         # For PPTX, XLSX, EML, etc., we do not show embedded image logic here.
         # You can do something similar to docx if needed.
         if extension == ".pptx":
             file.seek(0)
-            return (pptx_to_text(file), [])
+            return (pptx_to_text(file), [], {})
 
         if extension == ".xlsx":
             file.seek(0)
-            return (xlsx_to_text(file), [])
+            return (xlsx_to_text(file), [], {})
 
         if extension == ".eml":
             file.seek(0)
-            return (eml_to_text(file), [])
+            return (eml_to_text(file), [], {})
 
         if extension == ".epub":
             file.seek(0)
-            return (epub_to_text(file), [])
+            return (epub_to_text(file), [], {})
 
         if extension == ".html":
             file.seek(0)
-            return (parse_html_page_basic(file), [])
+            return (parse_html_page_basic(file), [], {})
 
         # If we reach here and it's a recognized text extension
         if is_text_file_extension(file_name):
             file.seek(0)
             encoding = detect_encoding(file)
-            text_content_raw, _ = read_text_file(
+            text_content_raw, file_metadata = read_text_file(
                 file, encoding=encoding, ignore_onyx_metadata=False
             )
-            return (text_content_raw, [])
+            return (text_content_raw, [], file_metadata)
 
         # If it's an image file or something else, we do not parse embedded images from them
         # just return empty text
         file.seek(0)
-        return ("", [])
+        return ("", [], {})
 
     except Exception as e:
         logger.exception(f"Failed to extract text/images from {file_name}: {e}")
-        return ("", [])
+        return ("", [], {})
 
 
 def convert_docx_to_txt(

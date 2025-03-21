@@ -221,18 +221,27 @@ def _process_file(
     file.seek(0)
     text_content = ""
     embedded_images: list[tuple[bytes, str]] = []
+    file_specific_metadata = {}
 
     # Extract text and images from the file
-    text_content, embedded_images = extract_text_and_images(
+    text_content, embedded_images, file_specific_metadata = extract_text_and_images(
         file=file,
         file_name=file_name,
         pdf_pass=pdf_pass,
     )
 
+    # Merge file-specific metadata (from file content) with provided metadata
+    if file_specific_metadata:
+        logger.debug(
+            f"Found file-specific metadata for {file_name}: {file_specific_metadata}"
+        )
+        metadata.update(file_specific_metadata)
+
     # Build sections: first the text as a single Section
     sections: list[TextSection | ImageSection] = []
     link_in_meta = metadata.get("link")
     if text_content.strip():
+        logger.debug(f"Creating TextSection for {file_name} with link: {link_in_meta}")
         sections.append(TextSection(link=link_in_meta, text=text_content.strip()))
 
     # Then any extracted images from docx, etc.
