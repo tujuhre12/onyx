@@ -35,7 +35,6 @@ from onyx.connectors.models import Document
 from onyx.connectors.models import DocumentFailure
 from onyx.connectors.models import TextSection
 from onyx.utils.logger import setup_logger
-from onyx.utils.special_types import JSON_ro
 
 logger = setup_logger()
 
@@ -120,7 +119,7 @@ class SerializedRepository(BaseModel):
     # id is part of the raw_data as well, just pulled out for convenience
     id: int
     headers: dict[str, str | int]
-    raw_data: dict[str, JSON_ro]
+    raw_data: dict[str, Any]
 
     def to_Repository(self, requester: Requester) -> Repository.Repository:
         return Repository.Repository(
