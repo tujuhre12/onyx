@@ -1,4 +1,3 @@
-import { Button } from "@/components/Button";
 import { PopupSpec } from "@/components/admin/connectors/Popup";
 import React, { useState, useEffect } from "react";
 import { useSWRConfig } from "swr";
@@ -11,7 +10,7 @@ import Cookies from "js-cookie";
 import { TextFormField } from "@/components/admin/connectors/Field";
 import { Form, Formik } from "formik";
 import { User } from "@/lib/types";
-import { Button as TremorButton } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Credential,
   GoogleDriveCredentialJson,
@@ -429,6 +428,7 @@ export const DriveAuthSection = ({
           <i>Uploaded and authenticated credential already exists!</i>
         </p>
         <Button
+          variant="destructive"
           onClick={async () => {
             handleRevokeAccess(
               connectorAssociated,

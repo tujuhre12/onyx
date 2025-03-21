@@ -32,7 +32,7 @@ import {
   FiLink,
   FiAlertTriangle,
 } from "react-icons/fi";
-import { cn } from "@/lib/utils";
+import { cn, truncateString } from "@/lib/utils";
 
 type GmailCredentialJsonTypes = "authorized_user" | "service_account";
 
@@ -46,6 +46,7 @@ const GmailCredentialUpload = ({
   const { mutate } = useSWRConfig();
   const [isUploading, setIsUploading] = useState(false);
   const [fileName, setFileName] = useState<string | undefined>();
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
@@ -145,6 +146,46 @@ const GmailCredentialUpload = ({
     reader.readAsText(file);
   };
 
+  const handleDragEnter = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isUploading) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (isUploading) return;
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      if (file.type === "application/json" || file.name.endsWith(".json")) {
+        handleFileUpload(file);
+      } else {
+        setPopup({
+          message: "Please upload a JSON file",
+          type: "error",
+        });
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col mt-4">
       <div className="flex items-center">
@@ -154,8 +195,14 @@ const GmailCredentialUpload = ({
               "flex h-10 items-center justify-center w-full px-4 py-2 border border-dashed rounded-md transition-colors",
               isUploading
                 ? "opacity-70 cursor-not-allowed border-background-400 bg-background-50/30"
-                : "cursor-pointer hover:bg-background-50/30 hover:border-primary dark:hover:border-primary border-background-300 dark:border-background-600"
+                : isDragging
+                  ? "bg-background-50/50 border-primary dark:border-primary"
+                  : "cursor-pointer hover:bg-background-50/30 hover:border-primary dark:hover:border-primary border-background-300 dark:border-background-600"
             )}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
           >
             <div className="flex items-center space-x-2">
               {isUploading ? (
@@ -165,8 +212,13 @@ const GmailCredentialUpload = ({
               )}
               <span className="text-sm text-text-500">
                 {isUploading
-                  ? `Uploading ${fileName || "file"}...`
-                  : fileName || "Select JSON credentials file..."}
+                  ? `Uploading ${truncateString(fileName || "file", 50)}...`
+                  : isDragging
+                    ? "Drop JSON file here"
+                    : truncateString(
+                        fileName || "Select or drag JSON credentials file...",
+                        50
+                      )}
               </span>
             </div>
             <input
@@ -226,142 +278,6 @@ export const GmailJsonUploadSection = ({
     }
   };
 
-  if (localServiceAccountData?.service_account_email) {
-    return (
-      <div>
-        <SectionHeader>Gmail Service Account Credentials</SectionHeader>
-        <div className="mt-4">
-          <div className="py-3 px-4 bg-background-50/30 dark:bg-background-900/20 rounded">
-            <div>
-              <span className="text-sm text-text-500 dark:text-text-400">
-                Service Account Email:
-              </span>
-              <p className="font-medium text-text-900 dark:text-text-100">
-                {localServiceAccountData.service_account_email}
-              </p>
-            </div>
-          </div>
-
-          {isAdmin ? (
-            <div className="mt-4">
-              <p className="text-sm text-text-500 dark:text-text-400 mb-3">
-                If you want to update these credentials, delete the existing
-                credentials below, then upload new credentials.
-              </p>
-              <Button
-                type="button"
-                onClick={async () => {
-                  const response = await fetch(
-                    "/api/manage/admin/connector/gmail/service-account-key",
-                    {
-                      method: "DELETE",
-                    }
-                  );
-                  if (response.ok) {
-                    mutate(
-                      "/api/manage/admin/connector/gmail/service-account-key"
-                    );
-                    // Also mutate the credential endpoints to ensure Step 2 is reset
-                    mutate(buildSimilarCredentialInfoURL(ValidSources.Gmail));
-                    setPopup({
-                      message: "Successfully deleted service account key",
-                      type: "success",
-                    });
-                    // Immediately update local state
-                    setLocalServiceAccountData(undefined);
-                    handleSuccess();
-                  } else {
-                    const errorMsg = await response.text();
-                    setPopup({
-                      message: `Failed to delete service account key - ${errorMsg}`,
-                      type: "error",
-                    });
-                  }
-                }}
-              >
-                Delete Credentials
-              </Button>
-            </div>
-          ) : (
-            <p className="text-sm mt-4 text-text-500 dark:text-text-400">
-              To change these credentials, please contact an administrator.
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (localAppCredentialData?.client_id) {
-    return (
-      <div>
-        <SectionHeader>Gmail OAuth Application Credentials</SectionHeader>
-        <div className="mt-4">
-          <div className="py-3 px-4 bg-background-50/30 dark:bg-background-900/20 rounded">
-            <div className="flex items-center">
-              <FiCheck className="text-green-500 h-5 w-5 mr-2" />
-              <span className="font-medium">
-                Found existing OAuth credentials
-              </span>
-            </div>
-            <div className="mt-2">
-              <span className="text-sm text-text-500 dark:text-text-400">
-                Client ID:
-              </span>
-              <p className="font-medium text-text-900 dark:text-text-100">
-                {localAppCredentialData.client_id}
-              </p>
-            </div>
-          </div>
-
-          {isAdmin ? (
-            <div className="mt-4">
-              <p className="text-sm text-text-500 dark:text-text-400 mb-3">
-                If you want to update these credentials, delete the existing
-                credentials below, then upload new credentials.
-              </p>
-              <Button
-                type="button"
-                onClick={async () => {
-                  const response = await fetch(
-                    "/api/manage/admin/connector/gmail/app-credential",
-                    {
-                      method: "DELETE",
-                    }
-                  );
-                  if (response.ok) {
-                    mutate("/api/manage/admin/connector/gmail/app-credential");
-                    // Also mutate the credential endpoints to ensure Step 2 is reset
-                    mutate(buildSimilarCredentialInfoURL(ValidSources.Gmail));
-                    setPopup({
-                      message: "Successfully deleted app credentials",
-                      type: "success",
-                    });
-                    // Immediately update local state
-                    setLocalAppCredentialData(undefined);
-                    handleSuccess();
-                  } else {
-                    const errorMsg = await response.text();
-                    setPopup({
-                      message: `Failed to delete app credential - ${errorMsg}`,
-                      type: "error",
-                    });
-                  }
-                }}
-              >
-                Delete Credentials
-              </Button>
-            </div>
-          ) : (
-            <p className="text-sm mt-4 text-text-500 dark:text-text-400">
-              To change these credentials, please contact an administrator.
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   if (!isAdmin) {
     return (
       <div>
@@ -378,43 +294,107 @@ export const GmailJsonUploadSection = ({
 
   return (
     <div>
-      <SectionHeader>Setup Gmail Credentials</SectionHeader>
-      <div className="mt-4">
-        <p className="text-sm mb-3">
-          Follow these steps to connect your Gmail:
-        </p>
-        <ol className="list-decimal list-inside text-sm space-y-2">
-          <li>
-            <span className="font-medium">Create credentials</span> - You have
-            two options:
-            <ul className="list-disc list-inside ml-4 mt-1 text-text-500 dark:text-text-400">
-              <li>Set up a Google OAuth App in your company workspace</li>
-              <li>Create a Service Account with appropriate permissions</li>
-            </ul>
-          </li>
-          <li>
-            <span className="font-medium">Download credentials</span> - Save the
-            JSON file to your computer
-          </li>
-          <li>
-            <span className="font-medium">Upload credentials</span> - Select the
-            JSON file below to automatically upload
-          </li>
-        </ol>
-        <div className="mt-3 mb-4">
-          <a
-            className="text-primary hover:text-primary/80 flex items-center gap-1 text-sm"
-            target="_blank"
-            href="https://docs.onyx.app/connectors/gmail#authorization"
-            rel="noreferrer"
-          >
-            <FiLink className="h-3 w-3" />
-            View detailed setup instructions
-          </a>
-        </div>
-
-        <GmailCredentialUpload setPopup={setPopup} onSuccess={handleSuccess} />
+      <p className="text-sm mb-3">
+        To connect your Gmail, create credentials (either OAuth App or Service
+        Account), download the JSON file, and upload it below.
+      </p>
+      <div className="mb-4">
+        <a
+          className="text-primary hover:text-primary/80 flex items-center gap-1 text-sm"
+          target="_blank"
+          href="https://docs.onyx.app/connectors/gmail#authorization"
+          rel="noreferrer"
+        >
+          <FiLink className="h-3 w-3" />
+          View detailed setup instructions
+        </a>
       </div>
+
+      {(localServiceAccountData?.service_account_email ||
+        localAppCredentialData?.client_id) && (
+        <div className="mb-4">
+          <div className="relative flex flex-1 items-center">
+            <label
+              className={cn(
+                "flex h-10 items-center justify-center w-full px-4 py-2 border border-dashed rounded-md transition-colors",
+                false
+                  ? "opacity-70 cursor-not-allowed border-background-400 bg-background-50/30"
+                  : "cursor-pointer hover:bg-background-50/30 hover:border-primary dark:hover:border-primary border-background-300 dark:border-background-600"
+              )}
+            >
+              <div className="flex items-center space-x-2">
+                {false ? (
+                  <div className="h-4 w-4 border-t-2 border-b-2 border-primary rounded-full animate-spin"></div>
+                ) : (
+                  <FiFile className="h-4 w-4 text-text-500" />
+                )}
+                <span className="text-sm text-text-500">
+                  {truncateString(
+                    localServiceAccountData?.service_account_email ||
+                      localAppCredentialData?.client_id ||
+                      "",
+                    50
+                  )}
+                </span>
+              </div>
+            </label>
+          </div>
+          {isAdmin && (
+            <div className="mt-2">
+              <Button
+                variant="destructive"
+                type="button"
+                onClick={async () => {
+                  const endpoint =
+                    localServiceAccountData?.service_account_email
+                      ? "/api/manage/admin/connector/gmail/service-account-key"
+                      : "/api/manage/admin/connector/gmail/app-credential";
+
+                  const response = await fetch(endpoint, {
+                    method: "DELETE",
+                  });
+
+                  if (response.ok) {
+                    mutate(endpoint);
+                    // Also mutate the credential endpoints to ensure Step 2 is reset
+                    mutate(buildSimilarCredentialInfoURL(ValidSources.Gmail));
+                    setPopup({
+                      message: `Successfully deleted ${
+                        localServiceAccountData
+                          ? "service account key"
+                          : "app credentials"
+                      }`,
+                      type: "success",
+                    });
+                    // Immediately update local state
+                    if (localServiceAccountData) {
+                      setLocalServiceAccountData(undefined);
+                    } else {
+                      setLocalAppCredentialData(undefined);
+                    }
+                    handleSuccess();
+                  } else {
+                    const errorMsg = await response.text();
+                    setPopup({
+                      message: `Failed to delete credentials - ${errorMsg}`,
+                      type: "error",
+                    });
+                  }
+                }}
+              >
+                Delete Credentials
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!(
+        localServiceAccountData?.service_account_email ||
+        localAppCredentialData?.client_id
+      ) && (
+        <GmailCredentialUpload setPopup={setPopup} onSuccess={handleSuccess} />
+      )}
     </div>
   );
 };
@@ -501,19 +481,19 @@ export const GmailAuthSection = ({
   if (existingCredential) {
     return (
       <div>
-        <SectionHeader>Gmail Authentication Status</SectionHeader>
         <div className="mt-4">
-          <div className="py-3 px-4 bg-green-50/30 dark:bg-green-900/5 rounded mb-4 flex items-start">
-            <FiCheck className="text-green-500 h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-            <div>
-              <span className="font-medium">Authentication Complete</span>
-              <p className="text-sm mt-1 text-text-500 dark:text-text-400">
-                Your Gmail credentials have been uploaded and authenticated
-                successfully.
+          <div className="py-3 px-4 bg-blue-50/30 dark:bg-blue-900/5 rounded mb-4 flex items-start">
+            <FiCheck className="text-blue-500 h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <span className="font-medium block">Authentication Complete</span>
+              <p className="text-sm mt-1 text-text-500 dark:text-text-400 break-words">
+                Your Gmail credentials have been successfully uploaded and
+                authenticated.
               </p>
             </div>
           </div>
           <Button
+            variant="destructive"
             type="button"
             onClick={async () => {
               handleRevokeAccess(
@@ -531,10 +511,30 @@ export const GmailAuthSection = ({
     );
   }
 
+  // If no credentials are uploaded, show message to complete step 1 first
+  if (
+    !localServiceAccountData?.service_account_email &&
+    !localAppCredentialData?.client_id
+  ) {
+    return (
+      <div>
+        <SectionHeader>Gmail Authentication</SectionHeader>
+        <div className="mt-4">
+          <div className="flex items-start py-3 px-4 bg-yellow-50/30 dark:bg-yellow-900/5 rounded">
+            <FiAlertTriangle className="text-yellow-500 h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+            <p className="text-sm">
+              Please complete Step 1 by uploading either OAuth credentials or a
+              Service Account key before proceeding with authentication.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (localServiceAccountData?.service_account_email) {
     return (
       <div>
-        <SectionHeader>Complete Gmail Authentication</SectionHeader>
         <div className="mt-4">
           <div className="py-3 px-4 bg-background-50/30 dark:bg-background-900/20 rounded mb-4">
             <p className="text-sm">
@@ -614,65 +614,48 @@ export const GmailAuthSection = ({
   if (localAppCredentialData?.client_id) {
     return (
       <div>
-        <SectionHeader>Complete Gmail Authentication</SectionHeader>
-        <div className="mt-4">
-          <div className="py-3 px-4 bg-background-50/30 dark:bg-background-900/20 rounded mb-4">
-            <p className="text-sm">
-              Next, you need to authenticate with Gmail via OAuth. This gives us
-              read access to the emails you have access to in your Gmail
-              account.
-            </p>
-          </div>
-          <Button
-            disabled={isAuthenticating}
-            onClick={async () => {
-              setIsAuthenticating(true);
-              try {
-                Cookies.set(GMAIL_AUTH_IS_ADMIN_COOKIE_NAME, "true", {
-                  path: "/",
-                });
-                const [authUrl, errorMsg] = await setupGmailOAuth({
-                  isAdmin: true,
-                });
+        <div className="bg-background-50/30 dark:bg-background-900/20 rounded mb-4">
+          <p className="text-sm">
+            Next, you need to authenticate with Gmail via OAuth. This gives us
+            read access to the emails you have access to in your Gmail account.
+          </p>
+        </div>
+        <Button
+          disabled={isAuthenticating}
+          onClick={async () => {
+            setIsAuthenticating(true);
+            try {
+              Cookies.set(GMAIL_AUTH_IS_ADMIN_COOKIE_NAME, "true", {
+                path: "/",
+              });
+              const [authUrl, errorMsg] = await setupGmailOAuth({
+                isAdmin: true,
+              });
 
-                if (authUrl) {
-                  router.push(authUrl);
-                } else {
-                  setPopup({
-                    message: errorMsg,
-                    type: "error",
-                  });
-                  setIsAuthenticating(false);
-                }
-              } catch (error) {
+              if (authUrl) {
+                router.push(authUrl);
+              } else {
                 setPopup({
-                  message: `Failed to authenticate with Gmail - ${error}`,
+                  message: errorMsg,
                   type: "error",
                 });
                 setIsAuthenticating(false);
               }
-            }}
-          >
-            {isAuthenticating ? "Authenticating..." : "Authenticate with Gmail"}
-          </Button>
-        </div>
+            } catch (error) {
+              setPopup({
+                message: `Failed to authenticate with Gmail - ${error}`,
+                type: "error",
+              });
+              setIsAuthenticating(false);
+            }
+          }}
+        >
+          {isAuthenticating ? "Authenticating..." : "Authenticate with Gmail"}
+        </Button>
       </div>
     );
   }
 
-  // case where no keys have been uploaded in step 1
-  return (
-    <div>
-      <SectionHeader>Gmail Authentication</SectionHeader>
-      <div className="mt-4">
-        <div className="flex items-start py-3 px-4 bg-yellow-50/30 dark:bg-yellow-900/5 rounded">
-          <FiAlertTriangle className="text-yellow-500 h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-          <p className="text-sm">
-            Please upload either an OAuth Client Credential JSON or a Gmail
-            Service Account Key JSON first before authenticating.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+  // This code path should not be reached with the new conditions above
+  return null;
 };
