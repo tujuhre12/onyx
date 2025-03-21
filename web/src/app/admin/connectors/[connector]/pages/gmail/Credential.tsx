@@ -247,6 +247,7 @@ interface GmailJsonUploadSectionProps {
   serviceAccountCredentialData?: { service_account_email: string };
   isAdmin: boolean;
   onSuccess?: () => void;
+  existingAuthCredential?: boolean;
 }
 
 export const GmailJsonUploadSection = ({
@@ -255,6 +256,7 @@ export const GmailJsonUploadSection = ({
   serviceAccountCredentialData,
   isAdmin,
   onSuccess,
+  existingAuthCredential,
 }: GmailJsonUploadSectionProps) => {
   const { mutate } = useSWRConfig();
   const router = useRouter();
@@ -339,7 +341,7 @@ export const GmailJsonUploadSection = ({
               </div>
             </label>
           </div>
-          {isAdmin && (
+          {isAdmin && !existingAuthCredential && (
             <div className="mt-2">
               <Button
                 variant="destructive"
