@@ -117,7 +117,7 @@ async def create_tenant(email: str, referral_source: str | None = None) -> str:
         await provision_tenant(tenant_id, email)
 
         # Notify control plane if not already done in provision_tenant
-        if not DEV_MODE and referral_source:
+        if not DEV_MODE:
             await notify_control_plane(tenant_id, email, referral_source)
 
     except Exception as e:
@@ -561,7 +561,3 @@ async def assign_tenant_to_user(
     except Exception:
         logger.exception(f"Failed to assign tenant {tenant_id} to user {email}")
         raise Exception("Failed to assign tenant to user")
-
-    # Notify control plane with retry logic
-    if not DEV_MODE:
-        await notify_control_plane(tenant_id, email, referral_source)
