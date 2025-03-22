@@ -100,7 +100,7 @@ export interface DocumentsContextType {
   createFileFromLink: (
     url: string,
     folderId: number | null
-  ) => Promise<FileUploadResponse>;
+  ) => Promise<FileResponse[]>;
   handleUpload: (files: File[]) => Promise<void>;
   refreshFolderDetails: () => Promise<void>;
   getFolders: () => Promise<FolderResponse[]>;
@@ -367,10 +367,7 @@ export const DocumentsProvider: React.FC<DocumentsProviderProps> = ({
   }, [folderDetails, getFolderDetails]);
 
   const createFileFromLink = useCallback(
-    async (
-      url: string,
-      folderId: number | null
-    ): Promise<FileUploadResponse> => {
+    async (url: string, folderId: number | null): Promise<FileResponse[]> => {
       try {
         const data = await documentsService.createFileFromLinkRequest(
           url,

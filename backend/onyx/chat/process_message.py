@@ -1108,6 +1108,16 @@ def stream_chat_message_objects(
                             for f_id in doc_order
                             if f_id in file_id_to_user_file
                         ]
+                        logger.info(
+                            f"ORDERING: Ordered {len(ordered_user_files)} user files"
+                        )
+                        logger.info(
+                            f"ORDERING: Length before: {len(user_files)}, length after: {len(ordered_user_files)}"
+                        )
+                        print(f"ORDERING: Ordered {len(ordered_user_files)} user files")
+                        print(
+                            f"ORDERING: Length before: {len(user_files)}, length after: {len(ordered_user_files)}"
+                        )
 
                         ordering_time = time.time() - ordering_start
                         logger.info(

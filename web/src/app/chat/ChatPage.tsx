@@ -1528,6 +1528,8 @@ export function ChatPage({
             if (Object.hasOwn(packet, "user_files")) {
               const userFiles = (packet as UserKnowledgeFilePacket).user_files;
               // Ensure files are unique by id
+              console.log("user files");
+              console.log(userFiles);
               const newUserFiles = userFiles.filter(
                 (newFile) =>
                   !files.some((existingFile) => existingFile.id === newFile.id)
@@ -2781,14 +2783,7 @@ export function ChatPage({
                                       descriptor.id === file.file_id
                                   )
                                 );
-                                console.log("alluser files");
-                                console.log(allUserFiles);
-                                console.log(
-                                  "current attached file descriptors"
-                                );
-                                console.log(attachedFileDescriptors);
-                                console.log("user files");
-                                console.log(userFiles);
+
                                 return (
                                   <div
                                     className="text-text"

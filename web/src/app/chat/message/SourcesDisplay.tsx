@@ -71,7 +71,8 @@ export const SourceCard: React.FC<{
 export const FileSourceCard: React.FC<{
   document: FileResponse;
   setPresentingDocument: (document: FileResponse) => void;
-}> = ({ document, setPresentingDocument }) => {
+  relevantDocument: OnyxDocument | undefined;
+}> = ({ document, setPresentingDocument, relevantDocument }) => {
   const openDocument = () => {
     if (document.link_url) {
       window.open(document.link_url, "_blank");
@@ -99,7 +100,10 @@ export const FileSourceCard: React.FC<{
         text-ellipsis
       "
       >
-        Content from {fileName}
+        {buildDocumentSummaryDisplay(
+          relevantDocument?.match_highlights || [],
+          relevantDocument?.blurb || ""
+        )}
       </div>
 
       <div className="flex items-center gap-1 mt-1">
