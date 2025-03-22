@@ -62,7 +62,7 @@ export async function uploadFileRequest(
 export async function createFileFromLinkRequest(
   url: string,
   folderId: number | null
-): Promise<FileUploadResponse> {
+): Promise<FileResponse[]> {
   const response = await fetch("/api/user/file/create-from-link", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

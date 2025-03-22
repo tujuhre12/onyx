@@ -356,7 +356,7 @@ def create_file_from_link(
     request: CreateFileFromLinkRequest,
     user: User = Depends(current_user),
     db_session: Session = Depends(get_session),
-) -> FileUploadResponse:
+) -> list[UserFileSnapshot]:
     try:
         response = requests.get(request.url)
         response.raise_for_status()
@@ -369,7 +369,7 @@ def create_file_from_link(
 
         file = UploadFile(filename=file_name, file=io.BytesIO(file_content))
         user_files = create_user_files(
-            [file], request.folder_id, user, db_session, link_url=request.url
+            [file], request.folder_id or -1, user, db_session, link_url=request.url
         )
 
         # Create connector and credential (same as in upload_user_files)
@@ -422,9 +422,7 @@ def create_file_from_link(
             )
 
         db_session.commit()
-        return FileUploadResponse(
-            file_paths=[user_file.file_id for user_file in user_files]
-        )
+        return [UserFileSnapshot.from_model(user_file) for user_file in user_files]
     except requests.RequestException as e:
         raise HTTPException(status_code=400, detail=f"Failed to fetch URL: {str(e)}")
 

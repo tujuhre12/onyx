@@ -470,7 +470,6 @@ export const AIMessage = ({
               <div className="max-w-message-max break-words">
                 <div className="w-full desktop:ml-4">
                   <div className="max-w-message-max break-words">
-                    {/* {JSON.stringify(toolCall)} */}
                     {userKnowledgeFiles.length == 0 &&
                       (!toolCall || toolCall.tool_name === SEARCH_TOOL_NAME ? (
                         <>
@@ -508,6 +507,7 @@ export const AIMessage = ({
                         userKnowledgeFiles={userKnowledgeFiles}
                       />
                     )}
+
                     {!userKnowledgeFiles &&
                       toolCall &&
                       !TOOLS_WITH_CUSTOM_HANDLING.includes(
@@ -584,6 +584,7 @@ export const AIMessage = ({
                           </div>
                         </div>
                       )}
+
                     {userKnowledgeFiles && userKnowledgeFiles.length > 0 && (
                       <div
                         key={10}
@@ -602,6 +603,11 @@ export const AIMessage = ({
                                 .slice(0, 2)
                                 .map((file: FileResponse, ind: number) => (
                                   <FileSourceCard
+                                    relevantDocument={docs?.find(
+                                      (doc) =>
+                                        doc.document_id ===
+                                        `FILE_CONNECTOR__${file.file_id}`
+                                    )}
                                     key={ind}
                                     document={file}
                                     setPresentingDocument={() =>

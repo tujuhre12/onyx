@@ -880,47 +880,6 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
     setIsHoveringRight(false);
   };
 
-  const handleCreateFileFromLink = async () => {
-    if (!linkUrl) return;
-    setIsCreatingFileFromLink(true);
-    try {
-      const response: FileUploadResponse = await createFileFromLink(
-        linkUrl,
-        currentFolder
-      );
-      setLinkUrl("");
-
-      if (response.file_paths && response.file_paths.length > 0) {
-        // Extract domain from URL to help with detection
-        const urlObj = new URL(linkUrl);
-        const hostname = urlObj.hostname;
-
-        const createdFile: FileResponse = {
-          id: Date.now(),
-          name: hostname, // Use hostname directly for better detection
-          document_id: response.file_paths[0],
-          folder_id: currentFolder || null,
-          size: 0,
-          type: "link",
-          lastModified: new Date().toISOString(),
-          token_count: 0,
-          status: FileStatus.INDEXED,
-        };
-        addSelectedFile(createdFile);
-        // Make sure to remove the uploading file indicator when done
-        markFileComplete(linkUrl);
-      }
-
-      await refreshFolders();
-    } catch (e) {
-      console.error("Error creating file from link:", e);
-      // Also remove the uploading indicator on error
-      markFileComplete(linkUrl);
-    } finally {
-      setIsCreatingFileFromLink(false);
-    }
-  };
-
   const handleSortChange = (newSortType: SortType) => {
     if (sortType === newSortType) {
       setSortDirection(
@@ -1386,28 +1345,14 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
                       startRefreshInterval();
 
                       try {
-                        const response: FileUploadResponse =
+                        const response: FileResponse[] =
                           await createFileFromLink(url, currentFolder);
 
-                        if (
-                          response.file_paths &&
-                          response.file_paths.length > 0
-                        ) {
+                        if (response.length > 0) {
                           // Extract domain from URL to help with detection
                           const urlObj = new URL(url);
-                          const hostname = urlObj.hostname;
 
-                          const createdFile: FileResponse = {
-                            id: Date.now(),
-                            name: hostname, // Use hostname directly for better detection
-                            document_id: response.file_paths[0],
-                            folder_id: currentFolder || null,
-                            size: 0,
-                            type: "link",
-                            lastModified: new Date().toISOString(),
-                            token_count: 0,
-                            status: FileStatus.INDEXED,
-                          };
+                          const createdFile: FileResponse = response[0];
                           addSelectedFile(createdFile);
                           // Make sure to remove the uploading file indicator when done
                           markFileComplete(url);
