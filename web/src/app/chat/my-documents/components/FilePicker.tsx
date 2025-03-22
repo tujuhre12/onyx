@@ -828,20 +828,10 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
       setUploadingFiles((prev) => [...prev, { name: file.name, progress: 0 }]);
       const formData = new FormData();
       formData.append("files", file);
-      const response: FileUploadResponse = await uploadFile(formData, null);
+      const response: FileResponse[] = await uploadFile(formData, null);
 
-      if (response.file_paths && response.file_paths.length > 0) {
-        const uploadedFile: FileResponse = {
-          id: Date.now(),
-          name: file.name,
-          document_id: response.file_paths[0],
-          folder_id: null,
-          size: file.size,
-          type: file.type,
-          lastModified: new Date().toISOString(),
-          token_count: 0,
-          status: FileStatus.INDEXED,
-        };
+      if (response.length > 0) {
+        const uploadedFile = response[0];
         addSelectedFile(uploadedFile);
         markFileComplete(file.name);
       }
