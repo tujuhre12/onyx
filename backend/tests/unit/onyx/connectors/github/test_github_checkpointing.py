@@ -177,10 +177,14 @@ def test_load_from_checkpoint_happy_path(
         )
 
         # Check that we got all documents and final has_more=False
-        assert len(outputs) == 3
+        assert len(outputs) == 4
+
+        repo_batch = outputs[0]
+        assert len(repo_batch.items) == 0
+        assert repo_batch.next_checkpoint.has_more is True
 
         # Check first batch (PRs)
-        first_batch = outputs[0]
+        first_batch = outputs[1]
         assert len(first_batch.items) == 2
         assert isinstance(first_batch.items[0], Document)
         assert first_batch.items[0].id == "https://github.com/test-org/test-repo/pull/1"
@@ -189,7 +193,7 @@ def test_load_from_checkpoint_happy_path(
         assert first_batch.next_checkpoint.curr_page == 1
 
         # Check second batch (Issues)
-        second_batch = outputs[1]
+        second_batch = outputs[2]
         assert len(second_batch.items) == 2
         assert isinstance(second_batch.items[0], Document)
         assert (
@@ -202,7 +206,7 @@ def test_load_from_checkpoint_happy_path(
         assert second_batch.next_checkpoint.has_more
 
         # Check third batch (finished checkpoint)
-        third_batch = outputs[2]
+        third_batch = outputs[3]
         assert len(third_batch.items) == 0
         assert third_batch.next_checkpoint.has_more is False
 
@@ -249,10 +253,10 @@ def test_load_from_checkpoint_with_rate_limit(
             assert mock_sleep.call_count == 1
 
         # Check that we got the document after rate limit was handled
-        assert len(outputs) >= 1
-        assert len(outputs[0].items) == 1
-        assert isinstance(outputs[0].items[0], Document)
-        assert outputs[0].items[0].id == "https://github.com/test-org/test-repo/pull/1"
+        assert len(outputs) >= 2
+        assert len(outputs[1].items) == 1
+        assert isinstance(outputs[1].items[0], Document)
+        assert outputs[1].items[0].id == "https://github.com/test-org/test-repo/pull/1"
 
         assert outputs[-1].next_checkpoint.has_more is False
 
@@ -283,9 +287,9 @@ def test_load_from_checkpoint_with_empty_repo(
         )
 
         # Check that we got no documents
-        assert len(outputs) == 1
-        assert len(outputs[0].items) == 0
-        assert not outputs[0].next_checkpoint.has_more
+        assert len(outputs) == 2
+        assert len(outputs[-1].items) == 0
+        assert not outputs[-1].next_checkpoint.has_more
 
 
 def test_load_from_checkpoint_with_prs_only(
@@ -324,8 +328,8 @@ def test_load_from_checkpoint_with_prs_only(
         )
 
         # Check that we only got PRs
-        assert len(outputs) >= 1
-        assert len(outputs[0].items) == 2
+        assert len(outputs) >= 2
+        assert len(outputs[1].items) == 2
         assert all(
             isinstance(doc, Document) and "pull" in doc.id for doc in outputs[0].items
         )  # All documents should be PRs
@@ -369,12 +373,12 @@ def test_load_from_checkpoint_with_issues_only(
         )
 
         # Check that we only got issues
-        assert len(outputs) >= 1
-        assert len(outputs[0].items) == 2
+        assert len(outputs) >= 2
+        assert len(outputs[1].items) == 2
         assert all(
             isinstance(doc, Document) and "issues" in doc.id for doc in outputs[0].items
         )  # All documents should be issues
-        assert outputs[0].next_checkpoint.has_more
+        assert outputs[1].next_checkpoint.has_more
 
         assert outputs[-1].next_checkpoint.has_more is False
 
