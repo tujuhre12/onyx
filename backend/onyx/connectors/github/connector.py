@@ -38,6 +38,7 @@ from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
 
+ITEMS_PER_PAGE = 100
 
 _MAX_NUM_RATE_LIMIT_RETRIES = 5
 
@@ -60,7 +61,6 @@ def _get_batch_rate_limited(
         )
 
     try:
-        # defaults to 30 items per page, can be set to as high as 100
         objs = list(git_objs.get_page(page_num))
         # fetch all data here to disable lazy loading later
         # this is needed to capture the rate limit exception here (if one occurs)
@@ -158,12 +158,15 @@ class GithubConnector(CheckpointConnector[GithubConnectorCheckpoint]):
         self.github_client: Github | None = None
 
     def load_credentials(self, credentials: dict[str, Any]) -> dict[str, Any] | None:
+        # defaults to 30 items per page, can be set to as high as 100
         self.github_client = (
             Github(
-                credentials["github_access_token"], base_url=GITHUB_CONNECTOR_BASE_URL
+                credentials["github_access_token"],
+                base_url=GITHUB_CONNECTOR_BASE_URL,
+                per_page=ITEMS_PER_PAGE,
             )
             if GITHUB_CONNECTOR_BASE_URL
-            else Github(credentials["github_access_token"])
+            else Github(credentials["github_access_token"], per_page=ITEMS_PER_PAGE)
         )
         return None
 
