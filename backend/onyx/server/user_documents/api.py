@@ -41,7 +41,6 @@ from onyx.file_processing.html_utils import web_html_cleanup
 from onyx.server.documents.connector import trigger_indexing_for_cc_pair
 from onyx.server.documents.models import ConnectorBase
 from onyx.server.documents.models import CredentialBase
-from onyx.server.documents.models import FileUploadResponse
 from onyx.server.user_documents.models import MessageResponse
 from onyx.server.user_documents.models import UserFileSnapshot
 from onyx.server.user_documents.models import UserFolderSnapshot
@@ -121,17 +120,18 @@ def upload_user_files(
     folder_id: int | None = Form(None),
     user: User = Depends(current_user),
     db_session: Session = Depends(get_session),
-) -> FileUploadResponse:
+) -> list[UserFileSnapshot]:
     if folder_id == 0:
         folder_id = None
 
     try:
         # Use our consolidated function that handles indexing properly
-        user_files = create_user_file_with_indexing(files, folder_id, user, db_session)
-
-        return FileUploadResponse(
-            file_paths=[user_file.file_id for user_file in user_files],
+        user_files = create_user_file_with_indexing(
+            files, folder_id or -1, user, db_session
         )
+
+        return [UserFileSnapshot.from_model(user_file) for user_file in user_files]
+
     except Exception as e:
         logger.error(f"Error uploading files: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to upload files: {str(e)}")

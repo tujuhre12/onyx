@@ -100,10 +100,12 @@ export const FileSourceCard: React.FC<{
         text-ellipsis
       "
       >
-        {buildDocumentSummaryDisplay(
-          relevantDocument?.match_highlights || [],
-          relevantDocument?.blurb || ""
-        )}
+        {relevantDocument
+          ? buildDocumentSummaryDisplay(
+              relevantDocument?.match_highlights || [],
+              relevantDocument?.blurb || ""
+            )
+          : "This file has not been indexed yet"}
       </div>
 
       <div className="flex items-center gap-1 mt-1">

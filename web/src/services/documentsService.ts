@@ -46,19 +46,6 @@ export async function deleteFile(fileId: number): Promise<void> {
   }
 }
 
-export async function uploadFileRequest(
-  formData: FormData
-): Promise<FileUploadResponse> {
-  const response = await fetch("/api/user/file/upload", {
-    method: "POST",
-    body: formData,
-  });
-  if (!response.ok) {
-    throw new Error("Failed to upload file");
-  }
-  return response.json();
-}
-
 export async function createFileFromLinkRequest(
   url: string,
   folderId: number | null

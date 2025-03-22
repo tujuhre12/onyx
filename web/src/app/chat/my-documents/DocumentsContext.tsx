@@ -82,7 +82,7 @@ export interface DocumentsContextType {
   uploadFile: (
     formData: FormData,
     folderId: number | null
-  ) => Promise<FileUploadResponse>;
+  ) => Promise<FileResponse[]>;
   setCurrentFolder: (folderId: number | null) => void;
   setPresentingDocument: (document: MinimalOnyxDocument | null) => void;
   setSearchQuery: (query: string) => void;
@@ -173,7 +173,7 @@ export const DocumentsProvider: React.FC<DocumentsProviderProps> = ({
     async (
       formData: FormData,
       folderId: number | null
-    ): Promise<FileUploadResponse> => {
+    ): Promise<FileResponse[]> => {
       if (folderId) {
         formData.append("folder_id", folderId.toString());
       }
