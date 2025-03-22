@@ -226,7 +226,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             setup_onyx(db_session, POSTGRES_DEFAULT_SCHEMA)
     else:
         setup_multitenant_onyx()
-    print("onyz set up")
 
     if not MULTI_TENANT:
         # don't emit a metric for every pod rollover/restart

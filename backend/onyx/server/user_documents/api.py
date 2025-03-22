@@ -25,6 +25,7 @@ from onyx.db.connector_credential_pair import add_credential_to_connector
 from onyx.db.credentials import create_credential
 from onyx.db.engine import get_session
 from onyx.db.enums import AccessType
+from onyx.db.enums import ConnectorCredentialPairStatus
 from onyx.db.models import ConnectorCredentialPair
 from onyx.db.models import User
 from onyx.db.models import UserFile
@@ -488,6 +489,9 @@ def reindex_file(
 
     # Trigger immediate reindexing with highest priority
     tenant_id = get_current_tenant_id()
+    # Update the cc_pair status to ACTIVE to ensure it's processed
+    cc_pair.status = ConnectorCredentialPairStatus.ACTIVE
+    db_session.commit()
     try:
         trigger_indexing_for_cc_pair(
             [], cc_pair.connector_id, True, tenant_id, db_session, is_user_file=True
