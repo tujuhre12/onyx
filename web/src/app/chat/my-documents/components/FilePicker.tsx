@@ -119,7 +119,9 @@ const DraggableItem: React.FC<{
     >
       <div className="w-6 flex items-center justify-center shrink-0">
         <div
-          className="opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+          className={`${
+            isSelected ? "" : "opacity-0 group-hover:opacity-100"
+          } transition-opacity duration-150`}
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
@@ -258,18 +260,24 @@ const FilePickerFolderItem: React.FC<{
           <div className="flex text-sm items-center gap-2 w-[65%] min-w-0">
             <FolderIcon className="h-5 w-5 text-black dark:text-black shrink-0 fill-black dark:fill-black" />
 
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="truncate text-text-dark dark:text-text-dark">
-                    {folder.name}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{folder.name}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            {folder.name.length > 40 ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="truncate text-text-dark dark:text-text-dark">
+                      {truncateString(folder.name, 40)}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{folder.name}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <span className="truncate text-text-dark dark:text-text-dark">
+                {folder.name}
+              </span>
+            )}
           </div>
 
           <div className="w-[35%] text-right text-sm text-text-400 dark:text-neutral-400 pr-4">
@@ -1222,7 +1230,6 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
                               isSelected={selectedFileIds.has(file.id)}
                             />
                           ))}
-
                       {/* Add uploading files visualization */}
                     </div>
                   </SortableContext>

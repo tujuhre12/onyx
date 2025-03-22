@@ -68,7 +68,8 @@ export const FileListItem: React.FC<FileListItemProps> = ({
   const { setPopup, popup } = usePopup();
   const [showMoveOptions, setShowMoveOptions] = useState(false);
   const [indexingStatus, setIndexingStatus] = useState<boolean | null>(null);
-  const { getFilesIndexingStatus, refreshFolders } = useDocumentsContext();
+  const { getFilesIndexingStatus, refreshFolderDetails } =
+    useDocumentsContext();
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -78,7 +79,7 @@ export const FileListItem: React.FC<FileListItemProps> = ({
 
     checkStatus();
     const interval = setInterval(() => {
-      refreshFolders();
+      refreshFolderDetails();
       if (indexingStatus === false) {
         checkStatus();
       }
@@ -133,7 +134,7 @@ export const FileListItem: React.FC<FileListItemProps> = ({
                         throw new Error("Failed to reindex file");
                       }
                       setIndexingStatus(false); // Set to false to show indexing status
-                      refreshFolders(); // Refresh the folder list
+                      refreshFolderDetails();
                       setPopup({
                         type: "success",
                         message: "Reindexing will start shortly.",
@@ -217,12 +218,15 @@ export const FileListItem: React.FC<FileListItemProps> = ({
         </div>
 
         <div className="w-[30%] text-sm text-text-400 dark:text-neutral-400">
-          {indexingStatus == false ? (
+          {file.status == FileStatus.INDEXING ||
+          file.status == FileStatus.REINDEXING ? (
             <>
               N/A, indexing
               <AnimatedDots />
             </>
-          ) : indexingStatus != undefined && file.token_count !== undefined ? (
+          ) : file.status == FileStatus.FAILED ? (
+            <>Failed</>
+          ) : file.token_count !== undefined ? (
             `${file.token_count?.toLocaleString()} tokens`
           ) : (
             "N/A"

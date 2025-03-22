@@ -82,6 +82,7 @@ import {
   FileIcon,
   FolderIcon,
   InfoIcon,
+  BookIcon,
 } from "lucide-react";
 import { LLMSelector } from "@/components/llm/LLMSelector";
 import useSWR from "swr";
@@ -99,6 +100,7 @@ import { RadioGroupItemField } from "@/components/ui/RadioGroupItemField";
 import { SEARCH_TOOL_ID } from "@/app/chat/tools/constants";
 import TextView from "@/components/chat/TextView";
 import { MinimalOnyxDocument } from "@/lib/search/interfaces";
+import { TabToggle } from "@/components/ui/TabToggle";
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === SEARCH_TOOL_ID);
@@ -905,27 +907,25 @@ export function AssistantEditor({
                       <div>
                         {canShowKnowledgeSource && (
                           <>
-                            <Label>Knowledge Source</Label>
-                            <RadioGroup
-                              className="flex flex-col gap-y-4 mt-2"
+                            <TabToggle
+                              options={[
+                                {
+                                  id: "user_files",
+                                  label: "User Knowledge",
+                                  icon: <FileIcon size={16} />,
+                                },
+                                {
+                                  id: "team_knowledge",
+                                  label: "Team Knowledge",
+                                  icon: <BookIcon size={16} />,
+                                },
+                              ]}
                               value={values.knowledge_source}
-                              onValueChange={(value: string) => {
+                              onChange={(value) => {
                                 setFieldValue("knowledge_source", value);
                               }}
-                            >
-                              <RadioGroupItemField
-                                value="user_files"
-                                id="user_files"
-                                label="User Knowledge"
-                                sublabel="Select specific user files and groups for this Assistant to use"
-                              />
-                              <RadioGroupItemField
-                                value="team_knowledge"
-                                id="team_knowledge"
-                                label="Team Knowledge"
-                                sublabel="Use team-wide document sets for this Assistant"
-                              />
-                            </RadioGroup>
+                              className="mt-2 mb-4 w-full max-w-sm"
+                            />
                           </>
                         )}
 

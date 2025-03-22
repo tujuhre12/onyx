@@ -6,7 +6,6 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from onyx.db.enums import ConnectorCredentialPairStatus
-from onyx.db.enums import IndexingStatus
 from onyx.db.models import UserFile
 from onyx.db.models import UserFolder
 
@@ -49,11 +48,7 @@ class UserFileSnapshot(BaseModel):
                 if model.cc_pair
                 and len(model.cc_pair.index_attempts) > 0
                 and model.cc_pair.last_successful_index_time is None
-                and (
-                    model.cc_pair.status == ConnectorCredentialPairStatus.PAUSED
-                    or len(model.cc_pair.index_attempts) == 1
-                    and model.cc_pair.index_attempts[0].status == IndexingStatus.FAILED
-                )
+                and model.cc_pair.status == ConnectorCredentialPairStatus.PAUSED
                 else UserFileStatus.INDEXED
                 if model.cc_pair
                 and model.cc_pair.last_successful_index_time is not None
