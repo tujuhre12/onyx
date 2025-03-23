@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   FileResponse,
   FolderResponse,
@@ -9,7 +9,15 @@ import {
   SkeletonFileListItem,
 } from "../../components/FileListItem";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowUp, ArrowDown, AlertCircle, X } from "lucide-react";
+import {
+  Loader2,
+  ArrowUp,
+  ArrowDown,
+  AlertCircle,
+  X,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import { MinimalOnyxDocument } from "@/lib/search/interfaces";
 import TextView from "@/components/chat/TextView";
 import { Input } from "@/components/ui/input";
@@ -18,11 +26,23 @@ import { useDocumentSelection } from "@/app/chat/useDocumentSelection";
 import { getDisplayNameForModel } from "@/lib/hooks";
 import { SortType, SortDirection } from "../UserFolderContent";
 import { CircularProgress } from "./upload/CircularProgress";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // Define a type for uploading files that includes progress
 interface UploadingFile {
   name: string;
   progress: number;
+}
+
+// Add interface for failed uploads
+interface FailedUpload {
+  name: string;
+  error: string;
+  isPopoverOpen: boolean;
 }
 
 interface DocumentListProps {
@@ -125,6 +145,8 @@ export const DocumentList: React.FC<DocumentListProps> = ({
   };
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [completedFiles, setCompletedFiles] = useState<string[]>([]);
+  // Add state for failed uploads
+  const [failedUploads, setFailedUploads] = useState<FailedUpload[]>([]);
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(
     null
   );
@@ -158,7 +180,52 @@ export const DocumentList: React.FC<DocumentListProps> = ({
       startRefreshInterval();
     } catch (error) {
       console.error("Error creating file from link:", error);
+      // Remove from uploading files
+      setUploadingFiles((prev) => prev.filter((file) => file.name !== url));
+      // Add to failed uploads with isPopoverOpen initialized to false
+      setFailedUploads((prev) => [
+        ...prev,
+        {
+          name: url,
+          error:
+            error instanceof Error ? error.message : "Failed to upload file",
+          isPopoverOpen: false,
+        },
+      ]);
     }
+  };
+
+  // Add handler for retrying failed uploads
+  const handleRetryUpload = async (url: string) => {
+    // Remove from failed uploads
+    setFailedUploads((prev) => prev.filter((file) => file.name !== url));
+
+    // Add back to uploading files
+    setUploadingFiles((prev) => [...prev, { name: url, progress: 0 }]);
+
+    try {
+      await createFileFromLink(url, folderId);
+      startRefreshInterval();
+    } catch (error) {
+      console.error("Error retrying file upload from link:", error);
+      // Remove from uploading files again
+      setUploadingFiles((prev) => prev.filter((file) => file.name !== url));
+      // Add back to failed uploads with isPopoverOpen initialized to false
+      setFailedUploads((prev) => [
+        ...prev,
+        {
+          name: url,
+          error:
+            error instanceof Error ? error.message : "Failed to upload file",
+          isPopoverOpen: false,
+        },
+      ]);
+    }
+  };
+
+  // Add handler for deleting failed uploads
+  const handleDeleteFailedUpload = (url: string) => {
+    setFailedUploads((prev) => prev.filter((file) => file.name !== url));
   };
 
   const handleFileUpload = (files: File[]) => {
@@ -286,6 +353,8 @@ export const DocumentList: React.FC<DocumentListProps> = ({
             // Get the hostname (domain) from the URL
             const url = new URL(uploadingFile.name);
             const hostname = url.hostname;
+            alert("checking for " + hostname);
+            alert(JSON.stringify(files));
 
             // Look for recently added files that might match this URL
             const isUploaded = files.some(
@@ -304,7 +373,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
             return isUploaded;
           } catch (e) {
             console.error("Failed to parse URL:", e);
-            return false; // Force continued checking
+            return false;
           }
         }
 
@@ -349,9 +418,20 @@ export const DocumentList: React.FC<DocumentListProps> = ({
             // For URLs, check if any file contains the hostname
             const url = new URL(uploadingFile.name);
             const hostname = url.hostname;
+            const fullUrl = uploadingFile.name;
 
-            return !files.some((file) =>
-              file.name.toLowerCase().includes(hostname.toLowerCase())
+            return (
+              // !files.some((file) =>
+              //   file.name.toLowerCase().includes(hostname.toLowerCase())
+              // ) &&
+              !files.some(
+                (file) =>
+                  file.link_url &&
+                  // (file.link_url
+                  //   .toLowerCase()
+                  //   .includes(hostname.toLowerCase()) ||
+                  file.link_url.toLowerCase() === fullUrl.toLowerCase()
+              )
             );
           } catch (e) {
             console.error("Failed to parse URL:", e);
@@ -393,6 +473,18 @@ export const DocumentList: React.FC<DocumentListProps> = ({
   const handleUploadComplete = () => {
     startRefreshInterval();
   };
+
+  // Wrap in useCallback to prevent function recreation on each render
+  const toggleFailedUploadPopover = useCallback(
+    (index: number, isOpen: boolean) => {
+      setFailedUploads((prev) =>
+        prev.map((item, i) =>
+          i === index ? { ...item, isPopoverOpen: isOpen } : item
+        )
+      );
+    },
+    []
+  );
 
   return (
     <>
@@ -550,13 +642,108 @@ export const DocumentList: React.FC<DocumentListProps> = ({
                   </div>
                 ))}
 
-                {sortedFiles.length === 0 && uploadingFiles.length === 0 && (
-                  <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">
-                    {searchQuery
-                      ? "No documents match your search."
-                      : "No documents in this folder yet. Upload files or add URLs to get started."}
-                  </div>
+                {/* Add failed uploads display with popover */}
+                {useMemo(
+                  () =>
+                    failedUploads.map((failedUpload, index) => (
+                      <div
+                        key={`failed-${index}`}
+                        className="group relative mr-8 flex items-center border-b border-border dark:border-border-200 hover:bg-red-50/30 dark:hover:bg-red-900/10 py-4 px-4 transition-all ease-in-out bg-red-50/20 dark:bg-red-900/5"
+                      >
+                        <div className="flex items-center flex-1 min-w-0">
+                          <div className="flex items-center gap-3 w-[40%] min-w-0">
+                            <Popover
+                              open={failedUpload.isPopoverOpen}
+                              onOpenChange={(open) =>
+                                toggleFailedUploadPopover(index, open)
+                              }
+                            >
+                              <PopoverTrigger
+                                onClick={(e) => e.stopPropagation()}
+                                asChild
+                              >
+                                <div className="text-red-500 cursor-pointer">
+                                  <AlertCircle className="h-4 w-4" />
+                                </div>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-56 p-3 shadow-lg rounded-md border border-neutral-200 dark:border-neutral-800">
+                                <div className="flex flex-col gap-3">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs font-medium text-red-500">
+                                      Upload failed.
+                                      <br />
+                                      You can retry the upload or remove it from
+                                      the list.
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-col gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full justify-start text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        toggleFailedUploadPopover(index, false);
+                                        handleRetryUpload(failedUpload.name);
+                                      }}
+                                    >
+                                      <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                                      Retry Upload
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full justify-start text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleFailedUploadPopover(index, false);
+                                        handleDeleteFailedUpload(
+                                          failedUpload.name
+                                        );
+                                      }}
+                                    >
+                                      <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                      Remove
+                                    </Button>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                            <span className="truncate text-sm text-text-dark dark:text-text-dark">
+                              {failedUpload.name.startsWith("http")
+                                ? `${failedUpload.name.substring(0, 30)}${
+                                    failedUpload.name.length > 30 ? "..." : ""
+                                  }`
+                                : failedUpload.name}
+                            </span>
+                          </div>
+                          <div className="w-[30%] text-sm text-red-500 dark:text-red-400">
+                            Upload failed
+                          </div>
+                          <div className="w-[30%] flex items-center gap-2">
+                            {/* Removed inline buttons as we now use the popover */}
+                          </div>
+                        </div>
+                      </div>
+                    )),
+                  [
+                    failedUploads,
+                    toggleFailedUploadPopover,
+                    handleRetryUpload,
+                    handleDeleteFailedUpload,
+                  ]
                 )}
+
+                {sortedFiles.length === 0 &&
+                  uploadingFiles.length === 0 &&
+                  failedUploads.length === 0 && (
+                    <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">
+                      {searchQuery
+                        ? "No documents match your search."
+                        : "No documents in this folder yet. Upload files or add URLs to get started."}
+                    </div>
+                  )}
               </>
             )}
           </div>

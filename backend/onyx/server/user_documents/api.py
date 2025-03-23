@@ -365,7 +365,7 @@ def create_file_from_link(
         soup = BeautifulSoup(content, "html.parser")
         parsed_html = web_html_cleanup(soup, mintlify_cleanup_enabled=False)
 
-        file_name = f"{parsed_html.title or 'Untitled'}"
+        file_name = f"{parsed_html.title or 'Untitled'}.txt"
         file_content = parsed_html.cleaned_text.encode()
 
         file = UploadFile(filename=file_name, file=io.BytesIO(file_content))

@@ -1343,7 +1343,7 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
 
                       try {
                         const response: FileResponse[] =
-                          await createFileFromLink(url, currentFolder);
+                          await createFileFromLink(url, -1);
 
                         if (response.length > 0) {
                           // Extract domain from URL to help with detection
@@ -1386,9 +1386,32 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
                 selectedModel={selectedModel}
               />
             </div>
-            <Button onClick={onSave} className="px-8 py-2 w-48">
-              {buttonContent || "Set Context"}
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Button
+                      onClick={onSave}
+                      className="px-8 py-2 w-48"
+                      disabled={
+                        isUploadingFile ||
+                        isCreatingFileFromLink ||
+                        uploadingFiles.length > 0
+                      }
+                    >
+                      {buttonContent || "Set Context"}
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                {(isUploadingFile ||
+                  isCreatingFileFromLink ||
+                  uploadingFiles.length > 0) && (
+                  <TooltipContent>
+                    <p>Please wait for all files to finish uploading</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </div>

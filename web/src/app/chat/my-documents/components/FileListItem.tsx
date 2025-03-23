@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { File, File as FileIcon, Loader, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,7 @@ export const FileListItem: React.FC<FileListItemProps> = ({
   const { setPopup, popup } = usePopup();
   const [showMoveOptions, setShowMoveOptions] = useState(false);
   const [indexingStatus, setIndexingStatus] = useState<boolean | null>(null);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const { getFilesIndexingStatus, refreshFolderDetails } =
     useDocumentsContext();
 
@@ -96,9 +97,9 @@ export const FileListItem: React.FC<FileListItemProps> = ({
     onMove(file.id, targetFolderId);
     setShowMoveOptions(false);
   };
-  const FailureWithPopover = () => {
+  const FailureWithPopover = useCallback(() => {
     return (
-      <Popover>
+      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger onClick={(e) => e.stopPropagation()} asChild>
           <div className="text-red-500 cursor-pointer">
             <FiAlertTriangle className="h-4 w-4" />
@@ -122,6 +123,7 @@ export const FileListItem: React.FC<FileListItemProps> = ({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  setIsPopoverOpen(false);
                   fetch(`/api/user/file/reindex`, {
                     method: "POST",
                     headers: {
@@ -133,7 +135,7 @@ export const FileListItem: React.FC<FileListItemProps> = ({
                       if (!response.ok) {
                         throw new Error("Failed to reindex file");
                       }
-                      setIndexingStatus(false); // Set to false to show indexing status
+                      setIndexingStatus(false);
                       refreshFolderDetails();
                       setPopup({
                         type: "success",
@@ -158,6 +160,7 @@ export const FileListItem: React.FC<FileListItemProps> = ({
                 className="w-full justify-start text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
+                  setIsPopoverOpen(false);
                   handleDelete();
                 }}
               >
@@ -169,7 +172,15 @@ export const FileListItem: React.FC<FileListItemProps> = ({
         </PopoverContent>
       </Popover>
     );
-  };
+  }, [
+    file.id,
+    handleDelete,
+    isPopoverOpen,
+    refreshFolderDetails,
+    setIndexingStatus,
+    setIsPopoverOpen,
+    setPopup,
+  ]);
 
   return (
     <div

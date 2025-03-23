@@ -853,10 +853,7 @@ export function AssistantEditor({
                       <Separator />
                       <div className="flex gap-x-2 py-2 flex justify-start">
                         <div>
-                          <div
-                            className="flex items-start gap-x-2
-                          "
-                          >
+                          <div className="flex items-start gap-x-2">
                             <p className="block font-medium text-sm">
                               Knowledge
                             </p>
@@ -895,9 +892,6 @@ export function AssistantEditor({
                               </TooltipProvider>
                             </div>
                           </div>
-                          <p className="text-sm text-neutral-700 dark:text-neutral-400">
-                            Attach additional unique knowledge to this assistant
-                          </p>
                         </div>
                       </div>
                     </>
@@ -907,25 +901,51 @@ export function AssistantEditor({
                       <div>
                         {canShowKnowledgeSource && (
                           <>
-                            <TabToggle
-                              options={[
-                                {
-                                  id: "user_files",
-                                  label: "User Knowledge",
-                                  icon: <FileIcon size={16} />,
-                                },
-                                {
-                                  id: "team_knowledge",
-                                  label: "Team Knowledge",
-                                  icon: <BookIcon size={16} />,
-                                },
-                              ]}
-                              value={values.knowledge_source}
-                              onChange={(value) => {
-                                setFieldValue("knowledge_source", value);
-                              }}
-                              className="mt-2 mb-4 w-full max-w-sm"
-                            />
+                            <div className="mt-1.5 mb-2.5">
+                              <div className="flex gap-2.5">
+                                <div
+                                  className={`w-[150px] h-[110px] rounded-lg border flex flex-col items-center justify-center cursor-pointer transition-all ${
+                                    values.knowledge_source === "user_files"
+                                      ? "border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/20"
+                                      : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
+                                  }`}
+                                  onClick={() =>
+                                    setFieldValue(
+                                      "knowledge_source",
+                                      "user_files"
+                                    )
+                                  }
+                                >
+                                  <div className="text-blue-500 mb-2">
+                                    <FileIcon size={24} />
+                                  </div>
+                                  <p className="font-medium text-xs">
+                                    User Knowledge
+                                  </p>
+                                </div>
+
+                                <div
+                                  className={`w-[150px] h-[110px] rounded-lg border flex flex-col items-center justify-center cursor-pointer transition-all ${
+                                    values.knowledge_source === "team_knowledge"
+                                      ? "border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/20"
+                                      : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
+                                  }`}
+                                  onClick={() =>
+                                    setFieldValue(
+                                      "knowledge_source",
+                                      "team_knowledge"
+                                    )
+                                  }
+                                >
+                                  <div className="text-blue-500 mb-2">
+                                    <BookIcon size={24} />
+                                  </div>
+                                  <p className="font-medium text-xs">
+                                    Team Knowledge
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
                           </>
                         )}
 
@@ -933,76 +953,22 @@ export function AssistantEditor({
                           !existingPersona?.is_default_persona &&
                           !admin && (
                             <div className="mt-4">
-                              <div className="flex justify-start gap-x-2 items-center">
-                                <Label>User Knowledge</Label>
-                                <span
-                                  className="cursor-pointer text-xs text-primary hover:underline"
-                                  onClick={() => setFilePickerModalOpen(true)}
-                                >
-                                  Attach Files and Groups
-                                </span>
-                              </div>
-
-                              <SubLabel>
-                                Select which of your user files and groups this
-                                Assistant should use to inform its responses. If
-                                none are specified, the Assistant will not have
-                                access to any user-specific documents.
-                              </SubLabel>
-
-                              {(selectedFiles.length > 0 ||
-                                selectedFolders.length > 0) && (
-                                <div className="mt-2 mb-4">
-                                  <h4 className="text-xs font-normal mb-2">
-                                    Selected Files and Folders
-                                  </h4>
-                                  <div className="flex flex-wrap gap-2">
-                                    {selectedFiles.map((file: FileResponse) => (
-                                      <SourceChip
-                                        key={file.id}
-                                        onRemove={() => {
-                                          removeSelectedFile(file);
-                                          setFieldValue(
-                                            "selectedFiles",
-                                            values.selectedFiles.filter(
-                                              (f: FileResponse) =>
-                                                f.id !== file.id
-                                            )
-                                          );
-                                        }}
-                                        title={file.name}
-                                        icon={<FileIcon size={12} />}
-                                      />
-                                    ))}
-                                    {selectedFolders.map(
-                                      (folder: FolderResponse) => (
-                                        <SourceChip
-                                          key={folder.id}
-                                          onRemove={() => {
-                                            removeSelectedFolder(folder);
-                                            setFieldValue(
-                                              "selectedFolders",
-                                              values.selectedFolders.filter(
-                                                (f: FolderResponse) =>
-                                                  f.id !== folder.id
-                                              )
-                                            );
-                                          }}
-                                          title={folder.name}
-                                          icon={<FolderIcon size={12} />}
-                                        />
-                                      )
-                                    )}
-                                  </div>
-                                </div>
-                              )}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="text-xs flex justify-start gap-x-2"
+                                onClick={() => setFilePickerModalOpen(true)}
+                              >
+                                <FileIcon size={14} />
+                                Select knowledge
+                              </Button>
                             </div>
                           )}
 
                         {values.knowledge_source === "team_knowledge" &&
                           ccPairs.length > 0 && (
                             <div className="mt-4">
-                              <Label>Team Knowledge</Label>
                               <div>
                                 <SubLabel>
                                   <>
@@ -1013,7 +979,7 @@ export function AssistantEditor({
                                         className="font-semibold underline hover:underline text-text"
                                         target="_blank"
                                       >
-                                        Team Document Sets
+                                        Document Sets
                                       </Link>
                                     ) : (
                                       "Team Document Sets"

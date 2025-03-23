@@ -35,7 +35,9 @@ class UserFileSnapshot(BaseModel):
     def from_model(cls, model: UserFile) -> "UserFileSnapshot":
         return cls(
             id=model.id,
-            name=model.name,
+            name=model.name[:-4]
+            if model.link_url and model.name.endswith(".txt")
+            else model.name,
             folder_id=model.folder_id,
             document_id=model.document_id,
             user_id=model.user_id,
