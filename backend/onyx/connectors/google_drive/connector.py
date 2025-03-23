@@ -914,6 +914,11 @@ class GoogleDriveConnector(SlimConnector, CheckpointConnector[GoogleDriveCheckpo
             # Fetch files in batches
             batches_complete = 0
             files_batch: list[GoogleDriveFileType] = []
+            func_with_args: list[
+                tuple[
+                    Callable[..., Document | ConnectorFailure | None], tuple[Any, ...]
+                ]
+            ] = []
             for retrieved_file in self._fetch_drive_items(
                 is_slim=False,
                 checkpoint=checkpoint,
@@ -947,7 +952,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointConnector[GoogleDriveCheckpo
                     continue
 
                 # Process the batch using run_functions_tuples_in_parallel
-                func_with_args = [(convert_func, (file,), {}) for file in files_batch]
+                func_with_args = [(convert_func, (file,)) for file in files_batch]
                 results = run_functions_tuples_in_parallel(
                     func_with_args, max_workers=8
                 )
@@ -981,7 +986,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointConnector[GoogleDriveCheckpo
 
             # Process any remaining files
             if files_batch:
-                func_with_args = [(convert_func, (file,), {}) for file in files_batch]
+                func_with_args = [(convert_func, (file,)) for file in files_batch]
                 results = run_functions_tuples_in_parallel(
                     func_with_args, max_workers=8
                 )
@@ -1065,9 +1070,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointConnector[GoogleDriveCheckpo
                         raise RuntimeError(
                             "_extract_slim_docs_from_google_drive: Stop signal detected"
                         )
-
                     callback.progress("_extract_slim_docs_from_google_drive", 1)
-
         yield slim_batch
 
     def retrieve_all_slim_documents(
