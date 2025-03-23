@@ -452,7 +452,6 @@ export function ChatPage({
     const isChatSessionSwitch = existingChatSessionId !== priorChatSessionId;
     if (isChatSessionSwitch) {
       // de-select documents
-      clearSelectedDocuments();
 
       // reset all filters
       filterManager.setSelectedDocumentSets([]);
@@ -466,6 +465,7 @@ export function ChatPage({
       // if switching from one chat to another, then need to scroll again
       // if we're creating a brand new chat, then don't need to scroll
       if (chatSessionIdRef.current !== null) {
+        clearSelectedDocuments();
         setHasPerformedInitialScroll(false);
       }
     }
@@ -492,7 +492,6 @@ export function ChatPage({
         return;
       }
 
-      clearSelectedDocuments();
       setIsFetchingChatMessages(true);
       const response = await fetch(
         `/api/chat/get-chat-session/${existingChatSessionId}`
@@ -590,6 +589,7 @@ export function ChatPage({
       }
     } else if (allMyDocuments === "true" || allMyDocuments === "1") {
       // Clear any previously selected folders
+
       clearSelectedItems();
 
       // Add all user folders to the current context
@@ -2372,31 +2372,6 @@ export function ChatPage({
       {showAssistantsModal && (
         <AssistantModal hideModal={() => setShowAssistantsModal(false)} />
       )}
-      {/* Debug Modal to display current state values */}
-      {/* <div className="fixed bottom-4 right-4 z-50 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg max-w-md max-h-96 overflow-auto">
-        <h3 className="text-lg font-semibold mb-2">Debug State</h3>
-        <pre className="text-xs whitespace-pre-wrap">
-          {JSON.stringify(
-            {
-              retrievalEnabled,
-              currentPersona: currentPersona?.name,
-              alternativeAssistant: alternativeAssistant?.name,
-              messageHistoryLength: messageHistory.length,
-              currentSessionId: chatSessionIdRef.current,
-              currentSessionChatState,
-              documentSidebarVisible,
-              selectedDocuments: selectedDocuments?.length || 0,
-              liveAssistantUserFilesLength:
-                liveAssistant?.user_file_ids?.length || 0,
-              liveAssistantUserFoldersLength:
-                liveAssistant?.user_folder_ids?.length || 0,
-            },
-            null,
-            2
-          )}
-          {JSON.stringify({ liveAssistant })}
-        </pre>
-      </div> */}
 
       <div className="fixed inset-0 flex flex-col text-text-dark">
         <div className="h-[100dvh] overflow-y-hidden">

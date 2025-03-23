@@ -867,7 +867,10 @@ def create_search_doc_from_user_file(
     if associated_chat_file and associated_chat_file.content:
         try:
             # Try to decode as UTF-8, but handle errors gracefully
-            blurb = associated_chat_file.content[:100].decode("utf-8", errors="replace")
+            content_sample = associated_chat_file.content[:100]
+            # Remove null bytes which can cause SQL errors
+            content_sample = content_sample.replace(b"\x00", b"")
+            blurb = content_sample.decode("utf-8", errors="replace")
         except Exception:
             # If decoding fails completely, provide a generic description
             blurb = f"[Binary file: {db_user_file.name}]"
@@ -905,7 +908,10 @@ def translate_db_user_file_to_search_doc(
     if associated_chat_file and associated_chat_file.content:
         try:
             # Try to decode as UTF-8, but handle errors gracefully
-            blurb = associated_chat_file.content[:100].decode("utf-8", errors="replace")
+            content_sample = associated_chat_file.content[:100]
+            # Remove null bytes which can cause SQL errors
+            content_sample = content_sample.replace(b"\x00", b"")
+            blurb = content_sample.decode("utf-8", errors="replace")
         except Exception:
             # If decoding fails completely, provide a generic description
             blurb = f"[Binary file: {db_user_file.name}]"
