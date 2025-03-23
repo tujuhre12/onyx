@@ -67,6 +67,7 @@ from onyx.context.search.utils import relevant_sections_to_indices
 from onyx.db.chat import attach_files_to_chat_message
 from onyx.db.chat import create_db_search_doc
 from onyx.db.chat import create_new_chat_message
+from onyx.db.chat import create_search_doc_from_user_file
 from onyx.db.chat import get_chat_message
 from onyx.db.chat import get_chat_session_by_id
 from onyx.db.chat import get_db_search_doc_by_id
@@ -83,6 +84,7 @@ from onyx.db.milestone import update_user_assistant_milestone
 from onyx.db.models import SearchDoc as DbSearchDoc
 from onyx.db.models import ToolCall
 from onyx.db.models import User
+from onyx.db.models import UserFile
 from onyx.db.persona import get_persona_by_id
 from onyx.db.search_settings import get_current_search_settings
 from onyx.document_index.factory import get_default_document_index
@@ -90,6 +92,7 @@ from onyx.file_store.models import ChatFileType
 from onyx.file_store.models import FileDescriptor
 from onyx.file_store.models import InMemoryChatFile
 from onyx.file_store.utils import load_all_chat_files
+from onyx.file_store.utils import load_all_user_file_files
 from onyx.file_store.utils import load_all_user_files
 from onyx.file_store.utils import save_files
 from onyx.llm.exceptions import GenAIDisabledException
@@ -182,11 +185,14 @@ def _handle_search_tool_response_summary(
     db_session: Session,
     selected_search_docs: list[DbSearchDoc] | None,
     dedupe_docs: bool = False,
+    user_files: list[UserFile] | None = None,
+    loaded_user_files: list[InMemoryChatFile] | None = None,
 ) -> tuple[QADocsResponse, list[DbSearchDoc], list[int] | None]:
     response_sumary = cast(SearchResponseSummary, packet.response)
 
     is_extended = isinstance(packet, ExtendedToolResponse)
     dropped_inds = None
+
     if not selected_search_docs:
         top_docs = chunks_or_sections_to_search_docs(response_sumary.top_sections)
 
@@ -200,8 +206,28 @@ def _handle_search_tool_response_summary(
             create_db_search_doc(server_search_doc=doc, db_session=db_session)
             for doc in deduped_docs
         ]
+
     else:
         reference_db_search_docs = selected_search_docs
+
+    doc_ids = {doc.id for doc in reference_db_search_docs}
+    print("in memory chat files", loaded_user_files)
+    print("user files", user_files)
+    for user_file in user_files:
+        if user_file.id not in doc_ids:
+            associated_chat_file = next(
+                (
+                    file
+                    for file in loaded_user_files
+                    if file.file_id == str(user_file.file_id)
+                ),
+                None,
+            )
+            # Use create_search_doc_from_user_file to properly add the document to the database
+            db_doc = create_search_doc_from_user_file(
+                user_file, associated_chat_file, db_session
+            )
+            reference_db_search_docs.append(db_doc)
 
     response_docs = [
         translate_db_search_doc_to_server_search_doc(db_search_doc)
@@ -590,6 +616,7 @@ def stream_chat_message_objects(
 
         user_files: list[InMemoryChatFile] | None = None
         search_for_ordering_only = False
+        user_file_files: list[UserFile] | None = None
         if user_file_ids or user_folder_ids:
             # Load user files
             user_files = load_all_user_files(
@@ -597,7 +624,11 @@ def stream_chat_message_objects(
                 user_folder_ids or [],
                 db_session,
             )
-
+            user_file_files = load_all_user_file_files(
+                user_file_ids or [],
+                user_folder_ids or [],
+                db_session,
+            )
             # Store mapping of file_id to file for later reordering
             if user_files:
                 file_id_to_user_file = {file.file_id: file for file in user_files}
@@ -1062,6 +1093,10 @@ def stream_chat_message_objects(
                                 else False
                             )
                         ),
+                        user_files=user_file_files if search_for_ordering_only else [],
+                        loaded_user_files=user_files
+                        if search_for_ordering_only
+                        else [],
                     )
 
                     # If we're using search just for ordering user files
@@ -1096,7 +1131,9 @@ def stream_chat_message_objects(
                             for f_id in file_id_to_user_file.keys()
                             if f_id not in doc_order
                         ]
-                        doc_order.extend(missing_files)
+
+                        missing_files.extend(doc_order)
+                        doc_order = missing_files
 
                         logger.info(
                             f"ORDERING: Added {len(missing_files)} missing files to the end"

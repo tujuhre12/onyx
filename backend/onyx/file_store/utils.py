@@ -161,6 +161,25 @@ def load_all_user_files(
     )
 
 
+def load_all_user_file_files(
+    user_file_ids: list[int],
+    user_folder_ids: list[int],
+    db_session: Session,
+) -> list[UserFile]:
+    user_files: list[UserFile] = []
+    for user_file_id in user_file_ids:
+        user_files.append(
+            db_session.query(UserFile).filter(UserFile.id == user_file_id).first()
+        )
+    for user_folder_id in user_folder_ids:
+        user_files.extend(
+            db_session.query(UserFile)
+            .filter(UserFile.folder_id == user_folder_id)
+            .all()
+        )
+    return user_files
+
+
 def save_file_from_url(url: str) -> str:
     """NOTE: using multiple sessions here, since this is often called
     using multithreading. In practice, sharing a session has resulted in

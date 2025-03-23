@@ -111,15 +111,20 @@ export function SearchSummary({
           } text-xs desktop:text-sm mobile:ml-auto !line-clamp-1 !break-all px-0.5 flex-grow`}
           ref={searchingForRef}
         >
-          {finished ? "Searched" : "Searching"}{" "}
-          {userFileSearch && "knowledge groups "} for:{" "}
-          <i>
-            {index === 1
-              ? finalQuery.length > 50
-                ? `${finalQuery.slice(0, 50)}...`
-                : finalQuery
-              : finalQuery}
-          </i>
+          {userFileSearch ? (
+            "Reading context"
+          ) : (
+            <>
+              {finished ? "Searched" : "Searching"} for:{" "}
+              <i>
+                {index === 1
+                  ? finalQuery.length > 50
+                    ? `${finalQuery.slice(0, 50)}...`
+                    : finalQuery
+                  : finalQuery}
+              </i>
+            </>
+          )}
         </div>
       </div>
 
