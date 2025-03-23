@@ -211,23 +211,25 @@ def _handle_search_tool_response_summary(
         reference_db_search_docs = selected_search_docs
 
     doc_ids = {doc.id for doc in reference_db_search_docs}
-    print("in memory chat files", loaded_user_files)
-    print("user files", user_files)
-    for user_file in user_files:
-        if user_file.id not in doc_ids:
-            associated_chat_file = next(
-                (
-                    file
-                    for file in loaded_user_files
-                    if file.file_id == str(user_file.file_id)
-                ),
-                None,
-            )
-            # Use create_search_doc_from_user_file to properly add the document to the database
-            db_doc = create_search_doc_from_user_file(
-                user_file, associated_chat_file, db_session
-            )
-            reference_db_search_docs.append(db_doc)
+    if user_files is not None:
+        for user_file in user_files:
+            if user_file.id not in doc_ids:
+                associated_chat_file = None
+                if loaded_user_files is not None:
+                    associated_chat_file = next(
+                        (
+                            file
+                            for file in loaded_user_files
+                            if file.file_id == str(user_file.file_id)
+                        ),
+                        None,
+                    )
+                # Use create_search_doc_from_user_file to properly add the document to the database
+                if associated_chat_file is not None:
+                    db_doc = create_search_doc_from_user_file(
+                        user_file, associated_chat_file, db_session
+                    )
+                    reference_db_search_docs.append(db_doc)
 
     response_docs = [
         translate_db_search_doc_to_server_search_doc(db_search_doc)
@@ -1145,21 +1147,8 @@ def stream_chat_message_objects(
                             for f_id in doc_order
                             if f_id in file_id_to_user_file
                         ]
-                        logger.info(
-                            f"ORDERING: Ordered {len(ordered_user_files)} user files"
-                        )
-                        logger.info(
-                            f"ORDERING: Length before: {len(user_files)}, length after: {len(ordered_user_files)}"
-                        )
-                        print(f"ORDERING: Ordered {len(ordered_user_files)} user files")
-                        print(
-                            f"ORDERING: Length before: {len(user_files)}, length after: {len(ordered_user_files)}"
-                        )
 
-                        ordering_time = time.time() - ordering_start
-                        logger.info(
-                            f"ORDERING: Final order of {len(ordered_user_files)} files determined in {ordering_time:.3f}s"
-                        )
+                        time.time() - ordering_start
 
                         yield UserKnowledgeFilePacket(
                             user_files=[

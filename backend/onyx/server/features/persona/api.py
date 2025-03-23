@@ -201,7 +201,6 @@ def create_persona(
     user: User | None = Depends(current_user),
     db_session: Session = Depends(get_session),
 ) -> PersonaSnapshot:
-    print(persona_upsert_request.__dict__)
     tenant_id = get_current_tenant_id()
 
     prompt_id = (

@@ -4,27 +4,19 @@ import {
   FolderResponse,
   useDocumentsContext,
 } from "../../DocumentsContext";
-import {
-  FileListItem,
-  SkeletonFileListItem,
-} from "../../components/FileListItem";
+import { FileListItem } from "../../components/FileListItem";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
-  ArrowUp,
-  ArrowDown,
   AlertCircle,
   X,
   RefreshCw,
   Trash2,
   MoreHorizontal,
 } from "lucide-react";
-import { MinimalOnyxDocument } from "@/lib/search/interfaces";
 import TextView from "@/components/chat/TextView";
 import { Input } from "@/components/ui/input";
 import { FileUploadSection } from "./upload/FileUploadSection";
-import { useDocumentSelection } from "@/app/chat/useDocumentSelection";
-import { getDisplayNameForModel } from "@/lib/hooks";
 import { SortType, SortDirection } from "../UserFolderContent";
 import { CircularProgress } from "./upload/CircularProgress";
 import {
@@ -644,96 +636,85 @@ export const DocumentList: React.FC<DocumentListProps> = ({
                 ))}
 
                 {/* Failed uploads row with three dots menu on right */}
-                {useMemo(
-                  () =>
-                    failedUploads.map((failedUpload, index) => (
-                      <div
-                        key={`failed-${index}`}
-                        className="group relative flex cursor-pointer items-center border-b border-border dark:border-border-200 py-4 px-4 transition-all ease-in-out "
-                      >
-                        <div className="flex items-center flex-1 min-w-0">
-                          <div className="flex items-center gap-3 w-[40%] min-w-0">
-                            <AlertCircle className="h-4 w-4 text-red-500" />
-                            <span className="truncate text-sm text-text-dark dark:text-text-dark">
-                              {failedUpload.name.startsWith("http")
-                                ? `${failedUpload.name.substring(0, 30)}${
-                                    failedUpload.name.length > 30 ? "..." : ""
-                                  }`
-                                : failedUpload.name}
-                            </span>
-                          </div>
-                          <div className="w-[30%] text-sm text-red-500 dark:text-red-400">
-                            Upload failed
-                          </div>
-                          <div className="w-[30%] flex items-center justify-end">
-                            <Popover
-                              open={failedUpload.isPopoverOpen}
-                              onOpenChange={(open) =>
-                                toggleFailedUploadPopover(index, open)
-                              }
-                            >
-                              <PopoverTrigger
-                                onClick={(e) => e.stopPropagation()}
-                                asChild
-                              >
-                                <div className="text-neutral-500 dark:text-neutral-400 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </div>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-56 p-3 shadow-lg rounded-md border border-neutral-200 dark:border-neutral-800">
-                                <div className="flex flex-col gap-3">
-                                  <div className="flex items-center gap-2">
-                                    <p className="text-xs font-medium text-red-500">
-                                      Visiting URL failed.
-                                      <br />
-                                      You can retry or remove it from the list
-                                    </p>
-                                  </div>
-                                  <div className="flex flex-col gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full justify-start text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        toggleFailedUploadPopover(index, false);
-                                        handleRetryUpload(failedUpload.name);
-                                      }}
-                                    >
-                                      <RefreshCw className="mr-2 h-3.5 w-3.5" />
-                                      Retry
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full justify-start text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleFailedUploadPopover(index, false);
-                                        handleDeleteFailedUpload(
-                                          failedUpload.name
-                                        );
-                                      }}
-                                    >
-                                      <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                      Remove
-                                    </Button>
-                                  </div>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                        </div>
+                {failedUploads.map((failedUpload, index) => (
+                  <div
+                    key={`failed-${index}`}
+                    className="group relative flex cursor-pointer items-center border-b border-border dark:border-border-200 py-4 px-4 transition-all ease-in-out "
+                  >
+                    <div className="flex items-center flex-1 min-w-0">
+                      <div className="flex items-center gap-3 w-[40%] min-w-0">
+                        <AlertCircle className="h-4 w-4 text-red-500" />
+                        <span className="truncate text-sm text-text-dark dark:text-text-dark">
+                          {failedUpload.name.startsWith("http")
+                            ? `${failedUpload.name.substring(0, 30)}${
+                                failedUpload.name.length > 30 ? "..." : ""
+                              }`
+                            : failedUpload.name}
+                        </span>
                       </div>
-                    )),
-                  [
-                    failedUploads,
-                    toggleFailedUploadPopover,
-                    handleRetryUpload,
-                    handleDeleteFailedUpload,
-                  ]
-                )}
+                      <div className="w-[30%] text-sm text-red-500 dark:text-red-400">
+                        Upload failed
+                      </div>
+                      <div className="w-[30%] flex items-center justify-end">
+                        <Popover
+                          open={failedUpload.isPopoverOpen}
+                          onOpenChange={(open) =>
+                            toggleFailedUploadPopover(index, open)
+                          }
+                        >
+                          <PopoverTrigger
+                            onClick={(e) => e.stopPropagation()}
+                            asChild
+                          >
+                            <div className="text-neutral-500 dark:text-neutral-400 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </div>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-3 shadow-lg rounded-md border border-neutral-200 dark:border-neutral-800">
+                            <div className="flex flex-col gap-3">
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs font-medium text-red-500">
+                                  Visiting URL failed.
+                                  <br />
+                                  You can retry or remove it from the list
+                                </p>
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full justify-start text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    toggleFailedUploadPopover(index, false);
+                                    handleRetryUpload(failedUpload.name);
+                                  }}
+                                >
+                                  <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                                  Retry
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full justify-start text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleFailedUploadPopover(index, false);
+                                    handleDeleteFailedUpload(failedUpload.name);
+                                  }}
+                                >
+                                  <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                  Remove
+                                </Button>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                  </div>
+                ))}
 
                 {sortedFiles.length === 0 &&
                   uploadingFiles.length === 0 &&

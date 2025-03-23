@@ -85,11 +85,6 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
     const tokenLimitReached = selectedDocumentTokens > maxTokens - 75;
 
     const hasSelectedDocuments = selectedDocumentIds.length > 0;
-    console.log("dedupedDocuments");
-    console.log(dedupedDocuments);
-    console.log("userFiles");
-    console.log(userFiles);
-
     return (
       <>
         <div

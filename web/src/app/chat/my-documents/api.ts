@@ -35,7 +35,7 @@ export const bulkCleanupFiles = async (
   request: BulkCleanupRequest
 ): Promise<{ message: string }> => {
   try {
-    console.log("Sending cleanup request:", request);
+    p;
     const response = await fetch("/api/user/file/bulk-cleanup", {
       method: "POST",
       headers: {
@@ -54,7 +54,6 @@ export const bulkCleanupFiles = async (
     }
 
     const result = await response.json();
-    console.log("Cleanup result:", result);
     return result;
   } catch (error) {
     console.error("Error cleaning up files:", error);

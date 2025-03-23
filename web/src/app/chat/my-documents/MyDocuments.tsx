@@ -113,12 +113,8 @@ export default function MyDocuments() {
     try {
       const folderResponse = await createFolder(name);
       startTransition(() => {
-        // router.push(
-        //   `/chat/my-documents/${folderResponse.id}?message=folder-created`
-        // );
         setPage(1);
         setIsCreateFolderOpen(false);
-        console.log("folderResponse", folderResponse);
         setCurrentFolder(folderResponse.id);
       });
     } catch (error) {

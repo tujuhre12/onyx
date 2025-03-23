@@ -44,7 +44,6 @@ def store_user_file_plaintext(
     """
     # Skip empty content
     if not plaintext_content:
-        print("NOM NOM NOM PLAIN TEXT CONTENT IS EMPTY")
         return False
 
     # Get plaintext file name
@@ -54,7 +53,6 @@ def store_user_file_plaintext(
     file_store = get_default_file_store(db_session)
     file_content = BytesIO(plaintext_content.encode("utf-8"))
     try:
-        print("NOM NOM NOM PLAIN TEXT FILE NAME  ", plaintext_file_name)
         file_store.save_file(
             file_name=plaintext_file_name,
             content=file_content,
@@ -168,9 +166,11 @@ def load_all_user_file_files(
 ) -> list[UserFile]:
     user_files: list[UserFile] = []
     for user_file_id in user_file_ids:
-        user_files.append(
+        user_file = (
             db_session.query(UserFile).filter(UserFile.id == user_file_id).first()
         )
+        if user_file is not None:
+            user_files.append(user_file)
     for user_folder_id in user_folder_ids:
         user_files.extend(
             db_session.query(UserFile)
