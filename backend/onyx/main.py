@@ -211,9 +211,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.notice("Generative AI Q&A disabled")
 
     # fill up Postgres connection pools
-    print("Warming up connections")
     await warm_up_connections()
-    print("Connections warmed up")
 
     if not MULTI_TENANT:
         # We cache this at the beginning so there is no delay in the first telemetry
@@ -221,7 +219,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         get_or_generate_uuid()
 
         # If we are multi-tenant, we need to only set up initial public tables
-        print("Setting up onyx")
         with Session(engine) as db_session:
             setup_onyx(db_session, POSTGRES_DEFAULT_SCHEMA)
     else:

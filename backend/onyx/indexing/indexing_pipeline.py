@@ -820,7 +820,6 @@ def index_doc_batch(
         )
         # Store the plaintext in the file store for faster retrieval
         for user_file_id, raw_text in user_file_id_to_raw_text.items():
-            print(f"Storing plaintext for user file {user_file_id}")
             # Use the dedicated function to store plaintext
             store_user_file_plaintext(
                 user_file_id=user_file_id,
