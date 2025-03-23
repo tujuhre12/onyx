@@ -956,27 +956,27 @@ export function AssistantEditor({
                               Click below to add documents or folders from the
                               My Document feature
                             </SubLabel>
-                            {selectedFiles.length > 0 ||
-                              (selectedFolders.length > 0 && (
-                                <div className="flex flex-wrap mb-2 max-w-sm gap-2">
-                                  {selectedFiles.map((file) => (
-                                    <SourceChip
-                                      key={file.id}
-                                      onRemove={() => {}}
-                                      title={file.name}
-                                      icon={<FileIcon size={16} />}
-                                    />
-                                  ))}
-                                  {selectedFolders.map((folder) => (
-                                    <SourceChip
-                                      key={folder.id}
-                                      onRemove={() => {}}
-                                      title={folder.name}
-                                      icon={<FolderIcon size={16} />}
-                                    />
-                                  ))}
-                                </div>
-                              ))}
+                            {(selectedFiles.length > 0 ||
+                              selectedFolders.length > 0) && (
+                              <div className="flex flex-wrap mb-2 max-w-sm gap-2">
+                                {selectedFiles.map((file) => (
+                                  <SourceChip
+                                    key={file.id}
+                                    onRemove={() => {}}
+                                    title={file.name}
+                                    icon={<FileIcon size={16} />}
+                                  />
+                                ))}
+                                {selectedFolders.map((folder) => (
+                                  <SourceChip
+                                    key={folder.id}
+                                    onRemove={() => {}}
+                                    title={folder.name}
+                                    icon={<FolderIcon size={16} />}
+                                  />
+                                ))}
+                              </div>
+                            )}
                             <button
                               onClick={() => setFilePickerModalOpen(true)}
                               className="text-primary hover:underline"
