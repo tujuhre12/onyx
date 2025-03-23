@@ -1528,8 +1528,6 @@ export function ChatPage({
             if (Object.hasOwn(packet, "user_files")) {
               const userFiles = (packet as UserKnowledgeFilePacket).user_files;
               // Ensure files are unique by id
-              console.log("user files");
-              console.log(userFiles);
               const newUserFiles = userFiles.filter(
                 (newFile) =>
                   !files.some((existingFile) => existingFile.id === newFile.id)

@@ -606,7 +606,9 @@ export const AIMessage = ({
                                     relevantDocument={docs?.find(
                                       (doc) =>
                                         doc.document_id ===
-                                        `FILE_CONNECTOR__${file.file_id}`
+                                          `FILE_CONNECTOR__${file.file_id}` ||
+                                        doc.document_id ===
+                                          `USER_FILE_CONNECTOR__${file.file_id}`
                                     )}
                                     key={ind}
                                     document={file}

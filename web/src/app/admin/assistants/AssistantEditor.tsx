@@ -897,147 +897,164 @@ export function AssistantEditor({
                     </>
                   )}
                   {searchTool && values.enabled_tools_map[searchTool.id] && (
-                    <CollapsibleSection>
-                      <div>
-                        {canShowKnowledgeSource && (
-                          <>
-                            <div className="mt-1.5 mb-2.5">
-                              <div className="flex gap-2.5">
-                                <div
-                                  className={`w-[150px] h-[110px] rounded-lg border flex flex-col items-center justify-center cursor-pointer transition-all ${
-                                    values.knowledge_source === "user_files"
-                                      ? "border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/20"
-                                      : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
-                                  }`}
-                                  onClick={() =>
-                                    setFieldValue(
-                                      "knowledge_source",
-                                      "user_files"
-                                    )
-                                  }
-                                >
-                                  <div className="text-blue-500 mb-2">
-                                    <FileIcon size={24} />
-                                  </div>
-                                  <p className="font-medium text-xs">
-                                    User Knowledge
-                                  </p>
+                    <div>
+                      {canShowKnowledgeSource && (
+                        <>
+                          <div className="mt-1.5 mb-2.5">
+                            <div className="flex gap-2.5">
+                              <div
+                                className={`w-[150px] h-[110px] rounded-lg border flex flex-col items-center justify-center cursor-pointer transition-all ${
+                                  values.knowledge_source === "user_files"
+                                    ? "border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/20"
+                                    : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
+                                }`}
+                                onClick={() =>
+                                  setFieldValue(
+                                    "knowledge_source",
+                                    "user_files"
+                                  )
+                                }
+                              >
+                                <div className="text-blue-500 mb-2">
+                                  <FileIcon size={24} />
                                 </div>
+                                <p className="font-medium text-xs">
+                                  User Knowledge
+                                </p>
+                              </div>
 
-                                <div
-                                  className={`w-[150px] h-[110px] rounded-lg border flex flex-col items-center justify-center cursor-pointer transition-all ${
-                                    values.knowledge_source === "team_knowledge"
-                                      ? "border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/20"
-                                      : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
-                                  }`}
-                                  onClick={() =>
-                                    setFieldValue(
-                                      "knowledge_source",
-                                      "team_knowledge"
-                                    )
-                                  }
-                                >
-                                  <div className="text-blue-500 mb-2">
-                                    <BookIcon size={24} />
-                                  </div>
-                                  <p className="font-medium text-xs">
-                                    Team Knowledge
-                                  </p>
+                              <div
+                                className={`w-[150px] h-[110px] rounded-lg border flex flex-col items-center justify-center cursor-pointer transition-all ${
+                                  values.knowledge_source === "team_knowledge"
+                                    ? "border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/20"
+                                    : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
+                                }`}
+                                onClick={() =>
+                                  setFieldValue(
+                                    "knowledge_source",
+                                    "team_knowledge"
+                                  )
+                                }
+                              >
+                                <div className="text-blue-500 mb-2">
+                                  <BookIcon size={24} />
                                 </div>
+                                <p className="font-medium text-xs">
+                                  Team Knowledge
+                                </p>
                               </div>
                             </div>
-                          </>
+                          </div>
+                        </>
+                      )}
+
+                      {values.knowledge_source === "user_files" &&
+                        !existingPersona?.is_default_persona &&
+                        !admin && (
+                          <div className="text-sm flex flex-col items-start">
+                            <SubLabel>
+                              Click below to add documents or folders from the
+                              My Document feature
+                            </SubLabel>
+                            {selectedFiles.length > 0 ||
+                              (selectedFolders.length > 0 && (
+                                <div className="flex flex-wrap mb-2 max-w-sm gap-2">
+                                  {selectedFiles.map((file) => (
+                                    <SourceChip
+                                      key={file.id}
+                                      onRemove={() => {}}
+                                      title={file.name}
+                                      icon={<FileIcon size={16} />}
+                                    />
+                                  ))}
+                                  {selectedFolders.map((folder) => (
+                                    <SourceChip
+                                      key={folder.id}
+                                      onRemove={() => {}}
+                                      title={folder.name}
+                                      icon={<FolderIcon size={16} />}
+                                    />
+                                  ))}
+                                </div>
+                              ))}
+                            <button
+                              onClick={() => setFilePickerModalOpen(true)}
+                              className="text-primary hover:underline"
+                            >
+                              + Add User Files
+                            </button>
+                          </div>
                         )}
 
-                        {values.knowledge_source === "user_files" &&
-                          !existingPersona?.is_default_persona &&
-                          !admin && (
-                            <div className="mt-4">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="text-xs flex justify-start gap-x-2"
-                                onClick={() => setFilePickerModalOpen(true)}
-                              >
-                                <FileIcon size={14} />
-                                Select knowledge
-                              </Button>
+                      {values.knowledge_source === "team_knowledge" &&
+                        ccPairs.length > 0 && (
+                          <div className="mt-4">
+                            <div>
+                              <SubLabel>
+                                <>
+                                  Select which{" "}
+                                  {!user || user.role === "admin" ? (
+                                    <Link
+                                      href="/admin/documents/sets"
+                                      className="font-semibold underline hover:underline text-text"
+                                      target="_blank"
+                                    >
+                                      Document Sets
+                                    </Link>
+                                  ) : (
+                                    "Team Document Sets"
+                                  )}{" "}
+                                  this Assistant should use to inform its
+                                  responses. If none are specified, the
+                                  Assistant will reference all available
+                                  documents.
+                                </>
+                              </SubLabel>
                             </div>
-                          )}
 
-                        {values.knowledge_source === "team_knowledge" &&
-                          ccPairs.length > 0 && (
-                            <div className="mt-4">
-                              <div>
-                                <SubLabel>
-                                  <>
-                                    Select which{" "}
-                                    {!user || user.role === "admin" ? (
-                                      <Link
-                                        href="/admin/documents/sets"
-                                        className="font-semibold underline hover:underline text-text"
-                                        target="_blank"
-                                      >
-                                        Document Sets
-                                      </Link>
-                                    ) : (
-                                      "Team Document Sets"
-                                    )}{" "}
-                                    this Assistant should use to inform its
-                                    responses. If none are specified, the
-                                    Assistant will reference all available
-                                    documents.
-                                  </>
-                                </SubLabel>
-                              </div>
-
-                              {documentSets.length > 0 ? (
-                                <FieldArray
-                                  name="document_set_ids"
-                                  render={(arrayHelpers: ArrayHelpers) => (
-                                    <div>
-                                      <div className="mb-3 mt-2 flex gap-2 flex-wrap text-sm">
-                                        {documentSets.map((documentSet) => (
-                                          <DocumentSetSelectable
-                                            key={documentSet.id}
-                                            documentSet={documentSet}
-                                            isSelected={values.document_set_ids.includes(
-                                              documentSet.id
-                                            )}
-                                            onSelect={() => {
-                                              const index =
-                                                values.document_set_ids.indexOf(
-                                                  documentSet.id
-                                                );
-                                              if (index !== -1) {
-                                                arrayHelpers.remove(index);
-                                              } else {
-                                                arrayHelpers.push(
-                                                  documentSet.id
-                                                );
-                                              }
-                                            }}
-                                          />
-                                        ))}
-                                      </div>
+                            {documentSets.length > 0 ? (
+                              <FieldArray
+                                name="document_set_ids"
+                                render={(arrayHelpers: ArrayHelpers) => (
+                                  <div>
+                                    <div className="mb-3 mt-2 flex gap-2 flex-wrap text-sm">
+                                      {documentSets.map((documentSet) => (
+                                        <DocumentSetSelectable
+                                          key={documentSet.id}
+                                          documentSet={documentSet}
+                                          isSelected={values.document_set_ids.includes(
+                                            documentSet.id
+                                          )}
+                                          onSelect={() => {
+                                            const index =
+                                              values.document_set_ids.indexOf(
+                                                documentSet.id
+                                              );
+                                            if (index !== -1) {
+                                              arrayHelpers.remove(index);
+                                            } else {
+                                              arrayHelpers.push(documentSet.id);
+                                            }
+                                          }}
+                                        />
+                                      ))}
                                     </div>
-                                  )}
-                                />
-                              ) : (
-                                <p className="text-sm">
-                                  <Link
-                                    href="/admin/documents/sets/new"
-                                    className="text-primary hover:underline"
-                                  >
-                                    + Create Document Set
-                                  </Link>
-                                </p>
-                              )}
-                            </div>
-                          )}
-                      </div>
-                    </CollapsibleSection>
+                                  </div>
+                                )}
+                              />
+                            ) : (
+                              <p className="text-sm">
+                                <Link
+                                  href="/admin/documents/sets/new"
+                                  className="text-primary hover:underline"
+                                >
+                                  + Create Document Set
+                                </Link>
+                              </p>
+                            )}
+                          </div>
+                        )}
+                    </div>
                   )}
 
                   <Separator />

@@ -17,6 +17,7 @@ import {
   X,
   RefreshCw,
   Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import { MinimalOnyxDocument } from "@/lib/search/interfaces";
 import TextView from "@/components/chat/TextView";
@@ -607,7 +608,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
                 {uploadingFiles.map((uploadingFile, index) => (
                   <div
                     key={`uploading-${index}`}
-                    className={`group relative mr-8 flex cursor-pointer items-center border-b border-border dark:border-border-200 hover:bg-[#f2f0e8]/50 dark:hover:bg-[#1a1a1a]/50 py-4 px-4 transition-all ease-in-out ${
+                    className={`group relative flex cursor-pointer items-center border-b border-border dark:border-border-200 hover:bg-[#f2f0e8]/50 dark:hover:bg-[#1a1a1a]/50 py-4 px-4 transition-all ease-in-out ${
                       completedFiles.includes(uploadingFile.name)
                         ? "bg-green-50/30 dark:bg-green-900/10"
                         : ""
@@ -642,16 +643,29 @@ export const DocumentList: React.FC<DocumentListProps> = ({
                   </div>
                 ))}
 
-                {/* Add failed uploads display with popover */}
+                {/* Failed uploads row with three dots menu on right */}
                 {useMemo(
                   () =>
                     failedUploads.map((failedUpload, index) => (
                       <div
                         key={`failed-${index}`}
-                        className="group relative mr-8 flex items-center border-b border-border dark:border-border-200 hover:bg-red-50/30 dark:hover:bg-red-900/10 py-4 px-4 transition-all ease-in-out bg-red-50/20 dark:bg-red-900/5"
+                        className="group relative flex cursor-pointer items-center border-b border-border dark:border-border-200 py-4 px-4 transition-all ease-in-out "
                       >
                         <div className="flex items-center flex-1 min-w-0">
                           <div className="flex items-center gap-3 w-[40%] min-w-0">
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                            <span className="truncate text-sm text-text-dark dark:text-text-dark">
+                              {failedUpload.name.startsWith("http")
+                                ? `${failedUpload.name.substring(0, 30)}${
+                                    failedUpload.name.length > 30 ? "..." : ""
+                                  }`
+                                : failedUpload.name}
+                            </span>
+                          </div>
+                          <div className="w-[30%] text-sm text-red-500 dark:text-red-400">
+                            Upload failed
+                          </div>
+                          <div className="w-[30%] flex items-center justify-end">
                             <Popover
                               open={failedUpload.isPopoverOpen}
                               onOpenChange={(open) =>
@@ -662,18 +676,17 @@ export const DocumentList: React.FC<DocumentListProps> = ({
                                 onClick={(e) => e.stopPropagation()}
                                 asChild
                               >
-                                <div className="text-red-500 cursor-pointer">
-                                  <AlertCircle className="h-4 w-4" />
+                                <div className="text-neutral-500 dark:text-neutral-400 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <MoreHorizontal className="h-4 w-4" />
                                 </div>
                               </PopoverTrigger>
                               <PopoverContent className="w-56 p-3 shadow-lg rounded-md border border-neutral-200 dark:border-neutral-800">
                                 <div className="flex flex-col gap-3">
                                   <div className="flex items-center gap-2">
                                     <p className="text-xs font-medium text-red-500">
-                                      Upload failed.
+                                      Visiting URL failed.
                                       <br />
-                                      You can retry the upload or remove it from
-                                      the list.
+                                      You can retry or remove it from the list
                                     </p>
                                   </div>
                                   <div className="flex flex-col gap-2">
@@ -689,7 +702,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
                                       }}
                                     >
                                       <RefreshCw className="mr-2 h-3.5 w-3.5" />
-                                      Retry Upload
+                                      Retry
                                     </Button>
                                     <Button
                                       variant="outline"
@@ -710,19 +723,6 @@ export const DocumentList: React.FC<DocumentListProps> = ({
                                 </div>
                               </PopoverContent>
                             </Popover>
-                            <span className="truncate text-sm text-text-dark dark:text-text-dark">
-                              {failedUpload.name.startsWith("http")
-                                ? `${failedUpload.name.substring(0, 30)}${
-                                    failedUpload.name.length > 30 ? "..." : ""
-                                  }`
-                                : failedUpload.name}
-                            </span>
-                          </div>
-                          <div className="w-[30%] text-sm text-red-500 dark:text-red-400">
-                            Upload failed
-                          </div>
-                          <div className="w-[30%] flex items-center gap-2">
-                            {/* Removed inline buttons as we now use the popover */}
                           </div>
                         </div>
                       </div>
