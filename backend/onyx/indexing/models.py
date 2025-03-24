@@ -49,6 +49,10 @@ class DocAwareChunk(BaseChunk):
     metadata_suffix_semantic: str
     metadata_suffix_keyword: str
 
+    # This is the number of tokens reserved for contextual RAG
+    # in the chunk. doc_summary and chunk_context conbined should
+    # contain at most this many tokens.
+    contextual_rag_reserved_tokens: int
     # This is the summary for the document generated for contextual RAG
     doc_summary: str
     # This is the context for this chunk generated for contextual RAG

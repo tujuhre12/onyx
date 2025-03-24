@@ -392,6 +392,10 @@ export default function EmbeddingForm() {
                     advancedEmbeddingDetails.reduced_dimension && (
                     <li>Reduced dimension modification</li>
                   )}
+                  {searchSettings?.enable_contextual_rag !=
+                    advancedEmbeddingDetails.enable_contextual_rag && (
+                    <li>Contextual RAG modification</li>
+                  )}
                 </ul>
               </div>
             </div>
@@ -479,6 +483,11 @@ export default function EmbeddingForm() {
   };
 
   const handleReIndex = async () => {
+    console.log("handleReIndex");
+    console.log(selectedProvider);
+    console.log(advancedEmbeddingDetails);
+    console.log(rerankingDetails);
+    console.log(reindexType);
     if (!selectedProvider) {
       return;
     }

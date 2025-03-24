@@ -22,6 +22,7 @@ def embedder() -> DefaultIndexingEmbedder:
     )
 
 
+# TODO: move contextual test out of chunker
 @pytest.mark.parametrize("enable_contextual_rag", [True, False])
 def test_chunk_document(
     embedder: DefaultIndexingEmbedder, enable_contextual_rag: bool
@@ -67,7 +68,6 @@ def test_chunk_document(
         tokenizer=embedder.embedding_model.tokenizer,
         enable_multipass=False,
         enable_contextual_rag=enable_contextual_rag,
-        llm=mock_llm,
     )
     chunks = chunker.chunk(indexing_documents)
 

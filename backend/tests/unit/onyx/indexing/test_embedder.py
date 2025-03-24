@@ -71,6 +71,7 @@ def test_default_indexing_embedder_embed_chunks(
             image_file_name=None,
             chunk_context=chunk_context,
             doc_summary=doc_summary,
+            contextual_rag_reserved_tokens=200,
         )
     ]
 

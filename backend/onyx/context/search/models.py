@@ -60,7 +60,7 @@ class SearchSettingsCreationRequest(InferenceSettings, IndexingSetting):
         inference_settings = InferenceSettings.from_db_model(search_settings)
         indexing_setting = IndexingSetting.from_db_model(search_settings)
 
-        return cls(**inference_settings.dict(), **indexing_setting.dict())
+        return cls(**inference_settings.model_dump(), **indexing_setting.model_dump())
 
 
 class SavedSearchSettings(InferenceSettings, IndexingSetting):

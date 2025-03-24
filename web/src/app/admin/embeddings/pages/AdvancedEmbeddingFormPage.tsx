@@ -104,7 +104,18 @@ const AdvancedEmbeddingFormPage = forwardRef<
             multilingual_expansion: Yup.array().of(Yup.string()),
             multipass_indexing: Yup.boolean(),
             enable_contextual_rag: Yup.boolean(),
-            contextual_rag_llm: Yup.string().nullable(),
+            contextual_rag_llm: Yup.string()
+              .nullable()
+              .test(
+                "required-if-contextual-rag",
+                "LLM must be selected when Contextual RAG is enabled",
+                function (value) {
+                  const enableContextualRag = this.parent.enable_contextual_rag;
+                  console.log("enableContextualRag", enableContextualRag);
+                  console.log("value", value);
+                  return !enableContextualRag || value !== null;
+                }
+              ),
             disable_rerank_for_streaming: Yup.boolean(),
             num_rerank: Yup.number()
               .required("Number of results to rerank is required")
@@ -164,6 +175,23 @@ const AdvancedEmbeddingFormPage = forwardRef<
                   .shape({
                     multilingual_expansion: Yup.array().of(Yup.string()),
                     multipass_indexing: Yup.boolean(),
+                    enable_contextual_rag: Yup.boolean(),
+                    contextual_rag_llm: Yup.string()
+                      .nullable()
+                      .test(
+                        "required-if-contextual-rag",
+                        "LLM must be selected when Contextual RAG is enabled",
+                        function (value) {
+                          const enableContextualRag =
+                            this.parent.enable_contextual_rag;
+                          console.log(
+                            "enableContextualRag2",
+                            enableContextualRag
+                          );
+                          console.log("value2", value);
+                          return !enableContextualRag || value !== null;
+                        }
+                      ),
                     disable_rerank_for_streaming: Yup.boolean(),
                     num_rerank: Yup.number()
                       .required("Number of results to rerank is required")

@@ -16,12 +16,8 @@ from onyx.llm.exceptions import GenAIDisabledException
 from onyx.llm.interfaces import LLM
 from onyx.llm.override_models import LLMOverride
 from onyx.llm.utils import model_supports_image_input
-<<<<<<< HEAD
-from onyx.server.manage.llm.models import LLMProviderView
-=======
-from onyx.server.manage.llm.models import FullLLMProvider
 from onyx.server.manage.llm.models import LLMProvider
->>>>>>> 415fb8b96 (contextual rag implementation)
+from onyx.server.manage.llm.models import LLMProviderView
 from onyx.utils.headers import build_llm_extra_headers
 from onyx.utils.logger import setup_logger
 from onyx.utils.long_term_log import LongTermLogger
@@ -182,13 +178,9 @@ def llm_from_provider(
     )
 
 
-def get_llm_for_contextual_rag(
-    model_name: str | None, model_provider: str | None
-) -> LLM | None:
-    if not model_name or not model_provider:
-        return None
+def get_llm_for_contextual_rag(model_name: str, model_provider: str) -> LLM:
     with get_session_context_manager() as db_session:
-        llm_provider = fetch_provider(db_session, model_provider)
+        llm_provider = fetch_llm_provider_view(db_session, model_provider)
     if not llm_provider:
         raise ValueError("No LLM provider with name {} found".format(model_provider))
     return llm_from_provider(
