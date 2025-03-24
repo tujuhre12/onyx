@@ -168,6 +168,7 @@ def create_test_chunk(
         image_file_name=None,
         chunk_context="",
         doc_summary="",
+        contextual_rag_reserved_tokens=200,
     )
 
 
