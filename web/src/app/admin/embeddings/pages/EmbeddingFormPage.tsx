@@ -392,8 +392,12 @@ export default function EmbeddingForm() {
                     advancedEmbeddingDetails.reduced_dimension && (
                     <li>Reduced dimension modification</li>
                   )}
-                  {searchSettings?.enable_contextual_rag !=
-                    advancedEmbeddingDetails.enable_contextual_rag && (
+                  {(searchSettings?.enable_contextual_rag !=
+                    advancedEmbeddingDetails.enable_contextual_rag ||
+                    searchSettings?.contextual_rag_llm_name !=
+                      advancedEmbeddingDetails.contextual_rag_llm_name ||
+                    searchSettings?.contextual_rag_llm_provider !=
+                      advancedEmbeddingDetails.contextual_rag_llm_provider) && (
                     <li>Contextual RAG modification</li>
                   )}
                 </ul>

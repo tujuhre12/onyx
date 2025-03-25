@@ -65,6 +65,7 @@ from onyx.indexing.models import DocMetadataAwareIndexChunk
 from onyx.indexing.models import IndexChunk
 from onyx.indexing.models import UpdatableChunkData
 from onyx.indexing.vector_db_insertion import write_chunks_to_vector_db_with_backoff
+from onyx.llm.chat_llm import LLMRateLimitError
 from onyx.llm.factory import get_default_llm_with_vision
 from onyx.llm.factory import get_llm_for_contextual_rag
 from onyx.llm.interfaces import LLM
@@ -75,6 +76,7 @@ from onyx.natural_language_processing.search_nlp_models import (
     InformationContentClassificationModel,
 )
 from onyx.natural_language_processing.utils import BaseTokenizer
+from onyx.natural_language_processing.utils import get_tokenizer
 from onyx.natural_language_processing.utils import tokenizer_trim_middle
 from onyx.prompts.chat_prompts import CONTEXTUAL_RAG_PROMPT1
 from onyx.prompts.chat_prompts import CONTEXTUAL_RAG_PROMPT2
@@ -589,6 +591,7 @@ def add_chunk_summaries(
     Chunk summaries look at the chunk as well as the entire document (or a summary,
     if the document is too long) and describe how the chunk relates to the document.
     """
+    # all chunks within a document have the same contextual_rag_reserved_tokens
     if chunks_by_doc[0].contextual_rag_reserved_tokens == 0:
         return
 
@@ -618,12 +621,21 @@ def add_chunk_summaries(
 
     def assign_context(chunk: DocAwareChunk) -> None:
         context_prompt2 = CONTEXTUAL_RAG_PROMPT2.format(chunk=chunk.content)
-        chunk.chunk_context = message_to_string(
-            llm.invoke(
-                context_prompt1 + context_prompt2,
-                max_tokens=MAX_CONTEXT_TOKENS,
+        try:
+            chunk.chunk_context = message_to_string(
+                llm.invoke(
+                    context_prompt1 + context_prompt2,
+                    max_tokens=MAX_CONTEXT_TOKENS,
+                )
             )
-        )
+        except LLMRateLimitError as e:
+            # Erroring during chunker is undesirable, so we log the error and continue
+            # TODO: for v2, add robust retry logic
+            logger.exception(f"Rate limit adding chunk summary: {e}", exc_info=e)
+            chunk.chunk_context = ""
+        except Exception as e:
+            logger.exception(f"Error adding chunk summary: {e}", exc_info=e)
+            chunk.chunk_context = ""
 
     run_functions_tuples_in_parallel(
         [(assign_context, (chunk,)) for chunk in chunks_by_doc]
@@ -643,6 +655,7 @@ def add_contextual_summaries(
     max_context = get_max_input_tokens(
         model_name=llm.config.model_name,
         model_provider=llm.config.model_provider,
+        output_tokens=MAX_CONTEXT_TOKENS,
     )
     doc2chunks = defaultdict(list)
     for chunk in chunks:
@@ -752,8 +765,15 @@ def index_doc_batch(
     # contextual RAG
     if enable_contextual_rag:
         assert llm is not None, "must provide an LLM for contextual RAG"
+        llm_tokenizer = get_tokenizer(
+            model_name=llm.config.model_name,
+            provider_type=llm.config.model_provider,
+        )
+
+        # Because the chunker's tokens are different from the LLM's tokens,
+        # We add a fudge factor to ensure we truncate prompts to the LLM's token limit
         chunks = add_contextual_summaries(
-            chunks, llm, chunker.tokenizer, chunker.chunk_token_limit
+            chunks, llm, llm_tokenizer, chunker.chunk_token_limit * 2
         )
 
     logger.debug("Starting embedding")
