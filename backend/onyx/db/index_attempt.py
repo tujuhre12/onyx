@@ -17,12 +17,12 @@ from sqlalchemy.sql import Select
 
 from onyx.connectors.models import ConnectorFailure
 from onyx.db.engine import get_session_context_manager
+from onyx.db.models import ConnectorCredentialPair
 from onyx.db.models import IndexAttempt
 from onyx.db.models import IndexAttemptError
 from onyx.db.models import IndexingStatus
 from onyx.db.models import IndexModelStatus
 from onyx.db.models import SearchSettings
-from onyx.server.documents.models import ConnectorCredentialPair
 from onyx.server.documents.models import ConnectorCredentialPairIdentifier
 from onyx.utils.logger import setup_logger
 
