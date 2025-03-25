@@ -71,7 +71,6 @@ async def upsert_saml_user(email: str) -> User:
                     UserCreate(
                         email=email,
                         password=hashed_pass,
-                        is_verified=True,
                         role=role,
                     )
                 )

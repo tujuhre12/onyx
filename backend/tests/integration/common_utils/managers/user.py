@@ -126,7 +126,11 @@ class UserManager:
     ) -> DATestUser:
         response = requests.patch(
             url=f"{API_SERVER_URL}/manage/set-user-role",
-            json={"user_email": user_to_set.email, "new_role": target_role.value},
+            json={
+                "user_email": user_to_set.email,
+                "new_role": target_role.value,
+                "explicit_override": True,
+            },
             headers=user_performing_action.headers,
         )
         response.raise_for_status()
