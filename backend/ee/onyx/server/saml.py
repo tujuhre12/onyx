@@ -67,7 +67,7 @@ async def upsert_saml_user(email: str) -> User:
                 password = fastapi_users_pw_helper.generate()
                 hashed_pass = fastapi_users_pw_helper.hash(password)
 
-                user: User = await user_manager.create(
+                user = await user_manager.create(
                     UserCreate(
                         email=email,
                         password=hashed_pass,
