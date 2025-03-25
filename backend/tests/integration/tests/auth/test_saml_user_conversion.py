@@ -35,6 +35,7 @@ def test_saml_user_conversion(reset: None) -> None:
         user_to_set=test_user,
         target_role=UserRole.EXT_PERM_USER,
         user_performing_action=admin_user,
+        explicit_override=True,
     )
 
     # Verify the user has EXT_PERM_USER role now
@@ -67,6 +68,7 @@ def test_saml_user_conversion(reset: None) -> None:
         user_to_set=slack_user,
         target_role=UserRole.SLACK_USER,
         user_performing_action=admin_user,
+        explicit_override=True,
     )
 
     # Verify the user has SLACK_USER role
