@@ -16,13 +16,11 @@ from onyx.configs.app_configs import WEB_DOMAIN
 from onyx.configs.constants import AuthType
 from onyx.configs.constants import ONYX_DEFAULT_APPLICATION_NAME
 from onyx.configs.constants import ONYX_SLACK_URL
-from onyx.configs.constants import TENANT_ID_COOKIE_NAME
 from onyx.db.models import User
 from onyx.server.runtime.onyx_runtime import OnyxRuntime
 from onyx.utils.file import FileWithMimeType
 from onyx.utils.variable_functionality import fetch_versioned_implementation
 from shared_configs.configs import MULTI_TENANT
-
 
 HTML_EMAIL_TEMPLATE = """\
 <!DOCTYPE html>
@@ -361,10 +359,7 @@ def send_forgot_password_email(
     tenant_param = f"&tenant={tenant_id}" if tenant_id and MULTI_TENANT else ""
     message = "<p>Please click the button below to reset your password. This link will expire in 24 hours.</p>"
     cta_text = "Reset Password"
-    # token is already URL-safe
     cta_link = f"{WEB_DOMAIN}/auth/reset-password?token={token}{tenant_param}"
-    if MULTI_TENANT:
-        cta_link += f"&{TENANT_ID_COOKIE_NAME}={tenant_id}"
     html_content = build_html_email(
         application_name,
         heading,
