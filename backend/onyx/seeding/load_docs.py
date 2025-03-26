@@ -89,6 +89,7 @@ def _create_indexable_chunks(
             large_chunk_reference_ids=[],
             doc_summary="",
             chunk_context="",
+            contextual_rag_reserved_tokens=0,
             embeddings=ChunkEmbedding(
                 full_embedding=preprocessed_doc["content_embedding"],
                 mini_chunk_embeddings=[],

@@ -66,6 +66,7 @@ def generate_dummy_chunk(
         doc_summary="",
         chunk_context="",
         mini_chunk_texts=None,
+        contextual_rag_reserved_tokens=0,
         embeddings=ChunkEmbedding(
             full_embedding=generate_random_embedding(embedding_dim),
             mini_chunk_embeddings=[],

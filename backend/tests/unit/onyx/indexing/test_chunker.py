@@ -3,26 +3,18 @@ from unittest.mock import Mock
 
 import pytest
 
+from onyx.configs.app_configs import USE_CHUNK_SUMMARY
+from onyx.configs.app_configs import USE_DOCUMENT_SUMMARY
 from onyx.configs.constants import DocumentSource
 from onyx.connectors.models import Document
 from onyx.connectors.models import TextSection
 from onyx.indexing.chunker import Chunker
 from onyx.indexing.embedder import DefaultIndexingEmbedder
 from onyx.indexing.indexing_pipeline import process_image_sections
+from onyx.llm.utils import MAX_CONTEXT_TOKENS
 from tests.unit.onyx.indexing.conftest import MockHeartbeat
 
 
-@pytest.fixture
-def embedder() -> DefaultIndexingEmbedder:
-    return DefaultIndexingEmbedder(
-        model_name="intfloat/e5-base-v2",
-        normalize=True,
-        query_prefix=None,
-        passage_prefix=None,
-    )
-
-
-# TODO: move contextual test out of chunker
 @pytest.mark.parametrize("enable_contextual_rag", [True, False])
 def test_chunk_document(
     embedder: DefaultIndexingEmbedder, enable_contextual_rag: bool
@@ -78,15 +70,13 @@ def test_chunk_document(
     assert "tag1" in chunks[0].metadata_suffix_keyword
     assert "tag2" in chunks[0].metadata_suffix_semantic
 
-    doc_summary = "Test1" if enable_contextual_rag else ""
-    chunk_context = ""
-    count = 2
+    rag_tokens = MAX_CONTEXT_TOKENS * (
+        int(USE_DOCUMENT_SUMMARY) + int(USE_CHUNK_SUMMARY)
+    )
     for chunk in chunks:
-        if enable_contextual_rag:
-            chunk_context = f"Test{count}"
-            count += 1
-        assert chunk.doc_summary == doc_summary
-        assert chunk.chunk_context == chunk_context
+        assert chunk.contextual_rag_reserved_tokens == (
+            rag_tokens if enable_contextual_rag else 0
+        )
 
 
 def test_chunker_heartbeat(
