@@ -41,6 +41,7 @@ from onyx.db.document import get_documents_for_cc_pair
 from onyx.db.engine import get_session
 from onyx.db.enums import AccessType
 from onyx.db.enums import ConnectorCredentialPairStatus
+from onyx.db.enums import SyncType
 from onyx.db.index_attempt import count_index_attempt_errors_for_cc_pair
 from onyx.db.index_attempt import count_index_attempts_for_connector
 from onyx.db.index_attempt import get_index_attempt_errors_for_cc_pair
@@ -50,6 +51,7 @@ from onyx.db.models import SearchSettings
 from onyx.db.models import User
 from onyx.db.search_settings import get_active_search_settings_list
 from onyx.db.search_settings import get_current_search_settings
+from onyx.db.sync_record import fetch_paginated_sync_records
 from onyx.redis.redis_connector import RedisConnector
 from onyx.redis.redis_pool import get_redis_client
 from onyx.server.documents.models import CCPairFullInfo
@@ -60,6 +62,7 @@ from onyx.server.documents.models import ConnectorCredentialPairMetadata
 from onyx.server.documents.models import DocumentSyncStatus
 from onyx.server.documents.models import IndexAttemptSnapshot
 from onyx.server.documents.models import PaginatedReturn
+from onyx.server.documents.models import SyncRecordSnapshot
 from onyx.server.models import StatusResponse
 from onyx.utils.logger import setup_logger
 from onyx.utils.variable_functionality import fetch_ee_implementation_or_noop
@@ -67,6 +70,35 @@ from shared_configs.contextvars import get_current_tenant_id
 
 logger = setup_logger()
 router = APIRouter(prefix="/manage")
+
+
+@router.get("/admin/cc-pair/{cc_pair_id}/sync-status")
+def get_cc_pair_sync_status(
+    cc_pair_id: int,
+    page_num: int = Query(0, ge=0),
+    page_size: int = Query(10, ge=1, le=1000),
+    user: User | None = Depends(current_curator_or_admin_user),
+    db_session: Session = Depends(get_session),
+) -> PaginatedReturn[SyncRecordSnapshot]:
+    cc_pair = get_connector_credential_pair_from_id_for_user(
+        cc_pair_id, db_session, user, get_editable=False
+    )
+    if not cc_pair:
+        raise HTTPException(
+            status_code=400, detail="CC Pair not found for current user permissions"
+        )
+
+    sync_records, total_count = fetch_paginated_sync_records(
+        db_session, cc_pair_id, SyncType.EXTERNAL_PERMISSIONS, page_num, page_size
+    )
+
+    return PaginatedReturn(
+        items=[
+            SyncRecordSnapshot.from_sync_record_db_model(sync_record)
+            for sync_record in sync_records
+        ],
+        total_items=total_count,
+    )
 
 
 @router.get("/admin/cc-pair/{cc_pair_id}/index-attempts")

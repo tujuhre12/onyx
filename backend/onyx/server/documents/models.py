@@ -14,12 +14,14 @@ from onyx.configs.constants import DocumentSource
 from onyx.connectors.models import InputType
 from onyx.db.enums import AccessType
 from onyx.db.enums import ConnectorCredentialPairStatus
+from onyx.db.enums import SyncType
 from onyx.db.models import Connector
 from onyx.db.models import ConnectorCredentialPair
 from onyx.db.models import Credential
 from onyx.db.models import Document as DbDocument
 from onyx.db.models import IndexAttempt
 from onyx.db.models import IndexingStatus
+from onyx.db.models import SyncRecord
 from onyx.db.models import TaskStatus
 from onyx.server.models import FullUserSnapshot
 from onyx.server.models import InvitedUserSnapshot
@@ -65,6 +67,22 @@ class ConnectorBase(BaseModel):
     refresh_freq: int | None = None
     prune_freq: int | None = None
     indexing_start: datetime | None = None
+
+
+class SyncRecordSnapshot(BaseModel):
+    id: int
+    entity_id: int
+    sync_type: SyncType
+    created_at: datetime
+
+    @classmethod
+    def from_sync_record_db_model(cls, sync_record: SyncRecord) -> "SyncRecordSnapshot":
+        return cls(
+            id=sync_record.id,
+            entity_id=sync_record.entity_id,
+            sync_type=sync_record.sync_type,
+            created_at=sync_record.sync_start_time,
+        )
 
 
 class ConnectorUpdateRequest(ConnectorBase):
@@ -194,6 +212,7 @@ PaginatedType = TypeVar(
     InvitedUserSnapshot,
     ChatSessionMinimal,
     IndexAttemptErrorPydantic,
+    SyncRecordSnapshot,
 )
 
 

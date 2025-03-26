@@ -91,6 +91,17 @@ function Main({ ccPairId }: { ccPairId: number }) {
   });
 
   const {
+    currentPageData: syncStatus,
+    isLoading: isLoadingSyncStatus,
+    currentPage: syncStatusCurrentPage,
+    totalPages: syncStatusTotalPages,
+  } = usePaginatedFetch<IndexAttemptSnapshot>({
+    itemsPerPage: ITEMS_PER_PAGE,
+    pagesPerBatch: PAGES_PER_BATCH,
+    endpoint: `${buildCCPairInfoUrl(ccPairId)}/sync-status`,
+  });
+
+  const {
     currentPageData: indexAttemptErrorsPage,
     currentPage: errorsCurrentPage,
     totalPages: errorsTotalPages,
@@ -450,6 +461,11 @@ function Main({ ccPairId }: { ccPairId: number }) {
         />
       )}
 
+      <div className="mt-6">
+        <div className="flex">
+          <Title>Syncing Status</Title>
+        </div>
+      </div>
       <div className="mt-6">
         <div className="flex">
           <Title>Indexing Attempts</Title>
