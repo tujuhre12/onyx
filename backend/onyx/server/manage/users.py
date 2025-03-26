@@ -36,6 +36,7 @@ from onyx.auth.users import optional_user
 from onyx.configs.app_configs import AUTH_BACKEND
 from onyx.configs.app_configs import AUTH_TYPE
 from onyx.configs.app_configs import AuthBackend
+from onyx.configs.app_configs import DEV_MODE
 from onyx.configs.app_configs import ENABLE_EMAIL_INVITES
 from onyx.configs.app_configs import REDIS_AUTH_KEY_PREFIX
 from onyx.configs.app_configs import SESSION_EXPIRE_TIME_SECONDS
@@ -334,7 +335,7 @@ def bulk_invite_users(
         except Exception as e:
             logger.error(f"Error sending email invite to invited users: {e}")
 
-    if not MULTI_TENANT:
+    if not MULTI_TENANT or DEV_MODE:
         return number_of_invited_users
 
     # for billing purposes, write to the control plane about the number of new users
@@ -375,7 +376,7 @@ def remove_invited_user(
     number_of_invited_users = write_invited_users(remaining_users)
 
     try:
-        if MULTI_TENANT:
+        if MULTI_TENANT and not DEV_MODE:
             fetch_ee_implementation_or_noop(
                 "onyx.server.tenants.billing", "register_tenant_users", None
             )(tenant_id, get_total_users_count(db_session))

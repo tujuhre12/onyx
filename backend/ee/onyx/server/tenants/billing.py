@@ -9,7 +9,6 @@ from ee.onyx.server.tenants.access import generate_data_plane_token
 from ee.onyx.server.tenants.models import BillingInformation
 from ee.onyx.server.tenants.models import SubscriptionStatusResponse
 from onyx.configs.app_configs import CONTROL_PLANE_API_BASE_URL
-from onyx.configs.app_configs import DEV_MODE
 from onyx.utils.logger import setup_logger
 
 stripe.api_key = STRIPE_SECRET_KEY
@@ -71,14 +70,10 @@ def fetch_billing_information(
     return BillingInformation(**response_data)
 
 
-def register_tenant_users(
-    tenant_id: str, number_of_users: int
-) -> stripe.Subscription | None:
+def register_tenant_users(tenant_id: str, number_of_users: int) -> stripe.Subscription:
     """
     Send a request to the control service to register the number of users for a tenant.
     """
-    if DEV_MODE:
-        return None
 
     if not STRIPE_PRICE_ID:
         raise Exception("STRIPE_PRICE_ID is not set")
