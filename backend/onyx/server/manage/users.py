@@ -102,7 +102,7 @@ def set_user_role(
     validate_user_role_update(
         requested_role=requested_role,
         current_role=current_role,
-        explicit_override=True,
+        explicit_override=user_role_update_request.explicit_override,
     )
 
     if user_to_update.id == current_user.id:
