@@ -5,17 +5,20 @@ from tests.integration.common_utils.test_models import DATestUser
 
 def test_user_invitation_flow(reset_multitenant: None) -> None:
     # Create first user (admin)
-    admin_user: DATestUser = UserManager.create(name="admin", email="admin@test.com")
+    admin_user: DATestUser = UserManager.create(name="admin")
     assert UserManager.is_role(admin_user, UserRole.ADMIN)
 
     # Create second user
-    invited_user: DATestUser = UserManager.create(
-        name="invited", email="invited@test.com"
-    )
+    invited_user: DATestUser = UserManager.create(name="admin_invited")
     assert UserManager.is_role(invited_user, UserRole.ADMIN)
 
     # Admin user invites the second user
     UserManager.invite_user(invited_user.email, admin_user)
+
+    UserManager.invite_user(invited_user.email, admin_user)
+
+    invited_basic_user: DATestUser = UserManager.create(name="basic_invited")
+    assert UserManager.is_role(invited_basic_user, UserRole.BASIC)
 
     # Verify the user is in the invited users list
     invited_users = UserManager.get_invited_users(admin_user)
@@ -36,7 +39,6 @@ def test_user_invitation_flow(reset_multitenant: None) -> None:
 
     UserManager.accept_invitation(invited_tenant_id, invited_user)
 
-    # Verify the user is now a basic user in admin's tenant
     # Get updated user info after accepting invitation
     updated_user_info = UserManager.get_user_info(invited_user)
 
