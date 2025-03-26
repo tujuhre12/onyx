@@ -14,6 +14,7 @@ from onyx.configs.constants import DocumentSource
 from onyx.connectors.models import InputType
 from onyx.db.enums import AccessType
 from onyx.db.enums import ConnectorCredentialPairStatus
+from onyx.db.enums import SyncStatus
 from onyx.db.enums import SyncType
 from onyx.db.models import Connector
 from onyx.db.models import ConnectorCredentialPair
@@ -74,6 +75,8 @@ class SyncRecordSnapshot(BaseModel):
     entity_id: int
     sync_type: SyncType
     created_at: datetime
+    num_docs_synced: int
+    sync_status: SyncStatus
 
     @classmethod
     def from_sync_record_db_model(cls, sync_record: SyncRecord) -> "SyncRecordSnapshot":
@@ -82,6 +85,8 @@ class SyncRecordSnapshot(BaseModel):
             entity_id=sync_record.entity_id,
             sync_type=sync_record.sync_type,
             created_at=sync_record.sync_start_time,
+            num_docs_synced=sync_record.num_docs_synced,
+            sync_status=sync_record.status,
         )
 
 

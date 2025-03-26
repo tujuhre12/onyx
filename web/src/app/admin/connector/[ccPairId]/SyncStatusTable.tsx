@@ -6,16 +6,33 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CCPairFullInfo } from "./types";
+import { CCPairFullInfo, SyncRecord } from "./types";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { formatDateTime } from "@/lib/utils";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  CheckCircle,
+} from "lucide-react";
+import { useState } from "react";
+import { AttemptStatus } from "@/components/Status";
+import { PageSelector } from "@/components/PageSelector";
 
-interface SyncRecord {
-  id: number;
-  entity_id: number;
-  sync_type: string;
-  created_at: string;
+// Helper function to format date
+const formatDateTime = (date: Date): string => {
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date);
+};
+
+interface SyncStatus {
+  status: string;
 }
 
 interface SyncStatusTableProps {
@@ -34,60 +51,93 @@ export function SyncStatusTable({
   onPageChange,
 }: SyncStatusTableProps) {
   const hasPagination = totalPages > 1;
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Filter to only show external permissions
+  const filteredRecords =
+    syncRecords?.filter(
+      (record) => record.sync_type === "external_permissions"
+    ) || [];
+
+  // Check if we have any records to show
+  if (filteredRecords.length === 0 && currentPage === 0) {
+    return (
+      <div className="text-sm text-gray-500 italic my-2">
+        No permissions sync records found
+      </div>
+    );
+  }
+
+  // The total documents synced is the total number of documents in the cc_pair
+  const totalDocsSynced = ccPair.num_docs_indexed || 0;
 
   return (
     <div className="mb-6">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Time</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {syncRecords.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={3} className="text-center py-4">
-                No sync records found
-              </TableCell>
-            </TableRow>
+      <div className="flex items-center mb-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="mr-2 text-muted-foreground"
+        >
+          {isExpanded ? (
+            <ChevronUp className="h-4 w-4" />
           ) : (
-            syncRecords.map((record) => (
-              <TableRow key={record.id}>
-                <TableCell className="font-medium">{record.id}</TableCell>
-                <TableCell>{record.sync_type}</TableCell>
-                <TableCell>
-                  {formatDateTime(new Date(record.created_at))}
-                </TableCell>
-              </TableRow>
-            ))
+            <ChevronDown className="h-4 w-4" />
           )}
-        </TableBody>
-      </Table>
-
-      {hasPagination && (
-        <div className="flex items-center justify-end mt-4 space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 0}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm">
-            Page {currentPage + 1} of {totalPages}
+          {isExpanded ? "Hide details" : "Show sync history"}
+        </Button>
+        <div className="text-sm">
+          <span className="flex items-center text-green-600 dark:text-green-400">
+            <CheckCircle className="h-4 w-4 mr-1 inline" />
+            Permissions sync enabled • {totalDocsSynced} documents synced
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage >= totalPages - 1}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
         </div>
+      </div>
+
+      {isExpanded && (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Time</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Docs Processed</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRecords.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center py-4">
+                    No permission sync records found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredRecords.map((record, index) => (
+                  <TableRow key={record.id}>
+                    <TableCell>
+                      {formatDateTime(new Date(record.created_at))}
+                    </TableCell>
+                    <TableCell>
+                      <AttemptStatus status={record.sync_status as any} />
+                    </TableCell>
+                    <TableCell>{record.num_docs_synced}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+
+          {hasPagination && (
+            <div className="flex justify-end mt-4">
+              <PageSelector
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={onPageChange}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );
