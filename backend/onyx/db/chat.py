@@ -1092,14 +1092,15 @@ def log_agent_sub_question_results(
     return None
 
 
-def update_chat_session_timestamp(chat_session_id: UUID, db_session: Session) -> None:
+def update_chat_session_updated_at_timestamp(
+    chat_session_id: UUID, db_session: Session
+) -> None:
     """
     Explicitly update the timestamp on a chat session without modifying other fields.
     This is useful when adding messages to a chat session to reflect recent activity.
     """
 
     # Direct SQL update to avoid loading the entire object if it's not already loaded
-    # This is more efficient and clearly shows the intent
     db_session.execute(
         update(ChatSession)
         .where(ChatSession.id == chat_session_id)
