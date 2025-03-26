@@ -312,9 +312,7 @@ def bulk_invite_users(
             detail=f"Invalid email address: {email} - {str(e)}",
         )
 
-    print("ADDING?")
     if MULTI_TENANT:
-        print("ADDING TO TENANT")
         try:
             fetch_ee_implementation_or_noop(
                 "onyx.server.tenants.provisioning", "add_users_to_tenant", None
