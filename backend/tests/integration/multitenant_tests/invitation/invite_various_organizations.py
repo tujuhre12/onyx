@@ -2,6 +2,9 @@ from onyx.db.models import UserRole
 from tests.integration.common_utils.managers.user import UserManager
 from tests.integration.common_utils.test_models import DATestUser
 
+INVITED_BASIC_USER = "basic_user"
+INVITED_BASIC_USER_EMAIL = "basic_user@test.com"
+
 
 def test_user_invitation_flow(reset_multitenant: None) -> None:
     # Create first user (admin)
@@ -15,9 +18,11 @@ def test_user_invitation_flow(reset_multitenant: None) -> None:
     # Admin user invites the second user
     UserManager.invite_user(invited_user.email, admin_user)
 
-    UserManager.invite_user(invited_user.email, admin_user)
+    UserManager.invite_user(INVITED_BASIC_USER_EMAIL, admin_user)
 
-    invited_basic_user: DATestUser = UserManager.create(name="basic_invited")
+    invited_basic_user: DATestUser = UserManager.create(
+        name=INVITED_BASIC_USER, email=INVITED_BASIC_USER_EMAIL
+    )
     assert UserManager.is_role(invited_basic_user, UserRole.BASIC)
 
     # Verify the user is in the invited users list
