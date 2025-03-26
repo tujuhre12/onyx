@@ -15,9 +15,8 @@ def test_user_invitation_flow(reset_multitenant: None) -> None:
     invited_user: DATestUser = UserManager.create(name="admin_invited")
     assert UserManager.is_role(invited_user, UserRole.ADMIN)
 
-    # Admin user invites the second user
+    # Admin user invites the previously registered and non-registered user
     UserManager.invite_user(invited_user.email, admin_user)
-
     UserManager.invite_user(INVITED_BASIC_USER_EMAIL, admin_user)
 
     invited_basic_user: DATestUser = UserManager.create(
@@ -58,10 +57,14 @@ def test_user_invitation_flow(reset_multitenant: None) -> None:
         updated_user_info.role == UserRole.BASIC
     ), f"Expected user to have BASIC role, but got {updated_user_info.role}"
 
-    # Verify the user is now part of the admin's tenant
-    assert (
-        updated_user_info.tenant_info is not None
-    ), "Expected tenant_info to be present"
-    assert (
-        updated_user_info.tenant_info.invitation is None
-    ), "Expected no pending invitation"
+    # Verify user is in the organization
+    user_page = UserManager.get_user_page(
+        user_performing_action=admin_user, role_filter=[UserRole.BASIC]
+    )
+
+    # Check if the invited user is in the list of users with BASIC role
+    invited_user_emails = [user.email for user in user_page.items]
+    assert invited_user.email in invited_user_emails, (
+        f"User {invited_user.email} not found in the list of basic users "
+        f"in the organization. Available users: {invited_user_emails}"
+    )
