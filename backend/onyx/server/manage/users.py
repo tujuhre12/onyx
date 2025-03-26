@@ -36,7 +36,6 @@ from onyx.auth.users import optional_user
 from onyx.configs.app_configs import AUTH_BACKEND
 from onyx.configs.app_configs import AUTH_TYPE
 from onyx.configs.app_configs import AuthBackend
-from onyx.configs.app_configs import DEV_MODE
 from onyx.configs.app_configs import ENABLE_EMAIL_INVITES
 from onyx.configs.app_configs import REDIS_AUTH_KEY_PREFIX
 from onyx.configs.app_configs import SESSION_EXPIRE_TIME_SECONDS
@@ -313,7 +312,9 @@ def bulk_invite_users(
             detail=f"Invalid email address: {email} - {str(e)}",
         )
 
-    if MULTI_TENANT and not DEV_MODE:
+    print("ADDING?")
+    if MULTI_TENANT:
+        print("ADDING TO TENANT")
         try:
             fetch_ee_implementation_or_noop(
                 "onyx.server.tenants.provisioning", "add_users_to_tenant", None
