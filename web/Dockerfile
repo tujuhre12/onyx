@@ -27,9 +27,6 @@ COPY . .
 # Install dependencies
 RUN npm ci
 
-# Install Sharp with platform-specific dependencies for Alpine Linux on ARM64
-RUN npm install --platform=linuxmusl --arch=arm64 sharp
-
 # needed to get the `standalone` dir we expect later
 ENV NEXT_PRIVATE_STANDALONE=true
 
