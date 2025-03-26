@@ -71,7 +71,9 @@ def fetch_billing_information(
     return BillingInformation(**response_data)
 
 
-def register_tenant_users(tenant_id: str, number_of_users: int) -> stripe.Subscription:
+def register_tenant_users(
+    tenant_id: str, number_of_users: int
+) -> stripe.Subscription | None:
     """
     Send a request to the control service to register the number of users for a tenant.
     """
