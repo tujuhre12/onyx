@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from datetime import datetime
 from datetime import timedelta
+from datetime import timezone
 from typing import Any
 from typing import cast
 from typing import Tuple
@@ -1089,3 +1090,19 @@ def log_agent_sub_question_results(
             db_session.commit()
 
     return None
+
+
+def update_chat_session_timestamp(chat_session_id: UUID, db_session: Session) -> None:
+    """
+    Explicitly update the timestamp on a chat session without modifying other fields.
+    This is useful when adding messages to a chat session to reflect recent activity.
+    """
+
+    # Direct SQL update to avoid loading the entire object if it's not already loaded
+    # This is more efficient and clearly shows the intent
+    db_session.execute(
+        update(ChatSession)
+        .where(ChatSession.id == chat_session_id)
+        .values(time_updated=datetime.now(timezone.utc))
+    )
+    # No commit - the caller is responsible for committing the transaction
