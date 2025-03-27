@@ -100,7 +100,8 @@ def test_include_shared_drives_only_with_size_threshold(
 
     retrieved_docs = load_all_docs(connector)
 
-    assert len(retrieved_docs) == 50
+    # 2 extra files from shared drive owned by non-admin and not shared with admin
+    assert len(retrieved_docs) == 52
 
 
 @patch(
@@ -137,7 +138,8 @@ def test_include_shared_drives_only(
         + SECTIONS_FILE_IDS
     )
 
-    assert len(retrieved_docs) == 51
+    # 2 extra files from shared drive owned by non-admin and not shared with admin
+    assert len(retrieved_docs) == 53
 
     assert_expected_docs_in_retrieved_docs(
         retrieved_docs=retrieved_docs,
