@@ -29,6 +29,9 @@ COPY . .
 # Install dependencies
 RUN npm ci
 
+# Install platform-specific sharp for linuxmusl-arm64
+RUN npm install --os=linux --libc=musl --cpu=arm64 sharp
+
 # needed to get the `standalone` dir we expect later
 ENV NEXT_PRIVATE_STANDALONE=true
 
