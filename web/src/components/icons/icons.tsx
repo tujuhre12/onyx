@@ -1,4 +1,13 @@
 "use client";
+
+import Icon from "@mdi/react";
+import {
+  mdiFilePdfBox,
+  mdiFilePngBox,
+  mdiFileWordBox,
+  mdiFileXmlBox,
+} from "@mdi/js";
+
 import {
   Notebook,
   Key,
@@ -3348,12 +3357,11 @@ export const PDFIcon = ({
   className = defaultTailwindCSS,
 }: IconProps) => {
   return (
-    <></>
-    // <Icon
-    //   style={{ width: `${size}px`, height: `${size}px` }}
-    //   className={`text-red-500 w-[${size}px] h-[${size}px] ` + className}
-    //   path={mdiFilePdfBox}
-    // />
+    <Icon
+      style={{ width: `${size}px`, height: `${size}px` }}
+      className={`text-red-500 w-[${size}px] h-[${size}px] ` + className}
+      path={mdiFilePdfBox}
+    />
   );
 };
 
@@ -3381,12 +3389,11 @@ export const DOCIcon = ({
   className = defaultTailwindCSS,
 }: IconProps) => {
   return (
-    <></>
-    // <Icon
-    //   style={{ width: `${size}px`, height: `${size}px` }}
-    //   className={`text-blue-600 w-[${size}px] h-[${size}px] ` + className}
-    //   path={mdiFileWordBox}
-    // />
+    <Icon
+      style={{ width: `${size}px`, height: `${size}px` }}
+      className={`text-blue-600 w-[${size}px] h-[${size}px] ` + className}
+      path={mdiFileWordBox}
+    />
   );
 };
 
@@ -3434,12 +3441,11 @@ export const ImagesIcon = ({
   className = defaultTailwindCSS,
 }: IconProps) => {
   return (
-    <></>
-    // <Icon
-    //   style={{ width: `${size}px`, height: `${size}px` }}
-    //   className={`text-blue-600 w-[${size}px] h-[${size}px] ` + className}
-    //   path={mdiFilePngBox}
-    // />
+    <Icon
+      style={{ width: `${size}px`, height: `${size}px` }}
+      className={`text-blue-600 w-[${size}px] h-[${size}px] ` + className}
+      path={mdiFilePngBox}
+    />
   );
 };
 
@@ -3448,12 +3454,11 @@ export const XMLIcon = ({
   className = defaultTailwindCSS,
 }: IconProps) => {
   return (
-    <></>
-    // <Icon
-    //   style={{ width: `${size}px`, height: `${size}px` }}
-    //   className={`text-teal-500 w-[${size}px] h-[${size}px] ` + className}
-    //   path={mdiFileXmlBox}
-    // />
+    <Icon
+      style={{ width: `${size}px`, height: `${size}px` }}
+      className={`text-teal-500 w-[${size}px] h-[${size}px] ` + className}
+      path={mdiFileXmlBox}
+    />
   );
 };
 export const FolderMoveIcon = ({
