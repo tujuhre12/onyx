@@ -44,8 +44,6 @@ import metaSVG from "../../../public/Meta.svg";
 import mistralSVG from "../../../public/Mistral.svg";
 import openSourceIcon from "../../../public/OpenSource.png";
 import litellmIcon from "../../../public/litellm.png";
-
-import awsWEBP from "../../../public/Amazon.png";
 import azureIcon from "../../../public/Azure.png";
 import asanaIcon from "../../../public/Asana.png";
 import anthropicSVG from "../../../public/Anthropic.svg";
@@ -53,7 +51,6 @@ import nomicSVG from "../../../public/nomic.svg";
 import microsoftIcon from "../../../public/microsoft.png";
 import microsoftSVG from "../../../public/Microsoft.svg";
 import mixedBreadSVG from "../../../public/Mixedbread.png";
-
 import OCIStorageSVG from "../../../public/OCI.svg";
 import googleCloudStorageIcon from "../../../public/GoogleCloudStorage.png";
 import guruIcon from "../../../public/Guru.svg";
@@ -69,7 +66,6 @@ import egnyteIcon from "../../../public/Egnyte.png";
 import slackIcon from "../../../public/Slack.png";
 import discordIcon from "../../../public/discord.png";
 import airtableIcon from "../../../public/Airtable.svg";
-
 import s3Icon from "../../../public/S3.png";
 import r2Icon from "../../../public/r2.png";
 import salesforceIcon from "../../../public/Salesforce.png";
