@@ -86,13 +86,18 @@ def _extract_ids_from_urls(urls: list[str]) -> list[str]:
 
 def _convert_single_file(
     creds: Any,
-    primary_admin_email: str,
     allow_images: bool,
     size_threshold: int,
+    retriever_email: str,
     file: dict[str, Any],
 ) -> Document | ConnectorFailure | None:
-    user_email = file.get("owners", [{}])[0].get("emailAddress") or primary_admin_email
+    # We used to always get the user email from the file owners when available,
+    # but this was causing issues with shared folders where the owner was not included in the service account
+    # now we use the email of the account that successfully listed the file. Leaving this in case we end up
+    # wanting to retry with file owners and/or admin email at some point.
+    # user_email = file.get("owners", [{}])[0].get("emailAddress") or primary_admin_email
 
+    user_email = retriever_email
     # Only construct these services when needed
     user_drive_service = lazy_eval(
         lambda: get_drive_service(creds, user_email=user_email)
@@ -916,20 +921,28 @@ class GoogleDriveConnector(SlimConnector, CheckpointConnector[GoogleDriveCheckpo
             convert_func = partial(
                 _convert_single_file,
                 self.creds,
-                self.primary_admin_email,
                 self.allow_images,
                 self.size_threshold,
             )
             # Fetch files in batches
             batches_complete = 0
-            files_batch: list[GoogleDriveFileType] = []
+            files_batch: list[RetrievedDriveFile] = []
 
             def _yield_batch(
-                files_batch: list[GoogleDriveFileType],
+                files_batch: list[RetrievedDriveFile],
             ) -> Iterator[Document | ConnectorFailure]:
                 nonlocal batches_complete
                 # Process the batch using run_functions_tuples_in_parallel
-                func_with_args = [(convert_func, (file,)) for file in files_batch]
+                func_with_args = [
+                    (
+                        convert_func,
+                        (
+                            file.user_email,
+                            file.drive_file,
+                        ),
+                    )
+                    for file in files_batch
+                ]
                 results = cast(
                     list[Document | ConnectorFailure | None],
                     run_functions_tuples_in_parallel(func_with_args, max_workers=8),
@@ -967,7 +980,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointConnector[GoogleDriveCheckpo
                     )
 
                     continue
-                files_batch.append(retrieved_file.drive_file)
+                files_batch.append(retrieved_file)
 
                 if len(files_batch) < self.batch_size:
                     continue
