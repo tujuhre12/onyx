@@ -76,6 +76,7 @@ def is_gdrive_image_mime_type(mime_type: str) -> bool:
     """
     return is_valid_image_type(mime_type)
 
+
 def download_request(service: GoogleDriveService, file_id: str) -> bytes:
     """
     Download the file from Google Drive.
@@ -94,6 +95,7 @@ def download_request(service: GoogleDriveService, file_id: str) -> bytes:
         logger.warning(f"Failed to download {file_id}")
         return bytes()
     return response
+
 
 def _download_and_extract_sections_basic(
     file: dict[str, str],
