@@ -38,7 +38,7 @@ export default function IndexAttemptErrorsModal({
   pageSize = DEFAULT_PAGE_SIZE,
 }: IndexAttemptErrorsModalProps) {
   const totalPages = Math.ceil(errors.total_items / pageSize);
-  const hasUnresolvedErrors = errors.items.some((error) => !error.is_resolved);
+  const hasUnresolvedErrors = errors.items.some((error) => !error.resolved);
 
   return (
     <Modal title="Indexing Errors" onOutsideClick={onClose} width="max-w-6xl">
