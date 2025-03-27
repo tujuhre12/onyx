@@ -20,17 +20,22 @@ RUN apk add --no-cache libc6-compat
 RUN apk add --no-cache build-base gcc autoconf automake libtool pkgconfig nasm vips-dev
 WORKDIR /app
 
+# Set Sharp-specific environment variables for cross-platform support
+ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
+ENV npm_config_arch=arm64
+ENV npm_config_platform=linux
+ENV npm_config_libc=musl
+
 # Add NODE_OPTIONS argument
 ARG NODE_OPTIONS
 
 # pull in source code / package.json / package-lock.json
 COPY . .
 
-# Install dependencies
+# Clean and reinstall dependencies with sharp properly configured
 RUN npm ci
-
-# Install platform-specific sharp for linuxmusl-arm64
-RUN npm install --os=linux --libc=musl --cpu=arm64 sharp
+RUN rm -rf node_modules/sharp
+RUN npm install --platform=linux --arch=arm64 --libc=musl sharp
 
 # needed to get the `standalone` dir we expect later
 ENV NEXT_PRIVATE_STANDALONE=true
