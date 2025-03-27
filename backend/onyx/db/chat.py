@@ -1,7 +1,6 @@
 from collections.abc import Sequence
 from datetime import datetime
 from datetime import timedelta
-from datetime import timezone
 from typing import Any
 from typing import cast
 from typing import Tuple
@@ -1104,6 +1103,6 @@ def update_chat_session_updated_at_timestamp(
     db_session.execute(
         update(ChatSession)
         .where(ChatSession.id == chat_session_id)
-        .values(time_updated=datetime.now(timezone.utc))
+        .values(time_updated=func.now())
     )
     # No commit - the caller is responsible for committing the transaction
