@@ -17,6 +17,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@headlessui/react": "^2.2.0",
     "@headlessui/tailwindcss": "^0.2.1",
+    "@mdi/react": "^1.6.1",
     "@phosphor-icons/react": "^2.0.8",
     "@playwright/test": "^1.51.1",
     "@radix-ui/react-accordion": "^1.2.2",
