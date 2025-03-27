@@ -102,7 +102,9 @@ export function SyncStatusTable({
               <TableRow>
                 <TableHead>Time</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead></TableHead>
                 <TableHead>Docs Processed</TableHead>
+                <TableHead>Error</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -121,6 +123,8 @@ export function SyncStatusTable({
                     <TableCell>
                       <AttemptStatus status={record.sync_status as any} />
                     </TableCell>
+                    <TableCell></TableCell>
+
                     <TableCell>{record.num_docs_synced}</TableCell>
                   </TableRow>
                 ))

@@ -38,7 +38,6 @@ export const UserGroupCreationForm = ({
         <h2 className="text-xl font-bold flex">
           {isUpdate ? "Update a User Group" : "Create a new User Group"}
         </h2>
-        {JSON.stringify(ccPairs)}
 
         <Separator />
 

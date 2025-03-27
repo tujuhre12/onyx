@@ -81,7 +81,7 @@ export function GroupSyncStatusTable({
           <div className="text-sm">
             <span className="flex items-center text-green-600 dark:text-green-400">
               <CheckCircle className="h-4 w-4 mr-1 inline" />
-              Group sync enabled • {totalUsersSynced} users synced
+              Groups synced
             </span>
           </div>
         </div>
@@ -101,6 +101,7 @@ export function GroupSyncStatusTable({
                 <TableHead>Time</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Docs Processed</TableHead>
+                <TableHead>Error</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
