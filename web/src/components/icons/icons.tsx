@@ -1311,11 +1311,6 @@ export const ProductboardIcon = ({
   <LogoIcon size={size} className={className} src="/Productboard.webp" />
 );
 
-export const AWSIcon = ({
-  size = 16,
-  className = defaultTailwindCSS,
-}: IconProps) => <LogoIcon size={size} className={className} src={awsWEBP} />;
-
 export const AzureIcon = ({
   size = 16,
   className = defaultTailwindCSS,
