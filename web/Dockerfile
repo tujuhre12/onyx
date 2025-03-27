@@ -16,6 +16,8 @@ RUN echo "ONYX_VERSION: ${ONYX_VERSION}"
 FROM base AS builder
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
+# Install dependencies required for sharp image processing
+RUN apk add --no-cache build-base gcc autoconf automake libtool pkgconfig nasm vips-dev
 WORKDIR /app
 
 # Add NODE_OPTIONS argument
