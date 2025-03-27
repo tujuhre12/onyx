@@ -16,15 +16,7 @@ RUN echo "ONYX_VERSION: ${ONYX_VERSION}"
 FROM base AS builder
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
-# Install dependencies required for sharp image processing
-RUN apk add --no-cache build-base gcc autoconf automake libtool pkgconfig nasm vips-dev
 WORKDIR /app
-
-# Set Sharp-specific environment variables for cross-platform support
-ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
-ENV npm_config_arch=arm64
-ENV npm_config_platform=linux
-ENV npm_config_libc=musl
 
 # Add NODE_OPTIONS argument
 ARG NODE_OPTIONS
@@ -32,10 +24,8 @@ ARG NODE_OPTIONS
 # pull in source code / package.json / package-lock.json
 COPY . .
 
-# Clean and reinstall dependencies with sharp properly configured
+# Install dependencies
 RUN npm ci
-RUN rm -rf node_modules/sharp
-RUN npm install --platform=linux --arch=arm64 --libc=musl sharp
 
 # needed to get the `standalone` dir we expect later
 ENV NEXT_PRIVATE_STANDALONE=true
@@ -186,4 +176,3 @@ ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
 # expose via cli
 
 CMD ["node", "server.js"]
-
