@@ -53,13 +53,12 @@ def test_send_message_simple_with_history(reset: None) -> None:
     response_json = response.json()
 
     # Check that the top document is the correct document
-    assert response_json["simple_search_docs"][0]["id"] == cc_pair_1.documents[0].id
     assert response_json["top_documents"][0]["document_id"] == cc_pair_1.documents[0].id
 
     # assert that the metadata is correct
     for doc in cc_pair_1.documents:
         found_doc = next(
-            (x for x in response_json["simple_search_docs"] if x["id"] == doc.id), None
+            (x for x in response_json["top_documents"] if x["id"] == doc.id), None
         )
         assert found_doc
         assert found_doc["metadata"]["document_id"] == doc.id
