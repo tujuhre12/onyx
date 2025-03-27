@@ -500,11 +500,6 @@ function Main({ ccPairId }: { ccPairId: number }) {
             </Button>
           )}
         </div>
-        {ccPair.last_time_perm_sync && (
-          <div className="text-sm text-muted-foreground mb-2">
-            Last synced: {new Date(ccPair.last_time_perm_sync).toLocaleString()}
-          </div>
-        )}
         {syncStatus && (
           <SyncStatusTable
             ccPair={ccPair}

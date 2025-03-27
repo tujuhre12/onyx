@@ -43,7 +43,6 @@ export interface CCPairFullInfo {
   indexing: boolean;
   creator: UUID | null;
   creator_email: string | null;
-  last_time_perm_sync: string | null;
 }
 
 export interface PaginatedIndexAttempts {
@@ -54,20 +53,27 @@ export interface PaginatedIndexAttempts {
 
 export interface IndexAttemptError {
   id: number;
-  index_attempt_id: number;
-  document_id: string;
-  error_type: string;
-  error_message: string;
-  resolved: boolean;
+  connector_credential_pair_id: number;
+
+  document_id: string | null;
+  document_link: string | null;
+
+  entity_id: string | null;
+  failed_time_range_start: string | null;
+  failed_time_range_end: string | null;
+
+  failure_message: string;
+  is_resolved: boolean;
+
   time_created: string;
-  time_updated: string;
+
+  index_attempt_id: number;
 }
 
 export interface PaginatedIndexAttemptErrors {
   items: IndexAttemptError[];
   total_items: number;
 }
-
 export interface SyncRecord {
   id: number;
   entity_id: number;
