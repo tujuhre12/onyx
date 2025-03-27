@@ -6,9 +6,8 @@ import {
   mdiFilePngBox,
   mdiFileXmlBox,
 } from "@mdi/js";
+
 import {
-  Notebook,
-  Key,
   Trash,
   XSquare,
   LinkBreak,
@@ -41,7 +40,7 @@ import {
   FiBarChart2,
 } from "react-icons/fi";
 import { SiBookstack } from "react-icons/si";
-import Image, { StaticImageData } from "next/image";
+import { StaticImageData } from "next/image";
 import jiraSVG from "../../../public/Jira.svg";
 import confluenceSVG from "../../../public/Confluence.svg";
 import deepseekSVG from "../../../public/Deepseek.svg";
