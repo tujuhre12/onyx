@@ -45,7 +45,7 @@ import mistralSVG from "../../../public/Mistral.svg";
 import openSourceIcon from "../../../public/OpenSource.png";
 import litellmIcon from "../../../public/litellm.png";
 
-import awsWEBP from "../../../public/Amazon.webp";
+import awsWEBP from "../../../public/Amazon.png";
 import azureIcon from "../../../public/Azure.png";
 import asanaIcon from "../../../public/Asana.png";
 import anthropicSVG from "../../../public/Anthropic.svg";
@@ -67,7 +67,7 @@ import zendeskIcon from "../../../public/Zendesk.svg";
 import dropboxIcon from "../../../public/Dropbox.png";
 import egnyteIcon from "../../../public/Egnyte.png";
 import slackIcon from "../../../public/Slack.png";
-import discordIcon from "../../../public/discord.webp";
+import discordIcon from "../../../public/discord.png";
 import airtableIcon from "../../../public/Airtable.svg";
 
 import s3Icon from "../../../public/S3.png";
@@ -84,8 +84,7 @@ import wikipediaIcon from "../../../public/Wikipedia.png";
 import discourseIcon from "../../../public/Discourse.png";
 import clickupIcon from "../../../public/Clickup.svg";
 import cohereIcon from "../../../public/Cohere.svg";
-import voyageIcon from "../../../public/Voyage.png";
-import googleIcon from "../../../public/Google.webp";
+import googleIcon from "../../../public/Google.png";
 import xenforoIcon from "../../../public/Xenforo.svg";
 import highspotIcon from "../../../public/Highspot.png";
 import { FaGithub, FaRobot } from "react-icons/fa";
