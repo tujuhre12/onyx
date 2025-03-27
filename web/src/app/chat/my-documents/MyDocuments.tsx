@@ -3,32 +3,29 @@
 import React, { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Search,
   Plus,
   FolderOpen,
-  Loader2,
   MessageSquare,
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePopup } from "@/components/admin/connectors/Popup";
-import { PageSelector } from "@/components/PageSelector";
 import { SharedFolderItem } from "./components/SharedFolderItem";
 import CreateEntityModal from "@/components/modals/CreateEntityModal";
 import { useDocumentsContext } from "./DocumentsContext";
-import { SortIcon } from "@/components/icons/icons";
 import TextView from "@/components/chat/TextView";
-import { getDisplayNameForModel } from "@/lib/hooks";
 import { TokenDisplay } from "@/components/TokenDisplay";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useLlmManager } from "@/lib/hooks";
 import { useChatContext } from "@/components/context/ChatContext";
+import {
+  PDFIcon,
+  TXTIcon,
+  DOCIcon,
+  HTMLIcon,
+  JSONIcon,
+  ImagesIcon,
+  XMLIcon,
+} from "@/components/icons/icons";
 
 enum SortType {
   TimeCreated = "Time Created",
@@ -348,6 +345,7 @@ export default function MyDocuments() {
           />
         </div>
       </header>
+
       <main className="w-full pt-3 -mt-[1px]">
         <div className="mb-6">
           <div className="relative w-full max-w-xl">

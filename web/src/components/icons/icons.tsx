@@ -1,11 +1,4 @@
 "use client";
-import { Icon } from "@mdi/react";
-import {
-  mdiFilePdfBox,
-  mdiFileWordBox,
-  mdiFilePngBox,
-  mdiFileXmlBox,
-} from "@mdi/js";
 
 import {
   Trash,
@@ -3349,16 +3342,80 @@ export const FileOptionIcon = ({
     </svg>
   );
 };
+
 export const PDFIcon = ({
   size = 24,
   className = defaultTailwindCSS,
 }: IconProps) => {
   return (
-    <Icon
+    <svg
       style={{ width: `${size}px`, height: `${size}px` }}
       className={`text-red-500 w-[${size}px] h-[${size}px] ` + className}
-      path={mdiFilePdfBox}
-    />
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3M9.5 11.5C9.5 12.3 8.8 13 8 13H7V15H5.5V9H8C8.8 9 9.5 9.7 9.5 10.5V11.5M14.5 13.5C14.5 14.3 13.8 15 13 15H10.5V9H13C13.8 9 14.5 9.7 14.5 10.5V13.5M18.5 10.5H17V11.5H18.5V13H17V15H15.5V9H18.5V10.5M12 10.5H13V13.5H12V10.5M7 10.5H8V11.5H7V10.5Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+};
+
+export const DOCIcon = ({
+  size = 24,
+  className = defaultTailwindCSS,
+}: IconProps) => {
+  return (
+    <svg
+      style={{ width: `${size}px`, height: `${size}px` }}
+      className={`text-blue-600 w-[${size}px] h-[${size}px] ` + className}
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M15.5,17H14L12,9.5L10,17H8.5L6.1,7H7.8L9.34,14.5L11.3,7H12.7L14.67,14.5L16.2,7H17.9M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+};
+
+export const ImagesIcon = ({
+  size = 24,
+  className = defaultTailwindCSS,
+}: IconProps) => {
+  return (
+    <svg
+      style={{ width: `${size}px`, height: `${size}px` }}
+      className={`text-blue-600 w-[${size}px] h-[${size}px] ` + className}
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3M9 11.5C9 12.3 8.3 13 7.5 13H6.5V15H5V9H7.5C8.3 9 9 9.7 9 10.5V11.5M14 15H12.5L11.5 12.5V15H10V9H11.5L12.5 11.5V9H14V15M19 10.5H16.5V13.5H17.5V12H19V13.7C19 14.4 18.5 15 17.7 15H16.4C15.6 15 15.1 14.3 15.1 13.7V10.4C15 9.7 15.5 9 16.3 9H17.6C18.4 9 18.9 9.7 18.9 10.3V10.5H19M6.5 10.5H7.5V11.5H6.5V10.5Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+};
+
+export const XMLIcon = ({
+  size = 24,
+  className = defaultTailwindCSS,
+}: IconProps) => {
+  return (
+    <svg
+      style={{ width: `${size}px`, height: `${size}px` }}
+      className={`text-teal-500 w-[${size}px] h-[${size}px] ` + className}
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M19 3H5C3.89 3 3 3.89 3 5V19C3 20.11 3.89 21 5 21H19C20.11 21 21 20.11 21 19V5C21 3.89 20.11 3 19 3M8 15H6.5L6 13L5.5 15H4L4.75 12L4 9H5.5L6 11L6.5 9H8L7.25 12L8 15M15.5 15H14V10.5H13V14H11.5V10.5H10.5V15H9V11C9 9.9 9.9 9 11 9H13.5C14.61 9 15.5 9.9 15.5 11V15M20 15H17V9H18.5V13.5H20V15Z"
+        fill="currentColor"
+      />
+    </svg>
   );
 };
 
@@ -3378,19 +3435,6 @@ export const TXTIcon = ({
     >
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM9.998 14.768H8.895v3.274h-.917v-3.274H6.893V14h3.105v.768zm2.725 3.274-.365-.731c-.15-.282-.246-.492-.359-.726h-.013c-.083.233-.185.443-.312.726l-.335.731h-1.045l1.171-2.045L10.336 14h1.05l.354.738c.121.245.21.443.306.671h.013c.096-.258.174-.438.276-.671l.341-.738h1.043l-1.139 1.973 1.198 2.069h-1.055zm4.384-3.274h-1.104v3.274h-.917v-3.274h-1.085V14h3.105v.768zM14 9h-1V4l5 5h-4z"></path>
     </svg>
-  );
-};
-
-export const DOCIcon = ({
-  size = 24,
-  className = defaultTailwindCSS,
-}: IconProps) => {
-  return (
-    <Icon
-      style={{ width: `${size}px`, height: `${size}px` }}
-      className={`text-blue-600 w-[${size}px] h-[${size}px] ` + className}
-      path={mdiFileWordBox}
-    />
   );
 };
 
@@ -3433,31 +3477,6 @@ export const JSONIcon = ({
   );
 };
 
-export const ImagesIcon = ({
-  size = 24,
-  className = defaultTailwindCSS,
-}: IconProps) => {
-  return (
-    <Icon
-      style={{ width: `${size}px`, height: `${size}px` }}
-      className={`text-blue-600 w-[${size}px] h-[${size}px] ` + className}
-      path={mdiFilePngBox}
-    />
-  );
-};
-
-export const XMLIcon = ({
-  size = 24,
-  className = defaultTailwindCSS,
-}: IconProps) => {
-  return (
-    <Icon
-      style={{ width: `${size}px`, height: `${size}px` }}
-      className={`text-teal-500 w-[${size}px] h-[${size}px] ` + className}
-      path={mdiFileXmlBox}
-    />
-  );
-};
 export const FolderMoveIcon = ({
   size = 24,
   className = defaultTailwindCSS,
