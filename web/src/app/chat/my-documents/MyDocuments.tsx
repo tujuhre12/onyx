@@ -316,7 +316,11 @@ export default function MyDocuments() {
     )
   );
 
-  const selectedModel = modelDescriptors[0];
+  const selectedModel = modelDescriptors[0] || {
+    modelName: "Unknown",
+    provider: "Unknown",
+    maxTokens: 0,
+  };
   const maxTokens = selectedModel.maxTokens;
   const tokenPercentage = (totalTokens / maxTokens) * 100;
 
