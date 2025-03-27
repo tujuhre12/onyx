@@ -128,10 +128,10 @@ export const LogoIcon = ({
   className = defaultTailwindCSS,
   src,
 }: LogoIconProps) => (
-  <Image
+  <img
     style={{ width: `${size}px`, height: `${size}px` }}
     className={`w-[${size}px] h-[${size}px] ` + className}
-    src={src}
+    src={src as string}
     alt="Logo"
     width="96"
     height="96"
