@@ -86,7 +86,7 @@ class SyncRecordSnapshot(BaseModel):
             sync_type=sync_record.sync_type,
             created_at=sync_record.sync_start_time,
             num_docs_synced=sync_record.num_docs_synced,
-            sync_status=sync_record.status,
+            sync_status=sync_record.sync_status,
         )
 
 

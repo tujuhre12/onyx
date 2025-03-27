@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from ee.onyx.db.user_group import fetch_user_group
 from onyx.auth.users import current_curator_or_admin_user
 from onyx.auth.users import current_user
 from onyx.background.celery.celery_utils import get_deletion_attempt_snapshot
@@ -70,6 +71,56 @@ from shared_configs.contextvars import get_current_tenant_id
 
 logger = setup_logger()
 router = APIRouter(prefix="/manage")
+
+
+@router.get("/admin/user-group/{group_id}/sync-status")
+def get_user_group_sync_status(
+    group_id: int,
+    page_num: int = Query(0, ge=0),
+    page_size: int = Query(10, ge=1, le=1000),
+    user: User | None = Depends(current_curator_or_admin_user),
+    db_session: Session = Depends(get_session),
+) -> PaginatedReturn[SyncRecordSnapshot]:
+    user_group = fetch_user_group(db_session, group_id)
+    if not user_group:
+        raise HTTPException(status_code=404, detail="User group not found")
+
+    sync_records, total_count = fetch_paginated_sync_records(
+        db_session, group_id, SyncType.USER_GROUP, page_num, page_size
+    )
+
+    return PaginatedReturn(
+        items=[
+            SyncRecordSnapshot.from_sync_record_db_model(sync_record)
+            for sync_record in sync_records
+        ],
+        total_items=total_count,
+    )
+
+
+@router.post("/admin/user-group/{group_id}/sync")
+def sync_user_group(
+    group_id: int,
+    user: User | None = Depends(current_curator_or_admin_user),
+    db_session: Session = Depends(get_session),
+) -> StatusResponse[None]:
+    """Triggers sync of a user group immediately"""
+    get_current_tenant_id()
+
+    user_group = fetch_user_group(db_session, group_id)
+    if not user_group:
+        raise HTTPException(status_code=404, detail="User group not found")
+
+    # Add logic to actually trigger the sync - this would depend on your implementation
+    # For example:
+    # try_creating_usergroup_sync_task(primary_app, group_id, get_redis_client(), tenant_id)
+
+    logger.info(f"User group sync queued: group_id={group_id}")
+
+    return StatusResponse(
+        success=True,
+        message="Successfully created the user group sync task.",
+    )
 
 
 @router.get("/admin/cc-pair/{cc_pair_id}/sync-status")

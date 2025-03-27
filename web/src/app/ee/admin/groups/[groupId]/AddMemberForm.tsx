@@ -44,7 +44,7 @@ export const AddMemberForm: React.FC<AddMemberFormProps> = ({
             ];
             const response = await updateUserGroup(userGroup.id, {
               user_ids: newUserIds,
-              cc_pair_ids: userGroup.cc_pairs.map((ccPair) => ccPair.id),
+              cc_pair_ids: userGroup.cc_pairs.map((ccPair) => ccPair),
             });
             if (response.ok) {
               setPopup({
