@@ -299,10 +299,10 @@ def list_llm_provider_basics(
     start_time = datetime.now(timezone.utc)
     logger.debug("Starting to fetch basic LLM providers for user")
 
-    llm_provider_list = []
+    llm_provider_list: list[LLMProviderDescriptor] = []
     for llm_provider_model in fetch_existing_llm_providers_for_user(db_session, user):
         from_model_start = datetime.now(timezone.utc)
-        full_llm_provider = LLMProviderView.from_model(llm_provider_model)
+        full_llm_provider = LLMProviderDescriptor.from_model(llm_provider_model)
         from_model_end = datetime.now(timezone.utc)
         from_model_duration = (from_model_end - from_model_start).total_seconds()
         logger.debug(
