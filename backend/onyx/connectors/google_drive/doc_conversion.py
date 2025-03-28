@@ -112,7 +112,6 @@ def _download_and_extract_sections_basic(
     if not allow_images and is_gdrive_image_mime_type(mime_type):
         return []
 
-<<<<<<< HEAD
     # For Google Docs, Sheets, and Slides, export as plain text
     if mime_type in GOOGLE_MIME_TYPES_TO_EXPORT:
         export_mime_type = GOOGLE_MIME_TYPES_TO_EXPORT[mime_type]
@@ -136,91 +135,31 @@ def _download_and_extract_sections_basic(
 
     # For other file types, download the file
     # Use the correct API call for downloading files
-    request = service.files().get_media(fileId=file_id)
-    response_bytes = io.BytesIO()
-    downloader = MediaIoBaseDownload(response_bytes, request)
-    done = False
-    while not done:
-        _, done = downloader.next_chunk()
-
-    response = response_bytes.getvalue()
-    if not response:
-        logger.warning(f"Failed to download {file_name}")
-        return []
+    response_call = lazy_eval(lambda: download_request(service, file_id))
 
     # Process based on mime type
     if mime_type == "text/plain":
-        text = response.decode("utf-8")
+        text = response_call().decode("utf-8")
         return [TextSection(link=link, text=text)]
-=======
-        # For Google Docs, Sheets, and Slides, export as plain text
-        if mime_type in GOOGLE_MIME_TYPES_TO_EXPORT:
-            export_mime_type = GOOGLE_MIME_TYPES_TO_EXPORT[mime_type]
-            # Use the correct API call for exporting files
-            request = service.files().export_media(
-                fileId=file_id, mimeType=export_mime_type
-            )
-            response_bytes = io.BytesIO()
-            downloader = MediaIoBaseDownload(response_bytes, request)
-            done = False
-            while not done:
-                _, done = downloader.next_chunk()
-
-            response = response_bytes.getvalue()
-            if not response:
-                logger.warning(f"Failed to export {file_name} as {export_mime_type}")
-                return []
-
-            text = response.decode("utf-8")
-            return [TextSection(link=link, text=text)]
-
-        response_call = lazy_eval(lambda: download_request(service, file_id))
-
-        # Process based on mime type
-        if mime_type == "text/plain":
-            text = response_call().decode("utf-8")
-            return [TextSection(link=link, text=text)]
-
-        elif (
-            mime_type
-            == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        ):
-            text, _ = docx_to_text_and_images(io.BytesIO(response_call()))
-            return [TextSection(link=link, text=text)]
-
-        elif (
-            mime_type
-            == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        ):
-            text = xlsx_to_text(io.BytesIO(response_call()))
-            return [TextSection(link=link, text=text)]
-
-        elif (
-            mime_type
-            == "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-        ):
-            text = pptx_to_text(io.BytesIO(response_call()))
-            return [TextSection(link=link, text=text)]
->>>>>>> 6bfb21022 (WIP)
 
     elif (
         mime_type
         == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ):
-        text, _ = docx_to_text_and_images(io.BytesIO(response))
+        text, _ = docx_to_text_and_images(io.BytesIO(response_call()))
         return [TextSection(link=link, text=text)]
 
     elif (
         mime_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ):
-        text = xlsx_to_text(io.BytesIO(response))
+        text = xlsx_to_text(io.BytesIO(response_call()))
         return [TextSection(link=link, text=text)]
 
     elif (
         mime_type
         == "application/vnd.openxmlformats-officedocument.presentationml.presentation"
     ):
-        text = pptx_to_text(io.BytesIO(response))
+        text = pptx_to_text(io.BytesIO(response_call()))
         return [TextSection(link=link, text=text)]
 
     elif is_gdrive_image_mime_type(mime_type):
@@ -230,7 +169,7 @@ def _download_and_extract_sections_basic(
             with get_session_with_current_tenant() as db_session:
                 section, embedded_id = store_image_and_create_section(
                     db_session=db_session,
-                    image_data=response,
+                    image_data=response_call(),
                     file_name=file_id,
                     display_name=file_name,
                     media_type=mime_type,
@@ -243,7 +182,7 @@ def _download_and_extract_sections_basic(
         return sections
 
     elif mime_type == "application/pdf":
-        text, _pdf_meta, images = read_pdf_file(io.BytesIO(response))
+        text, _pdf_meta, images = read_pdf_file(io.BytesIO(response_call()))
         pdf_sections: list[TextSection | ImageSection] = [
             TextSection(link=link, text=text)
         ]
@@ -254,16 +193,9 @@ def _download_and_extract_sections_basic(
                 for idx, (img_data, img_name) in enumerate(images):
                     section, embedded_id = store_image_and_create_section(
                         db_session=db_session,
-<<<<<<< HEAD
                         image_data=img_data,
                         file_name=f"{file_id}_img_{idx}",
                         display_name=img_name or f"{file_name} - image {idx}",
-=======
-                        image_data=response_call(),
-                        file_name=file_id,
-                        display_name=file_name,
-                        media_type=mime_type,
->>>>>>> 6bfb21022 (WIP)
                         file_origin=FileOrigin.CONNECTOR,
                     )
                     pdf_sections.append(section)
@@ -271,57 +203,21 @@ def _download_and_extract_sections_basic(
             logger.error(f"Failed to process PDF images in {file_name}: {e}")
         return pdf_sections
 
-<<<<<<< HEAD
     else:
         # For unsupported file types, try to extract text
+        if mime_type in [
+            "application/vnd.google-apps.video",
+            "application/vnd.google-apps.audio",
+            "application/zip",
+        ]:
+            return []
+        # For unsupported file types, try to extract text
         try:
-            text = extract_file_text(io.BytesIO(response), file_name)
+            text = extract_file_text(io.BytesIO(response_call()), file_name)
             return [TextSection(link=link, text=text)]
         except Exception as e:
             logger.warning(f"Failed to extract text from {file_name}: {e}")
             return []
-=======
-        elif mime_type == "application/pdf":
-            text, _pdf_meta, images = read_pdf_file(io.BytesIO(response_call()))
-            pdf_sections: list[TextSection | ImageSection] = [
-                TextSection(link=link, text=text)
-            ]
-
-            # Process embedded images in the PDF
-            try:
-                with get_session_with_current_tenant() as db_session:
-                    for idx, (img_data, img_name) in enumerate(images):
-                        section, embedded_id = store_image_and_create_section(
-                            db_session=db_session,
-                            image_data=img_data,
-                            file_name=f"{file_id}_img_{idx}",
-                            display_name=img_name or f"{file_name} - image {idx}",
-                            file_origin=FileOrigin.CONNECTOR,
-                        )
-                        pdf_sections.append(section)
-            except Exception as e:
-                logger.error(f"Failed to process PDF images in {file_name}: {e}")
-            return pdf_sections
-
-        else:
-            if mime_type in [
-                "application/vnd.google-apps.video",
-                "application/vnd.google-apps.audio",
-                "application/zip",
-            ]:
-                return []
-            # For unsupported file types, try to extract text
-            try:
-                text = extract_file_text(io.BytesIO(response_call()), file_name)
-                return [TextSection(link=link, text=text)]
-            except Exception as e:
-                logger.warning(f"Failed to extract text from {file_name}: {e}")
-                return []
-
-    except Exception as e:
-        logger.error(f"Error processing file {file_name}: {e}")
-        return []
->>>>>>> 6bfb21022 (WIP)
 
 
 def convert_drive_item_to_document(
