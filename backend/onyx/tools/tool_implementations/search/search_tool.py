@@ -498,13 +498,6 @@ class SearchTool(Tool[SearchToolOverrideKwargs]):
             ),
         )
 
-        # Skip remaining responses that would normally be part of the search pipeline
-        # Just yield empty responses for compatibility
-        yield ToolResponse(
-            id=SEARCH_DOC_CONTENT_ID,
-            response=OnyxContexts(contexts=[]),
-        )
-
         # For fast path, don't trigger any LLM evaluation for relevance
         logger.info(
             "Fast path: Skipping section relevance evaluation to optimize performance"
@@ -556,7 +549,6 @@ def yield_search_responses(
             recency_bias_multiplier=search_query_info.recency_bias_multiplier,
         ),
     )
-
 
     section_relevance: list[SectionRelevancePiece] | None = None
 

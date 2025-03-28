@@ -60,7 +60,7 @@ def _get_access_for_documents(
     doc_access = {}
     for document_id, user_emails, is_public in document_access_info:
         doc_access[document_id] = DocumentAccess.build(
-            user_emails=set([email for email in user_emails if email]),
+            user_emails=[email for email in user_emails if email],
             # MIT version will wipe all groups and external groups on update
             user_groups=[],
             is_public=is_public,
