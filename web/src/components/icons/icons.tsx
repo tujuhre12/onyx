@@ -84,7 +84,7 @@ import googleIcon from "../../../public/Google.png";
 import xenforoIcon from "../../../public/Xenforo.svg";
 import highspotIcon from "../../../public/Highspot.png";
 import { FaGithub, FaRobot } from "react-icons/fa";
-
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 export interface IconProps {
@@ -122,10 +122,10 @@ export const LogoIcon = ({
   className = defaultTailwindCSS,
   src,
 }: LogoIconProps) => (
-  <img
+  <Image
     style={{ width: `${size}px`, height: `${size}px` }}
     className={`w-[${size}px] h-[${size}px] ` + className}
-    src={src as string}
+    src={src}
     alt="Logo"
     width="96"
     height="96"
