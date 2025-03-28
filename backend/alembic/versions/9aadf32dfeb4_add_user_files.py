@@ -95,6 +95,11 @@ def upgrade() -> None:
         sa.Column("is_user_file", sa.Boolean(), nullable=True, default=False),
     )
 
+    # Update existing records to have is_user_file=False instead of NULL
+    op.execute(
+        "UPDATE connector_credential_pair SET is_user_file = FALSE WHERE is_user_file IS NULL"
+    )
+
 
 def downgrade() -> None:
     # Drop the persona__user_folder table
