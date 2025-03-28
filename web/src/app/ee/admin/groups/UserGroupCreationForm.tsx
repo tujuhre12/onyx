@@ -35,7 +35,7 @@ export const UserGroupCreationForm = ({
   );
 
   return (
-    <Modal className="w-fit" onOutsideClick={onClose}>
+    <Modal className="w-fit overflow-visible" onOutsideClick={onClose}>
       <>
         <h2 className="text-xl font-bold flex">
           {isUpdate ? "Update a User Group" : "Create a new User Group"}

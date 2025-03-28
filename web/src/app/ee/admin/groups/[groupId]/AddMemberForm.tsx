@@ -23,7 +23,7 @@ export const AddMemberForm: React.FC<AddMemberFormProps> = ({
 
   return (
     <Modal
-      className="max-w-xl"
+      className="max-w-xl overflow-visible"
       title="Add New User"
       onOutsideClick={() => onClose()}
     >
