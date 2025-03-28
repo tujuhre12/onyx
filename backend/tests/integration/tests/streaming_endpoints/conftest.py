@@ -28,14 +28,14 @@ def document_builder(admin_user: DATestUser) -> DocumentBuilderType:
 
     def _document_builder(contents: list[str]) -> list[SimpleTestDocument]:
         # seed documents
-        docs: list[SimpleTestDocument] = []
-        for content in contents:
-            doc = DocumentManager.seed_doc_with_content(
+        docs: list[SimpleTestDocument] = [
+            DocumentManager.seed_doc_with_content(
                 cc_pair=cc_pair_1,
                 content=content,
                 api_key=api_key,
             )
-            docs.append(doc)
+            for content in contents
+        ]
 
         return docs
 
