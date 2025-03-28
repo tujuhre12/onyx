@@ -32,7 +32,7 @@ test("LLM Ordering and Model Switching", async ({ page }) => {
   await navigateToAssistantInHistorySidebar(
     page,
     "[-3]",
-    "Assistant for generating",
+    "Assistant for generating"
   );
   await sendMessage(page, "Sample message");
   await verifyCurrentModel(page, "GPT 4o");
@@ -80,7 +80,7 @@ test("LLM Ordering and Model Switching", async ({ page }) => {
   await navigateToAssistantInHistorySidebar(
     page,
     "[-3]",
-    "Assistant for generating",
+    "Assistant for generating"
   );
   await verifyCurrentModel(page, "GPT 4o");
 });

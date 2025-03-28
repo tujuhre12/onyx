@@ -39,7 +39,7 @@ async function globalSetup(config: FullConfig) {
   // Ensure we stay on the admin page
   if (admin2TestPage.url() !== "http://localhost:3000/admin/indexing/status") {
     throw new Error(
-      `Admin2 was not able to access the admin page after invitation. Actual URL: ${admin2TestPage.url()}`,
+      `Admin2 was not able to access the admin page after invitation. Actual URL: ${admin2TestPage.url()}`
     );
   }
 

@@ -9,7 +9,7 @@ import {
 // It handles both successful login attempts and potential timeouts, with a retry mechanism
 export async function loginAs(
   page: Page,
-  userType: "admin" | "user" | "admin2",
+  userType: "admin" | "user" | "admin2"
 ) {
   const { email, password } =
     userType === "admin"
@@ -54,7 +54,7 @@ const generateRandomCredentials = () => {
   const randomSpecialChar =
     specialChars[Math.floor(Math.random() * specialChars.length)];
   const randomUpperCase = String.fromCharCode(
-    65 + Math.floor(Math.random() * 26),
+    65 + Math.floor(Math.random() * 26)
   );
   const randomNumber = Math.floor(Math.random() * 10);
 
@@ -93,7 +93,7 @@ export async function inviteAdmin2AsAdmin1(page: Page) {
   // Log all currently visible test ids
   const testIds = await page.evaluate(() => {
     return Array.from(document.querySelectorAll("[data-testid]")).map((el) =>
-      el.getAttribute("data-testid"),
+      el.getAttribute("data-testid")
     );
   });
   console.log("Currently visible test ids:", testIds);

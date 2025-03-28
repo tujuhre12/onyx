@@ -12,7 +12,7 @@ async function verifyAdminPageNavigation(
     paragraphText?: string | RegExp;
     buttonName?: string;
     subHeaderText?: string;
-  },
+  }
 ) {
   await page.goto(`http://localhost:3000/admin/${path}`);
 
@@ -22,7 +22,7 @@ async function verifyAdminPageNavigation(
     });
   } catch (error) {
     console.error(
-      `Failed to find h1 with text "${pageTitle}" for path "${path}"`,
+      `Failed to find h1 with text "${pageTitle}" for path "${path}"`
     );
     // NOTE: This is a temporary measure for debugging the issue
     console.error(await page.content());
@@ -31,19 +31,19 @@ async function verifyAdminPageNavigation(
 
   if (options?.paragraphText) {
     await expect(page.locator("p.text-sm").nth(0)).toHaveText(
-      options.paragraphText,
+      options.paragraphText
     );
   }
 
   if (options?.buttonName) {
     await expect(
-      page.getByRole("button", { name: options.buttonName }),
+      page.getByRole("button", { name: options.buttonName })
     ).toHaveCount(1);
   }
 
   if (options?.subHeaderText) {
     await expect(page.locator("h1.text-lg").nth(0)).toHaveText(
-      options.subHeaderText,
+      options.subHeaderText
     );
   }
 }
@@ -54,7 +54,7 @@ for (const chromaticSnapshot of chromaticSnapshots) {
       page,
       chromaticSnapshot.path,
       chromaticSnapshot.pageTitle,
-      chromaticSnapshot.options,
+      chromaticSnapshot.options
     );
   });
 }

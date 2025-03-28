@@ -4,7 +4,7 @@ import { expect } from "@chromatic-com/playwright";
 export async function navigateToAssistantInHistorySidebar(
   page: Page,
   testId: string,
-  description: string,
+  description: string
 ) {
   await page.getByTestId(`assistant-${testId}`).click();
   try {

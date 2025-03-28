@@ -45,6 +45,10 @@ class LLMProviderDescriptor(BaseModel):
     def from_model(
         cls, llm_provider_model: "LLMProviderModel"
     ) -> "LLMProviderDescriptor":
+        import time
+
+        start_time = time.time()
+
         model_names = (
             llm_provider_model.model_names
             or fetch_models_for_provider(llm_provider_model.provider)
@@ -61,7 +65,8 @@ class LLMProviderDescriptor(BaseModel):
             if model_names is not None
             else None
         )
-        return cls(
+
+        result = cls(
             name=llm_provider_model.name,
             provider=llm_provider_model.provider,
             default_model_name=llm_provider_model.default_model_name,
@@ -73,6 +78,10 @@ class LLMProviderDescriptor(BaseModel):
             default_vision_model=llm_provider_model.default_vision_model,
             display_model_names=llm_provider_model.display_model_names,
         )
+
+        time.time() - start_time
+
+        return result
 
 
 class LLMProvider(BaseModel):

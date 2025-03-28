@@ -7,7 +7,7 @@ import { Locator, Page } from "@playwright/test";
 export async function dragElementAbove(
   sourceLocator: Locator,
   targetLocator: Locator,
-  page: Page,
+  page: Page
 ) {
   // Get bounding boxes
   const sourceBB = await sourceLocator.boundingBox();
@@ -19,7 +19,7 @@ export async function dragElementAbove(
   // Move over source, press mouse down
   await page.mouse.move(
     sourceBB.x + sourceBB.width / 2,
-    sourceBB.y + sourceBB.height * 0.75, // Move to 3/4 down the source element
+    sourceBB.y + sourceBB.height * 0.75 // Move to 3/4 down the source element
   );
   await page.mouse.down();
 
@@ -27,7 +27,7 @@ export async function dragElementAbove(
   await page.mouse.move(
     targetBB.x + targetBB.width / 2,
     targetBB.y + targetBB.height * 0.1, // Move to 1/10 down the target element
-    { steps: 20 }, // Increase steps for smoother drag
+    { steps: 20 } // Increase steps for smoother drag
   );
   await page.mouse.up();
 
@@ -41,7 +41,7 @@ export async function dragElementAbove(
 export async function dragElementBelow(
   sourceLocator: Locator,
   targetLocator: Locator,
-  page: Page,
+  page: Page
 ) {
   // Get bounding boxes
   const sourceBB = await targetLocator.boundingBox();
@@ -53,7 +53,7 @@ export async function dragElementBelow(
   // Move over source, press mouse down
   await page.mouse.move(
     sourceBB.x + sourceBB.width / 2,
-    sourceBB.y + sourceBB.height * 0.25, // Move to 1/4 down the source element
+    sourceBB.y + sourceBB.height * 0.25 // Move to 1/4 down the source element
   );
   await page.mouse.down();
 
@@ -61,7 +61,7 @@ export async function dragElementBelow(
   await page.mouse.move(
     targetBB.x + targetBB.width / 2,
     targetBB.y + targetBB.height + 50, // Move 50 pixels below the target element
-    { steps: 50 }, // Keep the same number of steps for smooth drag
+    { steps: 50 } // Keep the same number of steps for smooth drag
   );
 
   // Hold for a moment to ensure the drag is registered

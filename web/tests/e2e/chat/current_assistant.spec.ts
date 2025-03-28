@@ -17,7 +17,7 @@ test("Assistant Drag and Drop", async ({ page }) => {
       assistants.map(async (assistant) => {
         const nameElement = await assistant.$("p");
         return nameElement ? nameElement.textContent() : "";
-      }),
+      })
     );
   };
 

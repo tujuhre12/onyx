@@ -71,7 +71,7 @@ test.skip("Admin resets own password and logs in with new password", async ({
   console.log("Current URL:", page.url());
   // Log current rows
   const rows = await page.$$eval("tr", (rows) =>
-    rows.map((row) => row.textContent),
+    rows.map((row) => row.textContent)
   );
   console.log("Current rows:", rows);
 

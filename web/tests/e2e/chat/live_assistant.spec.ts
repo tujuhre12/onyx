@@ -19,7 +19,7 @@ test("Chat workflow", async ({ page }) => {
   await navigateToAssistantInHistorySidebar(
     page,
     "[-3]",
-    "Assistant for generating",
+    "Assistant for generating"
   );
   await sendMessage(page, "Hi");
 
@@ -33,7 +33,7 @@ test("Chat workflow", async ({ page }) => {
   await navigateToAssistantInHistorySidebar(
     page,
     "[-1]",
-    "Assistant with no search",
+    "Assistant with no search"
   );
 
   // Verify the URL after selecting the General assistant
