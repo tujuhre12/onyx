@@ -45,7 +45,7 @@ _FIREFLIES_API_QUERY = """
     }
 """
 
-ONE_HOUR = 3600
+ONE_MINUTE = 60
 
 
 def _create_doc_from_transcript(transcript: dict) -> Document | None:
@@ -197,7 +197,7 @@ class FirefliesConnector(PollConnector, LoadConnector):
     ) -> GenerateDocumentsOutput:
         # add some leeway to account for any timezone funkiness and/or bad handling
         # of start time on the Fireflies side
-        start = max(0, start - ONE_HOUR)
+        start = max(0, start - ONE_MINUTE)
         start_datetime = datetime.fromtimestamp(start, tz=timezone.utc).strftime(
             "%Y-%m-%dT%H:%M:%S.000Z"
         )
