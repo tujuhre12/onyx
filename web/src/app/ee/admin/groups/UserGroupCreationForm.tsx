@@ -9,6 +9,7 @@ import { ConnectorEditor } from "./ConnectorEditor";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useState } from "react";
 
 interface UserGroupCreationFormProps {
   onClose: () => void;
@@ -26,6 +27,7 @@ export const UserGroupCreationForm = ({
   existingUserGroup,
 }: UserGroupCreationFormProps) => {
   const isUpdate = existingUserGroup !== undefined;
+  const [newUserEmails, setNewUserEmails] = useState<string[]>([]);
 
   // Filter out ccPairs that aren't access_type "private"
   const privateCcPairs = ccPairs.filter(
@@ -55,7 +57,10 @@ export const UserGroupCreationForm = ({
           onSubmit={async (values, formikHelpers) => {
             formikHelpers.setSubmitting(true);
             let response;
-            response = await createUserGroup(values);
+            response = await createUserGroup({
+              ...values,
+              new_user_emails: newUserEmails,
+            });
             formikHelpers.setSubmitting(false);
             if (response.ok) {
               setPopup({
@@ -123,6 +128,8 @@ export const UserGroupCreationForm = ({
                     }
                     allUsers={users}
                     existingUsers={[]}
+                    newUserEmails={newUserEmails}
+                    setNewUserEmails={setNewUserEmails}
                   />
                 </div>
                 <div className="flex">
