@@ -202,6 +202,9 @@ def delete_ingestion_doc(
         filters=IndexFilters(access_control_list=None, tenant_id=tenant_id),
     )
 
+    # TODO: add error recovery so that if any of these operations fail,
+    #       we can revert back to the original state with all documents
+    #       and chunks intact.
     file_store = get_default_file_store(db_session)
     for chunk in chunks:
         if chunk.image_file_name:
