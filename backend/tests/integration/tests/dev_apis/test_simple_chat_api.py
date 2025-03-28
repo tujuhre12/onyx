@@ -16,10 +16,7 @@ from tests.integration.common_utils.test_models import DATestCCPair
 from tests.integration.common_utils.test_models import DATestUser
 
 
-def test_send_message_simple_with_history(reset: None) -> None:
-    # Creating an admin user (first user created is automatically an admin)
-    admin_user: DATestUser = UserManager.create(name="admin_user")
-
+def test_send_message_simple_with_history(reset: None, admin_user: DATestUser) -> None:
     # create connectors
     cc_pair_1: DATestCCPair = CCPairManager.create_from_scratch(
         user_performing_action=admin_user,
@@ -58,7 +55,8 @@ def test_send_message_simple_with_history(reset: None) -> None:
     # assert that the metadata is correct
     for doc in cc_pair_1.documents:
         found_doc = next(
-            (x for x in response_json["top_documents"] if x["id"] == doc.id), None
+            (x for x in response_json["top_documents"] if x["document_id"] == doc.id),
+            None,
         )
         assert found_doc
         assert found_doc["metadata"]["document_id"] == doc.id
