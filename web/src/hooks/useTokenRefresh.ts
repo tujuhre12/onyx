@@ -18,7 +18,7 @@ export function useTokenRefresh(
   const isFirstLoad = useRef(true);
 
   useEffect(() => {
-    if (!user || user.id === NO_AUTH_USER_ID) return;
+    // if (!user || user.id === NO_AUTH_USER_ID) return;
 
     const refreshTokenPeriodically = async () => {
       try {
