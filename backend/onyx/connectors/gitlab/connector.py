@@ -163,7 +163,8 @@ class GitlabConnector(LoadConnector, PollConnector):
             for attr_name in dir(e):
                 attr = getattr(e, attr_name, None)
                 if (
-                    hasattr(attr, "status_code")
+                    attr is not None
+                    and hasattr(attr, "status_code")
                     and hasattr(attr, "json")
                     and callable(attr.json)
                 ):
