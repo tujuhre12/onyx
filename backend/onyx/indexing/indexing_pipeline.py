@@ -463,7 +463,7 @@ def process_image_sections(documents: list[Document]) -> list[IndexingDocument]:
                 processed_section = Section(
                     link=section.link,
                     image_file_name=section.image_file_name,
-                    text="",  # Initialize with empty string instead of None
+                    text="",  # Initialize with empty string
                 )
 
                 # Try to get image summary
