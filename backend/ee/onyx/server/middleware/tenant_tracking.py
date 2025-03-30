@@ -90,8 +90,6 @@ async def _get_tenant_id_from_request(
             "Token data not found or expired in Redis, defaulting to POSTGRES_DEFAULT_SCHEMA"
         )
 
-        if not is_valid_schema_name(tenant_id):
-            raise HTTPException(status_code=400, detail="Invalid tenant ID format")
         # Return POSTGRES_DEFAULT_SCHEMA, so non-authenticated requests are sent to the default schema
         # The CURRENT_TENANT_ID_CONTEXTVAR is initialized with POSTGRES_DEFAULT_SCHEMA,
         # so we maintain consistency by returning it here when no valid tenant is found.
