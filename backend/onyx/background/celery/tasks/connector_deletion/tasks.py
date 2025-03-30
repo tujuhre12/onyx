@@ -25,14 +25,8 @@ from onyx.configs.constants import OnyxRedisLocks
 from onyx.configs.constants import OnyxRedisSignals
 from onyx.db.connector import fetch_connector_by_id
 from onyx.db.connector_credential_pair import add_deletion_failure_message
-from onyx.db.connector_credential_pair import (
-    delete_connector_credential_pair__no_commit,
-)
 from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
 from onyx.db.connector_credential_pair import get_connector_credential_pairs
-from onyx.db.document import (
-    delete_all_documents_by_connector_credential_pair__no_commit,
-)
 from onyx.db.document import get_document_ids_for_connector_credential_pair
 from onyx.db.document_set import delete_document_set_cc_pair_relationship__no_commit
 from onyx.db.engine import get_session_with_current_tenant
@@ -449,27 +443,15 @@ def monitor_connector_deletion_taskset(
             connector_id_to_delete = cc_pair.connector_id
             credential_id_to_delete = cc_pair.credential_id
 
-            # Explicitly delete document by connector credential pair records before deleting the connector
-            # This is needed because connector_id is a primary key in that table and cascading deletes won't work
-            delete_all_documents_by_connector_credential_pair__no_commit(
-                db_session=db_session,
-                connector_id=connector_id_to_delete,
-                credential_id=credential_id_to_delete,
-            )
+            # No need to explicitly delete DocumentByConnectorCredentialPair records anymore
+            # as we have proper cascade relationships set up in the models
 
-            # Flush to ensure document deletion happens before connector deletion
+            # Flush to ensure all operations happen in sequence
             db_session.flush()
 
-            # Expire the cc_pair to ensure SQLAlchemy doesn't try to manage its state
-            # related to the deleted DocumentByConnectorCredentialPair during commit
-            db_session.expire(cc_pair)
+            # Delete the cc-pair directly
+            db_session.delete(cc_pair)
 
-            # finally, delete the cc-pair
-            delete_connector_credential_pair__no_commit(
-                db_session=db_session,
-                connector_id=connector_id_to_delete,
-                credential_id=credential_id_to_delete,
-            )
             # if there are no credentials left, delete the connector
             connector = fetch_connector_by_id(
                 db_session=db_session,

@@ -752,7 +752,11 @@ class Credential(Base):
     )
     documents_by_credential: Mapped[
         list["DocumentByConnectorCredentialPair"]
-    ] = relationship("DocumentByConnectorCredentialPair", back_populates="credential")
+    ] = relationship(
+        "DocumentByConnectorCredentialPair",
+        back_populates="credential",
+        cascade="all, delete-orphan",
+    )
 
     user: Mapped[User | None] = relationship("User", back_populates="credentials")
 
