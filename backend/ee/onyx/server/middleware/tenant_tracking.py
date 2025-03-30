@@ -82,7 +82,13 @@ async def _get_tenant_id_from_request(
                     "tenant_id", POSTGRES_DEFAULT_SCHEMA
                 )
 
+                if not tenant_id or not is_valid_schema_name(tenant_id):
+                    raise HTTPException(
+                        status_code=400, detail="Invalid tenant ID format"
+                    )
+
                 return tenant_id
+
             except Exception as e:
                 logger.error(f"Error decoding anonymous user cookie: {str(e)}")
                 # Continue and attempt to authenticate
