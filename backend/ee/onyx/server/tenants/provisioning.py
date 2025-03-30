@@ -94,6 +94,7 @@ async def get_or_provision_tenant(
         # Notify control plane if we have created / assigned a new tenant
         if not DEV_MODE:
             await notify_control_plane(tenant_id, email, referral_source)
+
         return tenant_id
 
     except Exception as e:
