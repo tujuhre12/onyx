@@ -44,7 +44,7 @@ async def _get_tenant_id_from_request(
     Attempt to extract tenant_id from:
     1) The API key header
     2) The Redis-based token (stored in Cookie: fastapiusersauth)
-    4) The anonymous user cookie
+    3) The anonymous user cookie
     Fallback: POSTGRES_DEFAULT_SCHEMA
     """
     # Check for API key
@@ -62,7 +62,6 @@ async def _get_tenant_id_from_request(
                 "tenant_id", POSTGRES_DEFAULT_SCHEMA
             )
 
-            # Since token_data.get() can return None, ensure we have a string
             tenant_id = (
                 str(tenant_id_from_payload)
                 if tenant_id_from_payload is not None
@@ -75,13 +74,15 @@ async def _get_tenant_id_from_request(
         # Check for anonymous user cookie
         anonymous_user_cookie = request.cookies.get(ANONYMOUS_USER_COOKIE_NAME)
         if anonymous_user_cookie:
-            print("anonymous_user_cookie", anonymous_user_cookie)
             try:
                 anonymous_user_data = decode_anonymous_user_jwt_token(
                     anonymous_user_cookie
                 )
+                tenant_id = anonymous_user_data.get(
+                    "tenant_id", POSTGRES_DEFAULT_SCHEMA
+                )
 
-                return anonymous_user_data.get("tenant_id", POSTGRES_DEFAULT_SCHEMA)
+                return tenant_id
             except Exception as e:
                 logger.error(f"Error decoding anonymous user cookie: {str(e)}")
                 # Continue and attempt to authenticate
