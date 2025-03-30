@@ -319,7 +319,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             except exceptions.UserAlreadyExists:
                 user = await self.get_by_email(user_create.email)
                 # Handle case where user has used product outside of web and is now creating an account through web
-                if not user.role.is_web_login() and user_create.role.is_web_login():
+                if not user.role.is_web_login and user_create.role.is_web_login:
                     user_update = UserUpdateWithRole(
                         password=user_create.password,
                         is_verified=user_create.is_verified,
@@ -490,7 +490,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                 )
 
             # Handle case where user has used product outside of web and is now creating an account through web
-            if not user.role.is_web_login():
+            if not user.role.is_web_login:
                 await self.user_db.update(
                     user,
                     {
@@ -629,7 +629,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                 self.password_helper.hash(credentials.password)
                 return None
 
-            if not user.role.is_web_login():
+            if not user.role.is_web_login:
                 raise BasicAuthenticationError(
                     detail="NO_WEB_LOGIN_AND_HAS_NO_PASSWORD",
                 )

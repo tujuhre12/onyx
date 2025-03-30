@@ -26,6 +26,7 @@ class UserRole(str, Enum):
     SLACK_USER = "slack_user"
     EXT_PERM_USER = "ext_perm_user"
 
+    @property
     def is_web_login(self) -> bool:
         return self not in [
             UserRole.SLACK_USER,
