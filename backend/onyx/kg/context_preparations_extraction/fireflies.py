@@ -3,9 +3,14 @@ from onyx.configs.kg_configs import KG_OWN_COMPANY
 from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.entities import get_kg_entity_by_document
 from onyx.kg.context_preparations_extraction.models import ContextPreparation
+from onyx.kg.context_preparations_extraction.models import (
+    KGDocumentClassificationPrompt,
+)
 from onyx.kg.models import KGChunkFormat
+from onyx.kg.models import KGClassificationContent
 from onyx.kg.utils.formatting_utils import kg_email_processing
-from onyx.prompts.kg_prompts import FIREFLIES_PREPROCESSING_PROMPT
+from onyx.prompts.kg_prompts import FIREFLIES_CHUNK_PREPROCESSING_PROMPT
+from onyx.prompts.kg_prompts import FIREFLIES_DOCUMENT_CLASSIFICATION_PROMPT
 
 
 def prepare_llm_content_fireflies(chunk: KGChunkFormat) -> ContextPreparation:
@@ -69,7 +74,7 @@ def prepare_llm_content_fireflies(chunk: KGChunkFormat) -> ContextPreparation:
     participant_string = "\n  - " + "\n  - ".join(company_participant_emails)
     account_participant_string = "\n  - " + "\n  - ".join(account_participant_emails)
 
-    llm_context = FIREFLIES_PREPROCESSING_PROMPT.format(
+    llm_context = FIREFLIES_CHUNK_PREPROCESSING_PROMPT.format(
         participant_string=participant_string,
         account_participant_string=account_participant_string,
         content=content,
@@ -82,3 +87,63 @@ def prepare_llm_content_fireflies(chunk: KGChunkFormat) -> ContextPreparation:
         implied_relationships=list(implied_relationships),
         implied_terms=[],
     )
+
+
+def prepare_llm_document_content_fireflies(
+    document_classification_content: KGClassificationContent,
+    category_list: str,
+    category_definition_string: str,
+) -> KGDocumentClassificationPrompt:
+    """
+    Fireflies - prepare prompt for the LLM classification.
+    """
+
+    prompt = FIREFLIES_DOCUMENT_CLASSIFICATION_PROMPT.format(
+        beginning_of_call_content=document_classification_content.classification_content,
+        category_list=category_list,
+        category_options=category_definition_string,
+    )
+
+    return KGDocumentClassificationPrompt(
+        llm_prompt=prompt,
+    )
+
+
+def get_classification_content_from_fireflies_chunks(
+    first_num_classification_chunks: list[dict],
+) -> str:
+    """
+    Creates a KGClassificationContent object from a list of Fireflies chunks.
+    """
+
+    primary_owners = first_num_classification_chunks[0]["fields"]["primary_owners"]
+    secondary_owners = first_num_classification_chunks[0]["fields"]["secondary_owners"]
+
+    company_participant_emails = set()
+    account_participant_emails = set()
+
+    for owner in primary_owners + secondary_owners:
+        kg_owner = kg_email_processing(owner)
+        if any(domain in kg_owner.company for domain in KG_IGNORE_EMAIL_DOMAINS):
+            continue
+
+        if kg_owner.employee:
+            company_participant_emails.add(f"{kg_owner.name} -- ({kg_owner.company})")
+        else:
+            account_participant_emails.add(f"{kg_owner.name} -- ({kg_owner.company})")
+
+    participant_string = "\n  - " + "\n  - ".join(company_participant_emails)
+    account_participant_string = "\n  - " + "\n  - ".join(account_participant_emails)
+
+    title_string = first_num_classification_chunks[0]["fields"]["title"]
+    content_string = "\n".join(
+        [
+            chunk_content["fields"]["content"]
+            for chunk_content in first_num_classification_chunks
+        ]
+    )
+
+    classification_content = f"{title_string}\n\nVendor Participants:\n{participant_string}\n\n\
+Other Participants:\n{account_participant_string}\n\nBeginning of Call:\n{content_string}"
+
+    return classification_content

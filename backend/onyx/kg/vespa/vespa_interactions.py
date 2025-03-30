@@ -4,7 +4,77 @@ from collections.abc import Generator
 from onyx.document_index.vespa.chunk_retrieval import _get_chunks_via_visit_api
 from onyx.document_index.vespa.chunk_retrieval import VespaChunkRequest
 from onyx.document_index.vespa.index import IndexFilters
+from onyx.kg.context_preparations_extraction.fireflies import (
+    get_classification_content_from_fireflies_chunks,
+)
 from onyx.kg.models import KGChunkFormat
+from onyx.kg.models import KGClassificationContent
+
+
+def get_document_classification_content_for_kg_processing(
+    document_ids: list[str],
+    index_name: str,
+    batch_size: int = 8,
+    num_classification_chunks: int = 3,
+) -> Generator[list[KGClassificationContent], None, None]:
+    """
+    Generates the content used for initial classification of a document from
+    the first num_classification_chunks chunks.
+    """
+
+    classification_content_list: list[KGClassificationContent] = []
+
+    for i in range(0, len(document_ids), batch_size):
+        batch_document_ids = document_ids[i : i + batch_size]
+        for document_id in batch_document_ids:
+            # ... existing code for getting chunks and processing ...
+            first_num_classification_chunks: list[dict] = _get_chunks_via_visit_api(
+                chunk_request=VespaChunkRequest(
+                    document_id=document_id,
+                    max_chunk_ind=num_classification_chunks - 1,
+                    min_chunk_ind=0,
+                ),
+                index_name=index_name,
+                filters=IndexFilters(access_control_list=None),
+                field_names=[
+                    "document_id",
+                    "chunk_id",
+                    "title",
+                    "content",
+                    "metadata",
+                    "source_type",
+                    "primary_owners",
+                    "secondary_owners",
+                ],
+                get_large_chunks=False,
+            )
+
+            first_num_classification_chunks = sorted(
+                first_num_classification_chunks, key=lambda x: x["fields"]["chunk_id"]
+            )[:num_classification_chunks]
+
+            classification_content = _get_classification_content_from_chunks(
+                first_num_classification_chunks
+            )
+
+            classification_content_list.append(
+                KGClassificationContent(
+                    document_id=document_id,
+                    classification_content=classification_content,
+                    source_type=first_num_classification_chunks[0]["fields"][
+                        "source_type"
+                    ],
+                )
+            )
+
+        # Yield the batch of classification content
+        if classification_content_list:
+            yield classification_content_list
+            classification_content_list = []
+
+    # Yield any remaining items
+    if classification_content_list:
+        yield classification_content_list
 
 
 def get_document_chunks_for_kg_processing(
@@ -26,6 +96,7 @@ def get_document_chunks_for_kg_processing(
 
     current_batch: list[KGChunkFormat] = []
 
+    # get all chunks for the document
     chunks = _get_chunks_via_visit_api(
         chunk_request=VespaChunkRequest(document_id=document_id),
         index_name=index_name,
@@ -77,3 +148,32 @@ def get_document_chunks_for_kg_processing(
     # Yield any remaining chunks
     if current_batch:
         yield current_batch
+
+
+def _get_classification_content_from_chunks(
+    first_num_classification_chunks: list[dict],
+) -> str:
+    """
+    Creates a KGClassificationContent object from a list of chunks.
+    """
+
+    source_type = first_num_classification_chunks[0]["fields"]["source_type"]
+
+    if source_type == "fireflies":
+        classification_content = get_classification_content_from_fireflies_chunks(
+            first_num_classification_chunks
+        )
+
+    else:
+        classification_content = (
+            first_num_classification_chunks[0]["fields"]["title"]
+            + "\n"
+            + "\n".join(
+                [
+                    chunk_content["fields"]["content"]
+                    for chunk_content in first_num_classification_chunks
+                ]
+            )
+        )
+
+    return classification_content

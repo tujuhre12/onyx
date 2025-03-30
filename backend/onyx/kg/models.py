@@ -75,3 +75,25 @@ class NormalizedRelationships(BaseModel):
 class NormalizedTerms(BaseModel):
     terms: list[str]
     term_normalization_map: dict[str, str | None]
+
+
+class KGClassificationContent(BaseModel):
+    document_id: str
+    classification_content: str
+    source_type: str
+
+
+class KGClassificationDecisions(BaseModel):
+    document_id: str
+    classification_decision: bool
+    classification_class: str | None
+
+
+class KGClassificationRule(BaseModel):
+    description: str
+    extration: bool
+
+
+class KGClassificationInstructionStrings(BaseModel):
+    classification_options: str
+    classification_class_definitions: dict[str, Dict[str, str | bool]]

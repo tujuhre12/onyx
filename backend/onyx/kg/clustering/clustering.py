@@ -5,6 +5,7 @@ from typing import List
 from typing import Set
 
 import numpy as np
+from langchain.schema import HumanMessage
 from sklearn.cluster import KMeans  # type: ignore
 
 from onyx.db.document import get_all_kg_processed_documents_info
@@ -431,9 +432,15 @@ Only output the relationship name, nothing else."""
 Generate a single, short (1-3 words) category name that best captures the semantic meaning of all these entities.
 Only output the category name, nothing else."""
 
+            msg = [
+                HumanMessage(
+                    content=prompt,
+                )
+            ]
+
             try:
                 if len(ent_names) > 1:
-                    cluster_name_result = primary_llm.invoke(prompt)
+                    cluster_name_result = primary_llm.invoke(msg)
                     cluster_name = message_to_string(cluster_name_result)
                 else:
                     cluster_name = ent_names[

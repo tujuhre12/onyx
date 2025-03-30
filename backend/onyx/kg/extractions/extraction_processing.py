@@ -1,7 +1,10 @@
 import json
 from collections import defaultdict
 from collections.abc import Callable
+from typing import cast
 from typing import Dict
+
+from langchain_core.messages import HumanMessage
 
 from onyx.db.connector import get_unprocessed_connector_ids
 from onyx.db.document import get_unprocessed_kg_documents_for_connector
@@ -20,9 +23,16 @@ from onyx.kg.models import KGBatchExtractionStats
 from onyx.kg.models import KGChunkExtraction
 from onyx.kg.models import KGChunkFormat
 from onyx.kg.models import KGChunkId
+from onyx.kg.models import KGClassificationContent
+from onyx.kg.models import KGClassificationDecisions
+from onyx.kg.models import KGClassificationInstructionStrings
 from onyx.kg.utils.chunk_preprocessing import prepare_llm_content
+from onyx.kg.utils.chunk_preprocessing import prepare_llm_document_content
 from onyx.kg.utils.formatting_utils import aggregate_kg_extractions
 from onyx.kg.vespa.vespa_interactions import get_document_chunks_for_kg_processing
+from onyx.kg.vespa.vespa_interactions import (
+    get_document_classification_content_for_kg_processing,
+)
 from onyx.llm.factory import get_default_llms
 from onyx.llm.utils import message_to_string
 from onyx.prompts.kg_prompts import MASTER_EXTRACTION_PROMPT
@@ -30,6 +40,34 @@ from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_functions_tuples_in_parallel
 
 logger = setup_logger()
+
+
+def _get_classification_instructions() -> Dict[str, KGClassificationInstructionStrings]:
+    """
+    Prepare the classification instructions for the given source.
+    """
+
+    classification_instructions_dict: Dict[str, KGClassificationInstructionStrings] = {}
+
+    with get_session_with_current_tenant() as db_session:
+        entity_types = get_entity_types(db_session, active=None)
+
+    for entity_type in entity_types:
+        grounded_source_name = entity_type.grounded_source_name
+        if grounded_source_name is None:
+            continue
+        classification_class_definitions = entity_type.classification_requirements
+
+        classification_options = ", ".join(classification_class_definitions.keys())
+
+        classification_instructions_dict[
+            grounded_source_name
+        ] = KGClassificationInstructionStrings(
+            classification_options=classification_options,
+            classification_class_definitions=classification_class_definitions,
+        )
+
+    return classification_instructions_dict
 
 
 def _get_entity_types_str(active: bool | None = None) -> str:
@@ -81,6 +119,8 @@ def kg_extraction(
     carryover_chunks: list[KGChunkFormat] = []
     connector_aggregated_kg_extractions_list: list[KGAggregatedExtractions] = []
 
+    document_classification_instructions = _get_classification_instructions()
+
     for connector_id in connector_ids:
         connector_failed_chunk_extractions: list[KGChunkId] = []
         connector_succeeded_chunk_extractions: list[KGChunkId] = []
@@ -102,14 +142,40 @@ def kg_extraction(
             # TODO: restricted for testing only
             unprocessed_documents_list = list(unprocessed_documents)
 
-        unprocessed_documents_list = [
-            unprocessed_documents_list[0],
-            unprocessed_documents_list[6],
-        ]
+        document_classification_content_list = (
+            get_document_classification_content_for_kg_processing(
+                [
+                    unprocessed_document.id
+                    for unprocessed_document in unprocessed_documents_list
+                ],
+                index_name,
+                batch_size=processing_chunk_batch_size,
+            )
+        )
 
-        for unprocessed_document in unprocessed_documents_list:
+        classification_outcomes: list[tuple[bool, KGClassificationDecisions]] = []
+
+        for document_classification_content in document_classification_content_list:
+            classification_outcomes.extend(
+                _kg_document_classification(
+                    document_classification_content,
+                    document_classification_instructions,
+                )
+            )
+
+        documents_to_process = []
+        for document_to_process, document_classification_outcome in zip(
+            unprocessed_documents_list, classification_outcomes
+        ):
+            if (
+                document_classification_outcome[0]
+                and document_classification_outcome[1].classification_decision
+            ):
+                documents_to_process.append(document_to_process)
+
+        for document_to_process in documents_to_process:
             formatted_chunk_batches = get_document_chunks_for_kg_processing(
-                unprocessed_document.id,
+                document_to_process.id,
                 index_name,
                 batch_size=processing_chunk_batch_size,
             )
@@ -166,7 +232,6 @@ def kg_extraction(
                     processing_chunks = carryover_chunks.copy()
                     carryover_chunks = []
 
-            print("after processing chunks")
         # processes remaining chunks
         chunk_processing_batch_results = _kg_chunk_batch_extraction(
             processing_chunks, index_name, tenant_id
@@ -421,11 +486,17 @@ def _kg_chunk_batch_extraction(
             "---content---", llm_preprocessing.llm_context
         )
 
+        msg = [
+            HumanMessage(
+                content=formatted_prompt,
+            )
+        ]
+
         try:
             logger.info(
                 f"LLM Extraction from chunk {chunk.chunk_id} from doc {chunk.document_id}"
             )
-            raw_extraction_result = fast_llm.invoke(formatted_prompt)
+            raw_extraction_result = fast_llm.invoke(msg)
             extraction_result = message_to_string(raw_extraction_result)
 
             try:
@@ -566,6 +637,178 @@ def _kg_chunk_batch_extraction(
         failed=failed_chunk_id,
         aggregated_kg_extractions=aggregated_kg_extractions,
     )
+
+
+def _kg_document_classification(
+    document_classification_content_list: list[KGClassificationContent],
+    classification_instructions: dict[str, KGClassificationInstructionStrings],
+) -> list[tuple[bool, KGClassificationDecisions]]:
+    primary_llm, fast_llm = get_default_llms()
+
+    def classify_single_document(
+        document_classification_content: KGClassificationContent,
+        classification_instructions: dict[str, KGClassificationInstructionStrings],
+    ) -> tuple[bool, KGClassificationDecisions]:
+        """Classify a single document whether it should be kg-processed or not"""
+
+        source = document_classification_content.source_type
+        document_id = document_classification_content.document_id
+
+        if source not in classification_instructions:
+            logger.info(
+                f"Source {source} did not have kg classification instructions. No content analysis."
+            )
+            return False, KGClassificationDecisions(
+                document_id=document_id,
+                classification_decision=False,
+                classification_class=None,
+            )
+
+        classification_prompt = prepare_llm_document_content(
+            document_classification_content,
+            category_list=classification_instructions[source].classification_options,
+            category_definitions=classification_instructions[
+                source
+            ].classification_class_definitions,
+        )
+
+        if classification_prompt.llm_prompt is None:
+            logger.info(
+                f"Source {source} did not have kg document classification instructions. No content analysis."
+            )
+            return False, KGClassificationDecisions(
+                document_id=document_id,
+                classification_decision=False,
+                classification_class=None,
+            )
+
+        msg = [
+            HumanMessage(
+                content=classification_prompt.llm_prompt,
+            )
+        ]
+
+        try:
+            logger.info(
+                f"LLM Classification from document {document_classification_content.document_id}"
+            )
+            raw_classification_result = primary_llm.invoke(msg)
+            classification_result = (
+                message_to_string(raw_classification_result)
+                .replace("```json", "")
+                .replace("```", "")
+                .strip()
+            )
+
+            classification_class = classification_result.split("CATEGORY:")[1].strip()
+
+            if (
+                classification_class
+                in classification_instructions[source].classification_class_definitions
+            ):
+                extraction_decision = cast(
+                    bool,
+                    classification_instructions[
+                        source
+                    ].classification_class_definitions[classification_class][
+                        "extraction"
+                    ],
+                )
+            else:
+                extraction_decision = False
+
+            return True, KGClassificationDecisions(
+                document_id=document_id,
+                classification_decision=extraction_decision,
+                classification_class=classification_class,
+            )
+        except Exception as e:
+            logger.error(
+                f"Failed to classify document {document_classification_content.document_id}: {str(e)}"
+            )
+            return False, KGClassificationDecisions(
+                document_id=document_id,
+                classification_decision=False,
+                classification_class=None,
+            )
+
+    # Assume for prototype: use_threads = True. TODO: Make thread safe!
+
+    functions_with_args: list[tuple[Callable, tuple]] = [
+        (
+            classify_single_document,
+            (document_classification_content, classification_instructions),
+        )
+        for document_classification_content in document_classification_content_list
+    ]
+
+    logger.debug("Running KG classification on documents in parallel")
+    results = run_functions_tuples_in_parallel(functions_with_args, allow_failures=True)
+
+    return results
+
+
+#     logger.debug("Running KG extraction on chunks in parallel")
+#     results = run_functions_tuples_in_parallel(functions_with_args, allow_failures=True)
+
+#     # Sort results into succeeded and failed
+#     for success, chunk_results in results:
+#         if success:
+#             succeeded_chunk_id.append(
+#                 KGChunkId(
+#                     document_id=chunk_results.document_id,
+#                     chunk_id=chunk_results.chunk_id,
+#                 )
+#             )
+#             succeeded_chunk_extraction.append(chunk_results)
+#         else:
+#             failed_chunk_id.append(
+#                 KGChunkId(
+#                     document_id=chunk_results.document_id,
+#                     chunk_id=chunk_results.chunk_id,
+#                 )
+#             )
+
+#     # Collect data for postgres later on
+
+#     aggregated_kg_extractions = KGAggregatedExtractions(
+#         grounded_entities_document_ids=defaultdict(str),
+#         entities=defaultdict(int),
+#         relationships=defaultdict(int),
+#         terms=defaultdict(int),
+#     )
+
+#     for chunk_result in succeeded_chunk_extraction:
+#         aggregated_kg_extractions.grounded_entities_document_ids[
+#             chunk_result.core_entity
+#         ] = chunk_result.document_id
+
+#         mentioned_chunk_entities: set[str] = set()
+#         for relationship in chunk_result.relationships:
+#             relationship_split = relationship.split("__")
+#             if len(relationship_split) == 3:
+#                 if relationship_split[0] not in mentioned_chunk_entities:
+#                     aggregated_kg_extractions.entities[relationship_split[0]] += 1
+#                     mentioned_chunk_entities.add(relationship_split[0])
+#                 if relationship_split[2] not in mentioned_chunk_entities:
+#                     aggregated_kg_extractions.entities[relationship_split[2]] += 1
+#                     mentioned_chunk_entities.add(relationship_split[2])
+#             aggregated_kg_extractions.relationships[relationship] += 1
+
+#         for kg_entity in chunk_result.entities:
+#             if kg_entity not in mentioned_chunk_entities:
+#                 aggregated_kg_extractions.entities[kg_entity] += 1
+#                 mentioned_chunk_entities.add(kg_entity)
+
+#         for kg_term in chunk_result.terms:
+#             aggregated_kg_extractions.terms[kg_term] += 1
+
+#     return KGBatchExtractionStats(
+#         connector_id=chunks[0].connector_id if chunks else None,  # TODO: Update!
+#         succeeded=succeeded_chunk_id,
+#         failed=failed_chunk_id,
+#         aggregated_kg_extractions=aggregated_kg_extractions,
+#     )
 
 
 def _kg_connector_extraction(

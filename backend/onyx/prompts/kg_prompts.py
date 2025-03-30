@@ -369,7 +369,7 @@ Here is the question you are asked to extract desired entities, relationships, a
 
 ### Source-specific prompts
 
-FIREFLIES_PREPROCESSING_PROMPT = f"""
+FIREFLIES_CHUNK_PREPROCESSING_PROMPT = f"""
 This is a call between employees of the VENDOR's company and representatives of one or more ACCOUNTs (usually one). \
 When you exract information based on the instructions, please make sure that you properly attribute the information \
 to the correct employee and account. \
@@ -392,7 +392,27 @@ only for the account!
 --
 And here is the content:
 {{content}}
-"""
+""".strip()
+
+
+FIREFLIES_DOCUMENT_CLASSIFICATION_PROMPT = """
+This is the beginning of a call between employees of the VENDOR's company and other participants.
+
+Your task is to classify the call into one of the following categories:
+{{category_options}}
+
+Please also consider the participants when you perform your classification task - they can be important indicators \
+for the category.
+
+Please format your answer as a string in the format:
+
+REASONING: <your reasoning for the classification> - CATEGORY: <the category you have chosen. Only use {{category_list}}>
+
+--
+And here is the beginning of the call, including title and participants:
+
+{{beginning_of_call_content}}
+""".strip()
 
 
 STRATEGY_GENERATION_PROMPT = f"""

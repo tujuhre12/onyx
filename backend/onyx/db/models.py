@@ -634,6 +634,9 @@ class KGEntityType(Base):
     grounding: Mapped[str] = mapped_column(
         NullFilteredString, nullable=False, index=False
     )
+    grounded_source_name: Mapped[str] = mapped_column(
+        NullFilteredString, nullable=False, index=False
+    )
 
     clustering: Mapped[dict] = mapped_column(
         postgresql.JSONB,
@@ -641,6 +644,14 @@ class KGEntityType(Base):
         default=dict,
         server_default="{}",
         comment="Clustering information for this entity type",
+    )
+
+    classification_requirements: Mapped[dict] = mapped_column(
+        postgresql.JSONB,
+        nullable=False,
+        default=dict,
+        server_default="{}",
+        comment="Pre-extraction classification requirements and instructions",
     )
 
     cluster_count: Mapped[int | None] = mapped_column(Integer, nullable=True)

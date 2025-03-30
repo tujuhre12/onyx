@@ -150,3 +150,28 @@ def get_entities_for_types(
         .filter(KGEntity.entity_type_id_name.in_(entity_types))
         .all()
     )
+
+
+def get_entity_type_by_grounded_source_name(
+    db_session: Session, grounded_source_name: str
+) -> KGEntityType | None:
+    """Get an entity type by its grounded_source_name and return it as a dictionary.
+
+    Args:
+        db_session: SQLAlchemy session
+        grounded_source_name: The grounded_source_name of the entity to retrieve
+
+    Returns:
+        Dictionary containing the entity's data with column names as keys,
+        or None if the entity is not found
+    """
+    entity_type = (
+        db_session.query(KGEntityType)
+        .filter(KGEntityType.grounded_source_name == grounded_source_name)
+        .first()
+    )
+
+    if entity_type is None:
+        return None
+
+    return entity_type

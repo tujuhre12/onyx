@@ -11,3 +11,11 @@ class ContextPreparation(BaseModel):
     implied_entities: list[str]
     implied_relationships: list[str]
     implied_terms: list[str]
+
+
+class KGDocumentClassificationPrompt(BaseModel):
+    """
+    Document classification prompt format for the LLM KG extraction.
+    """
+
+    llm_prompt: str | None

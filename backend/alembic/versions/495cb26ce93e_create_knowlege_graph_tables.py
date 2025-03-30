@@ -23,7 +23,14 @@ def upgrade() -> None:
         sa.Column("id_name", sa.String(), primary_key=True, nullable=False, index=True),
         sa.Column("description", sa.String(), nullable=True),
         sa.Column("grounding", sa.String(), nullable=False),
+        sa.Column("grounded_source_name", sa.String(), nullable=False, unique=True),
         sa.Column("clustering", postgresql.JSONB, nullable=False, server_default="{}"),
+        sa.Column(
+            "classification_requirements",
+            postgresql.JSONB,
+            nullable=False,
+            server_default="{}",
+        ),
         sa.Column("cluster_count", sa.Integer(), nullable=True),
         sa.Column(
             "extraction_sources", postgresql.JSONB, nullable=False, server_default="{}"
