@@ -66,21 +66,21 @@ async def _get_tenant_id_from_request(
             tenant_id = (
                 str(tenant_id_from_payload)
                 if tenant_id_from_payload is not None
-                else POSTGRES_DEFAULT_SCHEMA
+                else None
             )
 
-            if not is_valid_schema_name(tenant_id):
+            if tenant_id and not is_valid_schema_name(tenant_id):
                 raise HTTPException(status_code=400, detail="Invalid tenant ID format")
-
-            return tenant_id
 
         # Check for anonymous user cookie
         anonymous_user_cookie = request.cookies.get(ANONYMOUS_USER_COOKIE_NAME)
         if anonymous_user_cookie:
+            print("anonymous_user_cookie", anonymous_user_cookie)
             try:
                 anonymous_user_data = decode_anonymous_user_jwt_token(
                     anonymous_user_cookie
                 )
+
                 return anonymous_user_data.get("tenant_id", POSTGRES_DEFAULT_SCHEMA)
             except Exception as e:
                 logger.error(f"Error decoding anonymous user cookie: {str(e)}")
