@@ -313,6 +313,7 @@ class UserManager:
         )
         response.raise_for_status()
         return UserInfo(**response.json())
+
     def invite_users(
         user_performing_action: DATestUser,
         emails: list[str],
