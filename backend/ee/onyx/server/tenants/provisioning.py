@@ -1,4 +1,5 @@
 import asyncio
+import concurrent.futures
 import logging
 import uuid
 
@@ -506,11 +507,24 @@ async def setup_tenant(tenant_id: str) -> None:
     try:
         token = CURRENT_TENANT_ID_CONTEXTVAR.set(tenant_id)
 
-        # Run Alembic migrations in a way that isolates it from the current event loop
-        # Create a new event loop for this synchronous operation
-        loop = asyncio.get_event_loop()
-        # Use run_in_executor which properly isolates the thread execution
-        await loop.run_in_executor(None, lambda: run_alembic_migrations(tenant_id))
+        # Run Alembic migrations in a completely isolated way
+        # This function runs in a separate thread with its own event loop context
+        def isolated_migration_runner():
+            # Reset contextvar to prevent it from being shared with the parent thread
+            # This ensures no shared asyncio primitives between threads
+            token = CURRENT_TENANT_ID_CONTEXTVAR.set(tenant_id)
+            try:
+                # Run migrations in this isolated thread
+                run_alembic_migrations(tenant_id)
+            finally:
+                # Clean up the contextvar
+                CURRENT_TENANT_ID_CONTEXTVAR.reset(token)
+
+        # Use a dedicated ThreadPoolExecutor for complete isolation
+        # This prevents asyncio loop/lock sharing issues
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(executor, isolated_migration_runner)
 
         # Configure the tenant with default settings
         with get_session_with_tenant(tenant_id=tenant_id) as db_session:
