@@ -364,7 +364,8 @@ def add_belongs_user_if_not_exists(db_session: Session, email: str) -> User:
     user = get_user_by_email(email, db_session)
     if user is not None:
         # If the user is an external permissioned user, we update it to a belongs to group user
-        if user.role == UserRole.EXT_PERM_USER:
+        # TODO: clarify the hierarchy of roles here
+        if not user.role.is_web_login():
             user.role = UserRole.BELONGS
             db_session.commit()
         return user
