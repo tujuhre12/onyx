@@ -24,7 +24,7 @@ from onyx.utils.variable_functionality import noop_fallback
 from shared_configs.configs import MULTI_TENANT
 from shared_configs.contextvars import get_current_tenant_id
 
-_DANSWER_TELEMETRY_ENDPOINT = "https://telemetry.onyx.app/anonymous_telemetry"
+_DANSWER_TELEMETRY_ENDPOINT = "http://localhost:80/anonymous_telemetry"
 _CACHED_UUID: str | None = None
 _CACHED_INSTANCE_DOMAIN: str | None = None
 
@@ -39,6 +39,7 @@ class RecordType(str, Enum):
     INDEXING_PROGRESS = "indexing_progress"
     INDEXING_COMPLETE = "indexing_complete"
     PERMISSION_SYNC_PROGRESS = "permission_sync_progress"
+    PERMISSION_SYNC_COMPLETE = "permission_sync_complete"
     INDEX_ATTEMPT_STATUS = "index_attempt_status"
 
 
