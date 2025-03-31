@@ -365,7 +365,15 @@ def kg_extraction(
         relationship,
         extraction_count,
     ) in aggregated_kg_extractions.relationships.items():
-        source_entity, relationship_type, target_entity = relationship.split("__")
+        relationship_split = relationship.split("__")
+
+        source_entity, relationship_type_, target_entity = relationship.split("__")
+        source_entity = relationship_split[0]
+        relationship_type = (
+            " ".join(relationship_split[1:-1]).replace("__", " ").replace("_", " ")
+        )
+        target_entity = relationship_split[-1]
+
         source_entity_type = source_entity.split(":")[0]
         target_entity_type = target_entity.split(":")[0]
 
@@ -425,7 +433,15 @@ def kg_extraction(
         relationship,
         extraction_count,
     ) in aggregated_kg_extractions.relationships.items():
-        source_entity, relationship_type, target_entity = relationship.split("__")
+        relationship_split = relationship.split("__")
+
+        source_entity, relationship_type_, target_entity = relationship.split("__")
+        source_entity = relationship_split[0]
+        relationship_type = (
+            " ".join(relationship_split[1:-1]).replace("__", " ").replace("_", " ")
+        )
+        target_entity = relationship_split[-1]
+
         source_entity_type = source_entity.split(":")[0]
         target_entity_type = target_entity.split(":")[0]
 

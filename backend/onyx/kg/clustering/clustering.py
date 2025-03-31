@@ -6,8 +6,8 @@ from typing import Set
 
 import numpy as np
 from langchain.schema import HumanMessage
-from sklearn.cluster import SpectralClustering
-from thefuzz import fuzz
+from sklearn.cluster import SpectralClustering  # type: ignore
+from thefuzz import fuzz  # type: ignore
 
 from onyx.db.document import get_all_kg_processed_documents_info
 from onyx.db.document import get_kg_processed_document_ids
@@ -15,6 +15,7 @@ from onyx.db.document import update_document_kg_info
 from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.entities import add_entity
 from onyx.db.entities import delete_entities_by_id_names
+from onyx.db.entities import get_ge_entities_by_types
 from onyx.db.entities import get_grounded_entities
 from onyx.db.entities import get_ungrounded_entities
 from onyx.db.relationships import add_relationship
@@ -282,7 +283,7 @@ def _create_relationship_mapping(
     return relationship_replacements, reverse_relationship_replacements_count
 
 
-def _match_ungrounded_entities(
+def _match_ungrounded_ge_entities(
     ungrounded_ge_entities: Dict[str, List[str]],
     grounded_ge_entities: Dict[str, List[str]],
     fuzzy_match_threshold: int = 80,
@@ -309,6 +310,8 @@ def _match_ungrounded_entities(
 
         # Process each ungrounded entity
         for ungrounded_entity in ungrounded_entities_list:
+            if ungrounded_entity == "*":
+                continue
             best_match = None
 
             # First check if ungrounded entity is contained in or contains any grounded entities
@@ -374,6 +377,82 @@ def _match_ungrounded_entities(
     return entity_match_mapping
 
 
+def _match_determined_ge_entities(
+    determined_ge_entity_map: Dict[str, List[str]],
+    determined_ge_entities_by_type: Dict[str, List[str]],
+    fuzzy_match_threshold: int = 80,
+) -> Dict[str, Dict[str, str]]:
+    """
+    Create a mapping for determined entities by matching them to grounded entities
+    or previously processed ungrounded entities. First checks for containment relationships,
+    then falls back to fuzzy matching if no containment is found.
+
+    Args:
+        ungrounded_ge_entities: Dictionary mapping entity types to lists of ungrounded entity names
+        grounded_ge_entities: Dictionary mapping entity types to lists of grounded entity names
+        fuzzy_match_threshold: Threshold for fuzzy matching (0-100)
+
+    Returns:
+        Dictionary mapping entity types to dictionaries of {original_entity: matched_entity}
+    """
+    determined_entity_match_mapping: Dict[str, Dict[str, str]] = defaultdict(dict)
+
+    # For each entity type
+    for entity_type, determined_entities_list in determined_ge_entity_map.items():
+        ungrounded_list = determined_ge_entities_by_type.get(entity_type, [])
+
+        # Process each ungrounded entity
+        for ungrounded_entity in ungrounded_list:
+            if ungrounded_entity == "*":
+                continue
+            best_match = None
+
+            # First check if ungrounded entity is contained in or contains any grounded entities
+            for grounded_entity in determined_entities_list:
+                if (
+                    ungrounded_entity.lower() in grounded_entity.lower()
+                    or grounded_entity.lower() in ungrounded_entity.lower()
+                ):
+                    best_match = grounded_entity
+                    break
+
+            # If still no match, fall back to fuzzy matching
+            if not best_match:
+                best_score = 0
+
+                # Try fuzzy matching with grounded entities
+                for grounded_entity in determined_entities_list:
+                    score = fuzz.ratio(
+                        ungrounded_entity.lower(), grounded_entity.lower()
+                    )
+                    if score > fuzzy_match_threshold and score > best_score:
+                        best_match = grounded_entity
+                        best_score = score
+
+            # Record the mapping
+            if best_match:
+                determined_entity_match_mapping[entity_type][
+                    f"{ungrounded_entity}"
+                ] = f"{best_match}"
+            else:
+                # No match found, this becomes a new unique entity
+                determined_entity_match_mapping[entity_type][
+                    f"{ungrounded_entity}"
+                ] = "Other"
+
+    # Log the results
+    logger.info("Entity matching results:")
+    for entity_type, mappings in determined_entity_match_mapping.items():
+        logger.info(f"\nEntity type: {entity_type}")
+        for original, matched in mappings.items():
+            if original != matched:
+                logger.info(f"  Mapped: {original} -> {matched}")
+            else:
+                logger.info(f"  New unique entity: {original}")
+
+    return determined_entity_match_mapping
+
+
 def kg_clustering(
     tenant_id: str, index_name: str, processing_chunk_batch_size: int = 8
 ) -> None:
@@ -396,7 +475,7 @@ def kg_clustering(
     # Define for each grounded type what needs to be in id_name to be considered grounded entity
     # TODO: THIS NEEDS TO BE in DB. FOR POC ONLY!
 
-    grounding_format: Dict[str, str] = {"ACCOUNT": "."}
+    ge_grounding_format: Dict[str, str] = {"ACCOUNT": "."}
 
     grounded_ge_entities: Dict[str, List[str]] = defaultdict(list)
     ungrounded_ge_entities: Dict[str, List[str]] = defaultdict(list)
@@ -408,9 +487,9 @@ def kg_clustering(
         if grounded_entity.name == "*":
             continue
 
-        if grounded_entity.entity_type_id_name in grounding_format:
+        if grounded_entity.entity_type_id_name in ge_grounding_format:
             if (
-                grounding_format[grounded_entity.entity_type_id_name]
+                ge_grounding_format[grounded_entity.entity_type_id_name]
                 in grounded_entity.id_name
             ):
                 grounded_ge_entities[grounded_entity.entity_type_id_name].append(
@@ -425,9 +504,48 @@ def kg_clustering(
                 grounded_entity.name
             )
 
-    # Create mapping for ungrounded entities
-    entity_match_mapping = _match_ungrounded_entities(
+    # Create mapping for 'ungrounded' grounded entities
+    ge_entity_match_mapping = _match_ungrounded_ge_entities(
         ungrounded_ge_entities, grounded_ge_entities, fuzzy_match_threshold=80
+    )
+
+    ge_determined_entity_map = {
+        "CONNECTOR": [
+            "Slack",
+            "Github",
+            "Google Drive",
+            "GDrive",
+            "GMail",
+            "Salesforce",
+            "Github",
+            "Notion",
+            "Jira",
+            "File",
+            "Confluence",
+            "Gong",
+            "Sharepoint",
+            "Zendesk",
+            "Google Workspace",
+        ],
+        "ENGAGEMENT": ["POC", "Trial", "Demo", "Purchase", "Decline"],
+    }
+
+    with get_session_with_current_tenant() as db_session:
+        determined_ge_entities = get_ge_entities_by_types(
+            db_session, list(ge_determined_entity_map.keys())
+        )
+        # Organize entities by type
+        determined_ge_entities_by_type: Dict[str, List[str]] = defaultdict(list)
+        for entity in determined_ge_entities:
+            determined_ge_entities_by_type[entity.entity_type_id_name].append(
+                entity.name
+            )
+
+    # Create mapping for 'determined' grounded entities
+    determined_ge_entity_match_mapping = _match_determined_ge_entities(
+        ge_determined_entity_map,
+        determined_ge_entities_by_type,
+        fuzzy_match_threshold=80,
     )
 
     # Cliuster relationship_types
@@ -619,7 +737,14 @@ Only output the category name, nothing else."""
     )
 
     # add the ungrounded 'grounded' entities
-    for entity_type, mappings in entity_match_mapping.items():
+    for entity_type, mappings in ge_entity_match_mapping.items():
+        for original, matched in mappings.items():
+            entity_replacements[
+                f"{entity_type}:{original}"
+            ] = f"{entity_type}:{matched}"
+            reverse_entity_replacements_count[f"{entity_type}:{matched}"] += 1
+
+    for entity_type, mappings in determined_ge_entity_match_mapping.items():
         for original, matched in mappings.items():
             entity_replacements[
                 f"{entity_type}:{original}"
@@ -735,8 +860,12 @@ Only output the category name, nothing else."""
     # add entities
 
     with get_session_with_current_tenant() as db_session:
-        for entity, entity_count in reverse_entity_replacements_count.items():
-            entity_type, entity_name = entity.split(":")
+        for entity_str, entity_count in reverse_entity_replacements_count.items():
+            if len(entity_str.split(":")) == 2:
+                entity_type, entity_name = entity_str.split(":")
+            else:
+                logger.error(f"Invalid entity: {entity_str}")
+                continue
 
             add_entity(
                 db_session,

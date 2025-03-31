@@ -7,8 +7,11 @@ from onyx.kg.models import KGPerson
 
 
 def format_entity(entity: str) -> str:
-    entity_type, entity_name = entity.split(":")
-    return f"{entity_type.upper()}:{entity_name.title()}"
+    if len(entity.split(":")) == 2:
+        entity_type, entity_name = entity.split(":")
+        return f"{entity_type.upper()}:{entity_name.title()}"
+    else:
+        return entity
 
 
 def format_relationship(relationship: str) -> str:

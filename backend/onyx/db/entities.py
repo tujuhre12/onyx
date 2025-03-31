@@ -128,6 +128,27 @@ def get_grounded_entities(db_session: Session) -> List[KGEntity]:
     )
 
 
+def get_ge_entities_by_types(
+    db_session: Session, entity_types: List[str]
+) -> List[KGEntity]:
+    """Get all entities matching an entity_type.
+
+    Args:
+        db_session: SQLAlchemy session
+        entity_types: List of entity types to filter by
+
+    Returns:
+        List of KGEntity objects belonging to the specified entity types
+    """
+    return (
+        db_session.query(KGEntity)
+        .join(KGEntityType, KGEntity.entity_type_id_name == KGEntityType.id_name)
+        .filter(KGEntity.entity_type_id_name.in_(entity_types))
+        .filter(KGEntityType.grounding == "GE")
+        .all()
+    )
+
+
 def delete_entities_by_id_names(db_session: Session, id_names: list[str]) -> int:
     """
     Delete entities from the database based on a list of id_names.

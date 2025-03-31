@@ -22,7 +22,8 @@ EXTRACTION_FORMATTING_PROMPT = r"""
 formatted as '<ENTITY_TYPE_NAME>:<entity_name>' (please use that capitalization)>],
 "relationships": [<a list of relationship between the identified entities, formatted as \
 '<SOURCE_ENTITY_TYPE_NAME>:<source_entity_name>__<a word or two that captures the nature \
-of the relationship (if appropriate, inlude a judgement, as in 'likes' or 'dislikes' vs. 'uses', etc.)>\
+of the relationship (if appropriate, inlude a judgement, as in 'likes' or 'dislikes' vs. 'uses', etc. Use spaces here \
+for word separation.)>\
 __<TARGET_ENTITY_TYPE_NAME>:<target_entity_name>'>],
 "terms": [<a comma-separated list of high-level terms (each one one or two words) that you can reliably \
 identify in the text, each formatted simply as '<term>'>]
@@ -395,8 +396,8 @@ And here is the content:
 """.strip()
 
 
-FIREFLIES_DOCUMENT_CLASSIFICATION_PROMPT = """
-This is the beginning of a call between employees of the VENDOR's company and other participants.
+FIREFLIES_DOCUMENT_CLASSIFICATION_PROMPT = f"""
+This is the beginning of a call between employees of the VENDOR's company ({KG_OWN_COMPANY}) and other participants.
 
 Your task is to classify the call into one of the following categories:
 {{category_options}}
