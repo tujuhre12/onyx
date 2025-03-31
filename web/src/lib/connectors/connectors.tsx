@@ -1332,17 +1332,21 @@ export function createConnectorValidationSchema(
   connector: ConfigurableSources
 ): Yup.ObjectSchema<Record<string, any>> {
   const configuration = connectorConfigs[connector];
+  console.log("configuration");
+  console.log(JSON.stringify(configuration));
 
-  return Yup.object().shape({
+  const object = Yup.object().shape({
     access_type: Yup.string().required("Access Type is required"),
     name: Yup.string().required("Connector Name is required"),
-    ...configuration.values.reduce(
+    ...[...configuration.values, ...configuration.advanced_values].reduce(
       (acc, field) => {
         let schema: any =
           field.type === "select"
             ? Yup.string()
             : field.type === "list"
-              ? Yup.array().of(Yup.string())
+              ? Yup.array().of(
+                  Yup.string().ensure().min(1, "Empty strings are not allowed")
+                )
               : field.type === "checkbox"
                 ? Yup.boolean()
                 : field.type === "file"
@@ -1363,6 +1367,11 @@ export function createConnectorValidationSchema(
     pruneFreq: Yup.number().min(0, "Prune frequency must be non-negative"),
     refreshFreq: Yup.number().min(0, "Refresh frequency must be non-negative"),
   });
+  console.log("connector");
+  console.log(connector);
+  console.log("object.fields");
+  console.log(object.fields);
+  return object;
 }
 
 export const defaultPruneFreqDays = 30; // 30 days
