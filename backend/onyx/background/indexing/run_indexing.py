@@ -56,7 +56,6 @@ from onyx.indexing.indexing_pipeline import build_indexing_pipeline
 from onyx.natural_language_processing.search_nlp_models import (
     InformationContentClassificationModel,
 )
-from onyx.redis.redis_connector import RedisConnector
 from onyx.utils.logger import setup_logger
 from onyx.utils.logger import TaskAttemptSingleton
 from onyx.utils.telemetry import create_milestone_and_report
@@ -599,7 +598,6 @@ def _run_indexing(
                     index_attempt_id=index_attempt_id,
                     checkpoint=checkpoint,
                 )
-
 
         optional_telemetry(
             record_type=RecordType.INDEXING_COMPLETE,
