@@ -1332,8 +1332,6 @@ export function createConnectorValidationSchema(
   connector: ConfigurableSources
 ): Yup.ObjectSchema<Record<string, any>> {
   const configuration = connectorConfigs[connector];
-  console.log("configuration");
-  console.log(JSON.stringify(configuration));
 
   const object = Yup.object().shape({
     access_type: Yup.string().required("Access Type is required"),
@@ -1367,10 +1365,7 @@ export function createConnectorValidationSchema(
     pruneFreq: Yup.number().min(0, "Prune frequency must be non-negative"),
     refreshFreq: Yup.number().min(0, "Refresh frequency must be non-negative"),
   });
-  console.log("connector");
-  console.log(connector);
-  console.log("object.fields");
-  console.log(object.fields);
+
   return object;
 }
 
