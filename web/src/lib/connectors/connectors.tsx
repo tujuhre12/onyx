@@ -1342,9 +1342,7 @@ export function createConnectorValidationSchema(
           field.type === "select"
             ? Yup.string()
             : field.type === "list"
-              ? Yup.array().of(
-                  Yup.string().ensure().min(1, "Empty strings are not allowed")
-                )
+              ? Yup.array().of(Yup.string())
               : field.type === "checkbox"
                 ? Yup.boolean()
                 : field.type === "file"
