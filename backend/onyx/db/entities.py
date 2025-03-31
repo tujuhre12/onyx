@@ -111,6 +111,23 @@ def get_ungrounded_entities(db_session: Session) -> List[KGEntity]:
     )
 
 
+def get_grounded_entities(db_session: Session) -> List[KGEntity]:
+    """Get all entities whose entity type has grounding = 'UE' (ungrounded entities).
+
+    Args:
+        db_session: SQLAlchemy session
+
+    Returns:
+        List of KGEntity objects belonging to ungrounded entity types
+    """
+    return (
+        db_session.query(KGEntity)
+        .join(KGEntityType, KGEntity.entity_type_id_name == KGEntityType.id_name)
+        .filter(KGEntityType.grounding == "GE")
+        .all()
+    )
+
+
 def delete_entities_by_id_names(db_session: Session, id_names: list[str]) -> int:
     """
     Delete entities from the database based on a list of id_names.

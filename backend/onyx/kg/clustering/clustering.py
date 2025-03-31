@@ -6,7 +6,8 @@ from typing import Set
 
 import numpy as np
 from langchain.schema import HumanMessage
-from sklearn.cluster import KMeans  # type: ignore
+from sklearn.cluster import SpectralClustering
+from thefuzz import fuzz
 
 from onyx.db.document import get_all_kg_processed_documents_info
 from onyx.db.document import get_kg_processed_document_ids
@@ -14,6 +15,7 @@ from onyx.db.document import update_document_kg_info
 from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.entities import add_entity
 from onyx.db.entities import delete_entities_by_id_names
+from onyx.db.entities import get_grounded_entities
 from onyx.db.entities import get_ungrounded_entities
 from onyx.db.relationships import add_relationship
 from onyx.db.relationships import add_relationship_type
@@ -36,7 +38,7 @@ logger = setup_logger()
 
 
 def _cluster_relationships(
-    relationship_data: List[dict], n_clusters: int = 3, batch_size: int = 12
+    relationship_data: List[dict], n_clusters: int = 2, batch_size: int = 12
 ) -> Dict[int, List[str]]:
     """
     Cluster relationships using their embeddings.
@@ -82,8 +84,9 @@ def _cluster_relationships(
     X = np.array(train_data)
 
     # Perform clustering
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-    clusters = kmeans.fit_predict(X)
+    # clustering = KMeans(n_clusters=n_clusters, random_state=42)
+    clustering = SpectralClustering(n_clusters=n_clusters, random_state=42)
+    clusters = clustering.fit_predict(X)
 
     # Group relationship names by cluster
     cluster_groups: Dict[int, List[str]] = defaultdict(list)
@@ -141,8 +144,9 @@ def _cluster_entities(
     X = np.array(train_data)
 
     # Perform clustering
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-    clusters = kmeans.fit_predict(X)
+    # clustering = KMeans(n_clusters=n_clusters, random_state=42)
+    clustering = SpectralClustering(n_clusters=n_clusters, random_state=42)
+    clusters = clustering.fit_predict(X)
 
     # Group entity names by cluster
     cluster_groups: Dict[int, List[str]] = defaultdict(list)
@@ -278,6 +282,98 @@ def _create_relationship_mapping(
     return relationship_replacements, reverse_relationship_replacements_count
 
 
+def _match_ungrounded_entities(
+    ungrounded_ge_entities: Dict[str, List[str]],
+    grounded_ge_entities: Dict[str, List[str]],
+    fuzzy_match_threshold: int = 80,
+) -> Dict[str, Dict[str, str]]:
+    """
+    Create a mapping for ungrounded entities by matching them to grounded entities
+    or previously processed ungrounded entities. First checks for containment relationships,
+    then falls back to fuzzy matching if no containment is found.
+
+    Args:
+        ungrounded_ge_entities: Dictionary mapping entity types to lists of ungrounded entity names
+        grounded_ge_entities: Dictionary mapping entity types to lists of grounded entity names
+        fuzzy_match_threshold: Threshold for fuzzy matching (0-100)
+
+    Returns:
+        Dictionary mapping entity types to dictionaries of {original_entity: matched_entity}
+    """
+    entity_match_mapping: Dict[str, Dict[str, str]] = defaultdict(dict)
+    processed_entities: Dict[str, Set[str]] = defaultdict(set)
+
+    # For each entity type
+    for entity_type, ungrounded_entities_list in ungrounded_ge_entities.items():
+        grounded_list = grounded_ge_entities.get(entity_type, [])
+
+        # Process each ungrounded entity
+        for ungrounded_entity in ungrounded_entities_list:
+            best_match = None
+
+            # First check if ungrounded entity is contained in or contains any grounded entities
+            for grounded_entity in grounded_list:
+                if (
+                    ungrounded_entity.lower() in grounded_entity.lower()
+                    or grounded_entity.lower() in ungrounded_entity.lower()
+                ):
+                    best_match = grounded_entity
+                    break
+
+            # If no containment match with grounded entities, check previously processed ungrounded entities
+            if not best_match:
+                for processed_entity in processed_entities[entity_type]:
+                    if (
+                        ungrounded_entity.lower() in processed_entity.lower()
+                        or processed_entity.lower() in ungrounded_entity.lower()
+                    ):
+                        best_match = processed_entity
+                        break
+
+            # If still no match, fall back to fuzzy matching
+            if not best_match:
+                best_score = 0
+
+                # Try fuzzy matching with grounded entities
+                for grounded_entity in grounded_list:
+                    score = fuzz.ratio(
+                        ungrounded_entity.lower(), grounded_entity.lower()
+                    )
+                    if score > fuzzy_match_threshold and score > best_score:
+                        best_match = grounded_entity
+                        best_score = score
+
+                # Try fuzzy matching with previously processed ungrounded entities
+                if not best_match:
+                    for processed_entity in processed_entities[entity_type]:
+                        score = fuzz.ratio(
+                            ungrounded_entity.lower(), processed_entity.lower()
+                        )
+                        if score > fuzzy_match_threshold and score > best_score:
+                            best_match = processed_entity
+                            best_score = score
+
+            # Record the mapping
+            if best_match:
+                entity_match_mapping[entity_type][ungrounded_entity] = best_match
+            else:
+                # No match found, this becomes a new unique entity
+                entity_match_mapping[entity_type][ungrounded_entity] = ungrounded_entity
+                processed_entities[entity_type].add(ungrounded_entity)
+
+    # Log the results
+    logger.info("Entity matching results:")
+    for entity_type, mappings in entity_match_mapping.items():
+        logger.info(f"\nEntity type: {entity_type}")
+        for original, matched in mappings.items():
+            if original != matched:
+                logger.info(f"  Mapped: {original} -> {matched}")
+            else:
+                logger.info(f"  New unique entity: {original}")
+
+    return entity_match_mapping
+
+
 def kg_clustering(
     tenant_id: str, index_name: str, processing_chunk_batch_size: int = 8
 ) -> None:
@@ -291,8 +387,50 @@ def kg_clustering(
 
     with get_session_with_current_tenant() as db_session:
         relationship_types = get_all_relationship_types(db_session)
-        entities = get_ungrounded_entities(db_session)
+        ungrounded_entities = get_ungrounded_entities(db_session)
+        grounded_entities = get_grounded_entities(db_session)
 
+    # cluster 'semi-grounded' entities - TODO: re-think once all grounded entities are actually grounded
+    # TODO: make less manual - this is POC only!
+
+    # Define for each grounded type what needs to be in id_name to be considered grounded entity
+    # TODO: THIS NEEDS TO BE in DB. FOR POC ONLY!
+
+    grounding_format: Dict[str, str] = {"ACCOUNT": "."}
+
+    grounded_ge_entities: Dict[str, List[str]] = defaultdict(list)
+    ungrounded_ge_entities: Dict[str, List[str]] = defaultdict(list)
+
+    # grounded_ge_entity_mapping: Dict[str, List[dict]] = defaultdict(list)
+    # ungrounded_ge_entity_mapping: Dict[str, List[dict]] = defaultdict(list)
+
+    for grounded_entity in grounded_entities:
+        if grounded_entity.name == "*":
+            continue
+
+        if grounded_entity.entity_type_id_name in grounding_format:
+            if (
+                grounding_format[grounded_entity.entity_type_id_name]
+                in grounded_entity.id_name
+            ):
+                grounded_ge_entities[grounded_entity.entity_type_id_name].append(
+                    grounded_entity.name
+                )
+            else:
+                ungrounded_ge_entities[grounded_entity.entity_type_id_name].append(
+                    grounded_entity.name
+                )
+        else:
+            grounded_ge_entities[grounded_entity.entity_type_id_name].append(
+                grounded_entity.name
+            )
+
+    # Create mapping for ungrounded entities
+    entity_match_mapping = _match_ungrounded_entities(
+        ungrounded_ge_entities, grounded_ge_entities, fuzzy_match_threshold=80
+    )
+
+    # Cliuster relationship_types
     relationship_mapping: Dict[str, Dict[str, List[dict]]] = defaultdict(
         lambda: defaultdict(list)
     )
@@ -389,15 +527,15 @@ Only output the relationship name, nothing else."""
     # Now handle entity clustering
     entity_mapping: Dict[str, List[dict]] = defaultdict(list)
 
-    for previous_entity in entities:
+    for ungrounded_entity in ungrounded_entities:
         # do not include the wildcard entity
-        if previous_entity.name == "*":
+        if ungrounded_entity.name == "*":
             continue
 
-        entity_mapping[previous_entity.entity_type_id_name].append(
+        entity_mapping[ungrounded_entity.entity_type_id_name].append(
             {
-                "name": previous_entity.name,
-                "cluster_count": previous_entity.cluster_count or 1,
+                "name": ungrounded_entity.name,
+                "cluster_count": ungrounded_entity.cluster_count or 1,
             }
         )
 
@@ -479,6 +617,16 @@ Only output the category name, nothing else."""
     entity_replacements, reverse_entity_replacements_count = _create_entity_mapping(
         full_entity_clustering_results, entity_mapping
     )
+
+    # add the ungrounded 'grounded' entities
+    for entity_type, mappings in entity_match_mapping.items():
+        for original, matched in mappings.items():
+            entity_replacements[
+                f"{entity_type}:{original}"
+            ] = f"{entity_type}:{matched}"
+            reverse_entity_replacements_count[f"{entity_type}:{matched}"] += 1
+
+    # add the ungrounded 'grounded' entities
 
     # 3. relations: generate the replacement dict if not available
 
