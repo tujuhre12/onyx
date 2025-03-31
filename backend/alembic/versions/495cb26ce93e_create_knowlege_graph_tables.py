@@ -1,7 +1,7 @@
 """create knowlege graph tables
 
 Revision ID: 495cb26ce93e
-Revises: 3781a5eb12cb
+Revises: 8e1ac4f39a9f
 Create Date: 2025-03-19 08:51:14.341989
 
 """
@@ -12,7 +12,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "495cb26ce93e"
-down_revision = "3781a5eb12cb"
+down_revision = "8e1ac4f39a9f"
 branch_labels = None
 depends_on = None
 
@@ -23,7 +23,6 @@ def upgrade() -> None:
         sa.Column("id_name", sa.String(), primary_key=True, nullable=False, index=True),
         sa.Column("description", sa.String(), nullable=True),
         sa.Column("grounding", sa.String(), nullable=False),
-        sa.Column("grounded_source_name", sa.String(), nullable=False, unique=True),
         sa.Column("clustering", postgresql.JSONB, nullable=False, server_default="{}"),
         sa.Column(
             "classification_requirements",
@@ -36,8 +35,6 @@ def upgrade() -> None:
             "extraction_sources", postgresql.JSONB, nullable=False, server_default="{}"
         ),
         sa.Column("active", sa.Boolean(), nullable=False, default=False),
-        sa.Column("ge_grounding_signature", sa.String(), nullable=True),
-        sa.Column("ge_determine_instructions", postgresql.JSONB, nullable=True),
         sa.Column(
             "time_updated",
             sa.DateTime(timezone=True),
@@ -47,6 +44,11 @@ def upgrade() -> None:
         sa.Column(
             "time_created", sa.DateTime(timezone=True), server_default=sa.text("now()")
         ),
+        sa.Column("grounded_source_name", sa.String(), nullable=True, unique=True),
+        sa.Column(
+            "ge_determine_instructions", postgresql.ARRAY(sa.String()), nullable=True
+        ),
+        sa.Column("ge_grounding_signature", sa.String(), nullable=True),
     )
 
     # Create KGRelationshipType table
