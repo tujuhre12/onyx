@@ -15,6 +15,8 @@ from onyx.db.document import update_document_kg_info
 from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.entities import add_entity
 from onyx.db.entities import delete_entities_by_id_names
+from onyx.db.entities import get_determined_grounded_entities
+from onyx.db.entities import get_entity_types_with_grounding_signature
 from onyx.db.entities import get_ge_entities_by_types
 from onyx.db.entities import get_grounded_entities
 from onyx.db.entities import get_ungrounded_entities
@@ -36,6 +38,45 @@ from onyx.utils.logger import setup_logger
 
 
 logger = setup_logger()
+
+
+def _create_ge_determined_entity_map() -> Dict[str, List[str]]:
+    """Create a mapping of entity type ID names to their grounding determination instructions.
+
+    Returns:
+        Dictionary mapping entity type ID names to their list of grounding determination instructions
+    """
+    ge_determined_entity_map: Dict[str, List[str]] = defaultdict(list)
+
+    with get_session_with_current_tenant() as db_session:
+        determined_entities = get_determined_grounded_entities(db_session)
+
+        for entity_type in determined_entities:
+            if entity_type.ge_determine_instructions:  # Extra safety check
+                ge_determined_entity_map[
+                    entity_type.id_name
+                ] = entity_type.ge_determine_instructions
+
+    return ge_determined_entity_map
+
+
+def _get_entity_type_grounding_signatures() -> dict[str, str]:
+    """Build a dictionary mapping entity type id_names to their ge_grounding_signature values.
+
+    Args:
+        db_session: SQLAlchemy session
+
+    Returns:
+        Dictionary mapping entity type id_names to their ge_grounding_signature values
+        for all entity types that have a grounding signature defined
+    """
+    with get_session_with_current_tenant() as db_session:
+        entity_types = get_entity_types_with_grounding_signature(db_session)
+    return {
+        entity_type.id_name: entity_type.ge_grounding_signature
+        for entity_type in entity_types
+        if entity_type.ge_grounding_signature is not None
+    }
 
 
 def _cluster_relationships(
@@ -475,7 +516,7 @@ def kg_clustering(
     # Define for each grounded type what needs to be in id_name to be considered grounded entity
     # TODO: THIS NEEDS TO BE in DB. FOR POC ONLY!
 
-    ge_grounding_format: Dict[str, str] = {"ACCOUNT": "."}
+    ge_grounding_format: Dict[str, str] = _get_entity_type_grounding_signatures()
 
     grounded_ge_entities: Dict[str, List[str]] = defaultdict(list)
     ungrounded_ge_entities: Dict[str, List[str]] = defaultdict(list)
@@ -509,26 +550,7 @@ def kg_clustering(
         ungrounded_ge_entities, grounded_ge_entities, fuzzy_match_threshold=80
     )
 
-    ge_determined_entity_map = {
-        "CONNECTOR": [
-            "Slack",
-            "Github",
-            "Google Drive",
-            "GDrive",
-            "GMail",
-            "Salesforce",
-            "Github",
-            "Notion",
-            "Jira",
-            "File",
-            "Confluence",
-            "Gong",
-            "Sharepoint",
-            "Zendesk",
-            "Google Workspace",
-        ],
-        "ENGAGEMENT": ["POC", "Trial", "Demo", "Purchase", "Decline"],
-    }
+    ge_determined_entity_map: Dict[str, List[str]] = _create_ge_determined_entity_map()
 
     with get_session_with_current_tenant() as db_session:
         determined_ge_entities = get_ge_entities_by_types(

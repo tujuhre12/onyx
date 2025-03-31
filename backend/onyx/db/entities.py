@@ -128,6 +128,40 @@ def get_grounded_entities(db_session: Session) -> List[KGEntity]:
     )
 
 
+def get_determined_grounded_entities(db_session: Session) -> List[KGEntityType]:
+    """Get all entity types that have non-null ge_determine_instructions.
+
+    Args:
+        db_session: SQLAlchemy session
+
+    Returns:
+        List of KGEntityType objects that have ge_determine_instructions defined
+    """
+    return (
+        db_session.query(KGEntityType)
+        .filter(KGEntityType.ge_determine_instructions.isnot(None))
+        .all()
+    )
+
+
+def get_entity_types_with_grounding_signature(
+    db_session: Session,
+) -> List[KGEntityType]:
+    """Get all entity types that have non-null ge_grounding_signature.
+
+    Args:
+        db_session: SQLAlchemy session
+
+    Returns:
+        List of KGEntityType objects that have ge_grounding_signature defined
+    """
+    return (
+        db_session.query(KGEntityType)
+        .filter(KGEntityType.ge_grounding_signature.isnot(None))
+        .all()
+    )
+
+
 def get_ge_entities_by_types(
     db_session: Session, entity_types: List[str]
 ) -> List[KGEntity]:

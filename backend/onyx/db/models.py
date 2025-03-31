@@ -638,6 +638,14 @@ class KGEntityType(Base):
         NullFilteredString, nullable=False, index=False
     )
 
+    ge_determine_instructions: Mapped[list[str]] = mapped_column(
+        postgresql.ARRAY(String), nullable=True, default=None
+    )
+
+    ge_grounding_signature: Mapped[str] = mapped_column(
+        NullFilteredString, nullable=True, index=False, default=None
+    )
+
     clustering: Mapped[dict] = mapped_column(
         postgresql.JSONB,
         nullable=False,

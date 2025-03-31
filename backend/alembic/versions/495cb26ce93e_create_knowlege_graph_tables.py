@@ -36,6 +36,8 @@ def upgrade() -> None:
             "extraction_sources", postgresql.JSONB, nullable=False, server_default="{}"
         ),
         sa.Column("active", sa.Boolean(), nullable=False, default=False),
+        sa.Column("ge_grounding_signature", sa.String(), nullable=True),
+        sa.Column("ge_determine_instructions", postgresql.JSONB, nullable=True),
         sa.Column(
             "time_updated",
             sa.DateTime(timezone=True),
