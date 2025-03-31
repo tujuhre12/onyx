@@ -76,7 +76,7 @@ const RerankingDetailsForm = forwardRef<
           function (value) {
             const { rerank_provider_type } = this.parent;
             return (
-              rerank_provider_type !== RerankerProvider.COHERE ||
+              rerank_provider_type === RerankerProvider.LITELLM ||
               (value !== null && value !== "")
             );
           }
