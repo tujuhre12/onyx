@@ -80,6 +80,8 @@ def kg_email_processing(email: str) -> KGPerson:
     """
     name, company_domain = email.split("@")
 
+    assert isinstance(KG_OWN_EMAIL_DOMAINS, list)
+
     employee = any(domain in company_domain for domain in KG_OWN_EMAIL_DOMAINS)
     if employee:
         company = KG_OWN_COMPANY

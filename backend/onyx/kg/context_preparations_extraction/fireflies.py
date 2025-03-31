@@ -46,8 +46,13 @@ def prepare_llm_content_fireflies(chunk: KGChunkFormat) -> ContextPreparation:
     account_participant_emails = set()
 
     for owner in primary_owners + secondary_owners:
+        assert isinstance(KG_IGNORE_EMAIL_DOMAINS, list)
+
         kg_owner = kg_email_processing(owner)
-        if any(domain in kg_owner.company for domain in KG_IGNORE_EMAIL_DOMAINS):
+        if any(
+            domain.lower() in kg_owner.company.lower()
+            for domain in KG_IGNORE_EMAIL_DOMAINS
+        ):
             continue
 
         if kg_owner.employee:
@@ -116,6 +121,8 @@ def get_classification_content_from_fireflies_chunks(
     Creates a KGClassificationContent object from a list of Fireflies chunks.
     """
 
+    assert isinstance(KG_IGNORE_EMAIL_DOMAINS, list)
+
     primary_owners = first_num_classification_chunks[0]["fields"]["primary_owners"]
     secondary_owners = first_num_classification_chunks[0]["fields"]["secondary_owners"]
 
@@ -124,7 +131,10 @@ def get_classification_content_from_fireflies_chunks(
 
     for owner in primary_owners + secondary_owners:
         kg_owner = kg_email_processing(owner)
-        if any(domain in kg_owner.company for domain in KG_IGNORE_EMAIL_DOMAINS):
+        if any(
+            domain.lower() in kg_owner.company.lower()
+            for domain in KG_IGNORE_EMAIL_DOMAINS
+        ):
             continue
 
         if kg_owner.employee:
