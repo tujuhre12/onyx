@@ -719,7 +719,7 @@ export async function uploadFilesForChat(
   return [responseJson.files as FileDescriptor[], null];
 }
 
-export async function useScrollonStream({
+export function useScrollonStream({
   chatState,
   scrollableDivRef,
   scrollDist,
@@ -817,5 +817,5 @@ export async function useScrollonStream({
         });
       }
     }
-  }, [chatState, distance, scrollDist, scrollableDivRef]);
+  }, [chatState, distance, scrollDist, scrollableDivRef, enableAutoScroll]);
 }
