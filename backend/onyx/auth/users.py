@@ -56,6 +56,7 @@ from httpx_oauth.oauth2 import OAuth2Token
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ee.onyx.configs.app_configs import ANONYMOUS_USER_COOKIE_NAME
 from onyx.auth.api_key import get_hashed_api_key_from_request
 from onyx.auth.email_utils import send_forgot_password_email
 from onyx.auth.email_utils import send_user_verification_email
@@ -519,8 +520,6 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         request: Optional[Request] = None,
         response: Optional[Response] = None,
     ) -> None:
-        from ee.onyx.configs.app_configs import ANONYMOUS_USER_COOKIE_NAME
-
         try:
             if response and request and ANONYMOUS_USER_COOKIE_NAME in request.cookies:
                 response.delete_cookie(
@@ -531,8 +530,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                     secure=WEB_DOMAIN.startswith("https"),
                 )
                 logger.debug(f"Deleted anonymous user cookie for user {user.email}")
-        except Exception as e:
-            logger.error(f"Error deleting anonymous user cookie: {e}")
+        except Exception:
+            logger.exception("Error deleting anonymous user cookie")
 
     async def on_after_register(
         self, user: User, request: Optional[Request] = None
