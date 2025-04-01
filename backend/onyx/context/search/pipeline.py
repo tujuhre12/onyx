@@ -5,11 +5,13 @@ from typing import cast
 
 from sqlalchemy.orm import Session
 
+from onyx.chat.models import ContextualPruningConfig
 from onyx.chat.models import PromptConfig
 from onyx.chat.models import SectionRelevancePiece
 from onyx.chat.prune_and_merge import _merge_sections
 from onyx.chat.prune_and_merge import ChunkRange
 from onyx.chat.prune_and_merge import merge_chunk_intervals
+from onyx.chat.prune_and_merge import prune_and_merge_sections
 from onyx.configs.chat_configs import DISABLE_LLM_DOC_RELEVANCE
 from onyx.context.search.enums import LLMEvaluationType
 from onyx.context.search.enums import QueryFlow
@@ -61,6 +63,7 @@ class SearchPipeline:
         | None = None,
         rerank_metrics_callback: Callable[[RerankMetricsContainer], None] | None = None,
         prompt_config: PromptConfig | None = None,
+        contextual_pruning_config: ContextualPruningConfig | None = None,
     ):
         # NOTE: The Search Request contains a lot of fields that are overrides, many of them can be None
         # and typically are None. The preprocessing will fetch default values to replace these empty overrides.
@@ -73,7 +76,7 @@ class SearchPipeline:
         self.bypass_acl = bypass_acl
         self.retrieval_metrics_callback = retrieval_metrics_callback
         self.rerank_metrics_callback = rerank_metrics_callback
-
+        self.contextual_pruning_config = contextual_pruning_config
         self.search_settings = get_current_search_settings(db_session)
         self.document_index = get_default_document_index(self.search_settings, None)
         self.prompt_config: PromptConfig | None = prompt_config
@@ -94,6 +97,7 @@ class SearchPipeline:
         self._final_context_sections: list[InferenceSection] | None = None
 
         self._section_relevance: list[SectionRelevancePiece] | None = None
+        self._reranked_section_relevance: list[SectionRelevancePiece] | None = None
 
         # Generates reranked chunks and LLM selections
         self._postprocessing_generator: (
@@ -420,7 +424,23 @@ class SearchPipeline:
         if self._final_context_sections is not None:
             return self._final_context_sections
 
-        self._final_context_sections = _merge_sections(sections=self.reranked_sections)
+        if self.prompt_config and self.contextual_pruning_config:
+            self._final_context_sections = prune_and_merge_sections(
+                sections=self.reranked_sections,
+                section_relevance_list=self.reranked_section_relevance_list,
+                prompt_config=self.prompt_config,
+                llm_config=self.llm.config,
+                question=self.search_query.query,
+                contextual_pruning_config=self.contextual_pruning_config,
+            )
+        else:
+            logger.warning(
+                "Prompt config and contextual pruning config must be set to prune and merge sections"
+            )
+            self._final_context_sections = _merge_sections(
+                sections=self.reranked_sections
+            )
+
         return self._final_context_sections
 
     @property
@@ -432,10 +452,6 @@ class SearchPipeline:
             self.search_query.evaluation_type == LLMEvaluationType.SKIP
             or DISABLE_LLM_DOC_RELEVANCE
         ):
-            if self.search_query.evaluation_type == LLMEvaluationType.SKIP:
-                logger.info(
-                    "Fast path: Skipping section relevance evaluation for ordering-only mode"
-                )
             return None
 
         if self.search_query.evaluation_type == LLMEvaluationType.UNSPECIFIED:
@@ -470,7 +486,67 @@ class SearchPipeline:
             # since the property sets the generator. DO NOT REMOVE.
             _ = self.final_context_sections
 
-            self._section_relevance = next(
+            self._section_relevance = [
+                SectionRelevancePiece(
+                    document_id=x.center_chunk.document_id,
+                    chunk_id=x.center_chunk.chunk_id,
+                    relevant=True,
+                )
+                for x in self.final_context_sections
+            ]
+
+        else:
+            # All other cases should have been handled above
+            raise ValueError(
+                f"Unexpected evaluation type: {self.search_query.evaluation_type}"
+            )
+
+        return self._section_relevance
+
+    @property
+    def reranked_section_relevance(self) -> list[SectionRelevancePiece] | None:
+        if self._reranked_section_relevance is not None:
+            return self._reranked_section_relevance
+
+        if (
+            self.search_query.evaluation_type == LLMEvaluationType.SKIP
+            or DISABLE_LLM_DOC_RELEVANCE
+        ):
+            return None
+
+        if self.search_query.evaluation_type == LLMEvaluationType.UNSPECIFIED:
+            raise ValueError(
+                "Attempted to access section relevance scores on search query with evaluation type `UNSPECIFIED`."
+                + "The search query evaluation type should have been specified."
+            )
+
+        if self.search_query.evaluation_type == LLMEvaluationType.AGENTIC:
+            sections = self.reranked_sections
+            functions = [
+                FunctionCall(
+                    evaluate_inference_section,
+                    (section, self.search_query.query, self.llm),
+                )
+                for section in sections
+            ]
+            try:
+                results = run_functions_in_parallel(function_calls=functions)
+                self._section_relevance = list(results.values())
+            except Exception as e:
+                raise ValueError(
+                    "An issue occured during the agentic evaluation process."
+                ) from e
+
+        elif self.search_query.evaluation_type == LLMEvaluationType.BASIC:
+            if DISABLE_LLM_DOC_RELEVANCE:
+                raise ValueError(
+                    "Basic search evaluation operation called while DISABLE_LLM_DOC_RELEVANCE is enabled."
+                )
+            # NOTE: final_context_sections must be accessed before accessing self._postprocessing_generator
+            # since the property sets the generator. DO NOT REMOVE.
+            _ = self.reranked_sections
+
+            self._reranked_section_relevance = next(
                 cast(
                     Iterator[list[SectionRelevancePiece]],
                     self._postprocessing_generator,
@@ -483,13 +559,20 @@ class SearchPipeline:
                 f"Unexpected evaluation type: {self.search_query.evaluation_type}"
             )
 
-        return self._section_relevance
+        return self._reranked_section_relevance
 
     @property
     def section_relevance_list(self) -> list[bool]:
         return section_relevance_list_impl(
             section_relevance=self.section_relevance,
             final_context_sections=self.final_context_sections,
+        )
+
+    @property
+    def reranked_section_relevance_list(self) -> list[bool]:
+        return section_relevance_list_impl(
+            section_relevance=self.reranked_section_relevance,
+            final_context_sections=self.reranked_sections,
         )
 
 
