@@ -38,16 +38,6 @@ const nextConfig = {
       },
     ],
     unoptimized: true, // Disable image optimization to avoid requiring Sharp
-    disableStaticImages: false, // Enable static image imports but use unoptimized strategy
-  },
-  // Configure webpack to handle image files without Sharp
-  webpack: (config) => {
-    // Handle static asset imports
-    config.module.rules.push({
-      test: /\.(png|jpg|jpeg|gif|webp|avif|ico|bmp|svg)$/i,
-      type: "asset/resource", // Use asset/resource to emit a separate file and export the URL
-    });
-    return config;
   },
   async headers() {
     return [
