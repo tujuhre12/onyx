@@ -425,15 +425,19 @@ export const AIMessage = ({
       return finalContent;
     }
 
+    const processedContent = preprocessLaTeX(finalContent);
     return (
       <ReactMarkdown
-        className="prose dark:prose-invert max-w-full text-base"
+        className="max-w-full text-base syntax-highlight"
         components={markdownComponents}
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[[rehypePrism, { ignoreMissing: true }], rehypeKatex]}
+        rehypePlugins={[
+          [rehypePrism, { ignoreMissing: true, showLineNumbers: true }],
+          rehypeKatex,
+        ]}
         urlTransform={transformLinkUri}
       >
-        {finalContent}
+        {processedContent}
       </ReactMarkdown>
     );
   }, [finalContent, markdownComponents]);
