@@ -668,7 +668,7 @@ const PARAMS_TO_SKIP = [
 ];
 
 export function buildChatUrl(
-  existingSearchParams: ReadonlyURLSearchParams,
+  existingSearchParams: ReadonlyURLSearchParams | null,
   chatSessionId: string | null,
   personaId: number | null,
   search?: boolean
@@ -685,7 +685,7 @@ export function buildChatUrl(
     finalSearchParams.push(`${SEARCH_PARAM_NAMES.PERSONA_ID}=${personaId}`);
   }
 
-  existingSearchParams.forEach((value, key) => {
+  existingSearchParams?.forEach((value, key) => {
     if (!PARAMS_TO_SKIP.includes(key)) {
       finalSearchParams.push(`${key}=${value}`);
     }

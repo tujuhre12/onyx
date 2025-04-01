@@ -38,13 +38,14 @@ const nextConfig = {
       },
     ],
     unoptimized: true, // Disable image optimization to avoid requiring Sharp
-    disableStaticImages: true, // Disable static image imports processing
+    disableStaticImages: false, // Enable static image imports but use unoptimized strategy
   },
-  // Completely disable webpack image handling
+  // Configure webpack to handle image files without Sharp
   webpack: (config) => {
+    // Handle static asset imports
     config.module.rules.push({
       test: /\.(png|jpg|jpeg|gif|webp|avif|ico|bmp|svg)$/i,
-      type: "asset/resource",
+      type: "asset/resource", // Use asset/resource to emit a separate file and export the URL
     });
     return config;
   },
