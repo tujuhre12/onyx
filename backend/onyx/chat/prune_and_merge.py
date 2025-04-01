@@ -343,12 +343,25 @@ def _merge_doc_chunks(chunks: list[InferenceChunk]) -> InferenceSection:
     )
 
 
-def _merge_sections(sections: list[InferenceSection]) -> list[InferenceSection]:
+def _merge_sections(
+    sections: list[InferenceSection], llm_config: LLMConfig
+) -> list[InferenceSection]:
     docs_map: dict[str, dict[int, InferenceChunk]] = defaultdict(dict)
     doc_order: dict[str, int] = {}
+    pruned_lengths: dict[str, int] = defaultdict(lambda: 0)
+    llm_tokenizer = get_tokenizer(
+        provider_type=llm_config.model_provider,
+        model_name=llm_config.model_name,
+    )
+
     for index, section in enumerate(sections):
         if section.center_chunk.document_id not in doc_order:
             doc_order[section.center_chunk.document_id] = index
+
+        pruned_lengths[section.center_chunk.document_id] += len(
+            llm_tokenizer.encode(section.combined_content)
+        )
+
         for chunk in [section.center_chunk] + section.chunks:
             chunks_map = docs_map[section.center_chunk.document_id]
             existing_chunk = chunks_map.get(chunk.chunk_id)
@@ -362,7 +375,14 @@ def _merge_sections(sections: list[InferenceSection]) -> list[InferenceSection]:
 
     new_sections = []
     for section_chunks in docs_map.values():
-        new_sections.append(_merge_doc_chunks(chunks=list(section_chunks.values())))
+        merged_section = _merge_doc_chunks(chunks=list(section_chunks.values()))
+        # After merging, ensure the content respects the pruning done earlier
+        merged_section.combined_content = tokenizer_trim_content(
+            content=merged_section.combined_content,
+            desired_length=pruned_lengths[merged_section.center_chunk.document_id],
+            tokenizer=llm_tokenizer,
+        )
+        new_sections.append(merged_section)
 
     # Sort by highest score, then by original document order
     # It is now 1 large section per doc, the center chunk being the one with the highest score
@@ -415,6 +435,8 @@ def prune_and_merge_sections(
         contextual_pruning_config=contextual_pruning_config,
     )
 
-    merged_sections = _merge_sections(sections=remaining_sections)
+    merged_sections = _merge_sections(
+        sections=remaining_sections, llm_config=llm_config
+    )
 
     return merged_sections
