@@ -38,6 +38,15 @@ const nextConfig = {
       },
     ],
     unoptimized: true, // Disable image optimization to avoid requiring Sharp
+    disableStaticImages: true, // Disable static image imports processing
+  },
+  // Completely disable webpack image handling
+  webpack: (config) => {
+    config.module.rules.push({
+      test: /\.(png|jpg|jpeg|gif|webp|avif|ico|bmp|svg)$/i,
+      type: "asset/resource",
+    });
+    return config;
   },
   async headers() {
     return [
