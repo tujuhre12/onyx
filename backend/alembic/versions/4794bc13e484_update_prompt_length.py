@@ -21,7 +21,7 @@ def upgrade() -> None:
         "prompt",
         "system_prompt",
         existing_type=sa.TEXT(),
-        type_=sa.String(length=100000),
+        type_=sa.String(length=1000000),
         existing_nullable=False,
     )
     op.alter_column(
