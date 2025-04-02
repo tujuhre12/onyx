@@ -693,6 +693,10 @@ def stream_chat_message_objects(
                 doc_identifiers=identifier_tuples,
                 document_index=document_index,
             )
+
+            # Add a maximum context size in the case of user-selected docs to prevent
+            # slight inaccuracies in context window size pruning from causing
+            # the entire query to fail
             document_pruning_config = DocumentPruningConfig(
                 is_manually_selected_docs=True,
                 max_window_percentage=SELECTED_SECTIONS_MAX_WINDOW_PERCENTAGE,
