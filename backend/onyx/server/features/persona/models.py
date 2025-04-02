@@ -107,6 +107,8 @@ class PersonaSnapshot(BaseModel):
     tools: list[ToolSnapshot] = Field(default_factory=list)
     labels: list["PersonaLabelSnapshot"] = Field(default_factory=list)
     owner: MinimalUserSnapshot | None = None
+    users: list[MinimalUserSnapshot] = Field(default_factory=list)
+    groups: list[int] = Field(default_factory=list)
 
     @classmethod
     def from_model(cls, persona: Persona) -> "PersonaSnapshot":
@@ -132,6 +134,11 @@ class PersonaSnapshot(BaseModel):
                 if persona.user
                 else None
             ),
+            users=[
+                MinimalUserSnapshot(id=user.id, email=user.email)
+                for user in persona.users
+            ],
+            groups=[user_group.id for user_group in persona.groups],
         )
 
 
@@ -144,8 +151,6 @@ class FullPersonaSnapshot(PersonaSnapshot):
     llm_filter_extraction: bool = False
     llm_model_provider_override: str | None = None
     llm_model_version_override: str | None = None
-    users: list[MinimalUserSnapshot] = Field(default_factory=list)
-    groups: list[int] = Field(default_factory=list)
 
     @classmethod
     def from_model(
@@ -191,11 +196,6 @@ class FullPersonaSnapshot(PersonaSnapshot):
             llm_filter_extraction=persona.llm_filter_extraction,
             llm_model_provider_override=persona.llm_model_provider_override,
             llm_model_version_override=persona.llm_model_version_override,
-            users=[
-                MinimalUserSnapshot(id=user.id, email=user.email)
-                for user in persona.users
-            ],
-            groups=[user_group.id for user_group in persona.groups],
         )
 
 

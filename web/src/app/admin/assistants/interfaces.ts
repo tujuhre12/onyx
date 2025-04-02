@@ -36,6 +36,8 @@ export interface Persona {
   tools: ToolSnapshot[];
   labels?: PersonaLabel[];
   owner: MinimalUserSnapshot | null;
+  users: MinimalUserSnapshot[];
+  groups: number[];
 }
 
 export interface FullPersona extends Persona {
@@ -47,8 +49,6 @@ export interface FullPersona extends Persona {
   llm_filter_extraction?: boolean;
   llm_model_provider_override?: string;
   llm_model_version_override?: string;
-  users: MinimalUserSnapshot[];
-  groups: number[];
 }
 
 export interface PersonaLabel {

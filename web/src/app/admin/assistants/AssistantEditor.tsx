@@ -458,12 +458,12 @@ export function AssistantEditor({
               "Must provide a description for the Assistant"
             ),
             system_prompt: Yup.string().max(
-              1000000,
-              "Instructions must be less than 1000000 characters"
+              5000000,
+              "Instructions must be less than 5000000 characters"
             ),
             task_prompt: Yup.string().max(
-              1000000,
-              "Reminders must be less than 1000000 characters"
+              5000000,
+              "Reminders must be less than 5000000 characters"
             ),
             is_public: Yup.boolean().required(),
             document_set_ids: Yup.array().of(Yup.number()),
