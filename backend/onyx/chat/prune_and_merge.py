@@ -375,7 +375,9 @@ def _merge_sections(sections: list[InferenceSection]) -> list[InferenceSection]:
         # combined section is restricted to the sum of the lengths of the sections
         # from the pruning step. Technically the correct approach would be to prune based
         # on tokens AGAIN, but this is a good approximation and worth not adding the
-        # tokenization overhead.
+        # tokenization overhead. This could also be fixed if we added a way of removing
+        # chunks from sections in the pruning step; at the moment this issue largely
+        # exists because we only trim the final section's combined_content.
         merged_section.combined_content = merged_section.combined_content[
             :previous_length
         ]
