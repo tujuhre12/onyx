@@ -98,10 +98,15 @@ class PersonaSnapshot(BaseModel):
     icon_shape: int | None = None
     icon_color: str | None = None
     uploaded_image_id: str | None = None
-    user_file_ids: list[int] | None = None
-    user_folder_ids: list[int] | None = None
+    user_file_ids: list[int] = Field(default_factory=list)
+    user_folder_ids: list[int] = Field(default_factory=list)
     display_priority: int | None = None
     is_default_persona: bool = False
+    builtin_persona: bool = False
+    starter_messages: list[StarterMessage] | None = None
+    tools: list[ToolSnapshot] = Field(default_factory=list)
+    labels: list["PersonaLabelSnapshot"] = Field(default_factory=list)
+    owner: MinimalUserSnapshot | None = None
 
     @classmethod
     def from_model(cls, persona: Persona) -> "PersonaSnapshot":
@@ -114,32 +119,38 @@ class PersonaSnapshot(BaseModel):
             icon_shape=persona.icon_shape,
             icon_color=persona.icon_color,
             uploaded_image_id=persona.uploaded_image_id,
-            user_file_ids=persona.user_file_ids,
-            user_folder_ids=persona.user_folder_ids,
+            user_file_ids=[file.id for file in persona.user_files],
+            user_folder_ids=[folder.id for folder in persona.user_folders],
+            display_priority=persona.display_priority,
+            is_default_persona=persona.is_default_persona,
+            builtin_persona=persona.builtin_persona,
+            starter_messages=persona.starter_messages,
+            tools=[ToolSnapshot.from_model(tool) for tool in persona.tools],
+            labels=[PersonaLabelSnapshot.from_model(label) for label in persona.labels],
+            owner=(
+                MinimalUserSnapshot(id=persona.user.id, email=persona.user.email)
+                if persona.user
+                else None
+            ),
         )
 
 
 class FullPersonaSnapshot(PersonaSnapshot):
-    owner: MinimalUserSnapshot | None
-    num_chunks: float | None
-    llm_relevance_filter: bool
-    llm_filter_extraction: bool
-    llm_model_provider_override: str | None
-    llm_model_version_override: str | None
-    starter_messages: list[StarterMessage] | None
-    builtin_persona: bool
-    prompts: list[PromptSnapshot]
-    tools: list[ToolSnapshot]
-    document_sets: list[DocumentSet]
-    users: list[MinimalUserSnapshot]
-    groups: list[int]
     search_start_date: datetime | None = None
-    labels: list["PersonaLabelSnapshot"] = []
+    document_sets: list[DocumentSet] = Field(default_factory=list)
+    prompts: list[PromptSnapshot] = Field(default_factory=list)
+    num_chunks: float | None = None
+    llm_relevance_filter: bool = False
+    llm_filter_extraction: bool = False
+    llm_model_provider_override: str | None = None
+    llm_model_version_override: str | None = None
+    users: list[MinimalUserSnapshot] = Field(default_factory=list)
+    groups: list[int] = Field(default_factory=list)
 
     @classmethod
     def from_model(
         cls, persona: Persona, allow_deleted: bool = False
-    ) -> "PersonaSnapshot":
+    ) -> "FullPersonaSnapshot":
         if persona.deleted:
             error_msg = f"Persona with ID {persona.id} has been deleted"
             if not allow_deleted:
@@ -150,41 +161,41 @@ class FullPersonaSnapshot(PersonaSnapshot):
         return FullPersonaSnapshot(
             id=persona.id,
             name=persona.name,
+            description=persona.description,
+            is_public=persona.is_public,
+            is_visible=persona.is_visible,
+            icon_shape=persona.icon_shape,
+            icon_color=persona.icon_color,
+            uploaded_image_id=persona.uploaded_image_id,
+            user_file_ids=[file.id for file in persona.user_files],
+            user_folder_ids=[folder.id for folder in persona.user_folders],
+            display_priority=persona.display_priority,
+            is_default_persona=persona.is_default_persona,
+            builtin_persona=persona.builtin_persona,
+            starter_messages=persona.starter_messages,
+            tools=[ToolSnapshot.from_model(tool) for tool in persona.tools],
+            labels=[PersonaLabelSnapshot.from_model(label) for label in persona.labels],
             owner=(
                 MinimalUserSnapshot(id=persona.user.id, email=persona.user.email)
                 if persona.user
                 else None
             ),
-            is_visible=persona.is_visible,
-            is_public=persona.is_public,
-            display_priority=persona.display_priority,
-            description=persona.description,
+            search_start_date=persona.search_start_date,
+            document_sets=[
+                DocumentSet.from_model(document_set_model)
+                for document_set_model in persona.document_sets
+            ],
+            prompts=[PromptSnapshot.from_model(prompt) for prompt in persona.prompts],
             num_chunks=persona.num_chunks,
             llm_relevance_filter=persona.llm_relevance_filter,
             llm_filter_extraction=persona.llm_filter_extraction,
             llm_model_provider_override=persona.llm_model_provider_override,
             llm_model_version_override=persona.llm_model_version_override,
-            starter_messages=persona.starter_messages,
-            builtin_persona=persona.builtin_persona,
-            is_default_persona=persona.is_default_persona,
-            prompts=[PromptSnapshot.from_model(prompt) for prompt in persona.prompts],
-            tools=[ToolSnapshot.from_model(tool) for tool in persona.tools],
-            document_sets=[
-                DocumentSet.from_model(document_set_model)
-                for document_set_model in persona.document_sets
-            ],
             users=[
                 MinimalUserSnapshot(id=user.id, email=user.email)
                 for user in persona.users
             ],
             groups=[user_group.id for user_group in persona.groups],
-            icon_color=persona.icon_color,
-            icon_shape=persona.icon_shape,
-            uploaded_image_id=persona.uploaded_image_id,
-            search_start_date=persona.search_start_date,
-            labels=[PersonaLabelSnapshot.from_model(label) for label in persona.labels],
-            user_file_ids=[file.id for file in persona.user_files],
-            user_folder_ids=[folder.id for folder in persona.user_folders],
         )
 
 

@@ -42,14 +42,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import * as Yup from "yup";
-import CollapsibleSection from "./CollapsibleSection";
-import { SuccessfulPersonaUpdateRedirectType } from "./enums";
-import {
-  FullPersona,
-  Persona,
-  PersonaLabel,
-  StarterMessage,
-} from "./interfaces";
+import { FullPersona, PersonaLabel, StarterMessage } from "./interfaces";
 import {
   PersonaUpsertParameters,
   createPersona,
@@ -188,8 +181,6 @@ export function AssistantEditor({
       setDefaultIconShape(generateRandomIconShape().encodedGrid);
     }
   }, [defaultIconShape]);
-
-  const [isIconDropdownOpen, setIsIconDropdownOpen] = useState(false);
 
   const [removePersonaImage, setRemovePersonaImage] = useState(false);
 
@@ -467,12 +458,12 @@ export function AssistantEditor({
               "Must provide a description for the Assistant"
             ),
             system_prompt: Yup.string().max(
-              8000,
-              "Instructions must be less than 8000 characters"
+              1000000,
+              "Instructions must be less than 1000000 characters"
             ),
             task_prompt: Yup.string().max(
-              8000,
-              "Reminders must be less than 8000 characters"
+              1000000,
+              "Reminders must be less than 1000000 characters"
             ),
             is_public: Yup.boolean().required(),
             document_set_ids: Yup.array().of(Yup.number()),
