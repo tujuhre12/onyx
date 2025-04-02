@@ -343,27 +343,21 @@ def _merge_doc_chunks(chunks: list[InferenceChunk]) -> InferenceSection:
     )
 
 
-def _merge_sections(
-    sections: list[InferenceSection], llm_config: LLMConfig
-) -> list[InferenceSection]:
+def _merge_sections(sections: list[InferenceSection]) -> list[InferenceSection]:
     docs_map: dict[str, dict[int, InferenceChunk]] = defaultdict(dict)
     doc_order: dict[str, int] = {}
-    pruned_lengths: dict[str, int] = defaultdict(lambda: 0)
-    llm_tokenizer = get_tokenizer(
-        provider_type=llm_config.model_provider,
-        model_name=llm_config.model_name,
-    )
+    combined_section_lengths: dict[str, int] = defaultdict(lambda: 0)
 
+    # chunk de-duping and doc ordering
     for index, section in enumerate(sections):
         if section.center_chunk.document_id not in doc_order:
             doc_order[section.center_chunk.document_id] = index
-
-        pruned_lengths[section.center_chunk.document_id] += len(
-            llm_tokenizer.encode(section.combined_content)
+        combined_section_lengths[section.center_chunk.document_id] += len(
+            section.combined_content
         )
 
+        chunks_map = docs_map[section.center_chunk.document_id]
         for chunk in [section.center_chunk] + section.chunks:
-            chunks_map = docs_map[section.center_chunk.document_id]
             existing_chunk = chunks_map.get(chunk.chunk_id)
             if (
                 existing_chunk is None
@@ -374,14 +368,17 @@ def _merge_sections(
                 chunks_map[chunk.chunk_id] = chunk
 
     new_sections = []
-    for section_chunks in docs_map.values():
+    for doc_id, section_chunks in docs_map.items():
         merged_section = _merge_doc_chunks(chunks=list(section_chunks.values()))
-        # After merging, ensure the content respects the pruning done earlier
-        merged_section.combined_content = tokenizer_trim_content(
-            content=merged_section.combined_content,
-            desired_length=pruned_lengths[merged_section.center_chunk.document_id],
-            tokenizer=llm_tokenizer,
-        )
+        previous_length = combined_section_lengths[doc_id]
+        # After merging, ensure the content respects the pruning done earlier. Each
+        # combined section is restricted to the sum of the lengths of the sections
+        # from the pruning step. Technically the correct approach would be to prune based
+        # on tokens AGAIN, but this is a good approximation and worth not adding the
+        # tokenization overhead.
+        merged_section.combined_content = merged_section.combined_content[
+            :previous_length
+        ]
         new_sections.append(merged_section)
 
     # Sort by highest score, then by original document order
@@ -435,8 +432,6 @@ def prune_and_merge_sections(
         contextual_pruning_config=contextual_pruning_config,
     )
 
-    merged_sections = _merge_sections(
-        sections=remaining_sections, llm_config=llm_config
-    )
+    merged_sections = _merge_sections(sections=remaining_sections)
 
     return merged_sections
