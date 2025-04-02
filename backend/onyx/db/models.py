@@ -1131,10 +1131,10 @@ class DocumentByConnectorCredentialPair(Base):
     has_been_indexed: Mapped[bool] = mapped_column(Boolean)
 
     connector: Mapped[Connector] = relationship(
-        "Connector", back_populates="documents_by_connector"
+        "Connector", back_populates="documents_by_connector", passive_deletes=True
     )
     credential: Mapped[Credential] = relationship(
-        "Credential", back_populates="documents_by_credential"
+        "Credential", back_populates="documents_by_credential", passive_deletes=True
     )
 
     __table_args__ = (
