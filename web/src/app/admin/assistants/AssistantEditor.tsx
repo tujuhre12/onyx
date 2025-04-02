@@ -44,7 +44,12 @@ import { useEffect, useMemo, useState } from "react";
 import * as Yup from "yup";
 import CollapsibleSection from "./CollapsibleSection";
 import { SuccessfulPersonaUpdateRedirectType } from "./enums";
-import { Persona, PersonaLabel, StarterMessage } from "./interfaces";
+import {
+  FullPersona,
+  Persona,
+  PersonaLabel,
+  StarterMessage,
+} from "./interfaces";
 import {
   PersonaUpsertParameters,
   createPersona,
@@ -136,7 +141,7 @@ export function AssistantEditor({
   shouldAddAssistantToUserPreferences,
   admin,
 }: {
-  existingPersona?: Persona | null;
+  existingPersona?: FullPersona | null;
   ccPairs: CCPairBasicInfo[];
   documentSets: DocumentSet[];
   user: User | null;

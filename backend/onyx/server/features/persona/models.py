@@ -91,12 +91,36 @@ class PersonaUpsertRequest(BaseModel):
 
 class PersonaSnapshot(BaseModel):
     id: int
-    owner: MinimalUserSnapshot | None
     name: str
-    is_visible: bool
-    is_public: bool
-    display_priority: int | None
     description: str
+    is_public: bool
+    is_visible: bool
+    icon_shape: int | None = None
+    icon_color: str | None = None
+    uploaded_image_id: str | None = None
+    user_file_ids: list[int] | None = None
+    user_folder_ids: list[int] | None = None
+    display_priority: int | None = None
+    is_default_persona: bool = False
+
+    @classmethod
+    def from_model(cls, persona: Persona) -> "PersonaSnapshot":
+        return PersonaSnapshot(
+            id=persona.id,
+            name=persona.name,
+            description=persona.description,
+            is_public=persona.is_public,
+            is_visible=persona.is_visible,
+            icon_shape=persona.icon_shape,
+            icon_color=persona.icon_color,
+            uploaded_image_id=persona.uploaded_image_id,
+            user_file_ids=persona.user_file_ids,
+            user_folder_ids=persona.user_folder_ids,
+        )
+
+
+class FullPersonaSnapshot(PersonaSnapshot):
+    owner: MinimalUserSnapshot | None
     num_chunks: float | None
     llm_relevance_filter: bool
     llm_filter_extraction: bool
@@ -109,14 +133,8 @@ class PersonaSnapshot(BaseModel):
     document_sets: list[DocumentSet]
     users: list[MinimalUserSnapshot]
     groups: list[int]
-    icon_color: str | None
-    icon_shape: int | None
-    uploaded_image_id: str | None = None
-    is_default_persona: bool
     search_start_date: datetime | None = None
     labels: list["PersonaLabelSnapshot"] = []
-    user_file_ids: list[int] | None = None
-    user_folder_ids: list[int] | None = None
 
     @classmethod
     def from_model(
@@ -129,7 +147,7 @@ class PersonaSnapshot(BaseModel):
             else:
                 logger.warning(error_msg)
 
-        return PersonaSnapshot(
+        return FullPersonaSnapshot(
             id=persona.id,
             name=persona.name,
             owner=(
