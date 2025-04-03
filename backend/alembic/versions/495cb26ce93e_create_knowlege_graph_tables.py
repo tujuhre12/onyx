@@ -1,7 +1,7 @@
 """create knowlege graph tables
 
 Revision ID: 495cb26ce93e
-Revises: 8e1ac4f39a9f
+Revises: 6a804aeb4830
 Create Date: 2025-03-19 08:51:14.341989
 
 """
@@ -12,7 +12,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "495cb26ce93e"
-down_revision = "8e1ac4f39a9f"
+down_revision = "6a804aeb4830"
 branch_labels = None
 depends_on = None
 

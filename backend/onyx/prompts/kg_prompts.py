@@ -518,3 +518,104 @@ must end with a ';'
 Your answer:
 
 """
+
+
+####################
+
+DC_OBJECT_EXTRACTION_PROMPT = f"""
+You are an expert in finding relevant objects/objext specifications of the same type in a list of documents. \
+In this case you are interested \
+in generating: {{objects_of_interest}}.
+You should look at the documents - in no particular order! - and extract each object you find in the documents.
+{SEPARATOR_LINE}
+Here are the documents you are supposed to search through:
+--
+{{document_text}}
+{SEPARATOR_LINE}
+
+Here is the task you are asked to find the objects of type for, which should
+{SEPARATOR_LINE}
+{{task}}
+{SEPARATOR_LINE}
+
+Here is the question that provides critical context for the task:
+{SEPARATOR_LINE}
+{{question}}
+{SEPARATOR_LINE}
+
+Please answer the question in the following format:
+
+REASONING: <your reasoning for the classification> - OBJECTS: <the objects - just their names - that you found, \
+separated by ';'>
+
+""".strip()
+
+
+DC_OBJECT_SOURCE_RESEARCH_PROMPT = f"""
+You are an expert in extracting relevant structured information for in a list of documents that should relate to one \
+object.
+You should look at the documents - in no particular order! - and extract the information asked for this task:
+{SEPARATOR_LINE}
+{{task}}
+{SEPARATOR_LINE}
+
+Here are the documents you are supposed to search through:
+--
+{{document_text}}
+{SEPARATOR_LINE}
+
+Note: please cite your sources inline as you generate the results! Use the format [1], etc. Infer the \
+number from the provided context documents. This is very important!
+
+Please address the task in the following format:
+
+REASONING:
+ -- <your reasoning for the classification>
+RESEARCH RESULTS:
+{{format}}
+
+""".strip()
+
+
+DC_OBJECT_CONSOLIDATION_PROMPT = f"""
+You are a helpful assistant that consolidates information about a specific object \
+from multiple sources.
+The object is:
+{SEPARATOR_LINE}
+{{object}}
+{SEPARATOR_LINE}
+and the information is
+{SEPARATOR_LINE}
+{{information}}
+{SEPARATOR_LINE}
+
+Please consolidate the information into a single, concise answer. The consolidated informtation \
+for the object should be in the following format:
+{SEPARATOR_LINE}
+{{format}}
+{SEPARATOR_LINE}
+
+Overall, please use this structure to communicate the consolidated information:
+{SEPARATOR_LINE}
+
+REASONING: <your reasoning for consolidating the information>
+INFORMATION:
+<consolidated information in the proper format that you have created>
+"""
+
+
+DC_FORMATTING_PROMPT = f"""
+You are an expert in text formatting. Your task is to take a given text and convert it 100 percent accurately \
+in a new format.
+Here is the text you are supposed to format:
+{SEPARATOR_LINE}
+{{text}}
+{SEPARATOR_LINE}
+
+Here is the format you are supposed to use:
+{SEPARATOR_LINE}
+{{format}}
+{SEPARATOR_LINE}
+
+Please start the generation directly with the formatted text.
+"""

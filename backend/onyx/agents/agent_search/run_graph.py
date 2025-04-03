@@ -12,8 +12,8 @@ from onyx.agents.agent_search.dc_search_analysis.graph_builder import (
     divide_and_conquer_graph_builder,
 )
 from onyx.agents.agent_search.dc_search_analysis.states import MainInput as DCMainInput
-from onyx.agents.agent_search.dc_analysis.graph_builder import dc_graph_builder
-from onyx.agents.agent_search.dc_analysis.states import MainInput as DCMainInput
+from onyx.agents.agent_search.dc_search_analysis.graph_builder import dc_graph_builder
+from onyx.agents.agent_search.dc_search_analysis.states import MainInput as DCMainInput
 from onyx.agents.agent_search.deep_search.main.graph_builder import (
     main_graph_builder as main_graph_builder_a,
 )
