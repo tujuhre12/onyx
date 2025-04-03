@@ -616,6 +616,16 @@ def resync_cc_pair(
     search_settings_id: int,
     db_session: Session,
 ) -> None:
+    """
+    Updates state stored in the connector_credential_pair table based on the
+    latest index attempt for the given search settings.
+
+    Args:
+        cc_pair: ConnectorCredentialPair to resync
+        search_settings_id: SearchSettings to use for resync
+        db_session: Database session
+    """
+
     def find_latest_index_attempt(
         connector_id: int,
         credential_id: int,

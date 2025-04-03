@@ -715,7 +715,7 @@ def cancel_indexing_attempts_for_search_settings(
     db_session: Session,
 ) -> None:
     """Stops all indexing attempts that are in progress or not started for
-    any embedding model that not present/future"""
+    the specified search settings."""
 
     db_session.execute(
         update(IndexAttempt)
