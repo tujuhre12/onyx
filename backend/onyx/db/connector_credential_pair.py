@@ -613,6 +613,7 @@ def fetch_connector_credential_pairs(
 
 def resync_cc_pair(
     cc_pair: ConnectorCredentialPair,
+    search_settings_id: int,
     db_session: Session,
 ) -> None:
     def find_latest_index_attempt(
@@ -627,11 +628,10 @@ def resync_cc_pair(
                 ConnectorCredentialPair,
                 IndexAttempt.connector_credential_pair_id == ConnectorCredentialPair.id,
             )
-            .join(SearchSettings, IndexAttempt.search_settings_id == SearchSettings.id)
             .filter(
                 ConnectorCredentialPair.connector_id == connector_id,
                 ConnectorCredentialPair.credential_id == credential_id,
-                SearchSettings.status == IndexModelStatus.PRESENT,
+                IndexAttempt.search_settings_id == search_settings_id,
             )
         )
 
