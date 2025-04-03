@@ -522,7 +522,7 @@ Your answer:
 
 ####################
 
-DC_OBJECT_EXTRACTION_PROMPT = f"""
+DC_OBJECT_NO_BASE_DATA_EXTRACTION_PROMPT = f"""
 You are an expert in finding relevant objects/objext specifications of the same type in a list of documents. \
 In this case you are interested \
 in generating: {{objects_of_interest}}.
@@ -544,6 +544,35 @@ Here is the question that provides critical context for the task:
 {SEPARATOR_LINE}
 
 Please answer the question in the following format:
+
+REASONING: <your reasoning for the classification> - OBJECTS: <the objects - just their names - that you found, \
+separated by ';'>
+
+""".strip()
+
+
+DC_OBJECT_WITH_BASE_DATA_EXTRACTION_PROMPT = f"""
+You are an expert in finding relevant objects/objext specifications of the same type in a list of documents. \
+In this case you are interested \
+in generating: {{objects_of_interest}}.
+You should look at the provided data - in no particular order! - and extract each object you find in the documents.
+{SEPARATOR_LINE}
+Here are the data provided by the user:
+--
+{{base_data}}
+{SEPARATOR_LINE}
+
+Here is the task you are asked to find the objects of type for, which should
+{SEPARATOR_LINE}
+{{task}}
+{SEPARATOR_LINE}
+
+Here is the request that provides critical context for the task:
+{SEPARATOR_LINE}
+{{question}}
+{SEPARATOR_LINE}
+
+Please address the request in the following format:
 
 REASONING: <your reasoning for the classification> - OBJECTS: <the objects - just their names - that you found, \
 separated by ';'>
@@ -604,7 +633,7 @@ INFORMATION:
 """
 
 
-DC_FORMATTING_PROMPT = f"""
+DC_FORMATTING_WITH_BASE_DATA_PROMPT = f"""
 You are an expert in text formatting. Your task is to take a given text and convert it 100 percent accurately \
 in a new format.
 Here is the text you are supposed to format:
@@ -613,6 +642,31 @@ Here is the text you are supposed to format:
 {SEPARATOR_LINE}
 
 Here is the format you are supposed to use:
+{SEPARATOR_LINE}
+{{format}}
+{SEPARATOR_LINE}
+
+Please start the generation directly with the formatted text.
+"""
+
+DC_FORMATTING_NO_BASE_DATA_PROMPT = f"""
+You are an expert in text formatting. Your task is to take a given text and the initial \
+data provided by the user, and convert it 100 percent accurately \
+in a new format. The base data may also contain important relationships that are critical \
+for the formatting.
+
+Here is the initial data provided by the user:
+{SEPARATOR_LINE}
+{{base_data}}
+{SEPARATOR_LINE}
+
+Here is the text you are supposed combine (and format) with the initial data, adhering to the \
+format instructions provided by later in the prompt:
+{SEPARATOR_LINE}
+{{text}}
+{SEPARATOR_LINE}
+
+And here are the format instructions you are supposed to use:
 {SEPARATOR_LINE}
 {{format}}
 {SEPARATOR_LINE}
