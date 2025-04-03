@@ -4,6 +4,7 @@ from onyx.chat.prune_and_merge import _merge_sections
 from onyx.configs.constants import DocumentSource
 from onyx.context.search.models import InferenceChunk
 from onyx.context.search.models import InferenceSection
+from onyx.context.search.utils import inference_section_from_chunks
 
 
 # This large test accounts for all of the following:
@@ -111,7 +112,7 @@ Content 17
             # Sections
             [
                 # Document 1, top/middle/bot connected + disconnected section
-                InferenceSection(
+                inference_section_from_chunks(
                     center_chunk=DOC_1_TOP_CHUNK,
                     chunks=[
                         DOC_1_FILLER_1,
@@ -120,9 +121,8 @@ Content 17
                         DOC_1_MID_CHUNK,
                         DOC_1_FILLER_3,
                     ],
-                    combined_content="N/A",  # Not used
                 ),
-                InferenceSection(
+                inference_section_from_chunks(
                     center_chunk=DOC_1_MID_CHUNK,
                     chunks=[
                         DOC_1_FILLER_2,
@@ -131,9 +131,8 @@ Content 17
                         DOC_1_FILLER_3,
                         DOC_1_FILLER_4,
                     ],
-                    combined_content="N/A",
                 ),
-                InferenceSection(
+                inference_section_from_chunks(
                     center_chunk=DOC_1_BOTTOM_CHUNK,
                     chunks=[
                         DOC_1_FILLER_3,
@@ -142,9 +141,8 @@ Content 17
                         DOC_1_FILLER_5,
                         DOC_1_FILLER_6,
                     ],
-                    combined_content="N/A",
                 ),
-                InferenceSection(
+                inference_section_from_chunks(
                     center_chunk=DOC_1_DISCONNECTED,
                     chunks=[
                         DOC_1_FILLER_7,
@@ -153,9 +151,8 @@ Content 17
                         DOC_1_FILLER_9,
                         DOC_1_FILLER_10,
                     ],
-                    combined_content="N/A",
                 ),
-                InferenceSection(
+                inference_section_from_chunks(
                     center_chunk=DOC_2_TOP_CHUNK,
                     chunks=[
                         DOC_2_FILLER_1,
@@ -164,9 +161,8 @@ Content 17
                         DOC_2_FILLER_3,
                         DOC_2_BOTTOM_CHUNK,
                     ],
-                    combined_content="N/A",
                 ),
-                InferenceSection(
+                inference_section_from_chunks(
                     center_chunk=DOC_2_BOTTOM_CHUNK,
                     chunks=[
                         DOC_2_TOP_CHUNK,
@@ -175,7 +171,6 @@ Content 17
                         DOC_2_FILLER_4,
                         DOC_2_FILLER_5,
                     ],
-                    combined_content="N/A",
                 ),
             ],
             # Expected Content
@@ -192,6 +187,7 @@ def test_merge_sections(
 ) -> None:
     sections.sort(key=lambda section: section.center_chunk.score or 0, reverse=True)
     merged_sections = _merge_sections(sections)
+    print(merged_sections[0].combined_content)
     assert merged_sections[0].combined_content == expected_contents[0]
     assert merged_sections[1].combined_content == expected_contents[1]
     assert merged_sections[0].center_chunk == expected_center_chunks[0]
@@ -204,15 +200,13 @@ def test_merge_sections(
         (
             # Sections
             [
-                InferenceSection(
+                inference_section_from_chunks(
                     center_chunk=DOC_1_TOP_CHUNK,
                     chunks=[DOC_1_TOP_CHUNK],
-                    combined_content="N/A",  # Not used
                 ),
-                InferenceSection(
+                inference_section_from_chunks(
                     center_chunk=DOC_1_MID_CHUNK,
                     chunks=[DOC_1_MID_CHUNK],
-                    combined_content="N/A",
                 ),
             ],
             # Expected Content

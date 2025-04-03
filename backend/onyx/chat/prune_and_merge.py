@@ -312,10 +312,13 @@ def prune_sections(
     )
 
 
-def _merge_doc_chunks(chunks: list[InferenceChunk]) -> InferenceSection:
+def _merge_doc_chunks(chunks: list[InferenceChunk]) -> tuple[InferenceSection, int]:
     assert (
         len(set([chunk.document_id for chunk in chunks])) == 1
     ), "One distinct document must be passed into merge_doc_chunks"
+
+    ADJACENT_CHUNK_SEP = "\n"
+    DISTANT_CHUNK_SEP = "\n\n...\n\n"
 
     # Assuming there are no duplicates by this point
     sorted_chunks = sorted(chunks, key=lambda x: x.chunk_id)
@@ -324,22 +327,29 @@ def _merge_doc_chunks(chunks: list[InferenceChunk]) -> InferenceSection:
         chunks, key=lambda x: x.score if x.score is not None else float("-inf")
     )
 
+    added_chars = 0
     merged_content = []
     for i, chunk in enumerate(sorted_chunks):
         if i > 0:
             prev_chunk_id = sorted_chunks[i - 1].chunk_id
-            if chunk.chunk_id == prev_chunk_id + 1:
-                merged_content.append("\n")
-            else:
-                merged_content.append("\n\n...\n\n")
+            sep = (
+                ADJACENT_CHUNK_SEP
+                if chunk.chunk_id == prev_chunk_id + 1
+                else DISTANT_CHUNK_SEP
+            )
+            merged_content.append(sep)
+            added_chars += len(sep)
         merged_content.append(chunk.content)
 
     combined_content = "".join(merged_content)
 
-    return InferenceSection(
-        center_chunk=center_chunk,
-        chunks=sorted_chunks,
-        combined_content=combined_content,
+    return (
+        InferenceSection(
+            center_chunk=center_chunk,
+            chunks=sorted_chunks,
+            combined_content=combined_content,
+        ),
+        added_chars,
     )
 
 
@@ -352,6 +362,11 @@ def _merge_sections(sections: list[InferenceSection]) -> list[InferenceSection]:
     for index, section in enumerate(sections):
         if section.center_chunk.document_id not in doc_order:
             doc_order[section.center_chunk.document_id] = index
+        print(
+            section.center_chunk.document_id,
+            len(section.combined_content),
+            section.combined_content,
+        )
         combined_section_lengths[section.center_chunk.document_id] += len(
             section.combined_content
         )
@@ -369,8 +384,10 @@ def _merge_sections(sections: list[InferenceSection]) -> list[InferenceSection]:
 
     new_sections = []
     for doc_id, section_chunks in docs_map.items():
-        merged_section = _merge_doc_chunks(chunks=list(section_chunks.values()))
-        previous_length = combined_section_lengths[doc_id]
+        section_chunks_list = list(section_chunks.values())
+        merged_section, added_chars = _merge_doc_chunks(chunks=section_chunks_list)
+
+        previous_length = combined_section_lengths[doc_id] + added_chars
         # After merging, ensure the content respects the pruning done earlier. Each
         # combined section is restricted to the sum of the lengths of the sections
         # from the pruning step. Technically the correct approach would be to prune based
