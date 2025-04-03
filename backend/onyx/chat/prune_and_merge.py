@@ -362,11 +362,7 @@ def _merge_sections(sections: list[InferenceSection]) -> list[InferenceSection]:
     for index, section in enumerate(sections):
         if section.center_chunk.document_id not in doc_order:
             doc_order[section.center_chunk.document_id] = index
-        print(
-            section.center_chunk.document_id,
-            len(section.combined_content),
-            section.combined_content,
-        )
+
         combined_section_lengths[section.center_chunk.document_id] += len(
             section.combined_content
         )

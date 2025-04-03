@@ -187,7 +187,6 @@ def test_merge_sections(
 ) -> None:
     sections.sort(key=lambda section: section.center_chunk.score or 0, reverse=True)
     merged_sections = _merge_sections(sections)
-    print(merged_sections[0].combined_content)
     assert merged_sections[0].combined_content == expected_contents[0]
     assert merged_sections[1].combined_content == expected_contents[1]
     assert merged_sections[0].center_chunk == expected_center_chunks[0]
