@@ -153,6 +153,8 @@ class PersonaSnapshot(BaseModel):
         )
 
 
+# Model with full context on perona's internal settings
+# This is used for flows which need to know all settings
 class FullPersonaSnapshot(PersonaSnapshot):
     search_start_date: datetime | None = None
     prompts: list[PromptSnapshot] = Field(default_factory=list)

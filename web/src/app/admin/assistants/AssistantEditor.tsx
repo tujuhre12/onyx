@@ -99,6 +99,7 @@ import { SEARCH_TOOL_ID } from "@/app/chat/tools/constants";
 import TextView from "@/components/chat/TextView";
 import { MinimalOnyxDocument } from "@/lib/search/interfaces";
 import { TabToggle } from "@/components/ui/TabToggle";
+import { MAX_CHARACTERS_PERSONA_DESCRIPTION } from "@/lib/constants";
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === SEARCH_TOOL_ID);
@@ -458,11 +459,11 @@ export function AssistantEditor({
               "Must provide a description for the Assistant"
             ),
             system_prompt: Yup.string().max(
-              5000000,
+              MAX_CHARACTERS_PERSONA_DESCRIPTION,
               "Instructions must be less than 5000000 characters"
             ),
             task_prompt: Yup.string().max(
-              5000000,
+              MAX_CHARACTERS_PERSONA_DESCRIPTION,
               "Reminders must be less than 5000000 characters"
             ),
             is_public: Yup.boolean().required(),
