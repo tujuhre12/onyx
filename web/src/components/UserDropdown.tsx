@@ -43,13 +43,13 @@ const DropdownOption: React.FC<DropdownOptionProps> = ({
 
   if (href) {
     return (
-      <Link
+      <a
         href={href}
         target={openInNewTab ? "_blank" : undefined}
         rel={openInNewTab ? "noopener noreferrer" : undefined}
       >
         {content}
-      </Link>
+      </a>
     );
   } else {
     return <div onClick={onClick}>{content}</div>;
