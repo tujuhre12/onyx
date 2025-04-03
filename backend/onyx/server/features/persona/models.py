@@ -109,6 +109,10 @@ class PersonaSnapshot(BaseModel):
     owner: MinimalUserSnapshot | None = None
     users: list[MinimalUserSnapshot] = Field(default_factory=list)
     groups: list[int] = Field(default_factory=list)
+    document_sets: list[DocumentSet] = Field(default_factory=list)
+    llm_model_provider_override: str | None = None
+    llm_model_version_override: str | None = None
+    num_chunks: float | None = None
 
     @classmethod
     def from_model(cls, persona: Persona) -> "PersonaSnapshot":
@@ -139,18 +143,21 @@ class PersonaSnapshot(BaseModel):
                 for user in persona.users
             ],
             groups=[user_group.id for user_group in persona.groups],
+            document_sets=[
+                DocumentSet.from_model(document_set_model)
+                for document_set_model in persona.document_sets
+            ],
+            llm_model_provider_override=persona.llm_model_provider_override,
+            llm_model_version_override=persona.llm_model_version_override,
+            num_chunks=persona.num_chunks,
         )
 
 
 class FullPersonaSnapshot(PersonaSnapshot):
     search_start_date: datetime | None = None
-    document_sets: list[DocumentSet] = Field(default_factory=list)
     prompts: list[PromptSnapshot] = Field(default_factory=list)
-    num_chunks: float | None = None
     llm_relevance_filter: bool = False
     llm_filter_extraction: bool = False
-    llm_model_provider_override: str | None = None
-    llm_model_version_override: str | None = None
 
     @classmethod
     def from_model(
@@ -186,16 +193,9 @@ class FullPersonaSnapshot(PersonaSnapshot):
                 else None
             ),
             search_start_date=persona.search_start_date,
-            document_sets=[
-                DocumentSet.from_model(document_set_model)
-                for document_set_model in persona.document_sets
-            ],
             prompts=[PromptSnapshot.from_model(prompt) for prompt in persona.prompts],
-            num_chunks=persona.num_chunks,
             llm_relevance_filter=persona.llm_relevance_filter,
             llm_filter_extraction=persona.llm_filter_extraction,
-            llm_model_provider_override=persona.llm_model_provider_override,
-            llm_model_version_override=persona.llm_model_version_override,
         )
 
 

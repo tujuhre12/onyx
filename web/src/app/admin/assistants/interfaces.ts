@@ -38,17 +38,17 @@ export interface Persona {
   owner: MinimalUserSnapshot | null;
   users: MinimalUserSnapshot[];
   groups: number[];
+  document_sets: DocumentSet[];
+  llm_model_provider_override?: string;
+  llm_model_version_override?: string;
+  num_chunks?: number;
 }
 
 export interface FullPersona extends Persona {
   search_start_date: Date | null;
-  document_sets: DocumentSet[];
   prompts: Prompt[];
-  num_chunks?: number;
   llm_relevance_filter?: boolean;
   llm_filter_extraction?: boolean;
-  llm_model_provider_override?: string;
-  llm_model_version_override?: string;
 }
 
 export interface PersonaLabel {
