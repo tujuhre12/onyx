@@ -39,6 +39,7 @@ import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { getProviderIcon } from "@/app/admin/configuration/llm/interfaces";
 import { useDocumentsContext } from "@/app/chat/my-documents/DocumentsContext";
 import { SearchModeDropdown } from "@/app/chat/search/components/SearchInput";
+import { useSearchParams } from "next/navigation";
 
 const MAX_INPUT_HEIGHT = 200;
 export const SourceChip2 = ({
@@ -237,6 +238,9 @@ export function ChatInputBar({
     setCurrentMessageFiles,
   } = useDocumentsContext();
   const [mode, setMode] = useState<"search" | "chat">("chat");
+  const searchParams = useSearchParams();
+  const transitionQuery = searchParams?.get("transitionQuery");
+  const [isTransitioning, setIsTransitioning] = useState(!!transitionQuery);
 
   const settings = useContext(SettingsContext);
   useEffect(() => {
@@ -249,6 +253,15 @@ export function ChatInputBar({
       )}px`;
     }
   }, [message, textAreaRef]);
+
+  useEffect(() => {
+    if (isTransitioning) {
+      const timer = setTimeout(() => {
+        setIsTransitioning(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isTransitioning]);
 
   const handlePaste = (event: React.ClipboardEvent) => {
     const items = event.clipboardData?.items;
@@ -424,9 +437,17 @@ export function ChatInputBar({
     }
   };
 
+  // Simple class for transition
+  const transitionClass = isTransitioning
+    ? "translate-y-[-45vh]"
+    : "translate-y-0";
+
   return (
-    <div id="onyx-chat-input">
-      <div className="flex  justify-center mx-auto">
+    <div
+      id="onyx-chat-input"
+      className={`transition-transform duration-700 ease-out transform ${transitionClass}`}
+    >
+      <div className="flex justify-center mx-auto">
         <div
           className="
             max-w-full

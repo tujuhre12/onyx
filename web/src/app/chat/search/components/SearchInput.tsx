@@ -1,5 +1,5 @@
 import React, { useState, KeyboardEvent } from "react";
-import { FiSearch, FiX, FiChevronDown } from "react-icons/fi";
+import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SendIcon } from "@/components/icons/icons";
@@ -17,11 +17,13 @@ type ModeType = "search" | "chat" | "agent";
 interface SearchModeDropdownProps {
   mode: ModeType;
   setMode: (mode: ModeType) => void;
+  query?: string;
 }
 
 export const SearchModeDropdown = ({
   mode,
   setMode,
+  query = "",
 }: SearchModeDropdownProps) => {
   const router = useRouter();
 
@@ -35,6 +37,29 @@ export const SearchModeDropdown = ({
         return "Agent";
       default:
         return "Search Fast";
+    }
+  };
+
+  const handleModeChange = (newMode: ModeType) => {
+    setMode(newMode);
+
+    if (newMode === "chat") {
+      // Navigate to chat with the current query
+      const params = new URLSearchParams();
+      if (query.trim()) {
+        params.append("transitionQuery", query);
+      }
+
+      // For an even cleaner transition, directly set the location
+      // This avoids any flash or reload effects from router navigation
+      router.push(`/chat?${params.toString()}`);
+    } else if (newMode === "agent") {
+      const params = new URLSearchParams();
+      params.append("agentic", "true");
+      if (query.trim()) {
+        params.append("transitionQuery", query);
+      }
+      router.push(`/chat?${params.toString()}`);
     }
   };
 
@@ -52,7 +77,7 @@ export const SearchModeDropdown = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuItem
-          onClick={() => setMode("search")}
+          onClick={() => handleModeChange("search")}
           className="py-2 px-3 cursor-pointer"
         >
           <div className="flex flex-col">
@@ -63,10 +88,7 @@ export const SearchModeDropdown = ({
           </div>
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => {
-            setMode("chat");
-            router.push("/chat");
-          }}
+          onClick={() => handleModeChange("chat")}
           className="py-2 px-3 cursor-pointer"
         >
           <div className="flex flex-col">
@@ -77,7 +99,7 @@ export const SearchModeDropdown = ({
           </div>
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => router.push("/chat?agentic=true")}
+          onClick={() => handleModeChange("agent")}
           className="py-2 px-3 cursor-pointer"
         >
           <div className="flex flex-col">
@@ -121,10 +143,6 @@ export const SearchInput = ({
     }
   };
 
-  const clearSearch = () => {
-    setQuery("");
-  };
-
   const getPlaceholderText = () => {
     switch (mode) {
       case "search":
@@ -158,7 +176,7 @@ export const SearchInput = ({
       />
 
       <div className="absolute right-3 flex items-center space-x-1">
-        <SearchModeDropdown mode={mode} setMode={setMode} />
+        <SearchModeDropdown mode={mode} setMode={setMode} query={query} />
 
         <button
           className={`cursor-pointer h-[22px] w-[22px] rounded-full ${
