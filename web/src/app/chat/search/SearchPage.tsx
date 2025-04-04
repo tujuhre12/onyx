@@ -91,11 +91,13 @@ export default function SearchPage({
   documentSidebarInitialWidth,
   sidebarVisible,
   firstMessage,
+  isTransitioningFromChat,
 }: {
   toggle: (toggled?: boolean) => void;
   documentSidebarInitialWidth?: number;
   sidebarVisible: boolean;
   firstMessage?: string;
+  isTransitioningFromChat?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1097,9 +1099,16 @@ export default function SearchPage({
     document.querySelector(".search-results-container")?.scrollTo(0, 0);
   };
 
-  if (!user) {
-    redirect("/auth/login");
-  }
+  // Add new st ate to track transition
+  const fromChat = searchParams?.get("fromChat") === "true";
+  const queryParam = searchParams?.get("query");
+
+  // Initialize search query from URL param if coming from chat
+  useEffect(() => {
+    if (fromChat && queryParam) {
+      setSearchQuery(queryParam);
+    }
+  }, [fromChat, queryParam]);
 
   if (noAssistants)
     return (
@@ -1158,14 +1167,16 @@ export default function SearchPage({
               {!firstSearch && (
                 <div className="flex-none w-full flex justify-center p-4 border-b border-background-200">
                   <SearchInput
-                    hide={firstSearch}
+                    // hide={firstSearch}
                     onSearch={handleSearch}
                     initialQuery={searchQuery}
                     placeholder="Find knowledge at your enterprise..."
                     isMiddle={false}
+                    // isAnimatingFromChatInitial={isTransitioningFromChat}
                   />
                 </div>
               )}
+
               {/* Main content area */}
               <div className="flex-grow overflow-hidden">
                 {searchQuery ? (
@@ -1253,13 +1264,13 @@ export default function SearchPage({
                       </p>
 
                       {/* Add search input to initial landing page */}
-                      <div className="mb-8 w-full  mx-auto">
+                      <div className="mb-8 w-full mx-auto">
                         <SearchInput
-                          hide={false}
                           onSearch={handleSearch}
-                          initialQuery=""
+                          initialQuery={queryParam || ""}
                           placeholder="Find knowledge at your enterprise..."
                           isMiddle={true}
+                          isAnimatingFromChatInitial={isTransitioningFromChat}
                         />
                       </div>
 

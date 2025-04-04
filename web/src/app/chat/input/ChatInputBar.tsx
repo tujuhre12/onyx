@@ -39,7 +39,7 @@ import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { getProviderIcon } from "@/app/admin/configuration/llm/interfaces";
 import { useDocumentsContext } from "@/app/chat/my-documents/DocumentsContext";
 import { SearchModeDropdown } from "@/app/chat/search/components/SearchInput";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const MAX_INPUT_HEIGHT = 200;
 export const SourceChip2 = ({
@@ -243,7 +243,7 @@ export function ChatInputBar({
   const fromPosition = searchParams?.get("fromPosition");
   const isFromMiddle = fromPosition === "middle";
   const [isTransitioning, setIsTransitioning] = useState(!!transitionQuery);
-
+  const router = useRouter();
   const settings = useContext(SettingsContext);
   useEffect(() => {
     const textarea = textAreaRef.current;
@@ -443,8 +443,24 @@ export function ChatInputBar({
   const transitionClass = isTransitioning
     ? isFromMiddle
       ? "translate-y-[-45vh]"
-      : "translate-y-[-20vh]"
+      : "translate-y-[-90vh]"
     : "translate-y-0";
+
+  // Handler for mode switching
+  const handleModeSwitch = (newMode: string) => {
+    if (newMode === "search") {
+      // When switching to search, navigate with parameters
+      const params = new URLSearchParams();
+      if (message.trim()) {
+        params.append("query", message);
+      }
+      // Add parameter to indicate we're coming from chat
+      params.append("fromChat", "true");
+      router.push(`/chat/search?${params.toString()}`);
+    } else {
+      setMode(newMode as "search" | "chat");
+    }
+  };
 
   return (
     <div
@@ -864,10 +880,7 @@ export function ChatInputBar({
                 )}
               </div>
               <div className="flex items-center my-auto">
-                <SearchModeDropdown
-                  mode={mode}
-                  setMode={(mode) => setMode(mode as "search" | "chat")}
-                />
+                <SearchModeDropdown mode={mode} setMode={handleModeSwitch} />
                 <button
                   id="onyx-chat-input-send-button"
                   className={`cursor-pointer ${

@@ -1,4 +1,10 @@
-import React, { useState, KeyboardEvent, useRef, useEffect } from "react";
+import React, {
+  useState,
+  KeyboardEvent,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+} from "react";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -66,6 +72,15 @@ export const SearchModeDropdown = ({
       }
       params.append("fromPosition", isMiddle ? "middle" : "top");
       router.push(`/chat?${params.toString()}`);
+    } else {
+      console.log("pushing to search");
+      const params = new URLSearchParams();
+      if (query.trim()) {
+        params.append("query", query);
+      }
+
+      params.append("fromChat", "true");
+      router.push(`/chat/search?${params.toString()}`);
     }
   };
 
@@ -126,7 +141,10 @@ interface SearchInputProps {
   placeholder?: string;
   hide?: boolean;
   isMiddle?: boolean;
+  isAnimatingFromChatInitial?: boolean;
 }
+
+const TRANSITION_DURATION = 1000; // ms
 
 export const SearchInput = ({
   initialQuery = "",
@@ -134,13 +152,59 @@ export const SearchInput = ({
   placeholder = "Search...",
   hide = false,
   isMiddle = false,
+  isAnimatingFromChatInitial = false,
 }: SearchInputProps) => {
   const [query, setQuery] = useState(initialQuery);
   const [mode, setMode] = useState<ModeType>("search");
   const router = useRouter();
   const inputContainerRef = useRef<HTMLDivElement>(null);
 
+  // Check if we're coming from chat
+  const searchParams =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search)
+      : new URLSearchParams();
+  const fromChat = searchParams.get("fromChat") === "true";
+  const [isAnimatingFromChat, setIsAnimatingFromChat] = useState(
+    isAnimatingFromChatInitial
+  );
+
+  // Use layout effect for animations that affect layout
+  useLayoutEffect(() => {
+    if (fromChat && isMiddle) {
+      // Add a style to disable all animations temporarily
+      const style = document.createElement("style");
+      style.innerHTML = "* { transition: none !important; }";
+      document.head.appendChild(style);
+
+      // Force a repaint
+      document.body.offsetHeight;
+
+      // Remove the style after a small delay
+      setTimeout(() => {
+        document.head.removeChild(style);
+
+        // Set initial position (from bottom)
+        setIsAnimatingFromChat(true);
+
+        // Start animation after a brief delay
+        setTimeout(() => {
+          setIsAnimatingFromChat(false);
+        }, 50);
+      }, 10);
+    }
+  }, [fromChat, isMiddle]);
+
+  // Position class based on animation state
+  const getPositionClass = () => {
+    if (isAnimatingFromChat) {
+      return "translate-y-[85vh]  scale-[0.85] opacity-60";
+    }
+    return "translate-y-0 scale-100 opacity-100";
+  };
+
   // Detect if the search input is in the middle of the page
+  // alert(isAnimatingFromChat);
   const [inMiddlePosition, setInMiddlePosition] = useState(isMiddle);
 
   useEffect(() => {
@@ -191,7 +255,7 @@ export const SearchInput = ({
   return (
     <div
       ref={inputContainerRef}
-      className={`flex items-center w-full max-w-4xl relative ${
+      className={`flex items-center w-full max-w-4xl relative transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform transform ${getPositionClass()} ${
         hide && "invisible"
       }`}
     >

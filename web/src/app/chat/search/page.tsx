@@ -8,6 +8,13 @@ export default async function SearchPage(props: {
   const firstMessage = searchParams.firstMessage;
   const defaultSidebarOff =
     searchParams[SEARCH_PARAMS.DEFAULT_SIDEBAR_OFF] === "true";
+  const isTransitioningFromChat =
+    searchParams[SEARCH_PARAMS.TRANSITIONING_FROM_CHAT] === "true";
 
-  return <WrappedSearch defaultSidebarOff={defaultSidebarOff} />;
+  return (
+    <WrappedSearch
+      defaultSidebarOff={defaultSidebarOff}
+      isTransitioningFromChat={isTransitioningFromChat}
+    />
+  );
 }

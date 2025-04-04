@@ -9,10 +9,12 @@ import { SettingsContext } from "@/components/settings/SettingsProvider";
 
 export default function WrappedSearch({
   defaultSidebarOff,
+  isTransitioningFromChat,
 }: {
   // This is required for the chrome extension side panel
   // we don't want to show the sidebar by default when the user opens the side panel
   defaultSidebarOff?: boolean;
+  isTransitioningFromChat?: boolean;
 }) {
   const combinedSettings = useContext(SettingsContext);
   const isSearchPageDisabled = combinedSettings?.settings.search_page_disabled;
@@ -26,6 +28,7 @@ export default function WrappedSearch({
       toggle={() => {}}
       sidebarVisible={false}
       firstMessage={undefined}
+      isTransitioningFromChat={isTransitioningFromChat}
     />
     // )}
     // />
