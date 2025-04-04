@@ -35,14 +35,10 @@ import { getFormattedDateRangeString } from "@/lib/dateUtils";
 import { truncateString } from "@/lib/utils";
 import { buildImgUrl } from "../files/images/utils";
 import { useUser } from "@/components/user/UserProvider";
-import { useDocumentSelection } from "../useDocumentSelection";
-import { AgenticToggle } from "./AgenticToggle";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { getProviderIcon } from "@/app/admin/configuration/llm/interfaces";
-import { LoadingIndicator } from "react-select/dist/declarations/src/components/indicators";
-import { FidgetSpinner } from "react-loader-spinner";
-import { LoadingAnimation } from "@/components/Loading";
-import { useDocumentsContext } from "../my-documents/DocumentsContext";
+import { useDocumentsContext } from "@/app/chat/my-documents/DocumentsContext";
+import { SearchModeDropdown } from "@/app/search/components/SearchInput";
 
 const MAX_INPUT_HEIGHT = 200;
 export const SourceChip2 = ({
@@ -240,6 +236,7 @@ export function ChatInputBar({
     currentMessageFiles,
     setCurrentMessageFiles,
   } = useDocumentsContext();
+  const [mode, setMode] = useState<"search" | "chat">("chat");
 
   const settings = useContext(SettingsContext);
   useEffect(() => {
@@ -842,12 +839,10 @@ export function ChatInputBar({
                 )}
               </div>
               <div className="flex items-center my-auto">
-                {retrievalEnabled && settings?.settings.pro_search_enabled && (
-                  <AgenticToggle
-                    proSearchEnabled={proSearchEnabled}
-                    setProSearchEnabled={setProSearchEnabled}
-                  />
-                )}
+                <SearchModeDropdown
+                  mode={mode}
+                  setMode={(mode) => setMode(mode as "search" | "chat")}
+                />
                 <button
                   id="onyx-chat-input-send-button"
                   className={`cursor-pointer ${
