@@ -26,6 +26,7 @@ export function SearchResultItem({ document, onClick }: SearchResultItemProps) {
     ? getTimeAgoString(new Date(document.updated_at))
     : "";
 
+  console.log(JSON.stringify(document));
   return (
     <div
       className="border-b border-gray-200 py-4 hover:bg-gray-50 px-4 cursor-pointer"
@@ -45,7 +46,7 @@ export function SearchResultItem({ document, onClick }: SearchResultItemProps) {
               {document.semantic_identifier || "Untitled Document"}
             </h3>
           </div>
-          <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+          <div className="flex items-center gap-3 my-1.5  text-xs text-gray-500">
             {document.boost > 1 && (
               <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-500">
                 Matched
@@ -83,7 +84,7 @@ export function SearchResultItem({ document, onClick }: SearchResultItemProps) {
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-700 mt-1 line-clamp-2">
+          <p className="text-sm text-gray-700 line-clamp-2">
             {document.blurb || "No description available"}
           </p>
         </div>

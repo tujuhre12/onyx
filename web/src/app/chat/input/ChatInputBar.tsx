@@ -38,7 +38,7 @@ import { useUser } from "@/components/user/UserProvider";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { getProviderIcon } from "@/app/admin/configuration/llm/interfaces";
 import { useDocumentsContext } from "@/app/chat/my-documents/DocumentsContext";
-import { SearchModeDropdown } from "@/app/search/components/SearchInput";
+import { SearchModeDropdown } from "@/app/chat/search/components/SearchInput";
 
 const MAX_INPUT_HEIGHT = 200;
 export const SourceChip2 = ({

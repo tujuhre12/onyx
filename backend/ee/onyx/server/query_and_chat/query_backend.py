@@ -383,7 +383,7 @@ def get_fast_search_response(
                 is_relevant=None,
                 relevance_explanation=None,
                 match_highlights=[],
-                updated_at=None,
+                updated_at=chunk.updated_at,
                 primary_owners=None,
                 secondary_owners=None,
                 is_internet=False,

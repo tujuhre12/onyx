@@ -1,7 +1,7 @@
 "use client";
 import { useChatContext } from "@/components/context/ChatContext";
 
-import FunctionalWrapper from "../../components/chat/FunctionalWrapper";
+import FunctionalWrapper from "../../../components/chat/FunctionalWrapper";
 import SearchPage from "./SearchPage";
 import { redirect } from "next/navigation";
 import { useContext } from "react";
