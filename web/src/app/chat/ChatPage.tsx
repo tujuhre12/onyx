@@ -169,7 +169,7 @@ export function ChatPage({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const proSearchOverriden = searchParams?.get("agentic");
+  const proSearchOverriden = searchParams?.get("agentic") === "true";
 
   const {
     chatSessions,

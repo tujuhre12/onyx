@@ -113,7 +113,9 @@ export default function SearchPage({
     authors,
   } = useChatContext();
 
-  const defaultAssistantIdRaw = searchParams.get(SEARCH_PARAM_NAMES.PERSONA_ID);
+  const defaultAssistantIdRaw = searchParams?.get(
+    SEARCH_PARAM_NAMES.PERSONA_ID
+  );
   const defaultAssistantId = defaultAssistantIdRaw
     ? parseInt(defaultAssistantIdRaw)
     : undefined;
@@ -175,8 +177,8 @@ export default function SearchPage({
   );
 
   const { user, isAdmin } = useUser();
-  const slackChatId = searchParams.get("slackChatId");
-  const existingChatIdRaw = searchParams.get("chatId");
+  const slackChatId = searchParams?.get("slackChatId");
+  const existingChatIdRaw = searchParams?.get("chatId");
 
   const [showHistorySidebar, setShowHistorySidebar] = useState(false); // State to track if sidebar is open
 
@@ -220,7 +222,7 @@ export default function SearchPage({
         : undefined
   );
   // Gather default temperature settings
-  const search_param_temperature = searchParams.get(
+  const search_param_temperature = searchParams?.get(
     SEARCH_PARAM_NAMES.TEMPERATURE
   );
 
@@ -335,7 +337,7 @@ export default function SearchPage({
   const { popup, setPopup } = usePopup();
 
   const [message, setMessage] = useState(
-    searchParams.get(SEARCH_PARAM_NAMES.USER_PROMPT) || ""
+    searchParams?.get(SEARCH_PARAM_NAMES.USER_PROMPT) || ""
   );
 
   const [completeMessageDetail, setCompleteMessageDetail] = useState<
