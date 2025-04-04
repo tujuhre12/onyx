@@ -1162,6 +1162,7 @@ export default function SearchPage({
                     onSearch={handleSearch}
                     initialQuery={searchQuery}
                     placeholder="Find knowledge at your enterprise..."
+                    isMiddle={false}
                   />
                 </div>
               )}
@@ -1258,6 +1259,7 @@ export default function SearchPage({
                           onSearch={handleSearch}
                           initialQuery=""
                           placeholder="Find knowledge at your enterprise..."
+                          isMiddle={true}
                         />
                       </div>
 

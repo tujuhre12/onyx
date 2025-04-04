@@ -1,4 +1,4 @@
-import React, { useState, KeyboardEvent } from "react";
+import React, { useState, KeyboardEvent, useRef, useEffect } from "react";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,12 +18,14 @@ interface SearchModeDropdownProps {
   mode: ModeType;
   setMode: (mode: ModeType) => void;
   query?: string;
+  isMiddle?: boolean;
 }
 
 export const SearchModeDropdown = ({
   mode,
   setMode,
   query = "",
+  isMiddle = false,
 }: SearchModeDropdownProps) => {
   const router = useRouter();
 
@@ -50,6 +52,9 @@ export const SearchModeDropdown = ({
         params.append("transitionQuery", query);
       }
 
+      // Add a parameter to indicate starting position
+      params.append("fromPosition", isMiddle ? "middle" : "top");
+
       // For an even cleaner transition, directly set the location
       // This avoids any flash or reload effects from router navigation
       router.push(`/chat?${params.toString()}`);
@@ -59,6 +64,7 @@ export const SearchModeDropdown = ({
       if (query.trim()) {
         params.append("transitionQuery", query);
       }
+      params.append("fromPosition", isMiddle ? "middle" : "top");
       router.push(`/chat?${params.toString()}`);
     }
   };
@@ -119,6 +125,7 @@ interface SearchInputProps {
   onSearch: (query: string) => void;
   placeholder?: string;
   hide?: boolean;
+  isMiddle?: boolean;
 }
 
 export const SearchInput = ({
@@ -126,14 +133,39 @@ export const SearchInput = ({
   onSearch,
   placeholder = "Search...",
   hide = false,
+  isMiddle = false,
 }: SearchInputProps) => {
   const [query, setQuery] = useState(initialQuery);
   const [mode, setMode] = useState<ModeType>("search");
   const router = useRouter();
+  const inputContainerRef = useRef<HTMLDivElement>(null);
+
+  // Detect if the search input is in the middle of the page
+  const [inMiddlePosition, setInMiddlePosition] = useState(isMiddle);
+
+  useEffect(() => {
+    // Update position state based on prop
+    setInMiddlePosition(isMiddle);
+
+    // For auto-detection, we could also use this:
+    if (inputContainerRef.current && typeof window !== "undefined") {
+      const rect = inputContainerRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      // Consider it in the middle if it's roughly in the middle third of the screen
+      const isInMiddleThird =
+        rect.top > viewportHeight / 3 && rect.top < (viewportHeight * 2) / 3;
+
+      if (isInMiddleThird && !isMiddle) {
+        setInMiddlePosition(true);
+      }
+    }
+  }, [isMiddle]);
 
   const handleSearch = () => {
     if (query.trim()) {
       onSearch(query);
+      // After search is performed, it's definitely not in the middle anymore
+      setInMiddlePosition(false);
     }
   };
 
@@ -158,6 +190,7 @@ export const SearchInput = ({
 
   return (
     <div
+      ref={inputContainerRef}
       className={`flex items-center w-full max-w-4xl relative ${
         hide && "invisible"
       }`}
@@ -176,7 +209,12 @@ export const SearchInput = ({
       />
 
       <div className="absolute right-3 flex items-center space-x-1">
-        <SearchModeDropdown mode={mode} setMode={setMode} query={query} />
+        <SearchModeDropdown
+          mode={mode}
+          setMode={setMode}
+          query={query}
+          isMiddle={inMiddlePosition}
+        />
 
         <button
           className={`cursor-pointer h-[22px] w-[22px] rounded-full ${

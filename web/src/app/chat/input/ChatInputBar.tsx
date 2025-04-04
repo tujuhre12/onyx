@@ -240,6 +240,8 @@ export function ChatInputBar({
   const [mode, setMode] = useState<"search" | "chat">("chat");
   const searchParams = useSearchParams();
   const transitionQuery = searchParams?.get("transitionQuery");
+  const fromPosition = searchParams?.get("fromPosition");
+  const isFromMiddle = fromPosition === "middle";
   const [isTransitioning, setIsTransitioning] = useState(!!transitionQuery);
 
   const settings = useContext(SettingsContext);
@@ -437,9 +439,11 @@ export function ChatInputBar({
     }
   };
 
-  // Simple class for transition
+  // Use different translation based on starting position
   const transitionClass = isTransitioning
-    ? "translate-y-[-45vh]"
+    ? isFromMiddle
+      ? "translate-y-[-45vh]"
+      : "translate-y-[-20vh]"
     : "translate-y-0";
 
   return (
