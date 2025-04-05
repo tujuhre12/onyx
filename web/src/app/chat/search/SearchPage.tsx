@@ -1099,16 +1099,23 @@ export default function SearchPage({
     document.querySelector(".search-results-container")?.scrollTo(0, 0);
   };
 
-  // Add new st ate to track transition
+  // Add state to track transition
   const fromChat = searchParams?.get("fromChat") === "true";
   const queryParam = searchParams?.get("query");
+  const [showInitialContent, setShowInitialContent] = useState(
+    !isTransitioningFromChat
+  );
 
-  // Initialize search query from URL param if coming from chat
+  // Initialize search query from URL param if coming from chat and handle transition animation
   useEffect(() => {
-    if (fromChat && queryParam) {
-      setSearchQuery(queryParam);
+    if (isTransitioningFromChat) {
+      const timer = setTimeout(() => {
+        setShowInitialContent(true);
+      }, 1000);
+
+      return () => clearTimeout(timer);
     }
-  }, [fromChat, queryParam]);
+  }, [fromChat, queryParam, isTransitioningFromChat]);
 
   if (noAssistants)
     return (
@@ -1162,7 +1169,7 @@ export default function SearchPage({
             ref={masterFlexboxRef}
             className="flex h-full w-full overflow-x-hidden"
           >
-            <div className="flex pb-12 pt-12   md:mt-0 flex-col h-full w-full">
+            <div className="flex pb-12   md:mt-0 flex-col h-full w-full">
               {/* Header with search input */}
               {!firstSearch && (
                 <div className="flex-none w-full flex justify-center p-4 border-b border-background-200">
@@ -1255,10 +1262,18 @@ export default function SearchPage({
                 ) : (
                   <div className="flex flex-col pb-12 items-center justify-center h-full">
                     <div className="text-center max-w-2xl w-full px-4">
-                      <h2 className="text-3xl font-semibold mb-4">
+                      <h2
+                        className={`text-3xl font-semibold mb-4 transition-opacity duration-500 ${
+                          showInitialContent ? "opacity-100" : "opacity-0"
+                        }`}
+                      >
                         Find knowledge across your enterprise
                       </h2>
-                      <p className="text-text-500 mb-8 text-lg">
+                      <p
+                        className={`text-text-500 mb-8 text-lg transition-opacity duration-500 ${
+                          showInitialContent ? "opacity-100" : "opacity-0"
+                        }`}
+                      >
                         Search across all your connected sources to find the
                         information you need.
                       </p>
@@ -1275,7 +1290,11 @@ export default function SearchPage({
                       </div>
 
                       {/* Filter boxes BELOW the search input */}
-                      <div className="flex w-full grid grid-cols-4 mt-6 gap-x-12 flex-nowrap">
+                      <div
+                        className={`flex w-full grid grid-cols-4 mt-6 gap-x-12 flex-nowrap transition-opacity duration-500 ${
+                          showInitialContent ? "opacity-100" : "opacity-0"
+                        }`}
+                      >
                         <FilterBox
                           label="Source"
                           icon={<FiFilter className="h-4 w-4" />}

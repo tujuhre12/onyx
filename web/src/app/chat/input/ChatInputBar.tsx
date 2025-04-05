@@ -452,9 +452,10 @@ export function ChatInputBar({
       // When switching to search, navigate with parameters
       const params = new URLSearchParams();
       if (message.trim()) {
-        params.append("query", message);
       }
+
       // Add parameter to indicate we're coming from chat
+      params.append("query", message);
       params.append("fromChat", "true");
       router.push(`/chat/search?${params.toString()}`);
     } else {
@@ -880,7 +881,11 @@ export function ChatInputBar({
                 )}
               </div>
               <div className="flex items-center my-auto">
-                <SearchModeDropdown mode={mode} setMode={handleModeSwitch} />
+                <SearchModeDropdown
+                  mode={mode}
+                  setMode={handleModeSwitch}
+                  query={message}
+                />
                 <button
                   id="onyx-chat-input-send-button"
                   className={`cursor-pointer ${

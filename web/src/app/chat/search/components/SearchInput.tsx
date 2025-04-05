@@ -73,7 +73,6 @@ export const SearchModeDropdown = ({
       params.append("fromPosition", isMiddle ? "middle" : "top");
       router.push(`/chat?${params.toString()}`);
     } else {
-      console.log("pushing to search");
       const params = new URLSearchParams();
       if (query.trim()) {
         params.append("query", query);
