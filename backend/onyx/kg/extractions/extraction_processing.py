@@ -12,6 +12,7 @@ from onyx.db.document import update_document_kg_info
 from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.entities import add_entity
 from onyx.db.entities import get_entity_types
+from onyx.db.relationships import add_or_increment_relationship
 from onyx.db.relationships import add_relationship
 from onyx.db.relationships import add_relationship_type
 from onyx.document_index.vespa.index import KGUChunkUpdateRequest
@@ -140,7 +141,7 @@ def kg_extraction(
             )
 
             # TODO: restricted for testing only
-            unprocessed_documents_list = list(unprocessed_documents)
+            unprocessed_documents_list = list(unprocessed_documents)[:1]
 
         document_classification_content_list = (
             get_document_classification_content_for_kg_processing(
@@ -206,19 +207,24 @@ def kg_extraction(
                     aggregated_batch_extractions = (
                         chunk_processing_batch_results.aggregated_kg_extractions
                     )
+                    # Update grounded_entities_document_ids (replace values)
                     connector_aggregated_kg_extractions.grounded_entities_document_ids.update(
                         aggregated_batch_extractions.grounded_entities_document_ids
                     )
-
-                    connector_aggregated_kg_extractions.entities.update(
-                        aggregated_batch_extractions.entities
-                    )
-                    connector_aggregated_kg_extractions.relationships.update(
-                        aggregated_batch_extractions.relationships
-                    )
-                    connector_aggregated_kg_extractions.terms.update(
-                        aggregated_batch_extractions.terms
-                    )
+                    # Add to entity counts instead of replacing
+                    for entity, count in aggregated_batch_extractions.entities.items():
+                        connector_aggregated_kg_extractions.entities[entity] += count
+                    # Add to relationship counts instead of replacing
+                    for (
+                        relationship,
+                        count,
+                    ) in aggregated_batch_extractions.relationships.items():
+                        connector_aggregated_kg_extractions.relationships[
+                            relationship
+                        ] += count
+                    # Add to term counts instead of replacing
+                    for term, count in aggregated_batch_extractions.terms.items():
+                        connector_aggregated_kg_extractions.terms[term] += count
 
                     connector_extraction_stats.append(
                         ConnectorExtractionStats(
@@ -246,15 +252,19 @@ def kg_extraction(
         aggregated_batch_extractions = (
             chunk_processing_batch_results.aggregated_kg_extractions
         )
-        connector_aggregated_kg_extractions.entities.update(
-            aggregated_batch_extractions.entities
+        # Update grounded_entities_document_ids (replace values)
+        connector_aggregated_kg_extractions.grounded_entities_document_ids.update(
+            aggregated_batch_extractions.grounded_entities_document_ids
         )
-        connector_aggregated_kg_extractions.relationships.update(
-            aggregated_batch_extractions.relationships
-        )
-        connector_aggregated_kg_extractions.terms.update(
-            aggregated_batch_extractions.terms
-        )
+        # Add to entity counts instead of replacing
+        for entity, count in aggregated_batch_extractions.entities.items():
+            connector_aggregated_kg_extractions.entities[entity] += count
+        # Add to relationship counts instead of replacing
+        for relationship, count in aggregated_batch_extractions.relationships.items():
+            connector_aggregated_kg_extractions.relationships[relationship] += count
+        # Add to term counts instead of replacing
+        for term, count in aggregated_batch_extractions.terms.items():
+            connector_aggregated_kg_extractions.terms[term] += count
 
         connector_extraction_stats.append(
             ConnectorExtractionStats(
@@ -369,9 +379,7 @@ def kg_extraction(
 
         source_entity, relationship_type_, target_entity = relationship.split("__")
         source_entity = relationship_split[0]
-        relationship_type = (
-            " ".join(relationship_split[1:-1]).replace("__", " ").replace("_", " ")
-        )
+        relationship_type = " ".join(relationship_split[1:-1]).replace("__", "_")
         target_entity = relationship_split[-1]
 
         source_entity_type = source_entity.split(":")[0]
@@ -453,6 +461,9 @@ def kg_extraction(
             logger.error(
                 f"Error adding relationship {relationship} to the database: {e}"
             )
+            with get_session_with_current_tenant() as db_session:
+                add_or_increment_relationship(db_session, relationship)
+                db_session.commit()
 
     # Populate the Documents table with the kg information for the documents
 

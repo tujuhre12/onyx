@@ -58,6 +58,46 @@ def add_relationship(
     return relationship
 
 
+def add_or_increment_relationship(
+    db_session: Session,
+    relationship_id_name: str,
+) -> "KGRelationship":
+    """
+    Add a relationship between two entities to the database if it doesn't exist,
+    or increment its cluster_count by 1 if it already exists.
+
+    Args:
+        db_session: SQLAlchemy database session
+        relationship_id_name: The ID name of the relationship in format "source__relationship__target"
+
+    Returns:
+        The created or updated KGRelationship object
+
+    Raises:
+        sqlalchemy.exc.IntegrityError: If there's an error with the database operation
+    """
+    # Format the relationship_id_name
+    relationship_id_name = format_relationship(relationship_id_name)
+
+    # Check if the relationship already exists
+    existing_relationship = (
+        db_session.query(KGRelationship)
+        .filter(KGRelationship.id_name == relationship_id_name)
+        .first()
+    )
+
+    if existing_relationship:
+        # If it exists, increment the cluster_count
+        existing_relationship.cluster_count = (
+            existing_relationship.cluster_count or 0
+        ) + 1
+        db_session.flush()
+        return existing_relationship
+    else:
+        # If it doesn't exist, add it with cluster_count=1
+        return add_relationship(db_session, relationship_id_name, cluster_count=1)
+
+
 def add_relationship_type(
     db_session: Session,
     source_entity_type: str,
