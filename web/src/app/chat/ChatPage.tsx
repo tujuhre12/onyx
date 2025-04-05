@@ -3018,7 +3018,11 @@ export function ChatPage({
                                           currentAlternativeAssistant
                                         }
                                         messageId={message.messageId}
-                                        content={message.message}
+                                        content={
+                                          userFiles
+                                            ? message.message
+                                            : "message.message"
+                                        }
                                         files={message.files}
                                         query={
                                           messageHistory[i]?.query || undefined

@@ -508,7 +508,11 @@ export const AIMessage = ({
                         userKnowledgeFiles={userKnowledgeFiles}
                       />
                     )}
-
+                    {userKnowledgeFiles ? (
+                      <div className="h-10 w-10 rounded-full bg-black" />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-red-400" />
+                    )}
                     {!userKnowledgeFiles &&
                       toolCall &&
                       !TOOLS_WITH_CUSTOM_HANDLING.includes(

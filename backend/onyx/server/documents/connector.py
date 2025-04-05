@@ -100,6 +100,7 @@ from onyx.db.models import UserGroup__ConnectorCredentialPair
 from onyx.db.search_settings import get_current_search_settings
 from onyx.db.search_settings import get_secondary_search_settings
 from onyx.file_processing.extract_file_text import convert_docx_to_txt
+from onyx.file_processing.extract_file_text import convert_pdf_to_txt
 from onyx.file_store.file_store import get_default_file_store
 from onyx.key_value_store.interface import KvKeyNotFoundError
 from onyx.redis.redis_connector import RedisConnector
@@ -435,8 +436,16 @@ def upload_files(files: list[UploadFile], db_session: Session) -> FileUploadResp
             if file.content_type and file.content_type.startswith(
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             ):
-                file_path = convert_docx_to_txt(file, file_store)
-                deduped_file_paths.append(file_path)
+                file_path = os.path.join(str(uuid.uuid4()), cast(str, file.filename))
+                text_file_path = convert_docx_to_txt(file, file_store)
+                deduped_file_paths.append(text_file_path)
+                continue
+
+            # Special handling for PDF files - only store the plaintext version
+            if file.content_type and file.content_type.startswith("application/pdf"):
+                file_path = os.path.join(str(uuid.uuid4()), cast(str, file.filename))
+                text_file_path = convert_pdf_to_txt(file, file_store, file_path)
+                deduped_file_paths.append(text_file_path)
                 continue
 
             # Default handling for all other file types

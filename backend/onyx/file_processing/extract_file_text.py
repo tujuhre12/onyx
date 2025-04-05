@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 from typing import IO
 from typing import NamedTuple
+from typing import Optional
 
 import chardet
 import docx  # type: ignore
@@ -568,7 +569,9 @@ def extract_text_and_images(
         return ExtractionResult(text_content="", embedded_images=[], metadata={})
 
 
-def convert_docx_to_txt(file: UploadFile, file_store: FileStore) -> str:
+def convert_docx_to_txt(
+    file: UploadFile, file_store: FileStore, file_path: Optional[str] = None
+) -> str:
     """
     Helper to convert docx to a .txt file in the same filestore.
     """
@@ -580,7 +583,8 @@ def convert_docx_to_txt(file: UploadFile, file_store: FileStore) -> str:
     all_paras = [p.text for p in doc.paragraphs]
     text_content = "\n".join(all_paras)
 
-    text_file_name = docx_to_txt_filename(file.filename or f"docx_{uuid.uuid4()}")
+    file_name = file.filename or f"docx_{uuid.uuid4()}"
+    text_file_name = docx_to_txt_filename(file_path if file_path else file_name)
     file_store.save_file(
         file_name=text_file_name,
         content=BytesIO(text_content.encode("utf-8")),
@@ -592,4 +596,28 @@ def convert_docx_to_txt(file: UploadFile, file_store: FileStore) -> str:
 
 
 def docx_to_txt_filename(file_path: str) -> str:
+    return file_path.rsplit(".", 1)[0] + ".txt"
+
+
+def convert_pdf_to_txt(file: UploadFile, file_store: FileStore, file_path: str) -> str:
+    """
+    Helper to convert PDF to a .txt file in the same filestore.
+    """
+    file.file.seek(0)
+
+    # Extract text from the PDF
+    text_content, _, _ = read_pdf_file(file.file)
+
+    text_file_name = pdf_to_txt_filename(file_path)
+    file_store.save_file(
+        file_name=text_file_name,
+        content=BytesIO(text_content.encode("utf-8")),
+        display_name=file.filename,
+        file_origin=FileOrigin.CONNECTOR,
+        file_type="text/plain",
+    )
+    return text_file_name
+
+
+def pdf_to_txt_filename(file_path: str) -> str:
     return file_path.rsplit(".", 1)[0] + ".txt"
