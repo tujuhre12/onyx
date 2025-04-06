@@ -8,7 +8,9 @@ from langgraph.types import StreamWriter
 from onyx.agents.agent_search.kb_search.graph_utils import (
     create_minimal_connected_query_graph,
 )
+from onyx.agents.agent_search.kb_search.models import KGAnswerApproach
 from onyx.agents.agent_search.kb_search.states import AnalysisUpdate
+from onyx.agents.agent_search.kb_search.states import KGAnswerFormat
 from onyx.agents.agent_search.kb_search.states import KGAnswerStrategy
 from onyx.agents.agent_search.kb_search.states import MainState
 from onyx.agents.agent_search.models import GraphConfig
@@ -89,19 +91,36 @@ def analyze(
             primary_llm.invoke,
             prompt=msg,
             timeout_override=5,
-            max_tokens=5,
+            max_tokens=100,
         )
 
         cleaned_response = (
-            str(llm_response.content).replace("```json\n", "").replace("\n```", "")
+            str(llm_response.content)
+            .replace("```json\n", "")
+            .replace("\n```", "")
+            .replace("\n", "")
         )
+        first_bracket = cleaned_response.find("{")
+        last_bracket = cleaned_response.rfind("}")
+        cleaned_response = cleaned_response[first_bracket : last_bracket + 1]
 
-        if KGAnswerStrategy.DEEP.value in cleaned_response:
+        try:
+            approach_extraction_result = KGAnswerApproach.model_validate_json(
+                cleaned_response
+            )
+            strategy = approach_extraction_result.strategy
+            output_format = approach_extraction_result.format
+            broken_down_question = approach_extraction_result.broken_down_question
+        except ValueError:
+            logger.error(
+                "Failed to parse LLM response as JSON in Entity-Term Extraction"
+            )
             strategy = KGAnswerStrategy.DEEP
-        elif KGAnswerStrategy.SIMPLE.value in cleaned_response:
-            strategy = KGAnswerStrategy.SIMPLE
-        else:
+            output_format = KGAnswerFormat.TEXT
+            broken_down_question = None
+        if strategy is None or output_format is None:
             raise ValueError(f"Invalid strategy: {cleaned_response}")
+
     except Exception as e:
         logger.error(f"Error in strategy generation: {e}")
         raise e
@@ -159,6 +178,17 @@ def analyze(
         writer,
     )
 
+    write_custom_event(
+        "initial_agent_answer",
+        AgentAnswerPiece(
+            answer_piece=output_format.value,
+            level=0,
+            level_question_num=0,
+            answer_type="agent_level_answer",
+        ),
+        writer,
+    )
+
     dispatch_main_answer_stop_info(0, writer)
 
     return AnalysisUpdate(
@@ -169,6 +199,8 @@ def analyze(
         normalized_terms=normalized_terms.terms,
         normalized_time_filter=normalized_time_filter,
         strategy=strategy,
+        broken_down_question=broken_down_question,
+        output_format=output_format,
         log_messages=[
             get_langgraph_node_log_string(
                 graph_component="main",

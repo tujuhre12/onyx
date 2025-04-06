@@ -18,59 +18,11 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.chat.models import AgentAnswerPiece
 from onyx.db.engine import get_session_with_current_tenant
-from onyx.llm.interfaces import LLM
 from onyx.prompts.kg_prompts import SIMPLE_SQL_PROMPT
-from onyx.prompts.kg_prompts import SQL_AGGREGATION_REMOVAL_PROMPT
 from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_with_timeout
 
 logger = setup_logger()
-
-
-def _sql_is_aggregate_query(sql_statement: str) -> bool:
-    return any(
-        agg_func in sql_statement.upper()
-        for agg_func in ["COUNT(", "MAX(", "MIN(", "AVG(", "SUM("]
-    )
-
-
-def _remove_aggregation(sql_statement: str, llm: LLM) -> str:
-    """
-    Remove aggregate functions from the SQL statement.
-    """
-
-    sql_aggregation_removal_prompt = SQL_AGGREGATION_REMOVAL_PROMPT.replace(
-        "---sql_statement---", sql_statement
-    )
-
-    msg = [
-        HumanMessage(
-            content=sql_aggregation_removal_prompt,
-        )
-    ]
-
-    # Grader
-    try:
-        llm_response = run_with_timeout(
-            15,
-            llm.invoke,
-            prompt=msg,
-            timeout_override=25,
-            max_tokens=800,
-        )
-
-        cleaned_response = (
-            str(llm_response.content).replace("```json\n", "").replace("\n```", "")
-        )
-        sql_statement = cleaned_response.split("SQL:")[1].strip()
-        sql_statement = sql_statement.split(";")[0].strip() + ";"
-        sql_statement = sql_statement.replace("sql", "").strip()
-
-    except Exception as e:
-        logger.error(f"Error in strategy generation: {e}")
-        raise e
-
-    return sql_statement
 
 
 def generate_simple_sql(
@@ -84,8 +36,6 @@ def generate_simple_sql(
     graph_config = cast(GraphConfig, config["metadata"]["config"])
     question = graph_config.inputs.search_request.query
     entities_types_str = state.entities_types_str
-    state.strategy
-    state.output_format
 
     simple_sql_prompt = (
         SIMPLE_SQL_PROMPT.replace("---entities_types---", entities_types_str)
@@ -124,11 +74,6 @@ def generate_simple_sql(
     except Exception as e:
         logger.error(f"Error in strategy generation: {e}")
         raise e
-
-    if _sql_is_aggregate_query(sql_statement):
-        individualized_sql_query = _remove_aggregation(sql_statement, llm=fast_llm)
-    else:
-        individualized_sql_query = None
 
     write_custom_event(
         "initial_agent_answer",
@@ -185,12 +130,8 @@ def generate_simple_sql(
 
     dispatch_main_answer_stop_info(0, writer)
 
-    # For now, use the same SQL statement for individualized query
-    individualized_sql_query = sql_statement
-
     return SQLSimpleGenerationUpdate(
         sql_query=sql_statement,
-        individualized_sql_query=individualized_sql_query,
         results=results,
         log_messages=[
             get_langgraph_node_log_string(

@@ -21,6 +21,11 @@ class KGAnswerStrategy(Enum):
     SIMPLE = "SIMPLE"
 
 
+class KGAnswerFormat(Enum):
+    LIST = "LIST"
+    TEXT = "TEXT"
+
+
 class AnalysisUpdate(LoggerUpdate):
     normalized_core_entities: list[str] = []
     normalized_core_relationships: list[str] = []
@@ -29,10 +34,13 @@ class AnalysisUpdate(LoggerUpdate):
     normalized_terms: list[str] = []
     normalized_time_filter: str | None = None
     strategy: KGAnswerStrategy | None = None
+    output_format: KGAnswerFormat | None = None
+    broken_down_question: str | None = None
 
 
 class SQLSimpleGenerationUpdate(LoggerUpdate):
-    sql_query: str = ""
+    sql_query: str | None = None
+    individualized_sql_query: str | None = None
     results: list[dict] = []
 
 
