@@ -5,6 +5,9 @@ from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
+from onyx.agents.agent_search.kb_search.graph_utils import (
+    create_minimal_connected_query_graph,
+)
 from onyx.agents.agent_search.kb_search.states import AnalysisUpdate
 from onyx.agents.agent_search.kb_search.states import KGAnswerStrategy
 from onyx.agents.agent_search.kb_search.states import MainState
@@ -49,13 +52,24 @@ def analyze(
     normalized_terms = normalize_terms(terms)
     normalized_time_filter = time_filter
 
+    # Expand the entities and relationships to make sure that entities are connected
+
+    graph_expansion = create_minimal_connected_query_graph(
+        normalized_entities.entities,
+        normalized_relationships.relationships,
+        max_depth=2,
+    )
+
+    query_graph_entities = graph_expansion.entities
+    query_graph_relationships = graph_expansion.relationships
+
+    # Evaluate whether a search needs to be done after identifying all entities and relationships
+
     strategy_generation_prompt = (
         STRATEGY_GENERATION_PROMPT.replace(
-            "---entities---", "\n".join(normalized_entities.entities)
+            "---entities---", "\n".join(query_graph_entities)
         )
-        .replace(
-            "---relationships---", "\n".join(normalized_relationships.relationships)
-        )
+        .replace("---relationships---", "\n".join(query_graph_relationships))
         .replace("---terms---", "\n".join(normalized_terms.terms))
         .replace("---question---", question)
     )
@@ -65,12 +79,14 @@ def analyze(
             content=strategy_generation_prompt,
         )
     ]
-    fast_llm = graph_config.tooling.fast_llm
+    # fast_llm = graph_config.tooling.fast_llm
+    primary_llm = graph_config.tooling.primary_llm
     # Grader
     try:
         llm_response = run_with_timeout(
             5,
-            fast_llm.invoke,
+            # fast_llm.invoke,
+            primary_llm.invoke,
             prompt=msg,
             timeout_override=5,
             max_tokens=5,
@@ -114,6 +130,27 @@ def analyze(
     write_custom_event(
         "initial_agent_answer",
         AgentAnswerPiece(
+            answer_piece="\n".join(query_graph_entities),
+            level=0,
+            level_question_num=0,
+            answer_type="agent_level_answer",
+        ),
+        writer,
+    )
+    write_custom_event(
+        "initial_agent_answer",
+        AgentAnswerPiece(
+            answer_piece="\n".join(query_graph_relationships),
+            level=0,
+            level_question_num=0,
+            answer_type="agent_level_answer",
+        ),
+        writer,
+    )
+
+    write_custom_event(
+        "initial_agent_answer",
+        AgentAnswerPiece(
             answer_piece=strategy.value,
             level=0,
             level_question_num=0,
@@ -125,8 +162,10 @@ def analyze(
     dispatch_main_answer_stop_info(0, writer)
 
     return AnalysisUpdate(
-        normalized_entities=normalized_entities.entities,
-        normalized_relationships=normalized_relationships.relationships,
+        normalized_core_entities=normalized_entities.entities,
+        normalized_core_relationships=normalized_relationships.relationships,
+        query_graph_entities=query_graph_entities,
+        query_graph_relationships=query_graph_relationships,
         normalized_terms=normalized_terms.terms,
         normalized_time_filter=normalized_time_filter,
         strategy=strategy,

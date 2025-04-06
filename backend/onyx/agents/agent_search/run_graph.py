@@ -160,7 +160,6 @@ def run_kb_graph(
     graph = kb_graph_builder()
     compiled_graph = graph.compile()
     input = KBMainInput(log_messages=[])
-    config.inputs.search_request.query = config.inputs.search_request.query[3:].strip()
     return run_graph(compiled_graph, config, input)
 
 

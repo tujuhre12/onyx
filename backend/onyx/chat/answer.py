@@ -156,7 +156,7 @@ class Answer:
             ):
                 run_langgraph = run_dc_graph
             elif self.graph_config.inputs.search_request.persona.name.startswith(
-                "KB Dev"
+                "KG Dev"
             ):
                 run_langgraph = run_kb_graph
             else:

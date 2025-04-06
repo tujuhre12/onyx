@@ -71,7 +71,7 @@ def _get_classification_instructions() -> Dict[str, KGClassificationInstructionS
     return classification_instructions_dict
 
 
-def _get_entity_types_str(active: bool | None = None) -> str:
+def get_entity_types_str(active: bool | None = None) -> str:
     """
     Get the entity types from the KGChunkExtraction model.
     """
@@ -89,6 +89,36 @@ def _get_entity_types_str(active: bool | None = None) -> str:
                 entity_types_list.append(entity_type.id_name)
 
     return "\n".join(entity_types_list)
+
+
+def get_relationship_types_str(active: bool | None = None) -> str:
+    """
+    Get the relationship types from the database.
+
+    Args:
+        active: Filter by active status (True, False, or None for all)
+
+    Returns:
+        A string with all relationship types formatted as "source_type__relationship_type__target_type"
+    """
+    from onyx.db.relationships import get_all_relationship_types
+
+    with get_session_with_current_tenant() as db_session:
+        relationship_types = get_all_relationship_types(db_session)
+
+        # Filter by active status if specified
+        if active is not None:
+            relationship_types = [
+                rt for rt in relationship_types if rt.active == active
+            ]
+
+        relationship_types_list = []
+        for rel_type in relationship_types:
+            # Format as "source_type__relationship_type__target_type"
+            formatted_type = f"{rel_type.source_entity_type_id_name}__{rel_type.type}__{rel_type.target_entity_type_id_name}"
+            relationship_types_list.append(formatted_type)
+
+    return "\n".join(relationship_types_list)
 
 
 def kg_extraction_initialization(tenant_id: str, num_chunks: int = 1000) -> None:
@@ -141,7 +171,7 @@ def kg_extraction(
             )
 
             # TODO: restricted for testing only
-            unprocessed_documents_list = list(unprocessed_documents)[:1]
+            unprocessed_documents_list = list(unprocessed_documents)
 
         document_classification_content_list = (
             get_document_classification_content_for_kg_processing(
@@ -496,7 +526,7 @@ def _kg_chunk_batch_extraction(
     succeeded_chunk_extraction: list[KGChunkExtraction] = []
 
     preformatted_prompt = MASTER_EXTRACTION_PROMPT.format(
-        entity_types=_get_entity_types_str(active=True)
+        entity_types=get_entity_types_str(active=True)
     )
 
     def process_single_chunk(

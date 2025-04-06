@@ -16,3 +16,8 @@ class KGQuestionExtractionResult(BaseModel):
     relationships: list[str]
     terms: list[str]
     time_filter: str | None
+
+
+class KGExpendedGraphObjects(BaseModel):
+    entities: list[str]
+    relationships: list[str]

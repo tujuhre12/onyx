@@ -16,6 +16,12 @@ of these types and relationships between objects of these types (or 'any' object
 {SEPARATOR_LINE}
 """.strip()
 
+RELATIONSHIP_TYPE_SETTING_PROMPT = f"""
+Here are the types of relationships:
+{SEPARATOR_LINE}
+{{relationship_types}}
+{SEPARATOR_LINE}
+""".strip()
 
 EXTRACTION_FORMATTING_PROMPT = r"""
 {{"entities": [<a list of entities of the prescripted entity types that you can reliably identify in the text, \
@@ -251,15 +257,20 @@ a description, others should be obvious. You can ONLY extract entities of these 
 {SEPARATOR_LINE}
 {ENTITY_TYPE_SETTING_PROMPT}
 {SEPARATOR_LINE}
-Please format your answer in this format:
-{SEPARATOR_LINE}
-{QUERY_ENTITY_EXTRACTION_FORMATTING_PROMPT}
-{SEPARATOR_LINE}
 
 The list above here is the exclusive, only list of entities you can chose from!
 
-Here are some important additional instructions. (For the purpose of illustration, assume that ]
- "ACCOUNT", "CONCERN", and "FEATURE" are all in the list of entity types above. Note that this \
+Also, note that there are fixed relationship types between these entities. Please consider those \
+as well so to make sure that you are not missing implicit entities! Implicit entities are often \
+in verbs ('emailed to', 'talked to', ...). Also, they may be used to connect entities that are \
+clearly in the question.
+
+{SEPARATOR_LINE}
+{RELATIONSHIP_TYPE_SETTING_PROMPT}
+{SEPARATOR_LINE}
+
+Here are some important additional instructions. (For the purpose of illustration, assume that \
+ "ACCOUNT", "CONCERN", "EMAIL", and "FEATURE" are all in the list of entity types above. Note that this \
 is just assumed for these examples, but you MUST use only the entities above for the actual extraction!)
 
 - You can either extract specific entities if a specific entity is referred to, or you can refer to the entity type.
@@ -292,6 +303,12 @@ Here is the question you are asked to extract desired entities and terms from:
 {SEPARATOR_LINE}
 ---content---
 {SEPARATOR_LINE}
+
+Please format your answer in this format:
+{SEPARATOR_LINE}
+{QUERY_ENTITY_EXTRACTION_FORMATTING_PROMPT}
+{SEPARATOR_LINE}
+
 """.strip()
 
 
@@ -299,6 +316,12 @@ QUERY_RELATIONSHIP_EXTRACTION_PROMPT = f"""
 You are an expert in the area of knowledge extraction and using knowledge graphs. You are given a question \
 and previously you were asked to identify known entities in the question. Now you are asked to extract \
 the relationships between the entities you have identified earlier.
+
+First off as background, here are the entity types that are known to the system:
+{SEPARATOR_LINE}
+---entity_types---
+{SEPARATOR_LINE}
+
 
 Here are the entities you have identified earlier:
 {SEPARATOR_LINE}
@@ -356,14 +379,15 @@ relationships.
 - Again,
    - you can only extract relationships between the entities extracted earlier
    - you can only extract the relationships that match the listed relationship types
-   - only extract important relationships that signify something non-trivial, expressing things like \
-needs, wants, likes, dislikes, plans, interests, lack of interests, problems the account is having, etc.
+   - if in doubt and there are multiple relationships between the same two entities, you can extract \
+all of those that may fit with the question.
+   - be really think through the question which type of relationships should be extracted and which should not.
 
 {SEPARATOR_LINE}
 
 Here is the question you are asked to extract desired entities, relationships, and terms from:
 {SEPARATOR_LINE}
----content---
+---question---
 {SEPARATOR_LINE}
 """.strip()
 
@@ -420,9 +444,10 @@ STRATEGY_GENERATION_PROMPT = f"""
 Now you need to decide what type of strategy to use to answer the question. There are two types of strategies \
 available to you:
 
-1. DEEP: You can can leverage the actual text of sources to answer the question, which sits in a vector database.
-2. SIMPLE: You can use a simpler database that is aware of the entities, relationships, and terms, and is suitable
-if it is enough to either list or count entities or relationships.
+1. SIMPLE: You think you can awnswer the question using a atabase that is aware of the entities, relationships, \
+and terms, and is generally suitable if it is enough to either list or count entities or relationships.
+2. DEEP: You think you really should ALSO leverage the actual text of sources to answer the question, which sits \
+in a vector database.
 
 Your task is to decide which of the two strategies to use.
 
@@ -443,8 +468,8 @@ Please answer simply with 'DEEP' or 'SIMPLE'. Do not include any other text or e
 
 
 SIMPLE_SQL_PROMPT = f"""
-You are an expert in generating a SQL statement that sole uses two tables, one for entities and another for relationships \
-between two entities - to find (or count) the correct entities.
+You are an expert in generating a SQL statement that only uses two tables, one for entities and another for relationships \
+between two entities - to find (or count) the desired entities.
 
 Here is the structure of the two tables:
 {SEPARATOR_LINE}
@@ -483,7 +508,8 @@ Here is the question you are supposed to translate into a SQL statement:
 ---question---
 {SEPARATOR_LINE}
 
-We already have identified that that the SQL statement should use (only) the following entities and relationships:
+We already have identified the entities and  relationships that the SQL statement likely *should* use (but note the \
+exception below!):
 {SEPARATOR_LINE}
 Query entities (id_name):
 ---query_entities---
@@ -494,6 +520,12 @@ Query relationships (id_name):
 ---query_relationships---
 
 {SEPARATOR_LINE}
+
+EXCEPTIONS:
+  - if you see an entity of the form <entity_type>:* in the entities or the relationships, you should use \
+the entity type, not the entity itself, appropriately in the SQL statement!! These refer effectively to \
+'any entity of type <entity_type>', and it is not an actual entity!
+
 
 Note:
 - The id_name of each enity has the format <entity_type_id_name>:<name>, where 'entity_type_id_name' and 'name' are columns and \
@@ -506,9 +538,12 @@ like (*) if you want to produce a count(*), etc, and obviously the tables.
 - If you see in the used entities items like '<entity_type>:*', that refers to any of those entities. \
 Example: if you see 'ACCOUNT:*', that means you can use any account. So if you are supposed to count the 'ACCOUNT:*', \
 you should count the entities of entity_type_id_name 'ACCOUNT'.
-- The entity table can only be joined ion the relationshiptable which can then be joined again on the entity table, etc.
-- Ultimately this should be a select statement that askes about entities, or a select count() of entities.
+- The entity table can only be joined on the relationshiptable which can then be joined again on the entity table, etc.
+- Ultimately this should be a select statement that asks about entities, or a select count() of entities.
+- You can ultimately only return i) numbers (if counts are asked), or ii) entity id_names. Particularly, do not return names.
 - Try to be as efficient as possible.
+- for actual counts or lists DO NOT include entities of the type <entity>:*! These are not actual entities but \
+rather refer to any entity of that type!
 
 Approach:
 Please think through this step by step. Then, when you have it say 'SQL:' followed ONLY by the SQL statement. The SQL statement \

@@ -40,8 +40,10 @@ def generate_simple_sql(
     simple_sql_prompt = (
         SIMPLE_SQL_PROMPT.replace("---entities_types---", entities_types_str)
         .replace("---question---", question)
-        .replace("---query_entities---", "\n".join(state.normalized_entities))
-        .replace("---query_relationships---", "\n".join(state.normalized_relationships))
+        .replace("---query_entities---", "\n".join(state.query_graph_entities))
+        .replace(
+            "---query_relationships---", "\n".join(state.query_graph_relationships)
+        )
     )
 
     msg = [
@@ -95,6 +97,7 @@ def generate_simple_sql(
         writer,
     )
 
+    # CRITICAL: EXECUTION OF SQL NEEDS TO ME MADE SAFE FOR PRODUCTION
     with get_session_with_current_tenant() as db_session:
         try:
             result = db_session.execute(text(sql_statement))

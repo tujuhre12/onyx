@@ -549,9 +549,9 @@ class VespaIndex(DocumentIndex):
         def _kg_update_chunk(
             update: KGVespaChunkUpdateRequest, http_client: httpx.Client
         ) -> httpx.Response:
-            logger.debug(
-                f"Updating KG with request to {update.url} with body {update.update_request}"
-            )
+            # logger.debug(
+            #     f"Updating KG with request to {update.url} with body {update.update_request}"
+            # )
             return http_client.put(
                 update.url,
                 headers={"Content-Type": "application/json"},

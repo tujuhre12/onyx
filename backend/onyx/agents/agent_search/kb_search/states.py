@@ -22,8 +22,10 @@ class KGAnswerStrategy(Enum):
 
 
 class AnalysisUpdate(LoggerUpdate):
-    normalized_entities: list[str] = []
-    normalized_relationships: list[str] = []
+    normalized_core_entities: list[str] = []
+    normalized_core_relationships: list[str] = []
+    query_graph_entities: list[str] = []
+    query_graph_relationships: list[str] = []
     normalized_terms: list[str] = []
     normalized_time_filter: str | None = None
     strategy: KGAnswerStrategy | None = None

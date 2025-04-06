@@ -109,7 +109,9 @@ def _cluster_relationships(
     # Process relationships in batches
     for i in range(0, len(relationship_data), batch_size):
         batch = relationship_data[i : i + batch_size]
-        batch_names = [rel["name"] for rel in batch]
+        batch_names = [
+            rel["name"].replace("_", " ") for rel in batch
+        ]  # better for LLM to have spaces between words
 
         # Get embeddings for the entire batch at once
         batch_embeddings = encode_string_batch(batch_names)
@@ -168,7 +170,9 @@ def _cluster_entities(
     # Process entities in batches
     for i in range(0, len(entity_data), batch_size):
         batch = entity_data[i : i + batch_size]
-        batch_names = [ent["name"] for ent in batch]
+        batch_names = [
+            ent["name"].replace("_", " ") for ent in batch
+        ]  # use spaces between words for LLM
 
         # Get embeddings for the entire batch at once
         batch_embeddings = encode_string_batch(batch_names)
@@ -615,7 +619,9 @@ def kg_clustering(
         for target_type_str, clusters in target_cluster_dict.items():
             for cluster_id, rel_names in clusters.items():
                 if len(rel_names) == 1:
-                    cluster_name = rel_names[0]
+                    cluster_name = rel_names[0].replace(
+                        " ", "_"
+                    )  # in table we use '_' between words
                     # Just use the existing relationship name as the cluster name
                     full_clustering_results[source_type_str][target_type_str][
                         cluster_id
@@ -638,7 +644,9 @@ Only output the relationship name, nothing else."""
 
                     try:
                         cluster_name_result = primary_llm.invoke(prompt)
-                        cluster_name = message_to_string(cluster_name_result)
+                        cluster_name = message_to_string(cluster_name_result).replace(
+                            " ", "_"
+                        )  # in table we use '_' between words
                         logger.info(
                             f"Generated cluster name '{cluster_name}' for cluster {cluster_id} "
                             f"between {source_type_str} and {target_type_str}"
@@ -719,11 +727,13 @@ Only output the category name, nothing else."""
             try:
                 if len(ent_names) > 1:
                     cluster_name_result = primary_llm.invoke(msg)
-                    cluster_name = message_to_string(cluster_name_result)
+                    cluster_name = message_to_string(cluster_name_result).replace(
+                        " ", "_"
+                    )  # in table we use '_' between words
                 else:
-                    cluster_name = ent_names[
-                        0
-                    ]  # only one name for the cluster, then keep it
+                    cluster_name = ent_names[0].replace(
+                        " ", "_"
+                    )  # in table we use '_' between words; and only one name for the cluster, then keep it
                 logger.info(
                     f"Generated cluster name '{cluster_name}' for {entity_type} cluster {cluster_id}"
                 )

@@ -1,3 +1,5 @@
+from typing import List
+
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -266,6 +268,31 @@ def get_allowed_relationship_type_pairs(
             .filter(KGRelationshipType.source_entity_type_id_name.in_(entity_types))
             .filter(KGRelationshipType.target_entity_type_id_name.in_(entity_types))
             .distinct()
+            .all()
+        )
+    ]
+
+
+def get_relationships_of_entity(db_session: Session, entity_id: str) -> List[str]:
+    """Get all relationship ID names where the given entity is either the source or target node.
+
+    Args:
+        db_session: SQLAlchemy session
+        entity_id: ID of the entity to find relationships for
+
+    Returns:
+        List of relationship ID names where the entity is either source or target
+    """
+    return [
+        row[0]
+        for row in (
+            db_session.query(KGRelationship.id_name)
+            .filter(
+                or_(
+                    KGRelationship.source_node == entity_id,
+                    KGRelationship.target_node == entity_id,
+                )
+            )
             .all()
         )
     ]

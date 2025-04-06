@@ -24,7 +24,8 @@ from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.chat.models import AgentAnswerPiece
 from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.relationships import get_allowed_relationship_type_pairs
-from onyx.kg.extractions.extraction_processing import _get_entity_types_str
+from onyx.kg.extractions.extraction_processing import get_entity_types_str
+from onyx.kg.extractions.extraction_processing import get_relationship_types_str
 from onyx.prompts.kg_prompts import QUERY_ENTITY_EXTRACTION_PROMPT
 from onyx.prompts.kg_prompts import QUERY_RELATIONSHIP_EXTRACTION_PROMPT
 from onyx.utils.logger import setup_logger
@@ -48,12 +49,14 @@ def extract_ert(
     question = graph_config.inputs.search_request.query
     today_date = datetime.now().strftime("%A, %Y-%m-%d")
 
-    all_entity_types = _get_entity_types_str(active=None)
+    all_entity_types = get_entity_types_str(active=None)
+    all_relationship_types = get_relationship_types_str(active=None)
 
     ### get the entities, terms, and filters
 
     query_extraction_pre_prompt = QUERY_ENTITY_EXTRACTION_PROMPT.format(
-        entity_types=all_entity_types
+        entity_types=all_entity_types,
+        relationship_types=all_relationship_types,
     )
 
     query_extraction_prompt = query_extraction_pre_prompt.replace(
@@ -121,13 +124,14 @@ def extract_ert(
         )
 
     query_relationship_extraction_prompt = (
-        QUERY_RELATIONSHIP_EXTRACTION_PROMPT.replace("---content---", question)
+        QUERY_RELATIONSHIP_EXTRACTION_PROMPT.replace("---question---", question)
         .replace("---today_date---", today_date)
         .replace(
             "---relationship_type_options---",
             "  - " + "\n  - ".join(allowed_relationship_pairs),
         )
         .replace("---identified_entities---", ert_entities_string)
+        .replace("---entity_types---", all_entity_types)
     )
 
     msg = [
