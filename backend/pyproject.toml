@@ -16,8 +16,8 @@ disable_error_code = ["var-annotated"]
 [tool.ruff]
 ignore = []
 line-length = 130
-select = [
-    "E",
-    "F",
-    "W",
-]
+select = ["E", "F", "W"]
+
+[tool.pyright]
+venvPath = "../.."
+venv = ".venv"
