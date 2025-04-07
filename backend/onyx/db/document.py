@@ -21,6 +21,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import null
 
+from onyx.chat.models import LlmDoc
 from onyx.configs.constants import DEFAULT_BOOST
 from onyx.configs.constants import DocumentSource
 from onyx.db.chunk import delete_chunk_stats_by_connector_credential_pair__no_commit
@@ -990,3 +991,29 @@ def get_all_kg_processed_documents_info(
 
     results = db_session.execute(stmt).all()
     return [(str(doc_id), kg_data or {}) for doc_id, kg_data in results]
+
+
+def get_base_llm_doc_information(
+    db_session: Session, document_ids: list[str]
+) -> list[LlmDoc]:
+    stmt = select(DbDocument).where(DbDocument.id.in_(document_ids))
+    results = db_session.execute(stmt).all()
+
+    llm_docs = []
+    for doc in results:
+        bare_doc = doc[0]
+        llm_doc = LlmDoc(
+            document_id=bare_doc.id,
+            semantic_identifier=bare_doc.semantic_id,
+            link=bare_doc.link,
+            content="",
+            blurb="",
+            metadata={},
+            source_type=DocumentSource.NOT_APPLICABLE,
+            updated_at=None,
+            source_links=None,
+            match_highlights=None,
+        )
+
+        llm_docs.append(llm_doc)
+    return llm_docs

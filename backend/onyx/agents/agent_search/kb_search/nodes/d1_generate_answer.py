@@ -9,6 +9,9 @@ from onyx.agents.agent_search.kb_search.states import MainOutput
 from onyx.agents.agent_search.kb_search.states import MainState
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.utils import (
+    dispatch_main_answer_stop_info,
+)
+from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
@@ -41,6 +44,8 @@ def generate_answer(
     state.query_results
     output_format = state.output_format
 
+    assert query_results_data_str is not None
+
     output_format_prompt = (
         OUTPUT_FORMAT_PROMPT.replace("---question---", question)
         .replace("---results_data_str---", query_results_data_str)
@@ -60,7 +65,7 @@ def generate_answer(
         for message in fast_llm.stream(
             prompt=msg,
             timeout_override=30,
-            max_tokens=30,
+            max_tokens=300,
         ):
             # TODO: in principle, the answer here COULD contain images, but we don't support that yet
             content = message.content
@@ -70,15 +75,16 @@ def generate_answer(
                 )
             start_stream_token = datetime.now()
             write_custom_event(
-                "sub_answers",
+                "initial_agent_answer",
                 AgentAnswerPiece(
                     answer_piece=content,
                     level=0,
                     level_question_num=0,
-                    answer_type="agent_sub_answer",
+                    answer_type="agent_level_answer",
                 ),
                 writer,
             )
+            logger.debug(f"Answer piece: {content}")
             end_stream_token = datetime.now()
             dispatch_timings.append(
                 (end_stream_token - start_stream_token).microseconds
@@ -102,6 +108,8 @@ def generate_answer(
         level_question_num=0,
     )
     write_custom_event("stream_finished", stop_event, writer)
+
+    dispatch_main_answer_stop_info(0, writer)
 
     return MainOutput(
         log_messages=[

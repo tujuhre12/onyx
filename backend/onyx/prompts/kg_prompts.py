@@ -620,10 +620,11 @@ from the SQL statement in the correct way.
 
 Additional rules:
  - if you see a 'select count(*)', you should NOT convert \
-that to 'select *...', but rather return the corresponding id_name, entity_type_id_name, name.  \
-As in: 'select <table, if necessary>.id_name, <table, if necessary>.entity_type_id_name, <table, if necessary>.name ...'. \
-The id_name is always the primary index, and those should be returned, along with the type (entity_type_id_name) \
-and the name (name) of the objects.
+that to 'select *...', but rather return the corresponding id_name, entity_type_id_name, name, and document_id.  \
+As in: 'select <table, if necessary>.id_name, <table, if necessary>.entity_type_id_name, \
+<table, if necessary>.name, <table, if necessary>.document_id ...'. \
+The id_name is always the primary index, and those should be returned, along with the type (entity_type_id_name), \
+the name (name) of the objects, and the document_id (document_id) of the object.
 - Add a limit of 30 to the select statement.
 - Don't change anything else.
 - The final select statement needs obviously to be a valid SQL statement.
@@ -695,6 +696,10 @@ OUTPUT_FORMAT_PROMPT = f"""
 You need to format the return of a SQL query. The results will be given to you as a string. You will \
 also see what the desired output is, as well as the original question. Your purpose is to generate the \
 answer respecting the desired format.
+
+Note that you are a language model and that answers may or may not be perfect. To communicate \
+this to the user, consider phrases like 'I found [10 accounts]...', or 'Here are a number of [goals] that \
+I found...]
 
 Here is the data:
 {SEPARATOR_LINE}

@@ -10,13 +10,8 @@ from onyx.agents.agent_search.kb_search.states import MainState
 from onyx.agents.agent_search.kb_search.states import SQLSimpleGenerationUpdate
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.utils import (
-    dispatch_main_answer_stop_info,
-)
-from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
-from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
-from onyx.chat.models import AgentAnswerPiece
 from onyx.db.engine import get_session_with_current_tenant
 from onyx.llm.interfaces import LLM
 from onyx.prompts.kg_prompts import SIMPLE_SQL_PROMPT
@@ -119,7 +114,7 @@ def generate_simple_sql(
         sql_statement = sql_statement.split(";")[0].strip() + ";"
         sql_statement = sql_statement.replace("sql", "").strip()
 
-        reasoning = cleaned_response.split("SQL:")[0].strip()
+        # reasoning = cleaned_response.split("SQL:")[0].strip()
 
     except Exception as e:
         logger.error(f"Error in strategy generation: {e}")
@@ -130,27 +125,27 @@ def generate_simple_sql(
     else:
         individualized_sql_query = None
 
-    write_custom_event(
-        "initial_agent_answer",
-        AgentAnswerPiece(
-            answer_piece=reasoning,
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+    # write_custom_event(
+    #     "initial_agent_answer",
+    #     AgentAnswerPiece(
+    #         answer_piece=reasoning,
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
 
-    write_custom_event(
-        "initial_agent_answer",
-        AgentAnswerPiece(
-            answer_piece=cleaned_response,
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+    # write_custom_event(
+    #     "initial_agent_answer",
+    #     AgentAnswerPiece(
+    #         answer_piece=cleaned_response,
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
 
     # CRITICAL: EXECUTION OF SQL NEEDS TO ME MADE SAFE FOR PRODUCTION
     with get_session_with_current_tenant() as db_session:
@@ -196,17 +191,17 @@ def generate_simple_sql(
                 # No stopping here, the individualized SQL query is not mandatory
                 logger.error(f"Error executing Individualized SQL query: {e}")
 
-    write_custom_event(
-        "initial_agent_answer",
-        AgentAnswerPiece(
-            answer_piece=str(query_results),
-            level=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+    # write_custom_event(
+    #     "initial_agent_answer",
+    #     AgentAnswerPiece(
+    #         answer_piece=str(query_results),
+    #         level=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
 
-    dispatch_main_answer_stop_info(0, writer)
+    # dispatch_main_answer_stop_info(0, writer)
 
     return SQLSimpleGenerationUpdate(
         sql_query=sql_statement,

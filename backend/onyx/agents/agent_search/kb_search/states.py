@@ -11,6 +11,7 @@ from onyx.agents.agent_search.core_state import CoreState
 from onyx.agents.agent_search.orchestration.states import ToolCallUpdate
 from onyx.agents.agent_search.orchestration.states import ToolChoiceInput
 from onyx.agents.agent_search.orchestration.states import ToolChoiceUpdate
+from onyx.agents.agent_search.shared_graph_utils.models import ReferenceResults
 
 
 ### States ###
@@ -73,6 +74,7 @@ class ERTExtractionUpdate(LoggerUpdate):
 class ResultsDataUpdate(LoggerUpdate):
     query_results_data_str: str | None = None
     individualized_query_results_data_str: str | None = None
+    reference_results: ReferenceResults | None = None
 
 
 ## Graph Input State
