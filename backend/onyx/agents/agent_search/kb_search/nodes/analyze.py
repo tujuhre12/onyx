@@ -13,6 +13,7 @@ from onyx.agents.agent_search.kb_search.states import AnalysisUpdate
 from onyx.agents.agent_search.kb_search.states import KGAnswerFormat
 from onyx.agents.agent_search.kb_search.states import KGAnswerStrategy
 from onyx.agents.agent_search.kb_search.states import MainState
+from onyx.agents.agent_search.kb_search.states import YesNoEnum
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     dispatch_main_answer_stop_info,
@@ -111,6 +112,7 @@ def analyze(
             strategy = approach_extraction_result.strategy
             output_format = approach_extraction_result.format
             broken_down_question = approach_extraction_result.broken_down_question
+            divide_and_conquer = approach_extraction_result.divide_and_conquer
         except ValueError:
             logger.error(
                 "Failed to parse LLM response as JSON in Entity-Term Extraction"
@@ -118,6 +120,7 @@ def analyze(
             strategy = KGAnswerStrategy.DEEP
             output_format = KGAnswerFormat.TEXT
             broken_down_question = None
+            divide_and_conquer = YesNoEnum.NO
         if strategy is None or output_format is None:
             raise ValueError(f"Invalid strategy: {cleaned_response}")
 
@@ -201,6 +204,7 @@ def analyze(
         strategy=strategy,
         broken_down_question=broken_down_question,
         output_format=output_format,
+        divide_and_conquer=divide_and_conquer,
         log_messages=[
             get_langgraph_node_log_string(
                 graph_component="main",

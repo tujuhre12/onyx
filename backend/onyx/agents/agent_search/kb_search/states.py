@@ -16,6 +16,11 @@ class LoggerUpdate(BaseModel):
     log_messages: Annotated[list[str], add] = []
 
 
+class KGVespaFilterResults(BaseModel):
+    entity_filters: list[str]
+    relationship_filters: list[str]
+
+
 class KGAnswerStrategy(Enum):
     DEEP = "DEEP"
     SIMPLE = "SIMPLE"
@@ -24,6 +29,11 @@ class KGAnswerStrategy(Enum):
 class KGAnswerFormat(Enum):
     LIST = "LIST"
     TEXT = "TEXT"
+
+
+class YesNoEnum(str, Enum):
+    YES = "yes"
+    NO = "no"
 
 
 class AnalysisUpdate(LoggerUpdate):
@@ -36,12 +46,17 @@ class AnalysisUpdate(LoggerUpdate):
     strategy: KGAnswerStrategy | None = None
     output_format: KGAnswerFormat | None = None
     broken_down_question: str | None = None
+    divide_and_conquer: YesNoEnum | None = None
 
 
 class SQLSimpleGenerationUpdate(LoggerUpdate):
     sql_query: str | None = None
     individualized_sql_query: str | None = None
     results: list[dict] = []
+
+
+class DeepSearchFilterUpdate(LoggerUpdate):
+    vespa_filter_results: KGVespaFilterResults | None = None
 
 
 class ERTExtractionUpdate(LoggerUpdate):

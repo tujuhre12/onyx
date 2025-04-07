@@ -25,7 +25,7 @@ from onyx.utils.threadpool_concurrency import run_with_timeout
 logger = setup_logger()
 
 
-def generate_simple_sql(
+def generate_answer(
     state: MainState, config: RunnableConfig, writer: StreamWriter = lambda _: None
 ) -> SQLSimpleGenerationUpdate:
     """
