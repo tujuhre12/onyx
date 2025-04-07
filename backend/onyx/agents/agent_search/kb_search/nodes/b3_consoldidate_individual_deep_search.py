@@ -132,7 +132,7 @@ def consoldidate_individual_deep_search(
 
     return SQLSimpleGenerationUpdate(
         sql_query=sql_statement,
-        results=results,
+        query_results=results,
         log_messages=[
             get_langgraph_node_log_string(
                 graph_component="main",

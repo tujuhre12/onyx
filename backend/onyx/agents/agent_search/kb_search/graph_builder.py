@@ -3,24 +3,24 @@ from langgraph.graph import START
 from langgraph.graph import StateGraph
 
 from onyx.agents.agent_search.kb_search.conditional_edges import simple_vs_search
-from onyx.agents.agent_search.kb_search.nodes.analyze import analyze
-from onyx.agents.agent_search.kb_search.nodes.consoldidate_individual_deep_search import (
-    consoldidate_individual_deep_search,
-)
-from onyx.agents.agent_search.kb_search.nodes.construct_deep_search_filters import (
-    construct_deep_search_filters,
-)
-from onyx.agents.agent_search.kb_search.nodes.extract_ert import extract_ert
-from onyx.agents.agent_search.kb_search.nodes.generate_answer import generate_answer
-from onyx.agents.agent_search.kb_search.nodes.generate_simple_sql import (
+from onyx.agents.agent_search.kb_search.nodes.a1_extract_ert import extract_ert
+from onyx.agents.agent_search.kb_search.nodes.a2_analyze import analyze
+from onyx.agents.agent_search.kb_search.nodes.a3_generate_simple_sql import (
     generate_simple_sql,
 )
-from onyx.agents.agent_search.kb_search.nodes.process_individual_deep_search import (
+from onyx.agents.agent_search.kb_search.nodes.b1_construct_deep_search_filters import (
+    construct_deep_search_filters,
+)
+from onyx.agents.agent_search.kb_search.nodes.b2p_process_individual_deep_search import (
     process_individual_deep_search,
 )
-from onyx.agents.agent_search.kb_search.nodes.process_kg_only_answers import (
+from onyx.agents.agent_search.kb_search.nodes.b3_consoldidate_individual_deep_search import (
+    consoldidate_individual_deep_search,
+)
+from onyx.agents.agent_search.kb_search.nodes.c1_process_kg_only_answers import (
     process_kg_only_answers,
 )
+from onyx.agents.agent_search.kb_search.nodes.d1_generate_answer import generate_answer
 from onyx.agents.agent_search.kb_search.states import MainInput
 from onyx.agents.agent_search.kb_search.states import MainState
 from onyx.utils.logger import setup_logger

@@ -1,6 +1,8 @@
 from enum import Enum
 from operator import add
 from typing import Annotated
+from typing import Any
+from typing import Dict
 from typing import TypedDict
 
 from pydantic import BaseModel
@@ -51,8 +53,9 @@ class AnalysisUpdate(LoggerUpdate):
 
 class SQLSimpleGenerationUpdate(LoggerUpdate):
     sql_query: str | None = None
+    query_results: list[Dict[Any, Any]] | None = None
     individualized_sql_query: str | None = None
-    results: list[dict] = []
+    individualized_query_results: list[Dict[Any, Any]] | None = None
 
 
 class DeepSearchFilterUpdate(LoggerUpdate):
@@ -65,6 +68,11 @@ class ERTExtractionUpdate(LoggerUpdate):
     relationships: list[str] = []
     terms: list[str] = []
     time_filter: str | None = None
+
+
+class ResultsDataUpdate(LoggerUpdate):
+    query_results_data_str: str | None = None
+    individualized_query_results_data_str: str | None = None
 
 
 ## Graph Input State
@@ -82,6 +90,7 @@ class MainState(
     ERTExtractionUpdate,
     AnalysisUpdate,
     SQLSimpleGenerationUpdate,
+    ResultsDataUpdate,
 ):
     pass
 
