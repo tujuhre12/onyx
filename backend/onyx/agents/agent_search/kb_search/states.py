@@ -82,6 +82,10 @@ class ResultsDataUpdate(LoggerUpdate):
     reference_results: ReferenceResults | None = None
 
 
+class ResearchObjectUpdate(LoggerUpdate):
+    research_object_results: Annotated[list[dict[str, Any]], add] = []
+
+
 ## Graph Input State
 class MainInput(CoreState):
     pass
@@ -100,6 +104,7 @@ class MainState(
     ResultsDataUpdate,
     ResearchObjectOutput,
     DeepSearchFilterUpdate,
+    ResearchObjectUpdate,
 ):
     pass
 
