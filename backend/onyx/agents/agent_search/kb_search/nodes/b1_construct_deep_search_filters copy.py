@@ -105,8 +105,16 @@ def construct_deep_search_filters(
             relationship_filters=[],
         )
 
+    if state.query_results:
+        div_con_entities = [
+            x["id_name"] for x in state.query_results if x["id_name"] is not None
+        ]
+    else:
+        div_con_entities = []
+
     return DeepSearchFilterUpdate(
         vespa_filter_results=vespa_filter_results,
+        div_con_entities=div_con_entities,
         log_messages=[
             get_langgraph_node_log_string(
                 graph_component="main",

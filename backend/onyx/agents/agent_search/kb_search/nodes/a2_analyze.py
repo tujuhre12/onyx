@@ -16,13 +16,8 @@ from onyx.agents.agent_search.kb_search.states import MainState
 from onyx.agents.agent_search.kb_search.states import YesNoEnum
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.utils import (
-    dispatch_main_answer_stop_info,
-)
-from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
-from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
-from onyx.chat.models import AgentAnswerPiece
 from onyx.kg.clustering.normalizations import normalize_entities
 from onyx.kg.clustering.normalizations import normalize_relationships
 from onyx.kg.clustering.normalizations import normalize_terms
@@ -128,71 +123,71 @@ def analyze(
         logger.error(f"Error in strategy generation: {e}")
         raise e
 
-    write_custom_event(
-        "initial_agent_answer",
-        AgentAnswerPiece(
-            answer_piece="\n".join(normalized_entities.entities),
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
-    write_custom_event(
-        "initial_agent_answer",
-        AgentAnswerPiece(
-            answer_piece="\n".join(normalized_relationships.relationships),
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+    # write_custom_event(
+    #     "initial_agent_answer",
+    #     AgentAnswerPiece(
+    #         answer_piece="\n".join(normalized_entities.entities),
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
+    # write_custom_event(
+    #     "initial_agent_answer",
+    #     AgentAnswerPiece(
+    #         answer_piece="\n".join(normalized_relationships.relationships),
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
 
-    write_custom_event(
-        "initial_agent_answer",
-        AgentAnswerPiece(
-            answer_piece="\n".join(query_graph_entities),
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
-    write_custom_event(
-        "initial_agent_answer",
-        AgentAnswerPiece(
-            answer_piece="\n".join(query_graph_relationships),
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+    # write_custom_event(
+    #     "initial_agent_answer",
+    #     AgentAnswerPiece(
+    #         answer_piece="\n".join(query_graph_entities),
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
+    # write_custom_event(
+    #     "initial_agent_answer",
+    #     AgentAnswerPiece(
+    #         answer_piece="\n".join(query_graph_relationships),
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
 
-    write_custom_event(
-        "initial_agent_answer",
-        AgentAnswerPiece(
-            answer_piece=strategy.value,
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+    # write_custom_event(
+    #     "initial_agent_answer",
+    #     AgentAnswerPiece(
+    #         answer_piece=strategy.value,
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
 
-    write_custom_event(
-        "initial_agent_answer",
-        AgentAnswerPiece(
-            answer_piece=output_format.value,
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+    # write_custom_event(
+    #     "initial_agent_answer",
+    #     AgentAnswerPiece(
+    #         answer_piece=output_format.value,
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
 
-    dispatch_main_answer_stop_info(0, writer)
+    # dispatch_main_answer_stop_info(0, writer)
 
     return AnalysisUpdate(
         normalized_core_entities=normalized_entities.entities,

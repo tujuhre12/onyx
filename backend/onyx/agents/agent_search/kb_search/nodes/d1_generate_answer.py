@@ -19,19 +19,8 @@ from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import StreamStopReason
 from onyx.chat.models import StreamType
-from onyx.chat.models import ToolResponse
+from onyx.prompts.kg_prompts import OUTPUT_FORMAT_NO_EXAMPLES_PROMPT
 from onyx.prompts.kg_prompts import OUTPUT_FORMAT_PROMPT
-from onyx.tools.models import IndexFilters
-from onyx.tools.models import inference_section_from_llm_doc
-from onyx.tools.models import SearchQueryInfo
-from onyx.tools.models import SearchType
-from onyx.tools.tool_implementations.search.search_tool import (
-    SEARCH_RESPONSE_SUMMARY_ID,
-)
-from onyx.tools.tool_implementations.search.search_tool import yield_search_responses
-from onyx.tools.tool_implementations.search_like_tool_utils import (
-    FINAL_CONTEXT_DOCUMENTS_ID,
-)
 from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_with_timeout
 
@@ -50,53 +39,65 @@ def generate_answer(
     question = graph_config.inputs.search_request.query
     state.entities_types_str
     query_results_data_str = state.query_results_data_str
-    reference_results = state.reference_results
+    state.reference_results
+    search_tool = graph_config.tooling.search_tool
+    if search_tool is None:
+        raise ValueError("Search tool is not set")
 
     question = graph_config.inputs.search_request.query
     state.entities_types_str
     state.query_results
     output_format = state.output_format
-
-    if reference_results and reference_results.citations:
-        retrieved_inference_sections = [
-            inference_section_from_llm_doc(llm_doc)
-            for llm_doc in reference_results.citations
-        ]
-
-        yield ToolResponse(
-            id=FINAL_CONTEXT_DOCUMENTS_ID, response=reference_results.citations
+    if state.reference_results:
+        examples = (
+            state.reference_results.citations
+            or state.reference_results.general_entities
+            or []
         )
+        example_str = "\n".join([f"- {example}" for example in examples])
+    else:
+        example_str = ""
 
-    aaa = yield_search_responses(
-        query=question,
-        get_retrieved_sections=lambda: retrieved_inference_sections,
-        get_final_context_sections=lambda: retrieved_inference_sections[:10],
-        search_query_info=SearchQueryInfo(
-            predicted_search=SearchType.SEMANTIC,
-            final_filters=IndexFilters(access_control_list=None),
-            recency_bias_multiplier=1.0,
-        ),
-        get_section_relevance=lambda: None,
-        search_tool=graph_config.tooling.search_tool,
-    )
+    # if reference_results and reference_results.citations:
+    #     aaa = yield_search_responses(
+    #         query=question,
+    #         get_retrieved_sections=lambda: reference_results.citations,
+    #         get_final_context_sections=lambda: reference_results.citations[:10],
+    #         search_query_info=SearchQueryInfo(
+    #         predicted_search=SearchType.SEMANTIC,
+    #         final_filters=IndexFilters(access_control_list=None),
+    #         recency_bias_multiplier=1.0,
+    #     ),
+    #     get_section_relevance=lambda: None,
+    #     search_tool=search_tool,
+    # )
 
-    for aa in aaa:
-        write_custom_event(
-            "tool_response",
-            ToolResponse(
-                id=SEARCH_RESPONSE_SUMMARY_ID,
-                response=aa,
-            ),
-            writer,
-        )
+    #     for aa in aaa:
+    #         write_custom_event(
+    #             "tool_response",
+    #             ToolResponse(
+    #                 id=SEARCH_RESPONSE_SUMMARY_ID,
+    #                 response=aa,
+    #             ),
+    #             writer,
+    #         )
 
     assert query_results_data_str is not None
 
-    output_format_prompt = (
-        OUTPUT_FORMAT_PROMPT.replace("---question---", question)
-        .replace("---results_data_str---", query_results_data_str)
-        .replace("---output_format---", str(output_format) if output_format else "")
-    )
+    if example_str:
+        output_format_prompt = (
+            OUTPUT_FORMAT_PROMPT.replace("---question---", question)
+            .replace("---results_data_str---", query_results_data_str)
+            .replace("---output_format---", str(output_format) if output_format else "")
+            .replace("---examples---", example_str)
+        )
+
+    else:
+        output_format_prompt = (
+            OUTPUT_FORMAT_NO_EXAMPLES_PROMPT.replace("---question---", question)
+            .replace("---results_data_str---", query_results_data_str)
+            .replace("---output_format---", str(output_format) if output_format else "")
+        )
 
     msg = [
         HumanMessage(

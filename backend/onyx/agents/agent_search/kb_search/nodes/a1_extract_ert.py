@@ -15,13 +15,8 @@ from onyx.agents.agent_search.kb_search.states import (
 from onyx.agents.agent_search.kb_search.states import MainState
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.utils import (
-    dispatch_main_answer_stop_info,
-)
-from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
-from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
-from onyx.chat.models import AgentAnswerPiece
 from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.relationships import get_allowed_relationship_type_pairs
 from onyx.kg.extractions.extraction_processing import get_entity_types_str
@@ -111,8 +106,8 @@ def extract_ert(
         )
 
     ert_entities_string = f"Entities: {entity_extraction_result.entities}\n"
-    ert_terms_string = f"Terms: {entity_extraction_result.terms}"
-    ert_time_filter_string = f"Time Filter: {entity_extraction_result.time_filter}\n"
+    # ert_terms_string = f"Terms: {entity_extraction_result.terms}"
+    # ert_time_filter_string = f"Time Filter: {entity_extraction_result.time_filter}\n"
 
     ### get the relationships
 
@@ -181,53 +176,53 @@ def extract_ert(
             relationships=[],
         )
 
-    ert_relationships_string = (
-        f"Relationships: {relationship_extraction_result.relationships}\n"
-    )
+    # ert_relationships_string = (
+    #     f"Relationships: {relationship_extraction_result.relationships}\n"
+    # )
 
     ##
 
-    write_custom_event(
-        "initial_agent_answer",
-        AgentAnswerPiece(
-            answer_piece=ert_entities_string,
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
-    write_custom_event(
-        "initial_agent_answer",
-        AgentAnswerPiece(
-            answer_piece=ert_relationships_string,
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
-    write_custom_event(
-        "initial_agent_answer",
-        AgentAnswerPiece(
-            answer_piece=ert_terms_string,
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
-    write_custom_event(
-        "initial_agent_answer",
-        AgentAnswerPiece(
-            answer_piece=ert_time_filter_string,
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
-    dispatch_main_answer_stop_info(0, writer)
+    # write_custom_event(
+    #     "initial_agent_answer",
+    #     AgentAnswerPiece(
+    #         answer_piece=ert_entities_string,
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
+    # write_custom_event(
+    #     "initial_agent_answer",
+    #     AgentAnswerPiece(
+    #         answer_piece=ert_relationships_string,
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
+    # write_custom_event(
+    #     "initial_agent_answer",
+    #     AgentAnswerPiece(
+    #         answer_piece=ert_terms_string,
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
+    # write_custom_event(
+    #     "initial_agent_answer",
+    #     AgentAnswerPiece(
+    #         answer_piece=ert_time_filter_string,
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
+    # dispatch_main_answer_stop_info(0, writer)
 
     return ERTExtractionUpdate(
         entities_types_str=all_entity_types,

@@ -12,10 +12,10 @@ from onyx.agents.agent_search.shared_graph_utils.models import ReferenceResults
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
-from onyx.chat.models import LlmDoc
 from onyx.db.document import get_base_llm_doc_information
 from onyx.db.engine import get_session_with_current_tenant
 from onyx.utils.logger import setup_logger
+
 
 logger = setup_logger()
 
@@ -25,7 +25,10 @@ def _general_format(result: dict[str, Any]) -> str:
     entity_type_id_name = result.get("entity_type_id_name")
     result.get("id_name")
 
-    return f"{entity_type_id_name}: {name})"
+    if entity_type_id_name:
+        return f"{entity_type_id_name.capitalize()}: {name}"
+    else:
+        return f"{name}"
 
 
 def _generate_reference_results(
@@ -35,7 +38,7 @@ def _generate_reference_results(
     Generate reference results from the query results data string.
     """
 
-    citations: list[LlmDoc] = []
+    citations: list[str] = []
     general_entities = []
 
     # get all entities that correspond to an Onu=yx document
@@ -51,7 +54,7 @@ def _generate_reference_results(
         )
 
     for llm_doc_information_result in llm_doc_information_results:
-        citations.append(llm_doc_information_result)
+        citations.append(llm_doc_information_result.center_chunk.semantic_identifier)
 
     for result in individualized_query_results:
         document_id: str | None = result.get("document_id")
@@ -79,7 +82,7 @@ def process_kg_only_answers(
 
     if query_results:
         for query_result in query_results:
-            query_results_list.append(str(query_result))
+            query_results_list.append(str(query_result).replace(":", ": ").capitalize())
     else:
         raise ValueError("No query results were found")
 

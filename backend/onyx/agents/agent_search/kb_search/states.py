@@ -61,6 +61,11 @@ class SQLSimpleGenerationUpdate(LoggerUpdate):
 
 class DeepSearchFilterUpdate(LoggerUpdate):
     vespa_filter_results: KGVespaFilterResults | None = None
+    div_con_entities: list[str] | None = None
+
+
+class ResearchObjectOutput(LoggerUpdate):
+    research_object_results: Annotated[list[dict[str, Any]], add] = []
 
 
 class ERTExtractionUpdate(LoggerUpdate):
@@ -93,6 +98,8 @@ class MainState(
     AnalysisUpdate,
     SQLSimpleGenerationUpdate,
     ResultsDataUpdate,
+    ResearchObjectOutput,
+    DeepSearchFilterUpdate,
 ):
     pass
 
@@ -100,3 +107,9 @@ class MainState(
 ## Graph Output State - presently not used
 class MainOutput(TypedDict):
     log_messages: list[str]
+
+
+class ResearchObjectInput(LoggerUpdate):
+    entity: str
+    broken_down_question: str
+    vespa_filter_results: KGVespaFilterResults

@@ -21,9 +21,10 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import null
 
-from onyx.chat.models import LlmDoc
 from onyx.configs.constants import DEFAULT_BOOST
 from onyx.configs.constants import DocumentSource
+from onyx.context.search.models import InferenceChunk
+from onyx.context.search.models import InferenceSection
 from onyx.db.chunk import delete_chunk_stats_by_connector_credential_pair__no_commit
 from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
 from onyx.db.engine import get_session_context_manager
@@ -995,25 +996,39 @@ def get_all_kg_processed_documents_info(
 
 def get_base_llm_doc_information(
     db_session: Session, document_ids: list[str]
-) -> list[LlmDoc]:
+) -> list[InferenceSection]:
     stmt = select(DbDocument).where(DbDocument.id.in_(document_ids))
     results = db_session.execute(stmt).all()
 
-    llm_docs = []
+    inference_sections = []
+
     for doc in results:
         bare_doc = doc[0]
-        llm_doc = LlmDoc(
-            document_id=bare_doc.id,
-            semantic_identifier=bare_doc.semantic_id,
-            link=bare_doc.link,
-            content="",
-            blurb="",
-            metadata={},
-            source_type=DocumentSource.NOT_APPLICABLE,
-            updated_at=None,
-            source_links=None,
-            match_highlights=None,
+        inference_section = InferenceSection(
+            center_chunk=InferenceChunk(
+                document_id=bare_doc.id,
+                chunk_id=0,
+                source_type=DocumentSource.NOT_APPLICABLE,
+                semantic_identifier=bare_doc.semantic_id,
+                title=None,
+                boost=0,
+                recency_bias=0,
+                score=0,
+                hidden=False,
+                metadata={},
+                blurb="",
+                content="",
+                source_links=None,
+                image_file_name=None,
+                section_continuation=False,
+                match_highlights=[],
+                doc_summary="",
+                chunk_context="",
+                updated_at=None,
+            ),
+            chunks=[],
+            combined_content="",
         )
 
-        llm_docs.append(llm_doc)
-    return llm_docs
+        inference_sections.append(inference_section)
+    return inference_sections

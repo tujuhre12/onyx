@@ -6,7 +6,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 from sqlalchemy import text
 
-from onyx.agents.agent_search.kb_search.states import MainState
+from onyx.agents.agent_search.kb_search.states import ResearchObjectInput
 from onyx.agents.agent_search.kb_search.states import SQLSimpleGenerationUpdate
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.utils import (
@@ -21,7 +21,9 @@ logger = setup_logger()
 
 
 def process_individual_deep_search(
-    state: MainState, config: RunnableConfig, writer: StreamWriter = lambda _: None
+    state: ResearchObjectInput,
+    config: RunnableConfig,
+    writer: StreamWriter = lambda _: None,
 ) -> SQLSimpleGenerationUpdate:
     """
     LangGraph node to start the agentic search process.
