@@ -20,28 +20,34 @@ def simple_vs_search(
 
 def research_individual_object(
     state: MainState,
-) -> list[Send | Hashable] | Literal["individual_deep_search"]:
+    # ) -> list[Send | Hashable] | Literal["individual_deep_search"]:
+) -> list[Send | Hashable]:
     edge_start_time = datetime.now()
 
-    if (
-        not state.div_con_entities
-        or not state.broken_down_question
-        or not state.vespa_filter_results
-    ):
-        return "individual_deep_search"
+    # if (
+    #     not state.div_con_entities
+    #     or not state.broken_down_question
+    #     or not state.vespa_filter_results
+    # ):
+    #     return "individual_deep_search"
 
-    else:
-        return [
-            Send(
-                "process_individual_deep_search",
-                ResearchObjectInput(
-                    entity=entity,
-                    broken_down_question=state.broken_down_question,
-                    vespa_filter_results=state.vespa_filter_results,
-                    log_messages=[
-                        f"{edge_start_time} -- Main Edge - Parallelize Initial Sub-question Answering"
-                    ],
-                ),
-            )
-            for entity in state.div_con_entities
-        ]
+    # else:
+
+    assert state.div_con_entities is not None
+    assert state.broken_down_question is not None
+    assert state.vespa_filter_results is not None
+
+    return [
+        Send(
+            "process_individual_deep_search",
+            ResearchObjectInput(
+                entity=entity,
+                broken_down_question=state.broken_down_question,
+                vespa_filter_results=state.vespa_filter_results,
+                log_messages=[
+                    f"{edge_start_time} -- Main Edge - Parallelize Initial Sub-question Answering"
+                ],
+            ),
+        )
+        for entity in state.div_con_entities
+    ]

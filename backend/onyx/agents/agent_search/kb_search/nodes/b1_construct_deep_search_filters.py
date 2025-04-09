@@ -105,7 +105,16 @@ def construct_deep_search_filters(
             relationship_filters=[],
         )
 
-    if state.query_results:
+    if (
+        state.individualized_query_results
+        and len(state.individualized_query_results) > 0
+    ):
+        div_con_entities = [
+            x["id_name"]
+            for x in state.individualized_query_results
+            if x["id_name"] is not None
+        ]
+    elif state.query_results and len(state.query_results) > 0:
         div_con_entities = [
             x["id_name"] for x in state.query_results if x["id_name"] is not None
         ]

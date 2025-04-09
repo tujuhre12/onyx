@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import cast
 
+from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
@@ -8,10 +9,15 @@ from onyx.agents.agent_search.dc_search_analysis.ops import research
 from onyx.agents.agent_search.kb_search.states import ResearchObjectInput
 from onyx.agents.agent_search.kb_search.states import ResearchObjectUpdate
 from onyx.agents.agent_search.models import GraphConfig
+from onyx.agents.agent_search.shared_graph_utils.agent_prompt_ops import (
+    trim_prompt_piece,
+)
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
+from onyx.prompts.kg_prompts import KG_OBJECT_SOURCE_RESEARCH_PROMPT
 from onyx.utils.logger import setup_logger
+from onyx.utils.threadpool_concurrency import run_with_timeout
 
 logger = setup_logger()
 
@@ -37,15 +43,64 @@ def process_individual_deep_search(
     kg_entity_filters = state.vespa_filter_results.entity_filters
     kg_relationship_filters = state.vespa_filter_results.relationship_filters
 
-    results = research(
+    retrieved_docs = research(
         question=question,
         kg_entities=kg_entity_filters,
         kg_relationships=kg_relationship_filters,
         search_tool=search_tool,
     )
 
+    document_texts_list = []
+    for doc_num, doc in enumerate(retrieved_docs):
+        chunk_text = "Document " + str(doc_num) + ":\n" + doc.content
+        document_texts_list.append(chunk_text)
+
+    document_texts = "\n\n".join(document_texts_list)
+
+    # Built prompt
+
+    datetime.now().strftime("%A, %Y-%m-%d")
+
+    kg_object_source_research_prompt = KG_OBJECT_SOURCE_RESEARCH_PROMPT.format(
+        question=question,
+        document_text=document_texts,
+    )
+
+    # Run LLM
+
+    msg = [
+        HumanMessage(
+            content=trim_prompt_piece(
+                config=graph_config.tooling.primary_llm.config,
+                prompt_piece=kg_object_source_research_prompt,
+                reserved_str="",
+            ),
+        )
+    ]
+    # fast_llm = graph_config.tooling.fast_llm
+    primary_llm = graph_config.tooling.primary_llm
+    llm = primary_llm
+    # Grader
+    try:
+        llm_response = run_with_timeout(
+            30,
+            llm.invoke,
+            prompt=msg,
+            timeout_override=30,
+            max_tokens=300,
+        )
+
+        object_research_results = str(llm_response.content).replace("```json\n", "")
+
+    except Exception as e:
+        raise ValueError(f"Error in research_object_source: {e}")
+
+    logger.debug("DivCon Step A2 - Object Source Research - completed for an object")
+
     return ResearchObjectUpdate(
-        research_object_results=[{"object": object, "results": results}],
+        research_object_results=[
+            {"object": object, "results": object_research_results}
+        ],
         log_messages=[
             get_langgraph_node_log_string(
                 graph_component="main",

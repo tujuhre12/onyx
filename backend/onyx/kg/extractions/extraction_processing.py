@@ -71,6 +71,38 @@ def _get_classification_instructions() -> Dict[str, KGClassificationInstructionS
     return classification_instructions_dict
 
 
+def _generalize_entities(entities: list[str]) -> set[str]:
+    """
+    Generalize entities to their superclass.
+    """
+    return set([f"{entity.split(':')[0]}:*" for entity in entities])
+
+
+def _generalize_relationships(relationships: list[str]) -> set[str]:
+    """
+    Generalize relationships to their superclass.
+    """
+    generalized_relationships: set[str] = set()
+    for relationship in relationships:
+        assert (
+            len(relationship.split("__")) == 3
+        ), "Relationship is not in the correct format"
+        source_entity, relationship_type, target_entity = relationship.split("__")
+        generalized_source_entity = list(_generalize_entities([source_entity]))[0]
+        generalized_target_entity = list(_generalize_entities([target_entity]))[0]
+        generalized_relationships.add(
+            f"{generalized_source_entity}__{relationship_type}__{target_entity}"
+        )
+        generalized_relationships.add(
+            f"{source_entity}__{relationship_type}__{generalized_target_entity}"
+        )
+        generalized_relationships.add(
+            f"{generalized_source_entity}__{relationship_type}__{generalized_target_entity}"
+        )
+
+    return generalized_relationships
+
+
 def get_entity_types_str(active: bool | None = None) -> str:
     """
     Get the entity types from the KGChunkExtraction model.
@@ -135,6 +167,19 @@ def kg_extraction(
 ) -> list[ConnectorExtractionStats]:
     """
     This extraction will try to extract from all chunks that have not been kg-processed yet.
+
+    Approach:
+    - Get all unprocessed connectors
+    - For each connector:
+        - Get all unprocessed documents
+        - Classify each document to select proper ones
+        - For each document:
+            - Get all chunks
+            - For each chunk:
+                - Extract entities, relationships, and terms
+                    - make sure for each entity and relationship also the generalized versions are extracted!
+                - Aggregate results as needed
+                - Update Vespa and postgres
     """
 
     logger.info(f"Starting kg extraction for tenant {tenant_id}")
@@ -143,7 +188,6 @@ def kg_extraction(
         connector_ids = get_unprocessed_connector_ids(db_session)
 
     connector_extraction_stats: list[ConnectorExtractionStats] = []
-
     document_kg_updates: Dict[str, KGUDocumentUpdateRequest] = {}
 
     processing_chunks: list[KGChunkFormat] = []
@@ -171,7 +215,7 @@ def kg_extraction(
             )
 
             # TODO: restricted for testing only
-            unprocessed_documents_list = list(unprocessed_documents)
+            unprocessed_documents_list = list(unprocessed_documents)[:3]
 
         document_classification_content_list = (
             get_document_classification_content_for_kg_processing(
@@ -570,19 +614,22 @@ def _kg_chunk_batch_extraction(
                     for entity in extracted_entities
                 ]
 
+                all_entities = _generalize_entities(
+                    extracted_entities + llm_preprocessing.implied_entities
+                )
+                all_relationships = _generalize_relationships(
+                    extracted_relationships
+                    + llm_preprocessing.implied_relationships
+                    + implied_extracted_relationships
+                )
+
                 kg_updates = [
                     KGUChunkUpdateRequest(
                         document_id=chunk.document_id,
                         chunk_id=chunk.chunk_id,
                         core_entity=llm_preprocessing.core_entity,
-                        entities=set(
-                            extracted_entities + llm_preprocessing.implied_entities
-                        ),
-                        relationships=set(
-                            extracted_relationships
-                            + llm_preprocessing.implied_relationships
-                            + implied_extracted_relationships
-                        ),
+                        entities=all_entities,
+                        relationships=all_relationships,
                         terms=set(extracted_terms),
                     ),
                 ]

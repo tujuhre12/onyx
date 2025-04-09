@@ -62,6 +62,9 @@ def prepare_llm_content_fireflies(chunk: KGChunkFormat) -> ContextPreparation:
                 implied_relationships.add(
                     f"EMPLOYEE:{kg_owner.name}__participates_in__{core_document_id_name}"
                 )
+                implied_relationships.add(
+                    f"EMPLOYEE:*__participates_in__{core_document_id_name}"
+                )
                 if kg_owner.company not in implied_entities:
                     implied_entities.add(f"VENDOR:{kg_owner.company}")
                     implied_relationships.add(
@@ -72,8 +75,12 @@ def prepare_llm_content_fireflies(chunk: KGChunkFormat) -> ContextPreparation:
             account_participant_emails.add(f"{kg_owner.name} -- ({kg_owner.company})")
             if kg_owner.company not in implied_entities:
                 implied_entities.add(f"ACCOUNT:{kg_owner.company}")
+                implied_entities.add("ACCOUNT:*")
                 implied_relationships.add(
                     f"ACCOUNT:{kg_owner.company}__participates_in__{core_document_id_name}"
+                )
+                implied_relationships.add(
+                    f"ACCOUNT:*__participates_in__{core_document_id_name}"
                 )
 
     participant_string = "\n  - " + "\n  - ".join(company_participant_emails)

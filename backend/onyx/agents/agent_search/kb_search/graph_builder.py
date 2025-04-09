@@ -2,6 +2,9 @@ from langgraph.graph import END
 from langgraph.graph import START
 from langgraph.graph import StateGraph
 
+from onyx.agents.agent_search.kb_search.conditional_edges import (
+    research_individual_object,
+)
 from onyx.agents.agent_search.kb_search.conditional_edges import simple_vs_search
 from onyx.agents.agent_search.kb_search.nodes.a1_extract_ert import extract_ert
 from onyx.agents.agent_search.kb_search.nodes.a2_analyze import analyze
@@ -72,6 +75,11 @@ def kb_graph_builder(test_mode: bool = False) -> StateGraph:
         process_individual_deep_search,
     )
 
+    # graph.add_node(
+    #     "individual_deep_search",
+    #     individual_deep_search,
+    # )
+
     graph.add_node(
         "consoldidate_individual_deep_search",
         consoldidate_individual_deep_search,
@@ -97,15 +105,26 @@ def kb_graph_builder(test_mode: bool = False) -> StateGraph:
 
     graph.add_edge(start_key="process_kg_only_answers", end_key="generate_answer")
 
-    graph.add_edge(
-        start_key="construct_deep_search_filters",
-        end_key="process_individual_deep_search",
+    # graph.add_edge(
+    #     start_key="construct_deep_search_filters",
+    #     end_key="process_individual_deep_search",
+    # )
+
+    graph.add_conditional_edges(
+        source="construct_deep_search_filters",
+        path=research_individual_object,
+        path_map=["process_individual_deep_search"],
     )
 
     graph.add_edge(
         start_key="process_individual_deep_search",
         end_key="consoldidate_individual_deep_search",
     )
+
+    # graph.add_edge(
+    #     start_key="individual_deep_search",
+    #     end_key="consoldidate_individual_deep_search",
+    # )
 
     graph.add_edge(
         start_key="consoldidate_individual_deep_search", end_key="generate_answer"
