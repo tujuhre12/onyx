@@ -333,6 +333,9 @@ class GoogleDriveConnector(SlimConnector, CheckpointConnector[GoogleDriveCheckpo
             user_email=self.primary_admin_email,
         )
         is_service_account = isinstance(self.creds, ServiceAccountCredentials)
+        logger.debug(
+            f"Listing all drive ids using {self.primary_admin_email}. Is service account: {is_service_account}"
+        )
         all_drive_ids = set()
         for drive in execute_paginated_retrieval(
             retrieval_function=primary_drive_service.drives().list,
