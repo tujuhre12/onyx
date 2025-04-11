@@ -371,8 +371,6 @@ class SearchTool(Tool[SearchToolOverrideKwargs]):
         if kg_terms:
             retrieval_options.filters.kg_terms = kg_terms
 
-        logger.info(f"SEARCH OVERWRITE retrieval_options: {retrieval_options}")
-
         search_pipeline = SearchPipeline(
             search_request=SearchRequest(
                 query=query,
