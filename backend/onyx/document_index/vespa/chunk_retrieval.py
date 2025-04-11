@@ -297,76 +297,124 @@ def query_vespa(
     if "query" in query_params and not cast(str, query_params["query"]).strip():
         raise ValueError("No/empty query received")
 
-    params = dict(
-        **query_params,
-        **(
-            {
-                "presentation.timing": True,
-            }
-            if LOG_VESPA_TIMING_INFORMATION
-            else {}
-        ),
-    )
+    configured_ranking_profile = query_params.get("ranking.profile")
+    if not configured_ranking_profile:
+        raise ValueError("No ranking profile configured")
 
-    try:
-        with get_vespa_http_client() as http_client:
-            response = http_client.post(SEARCH_ENDPOINT, json=params)
-            response.raise_for_status()
-    except httpx.HTTPError as e:
-        error_base = "Failed to query Vespa"
-        logger.error(
-            f"{error_base}:\n"
-            f"Request URL: {e.request.url}\n"
-            f"Request Headers: {e.request.headers}\n"
-            f"Request Payload: {params}\n"
-            f"Exception: {str(e)}"
-            + (
-                f"\nResponse: {e.response.text}"
-                if isinstance(e, httpx.HTTPStatusError)
-                else ""
-            )
+    query_profiles: list[float | int | str] = []
+
+    if (
+        configured_ranking_profile
+        and isinstance(configured_ranking_profile, str)
+        and configured_ranking_profile.startswith("hybrid_search")
+    ):
+        dimension = configured_ranking_profile.split("hybrid_search")[1]
+        query_profiles = [
+            f"hybrid_search_kw_first_phase{dimension}",
+            f"hybrid_search{dimension}",
+        ]
+    else:
+        query_profiles = [configured_ranking_profile]
+
+    inference_chunk_sets = []
+    mutable_params = dict(query_params)
+
+    for query_profile in query_profiles:
+        mutable_params["ranking.profile"] = query_profile
+
+        params = dict(
+            **mutable_params,
+            **(
+                {
+                    "presentation.timing": True,
+                }
+                if LOG_VESPA_TIMING_INFORMATION
+                else {}
+            ),
         )
-        raise httpx.HTTPError(error_base) from e
 
-    response_json: dict[str, Any] = response.json()
-
-    if LOG_VESPA_TIMING_INFORMATION:
-        logger.debug("Vespa timing info: %s", response_json.get("timing"))
-    hits = response_json["root"].get("children", [])
-
-    if not hits:
-        logger.warning(
-            f"No hits found for YQL Query: {query_params.get('yql', 'No YQL Query')}"
-        )
-        logger.debug(f"Vespa Response: {response.text}")
-
-    for hit in hits:
-        if hit["fields"].get(CONTENT) is None:
-            identifier = hit["fields"].get("documentid") or hit["id"]
+        try:
+            with get_vespa_http_client() as http_client:
+                response = http_client.post(SEARCH_ENDPOINT, json=params)
+                response.raise_for_status()
+        except httpx.HTTPError as e:
+            error_base = "Failed to query Vespa"
             logger.error(
-                f"Vespa Index with Vespa ID {identifier} has no contents. "
-                f"This is invalid because the vector is not meaningful and keywordsearch cannot "
-                f"fetch this document"
+                f"{error_base}:\n"
+                f"Request URL: {e.request.url}\n"
+                f"Request Headers: {e.request.headers}\n"
+                f"Request Payload: {params}\n"
+                f"Exception: {str(e)}"
+                + (
+                    f"\nResponse: {e.response.text}"
+                    if isinstance(e, httpx.HTTPStatusError)
+                    else ""
+                )
             )
+            raise httpx.HTTPError(error_base) from e
 
-    filtered_hits = [hit for hit in hits if hit["fields"].get(CONTENT) is not None]
+        response_json: dict[str, Any] = response.json()
 
-    inference_chunks = [_vespa_hit_to_inference_chunk(hit) for hit in filtered_hits]
+        if LOG_VESPA_TIMING_INFORMATION:
+            logger.debug("Vespa timing info: %s", response_json.get("timing"))
+        hits = response_json["root"].get("children", [])
 
-    try:
-        num_retrieved_inference_chunks = len(inference_chunks)
-        num_retrieved_document_ids = len(
-            set([chunk.document_id for chunk in inference_chunks])
-        )
-        logger.debug(
-            f"Retrieved {num_retrieved_inference_chunks} inference chunks for {num_retrieved_document_ids} documents"
-        )
-    except Exception as e:
-        # Debug logging only, should not fail the retrieval
-        logger.error(f"Error logging retrieval statistics: {e}")
+        if not hits:
+            logger.warning(
+                f"No hits found for YQL Query: {query_params.get('yql', 'No YQL Query')}"
+            )
+            logger.debug(f"Vespa Response: {response.text}")
+
+        for hit in hits:
+            if hit["fields"].get(CONTENT) is None:
+                identifier = hit["fields"].get("documentid") or hit["id"]
+                logger.error(
+                    f"Vespa Index with Vespa ID {identifier} has no contents. "
+                    f"This is invalid because the vector is not meaningful and keywordsearch cannot "
+                    f"fetch this document"
+                )
+
+        filtered_hits = [hit for hit in hits if hit["fields"].get(CONTENT) is not None]
+
+        inference_chunks = [_vespa_hit_to_inference_chunk(hit) for hit in filtered_hits]
+
+        try:
+            num_retrieved_inference_chunks = len(inference_chunks)
+            num_retrieved_document_ids = len(
+                set([chunk.document_id for chunk in inference_chunks])
+            )
+            logger.debug(
+                f"Retrieved {num_retrieved_inference_chunks} inference chunks for {num_retrieved_document_ids} documents"
+            )
+        except Exception as e:
+            # Debug logging only, should not fail the retrieval
+            logger.error(f"Error logging retrieval statistics: {e}")
+
+        inference_chunk_sets.append(inference_chunks)
+
+    flattened_inference_chunks = []
+    for inference_chunk_set in inference_chunk_sets:
+        flattened_inference_chunks.extend(inference_chunk_set)
+
+    flattened_inference_chunks.sort(key=lambda chunk: chunk.score, reverse=True)
+
+    final_chunks = []
+    used_document_chunk_ids = set()
+
+    for chunk in flattened_inference_chunks:
+        if (
+            chunk.document_id + "__" + str(chunk.chunk_id)
+            not in used_document_chunk_ids
+        ):
+            final_chunks.append(chunk)
+            used_document_chunk_ids.add(chunk.document_id + "__" + str(chunk.chunk_id))
+        else:
+            continue
+
+    return final_chunks
 
     # Good Debugging Spot
-    return inference_chunks
+    return flattened_inference_chunks
 
 
 def _get_chunks_via_batch_search(
