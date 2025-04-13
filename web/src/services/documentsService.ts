@@ -131,12 +131,10 @@ export async function renameItem(
 }
 
 export async function downloadItem(documentId: string): Promise<Blob> {
-  const response = await fetch(
-    `/api/chat/file/${encodeURIComponent(documentId)}`,
-    {
-      method: "GET",
-    }
-  );
+  const fileId = documentId.split("__")[1] || documentId;
+  const response = await fetch(`/api/chat/file/${encodeURIComponent(fileId)}`, {
+    method: "GET",
+  });
   if (!response.ok) {
     throw new Error("Failed to fetch file");
   }
