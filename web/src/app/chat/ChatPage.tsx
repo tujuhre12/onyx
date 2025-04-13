@@ -3303,7 +3303,7 @@ export function ChatPage({
                               : "w-[0px]"
                           }
                       `}
-                      ></div>
+                      />
                     </div>
                   )}
                 </Dropzone>
