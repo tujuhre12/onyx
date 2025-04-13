@@ -257,7 +257,7 @@ export const FileListItem: React.FC<FileListItemProps> = ({
           <PopoverTrigger asChild>
             <Button
               variant="ghost"
-              className="group-hover:visible invisible h-8 w-8 p-0"
+              className="group-hover:visible mobile:visible invisible h-8 w-8 p-0"
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
