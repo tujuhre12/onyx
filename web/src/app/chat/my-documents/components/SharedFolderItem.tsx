@@ -6,17 +6,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getFormattedDateTime, getTimeAgoString } from "@/lib/dateUtils";
+import { getFormattedDateTime } from "@/lib/dateUtils";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { FiArrowDown, FiEdit, FiTrash } from "react-icons/fi";
+import { FiTrash } from "react-icons/fi";
 import { DeleteEntityModal } from "@/components/DeleteEntityModal";
-import { useDocumentsContext } from "../DocumentsContext";
-import { TruncatedText } from "@/components/ui/truncatedText";
 import { truncateString } from "@/lib/utils";
 
 interface SharedFolderItemProps {
@@ -28,9 +26,7 @@ interface SharedFolderItemProps {
   onClick: (folderId: number) => void;
   description?: string;
   lastUpdated?: string;
-  onRename: () => void;
   onDelete: () => void;
-  onMove: () => void;
 }
 
 export const SharedFolderItem: React.FC<SharedFolderItemProps> = ({
@@ -38,9 +34,7 @@ export const SharedFolderItem: React.FC<SharedFolderItemProps> = ({
   onClick,
   description,
   lastUpdated,
-  onRename,
   onDelete,
-  onMove,
 }) => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
