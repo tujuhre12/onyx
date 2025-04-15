@@ -340,7 +340,6 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
   } = useDocumentsContext();
 
   const router = useRouter();
-  const [linkUrl, setLinkUrl] = useState("");
   const [isCreatingFileFromLink, setIsCreatingFileFromLink] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
 
