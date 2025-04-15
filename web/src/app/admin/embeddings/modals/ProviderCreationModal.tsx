@@ -125,22 +125,22 @@ export function ProviderCreationModal({
         deployment_name: values.deployment_name,
       };
 
-      // const initialResponse = await fetch(
-      //   "/api/admin/embedding/test-embedding",
-      //   {
-      //     method: "POST",
-      //     headers: { "Content-Type": "application/json" },
-      //     body: JSON.stringify(testEmbeddingPayload),
-      //   }
-      // );
+      const initialResponse = await fetch(
+        "/api/admin/embedding/test-embedding",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(testEmbeddingPayload),
+        }
+      );
 
-      // if (!initialResponse.ok) {
-      //   const errorMsg = (await initialResponse.json()).detail;
-      //   setErrorMsg(errorMsg);
-      //   setIsProcessing(false);
-      //   setSubmitting(false);
-      //   return;
-      // }
+      if (!initialResponse.ok) {
+        const errorMsg = (await initialResponse.json()).detail;
+        setErrorMsg(errorMsg);
+        setIsProcessing(false);
+        setSubmitting(false);
+        return;
+      }
 
       const response = await fetch(EMBEDDING_PROVIDERS_ADMIN_URL, {
         method: "PUT",
