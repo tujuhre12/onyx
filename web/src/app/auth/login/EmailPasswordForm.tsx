@@ -142,9 +142,6 @@ export function EmailPasswordForm({
               name="password"
               label="Password"
               type="password"
-              includeForgotPassword={
-                NEXT_PUBLIC_FORGOT_PASSWORD_ENABLED && !isSignup
-              }
               placeholder="**************"
             />
 

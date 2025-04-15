@@ -1390,6 +1390,7 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
                 <TooltipTrigger asChild>
                   <div>
                     <Button
+                      type="button"
                       onClick={onSave}
                       className="px-8 py-2 w-48"
                       disabled={
