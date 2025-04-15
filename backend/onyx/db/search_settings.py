@@ -126,10 +126,11 @@ def delete_search_settings(db_session: Session, search_settings_id: int) -> None
         .all()
     )
 
-    # Delete associated error records first
-    for attempt in index_attempts:
+    # Delete associated error records for all index attempts in a single query
+    attempt_ids = [attempt.id for attempt in index_attempts]
+    if attempt_ids:
         error_records_query = delete(IndexAttemptError).where(
-            IndexAttemptError.index_attempt_id == attempt.id
+            IndexAttemptError.index_attempt_id.in_(attempt_ids)
         )
         db_session.execute(error_records_query)
 
