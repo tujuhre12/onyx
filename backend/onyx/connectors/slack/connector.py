@@ -714,6 +714,10 @@ class SlackConnector(
                     checkpoint.current_channel = None
 
             checkpoint.has_more = checkpoint.current_channel is not None
+
+            if self._callback:
+                self._callback.progress("load_from_checkpoint", 0)
+
         except Exception as e:
             logger.exception(f"Error processing channel {channel['name']}")
             yield ConnectorFailure(
@@ -727,9 +731,6 @@ class SlackConnector(
                 failure_message=str(e),
                 exception=e,
             )
-
-        if self._callback:
-            self._callback.progress("load_from_checkpoint", 0)
 
         return checkpoint
 
