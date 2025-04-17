@@ -223,6 +223,8 @@ def construct_tools(
                         prompt_config=prompt_config,
                     )
                 ]
+            else:
+                tool_dict[db_tool_model.id] = [tool_cls()]
 
         # Handle custom tools
         elif db_tool_model.openapi_schema:

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from onyx.db.models import Persona
 from onyx.db.models import Tool as ToolDBModel
+from onyx.tools.jira_agent import JiraAgentTool
 from onyx.tools.tool_implementations.images.image_generation_tool import (
     ImageGenerationTool,
 )
@@ -60,6 +61,12 @@ BUILT_IN_TOOLS: list[InCodeToolInfo] = [
         ]
         if os.environ.get("BING_API_KEY")
         else []
+    ),
+    InCodeToolInfo(
+        cls=JiraAgentTool,
+        description="The Jira Agent Action allows the assistant to search through connected Jira to help build an answer.",
+        in_code_tool_id=JiraAgentTool.__name__,
+        display_name=JiraAgentTool._DISPLAY_NAME,
     ),
 ]
 
