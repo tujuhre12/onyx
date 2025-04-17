@@ -108,14 +108,13 @@ def get_channels(
             channel_types=channel_types,
         )
     except SlackApiError as e:
-        logger.info(
-            f"Unable to fetch private channels due to: {e}. Trying again without private channels."
-        )
-        if get_public:
-            channel_types = ["public_channel"]
-        else:
+        logger.warning(f"Unable to fetch private channels due to: {e}.")
+        if not get_public:
             logger.warning("No channels to fetch.")
             return []
+
+        logger.warning("Trying again with public channels only.")
+        channel_types = ["public_channel"]
         channels = _collect_paginated_channels(
             client=client,
             exclude_archived=exclude_archived,
@@ -529,9 +528,15 @@ class SlackConnector(
         self.credential_prefix: str | None = None
         self.delay_lock: str | None = None  # the redis key for the shared lock
         self.delay_key: str | None = None  # the redis key for the shared delay
+        self._callback: IndexingHeartbeatInterface | None = None
 
     def load_credentials(self, credentials: dict[str, Any]) -> dict[str, Any] | None:
         raise NotImplementedError("Use set_credentials_provider with this connector.")
+
+    def set_heartbeat_callback(self, callback: IndexingHeartbeatInterface) -> None:
+        """Implement if the underlying connector needs to report activity out to prevent
+        watchdog timeouts."""
+        self._callback = callback
 
     def set_credentials_provider(
         self, credentials_provider: CredentialsProviderInterface
@@ -615,6 +620,10 @@ class SlackConnector(
             filtered_channels = filter_channels(
                 raw_channels, self.channels, self.channel_regex_enabled
             )
+            logger.info(
+                f"Channels: total={len(raw_channels)} filtered={len(filtered_channels)}."
+            )
+
             checkpoint.channel_ids = [c["id"] for c in filtered_channels]
             if len(filtered_channels) == 0:
                 checkpoint.has_more = False
@@ -705,8 +714,6 @@ class SlackConnector(
                     checkpoint.current_channel = None
 
             checkpoint.has_more = checkpoint.current_channel is not None
-            return checkpoint
-
         except Exception as e:
             logger.exception(f"Error processing channel {channel['name']}")
             yield ConnectorFailure(
@@ -720,7 +727,11 @@ class SlackConnector(
                 failure_message=str(e),
                 exception=e,
             )
-            return checkpoint
+
+        if self._callback:
+            self._callback.progress("load_from_checkpoint", 0)
+
+        return checkpoint
 
     def validate_connector_settings(self) -> None:
         """

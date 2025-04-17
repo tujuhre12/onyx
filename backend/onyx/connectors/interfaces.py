@@ -63,6 +63,10 @@ class BaseConnector(abc.ABC, Generic[CT]):
         """Implement if the underlying connector wants to skip/allow image downloading
         based on the application level image analysis setting."""
 
+    def set_heartbeat_callback(self, callback: IndexingHeartbeatInterface) -> None:
+        """Implement if the underlying connector needs to report activity out to prevent
+        watchdog timeouts."""
+
     def build_dummy_checkpoint(self) -> CT:
         # TODO: find a way to make this work without type: ignore
         return ConnectorCheckpoint(has_more=True)  # type: ignore

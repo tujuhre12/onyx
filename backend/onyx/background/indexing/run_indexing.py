@@ -405,6 +405,9 @@ def _run_indexing(
                 end_time=window_end,
             )
 
+            if callback:
+                connector_runner.connector.set_heartbeat_callback(callback)
+
             # don't use a checkpoint if we're explicitly indexing from
             # the beginning in order to avoid weird interactions between
             # checkpointing / failure handling.
