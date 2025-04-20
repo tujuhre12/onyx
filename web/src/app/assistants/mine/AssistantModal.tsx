@@ -1,13 +1,19 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import AssistantCard from "./AssistantCard";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { useUser } from "@/components/user/UserProvider";
 import { FilterIcon, XIcon } from "lucide-react";
 import { checkUserOwnsAssistant } from "@/lib/assistants/checkOwnership";
-
+import {
+  useFilteredAssistants,
+  usePrefetchedPinnedAssistants,
+  usePrefetchedPrivateAssistants,
+  usePrefetchedPublicAssistants,
+  usePrefetchedUsersAssistants,
+} from "@/hooks/assistants/usePrefetchedAssistants";
 export const AssistantBadgeSelector = ({
   text,
   selected,
@@ -59,56 +65,85 @@ const useAssistantFilter = () => {
   return { assistantFilters, toggleAssistantFilter, setAssistantFilters };
 };
 
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timeoutId);
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
 interface AssistantModalProps {
   hideModal: () => void;
 }
 
 export function AssistantModal({ hideModal }: AssistantModalProps) {
-  const { assistants, pinnedAssistants } = useAssistants();
+  const {
+    assistants,
+    isLoadingAllPersonas,
+    totalAllPages,
+    goToAllPage,
+    currentAllPage,
+  } = useAssistants();
+  const { pinnedAssistants } = usePrefetchedPinnedAssistants();
+  const { publicAssistants } = usePrefetchedPublicAssistants();
+  const { privateAssistants } = usePrefetchedPrivateAssistants();
+  const { usersAssistants } = usePrefetchedUsersAssistants();
   const { assistantFilters, toggleAssistantFilter } = useAssistantFilter();
   const router = useRouter();
   const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 1000);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const memoizedCurrentlyVisibleAssistants = useMemo(() => {
-    return assistants.filter((assistant) => {
-      const nameMatches = assistant.name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-      const labelMatches = assistant.labels?.some((label) =>
-        label.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const active = Object.entries(assistantFilters).filter(
+      ([_, value]) => value
+    );
+    if (active.length === 1 && debouncedSearchQuery.length === 0) {
+      if (active[0][0] === AssistantFilter.Pinned) {
+        return pinnedAssistants;
+      }
+      if (active[0][0] === AssistantFilter.Public) {
+        return publicAssistants;
+      }
+      if (active[0][0] === AssistantFilter.Private) {
+        return privateAssistants;
+      }
+      if (active[0][0] === AssistantFilter.Mine) {
+        return usersAssistants;
+      }
+    } else {
+      if (active.length >= 2) {
+        if (
+          active.includes([AssistantFilter.Private, true]) &&
+          active.includes([AssistantFilter.Public, true])
+        ) {
+          return [];
+        }
+      }
+      const filteredAssistants = useFilteredAssistants(
+        active.map(([filter, _]) => filter as AssistantFilter),
+        debouncedSearchQuery
       );
-      const publicFilter =
-        !assistantFilters[AssistantFilter.Public] || assistant.is_public;
-      const privateFilter =
-        !assistantFilters[AssistantFilter.Private] || !assistant.is_public;
-      const pinnedFilter =
-        !assistantFilters[AssistantFilter.Pinned] ||
-        (pinnedAssistants.map((a) => a.id).includes(assistant.id) ?? false);
-
-      const mineFilter =
-        !assistantFilters[AssistantFilter.Mine] ||
-        checkUserOwnsAssistant(user, assistant);
-
-      return (
-        (nameMatches || labelMatches) &&
-        publicFilter &&
-        privateFilter &&
-        pinnedFilter &&
-        mineFilter
-      );
-    });
-  }, [assistants, searchQuery, assistantFilters]);
+      return filteredAssistants.filteredAssistants;
+    }
+  }, [assistants, debouncedSearchQuery, assistantFilters]);
 
   const featuredAssistants = [
-    ...memoizedCurrentlyVisibleAssistants.filter(
+    ...(memoizedCurrentlyVisibleAssistants?.filter(
       (assistant) => assistant.is_default_persona
-    ),
+    ) ?? []),
   ];
-  const allAssistants = memoizedCurrentlyVisibleAssistants.filter(
-    (assistant) => !assistant.is_default_persona
-  );
+  const allAssistants =
+    memoizedCurrentlyVisibleAssistants?.filter(
+      (assistant) => !assistant.is_default_persona
+    ) ?? [];
 
   return (
     <div
@@ -221,9 +256,11 @@ export function AssistantModal({ hideModal }: AssistantModalProps) {
                   featuredAssistants.map((assistant, index) => (
                     <div key={index}>
                       <AssistantCard
-                        pinned={pinnedAssistants
-                          .map((a) => a.id)
-                          .includes(assistant.id)}
+                        pinned={
+                          pinnedAssistants
+                            ?.map((a) => a.id)
+                            .includes(assistant.id) ?? false
+                        }
                         persona={assistant}
                         closeModal={hideModal}
                       />

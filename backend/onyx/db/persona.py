@@ -35,6 +35,7 @@ from onyx.db.models import User
 from onyx.db.models import User__UserGroup
 from onyx.db.models import UserGroup
 from onyx.db.notification import create_notification
+from onyx.server.documents.models import PaginatedReturn
 from onyx.server.features.persona.models import PersonaSharedNotificationData
 from onyx.server.features.persona.models import PersonaSnapshot
 from onyx.server.features.persona.models import PersonaUpsertRequest
@@ -316,6 +317,68 @@ def update_persona_public_status(
     db_session.commit()
 
 
+def count_personas_for_user(
+    user: User | None,
+    db_session: Session,
+    get_editable: bool = True,
+    include_default: bool = True,
+    include_slack_bot_personas: bool = False,
+    include_deleted: bool = False,
+    joinedload_all: bool = False,
+    persona_ids: list[int] | None = None,
+    is_public: bool | None = None,
+    is_pinned: bool | None = None,
+    is_users: bool | None = None,
+    name_matches: str | None = None,
+    is_image_generation_available: bool = False,
+) -> int:
+    stmt = select(Persona)
+    stmt = _add_user_filters(stmt, user, get_editable)
+
+    if not include_default:
+        stmt = stmt.where(Persona.builtin_persona.is_(False))
+    if not include_slack_bot_personas:
+        stmt = stmt.where(not_(Persona.name.startswith(SLACK_BOT_PERSONA_PREFIX)))
+    if not include_deleted:
+        stmt = stmt.where(Persona.deleted.is_(False))
+    if persona_ids:
+        stmt = stmt.where(Persona.id.in_(persona_ids))
+    # Filter out personas with unavailable tools
+    if (
+        user
+        and is_image_generation_available is not None
+        and not is_image_generation_available
+    ):
+        stmt = stmt.where(
+            not_(Persona.tools.any(Tool.in_code_tool_id == "ImageGenerationTool"))
+        )
+    # Filter by public/private
+    if is_public is not None:
+        stmt = stmt.where(Persona.is_public == is_public)
+    # Filter by search
+    if name_matches is not None:
+        stmt = stmt.where(Persona.name.ilike(f"%{name_matches}%"))
+    # Filter by ownership
+    if user and is_users is not None:
+        stmt = stmt.where(Persona.user_id == user.id)
+    # Filter by pinned
+    if user and is_pinned is not None:
+        stmt = stmt.where(Persona.id.in_(user.preferences.pinned_assistants))
+
+    if joinedload_all:
+        stmt = stmt.options(
+            selectinload(Persona.prompts),
+            selectinload(Persona.tools),
+            selectinload(Persona.document_sets),
+            selectinload(Persona.groups),
+            selectinload(Persona.users),
+            selectinload(Persona.labels),
+        )
+
+    stmt = select(func.count()).select_from(Persona)
+    return db_session.execute(stmt).scalar_one()
+
+
 def get_personas_for_user(
     # if user is `None` assume the user is an admin or auth is disabled
     user: User | None,
@@ -325,6 +388,14 @@ def get_personas_for_user(
     include_slack_bot_personas: bool = False,
     include_deleted: bool = False,
     joinedload_all: bool = False,
+    persona_ids: list[int] | None = None,
+    page_num: int = 0,
+    page_size: int = 100,
+    is_public: bool | None = None,
+    is_pinned: bool | None = None,
+    is_users: bool | None = None,
+    name_matches: str | None = None,
+    is_image_generation_available: bool = False,
 ) -> Sequence[Persona]:
     stmt = select(Persona)
     stmt = _add_user_filters(stmt, user, get_editable)
@@ -335,6 +406,30 @@ def get_personas_for_user(
         stmt = stmt.where(not_(Persona.name.startswith(SLACK_BOT_PERSONA_PREFIX)))
     if not include_deleted:
         stmt = stmt.where(Persona.deleted.is_(False))
+    if persona_ids:
+        stmt = stmt.where(Persona.id.in_(persona_ids))
+    # Filter out personas with unavailable tools
+    if (
+        user
+        and is_image_generation_available is not None
+        and not is_image_generation_available
+    ):
+        stmt = stmt.where(
+            not_(Persona.tools.any(Tool.in_code_tool_id == "ImageGenerationTool"))
+        )
+    # Filter by public/private
+    if is_public is not None:
+        stmt = stmt.where(Persona.is_public == is_public)
+    # Filter by search
+    if name_matches is not None:
+        stmt = stmt.where(Persona.name.ilike(f"%{name_matches}%"))
+    # Filter by ownership
+    if user and is_users is not None:
+        stmt = stmt.where(Persona.user_id == user.id)
+    # Filter by pinned
+    if user and is_pinned is not None:
+        stmt = stmt.where(Persona.id.in_(user.preferences.pinned_assistants))
+    stmt = stmt.offset(page_num * page_size).limit(page_size)
 
     if joinedload_all:
         stmt = stmt.options(
@@ -348,6 +443,58 @@ def get_personas_for_user(
 
     results = db_session.execute(stmt).scalars().all()
     return results
+
+
+def get_paginated_personas_for_user(
+    user: User | None,
+    db_session: Session,
+    get_editable: bool = True,
+    include_deleted: bool = False,
+    page_num: int = 0,
+    page_size: int = 100,
+    persona_ids: list[int] | None = None,
+    joinedload_all: bool = False,
+    is_public: bool | None = None,
+    is_pinned: bool | None = None,
+    is_users: bool | None = None,
+    name_matches: str | None = None,
+    is_image_generation_available: bool | None = None,
+) -> PaginatedReturn[PersonaSnapshot]:
+    total_items = count_personas_for_user(
+        db_session=db_session,
+        user=user,
+        get_editable=get_editable,
+        include_deleted=include_deleted,
+        joinedload_all=joinedload_all,
+        persona_ids=persona_ids,
+        is_public=is_public,
+        is_pinned=is_pinned,
+        is_users=is_users,
+        name_matches=name_matches,
+        is_image_generation_available=is_image_generation_available,
+    )
+
+    return PaginatedReturn(
+        items=[
+            PersonaSnapshot.from_model(persona)
+            for persona in get_personas_for_user(
+                db_session=db_session,
+                user=user,
+                get_editable=get_editable,
+                include_deleted=include_deleted,
+                joinedload_all=joinedload_all,
+                page_num=page_num,
+                page_size=page_size,
+                persona_ids=persona_ids,
+                is_public=is_public,
+                is_pinned=is_pinned,
+                is_users=is_users,
+                name_matches=name_matches,
+                is_image_generation_available=is_image_generation_available,
+            )
+        ],
+        total_items=total_items,
+    )
 
 
 def get_personas(db_session: Session) -> Sequence[Persona]:

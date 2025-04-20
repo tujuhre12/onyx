@@ -26,8 +26,8 @@ from onyx.db.persona import create_assistant_label
 from onyx.db.persona import create_update_persona
 from onyx.db.persona import delete_persona_label
 from onyx.db.persona import get_assistant_labels
+from onyx.db.persona import get_paginated_personas_for_user
 from onyx.db.persona import get_persona_by_id
-from onyx.db.persona import get_personas_for_user
 from onyx.db.persona import mark_persona_as_deleted
 from onyx.db.persona import mark_persona_as_not_deleted
 from onyx.db.persona import update_all_personas_display_priority
@@ -43,6 +43,7 @@ from onyx.file_store.models import ChatFileType
 from onyx.secondary_llm_flows.starter_message_creation import (
     generate_starter_messages,
 )
+from onyx.server.documents.models import PaginatedReturn
 from onyx.server.features.persona.models import GenerateStarterMessageRequest
 from onyx.server.features.persona.models import ImageGenerationToolStatus
 from onyx.server.features.persona.models import PersonaLabelCreate
@@ -147,17 +148,26 @@ def list_personas_admin(
     db_session: Session = Depends(get_session),
     include_deleted: bool = False,
     get_editable: bool = Query(False, description="If true, return editable personas"),
-) -> list[PersonaSnapshot]:
-    return [
-        PersonaSnapshot.from_model(persona)
-        for persona in get_personas_for_user(
-            db_session=db_session,
-            user=user,
-            get_editable=get_editable,
-            include_deleted=include_deleted,
-            joinedload_all=True,
-        )
-    ]
+    page_num: int = Query(0, ge=0),
+    page_size: int = Query(100, ge=1, le=1000),
+    is_public: bool | None = None,
+    is_pinned: bool | None = None,
+    is_users: bool | None = None,
+    name_matches: str | None = None,
+) -> PaginatedReturn[PersonaSnapshot]:
+    return get_paginated_personas_for_user(
+        user=user,
+        db_session=db_session,
+        get_editable=get_editable,
+        include_deleted=include_deleted,
+        joinedload_all=True,
+        page_num=page_num,
+        page_size=page_size,
+        is_public=is_public,
+        is_pinned=is_pinned,
+        is_users=is_users,
+        name_matches=name_matches,
+    )
 
 
 @admin_router.patch("/{persona_id}/undelete")
@@ -394,29 +404,30 @@ def list_personas(
     db_session: Session = Depends(get_session),
     include_deleted: bool = False,
     persona_ids: list[int] = Query(None),
-) -> list[PersonaSnapshot]:
-    personas = get_personas_for_user(
+    page_num: int = Query(0, ge=0),
+    page_size: int = Query(100, ge=1, le=1000),
+    is_public: bool | None = None,
+    is_pinned: bool | None = None,
+    is_users: bool | None = None,
+    name_matches: str | None = None,
+) -> PaginatedReturn[PersonaSnapshot]:
+    return get_paginated_personas_for_user(
         user=user,
-        include_deleted=include_deleted,
         db_session=db_session,
+        include_deleted=include_deleted,
         get_editable=False,
         joinedload_all=True,
+        persona_ids=persona_ids,
+        page_num=page_num,
+        page_size=page_size,
+        is_public=is_public,
+        is_pinned=is_pinned,
+        is_users=is_users,
+        name_matches=name_matches,
+        is_image_generation_available=is_image_generation_available(
+            db_session=db_session
+        ),
     )
-
-    if persona_ids:
-        personas = [p for p in personas if p.id in persona_ids]
-
-    # Filter out personas with unavailable tools
-    personas = [
-        p
-        for p in personas
-        if not (
-            any(tool.in_code_tool_id == "ImageGenerationTool" for tool in p.tools)
-            and not is_image_generation_available(db_session=db_session)
-        )
-    ]
-
-    return [PersonaSnapshot.from_model(p) for p in personas]
 
 
 @basic_router.get("/{persona_id}")

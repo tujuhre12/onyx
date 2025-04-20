@@ -16,6 +16,7 @@ import {
   filterAssistants,
 } from "@/lib/assistants/utils";
 import { useUser } from "../user/UserProvider";
+import usePaginatedFetch from "@/hooks/usePaginatedFetch";
 
 interface AssistantsContextProps {
   assistants: Persona[];
@@ -30,11 +31,22 @@ interface AssistantsContextProps {
   allAssistants: Persona[];
   pinnedAssistants: Persona[];
   setPinnedAssistants: Dispatch<SetStateAction<Persona[]>>;
+  isLoadingEditablePersonas: boolean;
+  currentEditablePage: number;
+  totalEditablePages: number;
+  goToEditablePage: (page: number) => void;
+  isLoadingAllPersonas: boolean;
+  currentAllPage: number;
+  totalAllPages: number;
+  goToAllPage: (page: number) => void;
 }
 
 const AssistantsContext = createContext<AssistantsContextProps | undefined>(
   undefined
 );
+
+const ITEMS_PER_PAGE = 100;
+const PAGES_PER_BATCH = 1;
 
 export const AssistantsProvider: React.FC<{
   children: React.ReactNode;
@@ -53,7 +65,20 @@ export const AssistantsProvider: React.FC<{
   const { user, isAdmin, isCurator } = useUser();
   const [editablePersonas, setEditablePersonas] = useState<Persona[]>([]);
   const [allAssistants, setAllAssistants] = useState<Persona[]>([]);
-
+  const [isLoadingEditablePersonas, setIsLoadingEditablePersonas] =
+    useState<boolean>(false);
+  const [currentEditablePage, setCurrentEditablePage] = useState<number>(1);
+  const [totalEditablePages, setTotalEditablePages] = useState<number>(1);
+  const [goToEditablePage, setGoToEditablePage] = useState<
+    (page: number) => void
+  >(() => {});
+  const [isLoadingAllPersonas, setIsLoadingAllPersonas] =
+    useState<boolean>(false);
+  const [currentAllPage, setCurrentAllPage] = useState<number>(1);
+  const [totalAllPages, setTotalAllPages] = useState<number>(1);
+  const [goToAllPage, setGoToAllPage] = useState<(page: number) => void>(
+    () => {}
+  );
   const [pinnedAssistants, setPinnedAssistants] = useState<Persona[]>(() => {
     if (user?.preferences.pinned_assistants) {
       return user.preferences.pinned_assistants
@@ -101,21 +126,44 @@ export const AssistantsProvider: React.FC<{
     }
 
     try {
-      const [editableResponse, allResponse] = await Promise.all([
-        fetch("/api/admin/persona?get_editable=true"),
-        fetch("/api/admin/persona"),
-      ]);
+      const {
+        currentPageData: editablePersonas,
+        isLoading: isLoadingEditablePersonas,
+        currentPage: currentEditablePage,
+        totalPages: totalEditablePages,
+        goToPage: goToEditablePage,
+      } = usePaginatedFetch<Persona>({
+        itemsPerPage: ITEMS_PER_PAGE,
+        pagesPerBatch: PAGES_PER_BATCH,
+        endpoint: "/api/admin/persona?get_editable=true",
+      });
 
-      if (editableResponse.ok) {
-        const editablePersonas = await editableResponse.json();
+      const {
+        currentPageData: allPersonas,
+        isLoading: isLoadingAllPersonas,
+        currentPage: currentAllPage,
+        totalPages: totalAllPages,
+        goToPage: goToAllPage,
+      } = usePaginatedFetch<Persona>({
+        itemsPerPage: ITEMS_PER_PAGE,
+        pagesPerBatch: PAGES_PER_BATCH,
+        endpoint: "/api/admin/persona",
+      });
+
+      if (editablePersonas) {
         setEditablePersonas(editablePersonas);
+        setIsLoadingEditablePersonas(isLoadingEditablePersonas);
+        setCurrentEditablePage(currentEditablePage);
+        setTotalEditablePages(totalEditablePages);
+        setGoToEditablePage(goToEditablePage);
       }
 
-      if (allResponse.ok) {
-        const allPersonas = await allResponse.json();
+      if (allPersonas) {
         setAllAssistants(allPersonas);
-      } else {
-        console.error("Error fetching personas:", allResponse);
+        setIsLoadingAllPersonas(isLoadingAllPersonas);
+        setCurrentAllPage(currentAllPage);
+        setTotalAllPages(totalAllPages);
+        setGoToAllPage(goToAllPage);
       }
     } catch (error) {
       console.error("Error fetching personas:", error);
@@ -190,7 +238,15 @@ export const AssistantsProvider: React.FC<{
         ownedButHiddenAssistants,
         refreshAssistants,
         editablePersonas,
+        isLoadingEditablePersonas,
+        currentEditablePage,
+        totalEditablePages,
+        goToEditablePage,
         allAssistants,
+        isLoadingAllPersonas,
+        currentAllPage,
+        totalAllPages,
+        goToAllPage,
         isImageGenerationAvailable,
         setPinnedAssistants,
         pinnedAssistants,
