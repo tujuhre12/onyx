@@ -27,6 +27,7 @@ def upgrade() -> None:
         "llm_provider",
         sa.column("id", sa.Integer),
         sa.column("provider", sa.String),
+        sa.column("native_or_custom", sa.Enum("custom", "native", name="source_type")),
     )
     model_configuration_table = sa.sql.table(
         "model_configuration",
@@ -35,13 +36,14 @@ def upgrade() -> None:
     )
 
     connection = op.get_bind()
-    sa.Enum("custom", "native", name="source_type").create(connection)
+    source_type = sa.Enum("custom", "native", name="source_type")
+    source_type.create(op.get_bind())
 
     op.add_column(
         "llm_provider",
         sa.Column(
             "native_or_custom",
-            sa.Enum("custom", "native", name="source_type"),
+            sa.Enum("custom", "native", name="source_type", create_type=False),
             autoincrement=False,
             # Set to nullable first.
             # Then, find the appropriate value to put in each row, and update accordingly.
@@ -54,7 +56,8 @@ def upgrade() -> None:
         sa.select(
             llm_provider_table.c.id,
             llm_provider_table.c.provider,
-        ).where(llm_provider_table.c.id)
+            llm_provider_table.c.native_or_custom,
+        )
     ).fetchall()
 
     for llm_provider in llm_providers:
@@ -93,4 +96,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    connection = op.get_bind()
     op.drop_column("llm_provider", "native_or_custom")
+    sa.Enum("custom", "native", name="source_type").drop(connection)
