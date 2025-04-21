@@ -9,17 +9,14 @@ Create Date: 2025-04-21 14:17:15.812325
 from alembic import op
 import sqlalchemy as sa
 
+from onyx.llm.llm_provider_options import PROVIDER_TO_MODELS_MAP
+
 
 # revision identifiers, used by Alembic.
 revision = "5d816b240b7a"
 down_revision = "7a70b7664e37"
 branch_labels = None
 depends_on = None
-
-
-PROVIDER_TO_MODEL_MAP: dict[str, set[str]] = {
-    "openai": set([]),
-}
 
 
 def upgrade() -> None:
@@ -66,14 +63,14 @@ def upgrade() -> None:
 
         native_or_custom: str
 
-        if provider_name in PROVIDER_TO_MODEL_MAP:
+        if provider_name in PROVIDER_TO_MODELS_MAP:
             model_configurations = connection.execute(
                 sa.select(
                     model_configuration_table.c.name,
                 ).where(model_configuration_table.c.llm_provider_id == provider_id)
             ).fetchall()
 
-            canonical_model_names_for_provider_that_we_support = PROVIDER_TO_MODEL_MAP[
+            canonical_model_names_for_provider_that_we_support = PROVIDER_TO_MODELS_MAP[
                 provider_name
             ]
             current_model_names: set[str] = set(
