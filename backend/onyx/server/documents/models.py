@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any
 from typing import Generic
+from typing import TYPE_CHECKING
 from typing import TypeVar
 from uuid import UUID
 
@@ -24,6 +25,9 @@ from onyx.db.models import TaskStatus
 from onyx.server.models import FullUserSnapshot
 from onyx.server.models import InvitedUserSnapshot
 from onyx.server.utils import mask_credential_dict
+
+if TYPE_CHECKING:
+    from onyx.server.features.persona.models import PersonaSnapshot
 
 
 class DocumentSyncStatus(BaseModel):
@@ -194,6 +198,7 @@ PaginatedType = TypeVar(
     InvitedUserSnapshot,
     ChatSessionMinimal,
     IndexAttemptErrorPydantic,
+    "PersonaSnapshot",
 )
 
 

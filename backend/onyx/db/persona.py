@@ -7,6 +7,7 @@ from sqlalchemy import delete
 from sqlalchemy import exists
 from sqlalchemy import func
 from sqlalchemy import not_
+from sqlalchemy import or_
 from sqlalchemy import Select
 from sqlalchemy import select
 from sqlalchemy import update
@@ -39,6 +40,7 @@ from onyx.server.documents.models import PaginatedReturn
 from onyx.server.features.persona.models import PersonaSharedNotificationData
 from onyx.server.features.persona.models import PersonaSnapshot
 from onyx.server.features.persona.models import PersonaUpsertRequest
+from onyx.server.features.persona.utils import build_persona_snapshot
 from onyx.utils.logger import setup_logger
 from onyx.utils.variable_functionality import fetch_versioned_implementation
 
@@ -269,7 +271,7 @@ def create_update_persona(
         logger.exception("Failed to create persona")
         raise HTTPException(status_code=400, detail=str(e))
 
-    return PersonaSnapshot.from_model(persona)
+    return build_persona_snapshot(persona)
 
 
 def update_persona_shared_users(
@@ -331,6 +333,8 @@ def count_personas_for_user(
     is_users: bool | None = None,
     name_matches: str | None = None,
     is_image_generation_available: bool = False,
+    has_any_connectors: bool | None = None,
+    has_image_compatible_model: bool | None = None,
 ) -> int:
     stmt = select(Persona)
     stmt = _add_user_filters(stmt, user, get_editable)
@@ -363,7 +367,20 @@ def count_personas_for_user(
         stmt = stmt.where(Persona.user_id == user.id)
     # Filter by pinned
     if user and is_pinned is not None:
-        stmt = stmt.where(Persona.id.in_(user.preferences.pinned_assistants))
+        stmt = stmt.where(Persona.id.in_(user.pinned_assistants or []))
+
+    if has_any_connectors is not None and not has_any_connectors:
+        stmt = stmt.where(
+            or_(
+                Persona.num_chunks == 0,
+                Persona.document_sets.any(DocumentSet.id == Persona.id),
+            )
+        )
+
+    if has_image_compatible_model is not None and not has_image_compatible_model:
+        stmt = stmt.where(
+            not_(Persona.tools.any(Tool.in_code_tool_id == "ImageGenerationTool"))
+        )
 
     if joinedload_all:
         stmt = stmt.options(
@@ -396,6 +413,8 @@ def get_personas_for_user(
     is_users: bool | None = None,
     name_matches: str | None = None,
     is_image_generation_available: bool = False,
+    has_any_connectors: bool | None = None,
+    has_image_compatible_model: bool | None = None,
 ) -> Sequence[Persona]:
     stmt = select(Persona)
     stmt = _add_user_filters(stmt, user, get_editable)
@@ -428,7 +447,21 @@ def get_personas_for_user(
         stmt = stmt.where(Persona.user_id == user.id)
     # Filter by pinned
     if user and is_pinned is not None:
-        stmt = stmt.where(Persona.id.in_(user.preferences.pinned_assistants))
+        stmt = stmt.where(Persona.id.in_(user.pinned_assistants or []))
+
+    if has_any_connectors is not None and not has_any_connectors:
+        stmt = stmt.where(
+            or_(
+                Persona.num_chunks == 0,
+                Persona.document_sets.any(DocumentSet.id == Persona.id),
+            )
+        )
+
+    if has_image_compatible_model is not None and not has_image_compatible_model:
+        stmt = stmt.where(
+            not_(Persona.tools.any(Tool.in_code_tool_id == "ImageGenerationTool"))
+        )
+
     stmt = stmt.offset(page_num * page_size).limit(page_size)
 
     if joinedload_all:
@@ -459,6 +492,8 @@ def get_paginated_personas_for_user(
     is_users: bool | None = None,
     name_matches: str | None = None,
     is_image_generation_available: bool | None = None,
+    has_any_connectors: bool | None = None,
+    has_image_compatible_model: bool | None = None,
 ) -> PaginatedReturn[PersonaSnapshot]:
     total_items = count_personas_for_user(
         db_session=db_session,
@@ -472,11 +507,13 @@ def get_paginated_personas_for_user(
         is_users=is_users,
         name_matches=name_matches,
         is_image_generation_available=is_image_generation_available,
+        has_any_connectors=has_any_connectors,
+        has_image_compatible_model=has_image_compatible_model,
     )
 
     return PaginatedReturn(
         items=[
-            PersonaSnapshot.from_model(persona)
+            build_persona_snapshot(persona)
             for persona in get_personas_for_user(
                 db_session=db_session,
                 user=user,
@@ -491,6 +528,8 @@ def get_paginated_personas_for_user(
                 is_users=is_users,
                 name_matches=name_matches,
                 is_image_generation_available=is_image_generation_available,
+                has_any_connectors=has_any_connectors,
+                has_image_compatible_model=has_image_compatible_model,
             )
         ],
         total_items=total_items,

@@ -17,6 +17,10 @@ import {
 } from "@/lib/assistants/utils";
 import { useUser } from "../user/UserProvider";
 import usePaginatedFetch from "@/hooks/usePaginatedFetch";
+import {
+  usePrefetchedAdminAssistants,
+  usePrefetchedFilteredAssistants,
+} from "@/hooks/assistants/usePrefetchedAssistants";
 
 interface AssistantsContextProps {
   assistants: Persona[];
@@ -44,9 +48,6 @@ interface AssistantsContextProps {
 const AssistantsContext = createContext<AssistantsContextProps | undefined>(
   undefined
 );
-
-const ITEMS_PER_PAGE = 100;
-const PAGES_PER_BATCH = 1;
 
 export const AssistantsProvider: React.FC<{
   children: React.ReactNode;
@@ -120,50 +121,52 @@ export const AssistantsProvider: React.FC<{
     checkImageGenerationAvailability();
   }, []);
 
+  const {
+    adminAssistants: editableAdminAssistants,
+    isLoadingAdminAssistants: isLoadingEditableAdminAssistants,
+    currentAdminPage: currentEditableAdminPage,
+    totalAdminPages: totalEditableAdminPages,
+    goToAdminPage: goToEditableAdminPage,
+  } = usePrefetchedAdminAssistants(true);
+
+  const {
+    adminAssistants: allAdminAssistants,
+    isLoadingAdminAssistants: isLoadingAllAdminAssistants,
+    currentAdminPage: currentAllAdminPage,
+    totalAdminPages: totalAllAdminPages,
+    goToAdminPage: goToAllAdminPage,
+  } = usePrefetchedAdminAssistants(false);
+
+  const {
+    filteredAssistants: filteredAssistants,
+    isLoadingFilteredAssistants: isLoadingFilteredAssistants,
+    currentFilteredPage: currentFilteredPage,
+    totalFilteredPages: totalFilteredPages,
+    goToFilteredPage: goToFilteredPage,
+  } = usePrefetchedFilteredAssistants(
+    hasAnyConnectors,
+    hasImageCompatibleModel
+  );
+
   const fetchPersonas = async () => {
     if (!isAdmin && !isCurator) {
       return;
     }
-
     try {
-      const {
-        currentPageData: editablePersonas,
-        isLoading: isLoadingEditablePersonas,
-        currentPage: currentEditablePage,
-        totalPages: totalEditablePages,
-        goToPage: goToEditablePage,
-      } = usePaginatedFetch<Persona>({
-        itemsPerPage: ITEMS_PER_PAGE,
-        pagesPerBatch: PAGES_PER_BATCH,
-        endpoint: "/api/admin/persona?get_editable=true",
-      });
-
-      const {
-        currentPageData: allPersonas,
-        isLoading: isLoadingAllPersonas,
-        currentPage: currentAllPage,
-        totalPages: totalAllPages,
-        goToPage: goToAllPage,
-      } = usePaginatedFetch<Persona>({
-        itemsPerPage: ITEMS_PER_PAGE,
-        pagesPerBatch: PAGES_PER_BATCH,
-        endpoint: "/api/admin/persona",
-      });
-
-      if (editablePersonas) {
-        setEditablePersonas(editablePersonas);
-        setIsLoadingEditablePersonas(isLoadingEditablePersonas);
-        setCurrentEditablePage(currentEditablePage);
-        setTotalEditablePages(totalEditablePages);
-        setGoToEditablePage(goToEditablePage);
+      if (editableAdminAssistants) {
+        setEditablePersonas(editableAdminAssistants);
+        setIsLoadingEditablePersonas(isLoadingEditableAdminAssistants);
+        setCurrentEditablePage(currentEditableAdminPage);
+        setTotalEditablePages(totalEditableAdminPages);
+        setGoToEditablePage(goToEditableAdminPage);
       }
 
-      if (allPersonas) {
-        setAllAssistants(allPersonas);
-        setIsLoadingAllPersonas(isLoadingAllPersonas);
-        setCurrentAllPage(currentAllPage);
-        setTotalAllPages(totalAllPages);
-        setGoToAllPage(goToAllPage);
+      if (allAdminAssistants) {
+        setAllAssistants(allAdminAssistants);
+        setIsLoadingAllPersonas(isLoadingAllAdminAssistants);
+        setCurrentAllPage(currentAllAdminPage);
+        setTotalAllPages(totalAllAdminPages);
+        setGoToAllPage(goToAllAdminPage);
       }
     } catch (error) {
       console.error("Error fetching personas:", error);
@@ -176,22 +179,7 @@ export const AssistantsProvider: React.FC<{
 
   const refreshAssistants = async () => {
     try {
-      const response = await fetch("/api/persona", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      if (!response.ok) throw new Error("Failed to fetch assistants");
-      let assistants: Persona[] = await response.json();
-
-      let filteredAssistants = filterAssistants(
-        assistants,
-        hasAnyConnectors,
-        hasImageCompatibleModel
-      );
-
-      setAssistants(filteredAssistants);
+      setAssistants(filteredAssistants || []);
 
       // Fetch and update allAssistants for admins and curators
       await fetchPersonas();

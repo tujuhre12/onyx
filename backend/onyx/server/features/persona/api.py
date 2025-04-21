@@ -52,6 +52,7 @@ from onyx.server.features.persona.models import PersonaSharedNotificationData
 from onyx.server.features.persona.models import PersonaSnapshot
 from onyx.server.features.persona.models import PersonaUpsertRequest
 from onyx.server.features.persona.models import PromptSnapshot
+from onyx.server.features.persona.utils import build_persona_snapshot
 from onyx.server.models import DisplayPriorityRequest
 from onyx.tools.utils import is_image_generation_available
 from onyx.utils.logger import setup_logger
@@ -410,6 +411,8 @@ def list_personas(
     is_pinned: bool | None = None,
     is_users: bool | None = None,
     name_matches: str | None = None,
+    has_any_connectors: bool | None = None,
+    has_image_compatible_model: bool | None = None,
 ) -> PaginatedReturn[PersonaSnapshot]:
     return get_paginated_personas_for_user(
         user=user,
@@ -427,6 +430,8 @@ def list_personas(
         is_image_generation_available=is_image_generation_available(
             db_session=db_session
         ),
+        has_any_connectors=has_any_connectors,
+        has_image_compatible_model=has_image_compatible_model,
     )
 
 
@@ -436,7 +441,7 @@ def get_persona(
     user: User | None = Depends(current_limited_user),
     db_session: Session = Depends(get_session),
 ) -> PersonaSnapshot:
-    return PersonaSnapshot.from_model(
+    return build_persona_snapshot(
         get_persona_by_id(
             persona_id=persona_id,
             user=user,

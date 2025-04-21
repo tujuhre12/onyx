@@ -106,7 +106,7 @@ function usePaginatedFetch<T extends PaginatedType>({
           }
         }
 
-        const url = `${endpoint}?${params.toString()}`;
+        const url = `${endpoint}${endpoint.includes("?") ? `&` : "?"}${params.toString()}`;
         const responseData =
           await errorHandlingFetcher<PaginatedApiResponse<T>>(url);
 
@@ -151,9 +151,12 @@ function usePaginatedFetch<T extends PaginatedType>({
       if (currentPath) {
         const params = new URLSearchParams(searchParams);
         params.set("page", page.toString());
-        router.replace(`${currentPath}?${params.toString()}`, {
-          scroll: false,
-        });
+        router.replace(
+          `${currentPath}${currentPath.includes("?") ? `&` : "?"}${params.toString()}`,
+          {
+            scroll: false,
+          }
+        );
       }
     },
     [currentPath, router, searchParams]

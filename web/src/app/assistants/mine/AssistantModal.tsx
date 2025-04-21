@@ -6,14 +6,15 @@ import AssistantCard from "./AssistantCard";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { useUser } from "@/components/user/UserProvider";
 import { FilterIcon, XIcon } from "lucide-react";
-import { checkUserOwnsAssistant } from "@/lib/assistants/checkOwnership";
 import {
   useFilteredAssistants,
+  usePrefetchedAllAssistants,
   usePrefetchedPinnedAssistants,
   usePrefetchedPrivateAssistants,
   usePrefetchedPublicAssistants,
   usePrefetchedUsersAssistants,
 } from "@/hooks/assistants/usePrefetchedAssistants";
+import { Persona } from "@/app/admin/assistants/interfaces";
 export const AssistantBadgeSelector = ({
   text,
   selected,
@@ -81,42 +82,104 @@ interface AssistantModalProps {
 }
 
 export function AssistantModal({ hideModal }: AssistantModalProps) {
+  const { allAssistants, goToAllPage, currentAllPage, totalAllPages } =
+    usePrefetchedAllAssistants();
+
+  const [assistants, setAssistants] = useState<Persona[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   const {
-    assistants,
-    isLoadingAllPersonas,
-    totalAllPages,
-    goToAllPage,
-    currentAllPage,
-  } = useAssistants();
-  const { pinnedAssistants } = usePrefetchedPinnedAssistants();
-  const { publicAssistants } = usePrefetchedPublicAssistants();
-  const { privateAssistants } = usePrefetchedPrivateAssistants();
-  const { usersAssistants } = usePrefetchedUsersAssistants();
+    pinnedAssistants,
+    goToPinnedPage,
+    currentPinnedPage,
+    totalPinnedPages,
+  } = usePrefetchedPinnedAssistants();
+  const {
+    publicAssistants,
+    goToPublicPage,
+    currentPublicPage,
+    totalPublicPages,
+  } = usePrefetchedPublicAssistants();
+  const {
+    privateAssistants,
+    goToPrivatePage,
+    currentPrivatePage,
+    totalPrivatePages,
+  } = usePrefetchedPrivateAssistants();
+  const { usersAssistants, goToUsersPage, currentUsersPage, totalUsersPages } =
+    usePrefetchedUsersAssistants();
+
   const { assistantFilters, toggleAssistantFilter } = useAssistantFilter();
+  console.log(assistantFilters);
   const router = useRouter();
   const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearchQuery = useDebounce(searchQuery, 1000);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-
   const containerRef = useRef<HTMLDivElement>(null);
+  // const [activeAsistantFetchType, setActiveAsistantFetchType] = useState("base");
 
-  const memoizedCurrentlyVisibleAssistants = useMemo(() => {
+  const activeFilters = Object.entries(assistantFilters)
+    .filter(([_, value]) => value)
+    .map(([key]) => key as AssistantFilter);
+
+  const {
+    filteredAssistants,
+    goToFilteredPage,
+    currentFilteredPage,
+    totalFilteredPages,
+  } = useFilteredAssistants(activeFilters, debouncedSearchQuery);
+  console.log(debouncedSearchQuery);
+
+  const fetchAssistants = async (
+    debouncedSearchQuery: string,
+    assistantFilters: Record<AssistantFilter, boolean>,
+    page: number | 0
+  ) => {
     const active = Object.entries(assistantFilters).filter(
       ([_, value]) => value
     );
+    if (active.length === 0 && debouncedSearchQuery.length === 0) {
+      setAssistants(allAssistants || []);
+      setCurrentPage(currentAllPage);
+      setTotalPages(totalAllPages);
+      if (page > 0) {
+        goToAllPage(page);
+      }
+    }
     if (active.length === 1 && debouncedSearchQuery.length === 0) {
       if (active[0][0] === AssistantFilter.Pinned) {
-        return pinnedAssistants;
+        setAssistants(pinnedAssistants || []);
+        setCurrentPage(currentPinnedPage);
+        setTotalPages(totalPinnedPages);
+        if (page > 0) {
+          goToPinnedPage(page);
+        }
       }
       if (active[0][0] === AssistantFilter.Public) {
-        return publicAssistants;
+        setAssistants(publicAssistants || []);
+        setCurrentPage(currentPublicPage);
+        setTotalPages(totalPublicPages);
+        if (page > 0) {
+          goToPublicPage(page);
+        }
       }
       if (active[0][0] === AssistantFilter.Private) {
-        return privateAssistants;
+        setAssistants(privateAssistants || []);
+        setCurrentPage(currentPrivatePage);
+        setTotalPages(totalPrivatePages);
+        if (page > 0) {
+          goToPrivatePage(page);
+        }
       }
       if (active[0][0] === AssistantFilter.Mine) {
-        return usersAssistants;
+        setAssistants(usersAssistants || []);
+        setCurrentPage(currentUsersPage);
+        setTotalPages(totalUsersPages);
+        if (page > 0) {
+          goToUsersPage(page);
+        }
       }
     } else {
       if (active.length >= 2) {
@@ -124,26 +187,64 @@ export function AssistantModal({ hideModal }: AssistantModalProps) {
           active.includes([AssistantFilter.Private, true]) &&
           active.includes([AssistantFilter.Public, true])
         ) {
-          return [];
+          setAssistants([]);
         }
       }
-      const filteredAssistants = useFilteredAssistants(
-        active.map(([filter, _]) => filter as AssistantFilter),
-        debouncedSearchQuery
-      );
-      return filteredAssistants.filteredAssistants;
+      setAssistants(filteredAssistants || []);
+      setCurrentPage(currentFilteredPage);
+      setTotalPages(totalFilteredPages);
+      if (page > 0) {
+        goToFilteredPage(page);
+      }
     }
-  }, [assistants, debouncedSearchQuery, assistantFilters]);
+  };
 
-  const featuredAssistants = [
-    ...(memoizedCurrentlyVisibleAssistants?.filter(
-      (assistant) => assistant.is_default_persona
-    ) ?? []),
-  ];
-  const allAssistants =
-    memoizedCurrentlyVisibleAssistants?.filter(
-      (assistant) => !assistant.is_default_persona
-    ) ?? [];
+  let finalAssistants = filteredAssistants;
+  if (searchQuery.length > 0) {
+    finalAssistants = filteredAssistants;
+  } else if (assistantFilters[AssistantFilter.Mine]) {
+    finalAssistants = usersAssistants;
+  } else if (assistantFilters[AssistantFilter.Private]) {
+    finalAssistants = privateAssistants;
+  } else if (assistantFilters[AssistantFilter.Public]) {
+    finalAssistants = publicAssistants;
+  } else if (assistantFilters[AssistantFilter.Pinned]) {
+    finalAssistants = pinnedAssistants;
+  }
+
+  useEffect(() => {
+    fetchAssistants(debouncedSearchQuery, assistantFilters, 0);
+  }, [debouncedSearchQuery, assistantFilters]);
+
+  useEffect(() => {
+    if (currentPage > 0) {
+      fetchAssistants(debouncedSearchQuery, assistantFilters, currentPage);
+    }
+  }, [currentPage]);
+
+  const featuredAssistants =
+    finalAssistants?.filter((assistant) => assistant.is_default_persona) ?? [];
+  const completeAssistants =
+    finalAssistants?.filter((assistant) => !assistant.is_default_persona) ?? [];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (containerRef.current) {
+        const bottom =
+          containerRef.current.scrollHeight ===
+          containerRef.current.scrollTop + containerRef.current.clientHeight;
+        console.log("currentPage", currentPage);
+        console.log("totalPages", totalPages);
+        if (bottom && currentPage < totalPages - 1) {
+          setCurrentPage(currentPage + 1);
+        }
+      }
+    };
+
+    const el = containerRef.current;
+    el?.addEventListener("scroll", handleScroll);
+    return () => el?.removeEventListener("scroll", handleScroll);
+  }, [currentPage, assistants]);
 
   return (
     <div
@@ -257,9 +358,9 @@ export function AssistantModal({ hideModal }: AssistantModalProps) {
                     <div key={index}>
                       <AssistantCard
                         pinned={
-                          pinnedAssistants
-                            ?.map((a) => a.id)
-                            .includes(assistant.id) ?? false
+                          user?.preferences?.pinned_assistants?.includes(
+                            assistant.id
+                          ) ?? false
                         }
                         persona={assistant}
                         closeModal={hideModal}
@@ -273,14 +374,14 @@ export function AssistantModal({ hideModal }: AssistantModalProps) {
                 )}
               </div>
 
-              {allAssistants && allAssistants.length > 0 && (
+              {completeAssistants && completeAssistants.length > 0 && (
                 <>
                   <h2 className="text-2xl font-semibold text-text-800 mt-4 mb-2 px-4 py-2">
                     All Assistants
                   </h2>
 
                   <div className="w-full mt-2 px-2 pb-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
-                    {allAssistants
+                    {completeAssistants
                       .sort((a, b) => b.id - a.id)
                       .map((assistant, index) => (
                         <div key={index}>

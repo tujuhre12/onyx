@@ -22,6 +22,7 @@ export const usePrefetchedPublicAssistants = () => {
     itemsPerPage: ITEMS_PER_PAGE,
     pagesPerBatch: PAGES_PER_BATCH,
     endpoint: "/api/persona?is_public=true",
+    refreshIntervalInMs: undefined,
   });
 
   return {
@@ -44,6 +45,7 @@ export const usePrefetchedPrivateAssistants = () => {
     itemsPerPage: ITEMS_PER_PAGE,
     pagesPerBatch: PAGES_PER_BATCH,
     endpoint: "/api/persona?is_public=false",
+    refreshIntervalInMs: undefined,
   });
 
   return {
@@ -66,6 +68,7 @@ export const usePrefetchedPinnedAssistants = () => {
     itemsPerPage: ITEMS_PER_PAGE,
     pagesPerBatch: PAGES_PER_BATCH,
     endpoint: "/api/persona?is_pinned=true",
+    refreshIntervalInMs: undefined,
   });
 
   return {
@@ -110,6 +113,7 @@ export const useFilteredAssistants = (
   if (searchQuery.length > 0) {
     totalQueryParts.push(`name_matches=${searchQuery}`);
   }
+  console.log(totalQueryParts);
   const totalQuery = totalQueryParts.join("&");
   const {
     currentPageData: filteredAssistants,
@@ -121,6 +125,7 @@ export const useFilteredAssistants = (
     itemsPerPage: ITEMS_PER_PAGE,
     pagesPerBatch: PAGES_PER_BATCH,
     endpoint: `/api/persona?${totalQuery}`,
+    refreshIntervalInMs: undefined,
   });
 
   return {
@@ -129,5 +134,77 @@ export const useFilteredAssistants = (
     currentFilteredPage,
     totalFilteredPages,
     goToFilteredPage,
+  };
+};
+
+export const usePrefetchedAdminAssistants = (editable: boolean) => {
+  const {
+    currentPageData: adminAssistants,
+    isLoading: isLoadingAdminAssistants,
+    currentPage: currentAdminPage,
+    totalPages: totalAdminPages,
+    goToPage: goToAdminPage,
+  } = usePaginatedFetch<Persona>({
+    itemsPerPage: ITEMS_PER_PAGE,
+    pagesPerBatch: PAGES_PER_BATCH,
+    endpoint: `/api/admin/persona${editable ? "?get_editable=true" : ""}`,
+    refreshIntervalInMs: undefined,
+  });
+
+  return {
+    adminAssistants,
+    isLoadingAdminAssistants,
+    currentAdminPage,
+    totalAdminPages,
+    goToAdminPage,
+  };
+};
+
+export const usePrefetchedFilteredAssistants = (
+  hasAnyConnectors: boolean,
+  hasImageCompatibleModel: boolean
+) => {
+  const {
+    currentPageData: filteredAssistants,
+    isLoading: isLoadingFilteredAssistants,
+    currentPage: currentFilteredPage,
+    totalPages: totalFilteredPages,
+    goToPage: goToFilteredPage,
+  } = usePaginatedFetch<Persona>({
+    itemsPerPage: ITEMS_PER_PAGE,
+    pagesPerBatch: PAGES_PER_BATCH,
+    endpoint: `/api/persona?has_any_connectors=${hasAnyConnectors}&has_image_compatible_model=${hasImageCompatibleModel}`,
+    refreshIntervalInMs: undefined,
+  });
+
+  return {
+    filteredAssistants,
+    isLoadingFilteredAssistants,
+    currentFilteredPage,
+    totalFilteredPages,
+    goToFilteredPage,
+  };
+};
+
+export const usePrefetchedAllAssistants = () => {
+  const {
+    currentPageData: allAssistants,
+    isLoading: isLoadingAllAssistants,
+    currentPage: currentAllPage,
+    totalPages: totalAllPages,
+    goToPage: goToAllPage,
+  } = usePaginatedFetch<Persona>({
+    itemsPerPage: ITEMS_PER_PAGE,
+    pagesPerBatch: PAGES_PER_BATCH,
+    endpoint: "/api/persona",
+    refreshIntervalInMs: undefined,
+  });
+
+  return {
+    allAssistants,
+    isLoadingAllAssistants,
+    currentAllPage,
+    totalAllPages,
+    goToAllPage,
   };
 };

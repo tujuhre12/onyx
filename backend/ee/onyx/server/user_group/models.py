@@ -8,6 +8,7 @@ from onyx.server.documents.models import ConnectorSnapshot
 from onyx.server.documents.models import CredentialSnapshot
 from onyx.server.features.document_set.models import DocumentSet
 from onyx.server.features.persona.models import PersonaSnapshot
+from onyx.server.features.persona.utils import build_persona_snapshot
 from onyx.server.manage.models import UserInfo
 from onyx.server.manage.models import UserPreferences
 
@@ -67,7 +68,7 @@ class UserGroup(BaseModel):
                 DocumentSet.from_model(ds) for ds in user_group_model.document_sets
             ],
             personas=[
-                PersonaSnapshot.from_model(persona)
+                build_persona_snapshot(persona)
                 for persona in user_group_model.personas
                 if not persona.deleted
             ],
