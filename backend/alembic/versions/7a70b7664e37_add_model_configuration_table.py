@@ -1,4 +1,4 @@
-"""Add models-configuration table
+"""Add model-configuration table
 
 Revision ID: 7a70b7664e37
 Revises: cf90764725d8
