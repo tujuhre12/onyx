@@ -260,6 +260,7 @@ def fetch_max_input_tokens(
         return get_max_input_tokens(
             model_name=model_name,
             model_provider=provider_name,
+            output_tokens=output_tokens,
         )
 
     llm_provider_view = LLMProviderView.from_model(llm_provider)
