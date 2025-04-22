@@ -19,12 +19,19 @@ branch_labels = None
 depends_on = None
 
 
+NATIVE_VARIANT = "NATIVE"
+CUSTOM_VARIANT = "CUSTOM"
+
+
 def upgrade() -> None:
     llm_provider_table = sa.sql.table(
         "llm_provider",
         sa.column("id", sa.Integer),
         sa.column("provider", sa.String),
-        sa.column("native_or_custom", sa.Enum("custom", "native", name="source_type")),
+        sa.column(
+            "native_or_custom",
+            sa.Enum(NATIVE_VARIANT, CUSTOM_VARIANT, name="source_type"),
+        ),
     )
     model_configuration_table = sa.sql.table(
         "model_configuration",
@@ -33,14 +40,16 @@ def upgrade() -> None:
     )
 
     connection = op.get_bind()
-    source_type = sa.Enum("custom", "native", name="source_type")
+    source_type = sa.Enum(NATIVE_VARIANT, CUSTOM_VARIANT, name="source_type")
     source_type.create(op.get_bind())
 
     op.add_column(
         "llm_provider",
         sa.Column(
             "native_or_custom",
-            sa.Enum("custom", "native", name="source_type", create_type=False),
+            sa.Enum(
+                NATIVE_VARIANT, CUSTOM_VARIANT, name="source_type", create_type=False
+            ),
             autoincrement=False,
             # Set to nullable first.
             # Then, find the appropriate value to put in each row, and update accordingly.
@@ -78,21 +87,23 @@ def upgrade() -> None:
             )
 
             native_or_custom = (
-                "native"
+                NATIVE_VARIANT
                 if current_model_names.issubset(
                     canonical_model_names_for_provider_that_we_support
                 )
-                else "custom"
+                else CUSTOM_VARIANT
             )
         else:
-            native_or_custom = "custom"
+            native_or_custom = CUSTOM_VARIANT
 
         connection.execute(
             sa.update(llm_provider_table).values(native_or_custom=native_or_custom)
         )
 
+        op.alter_column("llm_provider", "native_or_custom", nullable=False)
+
 
 def downgrade() -> None:
     connection = op.get_bind()
     op.drop_column("llm_provider", "native_or_custom")
-    sa.Enum("custom", "native", name="source_type").drop(connection)
+    sa.Enum(NATIVE_VARIANT, CUSTOM_VARIANT, name="source_type").drop(connection)

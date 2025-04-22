@@ -214,6 +214,18 @@ def put_llm_provider(
             detail=f"LLM Provider with name {llm_provider_upsert_request.name} does not exist",
         )
 
+    if is_creation and llm_provider_upsert_request.native_or_custom is None:
+        raise HTTPException(
+            status_code=400,
+            detail="The given LLM Provider has to be denoted as either being native or custom",
+        )
+    elif not is_creation and llm_provider_upsert_request.native_or_custom is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="""The given provider's native-or-custom field is trying to be updated, but this field cannot be updated;"""
+            f"""value received: {llm_provider_upsert_request.native_or_custom}""",
+        )
+
     default_model_found = False
     default_fast_model_found = False
 

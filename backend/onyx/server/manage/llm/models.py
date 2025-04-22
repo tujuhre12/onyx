@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel
 from pydantic import Field
 
+from onyx.db.enums import NativeOrCustom
 from onyx.llm.utils import get_max_input_tokens
 
 
@@ -29,6 +30,10 @@ class TestLLMRequest(BaseModel):
 
     model_configurations: list["ModelConfigurationUpsertRequest"] = []
 
+    # should be non-None for insert requests
+    # should be None for update requests
+    native_or_custom: NativeOrCustom | None = None
+
 
 class LLMProviderDescriptor(BaseModel):
     """A descriptor for an LLM provider that can be safely viewed by
@@ -42,6 +47,7 @@ class LLMProviderDescriptor(BaseModel):
     is_default_vision_provider: bool | None
     default_vision_model: str | None
     model_configurations: list["ModelConfigurationView"]
+    native_or_custom: NativeOrCustom
 
     @classmethod
     def from_model(
@@ -62,6 +68,7 @@ class LLMProviderDescriptor(BaseModel):
                 )
                 for model_configuration in llm_provider_model.model_configurations
             ),
+            native_or_custom=llm_provider_model.native_or_custom,
         )
 
 
@@ -86,6 +93,10 @@ class LLMProviderUpsertRequest(LLMProvider):
     api_key_changed: bool = False
     model_configurations: list["ModelConfigurationUpsertRequest"] = []
 
+    # should be non-None for insert requests
+    # should be None for update requests
+    native_or_custom: NativeOrCustom | None = None
+
 
 class LLMProviderView(LLMProvider):
     """Stripped down representation of LLMProvider for display / limited access info only"""
@@ -94,6 +105,7 @@ class LLMProviderView(LLMProvider):
     is_default_provider: bool | None = None
     is_default_vision_provider: bool | None = None
     model_configurations: list["ModelConfigurationView"]
+    native_or_custom: NativeOrCustom
 
     @classmethod
     def from_model(
@@ -129,6 +141,7 @@ class LLMProviderView(LLMProvider):
                 )
                 for model_configuration in llm_provider_model.model_configurations
             ),
+            native_or_custom=llm_provider_model.native_or_custom,
         )
 
 

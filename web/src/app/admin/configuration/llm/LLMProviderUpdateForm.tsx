@@ -17,6 +17,7 @@ import { useSWRConfig } from "swr";
 import {
   LLMProviderView,
   ModelConfiguration,
+  NativeOrCustom,
   WellKnownLLMProviderDescriptor,
 } from "./interfaces";
 import { PopupSpec } from "@/components/admin/connectors/Popup";
@@ -172,6 +173,7 @@ export function LLMProviderUpdateForm({
             body: JSON.stringify({
               provider: llmProviderDescriptor.name,
               ...values,
+              native_or_custom: "NATIVE" as NativeOrCustom,
             }),
           });
           setIsTesting(false);
@@ -197,6 +199,7 @@ export function LLMProviderUpdateForm({
               ...values,
               fast_default_model_name:
                 values.fast_default_model_name || values.default_model_name,
+              native_or_custom: "NATIVE" as NativeOrCustom,
             }),
           }
         );
