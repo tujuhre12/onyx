@@ -17,6 +17,7 @@ from onyx.db.models import SearchSettings
 from onyx.db.models import Tool as ToolModel
 from onyx.db.models import User
 from onyx.db.models import User__UserGroup
+from onyx.llm.utils import get_max_input_tokens
 from onyx.llm.utils import get_max_input_tokens_from_llm_provider
 from onyx.llm.utils import model_supports_image_input
 from onyx.server.manage.embedding.models import CloudEmbeddingProvider
@@ -256,7 +257,10 @@ def fetch_max_input_tokens(
 ) -> int:
     llm_provider = fetch_existing_llm_provider(provider_name, db_session)
     if not llm_provider:
-        raise RuntimeError(f"No LLM Provider with the name {provider_name}")
+        return get_max_input_tokens(
+            model_name=model_name,
+            model_provider=provider_name,
+        )
 
     llm_provider_view = LLMProviderView.from_model(llm_provider)
     return get_max_input_tokens_from_llm_provider(
