@@ -5,8 +5,7 @@ import {
   usePersonaMessages,
   usePersonaUniqueUsers,
 } from "../lib";
-import { useAssistants } from "@/components/context/AssistantsContext";
-import { DateRangePickerValue } from "@/components/dateRangeSelectors/AdminDateRangeSelector";
+import { useAssistantsContext } from "@/components/context/AssistantsContext";
 import Text from "@/components/ui/text";
 import Title from "@/components/ui/title";
 import CardSection from "@/components/admin/CardSection";
@@ -19,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, useMemo, useEffect } from "react";
+import { DateRangePickerValue } from "@/components/dateRangeSelectors/AdminDateRangeSelector";
 
 export function PersonaMessagesChart({
   timeRange,
@@ -30,7 +30,7 @@ export function PersonaMessagesChart({
   >(undefined);
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const { allAssistants: personaList } = useAssistants();
+  const { allAssistants: personaList } = useAssistantsContext();
 
   const {
     data: personaMessagesData,
