@@ -985,11 +985,6 @@ export function AssistantEditor({
                         )
                       : null
                   }
-                  requiresImageGeneration={
-                    imageGenerationTool
-                      ? values.enabled_tools_map[imageGenerationTool.id]
-                      : false
-                  }
                   onSelect={(selected) => {
                     if (selected === null) {
                       setFieldValue("llm_model_version_override", null);

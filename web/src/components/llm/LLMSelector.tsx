@@ -22,7 +22,6 @@ interface LLMSelectorProps {
   llmProviders: LLMProviderDescriptor[];
   currentLlm: string | null;
   onSelect: (value: string | null) => void;
-  requiresImageGeneration?: boolean;
 }
 
 export const LLMSelector: React.FC<LLMSelectorProps> = ({
@@ -30,7 +29,6 @@ export const LLMSelector: React.FC<LLMSelectorProps> = ({
   llmProviders,
   currentLlm,
   onSelect,
-  requiresImageGeneration,
 }) => {
   const seenModelNames = new Set();
 
@@ -90,19 +88,14 @@ export const LLMSelector: React.FC<LLMSelectorProps> = ({
           )}
         </SelectItem>
         {llmOptions.map((option) => {
-          if (
-            !requiresImageGeneration ||
-            checkLLMSupportsImageInput(option.name)
-          ) {
-            return (
-              <SelectItem key={option.value} value={option.value}>
-                <div className="my-1 flex items-center">
-                  {option.icon && option.icon({ size: 16 })}
-                  <span className="ml-2">{option.name}</span>
-                </div>
-              </SelectItem>
-            );
-          }
+          return (
+            <SelectItem key={option.value} value={option.value}>
+              <div className="my-1 flex items-center">
+                {option.icon && option.icon({ size: 16 })}
+                <span className="ml-2">{option.name}</span>
+              </div>
+            </SelectItem>
+          );
         })}
       </SelectContent>
     </Select>
