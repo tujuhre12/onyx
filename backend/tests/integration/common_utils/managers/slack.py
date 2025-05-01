@@ -10,9 +10,10 @@ Assumptions:
     - im:write
 """
 
-from typing import Any, Optional
-from uuid import uuid4
 import time
+from typing import Any
+from typing import Optional
+from uuid import uuid4
 
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
@@ -24,6 +25,7 @@ from onyx.connectors.slack.utils import make_slack_api_call_w_retries
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
+
 
 def _get_slack_channel_id(channel: dict[str, Any]) -> str:
     if not (channel_id := channel.get("id")):
@@ -83,7 +85,9 @@ def _clear_slack_conversation_members(
         except Exception as e:
             if "cant_kick_self" in str(e):
                 continue
-            logger.error(f"Error kicking member {member_id} from channel {channel_id}: {e}")
+            logger.error(
+                f"Error kicking member {member_id} from channel {channel_id}: {e}"
+            )
             logger.error(f"Failed member ID: {member_id}")
     try:
         slack_client.conversations_unarchive(channel=channel_id)
@@ -91,8 +95,9 @@ def _clear_slack_conversation_members(
         channel["is_archived"] = False
     except Exception as e:
         # Channel is already unarchived or another error occurred
-        logger.warning(f"Could not unarchive channel {channel_id}, it might already be unarchived or another error occurred: {e}")
-        pass
+        logger.warning(
+            f"Could not unarchive channel {channel_id}, it might already be unarchived or another error occurred: {e}"
+        )
 
 
 def _add_slack_conversation_members(
@@ -237,7 +242,8 @@ class SlackManager:
                 raise ValueError("User ID is missing")
             user_email_id_map[email] = user_id
         return user_email_id_map
-    #TODO: Rename to common method name
+
+    # TODO: Rename to common method name
     @staticmethod
     def get_onyxbot_user_and_bot_ids(
         slack_client: WebClient,
@@ -312,17 +318,22 @@ class SlackManager:
         """
         channel_id = _get_slack_channel_id(channel)
         start_time = time.time()
-        logger.info(f"Polling channel {channel_id} for reply to message {original_message_ts} for {timeout_seconds} seconds.")
+        logger.info(
+            f"Polling channel {channel_id} for reply to message {original_message_ts} for {timeout_seconds} seconds."
+        )
 
         while time.time() - start_time < timeout_seconds:
-            logger.info(f"Polling channel {channel_id} | elapsed time: {time.time() - start_time:.2f} seconds out of {timeout_seconds} seconds.")
+            logger.info(
+                f"""Polling channel {channel_id} | elapsed time: {time.time() - start_time:.2f}
+                seconds out of {timeout_seconds} seconds."""
+            )
             try:
                 # Fetch recent messages in the thread
                 result = make_slack_api_call_w_retries(
                     slack_client.conversations_replies,
                     channel=channel_id,
                     ts=original_message_ts,
-                    limit=20
+                    limit=20,
                 )
                 messages = result.get("messages", [])
 
@@ -337,14 +348,16 @@ class SlackManager:
                 logger.error(f"Error fetching replies from channel {channel_id}: {e}")
                 raise
             except Exception as e:
-                 logger.error(f"An unexpected error occurred during polling: {e}")
-                 raise
+                logger.error(f"An unexpected error occurred during polling: {e}")
+                raise
 
             # Wait a bit before the next poll
             time.sleep(1)
 
-        logger.warning(f"Timeout reached. No reply found for message {original_message_ts} in channel {channel_id}.")
-        return None # Timeout reached without finding a reply
+        logger.warning(
+            f"Timeout reached. No reply found for message {original_message_ts} in channel {channel_id}."
+        )
+        return None  # Timeout reached without finding a reply
 
     @staticmethod
     def remove_message_from_channel(
@@ -394,8 +407,6 @@ class SlackManager:
             logger.error(f"Error opening DM channel with user {user_id}: {e}")
             raise
 
-    
-
     @staticmethod
     def delete_all_messages_and_threads(
         slack_user_client: WebClient,
@@ -410,7 +421,9 @@ class SlackManager:
         """
         try:
             logger.info(f"Deleting all messages and threads in channel {channel}")
-            user_bot_id, _  = SlackManager.get_onyxbot_user_and_bot_ids(slack_user_client)
+            user_bot_id, _ = SlackManager.get_onyxbot_user_and_bot_ids(
+                slack_user_client
+            )
             # Fetch all messages in the channel
             channel_id = _get_slack_channel_id(channel)
             for message_batch in get_channel_messages(slack_user_client, channel):
@@ -429,15 +442,21 @@ class SlackManager:
                                 slack_user_client.conversations_replies,
                                 channel=channel_id,
                                 ts=ts,
-                                limit=100
+                                limit=100,
                             )
-                            replies = replies_result.get("messages", [])[1:]  # skip parent
+                            replies = replies_result.get("messages", [])[
+                                1:
+                            ]  # skip parent
                             for reply in replies:
                                 logger.info(f"Deleting thread reply: {reply}")
                                 user_id = reply.get("user")
                                 if user_id == "USLACKBOT":
                                     continue
-                                client = slack_user_client if user_id == user_bot_id else slack_bot_client
+                                client = (
+                                    slack_user_client
+                                    if user_id == user_bot_id
+                                    else slack_bot_client
+                                )
                                 reply_ts = reply.get("ts")
                                 if reply_ts:
                                     try:
@@ -446,9 +465,11 @@ class SlackManager:
                                             channel=channel_id,
                                             ts=reply_ts,
                                         )
-                                        logger.info(f"Deleted thread reply")
+                                        logger.info("Deleted thread reply")
                                     except Exception as e:
-                                        logger.error(f"Error deleting thread reply: {e}")
+                                        logger.error(
+                                            f"Error deleting thread reply: {e}"
+                                        )
                                         raise
                         except Exception as e:
                             logger.error(f"Error fetching thread replies: {e}")
@@ -457,7 +478,11 @@ class SlackManager:
                     try:
                         logger.info(f"Deleting message: {message}")
                         user_id = message.get("user")
-                        client = slack_user_client if user_id == user_bot_id else slack_bot_client
+                        client = (
+                            slack_user_client
+                            if user_id == user_bot_id
+                            else slack_bot_client
+                        )
                         make_slack_api_call_w_retries(
                             client.chat_delete,
                             channel=channel_id,
@@ -468,14 +493,16 @@ class SlackManager:
                         logger.error(f"Error deleting message: {e}")
 
         except Exception as e:
-            logger.error(f"Error deleting all messages and threads in channel {channel_id}: {e}")
+            logger.error(
+                f"Error deleting all messages and threads in channel {channel_id}: {e}"
+            )
             raise
 
     @staticmethod
     def get_full_channel_info(
         slack_client: WebClient,
         channel: dict[str, Any],
-    ) -> dict[str, Any] :
+    ) -> dict[str, Any]:
         logger.info(f"Fetching full channel info for channel {channel}")
         channel_id = _get_slack_channel_id(channel)
         try:
@@ -512,9 +539,11 @@ class SlackManager:
             ):
                 for channel in result["channels"]:
                     if channel.get("name") == channel_name:
-                        logger.info(f"Channel {channel_name} already exists with ID: {channel['id']}")
+                        logger.info(
+                            f"Channel {channel_name} already exists with ID: {channel['id']}"
+                        )
                         return channel
-                    
+
             # Create a new channel if it doesn't exist
             channel_response = make_slack_api_call_w_retries(
                 slack_client.conversations_create,
@@ -531,4 +560,65 @@ class SlackManager:
             logger.error(f"Unexpected error creating channel {channel_name}: {e}")
             raise
 
+    @staticmethod
+    def create_user_group(
+        slack_client: WebClient,
+        group_name: str,
+    ) -> dict[str, Any]:
+        """
+        Checks if a user group exists by name. If it does, returns it.
+        Otherwise, creates a new user group.
+        """
+        if not group_name:
+            raise ValueError("Group name is required")
+        try:
+            # Check if group already exists
+            response = make_slack_api_call_w_retries(
+                slack_client.usergroups_list,
+            )
+            for group in response.get("usergroups", []):
+                if group.get("name") == group_name:
+                    logger.info(
+                        f"User group {group_name} already exists with ID: {group['id']}"
+                    )
+                    return group
 
+            # Create a new user group if not found
+            response = make_slack_api_call_w_retries(
+                slack_client.usergroups_create, name=group_name
+            )
+            usergroup_id = response["usergroup"]["id"]
+            logger.info(f"User group created with ID: {usergroup_id}")
+            return response["usergroup"]
+        except SlackApiError as e:
+            logger.error(f"Error creating or finding user group {group_name}: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error in create_user_group for {group_name}: {e}")
+            raise
+
+    @staticmethod
+    def set_user_group_members(
+        slack_client: WebClient,
+        user_group_id: str,
+        user_ids: list[str],
+    ) -> None:
+        """
+        Removes all users from the user group and adds the specified users.
+        """
+        logger.info(f"Setting members of user group {user_group_id} to: {user_ids}")
+        try:
+            # Add specified users
+            if user_ids:
+                make_slack_api_call_w_retries(
+                    slack_client.usergroups_users_update,
+                    usergroup=user_group_id,
+                    users=user_ids,
+                )
+                logger.info(f"Added users to user group {user_group_id}")
+        except SlackApiError as e:
+            logger.error(f"Error resetting members for user group {user_group_id}: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error resetting user group {user_group_id}: {e}")
+            raise
