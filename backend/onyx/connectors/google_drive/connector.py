@@ -367,11 +367,18 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
 
             def record_drive_processing(drive_id: str) -> None:
                 with cv:
+                    logger.info(
+                        f"Record drive processing for drive id: {drive_id}, user email: {thread_id}"
+                    )
                     completion.processed_drive_ids.add(drive_id)
                     drive_id_status[drive_id] = (
                         DriveIdStatus.FINISHED
                         if drive_id in self._retrieved_folder_and_drive_ids
                         else DriveIdStatus.AVAILABLE
+                    )
+                    logger.info(
+                        f"Drive id status: {drive_id_status}, user email: {thread_id},"
+                        f"processed drive ids: {completion.processed_drive_ids}"
                     )
                     # wake up other threads waiting for work
                     cv.notify_all()
