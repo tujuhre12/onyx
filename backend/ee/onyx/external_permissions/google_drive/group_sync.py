@@ -127,6 +127,11 @@ def _build_onyx_groups(
     for drive_id, (group_emails, user_emails) in drive_id_to_members_map.items():
         all_member_emails: set[str] = user_emails
         for group_email in group_emails:
+            if group_email not in group_email_to_member_emails_map:
+                logger.warning(
+                    f"Group email {group_email} not found in group_email_to_member_emails_map"
+                )
+                continue
             all_member_emails.update(group_email_to_member_emails_map[group_email])
         onyx_groups.append(
             ExternalUserGroup(
@@ -168,8 +173,8 @@ def gdrive_group_sync(
         admin_service, google_drive_connector.google_domain
     )
 
-    for group_emails, _ in drive_id_to_members_map.values():
-        all_group_emails.update(group_emails)
+    # for group_emails, _ in drive_id_to_members_map.values():
+    #     all_group_emails.update(group_emails)
 
     # Map group emails to their members
     group_email_to_member_emails_map = _map_group_email_to_member_emails(
