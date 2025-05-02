@@ -51,7 +51,7 @@ def _get_drive_members(
                 drive_service.permissions().list,
                 list_key="permissions",
                 fileId=drive_id,
-                fields="permissions(emailAddress, type)",
+                fields="permissions(emailAddress, type),nextPageToken",
                 supportsAllDrives=True,
                 # can only set `useDomainAdminAccess` to true if the user
                 # is an admin
