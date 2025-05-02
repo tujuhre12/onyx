@@ -324,6 +324,9 @@ def convert_drive_item_to_document(
         if retriever_email in seen:
             continue
         seen.add(retriever_email)
+        logger.info(
+            f"Converting file {file.get('name')} to document for {retriever_email}"
+        )
         doc_or_failure = _convert_drive_item_to_document(
             creds, allow_images, size_threshold, retriever_email, file
         )
@@ -387,6 +390,7 @@ def _convert_drive_item_to_document(
         # If it's a Google Doc, we might do advanced parsing
         if file.get("mimeType") == GDriveMimeType.DOC.value:
             try:
+                logger.info(f"Getting document sections for {file.get('name')}")
                 # get_document_sections is the advanced approach for Google Docs
                 doc_sections = get_document_sections(
                     docs_service=docs_service(),
@@ -412,6 +416,7 @@ def _convert_drive_item_to_document(
             except ValueError:
                 logger.warning(f"Parsing string to int failed: size_str={size_str}")
             else:
+                logger.info(f"File name: {file.get('name')}, File size: {size_int}")
                 if size_int > size_threshold:
                     logger.warning(
                         f"{file.get('name')} exceeds size threshold of {size_threshold}. Skipping."
@@ -420,6 +425,9 @@ def _convert_drive_item_to_document(
 
         # If we don't have sections yet, use the basic extraction method
         if not sections:
+            logger.info(
+                f"Downloading and extracting sections (basic) for {file.get('name')}"
+            )
             sections = _download_and_extract_sections_basic(
                 file, drive_service(), allow_images
             )
