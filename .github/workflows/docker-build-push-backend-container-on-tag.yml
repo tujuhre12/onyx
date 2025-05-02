@@ -93,6 +93,7 @@ jobs:
     needs:
       - build-and-push
     steps:
+      # Needed for trivyignore
       - name: Checkout
         uses: actions/checkout@v4
         
