@@ -1050,6 +1050,9 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                 if len(files_batch) < self.batch_size:
                     continue
 
+                logger.info(
+                    f"Yielding batch of {len(files_batch)} files; num seen doc ids: {len(checkpoint.all_retrieved_file_ids)}"
+                )
                 yield from _yield_batch(files_batch)
                 files_batch = []
 

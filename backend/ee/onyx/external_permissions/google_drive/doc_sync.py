@@ -68,7 +68,7 @@ def _fetch_permissions_for_permission_ids(
         retrieval_function=drive_service.permissions().list,
         list_key="permissions",
         fileId=doc_id,
-        fields="permissions(id, emailAddress, type, domain)",
+        fields="permissions(id, emailAddress, type, domain),nextPageToken",
         supportsAllDrives=True,
         continue_on_404_or_403=True,
     )
