@@ -168,6 +168,9 @@ def gdrive_group_sync(
         admin_service, google_drive_connector.google_domain
     )
 
+    for group_emails, _ in drive_id_to_members_map.values():
+        all_group_emails.update(group_emails)
+
     # Map group emails to their members
     group_email_to_member_emails_map = _map_group_email_to_member_emails(
         admin_service, all_group_emails
