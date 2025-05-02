@@ -107,7 +107,7 @@ def _map_group_email_to_member_emails(
             admin_service.members().list,
             list_key="members",
             groupKey=group_email,
-            fields="members(email)",
+            fields="members(email),nextPageToken",
         ):
             group_member_emails.add(member["email"])
 
