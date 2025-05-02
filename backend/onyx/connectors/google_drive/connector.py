@@ -492,9 +492,14 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
             if resuming:
                 drive_id = curr_stage.current_folder_or_drive_id
                 if drive_id is None:
-                    raise ValueError("drive id not set in checkpoint")
-                resume_start = curr_stage.completed_until
-                yield from _yield_from_drive(drive_id, resume_start)
+                    logger.warning(
+                        f"drive id not set in checkpoint for user {user_email}. "
+                        "This happens occasionally when the connector is interrupted "
+                        "and resumed."
+                    )
+                else:
+                    resume_start = curr_stage.completed_until
+                    yield from _yield_from_drive(drive_id, resume_start)
                 # Don't enter resuming case for folder retrieval
                 resuming = False
 
@@ -536,9 +541,14 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
             if resuming:
                 folder_id = curr_stage.current_folder_or_drive_id
                 if folder_id is None:
-                    raise ValueError("folder id not set in checkpoint")
-                resume_start = curr_stage.completed_until
-                yield from _yield_from_folder_crawl(folder_id, resume_start)
+                    logger.warning(
+                        f"folder id not set in checkpoint for user {user_email}. "
+                        "This happens occasionally when the connector is interrupted "
+                        "and resumed."
+                    )
+                else:
+                    resume_start = curr_stage.completed_until
+                    yield from _yield_from_folder_crawl(folder_id, resume_start)
                 last_processed_folder = folder_id
 
             skipping_seen_folders = last_processed_folder is not None
