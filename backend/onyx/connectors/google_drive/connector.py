@@ -377,7 +377,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                     cv.notify_all()
 
             # when entering the iterator with a previous id in the checkpoint, the user
-            # just finished that drive from a previous run.
+            # has just finished that drive from a previous run.
             if (
                 completion.stage == DriveRetrievalStage.MY_DRIVE_FILES
                 and completion.current_folder_or_drive_id is not None
