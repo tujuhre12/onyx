@@ -66,9 +66,6 @@ jobs:
           file: ./backend/Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
-          tags: |
-            ${{ env.REGISTRY_IMAGE }}:${{ github.ref_name }}
-            ${{ env.LATEST_TAG == 'true' && format('{0}:latest', env.REGISTRY_IMAGE) || '' }}
           build-args: |
             ONYX_VERSION=${{ github.ref_name }}
           labels: ${{ steps.meta.outputs.labels }}
