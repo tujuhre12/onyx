@@ -1094,6 +1094,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
         checkpoint.retrieved_folder_and_drive_ids = self._retrieved_folder_and_drive_ids
         if checkpoint.completion_stage == DriveRetrievalStage.DONE:
             checkpoint.has_more = False
+        logger.info(f"Returning checkpoint: {checkpoint}")
         return checkpoint
 
     def _extract_slim_docs_from_google_drive(
