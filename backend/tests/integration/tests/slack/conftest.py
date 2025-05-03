@@ -6,8 +6,6 @@ from datetime import datetime
 from datetime import timezone
 from time import sleep
 from typing import Any
-from typing import Dict
-from typing import Tuple
 
 import pytest
 from slack_sdk import WebClient
@@ -20,8 +18,11 @@ from tests.integration.common_utils.managers.file import FileManager
 from tests.integration.common_utils.managers.llm_provider import LLMProviderManager
 from tests.integration.common_utils.managers.slack import SlackManager
 from tests.integration.common_utils.managers.user import UserManager
+from tests.integration.common_utils.managers.user_group import UserGroupManager
 from tests.integration.common_utils.reset import reset_all
+from tests.integration.common_utils.test_models import DATestCCPair
 from tests.integration.common_utils.test_models import DATestUser
+from tests.integration.common_utils.test_models import SlackTestContext
 from tests.integration.common_utils.test_server_utils import fastapi_server_context
 from tests.integration.tests.slack.utils import create_slack_bot
 from tests.integration.tests.slack.utils import create_slack_channel_config
@@ -44,7 +45,7 @@ def _admin_user() -> DATestUser:
     return user
 
 
-def _slack_bot(admin_user: DATestUser) -> Dict[str, Any]:
+def _slack_bot(admin_user: DATestUser) -> dict[str, Any]:
     """Fixture to create a Slack bot and return its details."""
 
     app_token = os.environ.get("SLACK_APP_TOKEN")
@@ -91,7 +92,7 @@ def _slack_secondary_user_client() -> WebClient:
 
 def _create_standard_answer_and_category(
     admin_user: DATestUser,
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """Creates a standard answer category and a standard answer using the combined utility."""
     category, standard_answer = create_standard_answer_with_category(
         category_name="IT",
@@ -108,15 +109,15 @@ def _create_slack_channels(
     slack_user_client: WebClient,
     slack_bot_client: WebClient,
     secondary_user_client: WebClient,
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """Creates Slack channels with the bot and user"""
-    slack_bot_user_id, _ = SlackManager.get_onyxbot_user_and_bot_ids(slack_bot_client)
-    secondary_user_id, _ = SlackManager.get_onyxbot_user_and_bot_ids(
+    slack_bot_user_id, _ = SlackManager.get_client_user_and_bot_ids(slack_bot_client)
+    secondary_user_id, _ = SlackManager.get_client_user_and_bot_ids(
         secondary_user_client
     )
     logger.info(f"Slack bot user ID: {slack_bot_user_id}")
     logger.info(f"Secondary user ID: {secondary_user_id}")
-    slack_user_id, _ = SlackManager.get_onyxbot_user_and_bot_ids(slack_user_client)
+    slack_user_id, _ = SlackManager.get_client_user_and_bot_ids(slack_user_client)
     logger.info(f"Slack user ID: {slack_user_id}")
     # Create a channels
     test_channel_1 = SlackManager.create_slack_channel(
@@ -156,7 +157,7 @@ def _create_slack_channel_config(
     channel_name: str,
     slack_bot_id: str,
     admin_user: DATestUser,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Creates a Slack channel config."""
     slack_channel_config = create_slack_channel_config(
         bot_id=slack_bot_id,
@@ -169,7 +170,7 @@ def _create_slack_channel_config(
 
 def _create_file_connector(
     admin_user: DATestUser, file_name: str, access_type: AccessType = AccessType.PUBLIC
-) -> None:
+) -> DATestCCPair:
     """Creates a file connector."""
     # Upload a file to the connector
     filepath = f"tests/integration/tests/slack/resources/{file_name}"
@@ -194,6 +195,7 @@ def _create_file_connector(
         cc_pair, now, timeout=360, user_performing_action=admin_user
     )
     logger.info("Indexing completed successfully.")
+    return cc_pair
 
 
 def _create_web_connector(admin_user: DATestUser) -> None:
@@ -235,8 +237,8 @@ def _create_slack_user_group(
 ) -> None:
     """Creates a Slack user group."""
     # Create a user group
-    user_id, _ = SlackManager.get_onyxbot_user_and_bot_ids(slack_user_client)
-    secondary_user_id, _ = SlackManager.get_onyxbot_user_and_bot_ids(
+    user_id, _ = SlackManager.get_client_user_and_bot_ids(slack_user_client)
+    secondary_user_id, _ = SlackManager.get_client_user_and_bot_ids(
         secondary_user_client
     )
     logger.info(f"Slack user ID: {user_id}")
@@ -256,7 +258,7 @@ def _create_slack_user_group(
 
 
 @pytest.fixture(scope="session")
-def slack_test_context(reset_db_and_index: None) -> Dict[str, Any]:
+def slack_test_context(reset_db_and_index) -> SlackTestContext:
     """Fixture to create the Slack test context."""
     # Create the admin user
     admin_user = _admin_user()
@@ -288,44 +290,48 @@ def slack_test_context(reset_db_and_index: None) -> Dict[str, Any]:
         admin_user=admin_user,
     )
     # Return the context
-    return {
-        "admin_user": admin_user,
-        "slack_bot": slack_bot,
-        "slack_bot_client": slack_bot_client,
-        "slack_user_client": slack_user_client,
-        "slack_secondary_user_client": slack_secondary_user_client,
-        "std_ans_category": std_ans_category,
-        "std_answer": std_answer,
-        "test_channel_1": test_channel_1,
-        "test_channel_2": test_channel_2,
-        "slack_channel_config": slack_channel_config,
-    }
+    return SlackTestContext(
+        admin_user=admin_user,
+        slack_bot=slack_bot,
+        slack_bot_client=slack_bot_client,
+        slack_user_client=slack_user_client,
+        slack_secondary_user_client=slack_secondary_user_client,
+        std_ans_category=std_ans_category,
+        std_answer=std_answer,
+        test_channel_1=test_channel_1,
+        test_channel_2=test_channel_2,
+        slack_channel_config=slack_channel_config,
+    )
 
 
-# TODO: Please add skip for the test initially to confirm whether we are getting the alembic script location error.
 @pytest.fixture(autouse=True, scope="session")
-def setup_module(slack_test_context: Dict[str, Any]) -> Generator[None, None, None]:
+def setup_module(slack_test_context: SlackTestContext) -> Generator[None, None, None]:
 
-    admin_user = slack_test_context["admin_user"]
+    admin_user = slack_test_context.admin_user
 
     # Create LLM provider
-    llm_api_key = os.environ.get("LLM_PROVIDER_API_KEY")
-    if not llm_api_key:
-        raise RuntimeError("LLM_PROVIDER_API_KEY environment variable not set")
-    LLMProviderManager.create(user_performing_action=admin_user, api_key=llm_api_key)
+    LLMProviderManager.create(user_performing_action=admin_user)
 
     # Create a file connector
     _create_file_connector(admin_user, "story.pdf")
-
-    _create_file_connector(admin_user, "lucky_leaves.pdf", AccessType.PRIVATE)
+    cc_pair = _create_file_connector(admin_user, "lucky_leaves.pdf", AccessType.PRIVATE)
 
     # Create a web connector
     _create_web_connector(admin_user)
 
+    # Create a user group
+    user = UserManager.create(email="subash@onyx.app")
+    UserGroupManager.create(
+        name="onyx-test-user-group",
+        user_ids=[user.id],
+        cc_pair_ids=[cc_pair.id],
+        user_performing_action=admin_user,
+    )
+
     # Create a Slack user group
     _create_slack_user_group(
-        slack_user_client=slack_test_context["slack_user_client"],
-        secondary_user_client=slack_test_context["slack_secondary_user_client"],
+        slack_user_client=slack_test_context.slack_user_client,
+        secondary_user_client=slack_test_context.slack_secondary_user_client,
     )
 
     yield
@@ -333,27 +339,3 @@ def setup_module(slack_test_context: Dict[str, Any]) -> Generator[None, None, No
     # This part will always run after the test, even if it fails
     # reset_all()
     logger.info("Test module teardown completed.")
-
-
-# @pytest.fixture(autouse=True, scope="session")
-def delete_all_messages(slack_test_context: Dict[str, Any]) -> None:
-    """Fixture to delete all messages in the Slack bot's channels."""
-    slack_bot_client = slack_test_context["slack_bot_client"]
-    slack_user_client = slack_test_context["slack_user_client"]
-    user_id, bot_id = SlackManager.get_onyxbot_user_and_bot_ids(slack_bot_client)
-    logger.info(f"Slack user ID: {user_id}, Slack bot ID: {bot_id}")
-
-    # Open DM channel with the bot
-    channel = SlackManager.get_dm_channel(slack_user_client, user_id)
-    logger.info(f"Opened DM channel {channel} with bot {bot_id}")
-    channel_info = SlackManager.get_full_channel_info(
-        slack_client=slack_user_client,
-        channel=channel,
-    )
-    # logger.info(f"Channel info: {channel_info}")
-
-    SlackManager.delete_all_messages_and_threads(
-        slack_bot_client=slack_bot_client,
-        slack_user_client=slack_user_client,
-        channel=channel_info,
-    )

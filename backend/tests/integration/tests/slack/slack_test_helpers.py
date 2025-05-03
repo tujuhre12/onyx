@@ -1,6 +1,4 @@
 from typing import Any
-from typing import Dict
-from typing import Tuple
 
 from slack_sdk import WebClient
 
@@ -8,6 +6,7 @@ from onyx.db.chat import get_chat_messages_by_session
 from onyx.db.models import ChatSession
 from onyx.db.models import User
 from onyx.utils.logger import setup_logger
+from tests.integration.common_utils.constants import PRIMARY_USER_EMAIL
 from tests.integration.common_utils.managers.slack import SlackManager
 from tests.integration.common_utils.test_models import DATestUser
 from tests.integration.tests.slack.utils import list_slack_channel_configs
@@ -22,7 +21,8 @@ def send_and_receive_dm(
     message: str,
     timeout_secs: int = 180,
 ) -> Any:
-    user_id, bot_id = SlackManager.get_onyxbot_user_and_bot_ids(slack_bot_client)
+    """Sends a direct message (DM) from a user to the Onyx bot and waits for a reply."""
+    user_id, bot_id = SlackManager.get_client_user_and_bot_ids(slack_bot_client)
     logger.info(f"Slack bot user ID: {user_id}, Slack bot ID: {bot_id}")
 
     # Open DM channel with the bot
@@ -54,7 +54,7 @@ def send_dm_with_optional_timeout(
     message_text: str,
     expected_text: str = None,
 ):
-
+    """Sends a DM and receives a reply, using a shorter timeout if no specific reply text is expected."""
     if expected_text is None:
         return send_and_receive_dm(
             slack_bot_client, slack_user_client, message_text, timeout_secs=20
@@ -67,10 +67,11 @@ def send_channel_msg_with_optional_timeout(
     slack_bot_client: WebClient,
     slack_user_client: WebClient,
     message_text: str,
-    channel: Dict[str, Any],
+    channel: dict[str, Any],
     tag_bot: bool = False,
     expected_text: str = None,
 ):
+    """Sends a channel message and receives a reply, using a shorter timeout if no specific reply text is expected."""
 
     if expected_text is None:
         return send_and_receive_channel_message(
@@ -95,10 +96,11 @@ def send_message_to_channel(
     slack_user_client: WebClient,
     slack_bot_client: WebClient,
     message: str,
-    channel: Dict[str, Any],
+    channel: dict[str, Any],
     tag_bot: bool = False,
 ) -> str:
-    user_id, _ = SlackManager.get_onyxbot_user_and_bot_ids(slack_bot_client)
+    """Sends a message to a specified Slack channel as the user."""
+    user_id, _ = SlackManager.get_client_user_and_bot_ids(slack_bot_client)
     logger.info(f"Slack bot user ID: {user_id}")
 
     # tag the bot in the message if required
@@ -118,10 +120,11 @@ def send_and_receive_channel_message(
     slack_user_client: WebClient,
     slack_bot_client: WebClient,
     message: str,
-    channel: Dict[str, Any],
+    channel: dict[str, Any],
     tag_bot: bool = False,
     timeout_secs: int = 200,
 ) -> Any:
+    """Sends a message to a channel and waits for the bot's reply."""
     original_msg_ts = send_message_to_channel(
         slack_user_client,
         slack_bot_client,
@@ -144,8 +147,9 @@ def update_channel_config(
     bot_id: str,
     user_performing_action: DATestUser,
     channel_name: str | None = None,
-    updated_config_data: Dict[str, Any] = {},
-) -> Dict[str, Any]:
+    updated_config_data: dict[str, Any] = {},
+) -> dict[str, Any]:
+    """Updates the configuration for a specific Slack channel or the default channel."""
     # Get all channel configs
     channel_configs = list_slack_channel_configs(
         bot_id=bot_id, user_performing_action=user_performing_action
@@ -193,12 +197,13 @@ def update_channel_config(
 
 
 def assert_button_presence(
-    blocks: Dict[str, Any],
+    blocks: list[dict[str, Any]],
     action_id: str,
     should_exist: bool,
     test_name: str,
     channel_name: str = "DM",
 ):
+    """Asserts the presence or absence of a button with a specific action_id within Slack message blocks."""
     found_button = False
     for block in blocks:
         if block["type"] == "actions":
@@ -217,33 +222,6 @@ def assert_button_presence(
         assert (
             not found_button
         ), f"{test_name}: Button should NOT be present in {channel_name}"
-
-
-def extract_dm_slack_context(
-    slack_test_context: Dict[str, Any],
-) -> Tuple[WebClient, WebClient, DATestUser, str]:
-    return (
-        slack_test_context["slack_bot_client"],
-        slack_test_context["slack_user_client"],
-        slack_test_context["admin_user"],
-        slack_test_context["slack_bot"]["id"],
-    )
-
-
-def extract_channel_slack_context(
-    slack_test_context: Dict[str, Any],
-) -> Tuple[
-    WebClient, WebClient, WebClient, DATestUser, str, Dict[str, Any], Dict[str, Any]
-]:
-    return (
-        slack_test_context["slack_bot_client"],
-        slack_test_context["slack_user_client"],
-        slack_test_context["slack_secondary_user_client"],
-        slack_test_context["admin_user"],
-        slack_test_context["slack_bot"]["id"],
-        slack_test_context["test_channel_1"],
-        slack_test_context["test_channel_2"],
-    )
 
 
 def get_last_chat_session_and_messages(user_id, db_session):
@@ -272,8 +250,8 @@ def get_last_chat_session_and_messages(user_id, db_session):
     return last_session, messages
 
 
-def get_slack_user_record(db_session):
+def get_primary_user_record(db_session):
     """
     Returns the first user record where role is 'SLACK_USER'.
     """
-    return db_session.query(User).filter(User.role == "SLACK_USER").first()
+    return db_session.query(User).filter(User.email == PRIMARY_USER_EMAIL).first()

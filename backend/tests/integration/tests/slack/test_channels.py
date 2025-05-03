@@ -1,20 +1,38 @@
+"""Integration tests for Slack channel configurations and bot interactions.
+
+This suite verifies the behavior of the Slack bot based on various channel-specific
+and default configuration settings, including message filtering, response conditions,
+button visibility, standard answers, user restrictions, and ephemeral messaging.
+"""
+
+import time
 from typing import Any
-from typing import Dict
-from typing import List
 
 import pytest
 
 from onyx.db.engine import get_session_context_manager
 from onyx.utils.logger import setup_logger
 from tests.integration.common_utils.managers.slack import SlackManager
+from tests.integration.common_utils.test_models import SlackTestContext
+from tests.integration.tests.slack.constants import ANSWER_LENA_BOOKS_STORY
+from tests.integration.tests.slack.constants import ANSWER_LENA_BOOKS_WEB
+from tests.integration.tests.slack.constants import DEFAULT_REPLY_TIMEOUT
+from tests.integration.tests.slack.constants import EPHEMERAL_MESSAGE_ANSWER
+from tests.integration.tests.slack.constants import EPHEMERAL_MESSAGE_QUESTION
+from tests.integration.tests.slack.constants import QUESTION_CAPITAL_FRANCE
+from tests.integration.tests.slack.constants import QUESTION_HI_GENERIC
+from tests.integration.tests.slack.constants import QUESTION_LENA_BOOKS
+from tests.integration.tests.slack.constants import QUESTION_LENA_BOOKS_NO_MARK
+from tests.integration.tests.slack.constants import QUESTION_LENA_BOOKS_WEB_SOURCE
+from tests.integration.tests.slack.constants import QUESTION_NEED_SUPPORT
+from tests.integration.tests.slack.constants import SHORT_REPLY_TIMEOUT
+from tests.integration.tests.slack.constants import SLEEP_BEFORE_EPHEMERAL_CHECK
+from tests.integration.tests.slack.constants import STD_ANSWER_SUPPORT_EMAIL
 from tests.integration.tests.slack.slack_test_helpers import assert_button_presence
-from tests.integration.tests.slack.slack_test_helpers import (
-    extract_channel_slack_context,
-)
 from tests.integration.tests.slack.slack_test_helpers import (
     get_last_chat_session_and_messages,
 )
-from tests.integration.tests.slack.slack_test_helpers import get_slack_user_record
+from tests.integration.tests.slack.slack_test_helpers import get_primary_user_record
 from tests.integration.tests.slack.slack_test_helpers import (
     send_and_receive_channel_message,
 )
@@ -25,23 +43,25 @@ from tests.integration.tests.slack.slack_test_helpers import send_message_to_cha
 from tests.integration.tests.slack.slack_test_helpers import update_channel_config
 
 logger = setup_logger()
-"""NOTE: Slack treats messages sent by our test suite as bot messages.
-So we will enable respond to bot config in most of the test cases"""
+# Note: Messages sent by this test suite are treated as bot messages by Slack.
+# Therefore, the 'respond_to_bots' configuration option needs to be enabled
+# in most test cases to ensure the bot responds as expected.
 
 
-def default_config_and_channel_config_enabled(
-    slack_test_context: Dict[str, Any],
+def test_default_config_and_channel_config_enabled(
+    slack_test_context: SlackTestContext,
 ) -> None:
+    """Verify that the bot responds in channels when both default and channel-specific configurations are enabled."""
     logger.info("Testing default config")
-    slack_bot_client = slack_test_context["slack_bot_client"]
-    slack_user_client = slack_test_context["slack_user_client"]
-    test_channel_1 = slack_test_context["test_channel_1"]
-    test_channel_2 = slack_test_context["test_channel_2"]
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    test_channel_1 = slack_test_context.test_channel_1
+    test_channel_2 = slack_test_context.test_channel_2
 
     message = send_and_receive_channel_message(
         slack_user_client=slack_user_client,
         slack_bot_client=slack_bot_client,
-        message="Hi, What are you doing?",
+        message=QUESTION_HI_GENERIC,
         channel=test_channel_1,
         tag_bot=True,
     )
@@ -49,37 +69,44 @@ def default_config_and_channel_config_enabled(
     message = send_and_receive_channel_message(
         slack_user_client=slack_user_client,
         slack_bot_client=slack_bot_client,
-        message="Hi, What are you doing?",
+        message=QUESTION_HI_GENERIC,
         channel=test_channel_2,
         tag_bot=True,
     )
     assert message is not None, "Bot should respond"
 
 
-def default_config_and_channel_config_disabled(
-    slack_test_context: Dict[str, Any],
+def test_default_config_and_channel_config_disabled(
+    slack_test_context: SlackTestContext,
 ) -> None:
-    logger.info("Testing default config with 'respond to bots' enabled")
-    slack_bot_client = slack_test_context["slack_bot_client"]
-    slack_user_client = slack_test_context["slack_user_client"]
-    test_channel_1 = slack_test_context["test_channel_1"]
-    test_channel_2 = slack_test_context["test_channel_2"]
-    admin_user = slack_test_context["admin_user"]
-    slack_bot = slack_test_context["slack_bot"]
-    bot_id = slack_bot["id"]
+    """Verify that the bot does not respond when the configuration is disabled.
+
+    Note: Even with a disabled config, tagging the bot elicits a reply,
+    so the bot is not tagged in this test.
+    """
+    logger.info("Testing default config with 'respond to bots' disabled")
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    test_channel_1 = slack_test_context.test_channel_1
+    test_channel_2 = slack_test_context.test_channel_2
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
 
     update_channel_config(
         bot_id=bot_id,
         user_performing_action=admin_user,
         channel_name=test_channel_1["name"],
-        updated_config_data={"disabled": True},
+        updated_config_data={
+            "disabled": True,
+            "respond_to_bots": True,
+            "respond_tag_only": False,
+        },
     )
     message = send_and_receive_channel_message(
         slack_user_client=slack_user_client,
         slack_bot_client=slack_bot_client,
-        message="Hi, What are you doing?",
+        message=QUESTION_HI_GENERIC,
         channel=test_channel_1,
-        tag_bot=True,
         timeout_secs=40,
     )
     assert message is None, "Bot should not respond when disabled"
@@ -87,21 +114,21 @@ def default_config_and_channel_config_disabled(
     update_channel_config(
         bot_id=bot_id,
         user_performing_action=admin_user,
-        updated_config_data={"disabled": True},
+        updated_config_data={
+            "disabled": True,
+            "respond_to_bots": True,
+            "respond_tag_only": False,
+        },
     )
 
     message = send_and_receive_channel_message(
         slack_user_client=slack_user_client,
         slack_bot_client=slack_bot_client,
-        message="Hi, What are you doing?",
+        message=QUESTION_HI_GENERIC,
         channel=test_channel_2,
-        tag_bot=True,
         timeout_secs=40,
     )
     assert message is None, "Bot should respond when enabled"
-
-
-"""Test cases for continue_in_web_ui button in channels"""
 
 
 @pytest.mark.parametrize(
@@ -113,7 +140,7 @@ def default_config_and_channel_config_disabled(
             {"show_continue_in_web_ui": True, "respond_to_bots": True},
             True,
             True,
-            ["42", "40"],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
         (
             "enabled_in_channel_1_only",
@@ -121,7 +148,7 @@ def default_config_and_channel_config_disabled(
             {"show_continue_in_web_ui": False, "respond_to_bots": True},
             True,
             False,
-            ["42", "40"],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
         (
             "disabled_in_both",
@@ -129,28 +156,27 @@ def default_config_and_channel_config_disabled(
             {"show_continue_in_web_ui": False, "respond_to_bots": True},
             False,
             False,
-            ["42", "40"],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
     ],
 )
 def test_show_continue_in_web_ui_button(
-    slack_test_context,
-    test_name,
-    channel_1_config,
-    channel_2_config,
-    expect_button_channel_1,
-    expect_button_channel_2,
-    expected_text,
+    slack_test_context: SlackTestContext,
+    test_name: str,
+    channel_1_config: dict[str, Any],
+    channel_2_config: dict[str, Any],
+    expect_button_channel_1: bool,
+    expect_button_channel_2: bool,
+    expected_text: list[str],
 ):
+    """Verify the presence or absence of the 'Continue in Web UI' button based on channel configurations."""
     logger.info(f"Running test: {test_name}")
-    (
-        slack_bot_client,
-        slack_user_client,
-        admin_user,
-        bot_id,
-        test_channel_1,
-        test_channel_2,
-    ) = extract_channel_slack_context(slack_test_context)
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
+    test_channel_1 = slack_test_context.test_channel_1
+    test_channel_2 = slack_test_context.test_channel_2
 
     # Update channel 1 config
     logger.info(f"test_channel_1 : {test_channel_1}")
@@ -175,7 +201,7 @@ def test_show_continue_in_web_ui_button(
         message = send_and_receive_channel_message(
             slack_user_client=slack_user_client,
             slack_bot_client=slack_bot_client,
-            message="How many books did Lena receive last Friday?",
+            message=QUESTION_LENA_BOOKS,
             channel=channel,
             tag_bot=True,
         )
@@ -192,10 +218,6 @@ def test_show_continue_in_web_ui_button(
         )
 
 
-"""Test cases for respond to bot in channels, Message sent by test suite is
-treated as bot message so just sending the messsage is fine"""
-
-
 @pytest.mark.parametrize(
     "test_name, channel_1_config, channel_2_config, expected_text_channel_1, expected_text_channel_2",
     [
@@ -203,14 +225,14 @@ treated as bot message so just sending the messsage is fine"""
             "enabled_in_both",
             {"respond_to_bots": True, "respond_tag_only": False},
             {"respond_to_bots": True, "respond_tag_only": False},
-            ["42", "40"],
-            ["42", "40"],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
         (
             "enabled_in_channel_1_only",
             {"respond_to_bots": True, "respond_tag_only": False},
             {"respond_to_bots": False, "respond_tag_only": False},
-            ["42", "40"],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
             None,
         ),
         (
@@ -223,22 +245,24 @@ treated as bot message so just sending the messsage is fine"""
     ],
 )
 def test_respond_to_bot(
-    slack_test_context,
-    test_name,
-    channel_1_config,
-    channel_2_config,
-    expected_text_channel_1,
-    expected_text_channel_2,
+    slack_test_context: SlackTestContext,
+    test_name: str,
+    channel_1_config: dict[str, Any],
+    channel_2_config: dict[str, Any],
+    expected_text_channel_1: list[str] | None,
+    expected_text_channel_2: list[str] | None,
 ):
+    """Verify the 'respond to bots' setting in channels.
+
+    Messages sent by the test suite are treated as bot messages.
+    """
     logger.info(f"Running test: {test_name}")
-    (
-        slack_bot_client,
-        slack_user_client,
-        admin_user,
-        bot_id,
-        test_channel_1,
-        test_channel_2,
-    ) = extract_channel_slack_context(slack_test_context)
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
+    test_channel_1 = slack_test_context.test_channel_1
+    test_channel_2 = slack_test_context.test_channel_2
 
     # Update channel 1 config
     logger.info(f"test_channel_1 : {test_channel_1}")
@@ -263,7 +287,7 @@ def test_respond_to_bot(
         message = send_channel_msg_with_optional_timeout(
             slack_bot_client=slack_bot_client,
             slack_user_client=slack_user_client,
-            message_text="How many books did Lena receive last Friday?",
+            message_text=QUESTION_LENA_BOOKS,
             channel=channel,
             expected_text=expected_text,
         )
@@ -280,9 +304,6 @@ def test_respond_to_bot(
         assert any(
             text in blocks[0]["text"]["text"] for text in expected_text
         ), f"{test_name}: Response should contain one of '{expected_text}'"
-
-
-"""Test cases for follow_up button"""
 
 
 @pytest.mark.parametrize(
@@ -312,22 +333,21 @@ def test_respond_to_bot(
     ],
 )
 def test_follow_up_tags(
-    slack_test_context,
-    test_name,
-    channel_1_config,
-    channel_2_config,
-    expect_button_channel_1,
-    expect_button_channel_2,
+    slack_test_context: SlackTestContext,
+    test_name: str,
+    channel_1_config: dict[str, Any],
+    channel_2_config: dict[str, Any],
+    expect_button_channel_1: bool,
+    expect_button_channel_2: bool,
 ):
+    """Verify the presence or absence of the follow-up button based on channel configurations."""
     logger.info(f"Running test: {test_name}")
-    (
-        slack_bot_client,
-        slack_user_client,
-        admin_user,
-        bot_id,
-        test_channel_1,
-        test_channel_2,
-    ) = extract_channel_slack_context(slack_test_context)
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
+    test_channel_1 = slack_test_context.test_channel_1
+    test_channel_2 = slack_test_context.test_channel_2
 
     # Update channel 1 config
     logger.info(f"test_channel_1 : {test_channel_1}")
@@ -352,7 +372,7 @@ def test_follow_up_tags(
         message = send_and_receive_channel_message(
             slack_user_client=slack_user_client,
             slack_bot_client=slack_bot_client,
-            message="How many books did Lena receive last Friday?",
+            message=QUESTION_LENA_BOOKS,
             channel=channel,
             tag_bot=True,
         )
@@ -364,9 +384,6 @@ def test_follow_up_tags(
         assert_button_presence(
             blocks, "followup-button", expect_button, test_name, channel_name
         )
-
-
-"""Test cases for respond to questions in channels"""
 
 
 @pytest.mark.parametrize(
@@ -386,7 +403,7 @@ def test_follow_up_tags(
             },
             None,
             None,
-            "How many books did Lena receive last Friday",
+            QUESTION_LENA_BOOKS_NO_MARK,
         ),
         (
             "enabled_in_channel_1_only",
@@ -397,16 +414,16 @@ def test_follow_up_tags(
             },
             {"respond_to_bots": True, "respond_tag_only": False},
             None,
-            ["42", "40"],
-            "How many books did Lena receive last Friday",
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
+            QUESTION_LENA_BOOKS_NO_MARK,
         ),
         (
             "disabled_in_both",
             {"respond_to_bots": True, "respond_tag_only": False},
             {"respond_to_bots": True, "respond_tag_only": False},
-            ["42", "40"],
-            ["42", "40"],
-            "How many books did Lena receive last Friday",
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
+            QUESTION_LENA_BOOKS_NO_MARK,
         ),
         (
             "enabled_in_both_with_question",
@@ -420,30 +437,29 @@ def test_follow_up_tags(
                 "answer_filters": ["questionmark_prefilter"],
                 "respond_tag_only": False,
             },
-            ["42", "40"],
-            ["42", "40"],
-            "How many books did Lena receive last Friday?",
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
+            QUESTION_LENA_BOOKS,
         ),
     ],
 )
 def test_respond_to_questions(
-    slack_test_context,
-    test_name,
-    channel_1_config,
-    channel_2_config,
-    expected_text_channel_1,
-    expected_text_channel_2,
-    message_text,
+    slack_test_context: SlackTestContext,
+    test_name: str,
+    channel_1_config: dict[str, Any],
+    channel_2_config: dict[str, Any],
+    expected_text_channel_1: list[str] | None,
+    expected_text_channel_2: list[str] | None,
+    message_text: str,
 ):
+    """Verify the 'respond to questions' filter (question mark prefilter) in channels."""
     logger.info(f"Running test: {test_name}")
-    (
-        slack_bot_client,
-        slack_user_client,
-        admin_user,
-        bot_id,
-        test_channel_1,
-        test_channel_2,
-    ) = extract_channel_slack_context(slack_test_context)
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
+    test_channel_1 = slack_test_context.test_channel_1
+    test_channel_2 = slack_test_context.test_channel_2
 
     # Update channel 1 config
     logger.info(f"test_channel_1 : {test_channel_1}")
@@ -487,9 +503,6 @@ def test_respond_to_questions(
         ), f"{test_name}: Response should contain one of '{expected_text}'"
 
 
-"""Test cases for standard answer category in channels"""
-
-
 @pytest.mark.parametrize(
     "test_name, channel_1_config, channel_2_config, expected_text_channel_1, expected_text_channel_2",
     [
@@ -497,14 +510,14 @@ def test_respond_to_questions(
             "enabled_in_both",
             "std_ans_category",
             "std_ans_category",
-            "support@onyx.app",
-            "support@onyx.app",
+            STD_ANSWER_SUPPORT_EMAIL,
+            STD_ANSWER_SUPPORT_EMAIL,
         ),
         (
             "enabled_in_channel_1_only",
             "std_ans_category",
             {"respond_to_bots": True},
-            "support@onyx.app",
+            STD_ANSWER_SUPPORT_EMAIL,
             None,
         ),
         (
@@ -517,27 +530,26 @@ def test_respond_to_questions(
     ],
 )
 def test_standard_answer(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
     test_name: str,
-    channel_1_config: Any,
-    channel_2_config: Any,
-    expected_text_channel_1: str,
-    expected_text_channel_2: str,
+    channel_1_config: dict[str, Any] | str,
+    channel_2_config: dict[str, Any] | str,
+    expected_text_channel_1: str | None,
+    expected_text_channel_2: str | None,
 ):
+    """Verify the standard answer category functionality in channels."""
     logger.info(f"Running test: {test_name}")
-    (
-        slack_bot_client,
-        slack_user_client,
-        admin_user,
-        bot_id,
-        test_channel_1,
-        test_channel_2,
-    ) = extract_channel_slack_context(slack_test_context)
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
+    test_channel_1 = slack_test_context.test_channel_1
+    test_channel_2 = slack_test_context.test_channel_2
 
     # Update channel 1 config
     logger.info(f"test_channel_1 : {test_channel_1}")
     if channel_1_config == "std_ans_category":
-        categories = slack_test_context["std_ans_category"]
+        categories = slack_test_context.std_ans_category
         cat_id = categories["id"]
         channel_1_config = {
             "respond_to_bots": True,
@@ -553,7 +565,7 @@ def test_standard_answer(
     # Update default config (applies to channel 2)
     logger.info(f"Channel 2 config: {channel_2_config}")
     if channel_2_config == "std_ans_category":
-        categories = slack_test_context["std_ans_category"]
+        categories = slack_test_context.std_ans_category
         cat_id = categories["id"]
         channel_2_config = {
             "respond_to_bots": True,
@@ -571,7 +583,7 @@ def test_standard_answer(
         message = send_channel_msg_with_optional_timeout(
             slack_bot_client=slack_bot_client,
             slack_user_client=slack_user_client,
-            message_text="I need support",
+            message_text=QUESTION_NEED_SUPPORT,
             channel=channel,
             expected_text=expected_text,
             tag_bot=True,
@@ -580,17 +592,12 @@ def test_standard_answer(
         blocks = message["blocks"]
         if expected_text is None:
             assert (
-                "support@onyx.app" not in blocks[0]["text"]["text"]
+                STD_ANSWER_SUPPORT_EMAIL not in blocks[0]["text"]["text"]
             ), f"{test_name}: Response should NOT contain the standard answer in {channel_name}"
         else:
             assert (
                 expected_text in blocks[0]["text"]["text"]
             ), f"{test_name}: Response should contain '{expected_text}'"
-
-
-# tag with restrictions
-"""Test cases to verify that the bot responds if it is tagged even when 'Respond to Bots'
-is disabled, 'Respond to Questions' is enabled and the overall config is disabled."""
 
 
 @pytest.mark.parametrize(
@@ -600,42 +607,43 @@ is disabled, 'Respond to Questions' is enabled and the overall config is disable
             "disabled_in_both_respond_to_bots",
             {"respond_to_bots": False},
             {"respond_to_bots": False},
-            ["42", "40"],
-            ["42", "40"],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
         (
             "respond_to_bots_enabled_respond_to_questions_enabled",
             {"respond_to_bots": False, "answer_filters": ["questionmark_prefilter"]},
             {"respond_to_bots": False, "answer_filters": ["questionmark_prefilter"]},
-            ["42", "40"],
-            ["42", "40"],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
         (
             "config_disabled",
             {"disabled": True},
             {"disabled": True},
-            ["42", "40"],
-            ["42", "40"],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
     ],
 )
 def test_tag_with_restriction(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
     test_name: str,
-    channel_1_config: Any,
-    channel_2_config: Any,
-    expected_text_channel_1: List[str],
-    expected_text_channel_2: List[str],
+    channel_1_config: dict[str, Any],
+    channel_2_config: dict[str, Any],
+    expected_text_channel_1: list[str],
+    expected_text_channel_2: list[str],
 ):
+    """Verify that the bot responds when tagged, even if 'Respond to Bots' is disabled,
+    'Respond to Questions' is enabled, or the overall channel configuration is disabled.
+    """
     logger.info(f"Running test: {test_name}")
-    (
-        slack_bot_client,
-        slack_user_client,
-        admin_user,
-        bot_id,
-        test_channel_1,
-        test_channel_2,
-    ) = extract_channel_slack_context(slack_test_context)
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
+    test_channel_1 = slack_test_context.test_channel_1
+    test_channel_2 = slack_test_context.test_channel_2
 
     # Update channel 1 config
     logger.info(f"test_channel_1 : {test_channel_1}")
@@ -660,7 +668,7 @@ def test_tag_with_restriction(
         message = send_and_receive_channel_message(
             slack_user_client=slack_user_client,
             slack_bot_client=slack_bot_client,
-            message="How many books did Lena receive last Friday",
+            message=QUESTION_LENA_BOOKS_NO_MARK,
             channel=channel,
             tag_bot=True,
         )
@@ -672,9 +680,6 @@ def test_tag_with_restriction(
         assert any(
             text in blocks[0]["text"]["text"] for text in expected_text
         ), f"{test_name}: Response should contain one of '{expected_text}'"
-
-
-"""Test cases for citations in channels"""
 
 
 @pytest.mark.xfail(
@@ -689,7 +694,7 @@ def test_tag_with_restriction(
             {"respond_to_bots": True, "answer_filters": ["well_answered_postfilter"]},
             None,
             None,
-            "What is the capital of France?",
+            QUESTION_CAPITAL_FRANCE,
         ),
         (
             "enabled_in_channel_1_only",
@@ -697,7 +702,7 @@ def test_tag_with_restriction(
             {"respond_to_bots": True},
             None,
             "",
-            "What is the capital of France?",
+            QUESTION_CAPITAL_FRANCE,
         ),
         (
             "disabled_in_both",
@@ -705,28 +710,27 @@ def test_tag_with_restriction(
             {"respond_to_bots": True},
             "",
             "",
-            "What is the capital of France?",
+            QUESTION_CAPITAL_FRANCE,
         ),
     ],
 )
 def test_citation(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
     test_name: str,
-    channel_1_config: Any,
-    channel_2_config: Any,
-    expected_text_channel_1: str,
-    expected_text_channel_2: str,
+    channel_1_config: dict[str, Any],
+    channel_2_config: dict[str, Any],
+    expected_text_channel_1: str | None,
+    expected_text_channel_2: str | None,
     message_text: str,
 ):
+    """Verify the citation filter ('well_answered_postfilter') functionality in channels."""
     logger.info(f"Running test: {test_name}")
-    (
-        slack_bot_client,
-        slack_user_client,
-        admin_user,
-        bot_id,
-        test_channel_1,
-        test_channel_2,
-    ) = extract_channel_slack_context(slack_test_context)
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
+    test_channel_1 = slack_test_context.test_channel_1
+    test_channel_2 = slack_test_context.test_channel_2
 
     # Update channel 1 config
     logger.info(f"test_channel_1 : {test_channel_1}")
@@ -763,19 +767,15 @@ def test_citation(
         assert message is not None, f"{test_name}: Bot should respond in {channel_name}"
 
 
-"""Test cases for llm auto filter in channels"""
-
-
-def test_llm_auto_filter(slack_test_context: Dict[str, Any]):
+def test_llm_auto_filter(slack_test_context: SlackTestContext):
+    """Verify the LLM auto-filter functionality in channels."""
     logger.info("Running test: llm_auto_filter")
-    (
-        slack_bot_client,
-        slack_user_client,
-        admin_user,
-        bot_id,
-        test_channel_1,
-        test_channel_2,
-    ) = extract_channel_slack_context(slack_test_context)
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
+    test_channel_1 = slack_test_context.test_channel_1
+    test_channel_2 = slack_test_context.test_channel_2
 
     # Update channel 1 config
     logger.info(f"test_channel_1 : {test_channel_1}")
@@ -797,14 +797,16 @@ def test_llm_auto_filter(slack_test_context: Dict[str, Any]):
         message = send_and_receive_channel_message(
             slack_user_client=slack_user_client,
             slack_bot_client=slack_bot_client,
-            message="How many books is mentioned as Lena received in web source?",
+            message=QUESTION_LENA_BOOKS_WEB_SOURCE,
             channel=channel,
             tag_bot=True,
         )
         assert message is not None, "Bot should respond"
         blocks = message["blocks"]
         assert blocks is not None and len(blocks) > 0, "Response should have blocks"
-        assert "40" in blocks[0]["text"]["text"], "Response should contain '40'"
+        assert (
+            ANSWER_LENA_BOOKS_WEB in blocks[0]["text"]["text"]
+        ), "Response should contain '40'"
 
 
 @pytest.mark.parametrize(
@@ -823,35 +825,33 @@ def test_llm_auto_filter(slack_test_context: Dict[str, Any]):
                 "respond_tag_only": False,
             },
             None,
-            ["42", "40"],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
         (
             "disabled_in_both",
             {"respond_to_bots": True},
             {"respond_to_bots": True},
-            ["42", "40"],
-            ["42", "40"],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
     ],
 )
 def test_respond_to_certain_users_or_groups(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
     test_name: str,
-    channel_1_config: Any,
-    channel_2_config: Any,
-    expected_text_primary_user: str,
-    expected_text_secondary_user: str,
+    channel_1_config: dict[str, Any],
+    channel_2_config: dict[str, Any],
+    expected_text_primary_user: list[str] | None,
+    expected_text_secondary_user: list[str],
 ):
+    """Verify the functionality to restrict bot responses to specific users or groups in channels."""
     logger.info(f"Running test: {test_name}")
-    (
-        slack_bot_client,
-        slack_user_client,
-        _,
-        admin_user,
-        bot_id,
-        test_channel_1,
-        test_channel_2,
-    ) = extract_channel_slack_context(slack_test_context)
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
+    test_channel_1 = slack_test_context.test_channel_1
+    test_channel_2 = slack_test_context.test_channel_2
     # Update channel 1 config
     logger.info(f"test_channel_1 : {test_channel_1}")
     update_channel_config(
@@ -872,7 +872,7 @@ def test_respond_to_certain_users_or_groups(
         ts = send_message_to_channel(
             slack_user_client=slack_user_client,
             slack_bot_client=slack_bot_client,
-            message="How many books did Lena receive last Friday?",
+            message=QUESTION_LENA_BOOKS,
             channel=channel,
             tag_bot=True,
         )
@@ -881,13 +881,14 @@ def test_respond_to_certain_users_or_groups(
             slack_user_client,
             channel=channel,
             original_message_ts=ts,
-            timeout_seconds=180,
+            timeout_seconds=DEFAULT_REPLY_TIMEOUT,
         )
         logger.info(f"Received message as primary user: {reply}")
         assert reply is not None, "Bot should respond"
         if expected_text_primary_user is None:
             assert (
-                "42" not in reply["text"] and "40" not in reply["text"]
+                ANSWER_LENA_BOOKS_STORY not in reply["text"]
+                and ANSWER_LENA_BOOKS_WEB not in reply["text"]
             ), "Response should NOT contain '42' or '40'"
         else:
             blocks = reply["blocks"]
@@ -897,7 +898,7 @@ def test_respond_to_certain_users_or_groups(
             ), f"Response should contain one of '{expected_text_primary_user}'"
 
         with get_session_context_manager() as session:
-            user = get_slack_user_record(session)
+            user = get_primary_user_record(session)
             user_id = user.id
             logger.info(f"Slack user ID: {user_id}")
             _, messages = get_last_chat_session_and_messages(
@@ -912,3 +913,115 @@ def test_respond_to_certain_users_or_groups(
                     assert any(
                         text in message.message for text in expected_text_secondary_user
                     ), f"Response should contain one of '{expected_text_secondary_user}'"
+
+
+@pytest.mark.parametrize(
+    "test_name, channel_1_config, channel_2_config, expected_text_primary_user",
+    [
+        (
+            "enabled_in_both",
+            {"respond_to_bots": True, "is_ephemeral": True},
+            {"respond_to_bots": True, "is_ephemeral": True},
+            EPHEMERAL_MESSAGE_ANSWER,
+        ),
+        (
+            "disabled_in_both",
+            {"respond_to_bots": True},
+            {"respond_to_bots": True},
+            None,
+        ),
+    ],
+)
+def test_ephemeral_message(
+    slack_test_context: SlackTestContext,
+    test_name: str,
+    channel_1_config: dict[str, Any],
+    channel_2_config: dict[str, Any],
+    expected_text_primary_user: str | None,
+):
+    """Verify the ephemeral message functionality in channels."""
+    logger.info(f"Running test: {test_name}")
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    slack_secondary_user_client = slack_test_context.slack_secondary_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
+    test_channel_1 = slack_test_context.test_channel_1
+    test_channel_2 = slack_test_context.test_channel_2
+    # Update channel 1 config
+    logger.info(f"test_channel_1 : {test_channel_1}")
+    update_channel_config(
+        bot_id=bot_id,
+        user_performing_action=admin_user,
+        channel_name=test_channel_1["name"],
+        updated_config_data=channel_1_config,
+    )
+    # Update default config (applies to channel 2)
+    logger.info(f"Channel 2 config: {channel_2_config}")
+    update_channel_config(
+        bot_id=bot_id,
+        user_performing_action=admin_user,
+        updated_config_data=channel_2_config,
+    )
+    for channel in [test_channel_1, test_channel_2]:
+        ts = send_message_to_channel(
+            slack_user_client=slack_user_client,
+            slack_bot_client=slack_bot_client,
+            message=EPHEMERAL_MESSAGE_QUESTION,
+            channel=channel,
+            tag_bot=True,
+        )
+        assert ts is not None, "Bot should respond"
+        if expected_text_primary_user is not None:
+            time.sleep(SLEEP_BEFORE_EPHEMERAL_CHECK)
+            with get_session_context_manager() as session:
+                user = get_primary_user_record(session)
+                user_id = user.id
+                logger.info(f"Slack user ID: {user_id}")
+                _, messages = get_last_chat_session_and_messages(
+                    user_id=user_id, db_session=session
+                )
+                assert (
+                    messages is not None and len(messages) > 0
+                ), "Response should have messages"
+                for message in messages:
+                    if message.message_type == "ASSISTANT":
+                        assert (
+                            message.message is not None
+                        ), "Response should have messages"
+                        assert (
+                            expected_text_primary_user in message.message
+                        ), f"Response should contain '{expected_text_primary_user}'"
+            reply = SlackManager.poll_for_reply(
+                slack_secondary_user_client,
+                channel=channel,
+                original_message_ts=ts,
+                timeout_seconds=SHORT_REPLY_TIMEOUT,
+            )
+            assert reply is None, "Bot should not respond"
+        else:
+            reply = SlackManager.poll_for_reply(
+                slack_user_client,
+                channel=channel,
+                original_message_ts=ts,
+                timeout_seconds=DEFAULT_REPLY_TIMEOUT,
+            )
+            assert reply is not None, "Bot should respond"
+            blocks = reply["blocks"]
+            assert blocks is not None and len(blocks) > 0, "Response should have blocks"
+            assert (
+                EPHEMERAL_MESSAGE_ANSWER not in blocks[0]["text"]["text"]
+            ), f"Response should not contain '{EPHEMERAL_MESSAGE_ANSWER}'"
+
+            reply = SlackManager.poll_for_reply(
+                slack_secondary_user_client,
+                channel=channel,
+                original_message_ts=ts,
+                timeout_seconds=DEFAULT_REPLY_TIMEOUT,
+            )
+            assert reply is not None, "Bot should respond"
+            blocks = reply["blocks"]
+            assert blocks is not None and len(blocks) > 0, "Response should have blocks"
+            assert (
+                EPHEMERAL_MESSAGE_ANSWER not in blocks[0]["text"]["text"]
+            ), f"Response should not contain '{EPHEMERAL_MESSAGE_ANSWER}'"

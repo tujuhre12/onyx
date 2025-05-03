@@ -1,12 +1,28 @@
+"""
+Integration tests for Slack Direct Message (DM) functionality.
+
+This module contains tests that verify the behavior of the Onyx Slack bot
+when interacting within DMs, covering various configuration options like
+responding to bots, showing buttons, filtering messages, standard answers,
+and handling tags under different restriction settings.
+"""
+
 from typing import Any
-from typing import Dict
 
 import pytest
 
 from onyx.utils.logger import setup_logger
 from tests.integration.common_utils.managers.slack import SlackManager
+from tests.integration.common_utils.test_models import SlackTestContext
+from tests.integration.tests.slack.constants import ANSWER_LENA_BOOKS_STORY
+from tests.integration.tests.slack.constants import ANSWER_LENA_BOOKS_WEB
+from tests.integration.tests.slack.constants import QUESTION_CAPITAL_FRANCE
+from tests.integration.tests.slack.constants import QUESTION_LENA_BOOKS
+from tests.integration.tests.slack.constants import QUESTION_LENA_BOOKS_NO_MARK
+from tests.integration.tests.slack.constants import QUESTION_LENA_BOOKS_WEB_SOURCE
+from tests.integration.tests.slack.constants import QUESTION_NEED_SUPPORT
+from tests.integration.tests.slack.constants import STD_ANSWER_SUPPORT_EMAIL
 from tests.integration.tests.slack.slack_test_helpers import assert_button_presence
-from tests.integration.tests.slack.slack_test_helpers import extract_dm_slack_context
 from tests.integration.tests.slack.slack_test_helpers import send_and_receive_dm
 from tests.integration.tests.slack.slack_test_helpers import (
     send_dm_with_optional_timeout,
@@ -14,9 +30,10 @@ from tests.integration.tests.slack.slack_test_helpers import (
 from tests.integration.tests.slack.slack_test_helpers import update_channel_config
 
 logger = setup_logger()
-"""NOTE: Slack treats messages sent by our test suite as bot messages.
- So we will enable respond to bot config in most of the test cases"""
-"""Test cases for Slack DMs using the default configuration."""
+
+# Note: Messages sent by this test suite are treated as bot messages by Slack.
+# Therefore, the 'respond_to_bots' configuration option needs to be enabled
+# in most test cases to ensure the bot responds as expected.
 
 
 @pytest.mark.parametrize(
@@ -27,12 +44,16 @@ logger = setup_logger()
     ],
 )
 def test_dm_default_config(
-    slack_test_context: Dict[str, Any], test_name: str, config_update: Any
+    slack_test_context: SlackTestContext,
+    test_name: str,
+    config_update: dict[str, Any] | None,
 ) -> None:
+    """Test cases for Slack DMs using the default configuration."""
     logger.info(f"Testing DM config: {test_name}")
-    slack_bot_client, slack_user_client, admin_user, bot_id = extract_dm_slack_context(
-        slack_test_context
-    )
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
 
     if config_update:
         update_channel_config(bot_id, admin_user, updated_config_data=config_update)
@@ -40,41 +61,44 @@ def test_dm_default_config(
     message = send_and_receive_dm(
         slack_bot_client,
         slack_user_client,
-        "How many books did Lena receive last Friday?",
+        QUESTION_LENA_BOOKS,
         timeout_secs=20,
     )
     # Message is treated as bot message so we won't get a response
     assert message is None, f"Bot should not respond when {test_name}"
 
 
-"""Test cases for Slack DMs with respond to bots enabled. If we tag the bot,
- it should respond even though the message is sent as a bot message."""
-
-
 @pytest.mark.parametrize(
     "test_name, config_update, expected_text",
     [
-        ("enabled", {"respond_to_bots": True}, "42"),
+        ("enabled", {"respond_to_bots": True}, ANSWER_LENA_BOOKS_STORY),
         ("disabled", {"disabled": True, "respond_to_bots": True}, None),
     ],
 )
 def test_dm_default_config_by_enabling_respond_to_bot(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
     test_name: str,
-    config_update: Any,
+    config_update: dict[str, Any],
     expected_text: Any,
 ) -> None:
+    """
+    Test Slack DMs with the 'respond_to_bots' setting enabled.
+
+    Verifies that the bot responds when tagged, even if the message
+    originates from a bot.
+    """
     logger.info(f"Testing DM config by enabling respond to bot: {test_name}")
-    slack_bot_client, slack_user_client, admin_user, bot_id = extract_dm_slack_context(
-        slack_test_context
-    )
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
 
     if config_update:
         update_channel_config(bot_id, admin_user, updated_config_data=config_update)
     message = send_dm_with_optional_timeout(
         slack_bot_client,
         slack_user_client,
-        "How many books did Lena receive last Friday?",
+        QUESTION_LENA_BOOKS,
         expected_text=expected_text,
     )
     if expected_text is not None:
@@ -90,9 +114,6 @@ def test_dm_default_config_by_enabling_respond_to_bot(
         assert message is None, f"Bot should not respond when {test_name}"
 
 
-"""Test cases for continue_in_web_ui button in DM"""
-
-
 @pytest.mark.parametrize(
     "test_name, config_update, expect_button, expected_text",
     [
@@ -100,33 +121,35 @@ def test_dm_default_config_by_enabling_respond_to_bot(
             "continue_in_web_ui_button_enabled",
             {"show_continue_in_web_ui": True, "respond_to_bots": True},
             True,
-            "42",
+            ANSWER_LENA_BOOKS_STORY,
         ),
         (
             "continue_in_web_ui_button_disabled",
             {"show_continue_in_web_ui": False, "respond_to_bots": True},
             False,
-            "42",
+            ANSWER_LENA_BOOKS_STORY,
         ),
     ],
 )
 def test_dm_continue_in_web_ui_button(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
     test_name: str,
-    config_update: Any,
+    config_update: dict[str, Any],
     expect_button: bool,
     expected_text: str,
 ):
+    """Test the presence or absence of the 'Continue in Web UI' button in DM responses based on configuration."""
     logger.info(f"Testing DM continue_in_web_ui button: {test_name}")
-    slack_bot_client, slack_user_client, admin_user, bot_id = extract_dm_slack_context(
-        slack_test_context
-    )
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
 
     update_channel_config(bot_id, admin_user, updated_config_data=config_update)
     message = send_and_receive_dm(
         slack_bot_client,
         slack_user_client,
-        "How many books did Lena receive last Friday?",
+        QUESTION_LENA_BOOKS,
     )
     assert message is not None, f"{test_name}: Bot should respond"
     blocks = message["blocks"]
@@ -139,9 +162,6 @@ def test_dm_continue_in_web_ui_button(
     assert_button_presence(blocks, "continue-in-web-ui", expect_button, test_name)
 
 
-"""Test cases for follow_up button in DM"""
-
-
 @pytest.mark.parametrize(
     "test_name, config_update, expect_button, expected_text",
     [
@@ -149,28 +169,35 @@ def test_dm_continue_in_web_ui_button(
             "follow_up_tags_enabled",
             {"follow_up_tags": ["help@onyx.app"], "respond_to_bots": True},
             True,
-            "42",
+            ANSWER_LENA_BOOKS_STORY,
         ),
-        ("follow_up_tags_disabled", {"respond_to_bots": True}, False, "42"),
+        (
+            "follow_up_tags_disabled",
+            {"respond_to_bots": True},
+            False,
+            ANSWER_LENA_BOOKS_STORY,
+        ),
     ],
 )
 def test_dm_follow_up_button(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
     test_name: str,
-    config_update: Any,
+    config_update: dict[str, Any],
     expect_button: bool,
     expected_text: str,
 ):
+    """Test the presence or absence of the 'Follow-up' button in DM responses based on configuration."""
     logger.info(f"Testing DM follow_up button: {test_name}")
-    slack_bot_client, slack_user_client, admin_user, bot_id = extract_dm_slack_context(
-        slack_test_context
-    )
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
 
     update_channel_config(bot_id, admin_user, updated_config_data=config_update)
     message = send_and_receive_dm(
         slack_bot_client,
         slack_user_client,
-        "How many books did Lena receive last Friday?",
+        QUESTION_LENA_BOOKS,
     )
     assert message is not None, f"{test_name}: Bot should respond"
     blocks = message["blocks"]
@@ -183,43 +210,42 @@ def test_dm_follow_up_button(
     assert_button_presence(blocks, "followup-button", expect_button, test_name)
 
 
-"""Test cases for respond_to_questions in DM"""
-
-
 @pytest.mark.parametrize(
     "test_name, config_update, message_text, expected_text",
     [
         (
             "respond_to_questions_enabled_with_question",
             {"respond_to_bots": True, "answer_filters": ["questionmark_prefilter"]},
-            "How many books did Lena receive last Friday?",
-            "42",
+            QUESTION_LENA_BOOKS,
+            ANSWER_LENA_BOOKS_STORY,
         ),
         (
             "respond_to_questions_enabled_without_question",
             {"respond_to_bots": True, "answer_filters": ["questionmark_prefilter"]},
-            "How many books did Lena receive last Friday",
+            QUESTION_LENA_BOOKS_NO_MARK,
             None,
         ),
         (
             "respond_to_questions_enabled_without_question",
             {"respond_to_bots": True},
-            "How many books did Lena receive last Friday",
-            "42",
+            QUESTION_LENA_BOOKS_NO_MARK,
+            ANSWER_LENA_BOOKS_STORY,
         ),
     ],
 )
 def test_dm_respond_to_questions(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
     test_name: str,
-    config_update: Any,
+    config_update: dict[str, Any],
     message_text: str,
     expected_text: Any,
 ):
+    """Test the 'respond_to_questions' filter behavior in DMs."""
     logger.info(f"Testing DM respond_to_questions: {test_name}")
-    slack_bot_client, slack_user_client, admin_user, bot_id = extract_dm_slack_context(
-        slack_test_context
-    )
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
 
     update_channel_config(bot_id, admin_user, updated_config_data=config_update)
     message = send_dm_with_optional_timeout(
@@ -238,16 +264,13 @@ def test_dm_respond_to_questions(
         ), f"{test_name}: Response should contain '{expected_text}'"
 
 
-"""Test cases for standard answer category in DM"""
-
-
 @pytest.mark.parametrize(
     "test_name, config_update, expected_text",
     [
         (
             "with_standard_answer_category",
             "std_ans_category",  # special marker, handled in test
-            "support@onyx.app",
+            STD_ANSWER_SUPPORT_EMAIL,
         ),
         (
             "without_standard_answer_category",
@@ -257,39 +280,38 @@ def test_dm_respond_to_questions(
     ],
 )
 def test_dm_standard_answer_category(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
     test_name: str,
-    config_update: Any,
+    config_update: dict[str, Any] | str,
     expected_text: Any,
 ):
+    """Test the inclusion of standard answers based on category configuration in DMs."""
     logger.info(f"Testing DM standard answer category: {test_name}")
-    slack_bot_client, slack_user_client, admin_user, bot_id = extract_dm_slack_context(
-        slack_test_context
-    )
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
 
     if config_update == "std_ans_category":
-        categories = slack_test_context["std_ans_category"]
-        cat_id = categories["id"]
+        cat_id = slack_test_context.std_ans_category["id"]
         config = {"respond_to_bots": True, "standard_answer_categories": [cat_id]}
     else:
         config = config_update
 
     update_channel_config(bot_id, admin_user, updated_config_data=config)
-    message = send_and_receive_dm(slack_bot_client, slack_user_client, "I need support")
+    message = send_and_receive_dm(
+        slack_bot_client, slack_user_client, QUESTION_NEED_SUPPORT
+    )
     assert message is not None, f"{test_name}: Bot should respond"
     blocks = message["blocks"]
     if expected_text is None:
         assert (
-            "support@onyx.app" not in blocks[0]["text"]["text"]
+            STD_ANSWER_SUPPORT_EMAIL not in blocks[0]["text"]["text"]
         ), f"{test_name}: Response should NOT contain the standard answer"
     else:
         assert (
             expected_text in blocks[0]["text"]["text"]
         ), f"{test_name}: Response should contain '{expected_text}'"
-
-
-"""Test cases for respond only to tag in DM, In DM eventough we enabled this
-config onyx bot will reply for both tag and untagged"""
 
 
 @pytest.mark.parametrize(
@@ -298,31 +320,38 @@ config onyx bot will reply for both tag and untagged"""
         (
             "respond_tag_only_enabled",
             {"respond_tag_only": True, "respond_to_bots": True},
-            "42",
+            ANSWER_LENA_BOOKS_STORY,
         ),
         (
             "respond_tag_only_disabled",
             {"respond_tag_only": False, "respond_to_bots": True},
-            "42",
+            ANSWER_LENA_BOOKS_STORY,
         ),
     ],
 )
 def test_dm_respond_tag_only(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
     test_name: str,
-    config_update: Any,
+    config_update: dict[str, Any],
     expected_text: Any,
 ):
+    """
+    Test the 'respond_tag_only' setting in DMs.
+
+    Note: In DMs, the bot should reply regardless of this setting,
+    as tagging is implicit in a direct message context.
+    """
     logger.info(f"Testing DM respond_tag_only: {test_name}")
-    slack_bot_client, slack_user_client, admin_user, bot_id = extract_dm_slack_context(
-        slack_test_context
-    )
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
 
     update_channel_config(bot_id, admin_user, updated_config_data=config_update)
     message = send_and_receive_dm(
         slack_bot_client,
         slack_user_client,
-        "How many books did Lena receive last Friday?",
+        QUESTION_LENA_BOOKS,
     )
     assert message is not None, f"{test_name}: Bot should respond"
     blocks = message["blocks"]
@@ -334,33 +363,36 @@ def test_dm_respond_tag_only(
     ), f"{test_name}: Response should contain '{expected_text}'"
 
 
-"""Test cases for respond to bot in DM, Message sent by test
- suite is treated as bot message so just sending the messsage is fine"""
-
-
 @pytest.mark.parametrize(
     "test_name, config_update, expected_text",
     [
-        ("respond_to_bots_enabled", {"respond_to_bots": True}, "42"),
+        ("respond_to_bots_enabled", {"respond_to_bots": True}, ANSWER_LENA_BOOKS_STORY),
         ("respond_to_bots_disabled", {"respond_to_bots": False}, None),
     ],
 )
 def test_dm_respond_to_bots(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
     test_name: str,
-    config_update: Any,
+    config_update: dict[str, Any],
     expected_text: Any,
 ):
+    """
+    Test the 'respond_to_bots' setting in DMs.
+
+    Since test messages are treated as bot messages, this directly tests
+    whether the bot responds based on this configuration.
+    """
     logger.info(f"Testing DM respond_to_bots: {test_name}")
-    slack_bot_client, slack_user_client, admin_user, bot_id = extract_dm_slack_context(
-        slack_test_context
-    )
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
 
     update_channel_config(bot_id, admin_user, updated_config_data=config_update)
     message = send_dm_with_optional_timeout(
         slack_bot_client,
         slack_user_client,
-        "How many books did Lena receive last Friday?",
+        QUESTION_LENA_BOOKS,
         expected_text,
     )
     if expected_text is None:
@@ -376,9 +408,6 @@ def test_dm_respond_to_bots(
         ), f"{test_name}: Response should contain '{expected_text}'"
 
 
-"""Test cases for citations in DM"""
-
-
 @pytest.mark.xfail(reason="Citations are not supported in DM")
 @pytest.mark.parametrize(
     "test_name, config_update, expected_text",
@@ -392,21 +421,22 @@ def test_dm_respond_to_bots(
     ],
 )
 def test_dm_citations(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
     test_name: str,
-    config_update: Any,
+    config_update: dict[str, Any],
     expected_text: Any,
 ):
-
+    """Test citation generation in DMs (currently expected to fail)."""
     logger.info(f"Testing DM citations: {test_name}")
-    slack_bot_client, slack_user_client, admin_user, bot_id = extract_dm_slack_context(
-        slack_test_context
-    )
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
     update_channel_config(bot_id, admin_user, updated_config_data=config_update)
     message = send_dm_with_optional_timeout(
         slack_bot_client,
         slack_user_client,
-        "What is the capital of france?",
+        QUESTION_CAPITAL_FRANCE,
         expected_text=expected_text,
     )
     if expected_text is None:
@@ -415,16 +445,15 @@ def test_dm_citations(
         assert message is not None, f"{test_name}: Bot should respond"
 
 
-"""Test cases for llm auto filters in DM"""
-
-
 def test_dm_llm_auto_filters(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
 ):
+    """Test the behavior of LLM auto filters in DMs."""
     logger.info("Testing DM llm auto filters")
-    slack_bot_client, slack_user_client, admin_user, bot_id = extract_dm_slack_context(
-        slack_test_context
-    )
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
     update_channel_config(
         bot_id,
         admin_user,
@@ -434,17 +463,14 @@ def test_dm_llm_auto_filters(
     message = send_and_receive_dm(
         slack_bot_client,
         slack_user_client,
-        "How many books is mentioned as Lena received in web source?",
+        QUESTION_LENA_BOOKS_WEB_SOURCE,
     )
     assert message is not None, "Bot should respond"
     blocks = message["blocks"]
     assert blocks is not None and len(blocks) > 0, "Response should have blocks"
-    assert "40" in blocks[0]["text"]["text"], "Response should contain '40'"
-
-
-"""Test cases to verify that the bot responds if it is tagged even
- when 'Respond to Bots' is disabled, 'Respond to Questions' is enabled
- and the overall config is disabled."""
+    assert (
+        ANSWER_LENA_BOOKS_WEB in blocks[0]["text"]["text"]
+    ), "Response should contain '40'"
 
 
 @pytest.mark.parametrize(
@@ -464,23 +490,33 @@ def test_dm_llm_auto_filters(
     ],
 )
 def test_dm_tag_with_restriction(
-    slack_test_context: Dict[str, Any],
+    slack_test_context: SlackTestContext,
     test_name: str,
-    config_update: Any,
+    config_update: dict[str, Any],
     expected_text: Any,
 ):
+    """
+    Verify that the bot responds to a direct tag in DMs even when restrictive settings are enabled.
+
+    Tests scenarios where 'respond_to_bots' is disabled, 'respond_to_questions'
+    is enabled (but the message isn't a question), or the overall configuration is disabled.
+    Tagging the bot should override these restrictions in DMs.
+    """
     logger.info(f"Testing DM respond_to_bots with restrictions: {test_name}")
-    slack_bot_client, slack_user_client, admin_user, bot_id = extract_dm_slack_context(
-        slack_test_context
-    )
+    slack_bot_client = slack_test_context.slack_bot_client
+    slack_user_client = slack_test_context.slack_user_client
+    admin_user = slack_test_context.admin_user
+    bot_id = slack_test_context.slack_bot["id"]
 
     update_channel_config(bot_id, admin_user, updated_config_data=config_update)
 
-    user_id, _ = SlackManager.get_onyxbot_user_and_bot_ids(slack_bot_client)
+    user_id, _ = SlackManager.get_client_user_and_bot_ids(
+        slack_test_context.slack_bot_client
+    )
     logger.info(f"Slack bot user ID: {user_id}")
 
     # tag the bot in the message
-    message = f"<@{user_id}> How many books did Lena receive last Friday"
+    message = f"<@{user_id}> {QUESTION_LENA_BOOKS_NO_MARK}"
     logger.info(f"Sending message to bot: {message}")
 
     message = send_and_receive_dm(slack_bot_client, slack_user_client, message)

@@ -4,10 +4,21 @@ Assumptions:
 - General is empty of messages
 - In addition to the normal slack oauth permissions, the following scopes are needed:
     - channels:manage
-    - groups:write
-    - chat:write
     - chat:write.public
+    - channels:history
+    - channels:write
+    - chat:write
+    - groups:history
+    - groups:write
+    - im:history
     - im:write
+    - mpim:history
+    - mpim:write
+    - users:write
+    - channels:read
+    - groups:read
+    - mpim:read
+    - im:read
 """
 
 import time
@@ -243,11 +254,13 @@ class SlackManager:
             user_email_id_map[email] = user_id
         return user_email_id_map
 
-    # TODO: Rename to common method name
     @staticmethod
-    def get_onyxbot_user_and_bot_ids(
+    def get_client_user_and_bot_ids(
         slack_client: WebClient,
     ) -> tuple[str, str]:
+        """
+        Fetches the user ID and bot ID of the authenticated user.
+        """
         logger.info("Attempting to find onyxbot user ID and bot ID.")
         try:
             auth_response = make_slack_api_call_w_retries(
@@ -267,6 +280,10 @@ class SlackManager:
         channel: dict[str, Any],
         user_ids: list[str],
     ) -> None:
+        """
+        Sets the members of a Slack channel by first removing all members
+        and then adding the specified members.
+        """
         _clear_slack_conversation_members(
             slack_client=slack_client,
             channel=channel,
@@ -302,19 +319,10 @@ class SlackManager:
         slack_client: WebClient,
         channel: dict[str, Any],
         original_message_ts: str,
-        timeout_seconds: int = 25,
+        timeout_seconds: int,
     ) -> Optional[dict[str, Any]]:
         """
         Polls a channel for a reply to a specific message for a given duration.
-
-        Args:
-            slack_client: The Slack WebClient instance.
-            channel: The channel dictionary.
-            original_message_ts: The timestamp (ts) of the message to look for replies to.
-            timeout_seconds: The maximum time in seconds to poll for a reply.
-
-        Returns:
-            The reply message dictionary if found within the timeout, otherwise None.
         """
         channel_id = _get_slack_channel_id(channel)
         start_time = time.time()
@@ -363,6 +371,7 @@ class SlackManager:
     def remove_message_from_channel(
         slack_client: WebClient, channel: dict[str, Any], message: str
     ) -> None:
+        """Removes a specific message from the given channel."""
         _delete_slack_conversation_messages(
             slack_client=slack_client, channel=channel, message_to_delete=message
         )
@@ -372,6 +381,9 @@ class SlackManager:
         slack_client: WebClient,
         test_id: str,
     ) -> None:
+        """
+        Cleans up Slack channels after a test by renaming channels that contain the test ID.
+        """
         channel_types = ["private_channel", "public_channel"]
         channels: list[dict[str, Any]] = []
         for result in make_paginated_slack_api_call_w_retries(
@@ -415,15 +427,10 @@ class SlackManager:
     ) -> None:
         """
         Deletes all messages and their thread replies in the specified channel.
-        Args:
-            slack_client: The Slack WebClient instance.
-            channel_id: The ID of the channel to clean up.
         """
         try:
             logger.info(f"Deleting all messages and threads in channel {channel}")
-            user_bot_id, _ = SlackManager.get_onyxbot_user_and_bot_ids(
-                slack_user_client
-            )
+            user_bot_id, _ = SlackManager.get_client_user_and_bot_ids(slack_user_client)
             # Fetch all messages in the channel
             channel_id = _get_slack_channel_id(channel)
             for message_batch in get_channel_messages(slack_user_client, channel):
@@ -503,6 +510,7 @@ class SlackManager:
         slack_client: WebClient,
         channel: dict[str, Any],
     ) -> dict[str, Any]:
+        """Fetches full channel information for the specified channel."""
         logger.info(f"Fetching full channel info for channel {channel}")
         channel_id = _get_slack_channel_id(channel)
         try:

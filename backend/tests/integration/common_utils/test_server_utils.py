@@ -10,6 +10,9 @@ from fastapi.staticfiles import StaticFiles
 
 # FastAPI server for serving files
 def create_fastapi_app(directory: str) -> FastAPI:
+    """
+    Creates a FastAPI application that serves static files from a given directory.
+    """
     app = FastAPI()
 
     # Mount the directory to serve static files
@@ -22,6 +25,10 @@ def create_fastapi_app(directory: str) -> FastAPI:
 def fastapi_server_context(
     directory: str, port: int = 8000
 ) -> Generator[None, None, None]:
+    """
+    Context manager to run a FastAPI server in a separate thread.
+    The server serves static files from the specified directory.
+    """
     app = create_fastapi_app(directory)
 
     config = uvicorn.Config(app=app, host="0.0.0.0", port=port, log_level="info")
