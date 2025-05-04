@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Any
-from typing import ContextManager
+from typing import AsyncContextManager
 
 import asyncpg  # type: ignore
 import boto3
@@ -46,6 +46,7 @@ from onyx.server.utils import BasicAuthenticationError
 from onyx.utils.logger import setup_logger
 from shared_configs.configs import MULTI_TENANT
 from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA
+from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA_STANDARD_VALUE
 from shared_configs.configs import TENANT_ID_PREFIX
 from shared_configs.contextvars import CURRENT_TENANT_ID_CONTEXTVAR
 from shared_configs.contextvars import get_current_tenant_id
@@ -352,51 +353,12 @@ def get_sqlalchemy_async_engine() -> AsyncEngine:
     return _ASYNC_ENGINE
 
 
-# Listen for events on the synchronous Session class
-@event.listens_for(Session, "after_begin")
-def _set_search_path(
-    session: Session, transaction: Any, connection: Any, *args: Any, **kwargs: Any
-) -> None:
-    """Every time a new transaction is started,
-    set the search_path from the session's info."""
-    tenant_id = session.info.get("tenant_id")
-    if tenant_id:
-        connection.exec_driver_sql(f'SET search_path = "{tenant_id}"')
-
-
 engine = get_sqlalchemy_async_engine()
 AsyncSessionLocal = sessionmaker(  # type: ignore
     bind=engine,
     class_=AsyncSession,
     expire_on_commit=False,
 )
-
-
-@asynccontextmanager
-async def get_async_session_with_tenant(
-    tenant_id: str | None = None,
-) -> AsyncGenerator[AsyncSession, None]:
-    if tenant_id is None:
-        tenant_id = get_current_tenant_id()
-
-    if not is_valid_schema_name(tenant_id):
-        logger.error(f"Invalid tenant ID: {tenant_id}")
-        raise ValueError("Invalid tenant ID")
-
-    async with AsyncSessionLocal() as session:
-        session.sync_session.info["tenant_id"] = tenant_id
-
-        if POSTGRES_IDLE_SESSIONS_TIMEOUT:
-            await session.execute(
-                text(
-                    f"SET idle_in_transaction_session_timeout = {POSTGRES_IDLE_SESSIONS_TIMEOUT}"
-                )
-            )
-
-        try:
-            yield session
-        finally:
-            pass
 
 
 @contextmanager
@@ -416,17 +378,24 @@ def get_session_with_shared_schema() -> Generator[Session, None, None]:
     CURRENT_TENANT_ID_CONTEXTVAR.reset(token)
 
 
+def _set_search_path_on_checkout__listener(
+    dbapi_conn: Any, connection_record: Any, connection_proxy: Any
+) -> None:
+    """Listener to make sure we ALWAYS set the search path on checkout."""
+    tenant_id = get_current_tenant_id()
+    if tenant_id and is_valid_schema_name(tenant_id):
+        with dbapi_conn.cursor() as cursor:
+            cursor.execute(f'SET search_path TO "{tenant_id}"')
+
+
 @contextmanager
 def get_session_with_tenant(*, tenant_id: str) -> Generator[Session, None, None]:
     """
     Generate a database session for a specific tenant.
     """
-    if tenant_id is None:
-        tenant_id = POSTGRES_DEFAULT_SCHEMA
-
     engine = get_sqlalchemy_engine()
 
-    event.listen(engine, "checkout", set_search_path_on_checkout)
+    event.listen(engine, "checkout", _set_search_path_on_checkout__listener)
 
     if not is_valid_schema_name(tenant_id):
         raise HTTPException(status_code=400, detail="Invalid tenant ID")
@@ -457,57 +426,84 @@ def get_session_with_tenant(*, tenant_id: str) -> Generator[Session, None, None]
                         cursor.close()
 
 
-def set_search_path_on_checkout(
-    dbapi_conn: Any, connection_record: Any, connection_proxy: Any
-) -> None:
+def get_session() -> Generator[Session, None, None]:
+    """For use w/ Depends for FastAPI endpoints.
+
+    Has some additional validation, and likely should be merged
+    with get_session_context_manager in the future."""
     tenant_id = get_current_tenant_id()
-    if tenant_id and is_valid_schema_name(tenant_id):
-        with dbapi_conn.cursor() as cursor:
-            cursor.execute(f'SET search_path TO "{tenant_id}"')
+    if tenant_id == POSTGRES_DEFAULT_SCHEMA and MULTI_TENANT:
+        raise BasicAuthenticationError(detail="User must authenticate")
+
+    if not is_valid_schema_name(tenant_id):
+        raise HTTPException(status_code=400, detail="Invalid tenant ID")
+
+    with get_session_context_manager() as db_session:
+        yield db_session
 
 
-def get_session_generator_with_tenant() -> Generator[Session, None, None]:
+@contextlib.contextmanager
+def get_session_context_manager() -> Generator[Session, None, None]:
+    """Context manager for database sessions."""
     tenant_id = get_current_tenant_id()
     with get_session_with_tenant(tenant_id=tenant_id) as session:
         yield session
 
 
-def get_session() -> Generator[Session, None, None]:
-    tenant_id = get_current_tenant_id()
-    if tenant_id == POSTGRES_DEFAULT_SCHEMA and MULTI_TENANT:
-        raise BasicAuthenticationError(detail="User must authenticate")
-
-    engine = get_sqlalchemy_engine()
-
-    with Session(engine, expire_on_commit=False) as session:
-        if MULTI_TENANT:
-            if not is_valid_schema_name(tenant_id):
-                raise HTTPException(status_code=400, detail="Invalid tenant ID")
-            session.execute(text(f'SET search_path = "{tenant_id}"'))
-        yield session
+def _set_search_path_on_transaction__listener(
+    session: Session, transaction: Any, connection: Any, *args: Any, **kwargs: Any
+) -> None:
+    """Every time a new transaction is started,
+    set the search_path from the session's info."""
+    tenant_id = session.info.get("tenant_id")
+    if tenant_id:
+        connection.exec_driver_sql(f'SET search_path = "{tenant_id}"')
 
 
-async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    tenant_id = get_current_tenant_id()
+async def get_async_session(
+    tenant_id: str | None = None,
+) -> AsyncGenerator[AsyncSession, None]:
+    """For use w/ Depends for *async* FastAPI endpoints.
+
+    For standard `async with ... as ...` use, use get_async_session_context_manager.
+    """
+
+    if tenant_id is None:
+        tenant_id = get_current_tenant_id()
+
     engine = get_sqlalchemy_async_engine()
+
     async with AsyncSession(engine, expire_on_commit=False) as async_session:
-        if MULTI_TENANT:
-            if not is_valid_schema_name(tenant_id):
-                raise HTTPException(status_code=400, detail="Invalid tenant ID")
+        # set the search path on sync session as well to be extra safe
+        event.listen(
+            async_session.sync_session,
+            "after_begin",
+            _set_search_path_on_transaction__listener,
+        )
+
+        if POSTGRES_IDLE_SESSIONS_TIMEOUT:
+            await async_session.execute(
+                text(
+                    f"SET idle_in_transaction_session_timeout = {POSTGRES_IDLE_SESSIONS_TIMEOUT}"
+                )
+            )
+
+        if not is_valid_schema_name(tenant_id):
+            raise HTTPException(status_code=400, detail="Invalid tenant ID")
+
+        # don't need to set the search path for self-hosted + default schema
+        # this is also true for sync sessions, but just not adding it there for
+        # now to simplify / not change too much
+        if MULTI_TENANT or tenant_id != POSTGRES_DEFAULT_SCHEMA_STANDARD_VALUE:
             await async_session.execute(text(f'SET search_path = "{tenant_id}"'))
+
         yield async_session
 
 
-def get_session_context_manager() -> ContextManager[Session]:
-    """Context manager for database sessions."""
-    return contextlib.contextmanager(get_session_generator_with_tenant)()
-
-
-def get_session_factory() -> sessionmaker[Session]:
-    global SessionFactory
-    if SessionFactory is None:
-        SessionFactory = sessionmaker(bind=get_sqlalchemy_engine())
-    return SessionFactory
+def get_async_session_context_manager(
+    tenant_id: str | None = None,
+) -> AsyncContextManager[AsyncSession]:
+    return asynccontextmanager(get_async_session)(tenant_id)
 
 
 async def warm_up_connections(
