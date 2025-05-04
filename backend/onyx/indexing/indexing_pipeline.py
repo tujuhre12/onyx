@@ -327,17 +327,20 @@ def index_doc_batch_prepare(
     This preceeds indexing it into the actual document index."""
     # Create a trimmed list of docs that don't have a newer updated at
     # Shortcuts the time-consuming flow on connector index retries
+    logger.info(f"index_doc_batch_prepare: {len(documents)} documents")
     document_ids: list[str] = [document.id for document in documents]
     db_docs: list[DBDocument] = get_documents_by_ids(
         db_session=db_session,
         document_ids=document_ids,
     )
+    logger.info(f"index_doc_batch_prepare: {len(db_docs)} db_docs")
 
     updatable_docs = (
         get_doc_ids_to_update(documents=documents, db_docs=db_docs)
         if not ignore_time_skip
         else documents
     )
+    logger.info(f"index_doc_batch_prepare: {len(updatable_docs)} updatable_docs")
     if len(updatable_docs) != len(documents):
         updatable_doc_ids = [doc.id for doc in updatable_docs]
         skipped_doc_ids = [

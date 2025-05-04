@@ -377,7 +377,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                         else DriveIdStatus.AVAILABLE
                     )
                     logger.info(
-                        f"Drive id status: {drive_id_status}, user email: {thread_id},"
+                        f"Drive id status: {len(drive_id_status)}, user email: {thread_id},"
                         f"processed drive ids: {len(completion.processed_drive_ids)}"
                     )
                     # wake up other threads waiting for work
