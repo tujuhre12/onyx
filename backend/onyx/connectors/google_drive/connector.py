@@ -378,7 +378,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                     )
                     logger.info(
                         f"Drive id status: {drive_id_status}, user email: {thread_id},"
-                        f"processed drive ids: {completion.processed_drive_ids}"
+                        f"processed drive ids: {len(completion.processed_drive_ids)}"
                     )
                     # wake up other threads waiting for work
                     cv.notify_all()
@@ -1023,7 +1023,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                     list[Document | ConnectorFailure | None],
                     run_functions_tuples_in_parallel(func_with_args, max_workers=8),
                 )
-                logger.info(f"Results: {results}")
+                logger.info(f"Results: {len(results)}")
                 docs_and_failures = [result for result in results if result is not None]
 
                 if docs_and_failures:
