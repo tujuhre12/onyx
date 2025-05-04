@@ -721,6 +721,8 @@ def index_doc_batch(
     Returns a tuple where the first element is the number of new docs and the
     second element is the number of chunks."""
 
+    logger.error(f"index_doc_batch: {len(document_batch)} documents")
+
     no_access = DocumentAccess.build(
         user_emails=[],
         user_groups=[],
@@ -1060,6 +1062,7 @@ def build_indexing_pipeline(
     callback: IndexingHeartbeatInterface | None = None,
 ) -> IndexingPipelineProtocol:
     """Builds a pipeline which takes in a list (batch) of docs and indexes them."""
+    logger.error("Building indexing pipeline")
     all_search_settings = get_active_search_settings(db_session)
     if (
         all_search_settings.secondary
@@ -1070,10 +1073,12 @@ def build_indexing_pipeline(
         search_settings = all_search_settings.primary
 
     multipass_config = get_multipass_config(search_settings)
+    logger.error(f"multipass_config: {multipass_config}")
 
     enable_contextual_rag = (
         search_settings.enable_contextual_rag or ENABLE_CONTEXTUAL_RAG
     )
+    logger.error(f"enable_contextual_rag: {enable_contextual_rag}")
     llm = None
     if enable_contextual_rag:
         llm = get_llm_for_contextual_rag(

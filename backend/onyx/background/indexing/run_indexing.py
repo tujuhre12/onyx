@@ -261,7 +261,7 @@ def _run_indexing(
     3. Updates Postgres to record the indexed documents + the outcome of this run
     """
     start_time = time.monotonic()  # jsut used for logging
-
+    logger.error("Starting indexing run")
     with get_session_with_current_tenant() as db_session_temp:
         index_attempt_start = get_index_attempt(db_session_temp, index_attempt_id)
         if not index_attempt_start:
@@ -315,6 +315,7 @@ def _run_indexing(
             # don't go into "negative" time if we've never indexed before
             window_start = datetime.fromtimestamp(0, tz=timezone.utc)
 
+        logger.error("Getting most recent attempt")
         most_recent_attempt = next(
             iter(
                 get_recent_completed_attempts_for_cc_pair(
@@ -326,6 +327,7 @@ def _run_indexing(
             ),
             None,
         )
+        logger.error(f"Most recent attempt: {most_recent_attempt}")
         # if the last attempt failed, try and use the same window. This is necessary
         # to ensure correctness with checkpointing. If we don't do this, things like
         # new slack channels could be missed (since existing slack channels are
@@ -361,6 +363,7 @@ def _run_indexing(
         httpx_client=HttpxPool.get("vespa"),
     )
 
+    logger.error("Building indexing pipeline")
     indexing_pipeline = build_indexing_pipeline(
         embedder=embedding_model,
         information_content_classification_model=information_content_classification_model,
@@ -782,7 +785,7 @@ def run_indexing_entrypoint(
     callback: IndexingHeartbeatInterface | None = None,
 ) -> None:
     """Don't swallow exceptions here ... propagate them up."""
-
+    logger.error("Starting indexing run: run_indexing_entrypoint")
     if is_ee:
         global_version.set_ee()
 
