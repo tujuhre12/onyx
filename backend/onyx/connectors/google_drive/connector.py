@@ -1122,12 +1122,15 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
         self._retrieved_folder_and_drive_ids = checkpoint.retrieved_folder_and_drive_ids
         try:
             yield from self._extract_docs_from_google_drive(checkpoint, start, end)
+            logger.info("Done extracting docs from google drive for this checkpoint")
         except Exception as e:
             if MISSING_SCOPES_ERROR_STR in str(e):
                 raise PermissionError(ONYX_SCOPE_INSTRUCTIONS) from e
             raise e
         checkpoint.retrieved_folder_and_drive_ids = self._retrieved_folder_and_drive_ids
-        logger.info(f"Returning checkpoint: {checkpoint}")
+        logger.info(
+            f"Returning checkpoint with this many things seen: {len(checkpoint.all_retrieved_file_ids)}"
+        )
         if checkpoint.completion_stage == DriveRetrievalStage.DONE:
             checkpoint.has_more = False
         return checkpoint

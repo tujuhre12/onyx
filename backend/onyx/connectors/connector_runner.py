@@ -117,6 +117,9 @@ class ConnectorRunner(Generic[CT]):
                         yield None, failure, None
 
                     if len(self.doc_batch) >= self.batch_size:
+                        logger.info(
+                            f"From runner: Yielding batch of {len(self.doc_batch)} documents"
+                        )
                         yield self.doc_batch, None, None
                         self.doc_batch = []
 
@@ -126,6 +129,7 @@ class ConnectorRunner(Generic[CT]):
                     self.doc_batch = []
 
                 yield None, None, next_checkpoint
+                logger.info("From runner: Yielding next checkpoint")
 
                 logger.debug(
                     f"Connector took {time.monotonic() - start} seconds to get to the next checkpoint."

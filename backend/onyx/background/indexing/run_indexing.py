@@ -535,6 +535,10 @@ def _run_indexing(
                 chunk_count += index_pipeline_result.total_chunks
                 document_count += index_pipeline_result.total_docs
 
+                logger.info(
+                    f"From run_indexing: indexed {index_pipeline_result.total_docs} docs"
+                )
+
                 # resolve errors for documents that were successfully indexed
                 failed_document_ids = [
                     failure.failed_document.document_id
@@ -575,6 +579,8 @@ def _run_indexing(
                         batch_num,
                         index_pipeline_result.failures[-1],
                     )
+
+                logger.info("From run_indexing: updating indexed docs")
 
                 # This new value is updated every batch, so UI can refresh per batch update
                 with get_session_with_current_tenant() as db_session_temp:
