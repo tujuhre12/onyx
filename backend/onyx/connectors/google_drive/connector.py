@@ -878,6 +878,10 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
             return
 
         for file in drive_files:
+            logger.info(
+                f"Updating checkpoint for file: {file.drive_file.get('name')}. "
+                f"Seen: {file.drive_file.get('id') in checkpoint.all_retrieved_file_ids}"
+            )
             checkpoint.completion_map[file.user_email].update(
                 stage=file.completion_stage,
                 completed_until=datetime.fromisoformat(
@@ -888,6 +892,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
             if file.drive_file["id"] not in checkpoint.all_retrieved_file_ids:
                 checkpoint.all_retrieved_file_ids.add(file.drive_file["id"])
                 yield file
+        logger.info("Done yielding from checkpointed retrieval")
 
     def _manage_oauth_retrieval(
         self,
