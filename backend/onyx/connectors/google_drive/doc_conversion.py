@@ -325,7 +325,7 @@ def convert_drive_item_to_document(
             continue
         seen.add(retriever_email)
         logger.info(
-            f"Converting file {file.get('name')} to document for {retriever_email}"
+            f"Converting file {file.get('name')} to document as retriever: {retriever_email}"
         )
         doc_or_failure = _convert_drive_item_to_document(
             creds, allow_images, size_threshold, retriever_email, file
@@ -338,6 +338,7 @@ def convert_drive_item_to_document(
                 and doc_or_failure.exception.status_code == 403
             )
         ):
+            logger.info(f" file {file.get('name')} -> {type(doc_or_failure)}")
             return doc_or_failure
 
         if first_error is None:

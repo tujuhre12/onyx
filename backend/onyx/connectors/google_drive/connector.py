@@ -1015,11 +1015,15 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                     )
                     for file in files_batch
                 ]
+                logger.info(f"Processing batch of {len(func_with_args)} files")
+                logger.info(
+                    f"File names: {[file.drive_file.get('name') for file in files_batch]}"
+                )
                 results = cast(
                     list[Document | ConnectorFailure | None],
                     run_functions_tuples_in_parallel(func_with_args, max_workers=8),
                 )
-
+                logger.info(f"Results: {results}")
                 docs_and_failures = [result for result in results if result is not None]
 
                 if docs_and_failures:
