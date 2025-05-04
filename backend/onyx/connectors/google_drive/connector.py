@@ -1032,6 +1032,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                 start=start,
                 end=end,
             ):
+                logger.info(f"Retrieved file: {retrieved_file}")
                 if retrieved_file.error is not None:
                     failure_stage = retrieved_file.completion_stage.value
                     failure_message = (
@@ -1069,9 +1070,14 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                     )
                     return  # create a new checkpoint
 
+            logger.info(
+                f"Processing remaining files: {[file.drive_file.get('name') for file in files_batch]}"
+            )
             # Process any remaining files
             if files_batch:
                 yield from _yield_batch(files_batch)
+
+            logger.info("Completed processing files")
         except Exception as e:
             logger.exception(f"Error extracting documents from Google Drive: {e}")
             raise e
@@ -1099,6 +1105,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                 raise PermissionError(ONYX_SCOPE_INSTRUCTIONS) from e
             raise e
         checkpoint.retrieved_folder_and_drive_ids = self._retrieved_folder_and_drive_ids
+        logger.info(f"Returning checkpoint: {checkpoint}")
         if checkpoint.completion_stage == DriveRetrievalStage.DONE:
             checkpoint.has_more = False
         return checkpoint
