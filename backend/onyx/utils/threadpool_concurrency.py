@@ -223,6 +223,7 @@ def run_functions_tuples_in_parallel(
                     raise
 
     results.sort(key=lambda x: x[0])
+    logger.info(f"Results from run in parallel: {len(results)}")
     return [result for index, result in results]
 
 

@@ -1096,6 +1096,10 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                 "Credentials missing, should not call this method before calling load_credentials"
             )
 
+        logger.info(
+            f"Loading from checkpoint with completion stage: {checkpoint.completion_stage},"
+            f"retrieved ids: {len(checkpoint.all_retrieved_file_ids)}"
+        )
         checkpoint = copy.deepcopy(checkpoint)
         self._retrieved_folder_and_drive_ids = checkpoint.retrieved_folder_and_drive_ids
         try:
