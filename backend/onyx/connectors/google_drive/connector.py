@@ -72,7 +72,7 @@ logger = setup_logger()
 # TODO: Improve this by using the batch utility: https://googleapis.github.io/google-api-python-client/docs/batch.html
 # All file retrievals could be batched and made at once
 
-BATCHES_PER_CHECKPOINT = 10
+BATCHES_PER_CHECKPOINT = 1
 
 
 def _extract_str_list_from_comma_str(string: str | None) -> list[str]:
