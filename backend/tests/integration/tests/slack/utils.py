@@ -270,3 +270,78 @@ def create_slack_channel_config(
     except Exception as e:
         logger.error(f"Unexpected error creating Slack channel config: {e}")
         raise
+
+
+def delete_slack_bot(
+    bot_id: int,
+    user_performing_action: DATestUser,
+) -> None:
+    """Deletes a Slack bot using the API."""
+    try:
+        response = requests.delete(
+            url=f"{API_SERVER_URL}/manage/admin/slack-app/bots/{bot_id}",
+            headers=user_performing_action.headers,
+        )
+        response.raise_for_status()
+        logger.info(f"Slack bot {bot_id} deleted successfully.")
+    except requests.exceptions.RequestException as e:
+        error_message = _format_request_exception_message(
+            e, f"deleting Slack bot {bot_id}"
+        )
+        logger.error(error_message)
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error deleting Slack bot {bot_id}: {e}")
+        raise
+
+
+def get_slack_bot(
+    bot_id: int,
+    user_performing_action: DATestUser,
+) -> dict[str, Any]:
+    """Fetches a Slack bot's details using the API."""
+    try:
+        response = requests.get(
+            url=f"{API_SERVER_URL}/manage/admin/slack-app/bots/{bot_id}",
+            headers=user_performing_action.headers,
+        )
+        response.raise_for_status()
+        bot_data = response.json()
+    except requests.exceptions.RequestException as e:
+        error_message = _format_request_exception_message(
+            e, f"fetching Slack bot {bot_id} details for disabling"
+        )
+        logger.error(error_message)
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error fetching Slack bot {bot_id}: {e}")
+        raise
+    logger.info(f"Fetched Slack bot {bot_id} details: {bot_data}")
+    return bot_data
+
+
+def update_slack_bot(
+    bot_id: int,
+    user_performing_action: DATestUser,
+    update_body: dict[str, Any],
+) -> dict[str, Any]:
+    """Updates a Slack bot via the API."""
+    try:
+        response = requests.patch(
+            url=f"{API_SERVER_URL}/manage/admin/slack-app/bots/{bot_id}",
+            headers=user_performing_action.headers,
+            json=update_body,
+        )
+        response.raise_for_status()
+        response_json = response.json()
+        logger.info(f"Slack bot {bot_id} updated successfully: {response_json}")
+        return response_json
+    except requests.exceptions.RequestException as e:
+        error_message = _format_request_exception_message(
+            e, f"updating Slack bot {bot_id}"
+        )
+        logger.error(error_message)
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error updating Slack bot {bot_id}: {e}")
+        raise

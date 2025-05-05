@@ -6,9 +6,10 @@ from onyx.db.chat import get_chat_messages_by_session
 from onyx.db.models import ChatSession
 from onyx.db.models import User
 from onyx.utils.logger import setup_logger
-from tests.integration.common_utils.constants import PRIMARY_USER_EMAIL
 from tests.integration.common_utils.managers.slack import SlackManager
 from tests.integration.common_utils.test_models import DATestUser
+from tests.integration.tests.slack.constants import PRIMARY_USER_EMAIL
+from tests.integration.tests.slack.constants import SHORT_REPLY_TIMEOUT
 from tests.integration.tests.slack.utils import list_slack_channel_configs
 from tests.integration.tests.slack.utils import update_slack_channel_config
 
@@ -19,7 +20,7 @@ def send_and_receive_dm(
     slack_bot_client: WebClient,
     slack_user_client: WebClient,
     message: str,
-    timeout_secs: int = 180,
+    timeout_secs: int = 200,
 ) -> Any:
     """Sends a direct message (DM) from a user to the Onyx bot and waits for a reply."""
     user_id, bot_id = SlackManager.get_client_user_and_bot_ids(slack_bot_client)
@@ -57,7 +58,10 @@ def send_dm_with_optional_timeout(
     """Sends a DM and receives a reply, using a shorter timeout if no specific reply text is expected."""
     if expected_text is None:
         return send_and_receive_dm(
-            slack_bot_client, slack_user_client, message_text, timeout_secs=20
+            slack_bot_client,
+            slack_user_client,
+            message_text,
+            timeout_secs=SHORT_REPLY_TIMEOUT,
         )
     else:
         return send_and_receive_dm(slack_bot_client, slack_user_client, message_text)
@@ -80,7 +84,7 @@ def send_channel_msg_with_optional_timeout(
             message=message_text,
             channel=channel,
             tag_bot=tag_bot,
-            timeout_secs=20,
+            timeout_secs=SHORT_REPLY_TIMEOUT,
         )
     else:
         return send_and_receive_channel_message(

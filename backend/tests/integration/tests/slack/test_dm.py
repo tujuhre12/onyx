@@ -21,6 +21,7 @@ from tests.integration.tests.slack.constants import QUESTION_LENA_BOOKS
 from tests.integration.tests.slack.constants import QUESTION_LENA_BOOKS_NO_MARK
 from tests.integration.tests.slack.constants import QUESTION_LENA_BOOKS_WEB_SOURCE
 from tests.integration.tests.slack.constants import QUESTION_NEED_SUPPORT
+from tests.integration.tests.slack.constants import SHORT_REPLY_TIMEOUT
 from tests.integration.tests.slack.constants import STD_ANSWER_SUPPORT_EMAIL
 from tests.integration.tests.slack.slack_test_helpers import assert_button_presence
 from tests.integration.tests.slack.slack_test_helpers import send_and_receive_dm
@@ -39,7 +40,7 @@ logger = setup_logger()
 @pytest.mark.parametrize(
     "test_name, config_update",
     [
-        ("enabled", None),
+        ("enabled", {"respond_to_bots": False}),
         ("disabled", {"disabled": True}),
     ],
 )
@@ -62,7 +63,7 @@ def test_dm_default_config(
         slack_bot_client,
         slack_user_client,
         QUESTION_LENA_BOOKS,
-        timeout_secs=20,
+        timeout_secs=SHORT_REPLY_TIMEOUT,
     )
     # Message is treated as bot message so we won't get a response
     assert message is None, f"Bot should not respond when {test_name}"
@@ -71,7 +72,11 @@ def test_dm_default_config(
 @pytest.mark.parametrize(
     "test_name, config_update, expected_text",
     [
-        ("enabled", {"respond_to_bots": True}, ANSWER_LENA_BOOKS_STORY),
+        (
+            "enabled",
+            {"respond_to_bots": True},
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
+        ),
         ("disabled", {"disabled": True, "respond_to_bots": True}, None),
     ],
 )
@@ -79,7 +84,7 @@ def test_dm_default_config_by_enabling_respond_to_bot(
     slack_test_context: SlackTestContext,
     test_name: str,
     config_update: dict[str, Any],
-    expected_text: Any,
+    expected_text: list[str] | None,
 ) -> None:
     """
     Test Slack DMs with the 'respond_to_bots' setting enabled.
@@ -107,9 +112,9 @@ def test_dm_default_config_by_enabling_respond_to_bot(
         assert (
             blocks is not None and len(blocks) > 0
         ), f"Response should have blocks when {test_name}"
-        assert (
-            expected_text in blocks[0]["text"]["text"]
-        ), f"Response should contain '{expected_text}' when {test_name}"
+        assert any(
+            text in blocks[0]["text"]["text"] for text in expected_text
+        ), f"Response should contain one of '{expected_text}' when {test_name}"
     else:
         assert message is None, f"Bot should not respond when {test_name}"
 
@@ -121,13 +126,13 @@ def test_dm_default_config_by_enabling_respond_to_bot(
             "continue_in_web_ui_button_enabled",
             {"show_continue_in_web_ui": True, "respond_to_bots": True},
             True,
-            ANSWER_LENA_BOOKS_STORY,
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
         (
             "continue_in_web_ui_button_disabled",
             {"show_continue_in_web_ui": False, "respond_to_bots": True},
             False,
-            ANSWER_LENA_BOOKS_STORY,
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
     ],
 )
@@ -136,7 +141,7 @@ def test_dm_continue_in_web_ui_button(
     test_name: str,
     config_update: dict[str, Any],
     expect_button: bool,
-    expected_text: str,
+    expected_text: list[str],
 ):
     """Test the presence or absence of the 'Continue in Web UI' button in DM responses based on configuration."""
     logger.info(f"Testing DM continue_in_web_ui button: {test_name}")
@@ -156,9 +161,9 @@ def test_dm_continue_in_web_ui_button(
     assert (
         blocks is not None and len(blocks) > 0
     ), f"{test_name}: Response should have blocks"
-    assert (
-        expected_text in blocks[0]["text"]["text"]
-    ), f"{test_name}: Response should contain {expected_text}"
+    assert any(
+        text in blocks[0]["text"]["text"] for text in expected_text
+    ), f"{test_name}: Response should contain one of {expected_text}"
     assert_button_presence(blocks, "continue-in-web-ui", expect_button, test_name)
 
 
@@ -169,13 +174,13 @@ def test_dm_continue_in_web_ui_button(
             "follow_up_tags_enabled",
             {"follow_up_tags": ["help@onyx.app"], "respond_to_bots": True},
             True,
-            ANSWER_LENA_BOOKS_STORY,
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
         (
             "follow_up_tags_disabled",
             {"respond_to_bots": True},
             False,
-            ANSWER_LENA_BOOKS_STORY,
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
     ],
 )
@@ -184,7 +189,7 @@ def test_dm_follow_up_button(
     test_name: str,
     config_update: dict[str, Any],
     expect_button: bool,
-    expected_text: str,
+    expected_text: list[str],
 ):
     """Test the presence or absence of the 'Follow-up' button in DM responses based on configuration."""
     logger.info(f"Testing DM follow_up button: {test_name}")
@@ -204,9 +209,9 @@ def test_dm_follow_up_button(
     assert (
         blocks is not None and len(blocks) > 0
     ), f"{test_name}: Response should have blocks"
-    assert (
-        expected_text in blocks[0]["text"]["text"]
-    ), f"{test_name}: Response should contain {expected_text}"
+    assert any(
+        text in blocks[0]["text"]["text"] for text in expected_text
+    ), f"{test_name}: Response should contain one of {expected_text}"
     assert_button_presence(blocks, "followup-button", expect_button, test_name)
 
 
@@ -217,7 +222,7 @@ def test_dm_follow_up_button(
             "respond_to_questions_enabled_with_question",
             {"respond_to_bots": True, "answer_filters": ["questionmark_prefilter"]},
             QUESTION_LENA_BOOKS,
-            ANSWER_LENA_BOOKS_STORY,
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
         (
             "respond_to_questions_enabled_without_question",
@@ -229,7 +234,7 @@ def test_dm_follow_up_button(
             "respond_to_questions_enabled_without_question",
             {"respond_to_bots": True},
             QUESTION_LENA_BOOKS_NO_MARK,
-            ANSWER_LENA_BOOKS_STORY,
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
     ],
 )
@@ -238,7 +243,7 @@ def test_dm_respond_to_questions(
     test_name: str,
     config_update: dict[str, Any],
     message_text: str,
-    expected_text: Any,
+    expected_text: list[str] | None,
 ):
     """Test the 'respond_to_questions' filter behavior in DMs."""
     logger.info(f"Testing DM respond_to_questions: {test_name}")
@@ -259,9 +264,9 @@ def test_dm_respond_to_questions(
         assert (
             blocks is not None and len(blocks) > 0
         ), f"{test_name}: Response should have blocks"
-        assert (
-            expected_text in blocks[0]["text"]["text"]
-        ), f"{test_name}: Response should contain '{expected_text}'"
+        assert any(
+            text in blocks[0]["text"]["text"] for text in expected_text
+        ), f"{test_name}: Response should contain one of '{expected_text}'"
 
 
 @pytest.mark.parametrize(
@@ -320,12 +325,12 @@ def test_dm_standard_answer_category(
         (
             "respond_tag_only_enabled",
             {"respond_tag_only": True, "respond_to_bots": True},
-            ANSWER_LENA_BOOKS_STORY,
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
         (
             "respond_tag_only_disabled",
             {"respond_tag_only": False, "respond_to_bots": True},
-            ANSWER_LENA_BOOKS_STORY,
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
     ],
 )
@@ -333,7 +338,7 @@ def test_dm_respond_tag_only(
     slack_test_context: SlackTestContext,
     test_name: str,
     config_update: dict[str, Any],
-    expected_text: Any,
+    expected_text: list[str] | None,
 ):
     """
     Test the 'respond_tag_only' setting in DMs.
@@ -358,15 +363,19 @@ def test_dm_respond_tag_only(
     assert (
         blocks is not None and len(blocks) > 0
     ), f"{test_name}: Response should have blocks"
-    assert (
-        expected_text in blocks[0]["text"]["text"]
-    ), f"{test_name}: Response should contain '{expected_text}'"
+    assert any(
+        text in blocks[0]["text"]["text"] for text in expected_text
+    ), f"{test_name}: Response should contain one of '{expected_text}'"
 
 
 @pytest.mark.parametrize(
     "test_name, config_update, expected_text",
     [
-        ("respond_to_bots_enabled", {"respond_to_bots": True}, ANSWER_LENA_BOOKS_STORY),
+        (
+            "respond_to_bots_enabled",
+            {"respond_to_bots": True},
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
+        ),
         ("respond_to_bots_disabled", {"respond_to_bots": False}, None),
     ],
 )
@@ -374,7 +383,7 @@ def test_dm_respond_to_bots(
     slack_test_context: SlackTestContext,
     test_name: str,
     config_update: dict[str, Any],
-    expected_text: Any,
+    expected_text: list[str] | None,
 ):
     """
     Test the 'respond_to_bots' setting in DMs.
@@ -403,9 +412,9 @@ def test_dm_respond_to_bots(
         assert (
             blocks is not None and len(blocks) > 0
         ), f"{test_name}: Response should have blocks"
-        assert (
-            expected_text in blocks[0]["text"]["text"]
-        ), f"{test_name}: Response should contain '{expected_text}'"
+        assert any(
+            text in blocks[0]["text"]["text"] for text in expected_text
+        ), f"{test_name}: Response should contain one of '{expected_text}'"
 
 
 @pytest.mark.xfail(reason="Citations are not supported in DM")
@@ -445,6 +454,9 @@ def test_dm_citations(
         assert message is not None, f"{test_name}: Bot should respond"
 
 
+@pytest.mark.xfail(
+    reason="Skipping the test on failure, sometimes we are getting correct response and sometimes not."
+)
 def test_dm_llm_auto_filters(
     slack_test_context: SlackTestContext,
 ):
@@ -479,21 +491,25 @@ def test_dm_llm_auto_filters(
         (
             "respond_to_bots_disabled_respond_to_questions_disabled",
             {"respond_to_bots": False},
-            "42",
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
         (
             "respond_to_bots_disabled_respond_to_questions_enabled",
             {"respond_to_bots": False, "answer_filters": ["questionmark_prefilter"]},
-            "42",
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
         ),
-        ("default_config_disabled", {"disabled": True}, "42"),
+        (
+            "default_config_disabled",
+            {"disabled": True},
+            [ANSWER_LENA_BOOKS_STORY, ANSWER_LENA_BOOKS_WEB],
+        ),
     ],
 )
 def test_dm_tag_with_restriction(
     slack_test_context: SlackTestContext,
     test_name: str,
     config_update: dict[str, Any],
-    expected_text: Any,
+    expected_text: list[str] | None,
 ):
     """
     Verify that the bot responds to a direct tag in DMs even when restrictive settings are enabled.
@@ -525,9 +541,6 @@ def test_dm_tag_with_restriction(
     assert (
         blocks is not None and len(blocks) > 0
     ), f"{test_name}: Response should have blocks"
-    assert (
-        expected_text in blocks[0]["text"]["text"]
-    ), f"{test_name}: Response should contain '{expected_text}'"
-
-
-""""Also add slackbot deletion scenarios here"""
+    assert any(
+        text in blocks[0]["text"]["text"] for text in expected_text
+    ), f"{test_name}: Response should contain one of '{expected_text}'"

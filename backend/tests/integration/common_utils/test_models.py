@@ -184,6 +184,9 @@ class DATestSettings(BaseModel):
 
 
 class SlackTestContext(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
+
     admin_user: DATestUser
     slack_bot: dict[str, Any]
     slack_bot_client: WebClient
