@@ -120,6 +120,9 @@ def add_retrieval_info(
     parent_id: str | None = None,
 ) -> Iterator[RetrievedDriveFile]:
     for file in drive_files:
+        logger.info(
+            f"Adding retrieval info for file: {file.drive_file.get('id')} as {user_email}"
+        )
         yield RetrievedDriveFile(
             drive_file=file,
             user_email=user_email,
