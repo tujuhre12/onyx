@@ -439,6 +439,7 @@ class DefaultMultiLLM(LLM):
                     if tools
                     and self.config.model_name
                     not in [
+                        "o4-mini",
                         "o3-mini",
                         "o3-preview",
                         "o1",
