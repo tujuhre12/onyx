@@ -1,4 +1,5 @@
 import copy
+import threading
 from collections.abc import Callable
 from collections.abc import Iterator
 from datetime import datetime
@@ -63,6 +64,7 @@ from onyx.connectors.models import EntityFailure
 from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
 from onyx.utils.logger import setup_logger
 from onyx.utils.retry_wrapper import retry_builder
+from onyx.utils.threadpool_concurrency import parallel_yield
 from onyx.utils.threadpool_concurrency import run_functions_tuples_in_parallel
 from onyx.utils.threadpool_concurrency import run_with_timeout
 from onyx.utils.threadpool_concurrency import ThreadSafeDict
@@ -71,6 +73,7 @@ logger = setup_logger()
 # TODO: Improve this by using the batch utility: https://googleapis.github.io/google-api-python-client/docs/batch.html
 # All file retrievals could be batched and made at once
 
+MAX_DRIVE_WORKERS = 4
 BATCHES_PER_CHECKPOINT = 1
 
 
@@ -330,91 +333,91 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
     def make_drive_id_iterator(
         self, drive_ids: list[str], checkpoint: GoogleDriveCheckpoint
     ) -> Callable[[str], Iterator[str]]:
-        # cv = threading.Condition()
+        cv = threading.Condition()
 
-        # in_progress_drive_ids = {
-        #     completion.current_folder_or_drive_id: user_email
-        #     for user_email, completion in checkpoint.completion_map.items()
-        #     if completion.stage == DriveRetrievalStage.SHARED_DRIVE_FILES
-        #     and completion.current_folder_or_drive_id is not None
-        # }
-        # drive_id_status: dict[str, DriveIdStatus] = {}
-        # for drive_id in drive_ids:
-        #     if drive_id in self._retrieved_folder_and_drive_ids:
-        #         drive_id_status[drive_id] = DriveIdStatus.FINISHED
-        #     elif drive_id in in_progress_drive_ids:
-        #         drive_id_status[drive_id] = DriveIdStatus.IN_PROGRESS
-        #     else:
-        #         drive_id_status[drive_id] = DriveIdStatus.AVAILABLE
+        in_progress_drive_ids = {
+            completion.current_folder_or_drive_id: user_email
+            for user_email, completion in checkpoint.completion_map.items()
+            if completion.stage == DriveRetrievalStage.SHARED_DRIVE_FILES
+            and completion.current_folder_or_drive_id is not None
+        }
+        drive_id_status: dict[str, DriveIdStatus] = {}
+        for drive_id in drive_ids:
+            if drive_id in self._retrieved_folder_and_drive_ids:
+                drive_id_status[drive_id] = DriveIdStatus.FINISHED
+            elif drive_id in in_progress_drive_ids:
+                drive_id_status[drive_id] = DriveIdStatus.IN_PROGRESS
+            else:
+                drive_id_status[drive_id] = DriveIdStatus.AVAILABLE
 
-        # def _get_available_drive_id(processed_ids: set[str]) -> tuple[str | None, bool]:
-        #     found_future_work = False
-        #     for drive_id, status in drive_id_status.items():
-        #         if drive_id in self._retrieved_folder_and_drive_ids:
-        #             drive_id_status[drive_id] = DriveIdStatus.FINISHED
-        #             continue
-        #         if drive_id in processed_ids:
-        #             continue
+        def _get_available_drive_id(processed_ids: set[str]) -> tuple[str | None, bool]:
+            found_future_work = False
+            for drive_id, status in drive_id_status.items():
+                if drive_id in self._retrieved_folder_and_drive_ids:
+                    drive_id_status[drive_id] = DriveIdStatus.FINISHED
+                    continue
+                if drive_id in processed_ids:
+                    continue
 
-        #         if status == DriveIdStatus.AVAILABLE:
-        #             return drive_id, True
-        #         elif status == DriveIdStatus.IN_PROGRESS:
-        #             found_future_work = True
-        #     return None, found_future_work
+                if status == DriveIdStatus.AVAILABLE:
+                    return drive_id, True
+                elif status == DriveIdStatus.IN_PROGRESS:
+                    found_future_work = True
+            return None, found_future_work
 
-        # def drive_id_iterator(thread_id: str) -> Iterator[str]:
-        #     completion = checkpoint.completion_map[thread_id]
+        def drive_id_iterator(thread_id: str) -> Iterator[str]:
+            completion = checkpoint.completion_map[thread_id]
 
-        #     def record_drive_processing(drive_id: str) -> None:
-        #         with cv:
-        #             logger.info(
-        #                 f"Record drive processing for drive id: {drive_id}, user email: {thread_id}"
-        #             )
-        #             completion.processed_drive_ids.add(drive_id)
-        #             drive_id_status[drive_id] = (
-        #                 DriveIdStatus.FINISHED
-        #                 if drive_id in self._retrieved_folder_and_drive_ids
-        #                 else DriveIdStatus.AVAILABLE
-        #             )
-        #             logger.info(
-        #                 f"Drive id status: {len(drive_id_status)}, user email: {thread_id},"
-        #                 f"processed drive ids: {len(completion.processed_drive_ids)}"
-        #             )
-        #             # wake up other threads waiting for work
-        #             cv.notify_all()
+            def record_drive_processing(drive_id: str) -> None:
+                with cv:
+                    logger.info(
+                        f"Record drive processing for drive id: {drive_id}, user email: {thread_id}"
+                    )
+                    completion.processed_drive_ids.add(drive_id)
+                    drive_id_status[drive_id] = (
+                        DriveIdStatus.FINISHED
+                        if drive_id in self._retrieved_folder_and_drive_ids
+                        else DriveIdStatus.AVAILABLE
+                    )
+                    logger.info(
+                        f"Drive id status: {len(drive_id_status)}, user email: {thread_id},"
+                        f"processed drive ids: {len(completion.processed_drive_ids)}"
+                    )
+                    # wake up other threads waiting for work
+                    cv.notify_all()
 
-        #     # when entering the iterator with a previous id in the checkpoint, the user
-        #     # has just finished that drive from a previous run.
-        #     if (
-        #         completion.stage == DriveRetrievalStage.MY_DRIVE_FILES
-        #         and completion.current_folder_or_drive_id is not None
-        #     ):
-        #         record_drive_processing(completion.current_folder_or_drive_id)
-        #     # continue iterating until this thread has no more work to do
-        #     while True:
-        #         # this locks operations on _retrieved_ids and drive_id_status
-        #         with cv:
-        #             available_drive_id, found_future_work = _get_available_drive_id(
-        #                 completion.processed_drive_ids
-        #             )
+            # when entering the iterator with a previous id in the checkpoint, the user
+            # has just finished that drive from a previous run.
+            if (
+                completion.stage == DriveRetrievalStage.MY_DRIVE_FILES
+                and completion.current_folder_or_drive_id is not None
+            ):
+                record_drive_processing(completion.current_folder_or_drive_id)
+            # continue iterating until this thread has no more work to do
+            while True:
+                # this locks operations on _retrieved_ids and drive_id_status
+                with cv:
+                    available_drive_id, found_future_work = _get_available_drive_id(
+                        completion.processed_drive_ids
+                    )
 
-        #             # wait while there is no work currently available but still drives that may need processing
-        #             while available_drive_id is None and found_future_work:
-        #                 cv.wait()
-        #                 available_drive_id, found_future_work = _get_available_drive_id(
-        #                     completion.processed_drive_ids
-        #                 )
+                    # wait while there is no work currently available but still drives that may need processing
+                    while available_drive_id is None and found_future_work:
+                        cv.wait()
+                        available_drive_id, found_future_work = _get_available_drive_id(
+                            completion.processed_drive_ids
+                        )
 
-        #             # if there is no work available and no future work, we are done
-        #             if available_drive_id is None:
-        #                 return
+                    # if there is no work available and no future work, we are done
+                    if available_drive_id is None:
+                        return
 
-        #             drive_id_status[available_drive_id] = DriveIdStatus.IN_PROGRESS
+                    drive_id_status[available_drive_id] = DriveIdStatus.IN_PROGRESS
 
-        #         yield available_drive_id
-        #         record_drive_processing(available_drive_id)
+                yield available_drive_id
+                record_drive_processing(available_drive_id)
 
-        return lambda s: iter(drive_ids)
+        return drive_id_iterator
 
     def _impersonate_user_for_retrieval(
         self,
@@ -439,11 +442,13 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
         # validate that the user has access to the drive APIs by performing a simple
         # request and checking for a 401
         try:
+            logger.info(f"Getting root folder id for user {user_email}")
             # default is ~17mins of retries, don't do that here for cases so we don't
             # waste 17mins everytime we run into a user without access to drive APIs
             retry_builder(tries=3, delay=1)(
                 lambda: run_with_timeout(30, get_root_folder_id, drive_service)
             )()
+            logger.info(f"Got root folder id for user {user_email}")
         except HttpError as e:
             if e.status_code == 401:
                 # fail gracefully, let the other impersonations continue
@@ -478,7 +483,9 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
         # - the current user's email is in the requested emails
         if curr_stage.stage == DriveRetrievalStage.MY_DRIVE_FILES:
             if self.include_my_drives or user_email in self._requested_my_drive_emails:
-                logger.info(f"Getting all files in my drive as '{user_email}'")
+                logger.info(
+                    f"Getting all files in my drive as '{user_email}. Resuming: {resuming}"
+                )
 
                 yield from add_retrieval_info(
                     get_all_files_in_my_drive_and_shared(
@@ -531,7 +538,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
 
             for drive_id in concurrent_drive_itr(user_email):
                 logger.info(
-                    f"Getting files in shared drive '{drive_id}' as '{user_email}'"
+                    f"Getting files in shared drive '{drive_id}' as '{user_email}. Resuming: {resuming}"
                 )
                 curr_stage.completed_until = 0
                 curr_stage.current_folder_or_drive_id = drive_id
@@ -672,20 +679,22 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
             )
             for email in non_completed_org_emails
         ]
-        # for drive_file in parallel_yield(
-        #     user_retrieval_gens, max_workers=MAX_DRIVE_WORKERS
-        # ):
-        while user_retrieval_gens:
-            done_inds = []
-            for ind, gen in enumerate(user_retrieval_gens):
-                drive_file = next(gen, None)
-                if drive_file is None:
-                    done_inds.append(ind)
-                else:
-                    logger.info(f"Yielding thing: {drive_file.drive_file.get('id')}")
-                    yield drive_file
-            for ind in done_inds[::-1]:
-                user_retrieval_gens.pop(ind)
+        for drive_file in parallel_yield(
+            user_retrieval_gens, max_workers=MAX_DRIVE_WORKERS
+        ):
+            logger.info(f"Yielding thing: {drive_file.drive_file.get('id')}")
+            yield drive_file
+        # while user_retrieval_gens:
+        #     done_inds = []
+        #     for ind, gen in enumerate(user_retrieval_gens):
+        #         drive_file = next(gen, None)
+        #         if drive_file is None:
+        #             done_inds.append(ind)
+        #         else:
+        #             logger.info(f"Yielding thing: {drive_file.drive_file.get('id')}")
+        #             yield drive_file
+        #     for ind in done_inds[::-1]:
+        #         user_retrieval_gens.pop(ind)
 
         # if there are more emails to process, don't mark as complete
         if not email_batch_takes_us_to_completion:

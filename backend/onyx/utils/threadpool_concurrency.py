@@ -298,6 +298,9 @@ class TimeoutThread(threading.Thread, Generic[R]):
             self.exception = e
 
     def end(self) -> None:
+        logger.info(
+            f"Function {self.func.__name__} timed out after {self.timeout} seconds"
+        )
         raise TimeoutError(
             f"Function {self.func.__name__} timed out after {self.timeout} seconds"
         )

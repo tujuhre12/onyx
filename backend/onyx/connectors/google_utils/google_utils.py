@@ -12,6 +12,7 @@ from googleapiclient.errors import HttpError  # type: ignore
 from onyx.connectors.google_drive.models import GoogleDriveFileType
 from onyx.utils.logger import setup_logger
 from onyx.utils.retry_wrapper import retry_builder
+from onyx.utils.threadpool_concurrency import run_with_timeout
 
 logger = setup_logger()
 
@@ -176,11 +177,19 @@ def execute_paginated_retrieval(
         request_kwargs = kwargs.copy()
         if next_page_token:
             request_kwargs[PAGE_TOKEN_KEY] = next_page_token
-        results = _execute_single_retrieval(
-            retrieval_function,
-            continue_on_404_or_403,
-            **request_kwargs,
-        )
+        try:
+            results = run_with_timeout(
+                30,
+                _execute_single_retrieval,
+                retrieval_function,
+                continue_on_404_or_403,
+                **request_kwargs,
+            )
+        except TimeoutError:
+            logger.warning(
+                f"Paginated retrieval for {retrieval_function.__name__} timed out after 30 seconds"
+            )
+            break
 
         next_page_token = results.get(NEXT_PAGE_TOKEN_KEY)
         if list_key:
