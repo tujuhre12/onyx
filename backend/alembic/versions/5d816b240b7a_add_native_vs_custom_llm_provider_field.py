@@ -8,8 +8,12 @@ Create Date: 2025-04-21 14:17:15.812325
 
 from alembic import op
 import sqlalchemy as sa
+from pydantic import BaseModel, ConfigDict
 
-from onyx.llm.llm_provider_options import PROVIDER_TO_MODELS_MAP
+from backend.onyx.llm.llm_provider_options import (
+    fetch_available_well_known_llms,
+    fetch_model_names_for_provider_as_set,
+)
 
 
 # revision identifiers, used by Alembic.
@@ -21,6 +25,14 @@ depends_on = None
 
 NATIVE_VARIANT = "NATIVE"
 CUSTOM_VARIANT = "CUSTOM"
+
+
+class _SimpleLLMProvider(BaseModel):
+    # Configure model to read from attributes
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    provider: str
 
 
 def upgrade() -> None:
@@ -58,49 +70,57 @@ def upgrade() -> None:
         ),
     )
 
-    llm_providers = connection.execute(
-        sa.select(
-            llm_provider_table.c.id,
-            llm_provider_table.c.provider,
-            llm_provider_table.c.native_or_custom,
+    llm_providers = [
+        _SimpleLLMProvider(
+            id=row[0],
+            provider=row[1],
         )
-    ).fetchall()
+        for row in connection.execute(
+            sa.select(
+                llm_provider_table.c.id,
+                llm_provider_table.c.provider,
+                llm_provider_table.c.native_or_custom,
+            )
+        ).fetchall()
+    ]
+
+    well_known_llm_provider_names = set(
+        llm_provider.name for llm_provider in fetch_available_well_known_llms()
+    )
 
     for llm_provider in llm_providers:
-        provider_id: int = llm_provider[0]
-        provider_name: str = llm_provider[1]
+        if llm_provider.provider not in well_known_llm_provider_names:
+            connection.execute(
+                sa.update(llm_provider_table).values(native_or_custom=CUSTOM_VARIANT)
+            )
+            continue
 
-        native_or_custom: str
+        default_model_names = fetch_model_names_for_provider_as_set(
+            provider_name=llm_provider.provider
+        )
+        if not default_model_names:
+            raise RuntimeError("")
 
-        if provider_name in PROVIDER_TO_MODELS_MAP:
-            model_configurations = connection.execute(
+        current_model_names = set(
+            row[0]
+            for row in connection.execute(
                 sa.select(
                     model_configuration_table.c.name,
-                ).where(model_configuration_table.c.llm_provider_id == provider_id)
+                ).where(model_configuration_table.c.llm_provider_id == llm_provider.id)
             ).fetchall()
+        )
 
-            canonical_model_names_for_provider_that_we_support = PROVIDER_TO_MODELS_MAP[
-                provider_name
-            ]
-            current_model_names: set[str] = set(
-                [model_configuration[0] for model_configuration in model_configurations]
-            )
-
-            native_or_custom = (
-                NATIVE_VARIANT
-                if current_model_names.issubset(
-                    canonical_model_names_for_provider_that_we_support
-                )
-                else CUSTOM_VARIANT
-            )
-        else:
-            native_or_custom = CUSTOM_VARIANT
+        native_or_custom = (
+            NATIVE_VARIANT
+            if current_model_names.issubset(default_model_names)
+            else CUSTOM_VARIANT
+        )
 
         connection.execute(
             sa.update(llm_provider_table).values(native_or_custom=native_or_custom)
         )
 
-        op.alter_column("llm_provider", "native_or_custom", nullable=False)
+    op.alter_column("llm_provider", "native_or_custom", nullable=False)
 
 
 def downgrade() -> None:
