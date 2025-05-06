@@ -450,6 +450,7 @@ def _run_indexing(
             for document_batch, failure, next_checkpoint in connector_runner.run(
                 checkpoint
             ):
+                logger.info(f"Document batch: {len(document_batch)}")
                 # Check if connector is disabled mid run and stop if so unless it's the secondary
                 # index being built. We want to populate it even for paused connectors
                 # Often paused connectors are sources that aren't updated frequently but the
@@ -470,6 +471,7 @@ def _run_indexing(
                         db_session_temp, ctx, index_attempt_id
                     )
 
+                logger.info(f"Maybe failure: {failure}")
                 # save record of any failures at the connector level
                 if failure is not None:
                     total_failures += 1
@@ -485,6 +487,7 @@ def _run_indexing(
                         total_failures, document_count, batch_num, failure
                     )
 
+                logger.info(f"Next checkpoint: {next_checkpoint}")
                 # save the new checkpoint (if one is provided)
                 if next_checkpoint:
                     checkpoint = next_checkpoint
@@ -516,7 +519,7 @@ def _run_indexing(
                             f"threshold={INDEXING_SIZE_WARNING_THRESHOLD}"
                         )
 
-                logger.debug(f"Indexing batch of documents: {batch_description}")
+                logger.info(f"Indexing batch of documents: {batch_description}")
 
                 index_attempt_md.request_id = make_randomized_onyx_request_id("CIX")
                 index_attempt_md.structured_id = (
