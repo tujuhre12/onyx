@@ -507,7 +507,7 @@ def check_for_indexing(self: Task, *, tenant_id: str) -> int | None:
                         search_settings_instance.id
                     )
                     if redis_connector_index.fenced:
-                        task_logger.info(
+                        task_logger.debug(
                             f"check_for_indexing - Skipping fenced connector: "
                             f"cc_pair={cc_pair_id} search_settings={search_settings_instance.id}"
                         )
@@ -529,14 +529,14 @@ def check_for_indexing(self: Task, *, tenant_id: str) -> int | None:
                         secondary_index_building=len(search_settings_list) > 1,
                         db_session=db_session,
                     ):
-                        task_logger.info(
+                        task_logger.debug(
                             f"check_for_indexing - Not indexing cc_pair_id: {cc_pair_id} "
                             f"search_settings={search_settings_instance.id}, "
                             f"secondary_index_building={len(search_settings_list) > 1}"
                         )
                         continue
                     else:
-                        task_logger.info(
+                        task_logger.debug(
                             f"check_for_indexing - Will index cc_pair_id: {cc_pair_id} "
                             f"search_settings={search_settings_instance.id}, "
                             f"secondary_index_building={len(search_settings_list) > 1}"
@@ -896,7 +896,11 @@ def connector_indexing_task(
             f"cc_pair={cc_pair_id} "
             f"search_settings={search_settings_id}"
         )
-        raise e
+
+        # special bulletproofing ... truncate long exception messages
+        sanitized_e = type(e)(str(e)[:1024])
+        sanitized_e.__traceback__ = e.__traceback__
+        raise sanitized_e
 
     finally:
         if lock.owned():

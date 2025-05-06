@@ -2482,6 +2482,7 @@ class UserFile(Base):
         "ConnectorCredentialPair", back_populates="user_file"
     )
     link_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    content_type: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 """

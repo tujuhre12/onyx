@@ -4,6 +4,7 @@ from ee.onyx.server.reporting.usage_export_generation import create_new_usage_re
 from onyx.background.celery.apps.primary import celery_app
 from onyx.background.task_utils import build_celery_task_wrapper
 from onyx.configs.app_configs import JOB_TIMEOUT
+from onyx.configs.constants import OnyxCeleryTask
 from onyx.db.chat import delete_chat_session
 from onyx.db.chat import get_chat_sessions_older_than
 from onyx.db.engine import get_session_with_current_tenant
@@ -47,7 +48,7 @@ def perform_ttl_management_task(retention_limit_days: int, *, tenant_id: str) ->
 
 
 @celery_app.task(
-    name="check_ttl_management_task",
+    name=OnyxCeleryTask.CHECK_TTL_MANAGEMENT_TASK,
     ignore_result=True,
     soft_time_limit=JOB_TIMEOUT,
 )
@@ -67,7 +68,7 @@ def check_ttl_management_task(*, tenant_id: str) -> None:
 
 
 @celery_app.task(
-    name="autogenerate_usage_report_task",
+    name=OnyxCeleryTask.AUTOGENERATE_USAGE_REPORT_TASK,
     ignore_result=True,
     soft_time_limit=JOB_TIMEOUT,
 )

@@ -51,7 +51,7 @@ def _get_drive_members(
                 drive_service.permissions().list,
                 list_key="permissions",
                 fileId=drive_id,
-                fields="permissions(emailAddress, type)",
+                fields="permissions(emailAddress, type),nextPageToken",
                 supportsAllDrives=True,
                 # can only set `useDomainAdminAccess` to true if the user
                 # is an admin
@@ -87,7 +87,7 @@ def _get_all_groups(
         admin_service.groups().list,
         list_key="groups",
         domain=google_domain,
-        fields="groups(email)",
+        fields="groups(email),nextPageToken",
     ):
         group_emails.add(group["email"])
     return group_emails
@@ -107,7 +107,7 @@ def _map_group_email_to_member_emails(
             admin_service.members().list,
             list_key="members",
             groupKey=group_email,
-            fields="members(email)",
+            fields="members(email),nextPageToken",
         ):
             group_member_emails.add(member["email"])
 
@@ -127,6 +127,11 @@ def _build_onyx_groups(
     for drive_id, (group_emails, user_emails) in drive_id_to_members_map.items():
         all_member_emails: set[str] = user_emails
         for group_email in group_emails:
+            if group_email not in group_email_to_member_emails_map:
+                logger.warning(
+                    f"Group email {group_email} not found in group_email_to_member_emails_map"
+                )
+                continue
             all_member_emails.update(group_email_to_member_emails_map[group_email])
         onyx_groups.append(
             ExternalUserGroup(

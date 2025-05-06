@@ -13,6 +13,7 @@ from onyx.background.celery.tasks.beat_schedule import (
     get_tasks_to_schedule as base_get_tasks_to_schedule,
 )
 from onyx.configs.constants import OnyxCeleryPriority
+from onyx.configs.constants import OnyxCeleryQueues
 from onyx.configs.constants import OnyxCeleryTask
 from shared_configs.configs import MULTI_TENANT
 
@@ -39,6 +40,16 @@ ee_beat_task_templates.extend(
                 "expires": BEAT_EXPIRES_DEFAULT,
             },
         },
+        {
+            "name": "export-query-history-cleanup-task",
+            "task": OnyxCeleryTask.EXPORT_QUERY_HISTORY_CLEANUP_TASK,
+            "schedule": timedelta(hours=1),
+            "options": {
+                "priority": OnyxCeleryPriority.MEDIUM,
+                "expires": BEAT_EXPIRES_DEFAULT,
+                "queue": OnyxCeleryQueues.CSV_GENERATION,
+            },
+        },
     ]
 )
 
@@ -62,6 +73,16 @@ if not MULTI_TENANT:
             "options": {
                 "priority": OnyxCeleryPriority.MEDIUM,
                 "expires": BEAT_EXPIRES_DEFAULT,
+            },
+        },
+        {
+            "name": "export-query-history-cleanup-task",
+            "task": OnyxCeleryTask.EXPORT_QUERY_HISTORY_CLEANUP_TASK,
+            "schedule": timedelta(hours=1),
+            "options": {
+                "priority": OnyxCeleryPriority.MEDIUM,
+                "expires": BEAT_EXPIRES_DEFAULT,
+                "queue": OnyxCeleryQueues.CSV_GENERATION,
             },
         },
     ]

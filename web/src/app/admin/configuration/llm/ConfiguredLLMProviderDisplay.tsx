@@ -28,7 +28,16 @@ function LLMProviderUpdateModal({
       llmProviderDescriptor?.name ||
       "Custom LLM Provider";
 
-  const displayNativeModal = existingLlmProvider.native_or_custom === "NATIVE";
+  let displayNativeModal: boolean;
+  if (existingLlmProvider.native_or_custom === "NATIVE") {
+    if (!llmProviderDescriptor)
+      throw new Error(
+        "If `native_or_custom` is true, then `llmProviderDescriptor` must be non-null"
+      );
+    displayNativeModal = true;
+  } else {
+    displayNativeModal = false;
+  }
 
   return (
     <Modal
