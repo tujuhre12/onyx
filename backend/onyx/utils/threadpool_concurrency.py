@@ -375,7 +375,9 @@ def parallel_yield(gens: list[Iterator[R]], max_workers: int = 10) -> Iterator[R
 
         next_ind = len(gens)
         while future_to_index:
+            logger.info(f"Waiting for {len(future_to_index)} futures")
             done, _ = wait(future_to_index, return_when=FIRST_COMPLETED)
+            logger.info(f"Done: {len(done)}")
             for future in done:
                 ind, result = future.result()
                 if result is not None:

@@ -653,7 +653,11 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
             )
             for email in non_completed_org_emails
         ]
-        yield from parallel_yield(user_retrieval_gens, max_workers=MAX_DRIVE_WORKERS)
+        for drive_file in parallel_yield(
+            user_retrieval_gens, max_workers=MAX_DRIVE_WORKERS
+        ):
+            logger.info(f"Yielding thing: {drive_file.drive_file.get('id')}")
+            yield drive_file
 
         # if there are more emails to process, don't mark as complete
         if not email_batch_takes_us_to_completion:
