@@ -428,9 +428,11 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
         curr_stage = checkpoint.completion_map[user_email]
         resuming = True
         if curr_stage.stage == DriveRetrievalStage.START:
+            logger.info(f"Setting stage to {DriveRetrievalStage.MY_DRIVE_FILES.value}")
             curr_stage.stage = DriveRetrievalStage.MY_DRIVE_FILES
             resuming = False
         drive_service = get_drive_service(self.creds, user_email)
+        logger.info(f"Got drive service: {drive_service}")
 
         # validate that the user has access to the drive APIs by performing a simple
         # request and checking for a 401
