@@ -450,7 +450,9 @@ def _run_indexing(
             for document_batch, failure, next_checkpoint in connector_runner.run(
                 checkpoint
             ):
-                logger.info(f"Document batch: {len(document_batch)}")
+                logger.info(
+                    f"Document batch: {len(document_batch) if document_batch else 0}"
+                )
                 # Check if connector is disabled mid run and stop if so unless it's the secondary
                 # index being built. We want to populate it even for paused connectors
                 # Often paused connectors are sources that aren't updated frequently but the

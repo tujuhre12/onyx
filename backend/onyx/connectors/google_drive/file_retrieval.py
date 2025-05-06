@@ -265,7 +265,8 @@ def get_all_files_in_my_drive_and_shared(
     if not include_shared_with_me:
         file_query += " and 'me' in owners"
     file_query += _generate_time_range_filter(start, end)
-    yield from execute_paginated_retrieval(
+    logger.info("listing files as user")
+    for drive_file in execute_paginated_retrieval(
         retrieval_function=service.files().list,
         list_key="files",
         continue_on_404_or_403=False,
@@ -273,7 +274,9 @@ def get_all_files_in_my_drive_and_shared(
         fields=SLIM_FILE_FIELDS if is_slim else FILE_FIELDS,
         q=file_query,
         **kwargs,
-    )
+    ):
+        logger.info(f"Inner yielding drive file: {drive_file.get('id')}")
+        yield drive_file
 
 
 def get_all_files_for_oauth(

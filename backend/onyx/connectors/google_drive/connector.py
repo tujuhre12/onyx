@@ -9,6 +9,7 @@ from typing import cast
 from typing import Protocol
 from urllib.parse import urlparse
 
+from google.auth.exceptions import RefreshError  # type: ignore
 from google.oauth2.credentials import Credentials as OAuthCredentials  # type: ignore
 from google.oauth2.service_account import Credentials as ServiceAccountCredentials  # type: ignore
 from googleapiclient.errors import HttpError  # type: ignore
@@ -63,6 +64,7 @@ from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
 from onyx.utils.logger import setup_logger
 from onyx.utils.retry_wrapper import retry_builder
 from onyx.utils.threadpool_concurrency import run_functions_tuples_in_parallel
+from onyx.utils.threadpool_concurrency import run_with_timeout
 from onyx.utils.threadpool_concurrency import ThreadSafeDict
 
 logger = setup_logger()
@@ -439,7 +441,9 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
         try:
             # default is ~17mins of retries, don't do that here for cases so we don't
             # waste 17mins everytime we run into a user without access to drive APIs
-            retry_builder(tries=3, delay=1)(get_root_folder_id)(drive_service)
+            retry_builder(tries=3, delay=1)(
+                lambda: run_with_timeout(30, get_root_folder_id, drive_service)
+            )()
         except HttpError as e:
             if e.status_code == 401:
                 # fail gracefully, let the other impersonations continue
@@ -452,7 +456,22 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                 curr_stage.stage = DriveRetrievalStage.DONE
                 return
             raise
-
+        except TimeoutError:
+            logger.warning(
+                f"User '{user_email}' timed out when trying to access the drive APIs."
+            )
+            # mark this user as done so we don't try to retrieve anything for them
+            # again
+            curr_stage.stage = DriveRetrievalStage.DONE
+            return
+        except RefreshError as e:
+            logger.warning(
+                f"User '{user_email}' could not refresh their token. Error: {e}"
+            )
+            # mark this user as done so we don't try to retrieve anything for them
+            # again
+            curr_stage.stage = DriveRetrievalStage.DONE
+            return
         # if we are including my drives, try to get the current user's my
         # drive if any of the following are true:
         # - include_my_drives is true
