@@ -76,6 +76,8 @@ logger = setup_logger()
 MAX_DRIVE_WORKERS = 4
 BATCHES_PER_CHECKPOINT = 1
 
+DRIVE_BATCH_SIZE = 80
+
 
 def _extract_str_list_from_comma_str(string: str | None) -> list[str]:
     if not string:
@@ -186,8 +188,6 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                 "include_shared_drives, include_my_drives, include_files_shared_with_me, "
                 "shared_folder_urls, or my_drive_emails"
             )
-
-        self.batch_size = batch_size
 
         specific_requests_made = False
         if bool(shared_drive_urls) or bool(my_drive_emails) or bool(shared_folder_urls):
@@ -309,14 +309,14 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
         return user_emails
 
     def get_all_drive_ids(self) -> set[str]:
-        primary_drive_service = get_drive_service(
-            creds=self.creds,
-            user_email=self.primary_admin_email,
-        )
+        return self._get_all_drives_for_user(self.primary_admin_email)
+
+    def _get_all_drives_for_user(self, user_email: str) -> set[str]:
+        drive_service = get_drive_service(self.creds, user_email)
         is_service_account = isinstance(self.creds, ServiceAccountCredentials)
-        all_drive_ids = set()
+        all_drive_ids: set[str] = set()
         for drive in execute_paginated_retrieval(
-            retrieval_function=primary_drive_service.drives().list,
+            retrieval_function=drive_service.drives().list,
             list_key="drives",
             useDomainAdminAccess=is_service_account,
             fields="drives(id),nextPageToken",
@@ -626,6 +626,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
         sorted_drive_ids, sorted_folder_ids = self._determine_retrieval_ids(
             checkpoint, is_slim, DriveRetrievalStage.MY_DRIVE_FILES
         )
+        all_drive_ids = set(sorted_drive_ids)
 
         # Setup initial completion map on first connector run
         for email in all_org_emails:
@@ -635,6 +636,8 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
             checkpoint.completion_map[email] = StageCompletion(
                 stage=DriveRetrievalStage.START,
                 completed_until=0,
+                processed_drive_ids=all_drive_ids
+                - self._get_all_drives_for_user(email),
             )
 
         # we've found all users and drives, now time to actually start
@@ -1105,7 +1108,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                     continue
                 files_batch.append(retrieved_file)
 
-                if len(files_batch) < self.batch_size:
+                if len(files_batch) < DRIVE_BATCH_SIZE:
                     logger.info(
                         f"Not Yielding batch of {len(files_batch)} files; "
                         f"num seen doc ids: {len(checkpoint.all_retrieved_file_ids)}"
