@@ -1037,6 +1037,9 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
         end: SecondsSinceUnixEpoch | None = None,
     ) -> Iterator[Document | ConnectorFailure]:
         try:
+            import time
+
+            start_time = time.time()
             # Prepare a partial function with the credentials and admin email
             convert_func = partial(
                 convert_drive_item_to_document,
@@ -1129,6 +1132,9 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                     )
                     checkpoint.retrieved_folder_and_drive_ids = (
                         self._retrieved_folder_and_drive_ids
+                    )
+                    logger.info(
+                        f"Time taken until checkpoint: {time.time() - start_time} for {batches_complete*DRIVE_BATCH_SIZE} files"
                     )
                     return  # create a new checkpoint
 
