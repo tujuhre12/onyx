@@ -236,6 +236,9 @@ def get_all_files_in_my_drive_and_shared(
     start: SecondsSinceUnixEpoch | None = None,
     end: SecondsSinceUnixEpoch | None = None,
 ) -> Iterator[GoogleDriveFileType]:
+    import time
+
+    t1 = time.time()
     kwargs = {}
     if not is_slim:
         kwargs[ORDER_BY_KEY] = GoogleFields.MODIFIED_TIME.value
@@ -258,7 +261,8 @@ def get_all_files_in_my_drive_and_shared(
         found_folders = True
     if found_folders:
         update_traversed_ids_func(get_root_folder_id(service))
-
+    t2 = time.time()
+    logger.info(f"Time taken to get all folders: {t2 - t1}")
     # Then get the files
     file_query = f"mimeType != '{DRIVE_FOLDER_TYPE}'"
     file_query += " and trashed = false"
@@ -277,6 +281,8 @@ def get_all_files_in_my_drive_and_shared(
     ):
         logger.info(f"Inner yielding drive file: {drive_file.get('id')}")
         yield drive_file
+    t3 = time.time()
+    logger.info(f"Time taken to get all files: {t3 - t2}")
 
 
 def get_all_files_for_oauth(

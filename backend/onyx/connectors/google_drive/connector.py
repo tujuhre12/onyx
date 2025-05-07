@@ -663,7 +663,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
         # to the drive APIs. Without this, we could loop through these emails for
         # more than 3 hours, causing a timeout and stalling progress.
         email_batch_takes_us_to_completion = True
-        MAX_EMAILS_TO_PROCESS_BEFORE_CHECKPOINTING = 50
+        MAX_EMAILS_TO_PROCESS_BEFORE_CHECKPOINTING = MAX_DRIVE_WORKERS
         if len(non_completed_org_emails) > MAX_EMAILS_TO_PROCESS_BEFORE_CHECKPOINTING:
             non_completed_org_emails = non_completed_org_emails[
                 :MAX_EMAILS_TO_PROCESS_BEFORE_CHECKPOINTING
@@ -1125,18 +1125,18 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                 yield from _yield_batch(files_batch)
                 files_batch = []
 
-                if batches_complete > BATCHES_PER_CHECKPOINT:
-                    logger.info(
-                        f"Returning checkpoint after {batches_complete} batches; "
-                        f"num seen doc ids: {len(checkpoint.all_retrieved_file_ids)}"
-                    )
-                    checkpoint.retrieved_folder_and_drive_ids = (
-                        self._retrieved_folder_and_drive_ids
-                    )
-                    logger.info(
-                        f"Time taken until checkpoint: {time.time() - start_time} for {batches_complete*DRIVE_BATCH_SIZE} files"
-                    )
-                    return  # create a new checkpoint
+                # if batches_complete > BATCHES_PER_CHECKPOINT:
+                #     logger.info(
+                #         f"Returning checkpoint after {batches_complete} batches; "
+                #         f"num seen doc ids: {len(checkpoint.all_retrieved_file_ids)}"
+                #     )
+                #     checkpoint.retrieved_folder_and_drive_ids = (
+                #         self._retrieved_folder_and_drive_ids
+                #     )
+                #     logger.info(
+                #         f"Time taken until checkpoint: {time.time() - start_time} for {batches_complete*DRIVE_BATCH_SIZE} files"
+                #     )
+                #     return  # create a new checkpoint
 
             logger.info(
                 f"Processing remaining files: {[file.drive_file.get('name') for file in files_batch]}"
@@ -1144,8 +1144,13 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
             # Process any remaining files
             if files_batch:
                 yield from _yield_batch(files_batch)
+            checkpoint.retrieved_folder_and_drive_ids = (
+                self._retrieved_folder_and_drive_ids
+            )
 
-            logger.info("Completed processing files")
+            logger.info(
+                f"Completed processing files. time taken: {time.time() - start_time}"
+            )
         except Exception as e:
             logger.exception(f"Error extracting documents from Google Drive: {e}")
             raise e
