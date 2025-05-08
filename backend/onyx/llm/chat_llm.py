@@ -99,16 +99,18 @@ def _convert_litellm_message_to_langchain_message(
     elif role == "assistant":
         return AIMessage(
             content=content,
-            tool_calls=[
-                {
-                    "name": tool_call.function.name or "",
-                    "args": json.loads(tool_call.function.arguments),
-                    "id": tool_call.id,
-                }
-                for tool_call in tool_calls
-            ]
-            if tool_calls
-            else [],
+            tool_calls=(
+                [
+                    {
+                        "name": tool_call.function.name or "",
+                        "args": json.loads(tool_call.function.arguments),
+                        "id": tool_call.id,
+                    }
+                    for tool_call in tool_calls
+                ]
+                if tool_calls
+                else []
+            ),
         )
     elif role == "system":
         return SystemMessage(content=content)
@@ -409,6 +411,13 @@ class DefaultMultiLLM(LLM):
         processed_prompt = _prompt_to_dict(prompt)
         self._record_call(processed_prompt)
 
+        NO_TEMPERATURE_MODELS = [
+            "o4-mini",
+            "o3-mini",
+            "o3",
+            "o3-preview",
+        ]
+
         try:
             return litellm.completion(
                 mock_response=MOCK_LLM_RESPONSE,
@@ -428,9 +437,13 @@ class DefaultMultiLLM(LLM):
                 # streaming choice
                 stream=stream,
                 # model params
-                temperature=0,
                 timeout=timeout_override or self._timeout,
                 max_tokens=max_tokens,
+                **(
+                    {"temperature": self._temperature}
+                    if self.config.model_name not in NO_TEMPERATURE_MODELS
+                    else {}
+                ),
                 # For now, we don't support parallel tool calls
                 # NOTE: we can't pass this in if tools are not specified
                 # or else OpenAI throws an error
