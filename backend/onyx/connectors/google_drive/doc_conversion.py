@@ -59,6 +59,10 @@ GOOGLE_MIME_TYPES = {
     GDriveMimeType.PPT.value: "text/plain",
 }
 
+DRIVE_IGNORE_EXTENSIONS = {
+    "dll",
+}
+
 
 def _summarize_drive_image(
     image_data: bytes, image_name: str, image_analysis_llm: LLM | None
@@ -421,6 +425,10 @@ def _convert_drive_item_to_document(
                         f"{file.get('name')} exceeds size threshold of {size_threshold}. Skipping."
                     )
                     return None
+
+        if file.get("name", "").split(".")[-1] in DRIVE_IGNORE_EXTENSIONS:
+            logger.warning(f"Skipping file {file.get('name')} due to extension.")
+            return None
 
         # If we don't have sections yet, use the basic extraction method
         if not sections:

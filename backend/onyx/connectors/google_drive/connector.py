@@ -590,6 +590,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
                 logger.info(f"Getting files in folder '{folder_id}' as '{user_email}'")
                 yield from _yield_from_folder_crawl(folder_id, start)
 
+        logger.info(f"Done retrieving files for user {user_email}")
         curr_stage.stage = DriveRetrievalStage.DONE
 
     def _manage_service_account_retrieval(
@@ -652,6 +653,7 @@ class GoogleDriveConnector(SlimConnector, CheckpointedConnector[GoogleDriveCheck
             for user_email, stage_completion in checkpoint.completion_map.items()
             if stage_completion.stage != DriveRetrievalStage.DONE
         ]
+        logger.info(f"{len(non_completed_org_emails)} users left to retrieve")
 
         # don't process too many emails before returning a checkpoint. This is
         # to resolve the case where there are a ton of emails that don't have access
