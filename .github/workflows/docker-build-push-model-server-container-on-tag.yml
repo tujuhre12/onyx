@@ -7,10 +7,12 @@ on:
 
 env:
   REGISTRY_IMAGE: ${{ contains(github.ref_name, 'cloud') && 'onyxdotapp/onyx-model-server-cloud' || 'onyxdotapp/onyx-model-server' }}
-  LATEST_TAG: ${{ contains(github.ref_name, 'latest') }}
   DOCKER_BUILDKIT: 1
   BUILDKIT_PROGRESS: plain
   DEPLOYMENT: ${{ contains(github.ref_name, 'cloud') && 'cloud' || 'standalone' }}
+
+  # don't tag cloud images with "latest"
+  LATEST_TAG: ${{ contains(github.ref_name, 'latest') && !contains(github.ref_name, 'cloud') }}
   
 jobs:
 
