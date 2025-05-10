@@ -4,7 +4,7 @@ name: Build and Push Cloud Web Image on Tag
 on:
   push:
     tags:
-      - "*"
+      - "*cloud*"
 
 env:
   REGISTRY_IMAGE: onyxdotapp/onyx-web-server-cloud
