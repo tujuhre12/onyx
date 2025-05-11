@@ -299,6 +299,11 @@ class SearchTool(Tool[SearchToolOverrideKwargs]):
         document_sources = None
         time_cutoff = None
         expanded_queries = None
+        kg_entities = None
+        kg_relationships = None
+        kg_terms = None
+        kg_sources = None
+        kg_chunk_id_zero_only = False
         if override_kwargs:
             force_no_rerank = use_alt_not_None(override_kwargs.force_no_rerank, False)
             alternate_db_session = override_kwargs.alternate_db_session
@@ -312,10 +317,10 @@ class SearchTool(Tool[SearchToolOverrideKwargs]):
             document_sources = override_kwargs.document_sources
             time_cutoff = override_kwargs.time_cutoff
             expanded_queries = override_kwargs.expanded_queries
-            kg_entities = override_kwargs.kg_entities or None
-            kg_relationships = override_kwargs.kg_relationships or None
-            kg_terms = override_kwargs.kg_terms or None
-            kg_sources = override_kwargs.kg_sources or None
+            kg_entities = override_kwargs.kg_entities
+            kg_relationships = override_kwargs.kg_relationships
+            kg_terms = override_kwargs.kg_terms
+            kg_sources = override_kwargs.kg_sources
             kg_chunk_id_zero_only = override_kwargs.kg_chunk_id_zero_only or False
         # Fast path for ordering-only search
         if ordering_only:
