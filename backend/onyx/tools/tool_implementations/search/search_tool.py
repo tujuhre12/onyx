@@ -312,11 +312,11 @@ class SearchTool(Tool[SearchToolOverrideKwargs]):
             document_sources = override_kwargs.document_sources
             time_cutoff = override_kwargs.time_cutoff
             expanded_queries = override_kwargs.expanded_queries
-            kg_entities = override_kwargs.kg_entities
-            kg_relationships = override_kwargs.kg_relationships
-            kg_terms = override_kwargs.kg_terms
-            kg_sources = override_kwargs.kg_sources
-            kg_chunk_id_zero_only = override_kwargs.kg_chunk_id_zero_only
+            kg_entities = override_kwargs.kg_entities or None
+            kg_relationships = override_kwargs.kg_relationships or None
+            kg_terms = override_kwargs.kg_terms or None
+            kg_sources = override_kwargs.kg_sources or None
+            kg_chunk_id_zero_only = override_kwargs.kg_chunk_id_zero_only or False
         # Fast path for ordering-only search
         if ordering_only:
             yield from self._run_ordering_only_search(
