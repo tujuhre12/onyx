@@ -2,6 +2,10 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# the philosophy for resources defined in this file is to
+# adhere to the minimum recommended settings for third party components
+# and some reasonable minimum defaults for our own deployments
+
 postgresql:
   primary:
     persistence:
@@ -26,7 +30,7 @@ vespa:
           - ReadWriteOnce
         resources:
           requests:
-            storage: 1Gi
+            storage: 8Gi
         storageClassName: ""
   enabled: true
   replicaCount: 1
@@ -46,10 +50,10 @@ vespa:
     # The Vespa Helm chart specifies default resources, which are quite modest. We override
     # them here to increase chances of the chart running successfully.
     requests:
-      cpu: 1500m
+      cpu: 1000m
       memory: 4000Mi
     limits:
-      cpu: 1500m
+      cpu: 2000m
       memory: 4000Mi
 
 persistent:
@@ -189,17 +193,17 @@ webserver:
     servicePort: 3000
     targetPort: http
 
-  resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+  resources:
+    limits:
+      cpu: 250m
+      memory: 128Mi
+    requests:
+      cpu: "2"
+      memory: 1Gi
 
   autoscaling:
     enabled: false
@@ -373,7 +377,13 @@ celery_beat:
   securityContext:
     privileged: true
     runAsUser: 0
-  resources: {}
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 250m
+      memory: 1Gi
   volumes: []  # Additional volumes on the output Deployment definition.
   volumeMounts: []  # Additional volumeMounts on the output Deployment definition.
   nodeSelector: {}
@@ -439,7 +449,13 @@ celery_worker_light:
   securityContext:
     privileged: true
     runAsUser: 0
-  resources: {}
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
   volumes: []  # Additional volumes on the output Deployment definition.
   volumeMounts: []  # Additional volumeMounts on the output Deployment definition.
   nodeSelector: {}
@@ -483,7 +499,13 @@ celery_worker_primary:
   securityContext:
     privileged: true
     runAsUser: 0
-  resources: {}
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 3Gi
   volumes: []  # Additional volumes on the output Deployment definition.
   volumeMounts: []  # Additional volumeMounts on the output Deployment definition.
   nodeSelector: {}
@@ -512,6 +534,8 @@ celery_worker_user_files_indexing:
   tolerations: []
   affinity: {}
 
+# Resources
+# https://redis.io/docs/latest/operate/rs/installing-upgrading/install/plan-deployment/hardware-requirements/
 redis:
   enabled: true
   architecture: standalone
@@ -529,6 +553,13 @@ redis:
       pullPolicy: IfNotPresent
     persistence:
       enabled: false
+    resources:
+      requests:
+        cpu: "1"
+        memory: "1Gi"
+      limits:
+        cpu: "2"
+        memory: "1Gi"
   service:
     type: ClusterIP
     port: 6379
