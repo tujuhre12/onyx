@@ -466,7 +466,7 @@ def get_application(lifespan_override: Lifespan | None = None) -> FastAPI:
 # NOTE: needs to be outside of the `if __name__ == "__main__"` block so that the
 # app is exportable
 set_is_ee_based_on_env_variable()
-app_fn = fetch_versioned_implementation(module="onyx.main", attribute="get_application")
+app = fetch_versioned_implementation(module="onyx.main", attribute="get_application")
 
 
 if __name__ == "__main__":
@@ -477,4 +477,4 @@ if __name__ == "__main__":
     if global_version.is_ee_version():
         logger.notice("Running Enterprise Edition")
 
-    uvicorn.run(app_fn, host=APP_HOST, port=APP_PORT)
+    uvicorn.run(app, host=APP_HOST, port=APP_PORT)

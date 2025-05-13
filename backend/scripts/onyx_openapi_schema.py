@@ -8,7 +8,7 @@ import json
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
-from onyx.main import app_fn
+from onyx.main import app as app_fn
 
 
 def go(filename: str) -> None:
