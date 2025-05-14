@@ -628,6 +628,8 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
                 headers=next_repo.raw_headers,
                 raw_data=next_repo.raw_data,
             )
+            checkpoint.stage = GithubConnectorStage.PRS
+            checkpoint.reset()
 
         logger.info(f"{len(checkpoint.cached_repo_ids)} repos remaining")
 
