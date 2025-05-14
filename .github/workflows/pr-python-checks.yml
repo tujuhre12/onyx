@@ -31,6 +31,21 @@ jobs:
         pip install --retries 5 --timeout 30 -r backend/requirements/dev.txt
         pip install --retries 5 --timeout 30 -r backend/requirements/model_server.txt
 
+    - name: Generate OpenAPI schema
+      working-directory: ./backend
+      run: |
+        python onyx_openapi_schema.py --filename generated/openapi.json
+
+    - name: Generate OpenAPI Python client
+      working-directory: ./backend
+      run: |
+        docker run --rm \
+          -v generated:/local openapitools/openapi-generator-cli generate \
+          -i /local/openapi.json \
+          -g python \
+          -o onyx_openapi_client \
+          --package-name onyx_openapi_client
+            
     - name: Run MyPy
       run: |
         cd backend
