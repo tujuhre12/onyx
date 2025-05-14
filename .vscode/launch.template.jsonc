@@ -426,7 +426,7 @@
       },
       "args": [
         "--filename",
-        "${workspaceFolder}/generated/openapi.json",
+        "generated/openapi.json",
       ]
     },
       {
