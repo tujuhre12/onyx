@@ -25,6 +25,8 @@ def go(filename: str) -> None:
             f,
         )
 
+    print(f"Wrote OpenAPI schema to {filename}.")
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
