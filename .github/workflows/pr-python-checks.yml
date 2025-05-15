@@ -46,7 +46,7 @@ jobs:
           openapitools/openapi-generator-cli generate \
           -i /local/openapi.json \
           -g python \
-          -o onyx_openapi_client \
+          -o /local/onyx_openapi_client \
           --package-name onyx_openapi_client
             
     - name: Run MyPy
