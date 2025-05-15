@@ -52,12 +52,13 @@ jobs:
         working-directory: ./backend
         run: |
           docker run --rm \
-            -v generated:/local openapitools/openapi-generator-cli generate \
+            -v "${{ github.workspace }}/backend/generated:/local" \
+            openapitools/openapi-generator-cli generate \
             -i /local/openapi.json \
             -g python \
-            -o onyx_openapi_client \
+            -o /local/onyx_openapi_client \
             --package-name onyx_openapi_client
-          
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
