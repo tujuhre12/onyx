@@ -202,6 +202,8 @@ def generate_simple_sql(
             .replace("---user_name---", f"EMPLOYEE:{user_name}")
         )
 
+        logger.debug(f"simple_sql_prompt: {simple_sql_prompt}")
+
         # Create temporary view
 
         allowed_docs_view_name = f"allowed_docs_{user_email}".replace("@", "_").replace(
