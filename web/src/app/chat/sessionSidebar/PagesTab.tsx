@@ -99,6 +99,14 @@ const SortableFolder: React.FC<SortableFolderProps> = (props) => {
   );
 };
 
+function PagesTabHeader({}: {
+  name: string;
+  chat_sessions: ChatSession[];
+  reorderable: boolean;
+}) {
+  return <></>;
+}
+
 export function PagesTab({
   existingChats,
   currentChatId,
@@ -356,7 +364,7 @@ export function PagesTab({
         </div>
       </div>
 
-      {isCreatingFolder ? (
+      {isCreatingFolder && (
         <div className="px-4">
           <div className="flex  overflow-visible items-center w-full text-text-500 rounded-md p-1 relative">
             <Caret size={16} className="flex-none mr-1" />
@@ -387,8 +395,6 @@ export function PagesTab({
             </div>
           </div>
         </div>
-      ) : (
-        <></>
       )}
 
       {folders && folders.length > 0 && (
@@ -436,35 +442,32 @@ export function PagesTab({
       )}
 
       <div className="pl-4 pr-3">
-        {!isHistoryEmpty && (
-          <>
-            {Object.entries(groupedChatSesssions)
-              .filter(([groupName, chats]) => chats.length > 0)
-              .map(([groupName, chats], index) => (
-                <FolderDropdown
-                  key={groupName}
-                  folder={{
-                    folder_name: groupName,
-                    chat_sessions: chats,
-                    display_priority: 0,
-                  }}
-                  currentChatId={currentChatId}
-                  showShareModal={showShareModal}
-                  closeSidebar={closeSidebar}
-                  onEdit={handleEditFolder}
-                  onDrop={handleDrop}
-                  index={folders ? folders.length + index : index}
-                >
-                  {chats.map((chat) =>
-                    renderChatSession(
-                      chat,
-                      folders != undefined && folders.length > 0
-                    )
-                  )}
-                </FolderDropdown>
-              ))}
-          </>
-        )}
+        {!isHistoryEmpty &&
+          Object.entries(groupedChatSesssions)
+            .filter(([groupName, chats]) => chats.length > 0)
+            .map(([groupName, chats], index) => (
+              <FolderDropdown
+                key={groupName}
+                folder={{
+                  folder_name: groupName,
+                  chat_sessions: chats,
+                  display_priority: 0,
+                }}
+                currentChatId={currentChatId}
+                showShareModal={showShareModal}
+                closeSidebar={closeSidebar}
+                onEdit={handleEditFolder}
+                onDrop={handleDrop}
+                index={folders ? folders.length + index : index}
+              >
+                {chats.map((chat) =>
+                  renderChatSession(
+                    chat,
+                    folders != undefined && folders.length > 0
+                  )
+                )}
+              </FolderDropdown>
+            ))}
 
         {isHistoryEmpty && (!folders || folders.length === 0) && (
           <p className="text-sm max-w-full mt-2 w-[250px]">
