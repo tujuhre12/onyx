@@ -30,7 +30,7 @@ def _fetch_workspace_permissions(
         external_user_emails=user_emails,
         # No group<->document mapping for slack
         external_user_group_ids=set(),
-        # No way to determine if slack is invite only without enterprise liscense
+        # No way to determine if slack is invite only without enterprise license
         is_public=False,
     )
 
