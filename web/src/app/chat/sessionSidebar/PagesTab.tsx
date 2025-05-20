@@ -52,6 +52,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface SortableFolderProps {
   folder: Folder;
@@ -369,69 +370,58 @@ export function PagesTab({
     <div className="flex flex-col gap-y-2 flex-grow">
       {popup}
 
-      {isCreatingFolder && (
-        <div className="px-4">
-          <div className="flex  overflow-visible items-center w-full text-text-500 rounded-md p-1 relative">
-            <Caret size={16} className="flex-none mr-1" />
-            <input
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleNewFolderSubmit(e);
-                }
-              }}
-              ref={newFolderInputRef}
-              type="text"
-              placeholder="Enter group name"
-              className="text-sm font-medium bg-transparent outline-none w-full pb-1 border-b border-background-500 transition-colors duration-200"
-            />
-            <div className="flex -my-1">
-              <div
-                onClick={handleNewFolderSubmit}
-                className="cursor-pointer px-1"
-              >
-                <FiCheck size={14} />
-              </div>
-              <div
-                onClick={() => setIsCreatingFolder(false)}
-                className="cursor-pointer px-1"
-              >
-                <FiX size={14} />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <Separator className="mb-0" />
 
       <SidebarProvider>
         <SidebarContent>
           <SidebarGroup className="gap-y-2">
             <div className="flex flex-row items-center">
-              <SidebarGroupLabel className="text-gray-500 flex flex-1 border-0 border-red-50">
+              <SidebarGroupLabel className="text-neutral-600 flex flex-1 border-0 border-red-50">
                 Chats
               </SidebarGroupLabel>
               <ToolTipHelper
-                icon={<Search color="grey" />}
+                icon={<Search className="text-neutral-600" />}
                 toolTipContent="Search through chats"
                 onClick={toggleChatSessionSearchModal}
               />
               <ToolTipHelper
-                icon={<FiPlus color="grey" />}
+                icon={<FiPlus className="text-neutral-600" />}
                 toolTipContent="Create new chat group"
                 onClick={handleCreateFolder}
               />
               <ToolTipHelper
-                icon={<ListTree color="grey" />}
+                icon={<ListTree className="text-neutral-600" />}
                 toolTipContent="Collapse all folds"
                 onClick={collapseAll}
               />
               <ToolTipHelper
-                icon={<Expand color="grey" />}
+                icon={<Expand className="text-neutral-600" />}
                 toolTipContent="Expand all folds"
                 onClick={expandAll}
               />
             </div>
+            {isCreatingFolder && (
+              <div className="py-2 px-2 flex flex-row justify-center items-center gap-x-4">
+                <Input
+                  placeholder="New Chat Group..."
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleNewFolderSubmit(e);
+                    } else if (e.key === "Escape") {
+                      setIsCreatingFolder(false);
+                    }
+                  }}
+                  ref={newFolderInputRef}
+                  type="text"
+                />
+                <div className="flex flex-row justify-center items-center gap-x-2">
+                  <div onClick={handleNewFolderSubmit}>
+                    <FiCheck size={14} />
+                  </div>
+                  <FiX size={14} onClick={() => setIsCreatingFolder(false)} />
+                </div>
+              </div>
+            )}
             {Object.entries(groupedChatSesssions).map(
               ([name, chats], index) => (
                 <ChatGroup
