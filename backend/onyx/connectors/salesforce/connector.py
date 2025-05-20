@@ -253,7 +253,6 @@ class SalesforceConnector(LoadConnector, PollConnector, SlimConnector):
                     )
 
                     os.remove(csv_path)
-                    gc.collect()
 
             gc.collect()
 
