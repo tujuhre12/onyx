@@ -254,7 +254,7 @@ export function PagesTab({
     existingChatsNotinFolders || []
   );
 
-  const isHistoryEmpty = !existingChats || existingChats.length === 0;
+  // const isHistoryEmpty = !existingChats || existingChats.length === 0;
 
   const handleDrop = useCallback(
     async (folderId: number, chatSessionId: string) => {
@@ -357,13 +357,22 @@ export function PagesTab({
     [folders]
   );
 
-  const length = Object.entries(groupedChatSesssions).length;
-  const [expands, setExpands] = useState<boolean[]>(Array(length).fill(true));
+  const groupedChatSessionsLength = Object.entries(groupedChatSesssions).length;
+  const foldersLength = (folders ?? []).length;
+  const totalLength = groupedChatSessionsLength + foldersLength;
+  const [expands, setExpands] = useState<boolean[]>(
+    Array(totalLength).fill(true)
+  );
+  const toggleExpanded = (index: number) => {
+    const newExpands = Array.from(expands);
+    newExpands[index] = !newExpands[index];
+    setExpands(newExpands);
+  };
   const expandAll = () => {
-    setExpands(Array(length).fill(true));
+    setExpands(Array(totalLength).fill(true));
   };
   const collapseAll = () => {
-    setExpands(Array(length).fill(false));
+    setExpands(Array(totalLength).fill(false));
   };
 
   return (
@@ -422,18 +431,35 @@ export function PagesTab({
                 </div>
               </div>
             )}
+            {folders &&
+              folders
+                .sort(
+                  (a, b) =>
+                    (a.display_priority ?? 0) - (b.display_priority ?? 0)
+                )
+                .map((folder, index) => (
+                  <ChatGroup
+                    key={folder.folder_name}
+                    name={folder.folder_name}
+                    chatSessions={folder.chat_sessions}
+                    expanded={expands[index]}
+                    toggleExpanded={() => toggleExpanded(index)}
+                    selectedId={currentChatId}
+                  />
+                ))}
+            <div className="pt-2">
+              <SidebarGroupLabel className="text-neutral-600 flex flex-1 border-0 border-red-50">
+                History
+              </SidebarGroupLabel>
+            </div>
             {Object.entries(groupedChatSesssions).map(
               ([name, chats], index) => (
                 <ChatGroup
                   key={name}
                   name={name}
                   chatSessions={chats}
-                  expanded={expands[index]}
-                  toggleExpanded={() => {
-                    const newExpands = Array.from(expands);
-                    newExpands[index] = !newExpands[index];
-                    setExpands(newExpands);
-                  }}
+                  expanded={expands[foldersLength + index]}
+                  toggleExpanded={() => toggleExpanded(foldersLength + index)}
                   selectedId={currentChatId}
                 />
               )
@@ -442,7 +468,7 @@ export function PagesTab({
         </SidebarContent>
       </SidebarProvider>
 
-      {folders && folders.length > 0 && (
+      {/* {folders && folders.length > 0 && (
         <DndContext
           modifiers={[restrictToVerticalAxis]}
           sensors={sensors}
@@ -519,7 +545,7 @@ export function PagesTab({
             Try sending a message! Your chat history will appear here.
           </p>
         )}
-      </div>
+      </div> */}
     </div>
   );
 }

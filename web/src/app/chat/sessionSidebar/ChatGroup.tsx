@@ -27,19 +27,23 @@ export default function ChatGroup({
   toggleExpanded: () => void;
   selectedId: string | undefined;
 }) {
-  if (chatSessions.length === 0) return <></>;
+  const hasChatsToShow = chatSessions.length > 0;
 
   return (
     <SidebarMenu>
       <Collapsible
         className="group/collapsible"
-        open={expanded}
+        open={hasChatsToShow && expanded}
         defaultOpen={true}
       >
         <CollapsibleTrigger asChild onClick={toggleExpanded}>
           <SidebarMenuButton tooltip={name}>
             <span>{name}</span>
-            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <ChevronRight
+              className={`ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 ${
+                hasChatsToShow ? "" : "text-neutral-700"
+              }`}
+            />
           </SidebarMenuButton>
         </CollapsibleTrigger>
 
