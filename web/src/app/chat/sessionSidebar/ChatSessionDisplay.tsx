@@ -23,7 +23,6 @@ import { Popover } from "@/components/popover/Popover";
 import { ShareChatSessionModal } from "../modal/ShareChatSessionModal";
 import { CHAT_SESSION_ID_KEY, FOLDER_ID_KEY } from "@/lib/drag/constants";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
-import { DragHandle } from "@/components/table/DragHandle";
 import { WarningCircle } from "@phosphor-icons/react";
 import { CustomTooltip } from "@/components/tooltip/CustomTooltip";
 import { useChatContext } from "@/components/context/ChatContext";
@@ -202,14 +201,6 @@ export function ChatSessionDisplay({
           draggable={!isMobile}
           onDragStart={!isMobile ? handleDragStart : undefined}
         >
-          <div
-            className={`${
-              isMobile ? "visible" : "invisible group-hover:visible"
-            } flex-none`}
-            onTouchStart={isMobile ? handleTouchStart : undefined}
-          >
-            <DragHandle size={16} className="w-3 ml-[4px] mr-[2px]" />
-          </div>
           <BasicSelectable
             padding="extra"
             isHovered={isHovered}
@@ -270,7 +261,7 @@ export function ChatSessionDisplay({
                   <p className="break-all font-normal overflow-hidden dark:text-[#D4D4D4] whitespace-nowrap w-full mr-3 relative">
                     {chatName || `Unnamed Chat`}
                     <span
-                      className={`absolute right-0 top-0 h-full w-2 bg-gradient-to-r from-transparent 
+                      className={`absolute right-0 top-0 h-full w-2 bg-gradient-to-r from-transparent
                       ${
                         isSelected
                           ? "to-background-chat-selected"

@@ -22,7 +22,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { Search } from "lucide-react";
+import { Expand, ListTree, Search } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -43,6 +43,15 @@ import { CSS } from "@dnd-kit/utilities";
 import { useChatContext } from "@/components/context/ChatContext";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { Separator } from "@/components/ui/separator";
+import ChatGroup from "./ChatGroup";
+import {
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 
 interface SortableFolderProps {
   folder: Folder;
@@ -99,12 +108,31 @@ const SortableFolder: React.FC<SortableFolderProps> = (props) => {
   );
 };
 
-function PagesTabHeader({}: {
-  name: string;
-  chat_sessions: ChatSession[];
-  reorderable: boolean;
+function ToolTipHelper({
+  icon,
+  toolTipContent,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  toolTipContent: string;
+  onClick?: () => void;
 }) {
-  return <></>;
+  return (
+    <TooltipProvider delayDuration={1000}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            className="border-0 border-red-50 px-2"
+            onClick={onClick}
+          >
+            {icon}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{toolTipContent}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 export function PagesTab({
@@ -328,41 +356,18 @@ export function PagesTab({
     [folders]
   );
 
+  const length = Object.entries(groupedChatSesssions).length;
+  const [expands, setExpands] = useState<boolean[]>(Array(length).fill(true));
+  const expandAll = () => {
+    setExpands(Array(length).fill(true));
+  };
+  const collapseAll = () => {
+    setExpands(Array(length).fill(false));
+  };
+
   return (
     <div className="flex flex-col gap-y-2 flex-grow">
       {popup}
-      <div className="px-4 mt-2 group mr-2 bg-background-sidebar dark:bg-transparent z-20">
-        <div className="flex  group justify-between text-sm gap-x-2 text-text-300/80 items-center font-normal leading-normal">
-          <p>Chats</p>
-
-          <TooltipProvider delayDuration={1000}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="my-auto mr-auto  group-hover:opacity-100 opacity-0 transition duration-200 cursor-pointer gap-x-1 items-center text-black text-xs font-medium leading-normal mobile:hidden"
-                  onClick={() => {
-                    toggleChatSessionSearchModal?.();
-                  }}
-                >
-                  <Search
-                    className="flex-none text-text-mobile-sidebar"
-                    size={12}
-                  />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Search Chats</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <button
-            onClick={handleCreateFolder}
-            className="flex group-hover:opacity-100 opacity-0 transition duration-200 cursor-pointer gap-x-1 items-center text-black text-xs font-medium leading-normal"
-          >
-            <FiPlus size={12} className="flex-none" />
-            Create Group
-          </button>
-        </div>
-      </div>
 
       {isCreatingFolder && (
         <div className="px-4">
@@ -396,6 +401,56 @@ export function PagesTab({
           </div>
         </div>
       )}
+
+      <Separator className="mb-0" />
+
+      <SidebarProvider>
+        <SidebarContent>
+          <SidebarGroup className="gap-y-2">
+            <div className="flex flex-row items-center">
+              <SidebarGroupLabel className="text-gray-500 flex flex-1 border-0 border-red-50">
+                Chats
+              </SidebarGroupLabel>
+              <ToolTipHelper
+                icon={<Search color="grey" />}
+                toolTipContent="Search through chats"
+                onClick={toggleChatSessionSearchModal}
+              />
+              <ToolTipHelper
+                icon={<FiPlus color="grey" />}
+                toolTipContent="Create new chat group"
+                onClick={handleCreateFolder}
+              />
+              <ToolTipHelper
+                icon={<ListTree color="grey" />}
+                toolTipContent="Collapse all folds"
+                onClick={collapseAll}
+              />
+              <ToolTipHelper
+                icon={<Expand color="grey" />}
+                toolTipContent="Expand all folds"
+                onClick={expandAll}
+              />
+            </div>
+            {Object.entries(groupedChatSesssions).map(
+              ([name, chats], index) => (
+                <ChatGroup
+                  key={name}
+                  name={name}
+                  chatSessions={chats}
+                  expanded={expands[index]}
+                  toggleExpanded={() => {
+                    const newExpands = Array.from(expands);
+                    newExpands[index] = !newExpands[index];
+                    setExpands(newExpands);
+                  }}
+                  selectedId={currentChatId}
+                />
+              )
+            )}
+          </SidebarGroup>
+        </SidebarContent>
+      </SidebarProvider>
 
       {folders && folders.length > 0 && (
         <DndContext
