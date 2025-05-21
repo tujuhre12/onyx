@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
 import { ChatSessionDisplay } from "./ChatSessionDisplay";
+import { useState } from "react";
+import { FiMoreHorizontal } from "react-icons/fi";
 
 export default function ChatGroup({
   name,
@@ -20,25 +22,33 @@ export default function ChatGroup({
   expanded,
   toggleExpanded,
   selectedId,
+  editable,
 }: {
   name: string;
   chatSessions: ChatSession[];
   expanded: boolean;
   toggleExpanded: () => void;
   selectedId: string | undefined;
+  editable: boolean;
 }) {
   const hasChatsToShow = chatSessions.length > 0;
+  const [hover, setHover] = useState(false);
 
   return (
     <SidebarMenu>
       <Collapsible
         className="group/collapsible"
         open={hasChatsToShow && expanded}
-        defaultOpen={true}
       >
-        <CollapsibleTrigger asChild onClick={toggleExpanded}>
-          <SidebarMenuButton tooltip={name}>
-            <span>{name}</span>
+        <CollapsibleTrigger
+          asChild
+          onClick={toggleExpanded}
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+        >
+          <SidebarMenuButton tooltip={name} className="flex flex-row">
+            <span className="flex flex-1">{name}</span>
+            {editable && hover && <FiMoreHorizontal size={16} />}
             <ChevronRight
               className={`ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 ${
                 hasChatsToShow ? "" : "text-neutral-700"

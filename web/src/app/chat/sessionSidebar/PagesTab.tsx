@@ -13,7 +13,6 @@ import { FiPlus, FiCheck, FiX } from "react-icons/fi";
 import { FolderDropdown } from "../folders/FolderDropdown";
 import { ChatSessionDisplay } from "./ChatSessionDisplay";
 import { useState, useCallback, useRef, useContext, useEffect } from "react";
-import { Caret } from "@/components/icons/icons";
 import { groupSessionsByDateRange } from "../lib";
 import React from "react";
 import {
@@ -254,8 +253,6 @@ export function PagesTab({
     existingChatsNotinFolders || []
   );
 
-  // const isHistoryEmpty = !existingChats || existingChats.length === 0;
-
   const handleDrop = useCallback(
     async (folderId: number, chatSessionId: string) => {
       try {
@@ -357,11 +354,11 @@ export function PagesTab({
     [folders]
   );
 
-  const groupedChatSessionsLength = Object.entries(groupedChatSesssions).length;
-  const foldersLength = (folders ?? []).length;
-  const totalLength = groupedChatSessionsLength + foldersLength;
+  const numberOfGroups = Object.entries(groupedChatSesssions).length;
+  const numberOfFolders = (folders ?? []).length;
+  const numberOfGroupsAndFolders = numberOfGroups + numberOfFolders;
   const [expands, setExpands] = useState<boolean[]>(
-    Array(totalLength).fill(true)
+    Array(numberOfGroupsAndFolders).fill(false)
   );
   const toggleExpanded = (index: number) => {
     const newExpands = Array.from(expands);
@@ -369,10 +366,10 @@ export function PagesTab({
     setExpands(newExpands);
   };
   const expandAll = () => {
-    setExpands(Array(totalLength).fill(true));
+    setExpands(Array(numberOfGroupsAndFolders).fill(true));
   };
   const collapseAll = () => {
-    setExpands(Array(totalLength).fill(false));
+    setExpands(Array(numberOfGroupsAndFolders).fill(false));
   };
 
   return (
@@ -422,6 +419,7 @@ export function PagesTab({
                   }}
                   ref={newFolderInputRef}
                   type="text"
+                  className="focus-visible:ring-1"
                 />
                 <div className="flex flex-row justify-center items-center gap-x-2">
                   <div onClick={handleNewFolderSubmit}>
@@ -442,9 +440,10 @@ export function PagesTab({
                     key={folder.folder_name}
                     name={folder.folder_name}
                     chatSessions={folder.chat_sessions}
-                    expanded={expands[index]}
+                    expanded={expands[index]!}
                     toggleExpanded={() => toggleExpanded(index)}
                     selectedId={currentChatId}
+                    editable={true}
                   />
                 ))}
             <div className="pt-2">
@@ -458,9 +457,10 @@ export function PagesTab({
                   key={name}
                   name={name}
                   chatSessions={chats}
-                  expanded={expands[foldersLength + index]}
-                  toggleExpanded={() => toggleExpanded(foldersLength + index)}
+                  expanded={expands[numberOfFolders + index]!}
+                  toggleExpanded={() => toggleExpanded(numberOfFolders + index)}
                   selectedId={currentChatId}
+                  editable={false}
                 />
               )
             )}
