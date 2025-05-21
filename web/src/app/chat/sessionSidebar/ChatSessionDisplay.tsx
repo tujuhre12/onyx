@@ -58,22 +58,12 @@ export function ChatSessionDisplay({
   const settings = useContext(SettingsContext);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const chatSessionRef = useRef<HTMLDivElement>(null);
-  const [popoverOpen, setPopoverOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const renamingRef = useRef<HTMLDivElement>(null);
 
   const { refreshChatSessions, refreshFolders } = useChatContext();
 
   const isMobile = settings?.isMobile;
-  const handlePopoverOpenChange = useCallback(
-    (open: boolean) => {
-      setPopoverOpen(open);
-      if (!open) {
-        setIsDeleteModalOpen(false);
-      }
-    },
-    [isDeleteModalOpen]
-  );
 
   const handleDeleteClick = useCallback(() => {
     setIsDeleteModalOpen(true);
@@ -83,7 +73,6 @@ export function ChatSessionDisplay({
     e.preventDefault();
     e.stopPropagation();
     setIsDeleteModalOpen(false);
-    setPopoverOpen(false);
   }, []);
 
   const handleConfirmDelete = useCallback(
@@ -97,7 +86,6 @@ export function ChatSessionDisplay({
       await refreshChatSessions();
       await refreshFolders();
       setIsDeleteModalOpen(false);
-      setPopoverOpen(false);
     },
     [chatSession, showDeleteModal, refreshChatSessions, refreshFolders]
   );
@@ -170,6 +158,7 @@ export function ChatSessionDisplay({
           }}
           onMouseLeave={() => {
             setIsHovered(false);
+            setIsDeleteModalOpen(false);
           }}
           className="flex group items-center w-full relative"
           key={chatSession.id}
@@ -235,7 +224,6 @@ export function ChatSessionDisplay({
                           e.stopPropagation();
                           setChatName(chatSession.name);
                           setIsRenamingChat(false);
-                          setPopoverOpen(false);
                         }}
                         className="p-1"
                       >
@@ -280,80 +268,63 @@ export function ChatSessionDisplay({
                         </div>
                       </CustomTooltip>
                     )}
-                    {(isHovered || popoverOpen) && (
-                      <div>
-                        <div
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setPopoverOpen(!popoverOpen);
-                          }}
-                          className="-my-1"
+                    {isHovered && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FiMoreHorizontal size={16} />
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className={`p-0 ${
+                            isDeleteModalOpen ? "w-[250px]" : "w-[150px]"
+                          }`}
                         >
-                          <Popover onOpenChange={handlePopoverOpenChange}>
-                            <PopoverTrigger
-                              asChild
-                              onMouseLeave={() => {
-                                setIsHovered(false);
-                              }}
-                            >
-                              <FiMoreHorizontal size={16} />
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className={`p-0 ${
-                                isDeleteModalOpen ? "w-[250px]" : "w-[150px]"
-                              }`}
-                            >
-                              {isDeleteModalOpen ? (
-                                <div className="p-4 flex flex-col gap-y-4">
-                                  <Text>
-                                    Are you sure you want to delete this chat?
-                                  </Text>
-                                  <div className="px-2 flex flex-1 flex-row justify-center gap-x-2">
-                                    <Button
-                                      variant="destructive"
-                                      onClick={handleConfirmDelete}
-                                    >
-                                      Delete
-                                    </Button>
-                                    <Button onClick={handleCancelDelete}>
-                                      Cancel
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  {showShareModal && (
-                                    <DefaultDropdownElement
-                                      name="Share"
-                                      icon={FiShare2}
-                                      onSelect={() =>
-                                        showShareModal(chatSession)
-                                      }
-                                    />
-                                  )}
-                                  {!search && (
-                                    <DefaultDropdownElement
-                                      name="Rename"
-                                      icon={FiEdit2}
-                                      onSelect={() => {
-                                        setIsRenamingChat(true);
-                                        setTimeout(() => {
-                                          inputRef.current?.focus();
-                                        }, 0);
-                                      }}
-                                    />
-                                  )}
-                                  <DefaultDropdownElement
-                                    name="Delete"
-                                    icon={FiTrash}
-                                    onSelect={handleDeleteClick}
-                                  />
-                                </>
+                          {isDeleteModalOpen ? (
+                            <div className="p-4 flex flex-col gap-y-4">
+                              <Text>
+                                Are you sure you want to delete this chat?
+                              </Text>
+                              <div className="px-2 flex flex-1 flex-row justify-center gap-x-2">
+                                <Button
+                                  variant="destructive"
+                                  onClick={handleConfirmDelete}
+                                >
+                                  Delete
+                                </Button>
+                                <Button onClick={handleCancelDelete}>
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              {showShareModal && (
+                                <DefaultDropdownElement
+                                  name="Share"
+                                  icon={FiShare2}
+                                  onSelect={() => showShareModal(chatSession)}
+                                />
                               )}
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      </div>
+                              {!search && (
+                                <DefaultDropdownElement
+                                  name="Rename"
+                                  icon={FiEdit2}
+                                  onSelect={() => {
+                                    setIsRenamingChat(true);
+                                    setTimeout(() => {
+                                      inputRef.current?.focus();
+                                    }, 0);
+                                  }}
+                                />
+                              )}
+                              <DefaultDropdownElement
+                                name="Delete"
+                                icon={FiTrash}
+                                onSelect={handleDeleteClick}
+                              />
+                            </>
+                          )}
+                        </PopoverContent>
+                      </Popover>
                     )}
                   </div>
                 )}
