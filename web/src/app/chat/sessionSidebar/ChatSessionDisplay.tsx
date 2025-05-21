@@ -19,13 +19,19 @@ import {
   FiX,
 } from "react-icons/fi";
 import { DefaultDropdownElement } from "@/components/Dropdown";
-import { Popover } from "@/components/popover/Popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ShareChatSessionModal } from "../modal/ShareChatSessionModal";
 import { CHAT_SESSION_ID_KEY, FOLDER_ID_KEY } from "@/lib/drag/constants";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { WarningCircle } from "@phosphor-icons/react";
 import { CustomTooltip } from "@/components/tooltip/CustomTooltip";
 import { useChatContext } from "@/components/context/ChatContext";
+import Text from "@/components/ui/text";
+import { Button } from "@/components/ui/button";
 
 export function ChatSessionDisplay({
   chatSession,
@@ -145,26 +151,6 @@ export function ChatSessionDisplay({
       FOLDER_ID_KEY,
       chatSession.folder_id?.toString() || ""
     );
-  };
-
-  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    // Prevent default touch behavior
-    event.preventDefault();
-
-    // Create a custom event to mimic drag start
-    const customEvent = new Event("dragstart", { bubbles: true });
-    (customEvent as any).dataTransfer = new DataTransfer();
-    (customEvent as any).dataTransfer.setData(
-      CHAT_SESSION_ID_KEY,
-      chatSession.id.toString()
-    );
-    (customEvent as any).dataTransfer.setData(
-      FOLDER_ID_KEY,
-      chatSession.folder_id?.toString() || ""
-    );
-
-    // Dispatch the custom event
-    event.currentTarget.dispatchEvent(customEvent);
   };
 
   return (
@@ -303,74 +289,69 @@ export function ChatSessionDisplay({
                           }}
                           className="-my-1"
                         >
-                          <Popover
-                            open={popoverOpen}
-                            onOpenChange={handlePopoverOpenChange}
-                            content={
-                              <div className="p-1 rounded">
-                                <FiMoreHorizontal
-                                  onClick={() => setPopoverOpen(true)}
-                                  size={16}
-                                />
-                              </div>
-                            }
-                            popover={
-                              <div
-                                className={`border border-border text-text-dark rounded-lg bg-background z-50 ${
-                                  isDeleteModalOpen ? "w-64" : "w-32"
-                                }`}
-                              >
-                                {!isDeleteModalOpen ? (
-                                  <>
-                                    {showShareModal && (
-                                      <DefaultDropdownElement
-                                        name="Share"
-                                        icon={FiShare2}
-                                        onSelect={() =>
-                                          showShareModal(chatSession)
-                                        }
-                                      />
-                                    )}
-                                    {!search && (
-                                      <DefaultDropdownElement
-                                        name="Rename"
-                                        icon={FiEdit2}
-                                        onSelect={() => setIsRenamingChat(true)}
-                                      />
-                                    )}
-                                    <DefaultDropdownElement
-                                      name="Delete"
-                                      icon={FiTrash}
-                                      onSelect={handleDeleteClick}
-                                    />
-                                  </>
-                                ) : (
-                                  <div className="p-3">
-                                    <p className="text-sm mb-3">
-                                      Are you sure you want to delete this chat?
-                                    </p>
-                                    <div className="flex justify-center gap-2">
-                                      <button
-                                        className="px-3 py-1 text-sm bg-background-200 rounded"
-                                        onClick={handleCancelDelete}
-                                      >
-                                        Cancel
-                                      </button>
-                                      <button
-                                        className="px-3 py-1 text-sm bg-red-500 text-white rounded"
-                                        onClick={handleConfirmDelete}
-                                      >
-                                        Delete
-                                      </button>
-                                    </div>
+                          <Popover onOpenChange={handlePopoverOpenChange}>
+                            <PopoverTrigger
+                              asChild
+                              onMouseLeave={() => {
+                                setIsHovered(false);
+                              }}
+                            >
+                              <FiMoreHorizontal size={16} />
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className={`p-0 ${
+                                isDeleteModalOpen ? "w-[250px]" : "w-[150px]"
+                              }`}
+                            >
+                              {isDeleteModalOpen ? (
+                                <div className="p-4 flex flex-col gap-y-4">
+                                  <Text>
+                                    Are you sure you want to delete this chat?
+                                  </Text>
+                                  <div className="px-2 flex flex-1 flex-row justify-center gap-x-2">
+                                    <Button
+                                      variant="destructive"
+                                      onClick={handleConfirmDelete}
+                                    >
+                                      Delete
+                                    </Button>
+                                    <Button onClick={handleCancelDelete}>
+                                      Cancel
+                                    </Button>
                                   </div>
-                                )}
-                              </div>
-                            }
-                            requiresContentPadding
-                            sideOffset={6}
-                            triggerMaxWidth
-                          />
+                                </div>
+                              ) : (
+                                <>
+                                  {showShareModal && (
+                                    <DefaultDropdownElement
+                                      name="Share"
+                                      icon={FiShare2}
+                                      onSelect={() =>
+                                        showShareModal(chatSession)
+                                      }
+                                    />
+                                  )}
+                                  {!search && (
+                                    <DefaultDropdownElement
+                                      name="Rename"
+                                      icon={FiEdit2}
+                                      onSelect={() => {
+                                        setIsRenamingChat(true);
+                                        setTimeout(() => {
+                                          inputRef.current?.focus();
+                                        }, 0);
+                                      }}
+                                    />
+                                  )}
+                                  <DefaultDropdownElement
+                                    name="Delete"
+                                    icon={FiTrash}
+                                    onSelect={handleDeleteClick}
+                                  />
+                                </>
+                              )}
+                            </PopoverContent>
+                          </Popover>
                         </div>
                       </div>
                     )}
