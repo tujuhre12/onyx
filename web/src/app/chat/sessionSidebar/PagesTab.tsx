@@ -53,61 +53,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-interface SortableFolderProps {
-  folder: Folder;
-  children: React.ReactNode;
-  currentChatId?: string;
-  showShareModal?: (chatSession: ChatSession) => void;
-  showDeleteModal?: (chatSession: ChatSession) => void;
-  closeSidebar?: () => void;
-  onEdit: (folderId: number, newName: string) => void;
-  onDelete: (folderId: number) => void;
-  onDrop: (folderId: number, chatSessionId: string) => void;
-  index: number;
-}
-
-// const SortableFolder: React.FC<SortableFolderProps> = (props) => {
-//   const settings = useContext(SettingsContext);
-//   const mobile = settings?.isMobile;
-//   const [isDragging, setIsDragging] = useState(false);
-//   const {
-//     attributes,
-//     listeners,
-//     setNodeRef,
-//     transform,
-//     transition,
-//     isDragging: isDraggingDndKit,
-//   } = useSortable({
-//     id: props.folder.folder_id?.toString() ?? "",
-//     disabled: mobile,
-//   });
-//   const ref = useRef<HTMLDivElement>(null);
-
-//   const style: React.CSSProperties = {
-//     transform: CSS.Transform.toString(transform),
-//     transition,
-//     zIndex: isDragging ? 1000 : "auto",
-//     position: isDragging ? "relative" : "static",
-//     opacity: isDragging ? 0.6 : 1,
-//   };
-
-//   useEffect(() => {
-//     setIsDragging(isDraggingDndKit);
-//   }, [isDraggingDndKit]);
-
-//   return (
-//     <div
-//       ref={setNodeRef}
-//       className="pr-3 ml-4 overflow-visible flex items-start"
-//       style={style}
-//       {...attributes}
-//       {...listeners}
-//     >
-//       <FolderDropdown ref={ref} {...props} />
-//     </div>
-//   );
-// };
-
 function ToolTipHelper({
   icon,
   toolTipContent,
