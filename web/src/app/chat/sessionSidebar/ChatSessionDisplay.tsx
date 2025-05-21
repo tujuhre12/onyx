@@ -212,10 +212,12 @@ export function ChatSessionDisplay({
                       }}
                       onKeyDown={(event) => {
                         event.stopPropagation();
-
                         if (event.key === "Enter") {
                           onRename();
                           event.preventDefault();
+                        } else if (event.key === "Escape") {
+                          setIsRenamingChat(false);
+                          setPopoverOpen(false);
                         }
                       }}
                       className="w-full text-sm bg-transparent border-b border-text-darker outline-none"
