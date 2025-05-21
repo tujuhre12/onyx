@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
 import { ChatSessionDisplay } from "./ChatSessionDisplay";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FiEdit2, FiMoreHorizontal, FiTrash } from "react-icons/fi";
 import {
   Popover,
@@ -70,6 +70,18 @@ export default function ChatGroup({
     },
     []
   );
+
+  useEffect(() => {
+    document.addEventListener("mousedown", (e) => {
+      if (
+        folderRenameRef.current &&
+        !folderRenameRef.current.contains(e.target as Node) &&
+        editingFolder
+      ) {
+        reset();
+      }
+    });
+  }, [editingFolder, reset]);
 
   return (
     <SidebarMenu>
