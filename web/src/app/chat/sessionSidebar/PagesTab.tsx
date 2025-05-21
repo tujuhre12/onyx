@@ -367,26 +367,40 @@ export function PagesTab({
                 </div>
               </div>
             )}
-            {folders &&
-              folders
-                .sort(
-                  (a, b) =>
-                    (a.display_priority ?? 0) - (b.display_priority ?? 0)
-                )
-                .map((folder, index) => (
-                  <ChatGroup
-                    key={folder.folder_name}
-                    name={folder.folder_name}
-                    chatSessions={folder.chat_sessions}
-                    expanded={expands[index]!}
-                    toggleExpanded={() => toggleExpanded(index)}
-                    selectedId={currentChatId}
-                    editable
-                    folderId={folder.folder_id!}
-                    onEditFolder={handleEditFolder}
-                    onDeleteFolder={handleDeleteFolder}
-                  />
-                ))}
+            <DndContext
+              modifiers={[restrictToVerticalAxis]}
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={(folders ?? []).map(
+                  (folder) => folder.folder_id?.toString() ?? ""
+                )}
+                strategy={verticalListSortingStrategy}
+              >
+                {folders &&
+                  folders
+                    .sort(
+                      (a, b) =>
+                        (a.display_priority ?? 0) - (b.display_priority ?? 0)
+                    )
+                    .map((folder, index) => (
+                      <ChatGroup
+                        key={folder.folder_name}
+                        name={folder.folder_name}
+                        chatSessions={folder.chat_sessions}
+                        expanded={expands[index]!}
+                        toggleExpanded={() => toggleExpanded(index)}
+                        selectedId={currentChatId}
+                        editable
+                        folderId={folder.folder_id!}
+                        onEditFolder={handleEditFolder}
+                        onDeleteFolder={handleDeleteFolder}
+                      />
+                    ))}
+              </SortableContext>
+            </DndContext>
             <div className="pt-2">
               <SidebarGroupLabel className="opacity-50 flex flex-1 border-0 border-red-50">
                 History
