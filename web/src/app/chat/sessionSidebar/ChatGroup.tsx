@@ -25,6 +25,18 @@ import { Input } from "@/components/ui/input";
 import Text from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 
+export interface ChatGroupProps {
+  name: string;
+  chatSessions: ChatSession[];
+  expanded: boolean;
+  toggleExpanded: () => void;
+  selectedId: string | undefined;
+  editable?: boolean;
+  folderId?: number;
+  onEditFolder?: (folderId: number, newName: string) => void;
+  onDeleteFolder?: (folderId: number) => void;
+}
+
 export default function ChatGroup({
   name,
   chatSessions,
@@ -35,17 +47,7 @@ export default function ChatGroup({
   folderId,
   onEditFolder,
   onDeleteFolder,
-}: {
-  name: string;
-  chatSessions: ChatSession[];
-  expanded: boolean;
-  toggleExpanded: () => void;
-  selectedId: string | undefined;
-  editable?: boolean;
-  folderId?: number;
-  onEditFolder?: (folderId: number, newName: string) => void;
-  onDeleteFolder?: (folderId: number) => void;
-}) {
+}: ChatGroupProps) {
   const hasChatsToShow = chatSessions.length > 0;
   const [hover, setHover] = useState(false);
   const [editingFolder, setEditingFolder] = useState(false);
