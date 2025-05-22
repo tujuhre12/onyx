@@ -10,7 +10,6 @@ import { Folder } from "../folders/interfaces";
 import { usePopup } from "@/components/admin/connectors/Popup";
 import { useRouter } from "next/navigation";
 import { FiPlus, FiCheck, FiX } from "react-icons/fi";
-import { FolderDropdown } from "../folders/FolderDropdown";
 import { ChatSessionDisplay } from "./ChatSessionDisplay";
 import { useState, useCallback, useRef, useContext, useEffect } from "react";
 import { groupSessionsByDateRange } from "../lib";
@@ -43,7 +42,7 @@ import { useChatContext } from "@/components/context/ChatContext";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Separator } from "@/components/ui/separator";
-import ChatGroup from "./ChatGroup";
+import ChatGroup, { ChatGroupProps } from "./ChatGroup";
 import {
   SidebarContent,
   SidebarGroup,
@@ -77,6 +76,41 @@ function ToolTipHelper({
         <TooltipContent>{toolTipContent}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
+  );
+}
+
+function SortableChatGroup(props: ChatGroupProps) {
+  const settings = useContext(SettingsContext);
+  const mobile = settings?.isMobile;
+  const [isDragging, setIsDragging] = useState(false);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging: isDraggingDndKit,
+  } = useSortable({
+    id: props.folderId?.toString() ?? "",
+    disabled: mobile,
+  });
+
+  useEffect(() => {
+    setIsDragging(isDraggingDndKit);
+  }, [isDraggingDndKit]);
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  // const ref = useRef<HTMLDivElement>(null);
+
+  return (
+    <div style={style} {...listeners} ref={setNodeRef} {...attributes}>
+      <ChatGroup {...props} />
+    </div>
   );
 }
 
@@ -386,7 +420,7 @@ export function PagesTab({
                         (a.display_priority ?? 0) - (b.display_priority ?? 0)
                     )
                     .map((folder, index) => (
-                      <ChatGroup
+                      <SortableChatGroup
                         key={folder.folder_name}
                         name={folder.folder_name}
                         chatSessions={folder.chat_sessions}
