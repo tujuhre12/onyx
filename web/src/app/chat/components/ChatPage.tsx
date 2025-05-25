@@ -76,11 +76,7 @@ import { FilePickerModal } from "../my-documents/components/FilePicker";
 
 import { SourceMetadata } from "@/lib/search/interfaces";
 import { ValidSources } from "@/lib/types";
-import {
-  FileResponse,
-  FolderResponse,
-  useDocumentsContext,
-} from "../my-documents/DocumentsContext";
+import { useDocumentsContext } from "../my-documents/DocumentsContext";
 import { ChatSearchModal } from "../chat_search/ChatSearchModal";
 import { ErrorBanner } from "../message/Resubmit";
 import MinimalMarkdown from "@/components/chat/MinimalMarkdown";
@@ -89,6 +85,25 @@ import { DocumentResults } from "./documentSidebar/DocumentResults";
 import { getLatestMessageChain } from "../services/messageTree";
 import { useChatController } from "../hooks/useChatController";
 import { useAssistantController } from "../hooks/useAssistantController";
+import { useChatSessionController } from "../hooks/useChatSessionController";
+import {
+  useChatSessionStore,
+  useMaxTokens,
+} from "../stores/useChatSessionStore";
+import {
+  useCurrentChatState,
+  useCurrentRegenerationState,
+  useSubmittedMessage,
+  useCanContinue,
+  useAgenticGenerating,
+  useUncaughtError,
+  useLoadingError,
+  useIsReady,
+  useIsFetching,
+  useCurrentMessageTree,
+  useCurrentMessageHistory,
+  useHasPerformedInitialScroll,
+} from "../stores/useChatSessionStore";
 
 export enum UploadIntent {
   ATTACH_TO_MESSAGE, // For files uploaded via ChatInputBar (paste, drag/drop)
@@ -122,6 +137,7 @@ export function ChatPage({
     folders,
     shouldShowWelcomeModal,
     proSearchToggled,
+    refreshChatSessions,
   } = useChatContext();
 
   const {
@@ -373,7 +389,6 @@ export function ChatPage({
   };
 
   const clientScrollToBottom = (fast?: boolean) => {
-    console.log("clientScrollToBottom");
     waitForScrollRef.current = true;
 
     setTimeout(() => {
@@ -393,7 +408,9 @@ export function ChatPage({
         behavior: fast ? "auto" : "smooth",
       });
 
-      setHasPerformedInitialScroll(true);
+      if (chatSessionIdRef.current) {
+        updateHasPerformedInitialScroll(chatSessionIdRef.current, true);
+      }
     }, 50);
 
     // Reset waitForScrollRef after 1.5 seconds
@@ -404,15 +421,16 @@ export function ChatPage({
 
   const debounceNumber = 100; // time for debouncing
 
-  const [hasPerformedInitialScroll, setHasPerformedInitialScroll] = useState(
-    existingChatSessionId === null
-  );
-
   // handle re-sizing of the text area
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     handleInputResize();
   }, [message]);
+
+  // Add refs needed by useChatSessionController
+  const chatSessionIdRef = useRef<string | null>(existingChatSessionId);
+  const loadedIdSessionRef = useRef<string | null>(existingChatSessionId);
+  const submitOnLoadPerformed = useRef<boolean>(false);
 
   // used for resizing of the document sidebar
   const masterFlexboxRef = useRef<HTMLDivElement>(null);
@@ -481,51 +499,68 @@ export function ChatPage({
     []
   );
 
-  const {
-    onSubmit,
-    stopGenerating,
-    onMessageSelection,
-    handleMessageSpecificFileUpload,
-    completeMessageDetail,
-    currentChatState,
-    currentRegenerationState,
-    chatSessionId,
-    submittedMessage,
-    abortControllers,
-    canContinue,
-    agenticGenerating,
-    uncaughtError,
-    loadingError,
-    isReady,
-    maxTokens,
-    isFetchingChatMessages,
-  } = useChatController({
-    filterManager,
-    llmManager,
-    availableAssistants,
-    liveAssistant,
+  // Access chat state directly from the store
+  const currentChatState = useCurrentChatState();
+  const currentRegenerationState = useCurrentRegenerationState();
+  const chatSessionId = useChatSessionStore((state) => state.currentSessionId);
+  const submittedMessage = useSubmittedMessage();
+  const canContinue = useCanContinue();
+  const agenticGenerating = useAgenticGenerating();
+  const uncaughtError = useUncaughtError();
+  const loadingError = useLoadingError();
+  const isReady = useIsReady();
+  const maxTokens = useMaxTokens();
+  const isFetchingChatMessages = useIsFetching();
+  const completeMessageTree = useCurrentMessageTree();
+  const messageHistory = useCurrentMessageHistory();
+  const hasPerformedInitialScroll = useHasPerformedInitialScroll();
+  const updateHasPerformedInitialScroll = useChatSessionStore(
+    (state) => state.updateHasPerformedInitialScroll
+  );
+  console.log("currentChatState", currentChatState);
+  console.log("completeMessageTree", completeMessageTree);
+  console.log("messageHistory", messageHistory);
+  console.log("hasPerformedInitialScroll", hasPerformedInitialScroll);
+
+  const { onSubmit, stopGenerating, handleMessageSpecificFileUpload } =
+    useChatController({
+      filterManager,
+      llmManager,
+      availableAssistants,
+      liveAssistant,
+      existingChatSessionId,
+      selectedDocuments,
+      searchParams,
+      setPopup,
+      clientScrollToBottom,
+      resetInputBar,
+      setSelectedAssistantFromId,
+      setSelectedMessageForDocDisplay,
+    });
+
+  // Call useChatSessionController after useChatController
+  const { onMessageSelection } = useChatSessionController({
     existingChatSessionId,
-    firstMessage,
-    selectedDocuments,
     searchParams,
-    setPopup,
-    clientScrollToBottom,
-    resetInputBar,
+    filterManager,
+    firstMessage,
     setSelectedAssistantFromId,
+    setChatSessionSharedStatus,
     setSelectedMessageForDocDisplay,
     setSelectedDocuments,
-    scrollInitialized,
-    hasPerformedInitialScroll,
-    setHasPerformedInitialScroll,
-    isInitialLoad,
+    setCurrentMessageFiles,
+    chatSessionIdRef,
+    loadedIdSessionRef,
     textAreaRef,
+    scrollInitialized,
+    isInitialLoad,
+    submitOnLoadPerformed,
+    hasPerformedInitialScroll,
+    clientScrollToBottom,
+    clearSelectedItems,
+    refreshChatSessions,
+    onSubmit,
   });
-
-  const messageHistory = useMemo(() => {
-    return getLatestMessageChain(
-      completeMessageDetail.get(chatSessionId) || new Map()
-    );
-  }, [completeMessageDetail]);
 
   const autoScrollEnabled =
     (user?.preferences?.auto_scroll && !agenticGenerating) ?? false;
@@ -580,10 +615,6 @@ export function ChatPage({
     feedbackDetails: string,
     predefinedFeedback: string | undefined
   ) => {
-    if (chatSessionId === null) {
-      return;
-    }
-
     const response = await handleChatFeedback(
       messageId,
       feedbackType,
@@ -1213,8 +1244,7 @@ export function ChatPage({
                             // (hasPerformedInitialScroll ? "" : "invisible")
                           >
                             {messageHistory.map((message, i) => {
-                              const messageMap =
-                                completeMessageDetail.get(chatSessionId);
+                              const messageTree = completeMessageTree;
 
                               if (
                                 currentRegenerationState?.finalMessageIndex &&
@@ -1226,7 +1256,7 @@ export function ChatPage({
 
                               const messageReactComponentKey = `${i}-${chatSessionId}`;
                               const parentMessage = message.parentMessageId
-                                ? messageMap?.get(message.parentMessageId)
+                                ? messageTree?.get(message.parentMessageId)
                                 : null;
                               if (message.type === "user") {
                                 if (
@@ -1420,7 +1450,7 @@ export function ChatPage({
                                         }
                                         continueGenerating={
                                           (i == messageHistory.length - 1 &&
-                                            canContinue.get(chatSessionId)) ||
+                                            canContinue) ||
                                           false
                                             ? continueGenerating
                                             : undefined
@@ -1516,7 +1546,7 @@ export function ChatPage({
                                         index={i}
                                         continueGenerating={
                                           (i == messageHistory.length - 1 &&
-                                            canContinue.get(chatSessionId)) ||
+                                            canContinue) ||
                                           false
                                             ? continueGenerating
                                             : undefined

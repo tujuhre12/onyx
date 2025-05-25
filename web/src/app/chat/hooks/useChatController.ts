@@ -1,8 +1,11 @@
+"use client";
+
 import {
   buildChatUrl,
   nameChatSession,
   processRawChatHistory,
   patchMessageToBeLatest,
+  updateLlmOverrideForChatSession,
 } from "../services/lib";
 
 import {
@@ -16,14 +19,7 @@ import {
 
 import { AnswerPiecePacket } from "@/lib/search/interfaces";
 
-import {
-  Dispatch,
-  SetStateAction,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getLastSuccessfulMessageId,
   getLatestMessageChain,
@@ -33,7 +29,6 @@ import {
   upsertMessages,
 } from "../services/messageTree";
 import { Persona } from "@/app/admin/assistants/interfaces";
-import { updateLlmOverrideForChatSession } from "../services/lib";
 import {
   SEARCH_PARAM_NAMES,
   shouldSubmitOnLoad,
@@ -88,6 +83,12 @@ import {
 import { useChatContext } from "@/components/context/ChatContext";
 import Prism from "prismjs";
 import { UploadIntent } from "../components/ChatPage";
+import {
+  useChatSessionStore,
+  useCurrentMessageTree,
+  useCurrentChatState,
+  useCurrentMessageHistory,
+} from "../stores/useChatSessionStore";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -102,26 +103,19 @@ interface RegenerationRequest {
 interface UseChatControllerProps {
   filterManager: FilterManager;
   llmManager: LlmManager;
-  liveAssistant: Persona;
+  liveAssistant: Persona | undefined;
   availableAssistants: Persona[];
   existingChatSessionId: string | null;
-  firstMessage?: string;
   selectedDocuments: OnyxDocument[];
   searchParams: ReadonlyURLSearchParams;
   setPopup: (popup: PopupSpec) => void;
 
   // scroll/focus related stuff
   clientScrollToBottom: (fast?: boolean) => void;
-  scrollInitialized: React.MutableRefObject<boolean>;
-  hasPerformedInitialScroll: boolean;
-  setHasPerformedInitialScroll: React.Dispatch<React.SetStateAction<boolean>>;
-  isInitialLoad: React.MutableRefObject<boolean>;
-  textAreaRef: React.RefObject<HTMLTextAreaElement>;
 
   resetInputBar: () => void;
   setSelectedAssistantFromId: (assistantId: number | null) => void;
   setSelectedMessageForDocDisplay: (messageId: number | null) => void;
-  setSelectedDocuments: (documents: OnyxDocument[]) => void;
 }
 
 export function useChatController({
@@ -130,27 +124,67 @@ export function useChatController({
   availableAssistants,
   liveAssistant,
   existingChatSessionId,
-  firstMessage,
   selectedDocuments,
 
   // scroll/focus related stuff
   clientScrollToBottom,
-  scrollInitialized,
-  hasPerformedInitialScroll,
-  setHasPerformedInitialScroll,
-  isInitialLoad,
-  textAreaRef,
 
   setPopup,
   resetInputBar,
   setSelectedAssistantFromId,
   setSelectedMessageForDocDisplay,
-  setSelectedDocuments,
 }: UseChatControllerProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshChatSessions, llmProviders } = useChatContext();
+
+  // Use selectors to access only the specific fields we need
+  const currentSessionId = useChatSessionStore(
+    (state) => state.currentSessionId
+  );
+  const sessions = useChatSessionStore((state) => state.sessions);
+
+  // Store actions - these don't cause re-renders
+  const updateChatStateAction = useChatSessionStore(
+    (state) => state.updateChatState
+  );
+  const updateRegenerationStateAction = useChatSessionStore(
+    (state) => state.updateRegenerationState
+  );
+  const updateCanContinueAction = useChatSessionStore(
+    (state) => state.updateCanContinue
+  );
+  const createSession = useChatSessionStore((state) => state.createSession);
+  const setCurrentSession = useChatSessionStore(
+    (state) => state.setCurrentSession
+  );
+  const updateSessionMessageTree = useChatSessionStore(
+    (state) => state.updateSessionMessageTree
+  );
+  const abortSession = useChatSessionStore((state) => state.abortSession);
+  const updateSubmittedMessage = useChatSessionStore(
+    (state) => state.updateSubmittedMessage
+  );
+  const setUncaughtError = useChatSessionStore(
+    (state) => state.setUncaughtError
+  );
+  const setLoadingError = useChatSessionStore((state) => state.setLoadingError);
+  const setAbortController = useChatSessionStore(
+    (state) => state.setAbortController
+  );
+  const setAgenticGenerating = useChatSessionStore(
+    (state) => state.setAgenticGenerating
+  );
+  const setIsFetchingChatMessages = useChatSessionStore(
+    (state) => state.setIsFetchingChatMessages
+  );
+  const setIsReady = useChatSessionStore((state) => state.setIsReady);
+
+  // Use custom hooks for accessing store data
+  const currentMessageTree = useCurrentMessageTree();
+  const currentMessageHistory = useCurrentMessageHistory();
+  const currentChatState = useCurrentChatState();
 
   const {
     selectedFiles,
@@ -161,167 +195,59 @@ export function useChatController({
     clearSelectedItems,
   } = useDocumentsContext();
 
-  const chatSessionIdRef = useRef<string | null>(existingChatSessionId);
-  // Only updates on session load (ie. rename / switching chat session)
-  // Useful for determining which session has been loaded
-  // (i.e. still on `new, empty session` or `previous session`)
-  const loadedIdSessionRef = useRef<string | null>(existingChatSessionId);
-
-  // used to track whether or not the initial "submit on load" has been performed
-  // this only applies if `?submit-on-load=true` or `?submit-on-load=1` is in the URL
-  // NOTE: this is required due to React strict mode, where all `useEffect` hooks
-  // are run twice on initial load during development
-  const submitOnLoadPerformed = useRef<boolean>(false);
-
   const navigatingAway = useRef(false);
 
-  const [isReady, setIsReady] = useState(false);
-
-  // just choose a conservative default, this will be updated in the
-  // background on initial load / on persona change
+  // Local state that doesn't need to be in the store
   const [maxTokens, setMaxTokens] = useState<number>(4096);
-
-  // fetch messages for the chat session
-  const [isFetchingChatMessages, setIsFetchingChatMessages] = useState(
-    existingChatSessionId !== null
-  );
-  const [submittedMessage, setSubmittedMessage] = useState(firstMessage || "");
-
-  const [canContinue, setCanContinue] = useState<Map<string | null, boolean>>(
-    new Map([[null, false]])
-  );
-
-  const [agenticGenerating, setAgenticGenerating] = useState(false);
-
-  const [uncaughtError, setUncaughtError] = useState<string | null>(null);
-  const [loadingError, setLoadingError] = useState<string | null>(null);
-
-  const [completeMessageDetail, setCompleteMessageDetail] = useState<
-    Map<string | null, MessageTreeState>
-  >(new Map());
-
-  const [chatState, setChatState] = useState<Map<string | null, ChatState>>(
-    new Map([[chatSessionIdRef.current, firstMessage ? "loading" : "input"]])
-  );
-
   const [chatSessionSharedStatus, setChatSessionSharedStatus] =
     useState<ChatSessionSharedStatus>(ChatSessionSharedStatus.Private);
 
-  const [regenerationState, setRegenerationState] = useState<
-    Map<string | null, RegenerationState | null>
-  >(new Map([[null, null]]));
-
-  const [abortControllers, setAbortControllers] = useState<
-    Map<string | null, AbortController>
-  >(new Map());
-
-  const abortControllersRef = useRef(abortControllers);
+  // Sync store state changes
   useEffect(() => {
-    abortControllersRef.current = abortControllers;
-  }, [abortControllers]);
+    if (currentSessionId) {
+      // Keep track of current session ID for internal use
+    }
+  }, [currentSessionId]);
+
+  const getCurrentSessionId = (): string => {
+    return currentSessionId || existingChatSessionId || "";
+  };
 
   const updateRegenerationState = (
     newState: RegenerationState | null,
     sessionId?: string | null
   ) => {
-    const newRegenerationState = new Map(regenerationState);
-    newRegenerationState.set(
-      sessionId !== undefined && sessionId != null
-        ? sessionId
-        : currentSessionId(),
-      newState
-    );
-
-    setRegenerationState((prevState) => {
-      const newRegenerationState = new Map(prevState);
-      newRegenerationState.set(
-        sessionId !== undefined && sessionId != null
-          ? sessionId
-          : currentSessionId(),
-        newState
-      );
-      return newRegenerationState;
-    });
-  };
-
-  const updateChatState = (newState: ChatState, sessionId?: string | null) => {
-    setChatState((prevState) => {
-      const newChatState = new Map(prevState);
-      newChatState.set(
-        sessionId !== undefined ? sessionId : currentSessionId(),
-        newState
-      );
-      return newChatState;
-    });
+    const targetSessionId = sessionId || getCurrentSessionId();
+    if (targetSessionId) {
+      updateRegenerationStateAction(targetSessionId, newState);
+    }
   };
 
   const resetRegenerationState = (sessionId?: string | null) => {
     updateRegenerationState(null, sessionId);
   };
 
+  const updateCanContinue = (newState: boolean, sessionId?: string | null) => {
+    const targetSessionId = sessionId || getCurrentSessionId();
+    if (targetSessionId) {
+      updateCanContinueAction(targetSessionId, newState);
+    }
+  };
+
   const updateStatesWithNewSessionId = (newSessionId: string) => {
-    const updateState = (
-      setState: Dispatch<SetStateAction<Map<string | null, any>>>,
-      defaultValue?: any
-    ) => {
-      setState((prevState) => {
-        const newState = new Map(prevState);
-        const existingState = newState.get(null);
-        if (existingState !== undefined) {
-          newState.set(newSessionId, existingState);
-          newState.delete(null);
-        } else if (defaultValue !== undefined) {
-          newState.set(newSessionId, defaultValue);
-        }
-        return newState;
-      });
-    };
+    // Create new session in store if it doesn't exist
+    const existingSession = sessions.get(newSessionId);
+    if (!existingSession) {
+      createSession(newSessionId);
+    }
 
-    updateState(setRegenerationState);
-    updateState(setChatState);
-    updateState(setAbortControllers);
-
-    // Update completeMessageDetail
-    setCompleteMessageDetail((prevState) => {
-      const newState = new Map(prevState);
-      const existingMessages = newState.get(null);
-      if (existingMessages) {
-        newState.set(newSessionId, existingMessages);
-        newState.delete(null);
-      }
-      return newState;
-    });
-
-    // Update chatSessionIdRef
-    chatSessionIdRef.current = newSessionId;
+    // Set as current session
+    setCurrentSession(newSessionId);
   };
 
-  const updateCompleteMessageDetail = (
-    sessionId: string | null,
-    messageMap: Map<number, Message>
-  ) => {
-    setCompleteMessageDetail((prevState) => {
-      const newState = new Map(prevState);
-      newState.set(sessionId, messageMap);
-      return newState;
-    });
-  };
-
-  const currentMessageMap = (
-    messageDetail: Map<string | null, Map<number, Message>>
-  ) => {
-    return (
-      messageDetail.get(chatSessionIdRef.current) || new Map<number, Message>()
-    );
-  };
-
-  const currentSessionId = (): string => {
-    return chatSessionIdRef.current!;
-  };
-
-  const upsertToCompleteMessageMap = ({
+  const upsertToCompleteMessageTree = ({
     messages,
-    completeMessageMapOverride,
+    completeMessageTreeOverride,
     chatSessionId,
     oldIds,
     makeLatestChildMessage = false,
@@ -329,84 +255,57 @@ export function useChatController({
     messages: Message[];
     // if calling this function repeatedly with short delay, stay may not update in time
     // and result in weird behavipr
-    completeMessageMapOverride?: Map<number, Message> | null;
+    completeMessageTreeOverride?: MessageTreeState | null;
     chatSessionId?: string;
     oldIds?: number[] | null;
     makeLatestChildMessage?: boolean;
   }) => {
-    let currentMap =
-      completeMessageMapOverride ||
+    let currentMessageTreeToUse =
+      completeMessageTreeOverride ||
       (chatSessionId !== undefined &&
-        completeMessageDetail.get(chatSessionId)) ||
-      currentMessageMap(completeMessageDetail);
+        sessions.get(chatSessionId)?.messageTree) ||
+      currentMessageTree ||
+      new Map<number, Message>();
 
     if (oldIds) {
       oldIds.forEach((id) => {
-        removeMessage(currentMap, id);
+        removeMessage(currentMessageTreeToUse, id);
       });
     }
 
-    const newCompleteMessageMap = upsertMessages(
-      currentMap,
+    const newCompleteMessageTree = upsertMessages(
+      currentMessageTreeToUse,
       messages,
       makeLatestChildMessage
     );
 
-    const newCompleteMessageDetail = {
-      sessionId: chatSessionId || currentSessionId(),
-      messageMap: newCompleteMessageMap,
+    const sessionId = chatSessionId || getCurrentSessionId();
+    updateSessionMessageTree(sessionId, newCompleteMessageTree);
+
+    return {
+      sessionId,
+      messageTree: newCompleteMessageTree,
     };
-
-    updateCompleteMessageDetail(
-      chatSessionId || currentSessionId(),
-      newCompleteMessageMap
-    );
-    return newCompleteMessageDetail;
-  };
-
-  const updateCanContinue = (newState: boolean, sessionId?: string | null) => {
-    setCanContinue((prevState) => {
-      const newCanContinueState = new Map(prevState);
-      newCanContinueState.set(
-        sessionId !== undefined ? sessionId : currentSessionId(),
-        newState
-      );
-      return newCanContinueState;
-    });
-  };
-
-  const currentChatState = (): ChatState => {
-    return chatState.get(currentSessionId()) || "input";
   };
 
   const stopGenerating = () => {
-    const currentSession = currentSessionId();
-    const controller = abortControllers.get(currentSession);
-    if (controller) {
-      controller.abort();
-      setAbortControllers((prev) => {
-        const newControllers = new Map(prev);
-        newControllers.delete(currentSession);
-        return newControllers;
-      });
-    }
+    const currentSession = getCurrentSessionId();
+    abortSession(currentSession);
 
-    const lastMessage = messageHistory[messageHistory.length - 1];
+    const lastMessage = currentMessageHistory[currentMessageHistory.length - 1];
     if (
       lastMessage &&
       lastMessage.type === "assistant" &&
       lastMessage.toolCall &&
       lastMessage.toolCall.tool_result === undefined
     ) {
-      const newCompleteMessageMap = new Map(
-        currentMessageMap(completeMessageDetail)
-      );
+      const newMessageTree = new Map(currentMessageTree);
       const updatedMessage = { ...lastMessage, toolCall: null };
-      newCompleteMessageMap.set(lastMessage.messageId, updatedMessage);
-      updateCompleteMessageDetail(currentSession, newCompleteMessageMap);
+      newMessageTree.set(lastMessage.messageId, updatedMessage);
+      updateSessionMessageTree(currentSession, newMessageTree);
     }
 
-    updateChatState("input", currentSession);
+    updateChatStateAction(currentSession, "input");
   };
 
   const onSubmit = async ({
@@ -442,18 +341,19 @@ export function useChatController({
     regenerationRequest?: RegenerationRequest | null;
     overrideFileDescriptors?: FileDescriptor[];
   }) => {
-    setSubmittedMessage(message);
+    updateSubmittedMessage(getCurrentSessionId(), message);
 
     navigatingAway.current = false;
-    let frozenSessionId = currentSessionId();
+    let frozenSessionId = getCurrentSessionId();
     updateCanContinue(false, frozenSessionId);
     setUncaughtError(null);
     setLoadingError(null);
 
     // Check if the last message was an error and remove it before proceeding with a new message
     // Ensure this isn't a regeneration or resend, as those operations should preserve the history leading up to the point of regeneration/resend.
-    let currentMap = currentMessageMap(completeMessageDetail);
-    let currentHistory = getLatestMessageChain(currentMap);
+    let currentMessageTreeLocal =
+      currentMessageTree || new Map<number, Message>();
+    let currentHistory = getLatestMessageChain(currentMessageTreeLocal);
     let lastMessage = currentHistory[currentHistory.length - 1];
 
     if (
@@ -462,51 +362,51 @@ export function useChatController({
       !messageIdToResend &&
       !regenerationRequest
     ) {
-      const newMap = new Map(currentMap);
+      const newMessageTree = new Map(currentMessageTreeLocal);
       const parentId = lastMessage.parentMessageId;
 
       // Remove the error message itself
-      newMap.delete(lastMessage.messageId);
+      newMessageTree.delete(lastMessage.messageId);
 
       // Remove the parent message + update the parent of the parent to no longer
       // link to the parent
       if (parentId !== null && parentId !== undefined) {
-        const parentOfError = newMap.get(parentId);
+        const parentOfError = newMessageTree.get(parentId);
         if (parentOfError) {
           const grandparentId = parentOfError.parentMessageId;
           if (grandparentId !== null && grandparentId !== undefined) {
-            const grandparent = newMap.get(grandparentId);
+            const grandparent = newMessageTree.get(grandparentId);
             if (grandparent) {
               // Update grandparent to no longer link to parent
               const updatedGrandparent = {
                 ...grandparent,
                 childrenMessageIds: (
                   grandparent.childrenMessageIds || []
-                ).filter((id) => id !== parentId),
+                ).filter((id: number) => id !== parentId),
                 latestChildMessageId:
                   grandparent.latestChildMessageId === parentId
                     ? null
                     : grandparent.latestChildMessageId,
               };
-              newMap.set(grandparentId, updatedGrandparent);
+              newMessageTree.set(grandparentId, updatedGrandparent);
             }
           }
           // Remove the parent message
-          newMap.delete(parentId);
+          newMessageTree.delete(parentId);
         }
       }
       // Update the state immediately so subsequent logic uses the cleaned map
-      updateCompleteMessageDetail(frozenSessionId, newMap);
+      updateSessionMessageTree(frozenSessionId, newMessageTree);
       console.log("Removed previous error message ID:", lastMessage.messageId);
 
       // update state for the new world (with the error message removed)
-      currentHistory = getLatestMessageChain(newMap);
-      currentMap = newMap;
+      currentHistory = getLatestMessageChain(newMessageTree);
+      currentMessageTreeLocal = newMessageTree;
       lastMessage = currentHistory[currentHistory.length - 1];
     }
 
-    if (currentChatState() != "input") {
-      if (currentChatState() == "uploading") {
+    if (currentChatState != "input") {
+      if (currentChatState == "uploading") {
         setPopup({
           message: "Please wait for the content to upload",
           type: "error",
@@ -526,7 +426,7 @@ export function useChatController({
     clientScrollToBottom();
 
     let currChatSessionId: string;
-    const isNewSession = chatSessionIdRef.current === null;
+    const isNewSession = existingChatSessionId === null;
 
     const searchParamBasedChatSessionName =
       searchParams?.get(SEARCH_PARAM_NAMES.TITLE) || null;
@@ -537,7 +437,7 @@ export function useChatController({
         searchParamBasedChatSessionName
       );
     } else {
-      currChatSessionId = chatSessionIdRef.current as string;
+      currChatSessionId = existingChatSessionId as string;
     }
     frozenSessionId = currChatSessionId;
     // update the selected model for the chat session if one is specified so that
@@ -560,10 +460,7 @@ export function useChatController({
     updateStatesWithNewSessionId(currChatSessionId);
 
     const controller = new AbortController();
-
-    setAbortControllers((prev) =>
-      new Map(prev).set(currChatSessionId, controller)
-    );
+    setAbortController(currChatSessionId, controller);
 
     const messageToResend = currentHistory.find(
       (message) => message.messageId === messageIdToResend
@@ -571,13 +468,13 @@ export function useChatController({
     if (messageIdToResend) {
       updateRegenerationState(
         { regenerating: true, finalMessageIndex: messageIdToResend },
-        currentSessionId()
+        frozenSessionId
       );
     }
     const messageToResendParent =
       messageToResend?.parentMessageId !== null &&
       messageToResend?.parentMessageId !== undefined
-        ? currentMap.get(messageToResend.parentMessageId)
+        ? currentMessageTreeLocal.get(messageToResend.parentMessageId)
         : null;
     const messageToResendIndex = messageToResend
       ? currentHistory.indexOf(messageToResend)
@@ -589,13 +486,13 @@ export function useChatController({
           "Failed to re-send message - please refresh the page and try again.",
         type: "error",
       });
-      resetRegenerationState(currentSessionId());
-      updateChatState("input", frozenSessionId);
+      resetRegenerationState(frozenSessionId);
+      updateChatStateAction(frozenSessionId, "input");
       return;
     }
     let currMessage = messageToResend ? messageToResend.message : message;
 
-    updateChatState("loading");
+    updateChatStateAction(frozenSessionId, "loading");
 
     const currMessageHistory =
       messageToResendIndex !== null
@@ -607,7 +504,9 @@ export function useChatController({
       (currMessageHistory.length > 0
         ? currMessageHistory[currMessageHistory.length - 1]
         : null) ||
-      (currentMap.size === 1 ? Array.from(currentMap.values())[0] : null);
+      (currentMessageTreeLocal.size === 1
+        ? Array.from(currentMessageTreeLocal.values())[0]
+        : null);
 
     resetInputBar();
     let messageUpdates: Message[] | null = null;
@@ -645,15 +544,17 @@ export function useChatController({
       frozenMessageMap: Map<number, Message>;
     } = null;
     try {
-      const mapKeys = Array.from(currentMap.keys());
-      const lastSuccessfulMessageId = getLastSuccessfulMessageId(currentMap);
+      const mapKeys = Array.from(currentMessageTreeLocal.keys());
+      const lastSuccessfulMessageId = getLastSuccessfulMessageId(
+        currentMessageTreeLocal
+      );
 
       const stack = new CurrentMessageFIFO();
 
       updateCurrentMessageFIFO(stack, {
         signal: controller.signal,
         message: currMessage,
-        alternateAssistantId: liveAssistant.id,
+        alternateAssistantId: liveAssistant?.id,
         fileDescriptors: overrideFileDescriptors || currentMessageFiles,
         parentMessageId:
           regenerationRequest?.parentMessage.messageId ||
@@ -719,7 +620,7 @@ export function useChatController({
               if (Object.hasOwn(packet, "error")) {
                 const error = (packet as StreamingError).error;
                 setLoadingError(error);
-                updateChatState("input");
+                updateChatStateAction(frozenSessionId, "input");
                 return;
               }
               continue;
@@ -755,16 +656,16 @@ export function useChatController({
               });
             }
 
-            const { messageMap: currentFrozenMessageMap } =
-              upsertToCompleteMessageMap({
+            const { messageTree: currentFrozenMessageTree } =
+              upsertToCompleteMessageTree({
                 messages: messageUpdates,
                 chatSessionId: currChatSessionId,
-                completeMessageMapOverride: currentMap,
+                completeMessageTreeOverride: currentMessageTreeLocal,
               });
-            currentMap = currentFrozenMessageMap;
+            currentMessageTreeLocal = currentFrozenMessageTree;
 
             initialFetchDetails = {
-              frozenMessageMap: currentMap,
+              frozenMessageMap: currentMessageTreeLocal,
               assistant_message_id,
               user_message_id,
             };
@@ -784,15 +685,9 @@ export function useChatController({
               }
             }
 
-            setChatState((prevState) => {
-              if (prevState.get(chatSessionIdRef.current!) === "loading") {
-                return new Map(prevState).set(
-                  chatSessionIdRef.current!,
-                  "streaming"
-                );
-              }
-              return prevState;
-            });
+            // We've processed initial packets and are starting to stream content.
+            // Transition from 'loading' to 'streaming'.
+            updateChatStateAction(frozenSessionId, "streaming");
 
             if (Object.hasOwn(packet, "level")) {
               if ((packet as any).level === 1) {
@@ -830,7 +725,7 @@ export function useChatController({
               Object.hasOwn(packet, "level_question_num")
             ) {
               if ((packet as StreamStopInfo).stream_type == "main_answer") {
-                updateChatState("streaming", frozenSessionId);
+                updateChatStateAction(frozenSessionId, "streaming");
               }
               if (
                 (packet as StreamStopInfo).stream_type == "sub_questions" &&
@@ -843,7 +738,7 @@ export function useChatController({
                 packet as StreamStopInfo
               );
             } else if (Object.hasOwn(packet, "sub_question")) {
-              updateChatState("toolBuilding", frozenSessionId);
+              updateChatStateAction(frozenSessionId, "toolBuilding");
               isAgentic = true;
               is_generating = true;
               sub_questions = constructSubQuestions(
@@ -925,9 +820,9 @@ export function useChatController({
                   !toolCall.tool_result ||
                   toolCall.tool_result == undefined
                 ) {
-                  updateChatState("toolBuilding", frozenSessionId);
+                  updateChatStateAction(frozenSessionId, "toolBuilding");
                 } else {
-                  updateChatState("streaming", frozenSessionId);
+                  updateChatStateAction(frozenSessionId, "streaming");
                 }
 
                 // This will be consolidated in upcoming tool calls udpate,
@@ -958,10 +853,10 @@ export function useChatController({
                   .every((q) => q.is_stopped === true)
               ) {
                 setUncaughtError((packet as StreamingError).error);
-                updateChatState("input");
+                updateChatStateAction(frozenSessionId, "input");
                 setAgenticGenerating(false);
                 // setAlternativeGeneratingAssistant(null);
-                setSubmittedMessage("");
+                updateSubmittedMessage(getCurrentSessionId(), "");
 
                 throw new Error((packet as StreamingError).error);
               } else {
@@ -988,14 +883,14 @@ export function useChatController({
                   ? [regenerationRequest.messageId]
                   : null;
 
-              const newMessageDetails = upsertToCompleteMessageMap({
+              const newMessageDetails = upsertToCompleteMessageTree({
                 messages: messages,
                 oldIds: oldIds,
                 // Pass the latest map state
-                completeMessageMapOverride: currentMap,
+                completeMessageTreeOverride: currentMessageTreeLocal,
                 chatSessionId: frozenSessionId!,
               });
-              currentMap = newMessageDetails.messageMap;
+              currentMessageTreeLocal = newMessageDetails.messageTree;
               return newMessageDetails;
             };
 
@@ -1064,7 +959,7 @@ export function useChatController({
     } catch (e: any) {
       console.log("Error:", e);
       const errorMsg = e.message;
-      const newMessageDetails = upsertToCompleteMessageMap({
+      const newMessageDetails = upsertToCompleteMessageTree({
         messages: [
           {
             messageId:
@@ -1087,15 +982,15 @@ export function useChatController({
               initialFetchDetails?.user_message_id || TEMP_USER_MESSAGE_ID,
           },
         ],
-        completeMessageMapOverride: currentMap,
+        completeMessageTreeOverride: currentMessageTreeLocal,
       });
-      currentMap = newMessageDetails.messageMap;
+      currentMessageTreeLocal = newMessageDetails.messageTree;
     }
-    console.log("Finished streaming");
-    setAgenticGenerating(false);
-    resetRegenerationState(currentSessionId());
 
-    updateChatState("input");
+    setAgenticGenerating(false);
+    resetRegenerationState(frozenSessionId);
+
+    updateChatStateAction(frozenSessionId, "input");
     if (isNewSession) {
       console.log("Setting up new session");
       if (finalMessage) {
@@ -1110,8 +1005,8 @@ export function useChatController({
 
       // NOTE: don't switch pages if the user has navigated away from the chat
       if (
-        currChatSessionId === chatSessionIdRef.current ||
-        chatSessionIdRef.current === null
+        currChatSessionId === frozenSessionId ||
+        existingChatSessionId === null
       ) {
         const newUrl = buildChatUrl(searchParams, currChatSessionId, null);
         // newUrl is like /chat?chatId=10
@@ -1136,7 +1031,7 @@ export function useChatController({
   const handleMessageSpecificFileUpload = async (acceptedFiles: File[]) => {
     const [_, llmModel] = getFinalLLM(
       llmProviders,
-      liveAssistant,
+      liveAssistant || null,
       llmManager.currentLlm
     );
     const llmAcceptsImages = modelSupportsImageInput(llmProviders, llmModel);
@@ -1154,7 +1049,7 @@ export function useChatController({
       return;
     }
 
-    updateChatState("uploading", currentSessionId());
+    updateChatStateAction(getCurrentSessionId(), "uploading");
 
     for (let file of acceptedFiles) {
       const formData = new FormData();
@@ -1186,199 +1081,32 @@ export function useChatController({
       }
     }
 
-    updateChatState("input", currentSessionId());
+    updateChatStateAction(getCurrentSessionId(), "input");
   };
-
-  const messageHistory = useMemo(() => {
-    return getLatestMessageChain(currentMessageMap(completeMessageDetail));
-  }, [completeMessageDetail]);
-
-  const onMessageSelection = (messageId: number) => {
-    setSelectedMessageForDocDisplay(messageId);
-    const newMessageTree = setMessageAsLatest(
-      currentMessageMap(completeMessageDetail),
-      messageId
-    );
-    updateCompleteMessageDetail(currentSessionId(), newMessageTree);
-
-    // makes actual API call to set message as latest in the DB so we can
-    // edit this message and so it sticks around on page reload
-    patchMessageToBeLatest(messageId);
-  };
-
-  // fetch chat messages for the chat session
-  useEffect(() => {
-    const priorChatSessionId = chatSessionIdRef.current;
-    const loadedSessionId = loadedIdSessionRef.current;
-    chatSessionIdRef.current = existingChatSessionId;
-    loadedIdSessionRef.current = existingChatSessionId;
-
-    textAreaRef.current?.focus();
-
-    // only clear things if we're going from one chat session to another
-    const isChatSessionSwitch = existingChatSessionId !== priorChatSessionId;
-    if (isChatSessionSwitch) {
-      // de-select documents
-
-      // reset all filters
-      filterManager.setSelectedDocumentSets([]);
-      filterManager.setSelectedSources([]);
-      filterManager.setSelectedTags([]);
-      filterManager.setTimeRange(null);
-
-      // remove uploaded files
-      setCurrentMessageFiles([]);
-
-      // if switching from one chat to another, then need to scroll again
-      // if we're creating a brand new chat, then don't need to scroll
-      if (priorChatSessionId !== null) {
-        setSelectedDocuments([]);
-        clearSelectedItems();
-        setHasPerformedInitialScroll(false);
-      }
-    }
-
-    async function initialSessionFetch() {
-      if (existingChatSessionId === null) {
-        // reset the selected assistant back to default
-        setSelectedAssistantFromId(null);
-        updateCompleteMessageDetail(null, new Map());
-        setChatSessionSharedStatus(ChatSessionSharedStatus.Private);
-
-        // if we're supposed to submit on initial load, then do that here
-        if (
-          shouldSubmitOnLoad(searchParams) &&
-          !submitOnLoadPerformed.current
-        ) {
-          submitOnLoadPerformed.current = true;
-          await onSubmit({
-            message: firstMessage || "",
-            selectedFiles: [],
-            selectedFolders: [],
-            currentMessageFiles: [],
-            useLanggraph: false,
-          });
-        }
-        return;
-      }
-
-      const response = await fetch(
-        `/api/chat/get-chat-session/${existingChatSessionId}`
-      );
-
-      const session = await response.json();
-      const chatSession = session as BackendChatSession;
-      setSelectedAssistantFromId(chatSession.persona_id);
-
-      const newMessageMap = processRawChatHistory(chatSession.messages);
-      const newMessageHistory = getLatestMessageChain(newMessageMap);
-
-      // Update message history except for edge where where
-      // last message is an error and we're on a new chat.
-      // This corresponds to a "renaming" of chat, which occurs after first message
-      // stream
-      if (
-        (newMessageHistory[newMessageHistory.length - 1]?.type !== "error" ||
-          loadedSessionId != null) &&
-        !(
-          currentChatState() == "toolBuilding" ||
-          currentChatState() == "streaming" ||
-          currentChatState() == "loading"
-        )
-      ) {
-        const latestMessageId =
-          newMessageHistory[newMessageHistory.length - 1]?.messageId;
-
-        setSelectedMessageForDocDisplay(
-          latestMessageId !== undefined && latestMessageId !== null
-            ? latestMessageId
-            : null
-        );
-
-        updateCompleteMessageDetail(chatSession.chat_session_id, newMessageMap);
-      }
-
-      // go to bottom. If initial load, then do a scroll,
-      // otherwise just appear at the bottom
-      scrollInitialized.current = false;
-
-      if (!hasPerformedInitialScroll) {
-        if (isInitialLoad.current) {
-          setHasPerformedInitialScroll(true);
-          isInitialLoad.current = false;
-        }
-        clientScrollToBottom();
-
-        setTimeout(() => {
-          setHasPerformedInitialScroll(true);
-        }, 100);
-      } else if (isChatSessionSwitch) {
-        setHasPerformedInitialScroll(true);
-        clientScrollToBottom(true);
-      }
-
-      setIsFetchingChatMessages(false);
-
-      // if this is a seeded chat, then kick off the AI message generation
-      if (
-        newMessageHistory.length === 1 &&
-        !submitOnLoadPerformed.current &&
-        searchParams?.get(SEARCH_PARAM_NAMES.SEEDED) === "true"
-      ) {
-        submitOnLoadPerformed.current = true;
-
-        const seededMessage = newMessageHistory[0]?.message;
-        if (!seededMessage) {
-          return;
-        }
-
-        await onSubmit({
-          message: seededMessage,
-          isSeededChat: true,
-          selectedFiles: [],
-          selectedFolders: [],
-          currentMessageFiles: [],
-          useLanggraph: false,
-        });
-        // force re-name if the chat session doesn't have one
-        if (!chatSession.description) {
-          await nameChatSession(existingChatSessionId);
-          refreshChatSessions();
-        }
-      } else if (newMessageHistory.length === 2 && !chatSession.description) {
-        await nameChatSession(existingChatSessionId);
-        refreshChatSessions();
-      }
-    }
-
-    initialSessionFetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [existingChatSessionId, searchParams?.get(SEARCH_PARAM_NAMES.PERSONA_ID)]);
 
   useEffect(() => {
     return () => {
       // Cleanup which only runs when the component unmounts (i.e. when you navigate away).
-      const currentSession = currentSessionId();
-      const controller = abortControllersRef.current.get(currentSession);
-      if (controller) {
-        controller.abort();
-        navigatingAway.current = true;
-        setAbortControllers((prev) => {
-          const newControllers = new Map(prev);
-          newControllers.delete(currentSession);
-          return newControllers;
-        });
+      const currentSession = getCurrentSessionId();
+      const abortController = sessions.get(currentSession)?.abortController;
+      if (abortController) {
+        abortController.abort();
+        setAbortController(currentSession, new AbortController());
       }
     };
   }, [pathname]);
 
   // update chosen assistant if we navigate between pages
   useEffect(() => {
-    if (messageHistory.length === 0 && chatSessionIdRef.current === null) {
+    if (currentMessageHistory.length === 0 && existingChatSessionId === null) {
       // Select from available assistants so shared assistants appear.
       setSelectedAssistantFromId(null);
     }
-  }, [chatSessionIdRef.current, availableAssistants, messageHistory.length]);
+  }, [
+    existingChatSessionId,
+    availableAssistants,
+    currentMessageHistory.length,
+  ]);
 
   useEffect(() => {
     const handleSlackChatRedirect = async () => {
@@ -1473,12 +1201,12 @@ export function useChatController({
   // check if there's an image file in the message history so that we know
   // which LLMs are available to use
   const imageFileInMessageHistory = useMemo(() => {
-    return messageHistory
+    return currentMessageHistory
       .filter((message) => message.type === "user")
       .some((message) =>
         message.files.some((file) => file.type === ChatFileType.IMAGE)
       );
-  }, [messageHistory]);
+  }, [currentMessageHistory]);
 
   useEffect(() => {
     llmManager.updateImageFilesPresent(imageFileInMessageHistory);
@@ -1494,24 +1222,6 @@ export function useChatController({
     // actions
     onSubmit,
     stopGenerating,
-    onMessageSelection,
     handleMessageSpecificFileUpload,
-
-    // overall state
-    completeMessageDetail,
-    abortControllers,
-    isReady,
-    maxTokens,
-    isFetchingChatMessages,
-
-    // current state
-    currentChatState: currentChatState(),
-    currentRegenerationState: regenerationState.get(currentSessionId()),
-    chatSessionId: currentSessionId(),
-    submittedMessage,
-    canContinue,
-    agenticGenerating,
-    uncaughtError,
-    loadingError,
   };
 }

@@ -71,6 +71,9 @@ export function upsertMessages(
 
   if (newMessages.size === 0 && messagesToAddClones.length > 0) {
     const firstMessage = messagesToAddClones[0];
+    if (!firstMessage) {
+      throw new Error("No first message found in the message tree.");
+    }
     const systemMessageId =
       firstMessage.parentMessageId !== null
         ? firstMessage.parentMessageId
@@ -92,6 +95,10 @@ export function upsertMessages(
       newMessages.set(dummySystemMessage.messageId, dummySystemMessage);
     }
     // Ensure the first message points to the system message if its parent was null
+    if (!firstMessage) {
+      console.error("No first message found in the message tree.");
+      return newMessages;
+    }
     if (firstMessage.parentMessageId === null) {
       firstMessage.parentMessageId = systemMessageId;
     }
@@ -120,6 +127,10 @@ export function upsertMessages(
   // overriding previous updates within the loop if necessary.
   if (makeLatestChildMessage && messagesToAddClones.length > 0) {
     const lastMessage = messagesToAddClones[messagesToAddClones.length - 1];
+    if (!lastMessage) {
+      console.error("No last message found in the message tree.");
+      return newMessages;
+    }
     if (lastMessage.parentMessageId !== null) {
       const parent = newMessages.get(lastMessage.parentMessageId);
       if (parent && parent.latestChildMessageId !== lastMessage.messageId) {
@@ -317,6 +328,10 @@ export function getHumanAndAIMessageFromMessageNumber(
 
   // Message is in the latest chain
   const message = latestChain[messageIndex];
+  if (!message) {
+    console.error(`Message ${messageNumber} not found in the latest chain.`);
+    return { humanMessage: null, aiMessage: null };
+  }
 
   if (message.type === "user") {
     const potentialAiMessage = latestChain[messageIndex + 1];
@@ -346,6 +361,10 @@ export function getLastSuccessfulMessageId(
   const messageChain = chain || getLatestMessageChain(messages);
   for (let i = messageChain.length - 1; i >= 0; i--) {
     const message = messageChain[i];
+    if (!message) {
+      console.error(`Message ${i} not found in the message chain.`);
+      continue;
+    }
     if (message.type !== "error") {
       return message.messageId;
     }

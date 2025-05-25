@@ -29,13 +29,13 @@ export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
   onClick,
   minimize,
 }) => {
-  const componentRef = useRef<HTMLButtonElement>(null);
+  const componentRef = useRef<HTMLDivElement>(null);
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
+          <div
             ref={componentRef}
             className={`
             relative 
@@ -76,7 +76,7 @@ export const ChatInputOption: React.FC<ChatInputOptionProps> = ({
                 <ChevronDownIcon className="flex-none ml-1" size={size - 4} />
               )}
             </div>
-          </button>
+          </div>
         </TooltipTrigger>
         <TooltipContent>{tooltipContent}</TooltipContent>
       </Tooltip>
