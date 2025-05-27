@@ -9,8 +9,11 @@ from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from datetime import timezone
+from http.client import IncompleteRead
+from http.client import RemoteDisconnected
 from typing import Any
 from typing import cast
+from urllib.error import URLError
 
 from pydantic import BaseModel
 from redis import Redis
@@ -18,6 +21,9 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from slack_sdk.http_retry import ConnectionErrorRetryHandler
 from slack_sdk.http_retry import RetryHandler
+from slack_sdk.http_retry.builtin_interval_calculators import (
+    FixedValueRetryIntervalCalculator,
+)
 from typing_extensions import override
 
 from onyx.configs.app_configs import ENABLE_EXPENSIVE_EXPERT_CALLS
@@ -45,10 +51,10 @@ from onyx.connectors.models import EntityFailure
 from onyx.connectors.models import SlimDocument
 from onyx.connectors.models import TextSection
 from onyx.connectors.slack.onyx_retry_handler import OnyxRedisSlackRetryHandler
+from onyx.connectors.slack.onyx_slack_web_client import OnyxSlackWebClient
 from onyx.connectors.slack.utils import expert_info_from_slack_id
 from onyx.connectors.slack.utils import get_message_link
-from onyx.connectors.slack.utils import make_paginated_slack_api_call_w_retries
-from onyx.connectors.slack.utils import make_slack_api_call_w_retries
+from onyx.connectors.slack.utils import make_paginated_slack_api_call
 from onyx.connectors.slack.utils import SlackTextCleaner
 from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
 from onyx.redis.redis_pool import get_redis_client
@@ -78,7 +84,7 @@ def _collect_paginated_channels(
     channel_types: list[str],
 ) -> list[ChannelType]:
     channels: list[dict[str, Any]] = []
-    for result in make_paginated_slack_api_call_w_retries(
+    for result in make_paginated_slack_api_call(
         client.conversations_list,
         exclude_archived=exclude_archived,
         # also get private channels the bot is added to
@@ -135,14 +141,13 @@ def get_channel_messages(
     """Get all messages in a channel"""
     # join so that the bot can access messages
     if not channel["is_member"]:
-        make_slack_api_call_w_retries(
-            client.conversations_join,
+        client.conversations_join(
             channel=channel["id"],
             is_private=channel["is_private"],
         )
         logger.info(f"Successfully joined '{channel['name']}'")
 
-    for result in make_paginated_slack_api_call_w_retries(
+    for result in make_paginated_slack_api_call(
         client.conversations_history,
         channel=channel["id"],
         oldest=oldest,
@@ -159,7 +164,7 @@ def get_channel_messages(
 def get_thread(client: WebClient, channel_id: str, thread_id: str) -> ThreadType:
     """Get all messages in a thread"""
     threads: list[MessageType] = []
-    for result in make_paginated_slack_api_call_w_retries(
+    for result in make_paginated_slack_api_call(
         client.conversations_replies, channel=channel_id, ts=thread_id
     ):
         threads.extend(result["messages"])
@@ -317,8 +322,7 @@ def _get_channel_by_id(client: WebClient, channel_id: str) -> ChannelType:
     Raises:
         SlackApiError: If the channel cannot be fetched
     """
-    response = make_slack_api_call_w_retries(
-        client.conversations_info,
+    response = client.conversations_info(
         channel=channel_id,
     )
     return cast(ChannelType, response["channel"])
@@ -335,8 +339,7 @@ def _get_messages(
     # have to be in the channel in order to read messages
     if not channel["is_member"]:
         try:
-            make_slack_api_call_w_retries(
-                client.conversations_join,
+            client.conversations_join(
                 channel=channel["id"],
                 is_private=channel["is_private"],
             )
@@ -349,8 +352,7 @@ def _get_messages(
             raise
         logger.info(f"Successfully joined '{channel['name']}'")
 
-    response = make_slack_api_call_w_retries(
-        client.conversations_history,
+    response = client.conversations_history(
         channel=channel["id"],
         oldest=oldest,
         latest=latest,
@@ -563,10 +565,18 @@ class SlackConnector(
 
         # NOTE: slack has a built in RateLimitErrorRetryHandler, but it isn't designed
         # for concurrent workers. We've extended it with OnyxRedisSlackRetryHandler.
-        connection_error_retry_handler = ConnectionErrorRetryHandler()
+        connection_error_retry_handler = ConnectionErrorRetryHandler(
+            max_retry_count=max_retry_count,
+            interval_calculator=FixedValueRetryIntervalCalculator(),
+            error_types=[
+                URLError,
+                ConnectionResetError,
+                RemoteDisconnected,
+                IncompleteRead,
+            ],
+        )
         onyx_rate_limit_error_retry_handler = OnyxRedisSlackRetryHandler(
             max_retry_count=max_retry_count,
-            delay_lock=delay_lock,
             delay_key=delay_key,
             r=r,
         )
@@ -575,7 +585,13 @@ class SlackConnector(
             onyx_rate_limit_error_retry_handler,
         ]
 
-        client = WebClient(token=token, retry_handlers=custom_retry_handlers)
+        client = OnyxSlackWebClient(
+            delay_lock=delay_lock,
+            delay_key=delay_key,
+            r=r,
+            token=token,
+            retry_handlers=custom_retry_handlers,
+        )
         return client
 
     @property
@@ -700,6 +716,9 @@ class SlackConnector(
             num_threads_start = len(seen_thread_ts)
             # Process messages in parallel using ThreadPoolExecutor
             with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
+                # NOTE(rkuo): this seems to be assuming the slack sdk is thread safe.
+                # That's a very bold assumption! Likely not correct.
+
                 futures: list[Future[ProcessedSlackMessage]] = []
                 for message in message_batch:
                     # Capture the current context so that the thread gets the current tenant ID
