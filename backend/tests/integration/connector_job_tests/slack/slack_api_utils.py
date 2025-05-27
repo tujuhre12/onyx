@@ -216,8 +216,13 @@ class SlackManager:
 
     @staticmethod
     def build_slack_user_email_id_map(slack_client: WebClient) -> dict[str, str]:
-        users_results = slack_client.users_list()
-        users: list[dict[str, Any]] = users_results.get("members", [])
+        users: list[dict[str, Any]] = []
+
+        for users_results in make_paginated_slack_api_call(
+            slack_client.users_list,
+        ):
+            users.extend(users_results.get("members", []))
+
         user_email_id_map = {}
         for user in users:
             if not (email := user.get("profile", {}).get("email")):

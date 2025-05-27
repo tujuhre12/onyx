@@ -30,7 +30,6 @@ class OnyxSlackWebClient(WebClient):
     def __init__(
         self, delay_lock: str, delay_key: str, r: Redis, *args: Any, **kwargs: Any
     ) -> None:
-        """"""
         super().__init__(*args, **kwargs)
         self._delay_key = delay_key
         self._delay_lock = delay_lock
@@ -56,7 +55,6 @@ class OnyxSlackWebClient(WebClient):
         start = time.monotonic()
         while True:
             acquired = lock.acquire(blocking_timeout=ONYX_SLACK_LOCK_BLOCKING_TIMEOUT)
-
             if acquired:
                 break
 
@@ -93,8 +91,10 @@ class OnyxSlackWebClient(WebClient):
         url: str,
         req: Request,
     ) -> Dict[str, Any]:
+        """Overrides the internal method which is mostly the direct call to
+        urllib/urlopen ... so this is a good place to perform our delay."""
 
-        # if we can get the lock, then read and extend the ttl
+        # read and execute the delay
         ttl_ms = cast(int, self._redis.pttl(self._delay_key))
         if ttl_ms < 0:  # negative values are error status codes ... see docs
             ttl_ms = 0

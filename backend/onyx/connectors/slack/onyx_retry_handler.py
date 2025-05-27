@@ -17,13 +17,9 @@ class OnyxRedisSlackRetryHandler(RetryHandler):
     """
     This class uses Redis to share a rate limit among multiple threads.
 
-    Threads that encounter a rate limit will observe the shared delay, increment the
-    shared delay with the retry value, and use the new shared value as a wait interval.
-
-    This has the effect of serializing calls when a rate limit is hit, which is what
-    needs to happens if the server punishes us with additional limiting when we make
-    a call too early. We believe this is what Slack is doing based on empirical
-    observation, meaning we see indefinite hangs if we're too aggressive.
+    This just sets the desired retry delay with TTL in redis. In conjunction with
+    a custom subclass of the client, the value is read and obeyed prior to an API call
+    and also serialized.
 
     Another way to do this is just to do exponential backoff. Might be easier?
 
