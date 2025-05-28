@@ -529,6 +529,7 @@ class SlackConnector(
         channel_regex_enabled: bool = False,
         batch_size: int = INDEX_BATCH_SIZE,
         num_threads: int = SLACK_NUM_THREADS,
+        use_redis: bool = True,
     ) -> None:
         self.channels = channels
         self.channel_regex_enabled = channel_regex_enabled
@@ -541,6 +542,7 @@ class SlackConnector(
         self.user_cache: dict[str, BasicExpertInfo | None] = {}
         self.credentials_provider: CredentialsProviderInterface | None = None
         self.credential_prefix: str | None = None
+        self.use_redis: bool = use_redis
         # self.delay_lock: str | None = None  # the redis key for the shared lock
         # self.delay_key: str | None = None  # the redis key for the shared delay
 
@@ -575,6 +577,7 @@ class SlackConnector(
                 IncompleteRead,
             ],
         )
+
         onyx_rate_limit_error_retry_handler = OnyxRedisSlackRetryHandler(
             max_retry_count=max_retry_count,
             delay_key=delay_key,
@@ -615,16 +618,32 @@ class SlackConnector(
         if not tenant_id:
             raise ValueError("tenant_id cannot be None!")
 
-        self.redis = get_redis_client(tenant_id=tenant_id)
-
-        self.credential_prefix = SlackConnector.make_credential_prefix(
-            credentials_provider.get_provider_key()
-        )
-
         bot_token = credentials["slack_bot_token"]
-        self.client = SlackConnector.make_slack_web_client(
-            self.credential_prefix, bot_token, self.MAX_RETRIES, self.redis
-        )
+
+        if self.use_redis:
+            self.redis = get_redis_client(tenant_id=tenant_id)
+            self.credential_prefix = SlackConnector.make_credential_prefix(
+                credentials_provider.get_provider_key()
+            )
+
+            self.client = SlackConnector.make_slack_web_client(
+                self.credential_prefix, bot_token, self.MAX_RETRIES, self.redis
+            )
+        else:
+            connection_error_retry_handler = ConnectionErrorRetryHandler(
+                max_retry_count=self.MAX_RETRIES,
+                interval_calculator=FixedValueRetryIntervalCalculator(),
+                error_types=[
+                    URLError,
+                    ConnectionResetError,
+                    RemoteDisconnected,
+                    IncompleteRead,
+                ],
+            )
+
+            self.client = WebClient(
+                token=bot_token, retry_handlers=[connection_error_retry_handler]
+            )
 
         # use for requests that must return quickly (e.g. realtime flows where user is waiting)
         self.fast_client = WebClient(
