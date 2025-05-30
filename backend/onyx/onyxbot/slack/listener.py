@@ -321,8 +321,12 @@ class SlackbotHandler:
 
             redis_client = get_redis_client(tenant_id=tenant_id)
             # Acquire a Redis lock (non-blocking)
+            # thread_local=False because the shutdown event is handled
+            # on an arbitrary thread
             rlock: RedisLock = redis_client.lock(
-                OnyxRedisLocks.SLACK_BOT_LOCK, timeout=TENANT_LOCK_EXPIRATION
+                OnyxRedisLocks.SLACK_BOT_LOCK,
+                timeout=TENANT_LOCK_EXPIRATION,
+                thread_local=False,
             )
             lock_acquired = rlock.acquire(blocking=False)
 
@@ -530,7 +534,11 @@ class SlackbotHandler:
 
         logger.info("Shutting down gracefully")
         self.running = False
-        self._shutdown_event.set()
+        self._shutdown_event.set()  # set the shutdown event
+
+        # wait for threads to detect the event and exit
+        self.acquire_thread.join(timeout=60.0)
+        self.heartbeat_thread.join(timeout=60.0)
 
         # Stop all socket clients
         logger.info(f"Stopping {len(self.socket_clients)} socket clients")
