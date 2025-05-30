@@ -522,12 +522,20 @@ class SlackbotHandler:
 
         return socket_client
 
-    def stop_socket_clients(self) -> None:
-        logger.info(f"Stopping {len(self.socket_clients)} socket clients")
-        for (tenant_id, slack_bot_id), client in list(self.socket_clients.items()):
+    @staticmethod
+    def stop_socket_clients(
+        pod_id: str, socket_clients: Dict[tuple[str, int], TenantSocketModeClient]
+    ) -> None:
+        socket_client_list = list(socket_clients.items())
+        length = len(socket_client_list)
+
+        x = 0
+        for (tenant_id, slack_bot_id), client in socket_client_list:
+            x += 1
             client.close()
             logger.info(
-                f"Stopped SocketModeClient for tenant: {tenant_id}, app: {slack_bot_id}"
+                f"Stopped SocketModeClient {x}/{length}: "
+                f"{pod_id=} {tenant_id=} {slack_bot_id=}"
             )
 
     def shutdown(self, signum: int | None, frame: FrameType | None) -> None:
@@ -544,7 +552,7 @@ class SlackbotHandler:
 
         # Stop all socket clients
         logger.info(f"Stopping {len(self.socket_clients)} socket clients")
-        self.stop_socket_clients()
+        SlackbotHandler.stop_socket_clients(self.pod_id, self.socket_clients)
 
         # Release locks for all tenants we currently hold
         logger.info(f"Releasing locks for {len(self.tenant_ids)} tenants")
