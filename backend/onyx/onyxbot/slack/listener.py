@@ -541,7 +541,11 @@ def prefilter_requests(req: SocketModeRequest, client: TenantSocketModeClient) -
     # skip cases where the bot is disabled in the web UI
     tenant_id = get_current_tenant_id()
 
-    bot_token_user_id, _ = get_onyx_bot_auth_ids(tenant_id, client.web_client)
+    bot_token_user_id, bot_token_bot_id = get_onyx_bot_auth_ids(
+        tenant_id, client.web_client
+    )
+    logger.info(f"prefilter_requests: {bot_token_user_id=} {bot_token_bot_id=}")
+
     with get_session_with_current_tenant() as db_session:
         slack_bot = fetch_slack_bot(
             db_session=db_session, slack_bot_id=client.slack_bot_id
