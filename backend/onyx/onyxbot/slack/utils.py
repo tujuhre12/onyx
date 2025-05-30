@@ -240,7 +240,8 @@ def respond_in_thread_or_channel(
                 unfurl_media=unfurl,
             )
         except Exception as e:
-            logger.warning(f"Failed to post message: {e} \n blocks: {blocks}")
+            blocks_str = str(blocks)[:1024]  # truncate block logging
+            logger.warning(f"Failed to post message: {e} \n blocks: {blocks_str}")
             logger.warning("Trying again without blocks that have urls")
 
             if not blocks:
@@ -277,7 +278,8 @@ def respond_in_thread_or_channel(
                     unfurl_media=unfurl,
                 )
             except Exception as e:
-                logger.warning(f"Failed to post message: {e} \n blocks: {blocks}")
+                blocks_str = str(blocks)[:1024]  # truncate block logging
+                logger.warning(f"Failed to post message: {e} \n blocks: {blocks_str}")
                 logger.warning("Trying again without blocks that have urls")
 
                 if not blocks:

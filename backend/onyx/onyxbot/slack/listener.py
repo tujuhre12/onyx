@@ -10,7 +10,6 @@ from types import FrameType
 from typing import Any
 from typing import cast
 from typing import Dict
-from typing import Set
 
 import psycopg2.errors
 from prometheus_client import Gauge
@@ -135,7 +134,7 @@ _OFFICIAL_SLACKBOT_USER_ID = "USLACKBOT"
 class SlackbotHandler:
     def __init__(self) -> None:
         logger.info("Initializing SlackbotHandler")
-        self.tenant_ids: Set[str] = set()
+        self.tenant_ids: set[str] = set()
         # The keys for these dictionaries are tuples of (tenant_id, slack_bot_id)
         self.socket_clients: Dict[tuple[str, int], TenantSocketModeClient] = {}
         self.slack_bot_tokens: Dict[tuple[str, int], SlackBotTokens] = {}
@@ -146,6 +145,9 @@ class SlackbotHandler:
         self.running = True
         self.pod_id = self.get_pod_id()
         self._shutdown_event = Event()
+
+        self._lock = threading.Lock()
+
         logger.info(f"Pod ID: {self.pod_id}")
 
         # Set up signal handlers for graceful shutdown
@@ -169,6 +171,7 @@ class SlackbotHandler:
 
         self.acquire_thread.start()
         self.heartbeat_thread.start()
+
         logger.info("Background threads started")
 
     def get_pod_id(self) -> str:
@@ -194,9 +197,17 @@ class SlackbotHandler:
             self._shutdown_event.wait(timeout=TENANT_ACQUISITION_INTERVAL)
 
     def heartbeat_loop(self) -> None:
+        """This heartbeats into redis.
+
+        NOTE(rkuo): this is not thread-safe with acquire_tenants_loop and will
+        occasionally exception. Fix it!
+        """
         while not self._shutdown_event.is_set():
             try:
-                self.send_heartbeats()
+                with self._lock:
+                    tenant_ids = self.tenant_ids.copy()
+
+                SlackbotHandler.send_heartbeats(self.pod_id, tenant_ids)
                 logger.debug(
                     f"Sent heartbeats for {len(self.tenant_ids)} active tenants"
                 )
@@ -254,7 +265,17 @@ class SlackbotHandler:
             if tenant_bot_pair in self.socket_clients:
                 self.socket_clients[tenant_bot_pair].close()
 
-            self.start_socket_client(bot.id, tenant_id, slack_bot_tokens)
+            socket_client = self.start_socket_client(
+                bot.id, tenant_id, slack_bot_tokens
+            )
+            if socket_client:
+                # Ensure tenant is tracked as active
+                self.tenant_ids.add(tenant_id)
+                self.socket_clients[tenant_id, bot.id] = socket_client
+
+                logger.info(
+                    f"Started SocketModeClient: {tenant_id=} {socket_client.bot_name=} {bot.id=}"
+                )
 
     def acquire_tenants(self) -> None:
         """
@@ -427,19 +448,21 @@ class SlackbotHandler:
         if tenant_id in self.tenant_ids:
             self.tenant_ids.remove(tenant_id)
 
-    def send_heartbeats(self) -> None:
+    @staticmethod
+    def send_heartbeats(pod_id: str, tenant_ids: set[str]) -> None:
         current_time = int(time.time())
-        logger.debug(f"Sending heartbeats for {len(self.tenant_ids)} active tenants")
-        for tenant_id in self.tenant_ids:
+        logger.debug(f"Sending heartbeats for {len(tenant_ids)} active tenants")
+        for tenant_id in tenant_ids:
             redis_client = get_redis_client(tenant_id=tenant_id)
-            heartbeat_key = f"{OnyxRedisLocks.SLACK_BOT_HEARTBEAT_PREFIX}:{self.pod_id}"
+            heartbeat_key = f"{OnyxRedisLocks.SLACK_BOT_HEARTBEAT_PREFIX}:{pod_id}"
             redis_client.set(
                 heartbeat_key, current_time, ex=TENANT_HEARTBEAT_EXPIRATION
             )
 
+    @staticmethod
     def start_socket_client(
-        self, slack_bot_id: int, tenant_id: str, slack_bot_tokens: SlackBotTokens
-    ) -> None:
+        slack_bot_id: int, tenant_id: str, slack_bot_tokens: SlackBotTokens
+    ) -> TenantSocketModeClient | None:
         socket_client: TenantSocketModeClient = _get_socket_client(
             slack_bot_tokens, tenant_id, slack_bot_id
         )
@@ -455,18 +478,17 @@ class SlackbotHandler:
                         user_info["user"]["real_name"] or user_info["user"]["name"]
                     )
                     socket_client.bot_name = bot_name
-                    logger.info(
-                        f"Started socket client for Slackbot with name '{bot_name}' (tenant: {tenant_id}, app: {slack_bot_id})"
-                    )
+                    # logger.info(
+                    #     f"Started socket client for Slackbot with name '{bot_name}' (tenant: {tenant_id}, app: {slack_bot_id})"
+                    # )
         except SlackApiError as e:
             # Only error out if we get a not_authed error
             if "not_authed" in str(e):
-                self.tenant_ids.add(tenant_id)
                 logger.error(
                     f"Authentication error: Invalid or expired credentials for tenant: {tenant_id}, app: {slack_bot_id}. "
                     "Error: {e}"
                 )
-                return
+                return socket_client
             # Log other Slack API errors but continue
             logger.error(
                 f"Slack API error fetching bot info: {e} for tenant: {tenant_id}, app: {slack_bot_id}"
@@ -482,16 +504,15 @@ class SlackbotHandler:
         socket_client.socket_mode_request_listeners.append(process_slack_event)  # type: ignore
 
         # Establish a WebSocket connection to the Socket Mode servers
-        logger.info(
-            f"Connecting socket client for tenant: {tenant_id}, app: {slack_bot_id}"
-        )
+        # logger.debug(
+        #     f"Connecting socket client for tenant: {tenant_id}, app: {slack_bot_id}"
+        # )
         socket_client.connect()
-        self.socket_clients[tenant_id, slack_bot_id] = socket_client
-        # Ensure tenant is tracked as active
-        self.tenant_ids.add(tenant_id)
-        logger.info(
-            f"Started SocketModeClient for tenant: {tenant_id}, app: {slack_bot_id}"
-        )
+        # logger.info(
+        #     f"Started SocketModeClient for tenant: {tenant_id}, app: {slack_bot_id}"
+        # )
+
+        return socket_client
 
     def stop_socket_clients(self) -> None:
         logger.info(f"Stopping {len(self.socket_clients)} socket clients")
