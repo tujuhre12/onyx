@@ -893,7 +893,7 @@ def process_message(
     if req.type == "events_api":
         event = cast(dict[str, Any], req.payload["event"])
         event_type = event.get("type")
-        msg = cast(str, event["text"])
+        msg = cast(str, event.get("text", ""))
         logger.info(
             f"process_message start: {tenant_id=} {req.type=} {req.envelope_id=} "
             f"{event_type=} {msg=}"
