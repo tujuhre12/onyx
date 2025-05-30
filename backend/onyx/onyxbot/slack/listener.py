@@ -208,9 +208,7 @@ class SlackbotHandler:
                     tenant_ids = self.tenant_ids.copy()
 
                 SlackbotHandler.send_heartbeats(self.pod_id, tenant_ids)
-                logger.debug(
-                    f"Sent heartbeats for {len(self.tenant_ids)} active tenants"
-                )
+                logger.debug(f"Sent heartbeats for {len(tenant_ids)} active tenants")
             except Exception as e:
                 logger.exception(f"Error in heartbeat loop: {e}")
             self._shutdown_event.wait(timeout=TENANT_HEARTBEAT_INTERVAL)
