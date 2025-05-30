@@ -268,12 +268,13 @@ class SlackbotHandler:
             )
             if socket_client:
                 # Ensure tenant is tracked as active
-                self.tenant_ids.add(tenant_id)
                 self.socket_clients[tenant_id, bot.id] = socket_client
 
                 logger.info(
                     f"Started SocketModeClient: {tenant_id=} {socket_client.bot_name=} {bot.id=}"
                 )
+
+            self.tenant_ids.add(tenant_id)
 
     def acquire_tenants(self) -> None:
         """
@@ -461,6 +462,7 @@ class SlackbotHandler:
     def start_socket_client(
         slack_bot_id: int, tenant_id: str, slack_bot_tokens: SlackBotTokens
     ) -> TenantSocketModeClient | None:
+        """Returns the socket client if this succeeds"""
         socket_client: TenantSocketModeClient = _get_socket_client(
             slack_bot_tokens, tenant_id, slack_bot_id
         )
@@ -482,11 +484,13 @@ class SlackbotHandler:
         except SlackApiError as e:
             # Only error out if we get a not_authed error
             if "not_authed" in str(e):
+                # for some reason we want to add the tenant to the list when this happens?
                 logger.error(
                     f"Authentication error: Invalid or expired credentials for tenant: {tenant_id}, app: {slack_bot_id}. "
                     "Error: {e}"
                 )
-                return socket_client
+                return None
+
             # Log other Slack API errors but continue
             logger.error(
                 f"Slack API error fetching bot info: {e} for tenant: {tenant_id}, app: {slack_bot_id}"
