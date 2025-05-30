@@ -13,6 +13,7 @@ from typing import cast
 from typing import Dict
 from typing import Set
 
+import psycopg2.errors
 from prometheus_client import Gauge
 from prometheus_client import start_http_server
 from redis.lock import Lock
@@ -87,7 +88,7 @@ from onyx.onyxbot.slack.models import SlackMessageInfo
 from onyx.onyxbot.slack.utils import check_message_limit
 from onyx.onyxbot.slack.utils import decompose_action_id
 from onyx.onyxbot.slack.utils import get_channel_name_from_id
-from onyx.onyxbot.slack.utils import get_onyx_bot_slack_bot_id
+from onyx.onyxbot.slack.utils import get_onyx_bot_auth_ids
 from onyx.onyxbot.slack.utils import read_slack_thread
 from onyx.onyxbot.slack.utils import remove_onyx_bot_tag
 from onyx.onyxbot.slack.utils import rephrase_slack_message
@@ -333,6 +334,10 @@ class SlackbotHandler:
                     except KvKeyNotFoundError:
                         # No Slackbot tokens, pass
                         pass
+                    except psycopg2.errors.UndefinedTable:
+                        logger.error(
+                            "Undefined table error in fetch_slack_bots. Tenant schema may need fixing."
+                        )
                     except Exception as e:
                         logger.exception(
                             f"Error fetching Slack bots for tenant {tenant_id}: {e}"
@@ -534,7 +539,9 @@ def prefilter_requests(req: SocketModeRequest, client: TenantSocketModeClient) -
     """True to keep going, False to ignore this Slack request"""
 
     # skip cases where the bot is disabled in the web UI
-    bot_tag_id = get_onyx_bot_slack_bot_id(client.web_client)
+    tenant_id = get_current_tenant_id()
+
+    bot_token_user_id, _ = get_onyx_bot_auth_ids(tenant_id, client.web_client)
     with get_session_with_current_tenant() as db_session:
         slack_bot = fetch_slack_bot(
             db_session=db_session, slack_bot_id=client.slack_bot_id
@@ -581,7 +588,7 @@ def prefilter_requests(req: SocketModeRequest, client: TenantSocketModeClient) -
 
         if (
             msg in _SLACK_GREETINGS_TO_IGNORE
-            or remove_onyx_bot_tag(msg, client=client.web_client)
+            or remove_onyx_bot_tag(tenant_id, msg, client=client.web_client)
             in _SLACK_GREETINGS_TO_IGNORE
         ):
             channel_specific_logger.error(
@@ -600,15 +607,38 @@ def prefilter_requests(req: SocketModeRequest, client: TenantSocketModeClient) -
             )
             return False
 
-        bot_tag_id = get_onyx_bot_slack_bot_id(client.web_client)
+        bot_token_user_id, bot_token_bot_id = get_onyx_bot_auth_ids(
+            tenant_id, client.web_client
+        )
         if event_type == "message":
+            is_onyx_bot_msg = False
+            is_tagged = False
+
+            event_user = event.get("user", "")
+            event_bot_id = event.get("bot_id", "")
+
+            # temporary debugging
+            if tenant_id == "tenant_i-04224818da13bf695":
+                logger.warning(
+                    f"{tenant_id=} "
+                    f"{bot_token_user_id=} "
+                    f"{bot_token_bot_id=} "
+                    f"{event=}"
+                )
+
             is_dm = event.get("channel_type") == "im"
-            is_tagged = bot_tag_id and f"<@{bot_tag_id}>" in msg
-            is_onyx_bot_msg = bot_tag_id and bot_tag_id in event.get("user", "")
+            if bot_token_user_id and f"<@{bot_token_user_id}>" in msg:
+                is_tagged = True
+
+            if bot_token_user_id and bot_token_user_id in event_user:
+                is_onyx_bot_msg = True
+
+            if bot_token_bot_id and bot_token_bot_id in event_bot_id:
+                is_onyx_bot_msg = True
 
             # OnyxBot should never respond to itself
             if is_onyx_bot_msg:
-                logger.info("Ignoring message from OnyxBot")
+                logger.info("Ignoring message from OnyxBot (self-message)")
                 return False
 
             # DMs with the bot don't pick up the @OnyxBot so we have to keep the
@@ -633,7 +663,7 @@ def prefilter_requests(req: SocketModeRequest, client: TenantSocketModeClient) -
                 )
 
             # If OnyxBot is not specifically tagged and the channel is not set to respond to bots, ignore the message
-            if (not bot_tag_id or bot_tag_id not in msg) and (
+            if (not bot_token_user_id or bot_token_user_id not in msg) and (
                 not slack_channel_config
                 or not slack_channel_config.channel_config.get("respond_to_bots")
             ):
@@ -732,15 +762,16 @@ def process_feedback(req: SocketModeRequest, client: TenantSocketModeClient) -> 
 def build_request_details(
     req: SocketModeRequest, client: TenantSocketModeClient
 ) -> SlackMessageInfo:
+    tagged: bool = False
+
+    tenant_id = get_current_tenant_id()
     if req.type == "events_api":
         event = cast(dict[str, Any], req.payload["event"])
         msg = cast(str, event["text"])
         channel = cast(str, event["channel"])
+
         # Check for both app_mention events and messages containing bot tag
-        bot_tag_id = get_onyx_bot_slack_bot_id(client.web_client)
-        tagged = (event.get("type") == "app_mention") or (
-            event.get("type") == "message" and bot_tag_id and f"<@{bot_tag_id}>" in msg
-        )
+        bot_token_user_id, _ = get_onyx_bot_auth_ids(tenant_id, client.web_client)
         message_ts = event.get("ts")
         thread_ts = event.get("thread_ts")
         sender_id = event.get("user") or None
@@ -749,7 +780,7 @@ def build_request_details(
         )
         email = expert_info.email if expert_info else None
 
-        msg = remove_onyx_bot_tag(msg, client=client.web_client)
+        msg = remove_onyx_bot_tag(tenant_id, msg, client=client.web_client)
 
         if DANSWER_BOT_REPHRASE_MESSAGE:
             logger.info(f"Rephrasing Slack message. Original message: {msg}")
@@ -761,12 +792,29 @@ def build_request_details(
         else:
             logger.info(f"Received Slack message: {msg}")
 
+        while True:
+            event_type = event.get("type")
+            if event_type == "app_mention":
+                tagged = True
+                break
+
+            if event_type == "message":
+                if bot_token_user_id:
+                    if f"<@{bot_token_user_id}>" in msg:
+                        tagged = True
+                        break
+
+            break
+
         if tagged:
             logger.debug("User tagged OnyxBot")
 
         if thread_ts != message_ts and thread_ts is not None:
             thread_messages = read_slack_thread(
-                channel=channel, thread=thread_ts, client=client.web_client
+                tenant_id=tenant_id,
+                channel=channel,
+                thread=thread_ts,
+                client=client.web_client,
             )
         else:
             sender_display_name = None
@@ -843,12 +891,24 @@ def process_message(
     notify_no_answer: bool = NOTIFY_SLACKBOT_NO_ANSWER,
 ) -> None:
     tenant_id = get_current_tenant_id()
-    logger.debug(
-        f"Received Slack request of type: '{req.type}' for tenant, {tenant_id}"
-    )
+    if req.type == "events_api":
+        event = cast(dict[str, Any], req.payload["event"])
+        event_type = event.get("type")
+        msg = cast(str, event["text"])
+        logger.info(
+            f"process_message start: {tenant_id=} {req.type=} {req.envelope_id=} "
+            f"{event_type=} {msg=}"
+        )
+    else:
+        logger.info(
+            f"process_message start: {tenant_id=} {req.type=} {req.envelope_id=}"
+        )
 
     # Throw out requests that can't or shouldn't be handled
     if not prefilter_requests(req, client):
+        logger.info(
+            f"process_message prefiltered: {tenant_id=} {req.type=} {req.envelope_id=}"
+        )
         return
 
     details = build_request_details(req, client)
@@ -890,6 +950,10 @@ def process_message(
             # Skipping answering due to pre-filtering is not considered a failure
             if notify_no_answer:
                 apologize_for_fail(details, client)
+
+    logger.info(
+        f"process_message finished: success={not failed} {tenant_id=} {req.type=} {req.envelope_id=}"
+    )
 
 
 def acknowledge_message(req: SocketModeRequest, client: TenantSocketModeClient) -> None:
