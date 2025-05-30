@@ -437,8 +437,9 @@ class SlackbotHandler:
         Helper to remove a tenant from `self.tenant_ids` and close any socket clients.
         (Lock release now happens in `acquire_tenants()`, not here.)
         """
+        socket_client_list = list(self.socket_clients.items())
         # Close all socket clients for this tenant
-        for (t_id, slack_bot_id), client in list(self.socket_clients.items()):
+        for (t_id, slack_bot_id), client in socket_client_list:
             if t_id == tenant_id:
                 client.close()
                 del self.socket_clients[(t_id, slack_bot_id)]
@@ -490,8 +491,9 @@ class SlackbotHandler:
             if "not_authed" in str(e):
                 # for some reason we want to add the tenant to the list when this happens?
                 logger.error(
-                    f"Authentication error: Invalid or expired credentials for tenant: {tenant_id}, app: {slack_bot_id}. "
-                    "Error: {e}"
+                    f"Authentication error - Invalid or expired credentials: "
+                    f"{tenant_id=} {slack_bot_id=}. "
+                    f"Error: {e}"
                 )
                 return None
 
