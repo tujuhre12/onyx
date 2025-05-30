@@ -796,19 +796,14 @@ def build_request_details(
         else:
             logger.info(f"Received Slack message: {msg}")
 
-        while True:
-            event_type = event.get("type")
-            if event_type == "app_mention":
-                tagged = True
-                break
+        event_type = event.get("type")
+        if event_type == "app_mention":
+            tagged = True
 
-            if event_type == "message":
-                if bot_token_user_id:
-                    if f"<@{bot_token_user_id}>" in msg:
-                        tagged = True
-                        break
-
-            break
+        if event_type == "message":
+            if bot_token_user_id:
+                if f"<@{bot_token_user_id}>" in msg:
+                    tagged = True
 
         if tagged:
             logger.debug("User tagged OnyxBot")
