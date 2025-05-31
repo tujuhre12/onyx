@@ -423,12 +423,11 @@ def get_session_with_tenant(*, tenant_id: str) -> Generator[Session, None, None]
         dbapi_connection = connection.connection
         cursor = dbapi_connection.cursor()
         try:
+            # NOTE: don't use `text()` here since we're using the cursor directly
             cursor.execute(f'SET search_path = "{tenant_id}"')
             if POSTGRES_IDLE_SESSIONS_TIMEOUT:
                 cursor.execute(
-                    text(
-                        f"SET SESSION idle_in_transaction_session_timeout = {POSTGRES_IDLE_SESSIONS_TIMEOUT}"
-                    )
+                    f"SET SESSION idle_in_transaction_session_timeout = {POSTGRES_IDLE_SESSIONS_TIMEOUT}"
                 )
         except Exception:
             raise RuntimeError(f"search_path not set for {tenant_id}")
@@ -497,7 +496,9 @@ async def get_async_session(
     engine = get_sqlalchemy_async_engine()
 
     async with AsyncSession(engine, expire_on_commit=False) as async_session:
-        # set the search path on sync session as well to be extra safe
+        # IMPORTANT: do NOT remove. The search_path seems to get reset on every `.commit()`
+        # without this. Do not fully understand why atm
+        async_session.info["tenant_id"] = tenant_id
         event.listen(
             async_session.sync_session,
             "after_begin",

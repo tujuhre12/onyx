@@ -9,14 +9,21 @@ from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from datetime import timezone
+from http.client import IncompleteRead
+from http.client import RemoteDisconnected
 from typing import Any
 from typing import cast
+from urllib.error import URLError
 
 from pydantic import BaseModel
+from redis import Redis
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from slack_sdk.http_retry import ConnectionErrorRetryHandler
 from slack_sdk.http_retry import RetryHandler
+from slack_sdk.http_retry.builtin_interval_calculators import (
+    FixedValueRetryIntervalCalculator,
+)
 from typing_extensions import override
 
 from onyx.configs.app_configs import ENABLE_EXPENSIVE_EXPERT_CALLS
@@ -44,10 +51,10 @@ from onyx.connectors.models import EntityFailure
 from onyx.connectors.models import SlimDocument
 from onyx.connectors.models import TextSection
 from onyx.connectors.slack.onyx_retry_handler import OnyxRedisSlackRetryHandler
+from onyx.connectors.slack.onyx_slack_web_client import OnyxSlackWebClient
 from onyx.connectors.slack.utils import expert_info_from_slack_id
 from onyx.connectors.slack.utils import get_message_link
-from onyx.connectors.slack.utils import make_paginated_slack_api_call_w_retries
-from onyx.connectors.slack.utils import make_slack_api_call_w_retries
+from onyx.connectors.slack.utils import make_paginated_slack_api_call
 from onyx.connectors.slack.utils import SlackTextCleaner
 from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
 from onyx.redis.redis_pool import get_redis_client
@@ -77,7 +84,7 @@ def _collect_paginated_channels(
     channel_types: list[str],
 ) -> list[ChannelType]:
     channels: list[dict[str, Any]] = []
-    for result in make_paginated_slack_api_call_w_retries(
+    for result in make_paginated_slack_api_call(
         client.conversations_list,
         exclude_archived=exclude_archived,
         # also get private channels the bot is added to
@@ -134,14 +141,13 @@ def get_channel_messages(
     """Get all messages in a channel"""
     # join so that the bot can access messages
     if not channel["is_member"]:
-        make_slack_api_call_w_retries(
-            client.conversations_join,
+        client.conversations_join(
             channel=channel["id"],
             is_private=channel["is_private"],
         )
         logger.info(f"Successfully joined '{channel['name']}'")
 
-    for result in make_paginated_slack_api_call_w_retries(
+    for result in make_paginated_slack_api_call(
         client.conversations_history,
         channel=channel["id"],
         oldest=oldest,
@@ -158,7 +164,7 @@ def get_channel_messages(
 def get_thread(client: WebClient, channel_id: str, thread_id: str) -> ThreadType:
     """Get all messages in a thread"""
     threads: list[MessageType] = []
-    for result in make_paginated_slack_api_call_w_retries(
+    for result in make_paginated_slack_api_call(
         client.conversations_replies, channel=channel_id, ts=thread_id
     ):
         threads.extend(result["messages"])
@@ -316,8 +322,7 @@ def _get_channel_by_id(client: WebClient, channel_id: str) -> ChannelType:
     Raises:
         SlackApiError: If the channel cannot be fetched
     """
-    response = make_slack_api_call_w_retries(
-        client.conversations_info,
+    response = client.conversations_info(
         channel=channel_id,
     )
     return cast(ChannelType, response["channel"])
@@ -334,8 +339,7 @@ def _get_messages(
     # have to be in the channel in order to read messages
     if not channel["is_member"]:
         try:
-            make_slack_api_call_w_retries(
-                client.conversations_join,
+            client.conversations_join(
                 channel=channel["id"],
                 is_private=channel["is_private"],
             )
@@ -348,8 +352,7 @@ def _get_messages(
             raise
         logger.info(f"Successfully joined '{channel['name']}'")
 
-    response = make_slack_api_call_w_retries(
-        client.conversations_history,
+    response = client.conversations_history(
         channel=channel["id"],
         oldest=oldest,
         latest=latest,
@@ -378,6 +381,9 @@ def _message_to_doc(
     filtered_thread: ThreadType | None = None
     thread_ts = message.get("thread_ts")
     if thread_ts:
+        # NOTE: if thread_ts is present, there's a thread we need to process
+        # ... otherwise, we can skip it
+
         # skip threads we've already seen, since we've already processed all
         # messages in that thread
         if thread_ts in seen_thread_ts:
@@ -526,6 +532,7 @@ class SlackConnector(
         channel_regex_enabled: bool = False,
         batch_size: int = INDEX_BATCH_SIZE,
         num_threads: int = SLACK_NUM_THREADS,
+        use_redis: bool = True,
     ) -> None:
         self.channels = channels
         self.channel_regex_enabled = channel_regex_enabled
@@ -538,8 +545,60 @@ class SlackConnector(
         self.user_cache: dict[str, BasicExpertInfo | None] = {}
         self.credentials_provider: CredentialsProviderInterface | None = None
         self.credential_prefix: str | None = None
-        self.delay_lock: str | None = None  # the redis key for the shared lock
-        self.delay_key: str | None = None  # the redis key for the shared delay
+        self.use_redis: bool = use_redis
+        # self.delay_lock: str | None = None  # the redis key for the shared lock
+        # self.delay_key: str | None = None  # the redis key for the shared delay
+
+    @staticmethod
+    def make_credential_prefix(key: str) -> str:
+        return f"connector:slack:credential_{key}"
+
+    @staticmethod
+    def make_delay_lock(prefix: str) -> str:
+        return f"{prefix}:delay_lock"
+
+    @staticmethod
+    def make_delay_key(prefix: str) -> str:
+        return f"{prefix}:delay"
+
+    @staticmethod
+    def make_slack_web_client(
+        prefix: str, token: str, max_retry_count: int, r: Redis
+    ) -> WebClient:
+        delay_lock = SlackConnector.make_delay_lock(prefix)
+        delay_key = SlackConnector.make_delay_key(prefix)
+
+        # NOTE: slack has a built in RateLimitErrorRetryHandler, but it isn't designed
+        # for concurrent workers. We've extended it with OnyxRedisSlackRetryHandler.
+        connection_error_retry_handler = ConnectionErrorRetryHandler(
+            max_retry_count=max_retry_count,
+            interval_calculator=FixedValueRetryIntervalCalculator(),
+            error_types=[
+                URLError,
+                ConnectionResetError,
+                RemoteDisconnected,
+                IncompleteRead,
+            ],
+        )
+
+        onyx_rate_limit_error_retry_handler = OnyxRedisSlackRetryHandler(
+            max_retry_count=max_retry_count,
+            delay_key=delay_key,
+            r=r,
+        )
+        custom_retry_handlers: list[RetryHandler] = [
+            connection_error_retry_handler,
+            onyx_rate_limit_error_retry_handler,
+        ]
+
+        client = OnyxSlackWebClient(
+            delay_lock=delay_lock,
+            delay_key=delay_key,
+            r=r,
+            token=token,
+            retry_handlers=custom_retry_handlers,
+        )
+        return client
 
     @property
     def channels(self) -> list[str] | None:
@@ -559,30 +618,36 @@ class SlackConnector(
     ) -> None:
         credentials = credentials_provider.get_credentials()
         tenant_id = credentials_provider.get_tenant_id()
-        self.redis = get_redis_client(tenant_id=tenant_id)
-
-        self.credential_prefix = (
-            f"connector:slack:credential_{credentials_provider.get_provider_key()}"
-        )
-        self.delay_lock = f"{self.credential_prefix}:delay_lock"
-        self.delay_key = f"{self.credential_prefix}:delay"
-
-        # NOTE: slack has a built in RateLimitErrorRetryHandler, but it isn't designed
-        # for concurrent workers. We've extended it with OnyxRedisSlackRetryHandler.
-        connection_error_retry_handler = ConnectionErrorRetryHandler()
-        onyx_rate_limit_error_retry_handler = OnyxRedisSlackRetryHandler(
-            max_retry_count=self.MAX_RETRIES,
-            delay_lock=self.delay_lock,
-            delay_key=self.delay_key,
-            r=self.redis,
-        )
-        custom_retry_handlers: list[RetryHandler] = [
-            connection_error_retry_handler,
-            onyx_rate_limit_error_retry_handler,
-        ]
+        if not tenant_id:
+            raise ValueError("tenant_id cannot be None!")
 
         bot_token = credentials["slack_bot_token"]
-        self.client = WebClient(token=bot_token, retry_handlers=custom_retry_handlers)
+
+        if self.use_redis:
+            self.redis = get_redis_client(tenant_id=tenant_id)
+            self.credential_prefix = SlackConnector.make_credential_prefix(
+                credentials_provider.get_provider_key()
+            )
+
+            self.client = SlackConnector.make_slack_web_client(
+                self.credential_prefix, bot_token, self.MAX_RETRIES, self.redis
+            )
+        else:
+            connection_error_retry_handler = ConnectionErrorRetryHandler(
+                max_retry_count=self.MAX_RETRIES,
+                interval_calculator=FixedValueRetryIntervalCalculator(),
+                error_types=[
+                    URLError,
+                    ConnectionResetError,
+                    RemoteDisconnected,
+                    IncompleteRead,
+                ],
+            )
+
+            self.client = WebClient(
+                token=bot_token, retry_handlers=[connection_error_retry_handler]
+            )
+
         # use for requests that must return quickly (e.g. realtime flows where user is waiting)
         self.fast_client = WebClient(
             token=bot_token, timeout=SlackConnector.FAST_TIMEOUT
@@ -624,6 +689,8 @@ class SlackConnector(
             Step 2.4: If there are no more messages in the channel, switch the current
                       channel to the next channel.
         """
+        num_channels_remaining = 0
+
         if self.client is None or self.text_cleaner is None:
             raise ConnectorMissingCredentialError("Slack")
 
@@ -637,7 +704,9 @@ class SlackConnector(
                 raw_channels, self.channels, self.channel_regex_enabled
             )
             logger.info(
-                f"Channels: all={len(raw_channels)} post_filtering={len(filtered_channels)}"
+                f"Channels - initial checkpoint: "
+                f"all={len(raw_channels)} "
+                f"post_filtering={len(filtered_channels)}"
             )
 
             checkpoint.channel_ids = [c["id"] for c in filtered_channels]
@@ -650,6 +719,17 @@ class SlackConnector(
             return checkpoint
 
         final_channel_ids = checkpoint.channel_ids
+        for channel_id in final_channel_ids:
+            if channel_id not in checkpoint.channel_completion_map:
+                num_channels_remaining += 1
+
+        logger.info(
+            f"Channels - current status: "
+            f"processed={len(final_channel_ids) - num_channels_remaining} "
+            f"remaining={num_channels_remaining=} "
+            f"total={len(final_channel_ids)}"
+        )
+
         channel = checkpoint.current_channel
         if channel is None:
             raise ValueError("current_channel key not set in checkpoint")
@@ -661,18 +741,32 @@ class SlackConnector(
         oldest = str(start) if start else None
         latest = checkpoint.channel_completion_map.get(channel_id, str(end))
         seen_thread_ts = set(checkpoint.seen_thread_ts)
+
+        logger.debug(
+            f"Getting messages for channel {channel} within range {oldest} - {latest}"
+        )
+
         try:
-            logger.debug(
-                f"Getting messages for channel {channel} within range {oldest} - {latest}"
-            )
             message_batch, has_more_in_channel = _get_messages(
                 channel, self.client, oldest, latest
             )
+
+            logger.info(
+                f"Retrieved messages: "
+                f"{len(message_batch)=} "
+                f"{channel=} "
+                f"{oldest=} "
+                f"{latest=}"
+            )
+
             new_latest = message_batch[-1]["ts"] if message_batch else latest
 
             num_threads_start = len(seen_thread_ts)
             # Process messages in parallel using ThreadPoolExecutor
             with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
+                # NOTE(rkuo): this seems to be assuming the slack sdk is thread safe.
+                # That's a very bold assumption! Likely not correct.
+
                 futures: list[Future[ProcessedSlackMessage]] = []
                 for message in message_batch:
                     # Capture the current context so that the thread gets the current tenant ID
@@ -709,7 +803,12 @@ class SlackConnector(
                         yield failure
 
             num_threads_processed = len(seen_thread_ts) - num_threads_start
-            logger.info(f"Processed {num_threads_processed} threads.")
+            logger.info(
+                f"Message processing stats: "
+                f"batch_len={len(message_batch)} "
+                f"batch_yielded={num_threads_processed} "
+                f"total_threads_seen={len(seen_thread_ts)}"
+            )
 
             checkpoint.seen_thread_ts = list(seen_thread_ts)
             checkpoint.channel_completion_map[channel["id"]] = new_latest
@@ -724,6 +823,7 @@ class SlackConnector(
                     ),
                     None,
                 )
+
                 if new_channel_id:
                     new_channel = _get_channel_by_id(self.client, new_channel_id)
                     checkpoint.current_channel = new_channel
@@ -731,8 +831,6 @@ class SlackConnector(
                     checkpoint.current_channel = None
 
             checkpoint.has_more = checkpoint.current_channel is not None
-            return checkpoint
-
         except Exception as e:
             logger.exception(f"Error processing channel {channel['name']}")
             yield ConnectorFailure(
@@ -746,7 +844,8 @@ class SlackConnector(
                 failure_message=str(e),
                 exception=e,
             )
-            return checkpoint
+
+        return checkpoint
 
     def validate_connector_settings(self) -> None:
         """
