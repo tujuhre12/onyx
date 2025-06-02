@@ -16,7 +16,6 @@ import { HealthCheckBanner } from "@/components/health/healthcheck";
 import {
   getCitedDocumentsFromMessage,
   getHumanAndAIMessageFromMessageNumber,
-  handleChatFeedback,
   personaIncludesRetrieval,
   useScrollonStream,
 } from "../services/lib";
@@ -103,6 +102,10 @@ import {
   useCurrentMessageTree,
   useCurrentMessageHistory,
   useHasPerformedInitialScroll,
+  useDocumentSidebarVisible,
+  useSelectedMessageForDocDisplay,
+  useChatSessionSharedStatus,
+  useHasSentLocalUserMessage,
 } from "../stores/useChatSessionStore";
 
 export enum UploadIntent {
@@ -115,15 +118,11 @@ export function ChatPage({
   documentSidebarInitialWidth,
   sidebarVisible,
   firstMessage,
-  initialFolders,
-  initialFiles,
 }: {
   toggle: (toggled?: boolean) => void;
   documentSidebarInitialWidth?: number;
   sidebarVisible: boolean;
   firstMessage?: string;
-  initialFolders?: any;
-  initialFiles?: any;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -145,7 +144,6 @@ export function ChatPage({
     selectedFolders,
     addSelectedFolder,
     clearSelectedItems,
-    setSelectedFiles,
     folders: userFolders,
     files: allUserFiles,
     currentMessageFiles,
@@ -162,7 +160,6 @@ export function ChatPage({
   const enterpriseSettings = settings?.enterpriseSettings;
 
   const [toggleDocSelection, setToggleDocSelection] = useState(false);
-  const [documentSidebarVisible, setDocumentSidebarVisible] = useState(false);
   const [proSearchEnabled, setProSearchEnabled] = useState(proSearchToggled);
   const toggleProSearch = () => {
     Cookies.set(
@@ -192,16 +189,6 @@ export function ChatPage({
     (chatSession) => chatSession.id === existingChatSessionId
   );
 
-  useEffect(() => {
-    if (user?.is_anonymous_user) {
-      Cookies.set(
-        SIDEBAR_TOGGLED_COOKIE_NAME,
-        String(!sidebarVisible).toLocaleLowerCase()
-      );
-      toggle(false);
-    }
-  }, [user]);
-
   const processSearchParamsAndSubmitMessage = (searchParamsString: string) => {
     const newSearchParams = new URLSearchParams(searchParamsString);
     const message = newSearchParams?.get("user-prompt");
@@ -229,7 +216,7 @@ export function ChatPage({
         selectedFiles,
         selectedFolders,
         currentMessageFiles,
-        useLanggraph: proSearchEnabled,
+        useAgentSearch: proSearchEnabled,
       });
     }
   };
@@ -263,16 +250,6 @@ export function ChatPage({
     const uniqueSources = Array.from(new Set(availableSources));
     return uniqueSources.map((source) => getSourceMetadata(source));
   }, [availableSources]);
-
-  // this is for "@"ing assistants
-
-  // this is used to track which assistant is being used to generate the current message
-  // for example, this would come into play when:
-  // 1. default assistant is `Onyx`
-  // 2. we "@"ed the `GPT` assistant and sent a message
-  // 3. while the `GPT` assistant message is generating, we "@" the `Paraphrase` assistant
-  const [alternativeGeneratingAssistant, setAlternativeGeneratingAssistant] =
-    useState<Persona | null>(null);
 
   const { popup, setPopup } = usePopup();
 
@@ -310,14 +287,6 @@ export function ChatPage({
   const [message, setMessage] = useState(
     searchParams?.get(SEARCH_PARAM_NAMES.USER_PROMPT) || ""
   );
-
-  // for document display
-  // NOTE: -1 is a special designation that means the latest AI message
-  const [selectedMessageForDocDisplay, setSelectedMessageForDocDisplay] =
-    useState<number | null>(null);
-
-  const [chatSessionSharedStatus, setChatSessionSharedStatus] =
-    useState<ChatSessionSharedStatus>(ChatSessionSharedStatus.Private);
 
   const filterManager = useFilters();
   const [isChatSearchModalOpen, setIsChatSearchModalOpen] = useState(false);
@@ -491,7 +460,7 @@ export function ChatPage({
       selectedFiles: [],
       selectedFolders: [],
       currentMessageFiles: [],
-      useLanggraph: proSearchEnabled,
+      useAgentSearch: proSearchEnabled,
     });
   };
 
@@ -514,13 +483,22 @@ export function ChatPage({
   const completeMessageTree = useCurrentMessageTree();
   const messageHistory = useCurrentMessageHistory();
   const hasPerformedInitialScroll = useHasPerformedInitialScroll();
+  const currentSessionHasSentLocalUserMessage = useHasSentLocalUserMessage();
+  const documentSidebarVisible = useDocumentSidebarVisible();
+  const selectedMessageForDocDisplay = useSelectedMessageForDocDisplay();
+  const chatSessionSharedStatus = useChatSessionSharedStatus();
   const updateHasPerformedInitialScroll = useChatSessionStore(
     (state) => state.updateHasPerformedInitialScroll
   );
-  console.log("currentChatState", currentChatState);
-  console.log("completeMessageTree", completeMessageTree);
-  console.log("messageHistory", messageHistory);
-  console.log("hasPerformedInitialScroll", hasPerformedInitialScroll);
+  const updateCurrentDocumentSidebarVisible = useChatSessionStore(
+    (state) => state.updateCurrentDocumentSidebarVisible
+  );
+  const updateCurrentSelectedMessageForDocDisplay = useChatSessionStore(
+    (state) => state.updateCurrentSelectedMessageForDocDisplay
+  );
+  const updateCurrentChatSessionSharedStatus = useChatSessionStore(
+    (state) => state.updateCurrentChatSessionSharedStatus
+  );
 
   const { onSubmit, stopGenerating, handleMessageSpecificFileUpload } =
     useChatController({
@@ -535,18 +513,16 @@ export function ChatPage({
       clientScrollToBottom,
       resetInputBar,
       setSelectedAssistantFromId,
-      setSelectedMessageForDocDisplay,
+      setSelectedMessageForDocDisplay:
+        updateCurrentSelectedMessageForDocDisplay,
     });
 
-  // Call useChatSessionController after useChatController
   const { onMessageSelection } = useChatSessionController({
     existingChatSessionId,
     searchParams,
     filterManager,
     firstMessage,
     setSelectedAssistantFromId,
-    setChatSessionSharedStatus,
-    setSelectedMessageForDocDisplay,
     setSelectedDocuments,
     setCurrentMessageFiles,
     chatSessionIdRef,
@@ -575,22 +551,9 @@ export function ChatPage({
     enableAutoScroll: autoScrollEnabled,
   });
 
-  // Track whether a message has been sent during this page load, keyed by chat session id
-  const [sessionHasSentLocalUserMessage, setSessionHasSentLocalUserMessage] =
-    useState<Map<string | null, boolean>>(new Map());
-
-  const currentSessionHasSentLocalUserMessage = useMemo(
-    () => (sessionId: string | null) => {
-      return sessionHasSentLocalUserMessage.size === 0
-        ? undefined
-        : sessionHasSentLocalUserMessage.get(sessionId) || false;
-    },
-    [sessionHasSentLocalUserMessage]
-  );
-
   const getContainerHeight = useMemo(() => {
     return () => {
-      if (!currentSessionHasSentLocalUserMessage(chatSessionId)) {
+      if (!currentSessionHasSentLocalUserMessage) {
         return undefined;
       }
       if (autoScrollEnabled) return undefined;
@@ -607,34 +570,6 @@ export function ChatPage({
     clearSelectedItems();
     // TODO: move this into useChatController
     // setLoadingError(null);
-  };
-
-  const onFeedback = async (
-    messageId: number,
-    feedbackType: FeedbackType,
-    feedbackDetails: string,
-    predefinedFeedback: string | undefined
-  ) => {
-    const response = await handleChatFeedback(
-      messageId,
-      feedbackType,
-      feedbackDetails,
-      predefinedFeedback
-    );
-
-    if (response.ok) {
-      setPopup({
-        message: "Thanks for your feedback!",
-        type: "success",
-      });
-    } else {
-      const responseJson = await response.json();
-      const errorMsg = responseJson.detail || responseJson.message;
-      setPopup({
-        message: `Failed to submit feedback - ${errorMsg}`,
-        type: "error",
-      });
-    }
   };
 
   // Used to maintain a "time out" for history sidebar so our existing refs can have time to process change
@@ -655,10 +590,7 @@ export function ChatPage({
     Cookies.set(
       SIDEBAR_TOGGLED_COOKIE_NAME,
       String(!sidebarVisible).toLocaleLowerCase()
-    ),
-      {
-        path: "/",
-      };
+    );
 
     toggle();
   };
@@ -682,34 +614,7 @@ export function ChatPage({
 
   useSendMessageToParent();
 
-  useEffect(() => {
-    if (liveAssistant) {
-      const hasSearchTool = liveAssistant.tools.some(
-        (tool) =>
-          tool.in_code_tool_id === SEARCH_TOOL_ID &&
-          liveAssistant.user_file_ids?.length == 0 &&
-          liveAssistant.user_folder_ids?.length == 0
-      );
-      setRetrievalEnabled(hasSearchTool);
-      if (!hasSearchTool) {
-        filterManager.clearFilters();
-      }
-    }
-  }, [liveAssistant]);
-
-  useEffect(() => {
-    if (
-      (!personaIncludesRetrieval &&
-        (!selectedDocuments || selectedDocuments.length === 0) &&
-        documentSidebarVisible) ||
-      chatSessionId == undefined
-    ) {
-      setDocumentSidebarVisible(false);
-    }
-    clientScrollToBottom();
-  }, [chatSessionId]);
-
-  const [retrievalEnabled, setRetrievalEnabled] = useState(() => {
+  const retrievalEnabled = useMemo(() => {
     if (liveAssistant) {
       return liveAssistant.tools.some(
         (tool) =>
@@ -719,13 +624,19 @@ export function ChatPage({
       );
     }
     return false;
-  });
+  }, [liveAssistant]);
 
   useEffect(() => {
-    if (!retrievalEnabled) {
-      setDocumentSidebarVisible(false);
+    if (
+      (!personaIncludesRetrieval &&
+        (!selectedDocuments || selectedDocuments.length === 0) &&
+        documentSidebarVisible) ||
+      chatSessionId == undefined
+    ) {
+      updateCurrentDocumentSidebarVisible(false);
     }
-  }, [retrievalEnabled]);
+    clientScrollToBottom();
+  }, [chatSessionId]);
 
   useEffect(() => {
     if (
@@ -746,8 +657,6 @@ export function ChatPage({
 
   const innerSidebarElementRef = useRef<HTMLDivElement>(null);
   const [settingsToggled, setSettingsToggled] = useState(false);
-
-  const currentPersona = alternativeAssistant || liveAssistant;
 
   const HORIZON_DISTANCE = 800;
   const handleScroll = useCallback(() => {
@@ -783,21 +692,18 @@ export function ChatPage({
       selectedFiles: selectedFiles,
       selectedFolders: selectedFolders,
       currentMessageFiles: currentMessageFiles,
-      useLanggraph: proSearchEnabled,
+      useAgentSearch: proSearchEnabled,
       messageIdToResend: lastUserMsg.messageId,
     });
   };
 
-  const showShareModal = (chatSession: ChatSession) => {
-    setSharedChatSession(chatSession);
-  };
   const [showAssistantsModal, setShowAssistantsModal] = useState(false);
 
   const toggleDocumentSidebar = () => {
     if (!documentSidebarVisible) {
-      setDocumentSidebarVisible(true);
+      updateCurrentDocumentSidebarVisible(true);
     } else {
-      setDocumentSidebarVisible(false);
+      updateCurrentDocumentSidebarVisible(false);
     }
   };
 
@@ -815,7 +721,7 @@ export function ChatPage({
         selectedFiles: selectedFiles,
         selectedFolders: selectedFolders,
         currentMessageFiles: currentMessageFiles,
-        useLanggraph: proSearchEnabled,
+        useAgentSearch: proSearchEnabled,
         modelOverride,
         messageIdToResend: regenerationRequest.parentMessage.messageId,
         regenerationRequest,
@@ -875,16 +781,9 @@ export function ChatPage({
       {currentFeedback && (
         <FeedbackModal
           feedbackType={currentFeedback[0]}
+          messageId={currentFeedback[1]}
           onClose={() => setCurrentFeedback(null)}
-          onSubmit={({ message, predefinedFeedback }) => {
-            onFeedback(
-              currentFeedback[1],
-              currentFeedback[0],
-              message,
-              predefinedFeedback
-            );
-            setCurrentFeedback(null);
-          }}
+          setPopup={setPopup}
         />
       )}
 
@@ -922,7 +821,7 @@ export function ChatPage({
         <div className="md:hidden">
           <Modal
             hideDividerForTitle
-            onOutsideClick={() => setDocumentSidebarVisible(false)}
+            onOutsideClick={() => updateCurrentDocumentSidebarVisible(false)}
             title="Sources"
           >
             <DocumentResults
@@ -938,9 +837,7 @@ export function ChatPage({
               setPresentingDocument={setPresentingDocument}
               modal={true}
               ref={innerSidebarElementRef}
-              closeSidebar={() => {
-                setDocumentSidebarVisible(false);
-              }}
+              closeSidebar={() => updateCurrentDocumentSidebarVisible(false)}
               selectedMessage={aiMessage ?? null}
               selectedDocuments={selectedDocuments}
               toggleDocumentSelection={toggleDocumentSelection}
@@ -979,7 +876,7 @@ export function ChatPage({
           existingSharedStatus={sharedChatSession.shared_status}
           onClose={() => setSharedChatSession(null)}
           onShare={(shared) =>
-            setChatSessionSharedStatus(
+            updateCurrentChatSessionSharedStatus(
               shared
                 ? ChatSessionSharedStatus.Public
                 : ChatSessionSharedStatus.Private
@@ -1042,7 +939,7 @@ export function ChatPage({
                   currentChatSession={selectedChatSession}
                   folders={folders}
                   removeToggle={removeToggle}
-                  showShareModal={showShareModal}
+                  showShareModal={setSharedChatSession}
                 />
               </div>
 
@@ -1104,7 +1001,10 @@ export function ChatPage({
               modal={false}
               ref={innerSidebarElementRef}
               closeSidebar={() =>
-                setTimeout(() => setDocumentSidebarVisible(false), 300)
+                setTimeout(
+                  () => updateCurrentDocumentSidebarVisible(false),
+                  300
+                )
               }
               selectedMessage={aiMessage ?? null}
               selectedDocuments={selectedDocuments}
@@ -1222,7 +1122,7 @@ export function ChatPage({
                                       selectedFiles: selectedFiles,
                                       selectedFolders: selectedFolders,
                                       currentMessageFiles: currentMessageFiles,
-                                      useLanggraph: proSearchEnabled,
+                                      useAgentSearch: proSearchEnabled,
                                     })
                                   }
                                 />
@@ -1299,7 +1199,7 @@ export function ChatPage({
                                           selectedFiles: [],
                                           selectedFolders: [],
                                           currentMessageFiles: [],
-                                          useLanggraph: proSearchEnabled,
+                                          useAgentSearch: proSearchEnabled,
                                         });
                                       }}
                                       otherMessagesCanSwitchTo={
@@ -1428,11 +1328,11 @@ export function ChatPage({
                                           agentic: boolean
                                         ) => {
                                           if (agentic) {
-                                            setSelectedMessageForDocDisplay(
+                                            updateCurrentSelectedMessageForDocDisplay(
                                               message.messageId
                                             );
                                           } else {
-                                            setSelectedMessageForDocDisplay(
+                                            updateCurrentSelectedMessageForDocDisplay(
                                               secondLevelMessage
                                                 ? secondLevelMessage.messageId
                                                 : null
@@ -1494,7 +1394,7 @@ export function ChatPage({
                                             toggleDocumentSidebar();
                                           }
 
-                                          setSelectedMessageForDocDisplay(
+                                          updateCurrentSelectedMessageForDocDisplay(
                                             second
                                               ? secondLevelMessage?.messageId ||
                                                   null
@@ -1577,7 +1477,7 @@ export function ChatPage({
                                             toggleDocumentSidebar();
                                           }
 
-                                          setSelectedMessageForDocDisplay(
+                                          updateCurrentSelectedMessageForDocDisplay(
                                             message.messageId
                                           );
                                         }}
@@ -1643,7 +1543,7 @@ export function ChatPage({
                                                   selectedFiles: [],
                                                   selectedFolders: [],
                                                   currentMessageFiles: [],
-                                                  useLanggraph: false,
+                                                  useAgentSearch: false,
 
                                                   messageIdToResend:
                                                     previousMessage.messageId,
@@ -1690,6 +1590,7 @@ export function ChatPage({
                                       setPresentingDocument={
                                         setPresentingDocument
                                       }
+                                      key={-2}
                                       currentPersona={liveAssistant}
                                       messageId={message.messageId}
                                       content={
@@ -1733,10 +1634,7 @@ export function ChatPage({
                                   setPresentingDocument={setPresentingDocument}
                                   key={-3}
                                   currentPersona={liveAssistant}
-                                  alternativeAssistant={
-                                    alternativeGeneratingAssistant ??
-                                    alternativeAssistant
-                                  }
+                                  alternativeAssistant={null}
                                   messageId={null}
                                   content={
                                     <div
@@ -1827,7 +1725,7 @@ export function ChatPage({
                                   selectedFiles: selectedFiles,
                                   selectedFolders: selectedFolders,
                                   currentMessageFiles: currentMessageFiles,
-                                  useLanggraph: proSearchToggled,
+                                  useAgentSearch: proSearchEnabled,
                                 });
                               }}
                               chatState={currentChatState}

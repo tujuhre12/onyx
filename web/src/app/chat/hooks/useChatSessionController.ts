@@ -30,8 +30,6 @@ interface UseChatSessionControllerProps {
 
   // UI state setters
   setSelectedAssistantFromId: (assistantId: number | null) => void;
-  setChatSessionSharedStatus: (status: ChatSessionSharedStatus) => void;
-  setSelectedMessageForDocDisplay: (messageId: number | null) => void;
   setSelectedDocuments: (documents: OnyxDocument[]) => void;
   setCurrentMessageFiles: (
     files: FileDescriptor[] | ((prev: FileDescriptor[]) => FileDescriptor[])
@@ -57,7 +55,7 @@ interface UseChatSessionControllerProps {
     selectedFiles: FileResponse[];
     selectedFolders: FolderResponse[];
     currentMessageFiles: FileDescriptor[];
-    useLanggraph: boolean;
+    useAgentSearch: boolean;
     isSeededChat?: boolean;
   }) => Promise<void>;
 }
@@ -68,8 +66,6 @@ export function useChatSessionController({
   filterManager,
   firstMessage,
   setSelectedAssistantFromId,
-  setChatSessionSharedStatus,
-  setSelectedMessageForDocDisplay,
   setSelectedDocuments,
   setCurrentMessageFiles,
   chatSessionIdRef,
@@ -101,6 +97,12 @@ export function useChatSessionController({
   );
   const updateHasPerformedInitialScroll = useChatSessionStore(
     (state) => state.updateHasPerformedInitialScroll
+  );
+  const updateCurrentChatSessionSharedStatus = useChatSessionStore(
+    (state) => state.updateCurrentChatSessionSharedStatus
+  );
+  const updateCurrentSelectedMessageForDocDisplay = useChatSessionStore(
+    (state) => state.updateCurrentSelectedMessageForDocDisplay
   );
   const currentChatState = useChatSessionStore(
     (state) =>
@@ -147,7 +149,7 @@ export function useChatSessionController({
 
         // Reset the selected assistant back to default
         setSelectedAssistantFromId(null);
-        setChatSessionSharedStatus(ChatSessionSharedStatus.Private);
+        updateCurrentChatSessionSharedStatus(ChatSessionSharedStatus.Private);
 
         // If we're supposed to submit on initial load, then do that here
         if (
@@ -160,7 +162,7 @@ export function useChatSessionController({
             selectedFiles: [],
             selectedFolders: [],
             currentMessageFiles: [],
-            useLanggraph: false,
+            useAgentSearch: false,
           });
         }
         return;
@@ -196,7 +198,7 @@ export function useChatSessionController({
         const latestMessageId =
           newMessageHistory[newMessageHistory.length - 1]?.messageId;
 
-        setSelectedMessageForDocDisplay(
+        updateCurrentSelectedMessageForDocDisplay(
           latestMessageId !== undefined && latestMessageId !== null
             ? latestMessageId
             : null
@@ -231,7 +233,7 @@ export function useChatSessionController({
         clientScrollToBottom(true);
       }
 
-      setIsFetchingChatMessages(false);
+      setIsFetchingChatMessages(chatSession.chat_session_id, false);
 
       // If this is a seeded chat, then kick off the AI message generation
       if (
@@ -252,7 +254,7 @@ export function useChatSessionController({
           selectedFiles: [],
           selectedFolders: [],
           currentMessageFiles: [],
-          useLanggraph: false,
+          useAgentSearch: false,
         });
         // Force re-name if the chat session doesn't have one
         if (!chatSession.description) {
@@ -274,7 +276,7 @@ export function useChatSessionController({
   ]);
 
   const onMessageSelection = (messageId: number) => {
-    setSelectedMessageForDocDisplay(messageId);
+    updateCurrentSelectedMessageForDocDisplay(messageId);
     const currentMessageTree = useChatSessionStore
       .getState()
       .sessions.get(

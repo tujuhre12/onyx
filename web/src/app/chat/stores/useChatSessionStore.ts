@@ -24,6 +24,15 @@ interface ChatSessionData {
   selectedMessageForDocDisplay: number | null;
   abortController: AbortController;
   hasPerformedInitialScroll: boolean;
+  documentSidebarVisible: boolean;
+  hasSentLocalUserMessage: boolean;
+
+  // Session-specific state (previously global)
+  isFetchingChatMessages: boolean;
+  agenticGenerating: boolean;
+  uncaughtError: string | null;
+  loadingError: string | null;
+  isReady: boolean;
 
   // Session metadata
   lastAccessed: Date;
@@ -32,15 +41,7 @@ interface ChatSessionData {
   personaId?: number;
 }
 
-interface GlobalChatState {
-  isFetchingChatMessages: boolean;
-  agenticGenerating: boolean;
-  uncaughtError: string | null;
-  loadingError: string | null;
-  isReady: boolean;
-}
-
-interface ChatSessionStore extends GlobalChatState {
+interface ChatSessionStore {
   // Session management
   currentSessionId: string | null;
   sessions: Map<string, ChatSessionData>;
@@ -80,13 +81,41 @@ interface ChatSessionStore extends GlobalChatState {
     sessionId: string,
     hasPerformedInitialScroll: boolean
   ) => void;
+  updateDocumentSidebarVisible: (
+    sessionId: string,
+    documentSidebarVisible: boolean
+  ) => void;
+  updateCurrentDocumentSidebarVisible: (
+    documentSidebarVisible: boolean
+  ) => void;
+  updateHasSentLocalUserMessage: (
+    sessionId: string,
+    hasSentLocalUserMessage: boolean
+  ) => void;
+  updateCurrentHasSentLocalUserMessage: (
+    hasSentLocalUserMessage: boolean
+  ) => void;
 
-  // Actions - Global State
-  setIsFetchingChatMessages: (fetching: boolean) => void;
-  setAgenticGenerating: (generating: boolean) => void;
-  setUncaughtError: (error: string | null) => void;
-  setLoadingError: (error: string | null) => void;
-  setIsReady: (ready: boolean) => void;
+  // Convenience functions that automatically use current session ID
+  updateCurrentSelectedMessageForDocDisplay: (
+    selectedMessageForDocDisplay: number | null
+  ) => void;
+  updateCurrentChatSessionSharedStatus: (
+    chatSessionSharedStatus: ChatSessionSharedStatus
+  ) => void;
+  updateCurrentChatState: (chatState: ChatState) => void;
+  updateCurrentRegenerationState: (
+    regenerationState: RegenerationState | null
+  ) => void;
+  updateCurrentCanContinue: (canContinue: boolean) => void;
+  updateCurrentSubmittedMessage: (submittedMessage: string) => void;
+
+  // Actions - Session-specific State (previously global)
+  setIsFetchingChatMessages: (sessionId: string, fetching: boolean) => void;
+  setAgenticGenerating: (sessionId: string, generating: boolean) => void;
+  setUncaughtError: (sessionId: string, error: string | null) => void;
+  setLoadingError: (sessionId: string, error: string | null) => void;
+  setIsReady: (sessionId: string, ready: boolean) => void;
 
   // Actions - Abort Controllers
   setAbortController: (sessionId: string, controller: AbortController) => void;
@@ -116,6 +145,16 @@ const createInitialSessionData = (
   selectedMessageForDocDisplay: null,
   abortController: new AbortController(),
   hasPerformedInitialScroll: true,
+  documentSidebarVisible: false,
+  hasSentLocalUserMessage: false,
+
+  // Session-specific state defaults
+  isFetchingChatMessages: false,
+  agenticGenerating: false,
+  uncaughtError: null,
+  loadingError: null,
+  isReady: true,
+
   lastAccessed: new Date(),
   isLoaded: false,
   ...initialData,
@@ -125,13 +164,6 @@ export const useChatSessionStore = create<ChatSessionStore>()((set, get) => ({
   // Initial state
   currentSessionId: null,
   sessions: new Map<string, ChatSessionData>(),
-
-  // Global state
-  isFetchingChatMessages: false,
-  agenticGenerating: false,
-  uncaughtError: null,
-  loadingError: null,
-  isReady: false,
 
   // Session Management Actions
   setCurrentSession: (sessionId: string | null) => {
@@ -262,25 +294,114 @@ export const useChatSessionStore = create<ChatSessionStore>()((set, get) => ({
     get().updateSessionData(sessionId, { hasPerformedInitialScroll });
   },
 
-  // Global State Actions
-  setIsFetchingChatMessages: (isFetchingChatMessages: boolean) => {
-    set({ isFetchingChatMessages });
+  updateDocumentSidebarVisible: (
+    sessionId: string,
+    documentSidebarVisible: boolean
+  ) => {
+    get().updateSessionData(sessionId, { documentSidebarVisible });
   },
 
-  setAgenticGenerating: (agenticGenerating: boolean) => {
-    set({ agenticGenerating });
+  updateCurrentDocumentSidebarVisible: (documentSidebarVisible: boolean) => {
+    const { currentSessionId } = get();
+    if (currentSessionId) {
+      get().updateDocumentSidebarVisible(
+        currentSessionId,
+        documentSidebarVisible
+      );
+    }
   },
 
-  setUncaughtError: (uncaughtError: string | null) => {
-    set({ uncaughtError });
+  updateHasSentLocalUserMessage: (
+    sessionId: string,
+    hasSentLocalUserMessage: boolean
+  ) => {
+    get().updateSessionData(sessionId, { hasSentLocalUserMessage });
   },
 
-  setLoadingError: (loadingError: string | null) => {
-    set({ loadingError });
+  updateCurrentHasSentLocalUserMessage: (hasSentLocalUserMessage: boolean) => {
+    const { currentSessionId } = get();
+    if (currentSessionId) {
+      get().updateHasSentLocalUserMessage(
+        currentSessionId,
+        hasSentLocalUserMessage
+      );
+    }
   },
 
-  setIsReady: (isReady: boolean) => {
-    set({ isReady });
+  // Convenience functions that automatically use current session ID
+  updateCurrentSelectedMessageForDocDisplay: (
+    selectedMessageForDocDisplay: number | null
+  ) => {
+    const { currentSessionId } = get();
+    if (currentSessionId) {
+      get().updateSelectedMessageForDocDisplay(
+        currentSessionId,
+        selectedMessageForDocDisplay
+      );
+    }
+  },
+
+  updateCurrentChatSessionSharedStatus: (
+    chatSessionSharedStatus: ChatSessionSharedStatus
+  ) => {
+    const { currentSessionId } = get();
+    if (currentSessionId) {
+      get().updateSessionData(currentSessionId, { chatSessionSharedStatus });
+    }
+  },
+
+  updateCurrentChatState: (chatState: ChatState) => {
+    const { currentSessionId } = get();
+    if (currentSessionId) {
+      get().updateChatState(currentSessionId, chatState);
+    }
+  },
+
+  updateCurrentRegenerationState: (
+    regenerationState: RegenerationState | null
+  ) => {
+    const { currentSessionId } = get();
+    if (currentSessionId) {
+      get().updateRegenerationState(currentSessionId, regenerationState);
+    }
+  },
+
+  updateCurrentCanContinue: (canContinue: boolean) => {
+    const { currentSessionId } = get();
+    if (currentSessionId) {
+      get().updateCanContinue(currentSessionId, canContinue);
+    }
+  },
+
+  updateCurrentSubmittedMessage: (submittedMessage: string) => {
+    const { currentSessionId } = get();
+    if (currentSessionId) {
+      get().updateSubmittedMessage(currentSessionId, submittedMessage);
+    }
+  },
+
+  // Session-specific State Actions (previously global)
+  setIsFetchingChatMessages: (
+    sessionId: string,
+    isFetchingChatMessages: boolean
+  ) => {
+    get().updateSessionData(sessionId, { isFetchingChatMessages });
+  },
+
+  setAgenticGenerating: (sessionId: string, agenticGenerating: boolean) => {
+    get().updateSessionData(sessionId, { agenticGenerating });
+  },
+
+  setUncaughtError: (sessionId: string, uncaughtError: string | null) => {
+    get().updateSessionData(sessionId, { uncaughtError });
+  },
+
+  setLoadingError: (sessionId: string, loadingError: string | null) => {
+    get().updateSessionData(sessionId, { loadingError });
+  },
+
+  setIsReady: (sessionId: string, isReady: boolean) => {
+    get().updateSessionData(sessionId, { isReady });
   },
 
   // Abort Controller Actions
@@ -448,20 +569,51 @@ export const useAbortControllers = () => {
   }, [sessions]);
 };
 
-// Global state hooks
+// Session-specific state hooks (previously global)
 export const useAgenticGenerating = () =>
-  useChatSessionStore((state) => state.agenticGenerating);
+  useChatSessionStore((state) => {
+    const { currentSessionId, sessions } = state;
+    const currentSession = currentSessionId
+      ? sessions.get(currentSessionId)
+      : null;
+    return currentSession?.agenticGenerating || false;
+  });
 
 export const useIsFetching = () =>
-  useChatSessionStore((state) => state.isFetchingChatMessages);
+  useChatSessionStore((state) => {
+    const { currentSessionId, sessions } = state;
+    const currentSession = currentSessionId
+      ? sessions.get(currentSessionId)
+      : null;
+    return currentSession?.isFetchingChatMessages || false;
+  });
 
 export const useUncaughtError = () =>
-  useChatSessionStore((state) => state.uncaughtError);
+  useChatSessionStore((state) => {
+    const { currentSessionId, sessions } = state;
+    const currentSession = currentSessionId
+      ? sessions.get(currentSessionId)
+      : null;
+    return currentSession?.uncaughtError || null;
+  });
 
 export const useLoadingError = () =>
-  useChatSessionStore((state) => state.loadingError);
+  useChatSessionStore((state) => {
+    const { currentSessionId, sessions } = state;
+    const currentSession = currentSessionId
+      ? sessions.get(currentSessionId)
+      : null;
+    return currentSession?.loadingError || null;
+  });
 
-export const useIsReady = () => useChatSessionStore((state) => state.isReady);
+export const useIsReady = () =>
+  useChatSessionStore((state) => {
+    const { currentSessionId, sessions } = state;
+    const currentSession = currentSessionId
+      ? sessions.get(currentSessionId)
+      : null;
+    return currentSession?.isReady ?? true;
+  });
 
 export const useMaxTokens = () =>
   useChatSessionStore((state) => {
@@ -479,4 +631,42 @@ export const useHasPerformedInitialScroll = () =>
       ? sessions.get(currentSessionId)
       : null;
     return currentSession?.hasPerformedInitialScroll || true;
+  });
+
+export const useDocumentSidebarVisible = () =>
+  useChatSessionStore((state) => {
+    const { currentSessionId, sessions } = state;
+    const currentSession = currentSessionId
+      ? sessions.get(currentSessionId)
+      : null;
+    return currentSession?.documentSidebarVisible || false;
+  });
+
+export const useSelectedMessageForDocDisplay = () =>
+  useChatSessionStore((state) => {
+    const { currentSessionId, sessions } = state;
+    const currentSession = currentSessionId
+      ? sessions.get(currentSessionId)
+      : null;
+    return currentSession?.selectedMessageForDocDisplay || null;
+  });
+
+export const useChatSessionSharedStatus = () =>
+  useChatSessionStore((state) => {
+    const { currentSessionId, sessions } = state;
+    const currentSession = currentSessionId
+      ? sessions.get(currentSessionId)
+      : null;
+    return (
+      currentSession?.chatSessionSharedStatus || ChatSessionSharedStatus.Private
+    );
+  });
+
+export const useHasSentLocalUserMessage = () =>
+  useChatSessionStore((state) => {
+    const { currentSessionId, sessions } = state;
+    const currentSession = currentSessionId
+      ? sessions.get(currentSessionId)
+      : null;
+    return currentSession?.hasSentLocalUserMessage || false;
   });

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { FeedbackType } from "@/app/chat/interfaces";
 import { Modal } from "@/components/Modal";
 import { FilledLikeIcon } from "@/components/icons/icons";
+import { handleChatFeedback } from "../../services/lib";
 
 const predefinedPositiveFeedbackOptions = process.env
   .NEXT_PUBLIC_POSITIVE_PREDEFINED_FEEDBACK_OPTIONS
@@ -21,30 +22,60 @@ const predefinedNegativeFeedbackOptions = process.env
 
 interface FeedbackModalProps {
   feedbackType: FeedbackType;
+  messageId: number;
   onClose: () => void;
-  onSubmit: (feedbackDetails: {
-    message: string;
-    predefinedFeedback?: string;
-  }) => void;
+  setPopup: (popup: { message: string; type: "success" | "error" }) => void;
 }
 
 export const FeedbackModal = ({
   feedbackType,
+  messageId,
   onClose,
-  onSubmit,
+  setPopup,
 }: FeedbackModalProps) => {
   const [message, setMessage] = useState("");
   const [predefinedFeedback, setPredefinedFeedback] = useState<
     string | undefined
   >();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handlePredefinedFeedback = (feedback: string) => {
     setPredefinedFeedback(feedback);
   };
 
-  const handleSubmit = () => {
-    onSubmit({ message, predefinedFeedback });
-    onClose();
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+
+    try {
+      const response = await handleChatFeedback(
+        messageId,
+        feedbackType,
+        message,
+        predefinedFeedback
+      );
+
+      if (response.ok) {
+        setPopup({
+          message: "Thanks for your feedback!",
+          type: "success",
+        });
+      } else {
+        const responseJson = await response.json();
+        const errorMsg = responseJson.detail || responseJson.message;
+        setPopup({
+          message: `Failed to submit feedback - ${errorMsg}`,
+          type: "error",
+        });
+      }
+    } catch (error) {
+      setPopup({
+        message: "Failed to submit feedback - network error",
+        type: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
+      onClose();
+    }
   };
 
   const predefinedFeedbackOptions =
@@ -76,8 +107,19 @@ export const FeedbackModal = ({
           {predefinedFeedbackOptions.map((feedback, index) => (
             <button
               key={index}
-              className={`bg-background-dark hover:bg-accent-background-hovered text-default py-2 px-4 rounded m-1 
-                ${predefinedFeedback === feedback && "ring-2 ring-accent/20"}`}
+              disabled={isSubmitting}
+              className={`
+                bg-background-dark 
+                hover:bg-accent-background-hovered 
+                text-default 
+                py-2 
+                px-4 
+                rounded 
+                m-1 
+                disabled:opacity-50 
+                disabled:cursor-not-allowed
+                ${predefinedFeedback === feedback && "ring-2 ring-accent/20"}
+              `}
               onClick={() => handlePredefinedFeedback(feedback)}
             >
               {feedback}
@@ -87,14 +129,27 @@ export const FeedbackModal = ({
 
         <textarea
           autoFocus
+          disabled={isSubmitting}
           className={`
-            w-full flex-grow 
-            border border-border-strong rounded 
-            outline-none placeholder-subtle 
-            pl-4 pr-4 py-4 bg-background 
-            overflow-hidden h-28 
-            whitespace-normal resize-none 
-            break-all overscroll-contain
+            w-full
+            flex-grow
+            border
+            border-border-strong
+            rounded
+            outline-none
+            placeholder-subtle
+            pl-4
+            pr-4
+            py-4
+            bg-background
+            overflow-hidden
+            h-28
+            whitespace-normal
+            resize-none
+            break-all
+            overscroll-contain
+            disabled:opacity-50
+            disabled:cursor-not-allowed
           `}
           role="textarea"
           aria-multiline
@@ -109,10 +164,22 @@ export const FeedbackModal = ({
 
         <div className="flex mt-2">
           <button
-            className="bg-agent text-white py-2 px-4 rounded hover:bg-agent/50 focus:outline-none mx-auto"
+            disabled={isSubmitting}
+            className={`
+              bg-agent 
+              text-white 
+              py-2 
+              px-4 
+              rounded 
+              hover:bg-agent/50 
+              focus:outline-none 
+              mx-auto
+              disabled:opacity-50 
+              disabled:cursor-not-allowed
+            `}
             onClick={handleSubmit}
           >
-            Submit feedback
+            {isSubmitting ? "Submitting..." : "Submit feedback"}
           </button>
         </div>
       </>

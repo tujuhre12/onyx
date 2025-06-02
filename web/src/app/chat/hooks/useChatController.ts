@@ -313,7 +313,7 @@ export function useChatController({
     selectedFiles,
     selectedFolders,
     currentMessageFiles,
-    useLanggraph,
+    useAgentSearch,
     messageIdToResend,
     queryOverride,
     forceSearch,
@@ -329,7 +329,7 @@ export function useChatController({
     selectedFolders: FolderResponse[];
     // from the chat bar???
     currentMessageFiles: FileDescriptor[];
-    useLanggraph: boolean;
+    useAgentSearch: boolean;
 
     // optional params
     messageIdToResend?: number;
@@ -346,8 +346,8 @@ export function useChatController({
     navigatingAway.current = false;
     let frozenSessionId = getCurrentSessionId();
     updateCanContinue(false, frozenSessionId);
-    setUncaughtError(null);
-    setLoadingError(null);
+    setUncaughtError(frozenSessionId, null);
+    setLoadingError(frozenSessionId, null);
 
     // Check if the last message was an error and remove it before proceeding with a new message
     // Ensure this isn't a regeneration or resend, as those operations should preserve the history leading up to the point of regeneration/resend.
@@ -592,7 +592,7 @@ export function useChatController({
         systemPromptOverride:
           searchParams?.get(SEARCH_PARAM_NAMES.SYSTEM_PROMPT) || undefined,
         useExistingUserMessage: isSeededChat,
-        useLanggraph,
+        useAgentSearch,
       });
 
       const delay = (ms: number) => {
@@ -619,7 +619,7 @@ export function useChatController({
               );
               if (Object.hasOwn(packet, "error")) {
                 const error = (packet as StreamingError).error;
-                setLoadingError(error);
+                setLoadingError(frozenSessionId, error);
                 updateChatStateAction(frozenSessionId, "input");
                 return;
               }
@@ -745,7 +745,7 @@ export function useChatController({
                 sub_questions,
                 packet as SubQuestionPiece
               );
-              setAgenticGenerating(true);
+              setAgenticGenerating(frozenSessionId, true);
             } else if (Object.hasOwn(packet, "sub_query")) {
               sub_questions = constructSubQuestions(
                 sub_questions,
@@ -852,9 +852,12 @@ export function useChatController({
                   .filter((q) => q.level === 0)
                   .every((q) => q.is_stopped === true)
               ) {
-                setUncaughtError((packet as StreamingError).error);
+                setUncaughtError(
+                  frozenSessionId,
+                  (packet as StreamingError).error
+                );
                 updateChatStateAction(frozenSessionId, "input");
-                setAgenticGenerating(false);
+                setAgenticGenerating(frozenSessionId, false);
                 // setAlternativeGeneratingAssistant(null);
                 updateSubmittedMessage(getCurrentSessionId(), "");
 
@@ -987,7 +990,7 @@ export function useChatController({
       currentMessageTreeLocal = newMessageDetails.messageTree;
     }
 
-    setAgenticGenerating(false);
+    setAgenticGenerating(frozenSessionId, false);
     resetRegenerationState(frozenSessionId);
 
     updateChatStateAction(frozenSessionId, "input");
@@ -1114,7 +1117,10 @@ export function useChatController({
       if (!slackChatId) return;
 
       // Set isReady to false before starting retrieval to display loading text
-      setIsReady(false);
+      const currentSessionId = getCurrentSessionId();
+      if (currentSessionId) {
+        setIsReady(currentSessionId, false);
+      }
 
       try {
         const response = await fetch("/api/chat/seed-chat-session-from-slack", {
@@ -1215,7 +1221,10 @@ export function useChatController({
   // highlight code blocks and set isReady once that's done
   useEffect(() => {
     Prism.highlightAll();
-    setIsReady(true);
+    const currentSessionId = getCurrentSessionId();
+    if (currentSessionId) {
+      setIsReady(currentSessionId, true);
+    }
   }, []);
 
   return {

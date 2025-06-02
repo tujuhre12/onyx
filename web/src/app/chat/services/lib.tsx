@@ -179,7 +179,7 @@ export interface SendMessageParams {
   signal?: AbortSignal;
   userFileIds?: number[];
   userFolderIds?: number[];
-  useLanggraph?: boolean;
+  useAgentSearch?: boolean;
 }
 
 export async function* sendMessage({
@@ -201,7 +201,7 @@ export async function* sendMessage({
   useExistingUserMessage,
   alternateAssistantId,
   signal,
-  useLanggraph,
+  useAgentSearch,
 }: SendMessageParams): AsyncGenerator<PacketType, void, unknown> {
   const documentsAreSelected =
     selectedDocumentIds && selectedDocumentIds.length > 0;
@@ -241,7 +241,7 @@ export async function* sendMessage({
           }
         : null,
     use_existing_user_message: useExistingUserMessage,
-    use_agentic_search: useLanggraph ?? false,
+    use_agentic_search: useAgentSearch ?? false,
   });
 
   const response = await fetch(`/api/chat/send-message`, {

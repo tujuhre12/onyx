@@ -52,19 +52,6 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
     },
     ref: ForwardedRef<HTMLDivElement>
   ) => {
-    const [delayedSelectedDocumentCount, setDelayedSelectedDocumentCount] =
-      useState(0);
-
-    useEffect(() => {
-      const timer = setTimeout(
-        () => {
-          setDelayedSelectedDocumentCount(selectedDocuments?.length || 0);
-        },
-        selectedDocuments?.length == 0 ? 1000 : 0
-      );
-
-      return () => clearTimeout(timer);
-    }, [selectedDocuments]);
     const { files: allUserFiles } = useDocumentsContext();
 
     const humanFileDescriptors = humanMessage?.files.filter(
@@ -81,7 +68,6 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
 
     const tokenLimitReached = selectedDocumentTokens > maxTokens - 75;
 
-    const hasSelectedDocuments = selectedDocumentIds.length > 0;
     return (
       <>
         <div
