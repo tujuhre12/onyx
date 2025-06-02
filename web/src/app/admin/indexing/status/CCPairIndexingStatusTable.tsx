@@ -520,6 +520,8 @@ export function CCPairIndexingStatusTable({
               latest_index_attempt: null,
               groups: [], // Add this line
               in_repeated_error_state: false,
+              owner: "",
+              in_progress: false,
             }}
             isEditable={false}
           />
