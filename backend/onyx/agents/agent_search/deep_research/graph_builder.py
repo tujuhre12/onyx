@@ -1,6 +1,7 @@
 import random
 from datetime import datetime
 from json import JSONDecodeError
+from typing import cast
 
 from langchain_core.messages import AIMessage
 from langchain_core.messages import HumanMessage
@@ -13,7 +14,6 @@ from langgraph.types import Send
 from onyx.agents.agent_search.deep_research.configuration import Configuration
 from onyx.agents.agent_search.deep_research.prompts import answer_instructions
 from onyx.agents.agent_search.deep_research.prompts import get_current_date
-from onyx.agents.agent_search.deep_research.prompts import onyx_searcher_instructions
 from onyx.agents.agent_search.deep_research.prompts import query_writer_instructions
 from onyx.agents.agent_search.deep_research.prompts import reflection_instructions
 from onyx.agents.agent_search.deep_research.states import DeepResearchInput
@@ -25,7 +25,21 @@ from onyx.agents.agent_search.deep_research.tools_and_schemas import json_to_pyd
 from onyx.agents.agent_search.deep_research.tools_and_schemas import Reflection
 from onyx.agents.agent_search.deep_research.tools_and_schemas import SearchQueryList
 from onyx.agents.agent_search.deep_research.utils import collate_messages
+from onyx.chat.models import AnswerStyleConfig
+from onyx.chat.models import CitationConfig
+from onyx.chat.models import DocumentPruningConfig
+from onyx.chat.models import PromptConfig
+from onyx.context.search.enums import LLMEvaluationType
+from onyx.context.search.models import InferenceSection
+from onyx.db.engine import get_session_with_current_tenant
+from onyx.db.models import Persona
 from onyx.llm.factory import get_default_llms
+from onyx.tools.models import SearchToolOverrideKwargs
+from onyx.tools.tool_implementations.search.search_tool import (
+    SEARCH_RESPONSE_SUMMARY_ID,
+)
+from onyx.tools.tool_implementations.search.search_tool import SearchResponseSummary
+from onyx.tools.tool_implementations.search.search_tool import SearchTool
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -33,7 +47,7 @@ logger = setup_logger()
 test_mode = False
 
 
-def do_onyx_search(query: str) -> str:
+def mock_do_onyx_search(query: str) -> str:
     random_answers = [
         "Onyx is a startup founded by Yuhong Sun and Chris Weaver.",
         "Chris Weaver was born in the country of Wakanda",
@@ -41,6 +55,69 @@ def do_onyx_search(query: str) -> str:
         "Yuhong Sun was born in the country of Valhalla",
     ]
     return {"text": random.choice(random_answers)}
+
+
+def do_onyx_search(query: str) -> dict[str, str]:
+    """
+    Perform a search using the SearchTool and return the results.
+
+    Args:
+        query: The search query string
+
+    Returns:
+        Dictionary containing the search results text
+    """
+    retrieved_docs: list[InferenceSection] = []
+    primary_llm, fast_llm = get_default_llms()
+
+    with get_session_with_current_tenant() as db_session:
+        # Create a default persona with basic settings
+        default_persona = Persona(
+            name="default",
+            chunks_above=2,
+            chunks_below=2,
+            description="Default persona for search",
+        )
+
+        search_tool = SearchTool(
+            db_session=db_session,
+            user=None,
+            persona=default_persona,
+            retrieval_options=None,
+            prompt_config=PromptConfig(
+                system_prompt="You are a helpful assistant.",
+                task_prompt="Answer the user's question based on the provided context.",
+                datetime_aware=True,
+                include_citations=True,
+            ),
+            llm=primary_llm,
+            fast_llm=fast_llm,
+            pruning_config=DocumentPruningConfig(),
+            answer_style_config=AnswerStyleConfig(
+                citation_config=CitationConfig(
+                    include_citations=True, citation_style="inline"
+                )
+            ),
+            evaluation_type=LLMEvaluationType.SKIP,
+        )
+
+        for tool_response in search_tool.run(
+            query=query,
+            override_kwargs=SearchToolOverrideKwargs(
+                force_no_rerank=True,
+                alternate_db_session=db_session,
+                retrieved_sections_callback=None,
+                skip_query_analysis=False,
+            ),
+        ):
+            if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
+                response = cast(SearchResponseSummary, tool_response.response)
+                retrieved_docs = response.top_sections
+                break
+
+    # Combine the retrieved documents into a single text
+    combined_text = "\n\n".join([doc.combined_content for doc in retrieved_docs])
+    return {"text": combined_text}
 
 
 def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerationState:
@@ -107,13 +184,8 @@ def onyx_research(state: WebSearchState, config: RunnableConfig) -> OverallState
     Returns:
         Dictionary with state update, including sources_gathered, research_loop_count, and web_research_results
     """
-    formatted_prompt = onyx_searcher_instructions.format(
-        current_date=get_current_date(),
-        research_topic=state["search_query"],
-    )
-
     # TODO: think about whether we should use any filtered returned results in addition to the final text answer
-    response = do_onyx_search(formatted_prompt)
+    response = do_onyx_search(state["search_query"])
 
     text = response["text"]
     sources_gathered = []
@@ -302,6 +374,7 @@ if __name__ == "__main__":
         "Who are the founders of Onyx?",
         "Who is the CEO of Onyx?",
         "Where was the CEO of Onyx born?",
+        "What is the highest contract value for last month?",
     ]
 
     # Create the input state using DeepResearchInput
