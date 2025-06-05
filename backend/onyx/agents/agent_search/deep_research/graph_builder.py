@@ -45,6 +45,7 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 test_mode = False
+MAX_RETRIEVED_DOCS = 10
 
 
 def mock_do_onyx_search(query: str) -> str:
@@ -113,10 +114,13 @@ def do_onyx_search(query: str) -> dict[str, str]:
             if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
                 response = cast(SearchResponseSummary, tool_response.response)
                 retrieved_docs = response.top_sections
+                # from pdb import set_trace; set_trace()
                 break
 
     # Combine the retrieved documents into a single text
-    combined_text = "\n\n".join([doc.combined_content for doc in retrieved_docs[:10]])
+    combined_text = "\n\n".join(
+        [doc.combined_content for doc in retrieved_docs[:MAX_RETRIEVED_DOCS]]
+    )
     return {"text": combined_text}
 
 
