@@ -116,7 +116,7 @@ def do_onyx_search(query: str) -> dict[str, str]:
                 break
 
     # Combine the retrieved documents into a single text
-    combined_text = "\n\n".join([doc.combined_content for doc in retrieved_docs])
+    combined_text = "\n\n".join([doc.combined_content for doc in retrieved_docs[:10]])
     return {"text": combined_text}
 
 
@@ -394,12 +394,11 @@ if __name__ == "__main__":
         }
 
         result = compiled_graph.invoke(initial_state)
-        print("Question: ", query)
-        print("Answer: ", result["messages"][-1].content)
-        # print(result)
         print("Max research loops: ", result["max_research_loops"])
         print("Research loop count: ", result["research_loop_count"])
         print("Search query: ", result["search_query"])
-        print("Onyx research result: ", result["onyx_research_result"])
+        # print("Onyx research result: ", result["onyx_research_result"])
+        print("Question: ", query)
+        print("Answer: ", result["messages"][-1].content)
         print("--------------------------------")
         # from pdb import set_trace; set_trace()
