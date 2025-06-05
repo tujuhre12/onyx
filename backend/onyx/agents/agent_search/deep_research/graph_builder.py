@@ -1,6 +1,8 @@
+import datetime
 import random
 
 from langchain_core.messages import AIMessage
+from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END
 from langgraph.graph import START
@@ -265,3 +267,18 @@ def deep_research_graph_builder(test_mode: bool = False) -> StateGraph:
     graph.add_edge("finalize_answer", END)
 
     return graph
+
+
+if __name__ == "__main__":
+    for _ in range(1):
+        query_start_time = datetime.now()
+        logger.debug(f"Start at {query_start_time}")
+        graph = deep_research_graph_builder()
+        compiled_graph = graph.compile()
+        query_end_time = datetime.now()
+        logger.debug(f"Graph compiled in {query_end_time - query_start_time} seconds")
+        primary_llm, fast_llm = get_default_llms()
+        result = compiled_graph.invoke(
+            {"messages": [HumanMessage(content="What is the capital of France?")]}
+        )
+        print(result)
