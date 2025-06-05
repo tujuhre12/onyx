@@ -26,7 +26,7 @@ PERMISSION_FULL_DESCRIPTION = (
 )
 FILE_FIELDS = (
     "nextPageToken, files(mimeType, id, name, permissions, modifiedTime, webViewLink, "
-    "shortcutDetails, owners(emailAddress), size)"
+    "shortcutDetails, owners, size)"
 )
 SLIM_FILE_FIELDS = (
     f"nextPageToken, files(mimeType, driveId, id, name, {PERMISSION_FULL_DESCRIPTION}, "
