@@ -1,5 +1,6 @@
-import datetime
 import random
+from datetime import datetime
+from json import JSONDecodeError
 
 from langchain_core.messages import AIMessage
 from langchain_core.messages import HumanMessage
@@ -33,7 +34,12 @@ test_mode = False
 
 
 def do_onyx_search(query: str) -> str:
-    random_answers = ["test", "test2", "test3"]
+    random_answers = [
+        "Onyx is a startup founded by Yuhong Sun and Chris Weaver.",
+        "Chris Weaver was born in the country of Wakanda",
+        "Yuhong Sun is the CEO of Onyx",
+        "Yuhong Sun was born in the country of Valhalla",
+    ]
     return {"text": random.choice(random_answers)}
 
 
@@ -68,8 +74,13 @@ def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerati
         number_queries=state["initial_search_query_count"],
     )
 
-    result = json_to_pydantic(llm.invoke(formatted_prompt), SearchQueryList)
-    return {"query_list": result.query}
+    # Get the LLM response and extract its content
+    llm_response = llm.invoke(formatted_prompt)
+    try:
+        result = json_to_pydantic(llm_response.content, SearchQueryList)
+        return {"query_list": result.query}
+    except JSONDecodeError:
+        return {"query_list": [llm_response.content]}
 
 
 def continue_to_onyx_research(state: QueryGenerationState) -> OverallState:
@@ -96,7 +107,6 @@ def onyx_research(state: WebSearchState, config: RunnableConfig) -> OverallState
     Returns:
         Dictionary with state update, including sources_gathered, research_loop_count, and web_research_results
     """
-    Configuration.from_runnable_config(config)
     formatted_prompt = onyx_searcher_instructions.format(
         current_date=get_current_date(),
         research_topic=state["search_query"],
@@ -152,7 +162,7 @@ def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
     # Get result from LLM
     primary_llm, fast_llm = get_default_llms()
     llm = primary_llm if configurable.reflection_model == "primary" else fast_llm
-    result = json_to_pydantic(llm.invoke(formatted_prompt), Reflection)
+    result = json_to_pydantic(llm.invoke(formatted_prompt).content, Reflection)
 
     # TODO: convert to pydantic here
     return {
@@ -240,8 +250,8 @@ def deep_research_graph_builder(test_mode: bool = False) -> StateGraph:
     """
 
     graph = StateGraph(
-        state_schema=OverallState,
-        input=DeepResearchInput,
+        OverallState,
+        config_schema=Configuration,
     )
 
     ### Add nodes ###
@@ -270,15 +280,53 @@ def deep_research_graph_builder(test_mode: bool = False) -> StateGraph:
 
 
 if __name__ == "__main__":
-    for _ in range(1):
-        query_start_time = datetime.now()
-        logger.debug(f"Start at {query_start_time}")
-        graph = deep_research_graph_builder()
-        compiled_graph = graph.compile()
-        query_end_time = datetime.now()
-        logger.debug(f"Graph compiled in {query_end_time - query_start_time} seconds")
-        primary_llm, fast_llm = get_default_llms()
-        result = compiled_graph.invoke(
-            {"messages": [HumanMessage(content="What is the capital of France?")]}
-        )
-        print(result)
+    # Initialize the SQLAlchemy engine first
+    from onyx.db.engine import SqlEngine
+
+    SqlEngine.init_engine(
+        pool_size=5,  # You can adjust these values based on your needs
+        max_overflow=10,
+        app_name="graph_builder",
+    )
+
+    query_start_time = datetime.now()
+    logger.debug(f"Start at {query_start_time}")
+    graph = deep_research_graph_builder()
+    compiled_graph = graph.compile()
+    query_end_time = datetime.now()
+    logger.debug(f"Graph compiled in {query_end_time - query_start_time} seconds")
+
+    queries = [
+        "What is the capital of France?",
+        "What is Onyx?",
+        "Who are the founders of Onyx?",
+        "Who is the CEO of Onyx?",
+        "Where was the CEO of Onyx born?",
+    ]
+
+    # Create the input state using DeepResearchInput
+    input_state = DeepResearchInput(log_messages=[])
+
+    for query in queries:
+        # Create the initial state with all required fields
+        initial_state = {
+            "messages": [HumanMessage(content=query)],
+            "search_query": [],
+            "onyx_research_result": [],
+            "sources_gathered": [],
+            "initial_search_query_count": 3,  # Default value from Configuration
+            "max_research_loops": 10,  # Default value from Configuration
+            "research_loop_count": 0,
+            "reasoning_model": "primary",
+        }
+
+        result = compiled_graph.invoke(initial_state)
+        print("Question: ", query)
+        print("Answer: ", result["messages"][-1].content)
+        # print(result)
+        print("Max research loops: ", result["max_research_loops"])
+        print("Research loop count: ", result["research_loop_count"])
+        print("Search query: ", result["search_query"])
+        print("Onyx research result: ", result["onyx_research_result"])
+        print("--------------------------------")
+        # from pdb import set_trace; set_trace()

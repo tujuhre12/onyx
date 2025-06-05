@@ -53,6 +53,9 @@ def json_to_pydantic(json_string: str, pydantic_class: Type[T]) -> T:
             f"pydantic_class must be a Pydantic BaseModel subclass, got {type(pydantic_class)}"
         )
 
+    artifacts = ["json", "```"]
+    json_string = json_string.replace(artifacts[0], "").replace(artifacts[1], "")
+
     # Parse JSON string to dictionary
     try:
         data = json.loads(json_string)
