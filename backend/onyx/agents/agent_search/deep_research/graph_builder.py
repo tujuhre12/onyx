@@ -3,6 +3,8 @@ from datetime import datetime
 from json import JSONDecodeError
 from typing import cast
 
+from langchain.globals import set_debug
+from langchain.globals import set_verbose
 from langchain_core.messages import AIMessage
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
@@ -24,7 +26,7 @@ from onyx.agents.agent_search.deep_research.states import WebSearchState
 from onyx.agents.agent_search.deep_research.tools_and_schemas import json_to_pydantic
 from onyx.agents.agent_search.deep_research.tools_and_schemas import Reflection
 from onyx.agents.agent_search.deep_research.tools_and_schemas import SearchQueryList
-from onyx.agents.agent_search.deep_research.utils import collate_messages
+from onyx.agents.agent_search.deep_research.utils import get_research_topic
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationConfig
 from onyx.chat.models import DocumentPruningConfig
@@ -34,6 +36,8 @@ from onyx.context.search.models import InferenceSection
 from onyx.db.engine import get_session_with_current_tenant
 from onyx.db.models import Persona
 from onyx.llm.factory import get_default_llms
+from onyx.natural_language_processing.utils import get_tokenizer
+from onyx.natural_language_processing.utils import tokenizer_trim_content
 from onyx.tools.models import SearchToolOverrideKwargs
 from onyx.tools.tool_implementations.search.search_tool import (
     SEARCH_RESPONSE_SUMMARY_ID,
@@ -45,6 +49,8 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 test_mode = False
+IS_DEBUG = False
+IS_VERBOSE = False
 MAX_RETRIEVED_DOCS = 10
 
 
@@ -70,58 +76,61 @@ def do_onyx_search(query: str) -> dict[str, str]:
     """
     retrieved_docs: list[InferenceSection] = []
     primary_llm, fast_llm = get_default_llms()
+    try:
+        with get_session_with_current_tenant() as db_session:
+            # Create a default persona with basic settings
+            default_persona = Persona(
+                name="default",
+                chunks_above=2,
+                chunks_below=2,
+                description="Default persona for search",
+            )
 
-    with get_session_with_current_tenant() as db_session:
-        # Create a default persona with basic settings
-        default_persona = Persona(
-            name="default",
-            chunks_above=2,
-            chunks_below=2,
-            description="Default persona for search",
+            search_tool = SearchTool(
+                db_session=db_session,
+                user=None,
+                persona=default_persona,
+                retrieval_options=None,
+                prompt_config=PromptConfig(
+                    system_prompt="You are a helpful assistant.",
+                    task_prompt="Answer the user's question based on the provided context.",
+                    datetime_aware=True,
+                    include_citations=True,
+                ),
+                llm=primary_llm,
+                fast_llm=fast_llm,
+                pruning_config=DocumentPruningConfig(),
+                answer_style_config=AnswerStyleConfig(
+                    citation_config=CitationConfig(
+                        include_citations=True, citation_style="inline"
+                    )
+                ),
+                evaluation_type=LLMEvaluationType.SKIP,
+            )
+
+            for tool_response in search_tool.run(
+                query=query,
+                override_kwargs=SearchToolOverrideKwargs(
+                    force_no_rerank=True,
+                    alternate_db_session=db_session,
+                    retrieved_sections_callback=None,
+                    skip_query_analysis=False,
+                ),
+            ):
+                if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
+                    response = cast(SearchResponseSummary, tool_response.response)
+                    retrieved_docs = response.top_sections
+                    # from pdb import set_trace; set_trace()
+                    break
+
+        # Combine the retrieved documents into a single text
+        combined_text = "\n\n".join(
+            [doc.combined_content for doc in retrieved_docs[:MAX_RETRIEVED_DOCS]]
         )
-
-        search_tool = SearchTool(
-            db_session=db_session,
-            user=None,
-            persona=default_persona,
-            retrieval_options=None,
-            prompt_config=PromptConfig(
-                system_prompt="You are a helpful assistant.",
-                task_prompt="Answer the user's question based on the provided context.",
-                datetime_aware=True,
-                include_citations=True,
-            ),
-            llm=primary_llm,
-            fast_llm=fast_llm,
-            pruning_config=DocumentPruningConfig(),
-            answer_style_config=AnswerStyleConfig(
-                citation_config=CitationConfig(
-                    include_citations=True, citation_style="inline"
-                )
-            ),
-            evaluation_type=LLMEvaluationType.SKIP,
-        )
-
-        for tool_response in search_tool.run(
-            query=query,
-            override_kwargs=SearchToolOverrideKwargs(
-                force_no_rerank=True,
-                alternate_db_session=db_session,
-                retrieved_sections_callback=None,
-                skip_query_analysis=False,
-            ),
-        ):
-            if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
-                response = cast(SearchResponseSummary, tool_response.response)
-                retrieved_docs = response.top_sections
-                # from pdb import set_trace; set_trace()
-                break
-
-    # Combine the retrieved documents into a single text
-    combined_text = "\n\n".join(
-        [doc.combined_content for doc in retrieved_docs[:MAX_RETRIEVED_DOCS]]
-    )
-    return {"text": combined_text}
+        return {"text": combined_text}
+    except Exception as e:
+        logger.error(f"Error in do_onyx_search: {e}")
+        return {"text": "Error in search, no results returned"}
 
 
 def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerationState:
@@ -151,7 +160,7 @@ def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerati
     current_date = get_current_date()
     formatted_prompt = query_writer_instructions.format(
         current_date=current_date,
-        research_topic=collate_messages(state["messages"]),
+        research_topic=get_research_topic(state["messages"]),
         number_queries=state["initial_search_query_count"],
     )
 
@@ -201,6 +210,23 @@ def onyx_research(state: WebSearchState, config: RunnableConfig) -> OverallState
     }
 
 
+def get_combined_summaries(state: OverallState, llm=None) -> str:
+    if llm is None:
+        _, llm = get_default_llms()
+
+    # Calculate tokens and trim if needed
+    tokenizer = get_tokenizer(
+        provider_type=llm.config.model_provider, model_name=llm.config.model_name
+    )
+
+    # Combine summaries and check token count
+    combined_summaries = "\n\n---\n\n".join(state["onyx_research_result"])
+    combined_summaries = tokenizer_trim_content(
+        content=combined_summaries, desired_length=10000, tokenizer=tokenizer
+    )
+    return combined_summaries
+
+
 def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
     """LangGraph node that identifies knowledge gaps and generates potential follow-up queries.
 
@@ -218,7 +244,11 @@ def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
     configurable = Configuration.from_runnable_config(config)
     # Increment the research loop count and get the reasoning model
     state["research_loop_count"] = state.get("research_loop_count", 0) + 1
-    # TODO: maybe do time checking here?
+
+    # Get the LLM to use for token counting
+    primary_llm, fast_llm = get_default_llms()
+    llm = primary_llm if configurable.reflection_model == "primary" else fast_llm
+    combined_summaries = get_combined_summaries(state, llm)
 
     # Format the prompt
     # First, collate the messages to give a historical context of the current conversation
@@ -231,13 +261,11 @@ def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
     current_date = get_current_date()
     formatted_prompt = reflection_instructions.format(
         current_date=current_date,
-        research_topic=collate_messages(state["messages"]),
-        summaries="\n\n---\n\n".join(state["onyx_research_result"]),
+        research_topic=get_research_topic(state["messages"]),
+        summaries=combined_summaries,
     )
 
     # Get result from LLM
-    primary_llm, fast_llm = get_default_llms()
-    llm = primary_llm if configurable.reflection_model == "primary" else fast_llm
     result = json_to_pydantic(llm.invoke(formatted_prompt).content, Reflection)
 
     # TODO: convert to pydantic here
@@ -248,6 +276,23 @@ def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
         "research_loop_count": state["research_loop_count"],
         "number_of_ran_queries": len(state["search_query"]),
     }
+
+
+def strtobool(val):
+    """Convert a string representation of truth to true (1) or false (0).
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+    'val' is anything else.
+    """
+    if isinstance(val, bool):
+        return val
+    val = val.lower()
+    if val in ("y", "yes", "t", "true", "on", "1"):
+        return 1
+    elif val in ("n", "no", "f", "false", "off", "0"):
+        return 0
+    else:
+        raise ValueError("invalid truth value %r" % (val,))
 
 
 def evaluate_research(
@@ -272,7 +317,10 @@ def evaluate_research(
         if state.get("max_research_loops") is not None
         else configurable.max_research_loops
     )
-    if state["is_sufficient"] or state["research_loop_count"] >= max_research_loops:
+    if (
+        strtobool(state["is_sufficient"]) is True
+        or state["research_loop_count"] >= max_research_loops
+    ):
         return "finalize_answer"
     else:
         return [
@@ -301,17 +349,19 @@ def finalize_answer(state: OverallState, config: RunnableConfig):
     configurable = Configuration.from_runnable_config(config)
     answer_model = state.get("answer_model") or configurable.answer_model
 
+    # get the LLM to generate the final answer
+    primary_llm, fast_llm = get_default_llms()
+    llm = primary_llm if answer_model == "primary" else fast_llm
+    combined_summaries = get_combined_summaries(state, llm)
+
     # Format the prompt
     current_date = get_current_date()
     formatted_prompt = answer_instructions.format(
         current_date=current_date,
-        research_topic=collate_messages(state["messages"]),
-        summaries="\n---\n\n".join(state["onyx_research_result"]),
+        research_topic=get_research_topic(state["messages"]),
+        summaries=combined_summaries,
     )
 
-    # get the LLM to generate the final answer
-    primary_llm, fast_llm = get_default_llms()
-    llm = primary_llm if answer_model == "primary" else fast_llm
     result = llm.invoke(formatted_prompt)
     unique_sources = []
     return {
@@ -365,10 +415,15 @@ if __name__ == "__main__":
         app_name="graph_builder",
     )
 
+    # Set the debug and verbose flags for Langchain/Langgraph
+    set_debug(IS_DEBUG)
+    set_verbose(IS_VERBOSE)
+
+    # Compile the graph
     query_start_time = datetime.now()
     logger.debug(f"Start at {query_start_time}")
     graph = deep_research_graph_builder()
-    compiled_graph = graph.compile()
+    compiled_graph = graph.compile(debug=IS_DEBUG)
     query_end_time = datetime.now()
     logger.debug(f"Graph compiled in {query_end_time - query_start_time} seconds")
 
@@ -379,6 +434,10 @@ if __name__ == "__main__":
         "Who is the CEO of Onyx?",
         "Where was the CEO of Onyx born?",
         "What is the highest contract value for last month?",
+        "What is the most expensive component of our technical pipeline so far?",
+        "Who are top 5 competitors who are not US based?",
+        "What companies should we focus on to maximize our revenue?",
+        "What are some of the biggest problems for our customers and their potential solutions?",
     ]
 
     # Create the input state using DeepResearchInput
@@ -392,7 +451,7 @@ if __name__ == "__main__":
             "onyx_research_result": [],
             "sources_gathered": [],
             "initial_search_query_count": 3,  # Default value from Configuration
-            "max_research_loops": 10,  # Default value from Configuration
+            "max_research_loops": 5,  # State does not seem to pick up this value
             "research_loop_count": 0,
             "reasoning_model": "primary",
         }
@@ -405,4 +464,5 @@ if __name__ == "__main__":
         print("Question: ", query)
         print("Answer: ", result["messages"][-1].content)
         print("--------------------------------")
-        # from pdb import set_trace; set_trace()
+        # if result["research_loop_count"] >= 3:
+        #     from pdb import set_trace; set_trace()
