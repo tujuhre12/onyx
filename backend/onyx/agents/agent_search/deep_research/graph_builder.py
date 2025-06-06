@@ -134,7 +134,6 @@ def do_onyx_search(query: str) -> dict[str, str]:
                 if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
                     response = cast(SearchResponseSummary, tool_response.response)
                     retrieved_docs = response.top_sections
-                    # from pdb import set_trace; set_trace()
                     break
 
         # Combine the retrieved documents into a single text
@@ -484,7 +483,8 @@ def plan_step(state: PlanExecute):
         input=state["input"], company_name=COMPANY_NAME, company_context=COMPANY_CONTEXT
     )
     primary_llm, _ = get_default_llms()
-    plan = json_to_pydantic(primary_llm.invoke(formatted_prompt).content, Plan)
+    response = primary_llm.invoke(formatted_prompt).content
+    plan = json_to_pydantic(response, Plan)
     return {"plan": plan.steps}
 
 
@@ -500,7 +500,8 @@ def replan_step(state: PlanExecute):
         company_context=COMPANY_CONTEXT,
     )
     primary_llm, _ = get_default_llms()
-    output = json_to_pydantic(primary_llm.invoke(formatted_prompt).content, Act)
+    response = primary_llm.invoke(formatted_prompt).content
+    output = json_to_pydantic(response, Act)
     if isinstance(output.action, Response):
         return {"response": output.action.response}
     elif state["step_count"] >= state["max_steps"]:
@@ -603,12 +604,12 @@ if __name__ == "__main__":
         }
 
         result = compiled_graph.invoke(initial_state)
-        print("Max research loops: ", result["max_research_loops"])
-        print("Research loop count: ", result["research_loop_count"])
-        print("Search query: ", result["search_query"])
-        # print("Onyx research result: ", result["onyx_research_result"])
+        print("Max planning loops: ", result["max_steps"])
+        print("Steps: ", result["step_count"])
+        print("Past steps: ", result["past_steps"])
         print("Question: ", query)
-        print("Answer: ", result["messages"][-1].content)
+        print("Answer: ", result["response"])
         print("--------------------------------")
-        # if result["research_loop_count"] >= 3:
-        #     from pdb import set_trace; set_trace()
+        from pdb import set_trace
+
+        set_trace()

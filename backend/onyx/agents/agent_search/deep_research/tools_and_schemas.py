@@ -90,6 +90,5 @@ def json_to_pydantic(json_string: str, pydantic_class: Type[T]) -> T:
     try:
         return pydantic_class.model_validate(data)
     except ValidationError as e:
-        raise ValidationError(
-            f"JSON data doesn't match {pydantic_class.__name__} schema: {e}"
-        )
+        print(f"JSON data doesn't match {pydantic_class.__name__} schema: {e}")
+        raise e
