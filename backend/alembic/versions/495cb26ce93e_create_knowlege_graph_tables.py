@@ -1,7 +1,7 @@
 """create knowledge graph tables
 
 Revision ID: 495cb26ce93e
-Revises: 238b84885828
+Revises: ca04500b9ee8
 Create Date: 2025-03-19 08:51:14.341989
 
 """
@@ -19,7 +19,7 @@ from shared_configs.configs import MULTI_TENANT
 
 # revision identifiers, used by Alembic.
 revision = "495cb26ce93e"
-down_revision = "238b84885828"
+down_revision = "ca04500b9ee8"
 branch_labels = None
 depends_on = None
 
