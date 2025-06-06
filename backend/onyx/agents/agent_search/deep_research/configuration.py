@@ -37,7 +37,7 @@ class DeepResearchConfiguration(BaseModel):
     )
 
     max_research_loops: int = Field(
-        default=5,
+        default=2,
         metadata={"description": "The maximum number of research loops to perform."},
     )
 
@@ -66,6 +66,6 @@ class DeepPlannerConfiguration(BaseModel):
     """The configuration for the deep planner agent."""
 
     max_steps: int = Field(
-        default=20,
+        default=10,
         metadata={"description": "The maximum number of steps to perform."},
     )

@@ -1,6 +1,7 @@
 import random
 from datetime import datetime
 from json import JSONDecodeError
+from pprint import pprint
 from typing import cast
 
 from langchain.globals import set_debug
@@ -462,7 +463,7 @@ def execute_step(state: PlanExecute):
         "onyx_research_result": [],
         "sources_gathered": [],
         "initial_search_query_count": 3,  # Default value from Configuration
-        "max_research_loops": 5,  # State does not seem to pick up this value
+        "max_research_loops": 2,  # State does not seem to pick up this value
         "research_loop_count": 0,
         "reasoning_model": "primary",
     }
@@ -502,11 +503,21 @@ def replan_step(state: PlanExecute):
     primary_llm, _ = get_default_llms()
     response = primary_llm.invoke(formatted_prompt).content
     output = json_to_pydantic(response, Act)
+    # TODO: add a check for time limit too
     if isinstance(output.action, Response):
-        return {"response": output.action.response}
+        # Check for canned response, if so, return the answer from the last step
+        if output.action.response == "The final answer to the user's question":
+            from pdb import set_trace
+
+            set_trace()
+            return {
+                "response": state["past_steps"][-1][2],
+            }
+        else:
+            return {"response": output.action.response}
     elif state["step_count"] >= state["max_steps"]:
         return {
-            "response": "I'm sorry, I can't answer that question. I've reached the maximum number of steps."
+            "response": f"I've reached the maximum number of step, my best guess is {state['past_steps'][-1][2]}."
         }
     else:
         return {"plan": output.action.steps}
@@ -599,14 +610,15 @@ if __name__ == "__main__":
             "plan": [],
             "past_steps": [],
             "response": "",
-            "max_steps": 20,
+            "max_steps": 10,
             "step_count": 0,
         }
 
         result = compiled_graph.invoke(initial_state)
         print("Max planning loops: ", result["max_steps"])
         print("Steps: ", result["step_count"])
-        print("Past steps: ", result["past_steps"])
+        print("Past steps: ")
+        pprint(result["past_steps"], indent=4)
         print("Question: ", query)
         print("Answer: ", result["response"])
         print("--------------------------------")

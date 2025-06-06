@@ -174,7 +174,7 @@ Example Output structure with the plan:
 Example Output structure with the response:
 {{
     "action": {{
-        "response": "The final answer to the user's question"
+        "response": "The final answer to the user's question" // This should be the answer from the last step
     }}
 }}
 
