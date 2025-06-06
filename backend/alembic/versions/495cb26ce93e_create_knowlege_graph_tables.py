@@ -33,7 +33,10 @@ def upgrade() -> None:
     # Note: in order for the migration to run, the DB_READONLY_USER and DB_READONLY_PASSWORD
     # environment variables MUST be set. Otherwise, an exception will be raised.
 
+    print("MULTI_TENANT: ", MULTI_TENANT)
     if not MULTI_TENANT:
+
+        print("Single tenant mode")
 
         # Enable pg_trgm extension if not already enabled
         op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
@@ -63,6 +66,22 @@ def upgrade() -> None:
                 """
             )
         )
+
+    # Grant usage on current schema to readonly user
+
+    op.execute(
+        text(
+            f"""
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{DB_READONLY_USER}') THEN
+                    EXECUTE format('GRANT USAGE ON SCHEMA current_schema() TO %I', '{DB_READONLY_USER}');
+                END IF;
+            END
+            $$;
+            """
+        )
+    )
 
     op.create_table(
         "kg_config",
@@ -452,7 +471,7 @@ def upgrade() -> None:
     # Create GIN index for clustering and normalization
     op.execute(
         "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_kg_entity_clustering_trigrams "
-        "ON kg_entity USING GIN (name gin_trgm_ops)"
+        "ON kg_entity USING GIN (name public.gin_trgm_ops)"
     )
     op.execute(
         "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_kg_entity_normalization_trigrams "
@@ -492,7 +511,7 @@ def upgrade() -> None:
 
                 -- Set name and name trigrams
                 NEW.name = name;
-                NEW.name_trigrams = show_trgm(cleaned_name);
+                NEW.name_trigrams = public.show_trgm(cleaned_name);
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql;
@@ -537,7 +556,7 @@ def upgrade() -> None:
                 UPDATE kg_entity
                 SET
                     name = doc_name,
-                    name_trigrams = show_trgm(cleaned_name)
+                    name_trigrams = public.show_trgm(cleaned_name)
                 WHERE document_id = NEW.id;
                 RETURN NEW;
             END;
@@ -557,8 +576,12 @@ def upgrade() -> None:
         """
     )
 
+    
+    
+
 
 def downgrade() -> None:
+
 
     #  Drop all views that start with 'kg_'
     op.execute(
@@ -640,8 +663,6 @@ def downgrade() -> None:
                 IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{DB_READONLY_USER}') THEN
                     -- First revoke all privileges from the database
                     EXECUTE format('REVOKE ALL ON DATABASE %I FROM %I', current_database(), '{DB_READONLY_USER}');
-                    -- Then revoke all privileges from the public schema
-                    EXECUTE format('REVOKE ALL ON SCHEMA public FROM %I', '{DB_READONLY_USER}');
                     -- Then drop the user
                     EXECUTE format('DROP USER %I', '{DB_READONLY_USER}');
                 END IF;
@@ -650,3 +671,19 @@ def downgrade() -> None:
         """
             )
         )
+    else:
+        op.execute(
+            text(
+                f"""
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{DB_READONLY_USER}') THEN
+                        EXECUTE format('REVOKE ALL ON SCHEMA current_schema() FROM %I', '{DB_READONLY_USER}');
+                    END IF;
+                END
+                $$;
+                """
+            )
+        )
+
+    

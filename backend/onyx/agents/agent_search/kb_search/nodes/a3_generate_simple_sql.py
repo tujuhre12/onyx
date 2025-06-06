@@ -21,6 +21,7 @@ from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
+from shared_configs.contextvars import get_current_tenant_id
 from onyx.configs.kg_configs import KG_MAX_DEEP_SEARCH_RESULTS
 from onyx.configs.kg_configs import KG_SQL_GENERATION_TIMEOUT
 from onyx.db.engine import get_db_readonly_user_session_with_current_tenant
@@ -190,6 +191,11 @@ def generate_simple_sql(
             state.entity_normalization_map
         )
 
+        current_tenant = get_current_tenant_id()
+
+        current_tenant_view_name = f'"{current_tenant}".{state.kg_doc_temp_view_name}'
+        current_tenant_rel_view_name = f'"{current_tenant}".{state.kg_rel_temp_view_name}'
+
         simple_sql_prompt = (
             SIMPLE_SQL_PROMPT.replace("---entity_types---", entities_types_str)
             .replace("---relationship_types---", relationship_types_str)
@@ -234,7 +240,7 @@ def generate_simple_sql(
             sql_statement = sql_statement.split(";")[0].strip() + ";"
             sql_statement = sql_statement.replace("sql", "").strip()
             sql_statement = sql_statement.replace(
-                "kg_relationship", state.kg_rel_temp_view_name
+                "kg_relationship", current_tenant_rel_view_name
             )
 
             reasoning = (
@@ -247,8 +253,8 @@ def generate_simple_sql(
             logger.error(f"Error in strategy generation: {e}")
 
             _drop_temp_views(
-                allowed_docs_view_name=state.kg_doc_temp_view_name,
-                kg_relationships_view_name=state.kg_rel_temp_view_name,
+                allowed_docs_view_name=current_tenant_view_name,
+                kg_relationships_view_name=current_tenant_rel_view_name,
             )
             raise e
 
@@ -291,8 +297,8 @@ def generate_simple_sql(
             )
 
             _drop_temp_views(
-                allowed_docs_view_name=state.kg_doc_temp_view_name,
-                kg_relationships_view_name=state.kg_rel_temp_view_name,
+                allowed_docs_view_name=current_tenant_view_name,
+                kg_relationships_view_name=current_tenant_rel_view_name,
             )
 
             raise e
@@ -304,8 +310,8 @@ def generate_simple_sql(
         source_documents_sql = _get_source_documents(
             sql_statement,
             llm=primary_llm,
-            allowed_docs_view_name=state.kg_doc_temp_view_name,
-            kg_relationships_view_name=state.kg_rel_temp_view_name,
+            allowed_docs_view_name=current_tenant_view_name,
+            kg_relationships_view_name=current_tenant_rel_view_name,
         )
 
         logger.info(f"A3 source_documents_sql: {source_documents_sql}")
