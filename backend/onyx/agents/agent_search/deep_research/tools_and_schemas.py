@@ -2,6 +2,7 @@ import json
 from typing import List
 from typing import Type
 from typing import TypeVar
+from typing import Union
 
 from pydantic import BaseModel
 from pydantic import Field
@@ -12,7 +13,7 @@ T = TypeVar("T", bound=BaseModel)
 
 class SearchQueryList(BaseModel):
     query: List[str] = Field(
-        description="A list of search queries to be used for web research."
+        description="A list of search queries to be used for Onyx research."
     )
     rationale: str = Field(
         description="A brief explanation of why these queries are relevant to the research topic."
@@ -28,6 +29,29 @@ class Reflection(BaseModel):
     )
     follow_up_queries: List[str] = Field(
         description="A list of follow-up queries to address the knowledge gap."
+    )
+
+
+class Plan(BaseModel):
+    """Plan to follow in future"""
+
+    steps: List[str] = Field(
+        description="different steps to follow, should be in sorted order"
+    )
+
+
+class Response(BaseModel):
+    """Response to user."""
+
+    response: str
+
+
+class Act(BaseModel):
+    """Action to perform."""
+
+    action: Union[Response, Plan] = Field(
+        description="Action to perform. If you want to respond to user, use Response. "
+        "If you need to further use tools to get the answer, use Plan."
     )
 
 

@@ -13,20 +13,31 @@ from langgraph.graph import START
 from langgraph.graph import StateGraph
 from langgraph.types import Send
 
-from onyx.agents.agent_search.deep_research.configuration import Configuration
+from onyx.agents.agent_search.deep_research.configuration import (
+    DeepPlannerConfiguration,
+)
+from onyx.agents.agent_search.deep_research.configuration import (
+    DeepResearchConfiguration,
+)
 from onyx.agents.agent_search.deep_research.prompts import answer_instructions
 from onyx.agents.agent_search.deep_research.prompts import COMPANY_CONTEXT
 from onyx.agents.agent_search.deep_research.prompts import COMPANY_NAME
 from onyx.agents.agent_search.deep_research.prompts import get_current_date
+from onyx.agents.agent_search.deep_research.prompts import planner_prompt
 from onyx.agents.agent_search.deep_research.prompts import query_writer_instructions
 from onyx.agents.agent_search.deep_research.prompts import reflection_instructions
-from onyx.agents.agent_search.deep_research.states import DeepResearchInput
+from onyx.agents.agent_search.deep_research.prompts import replanner_prompt
+from onyx.agents.agent_search.deep_research.prompts import task_to_query_prompt
+from onyx.agents.agent_search.deep_research.states import OnyxSearchState
 from onyx.agents.agent_search.deep_research.states import OverallState
+from onyx.agents.agent_search.deep_research.states import PlanExecute
 from onyx.agents.agent_search.deep_research.states import QueryGenerationState
 from onyx.agents.agent_search.deep_research.states import ReflectionState
-from onyx.agents.agent_search.deep_research.states import WebSearchState
+from onyx.agents.agent_search.deep_research.tools_and_schemas import Act
 from onyx.agents.agent_search.deep_research.tools_and_schemas import json_to_pydantic
+from onyx.agents.agent_search.deep_research.tools_and_schemas import Plan
 from onyx.agents.agent_search.deep_research.tools_and_schemas import Reflection
+from onyx.agents.agent_search.deep_research.tools_and_schemas import Response
 from onyx.agents.agent_search.deep_research.tools_and_schemas import SearchQueryList
 from onyx.agents.agent_search.deep_research.utils import collate_messages
 from onyx.agents.agent_search.deep_research.utils import get_research_topic
@@ -150,7 +161,7 @@ def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerati
     Returns:
         Dictionary with state update, including search_query key containing the generated query
     """
-    configurable = Configuration.from_runnable_config(config)
+    configurable = DeepResearchConfiguration.from_runnable_config(config)
 
     # check for custom initial search query count
     if state.get("initial_search_query_count") is None:
@@ -191,7 +202,7 @@ def continue_to_onyx_research(state: QueryGenerationState) -> OverallState:
     ]
 
 
-def onyx_research(state: WebSearchState, config: RunnableConfig) -> OverallState:
+def onyx_research(state: OnyxSearchState, config: RunnableConfig) -> OverallState:
     """LangGraph node that performs onyx research using onyx search interface.
 
     Executes an onyx search in combination with an llm.
@@ -247,7 +258,7 @@ def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
     Returns:
         Dictionary with state update, including search_query key containing the generated follow-up query
     """
-    configurable = Configuration.from_runnable_config(config)
+    configurable = DeepResearchConfiguration.from_runnable_config(config)
     # Increment the research loop count and get the reasoning model
     state["research_loop_count"] = state.get("research_loop_count", 0) + 1
 
@@ -319,7 +330,7 @@ def evaluate_research(
     Returns:
         String literal indicating the next node to visit ("onyx_research" or "finalize_summary")
     """
-    configurable = Configuration.from_runnable_config(config)
+    configurable = DeepResearchConfiguration.from_runnable_config(config)
     max_research_loops = (
         state.get("max_research_loops")
         if state.get("max_research_loops") is not None
@@ -354,7 +365,7 @@ def finalize_answer(state: OverallState, config: RunnableConfig):
     Returns:
         Dictionary with state update, including running_summary key containing the formatted final summary with sources
     """
-    configurable = Configuration.from_runnable_config(config)
+    configurable = DeepResearchConfiguration.from_runnable_config(config)
     answer_model = state.get("answer_model") or configurable.answer_model
 
     # get the LLM to generate the final answer
@@ -388,7 +399,7 @@ def deep_research_graph_builder(test_mode: bool = False) -> StateGraph:
 
     graph = StateGraph(
         OverallState,
-        config_schema=Configuration,
+        config_schema=DeepResearchConfiguration,
     )
 
     ### Add nodes ###
@@ -416,6 +427,128 @@ def deep_research_graph_builder(test_mode: bool = False) -> StateGraph:
     return graph
 
 
+def translate_task_to_query(
+    task: str, context=None, company_name=COMPANY_NAME, company_context=COMPANY_CONTEXT
+) -> str:
+    """
+    LangGraph node that translates a task to a query.
+    """
+    _, fast_llm = get_default_llms()
+
+    formatted_prompt = task_to_query_prompt.format(
+        task=task,
+        context=context,
+        company_name=company_name,
+        company_context=company_context,
+    )
+    return fast_llm.invoke(formatted_prompt).content
+
+
+def execute_step(state: PlanExecute):
+    """
+    LangGraph node that plans the deep research process.
+    """
+    plan = state["plan"]
+    task = plan[0]
+    query = translate_task_to_query(plan[0], context=state["past_steps"])
+    graph = deep_research_graph_builder()
+    compiled_graph = graph.compile(debug=IS_DEBUG)
+    # TODO: use this input_state for the deep research graph
+    # input_state = DeepResearchInput(log_messages=[])
+    step_count = state.get("step_count", 0) + 1
+
+    initial_state = {
+        "messages": [HumanMessage(content=query)],
+        "search_query": [],
+        "onyx_research_result": [],
+        "sources_gathered": [],
+        "initial_search_query_count": 3,  # Default value from Configuration
+        "max_research_loops": 5,  # State does not seem to pick up this value
+        "research_loop_count": 0,
+        "reasoning_model": "primary",
+    }
+
+    result = compiled_graph.invoke(initial_state)
+
+    return {
+        "past_steps": [(task, query, result["messages"][-1].content)],
+        "step_count": step_count,
+    }
+
+
+def plan_step(state: PlanExecute):
+    """
+    LangGraph node that replans the deep research process.
+    """
+    formatted_prompt = planner_prompt.format(
+        input=state["input"], company_name=COMPANY_NAME, company_context=COMPANY_CONTEXT
+    )
+    primary_llm, _ = get_default_llms()
+    plan = json_to_pydantic(primary_llm.invoke(formatted_prompt).content, Plan)
+    return {"plan": plan.steps}
+
+
+def replan_step(state: PlanExecute):
+    """
+    LangGraph node that determines if the deep research process should end.
+    """
+    formatted_prompt = replanner_prompt.format(
+        input=state["input"],
+        plan=state["plan"],
+        past_steps=state["past_steps"],
+        company_name=COMPANY_NAME,
+        company_context=COMPANY_CONTEXT,
+    )
+    primary_llm, _ = get_default_llms()
+    output = json_to_pydantic(primary_llm.invoke(formatted_prompt).content, Act)
+    if isinstance(output.action, Response):
+        return {"response": output.action.response}
+    elif state["step_count"] >= state["max_steps"]:
+        return {
+            "response": "I'm sorry, I can't answer that question. I've reached the maximum number of steps."
+        }
+    else:
+        return {"plan": output.action.steps}
+
+
+def should_end(state: PlanExecute):
+    if "response" in state and state["response"]:
+        return END
+    else:
+        return "agent"
+
+
+def deep_planner_graph_builder(test_mode: bool = False) -> StateGraph:
+    """
+    LangGraph graph builder for deep planner process.
+    """
+    workflow = StateGraph(PlanExecute, config_schema=DeepPlannerConfiguration)
+
+    # Add the plan node
+    workflow.add_node("planner", plan_step)
+
+    # Add the execution step
+    workflow.add_node("agent", execute_step)
+
+    # Add a replan node
+    workflow.add_node("replan", replan_step)
+
+    workflow.add_edge(START, "planner")
+
+    # From plan we go to agent
+    workflow.add_edge("planner", "agent")
+
+    # From agent, we replan
+    workflow.add_edge("agent", "replan")
+
+    workflow.add_conditional_edges(
+        "replan",
+        should_end,
+        ["agent", END],
+    )
+    return workflow
+
+
 if __name__ == "__main__":
     # Initialize the SQLAlchemy engine first
     from onyx.db.engine import SqlEngine
@@ -433,7 +566,7 @@ if __name__ == "__main__":
     # Compile the graph
     query_start_time = datetime.now()
     logger.debug(f"Start at {query_start_time}")
-    graph = deep_research_graph_builder()
+    graph = deep_planner_graph_builder()
     compiled_graph = graph.compile(debug=IS_DEBUG)
     query_end_time = datetime.now()
     logger.debug(f"Graph compiled in {query_end_time - query_start_time} seconds")
@@ -451,20 +584,22 @@ if __name__ == "__main__":
         "What are some of the biggest problems for our customers and their potential solutions?",
     ]
 
-    # Create the input state using DeepResearchInput
-    input_state = DeepResearchInput(log_messages=[])
+    hard_queries = [
+        "Where was the CEO of Onyx born?",
+        "Who are top 5 competitors who are not US based?",
+        "What companies should we focus on to maximize our revenue?",
+        "What are some of the biggest problems for our customers and their potential solutions?",
+    ]
 
-    for query in queries:
+    for query in hard_queries:
         # Create the initial state with all required fields
         initial_state = {
-            "messages": [HumanMessage(content=query)],
-            "search_query": [],
-            "onyx_research_result": [],
-            "sources_gathered": [],
-            "initial_search_query_count": 3,  # Default value from Configuration
-            "max_research_loops": 5,  # State does not seem to pick up this value
-            "research_loop_count": 0,
-            "reasoning_model": "primary",
+            "input": [HumanMessage(content=query)],
+            "plan": [],
+            "past_steps": [],
+            "response": "",
+            "max_steps": 20,
+            "step_count": 0,
         }
 
         result = compiled_graph.invoke(initial_state)

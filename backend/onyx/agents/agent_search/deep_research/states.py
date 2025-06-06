@@ -4,6 +4,8 @@ import operator
 from dataclasses import dataclass
 from dataclasses import field
 from typing import Annotated
+from typing import List
+from typing import Tuple
 from typing import TypedDict
 
 from langgraph.graph import add_messages
@@ -39,9 +41,18 @@ class QueryGenerationState(TypedDict):
     query_list: list[Query]
 
 
-class WebSearchState(TypedDict):
+class OnyxSearchState(TypedDict):
     search_query: str
     id: str
+
+
+class PlanExecute(TypedDict):
+    input: str
+    plan: List[str]
+    past_steps: Annotated[List[Tuple], operator.add]
+    response: str
+    max_steps: int
+    step_count: int
 
 
 @dataclass(kw_only=True)

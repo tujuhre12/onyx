@@ -7,8 +7,8 @@ from pydantic import BaseModel
 from pydantic import Field
 
 
-class Configuration(BaseModel):
-    """The configuration for the agent."""
+class DeepResearchConfiguration(BaseModel):
+    """The configuration for the deep research agent."""
 
     query_generator_model: str = Field(
         default="primary",
@@ -44,7 +44,7 @@ class Configuration(BaseModel):
     @classmethod
     def from_runnable_config(
         cls, config: Optional[RunnableConfig] = None
-    ) -> "Configuration":
+    ) -> "DeepResearchConfiguration":
         """Create a Configuration instance from a RunnableConfig."""
         configurable = (
             config["configurable"] if config and "configurable" in config else {}
@@ -60,3 +60,12 @@ class Configuration(BaseModel):
         values = {k: v for k, v in raw_values.items() if v is not None}
 
         return cls(**values)
+
+
+class DeepPlannerConfiguration(BaseModel):
+    """The configuration for the deep planner agent."""
+
+    max_steps: int = Field(
+        default=20,
+        metadata={"description": "The maximum number of steps to perform."},
+    )
