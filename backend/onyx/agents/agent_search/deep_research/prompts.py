@@ -10,8 +10,9 @@ COMPANY_NAME = "Onyx"
 
 COMPANY_CONTEXT = """
 Our company is Onyx, a startup founded by Yuhong Sun and Chris Weaver. Onyx is a startup that provides a platform for
-automated research and analysis using AI and LLMss.
-"""
+automated research and analysis using AI and LLMss. The current CEO of Onyx is Yuhong Sun. The company is based in San 
+Francisco, CA.
+"""  # noqa: W291
 
 query_writer_instructions = """Your goal is to generate sophisticated and diverse search queries for an internal search
 tool. These queries are intended for an advanced automated research tool capable of analyzing complex results and synthesizing
@@ -28,6 +29,8 @@ and one query is not enough.
 - Queries should be diverse, if the topic is broad, generate more than 1 query.
 - Don't generate multiple similar queries, 1 is enough.
 - Query should ensure that the most current information is gathered. The current date is {current_date}.
+- Query should be concise and contain relevant information to the company, the task, and the context.
+- Unless the task is general, the query should be specific to the company, the task, and the context.
 
 Format: 
 - Format your response as a JSON object with ALL three of these exact keys:
@@ -191,11 +194,34 @@ You are an expert research assistant for {company_name}.
 Here is some context about our company:
 {company_context}
 
-Given the task and and the context, generate a query to search for the information to answer the task. Return a single query text
+Given the task and and the context, generate a query to search for the information to answer the task. Return a single query text,
+make sure that the query is concise and contain relevant information to the company, the task, and the context.
+
+Initial question: {initial_question}
 
 Task: {task}
 
-Context: {context}
+Information that we have also gathered so far: {context}
 
 Query:
 """
+
+
+task_completion_prompt = """You are an expert research assistant for {company_name}.
+
+Here is some context about our company:
+{company_context}
+
+For the given task, try to accomplish it in a thorough and return well formed answer.
+
+Your current task is this:
+{task}
+
+Your original plan was this:
+{plan}
+
+Here is the context of the tasks:
+{past_steps}
+
+Answer:
+"""  # noqa: E501

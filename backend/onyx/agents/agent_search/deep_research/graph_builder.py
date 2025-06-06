@@ -28,6 +28,7 @@ from onyx.agents.agent_search.deep_research.prompts import planner_prompt
 from onyx.agents.agent_search.deep_research.prompts import query_writer_instructions
 from onyx.agents.agent_search.deep_research.prompts import reflection_instructions
 from onyx.agents.agent_search.deep_research.prompts import replanner_prompt
+from onyx.agents.agent_search.deep_research.prompts import task_completion_prompt
 from onyx.agents.agent_search.deep_research.prompts import task_to_query_prompt
 from onyx.agents.agent_search.deep_research.states import OnyxSearchState
 from onyx.agents.agent_search.deep_research.states import OverallState
@@ -428,7 +429,11 @@ def deep_research_graph_builder(test_mode: bool = False) -> StateGraph:
 
 
 def translate_task_to_query(
-    task: str, context=None, company_name=COMPANY_NAME, company_context=COMPANY_CONTEXT
+    task: str,
+    context=None,
+    company_name=COMPANY_NAME,
+    company_context=COMPANY_CONTEXT,
+    initial_question=None,
 ) -> str:
     """
     LangGraph node that translates a task to a query.
@@ -436,6 +441,7 @@ def translate_task_to_query(
     _, fast_llm = get_default_llms()
 
     formatted_prompt = task_to_query_prompt.format(
+        initial_question=initial_question,
         task=task,
         context=context,
         company_name=company_name,
@@ -444,36 +450,86 @@ def translate_task_to_query(
     return fast_llm.invoke(formatted_prompt).content
 
 
+def is_search_query(query: str) -> bool:
+    terms = [
+        "search",
+        "query",
+        "find",
+        "look up",
+        "look for",
+        "find out",
+        "find information",
+        "find data",
+        "find facts",
+        "find statistics",
+        "find trends",
+        "find insights",
+        "find trends",
+        "find insights",
+        "find trends",
+        "find insights",
+        "gather",
+        "gather information",
+        "gather data",
+        "gather facts",
+        "gather statistics",
+        "gather trends",
+        "gather insights",
+    ]
+    query = query.lower()
+    for term in terms:
+        if term in query:
+            return True
+    return False
+
+
 def execute_step(state: PlanExecute):
     """
     LangGraph node that plans the deep research process.
     """
     plan = state["plan"]
     task = plan[0]
-    query = translate_task_to_query(plan[0], context=state["past_steps"])
-    graph = deep_research_graph_builder()
-    compiled_graph = graph.compile(debug=IS_DEBUG)
-    # TODO: use this input_state for the deep research graph
-    # input_state = DeepResearchInput(log_messages=[])
     step_count = state.get("step_count", 0) + 1
+    if is_search_query(task):
+        query = translate_task_to_query(
+            plan[0], context=state["past_steps"], initial_question=state["input"]
+        )
+        graph = deep_research_graph_builder()
+        compiled_graph = graph.compile(debug=IS_DEBUG)
+        # TODO: use this input_state for the deep research graph
+        # input_state = DeepResearchInput(log_messages=[])
 
-    initial_state = {
-        "messages": [HumanMessage(content=query)],
-        "search_query": [],
-        "onyx_research_result": [],
-        "sources_gathered": [],
-        "initial_search_query_count": 3,  # Default value from Configuration
-        "max_research_loops": 2,  # State does not seem to pick up this value
-        "research_loop_count": 0,
-        "reasoning_model": "primary",
-    }
+        initial_state = {
+            "messages": [HumanMessage(content=query)],
+            "search_query": [],
+            "onyx_research_result": [],
+            "sources_gathered": [],
+            "initial_search_query_count": 3,  # Default value from Configuration
+            "max_research_loops": 2,  # State does not seem to pick up this value
+            "research_loop_count": 0,
+            "reasoning_model": "primary",
+        }
 
-    result = compiled_graph.invoke(initial_state)
+        result = compiled_graph.invoke(initial_state)
 
-    return {
-        "past_steps": [(task, query, result["messages"][-1].content)],
-        "step_count": step_count,
-    }
+        return {
+            "past_steps": [(task, query, result["messages"][-1].content)],
+            "step_count": step_count,
+        }
+    else:
+        primary_llm, _ = get_default_llms()
+        formatted_prompt = task_completion_prompt.format(
+            task=task,
+            plan=state["plan"],
+            past_steps=state["past_steps"],
+            company_name=COMPANY_NAME,
+            company_context=COMPANY_CONTEXT,
+        )
+        response = primary_llm.invoke(formatted_prompt).content
+        return {
+            "past_steps": [(task, "task: " + task, response)],
+            "step_count": step_count,
+        }
 
 
 def plan_step(state: PlanExecute):
@@ -507,9 +563,6 @@ def replan_step(state: PlanExecute):
     if isinstance(output.action, Response):
         # Check for canned response, if so, return the answer from the last step
         if output.action.response == "The final answer to the user's question":
-            from pdb import set_trace
-
-            set_trace()
             return {
                 "response": state["past_steps"][-1][2],
             }
