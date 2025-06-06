@@ -28,6 +28,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.chat.models import ExtendedToolResponse
 from onyx.configs.kg_configs import KG_ANSWER_GENERATION_TIMEOUT
 from onyx.configs.kg_configs import KG_RESEARCH_NUM_RETRIEVED_DOCS
+from onyx.context.search.enums import SearchType
 from onyx.context.search.models import InferenceSection
 from onyx.natural_language_processing.utils import BaseTokenizer
 from onyx.natural_language_processing.utils import get_tokenizer
@@ -35,7 +36,6 @@ from onyx.prompts.kg_prompts import OUTPUT_FORMAT_NO_EXAMPLES_PROMPT
 from onyx.prompts.kg_prompts import OUTPUT_FORMAT_NO_OVERALL_ANSWER_PROMPT
 from onyx.tools.tool_implementations.search.search_tool import IndexFilters
 from onyx.tools.tool_implementations.search.search_tool import SearchQueryInfo
-from onyx.tools.tool_implementations.search.search_tool import SearchType
 from onyx.tools.tool_implementations.search.search_tool import yield_search_responses
 from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_with_timeout
