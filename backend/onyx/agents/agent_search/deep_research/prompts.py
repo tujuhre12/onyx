@@ -6,9 +6,19 @@ def get_current_date():
     return datetime.now().strftime("%B %d, %Y")
 
 
-query_writer_instructions = """Your goal is to generate sophisticated and diverse search queries for Onyx, an internal search
+COMPANY_NAME = "Onyx"
+
+COMPANY_CONTEXT = """
+Our company is Onyx, a startup founded by Yuhong Sun and Chris Weaver. Onyx is a startup that provides a platform for
+automated research and analysis using AI and LLMss.
+"""
+
+query_writer_instructions = """Your goal is to generate sophisticated and diverse search queries for an internal search
 tool. These queries are intended for an advanced automated research tool capable of analyzing complex results and synthesizing
-information.
+information. The search tool has access to internal documents and information for {company_name}.
+
+Here is some context about our company:
+{company_context}
 
 Instructions:
 - Always prefer a single search query, only add another query if the original question requests multiple aspects or elements 
@@ -40,24 +50,13 @@ Topic: What revenue grew more last year apple stock or the number of people buyi
 }}
 ```
 
-Context: {research_topic}"""  # noqa: W291
+Context: {user_context}"""  # noqa: W291
 
 
-onyx_searcher_instructions = """Conduct targeted searches using Onyx, an internal search tool, to gather the most recent, credible 
-information on "{research_topic}" and synthesize it into a verifiable text artifact.
+reflection_instructions = """You are an expert research assistant analyzing summaries about "{research_topic}" for {company_name}.
 
-Instructions:
-- Query should ensure that the most current information is gathered. The current date is {current_date}.
-- Conduct multiple, diverse searches to gather comprehensive information.
-- Consolidate key findings while meticulously tracking the source(s) for each specific piece of information.
-- The output should be a well-written summary or report based on your search findings.
-- Only include the information found in the search results, don't make up any information.
-
-Research Topic:
-{research_topic}
-"""  # noqa: W291, E501
-
-reflection_instructions = """You are an expert research assistant analyzing summaries about "{research_topic}".
+Here is some context about our company:
+{company_context}
 
 Instructions:
 - Identify knowledge gaps or areas that need deeper exploration and generate a follow-up query. (1 or multiple).
@@ -92,7 +91,12 @@ Summaries:
 {summaries}
 """
 
-answer_instructions = """Generate a high-quality answer to the user's question based on the provided summaries.
+answer_instructions = """You are an expert research assistant analyzing summaries about "{research_topic}" for {company_name}.
+
+Here is some context about our company:
+{company_context}
+
+Generate a high-quality answer to the user's question based on the provided summaries.
 
 Instructions:
 - The current date is {current_date}.
@@ -103,7 +107,7 @@ Instructions:
 - you MUST include all the citations from the summaries in the answer correctly.
 
 User Context:
-- {research_topic}
+- {user_context}
 
 Summaries:
 {summaries}"""

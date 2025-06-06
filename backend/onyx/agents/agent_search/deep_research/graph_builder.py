@@ -15,6 +15,8 @@ from langgraph.types import Send
 
 from onyx.agents.agent_search.deep_research.configuration import Configuration
 from onyx.agents.agent_search.deep_research.prompts import answer_instructions
+from onyx.agents.agent_search.deep_research.prompts import COMPANY_CONTEXT
+from onyx.agents.agent_search.deep_research.prompts import COMPANY_NAME
 from onyx.agents.agent_search.deep_research.prompts import get_current_date
 from onyx.agents.agent_search.deep_research.prompts import query_writer_instructions
 from onyx.agents.agent_search.deep_research.prompts import reflection_instructions
@@ -26,6 +28,7 @@ from onyx.agents.agent_search.deep_research.states import WebSearchState
 from onyx.agents.agent_search.deep_research.tools_and_schemas import json_to_pydantic
 from onyx.agents.agent_search.deep_research.tools_and_schemas import Reflection
 from onyx.agents.agent_search.deep_research.tools_and_schemas import SearchQueryList
+from onyx.agents.agent_search.deep_research.utils import collate_messages
 from onyx.agents.agent_search.deep_research.utils import get_research_topic
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationConfig
@@ -162,6 +165,9 @@ def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerati
         current_date=current_date,
         research_topic=get_research_topic(state["messages"]),
         number_queries=state["initial_search_query_count"],
+        company_name=COMPANY_NAME,
+        company_context=COMPANY_CONTEXT,
+        user_context=collate_messages(state["messages"]),
     )
 
     # Get the LLM response and extract its content
@@ -263,6 +269,8 @@ def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
         current_date=current_date,
         research_topic=get_research_topic(state["messages"]),
         summaries=combined_summaries,
+        company_name=COMPANY_NAME,
+        company_context=COMPANY_CONTEXT,
     )
 
     # Get result from LLM
@@ -360,6 +368,9 @@ def finalize_answer(state: OverallState, config: RunnableConfig):
         current_date=current_date,
         research_topic=get_research_topic(state["messages"]),
         summaries=combined_summaries,
+        company_name=COMPANY_NAME,
+        company_context=COMPANY_CONTEXT,
+        user_context=collate_messages(state["messages"]),
     )
 
     result = llm.invoke(formatted_prompt)
