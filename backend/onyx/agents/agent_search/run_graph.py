@@ -13,6 +13,9 @@ from onyx.agents.agent_search.dc_search_analysis.graph_builder import (
 )
 from onyx.agents.agent_search.dc_search_analysis.states import MainInput as DCMainInput
 from onyx.agents.agent_search.deep_research.graph_builder import (
+    deep_planner_graph_builder,
+)
+from onyx.agents.agent_search.deep_research.graph_builder import (
     deep_research_graph_builder,
 )
 from onyx.agents.agent_search.deep_research.states import DeepResearchInput
@@ -172,6 +175,15 @@ def run_deepresearch_graph(
     config.inputs.prompt_builder.raw_user_query = (
         config.inputs.prompt_builder.raw_user_query.strip()
     )
+    return run_graph(compiled_graph, config, input)
+
+
+def run_deepplanner_graph(
+    config: GraphConfig,
+) -> AnswerStream:
+    graph = deep_planner_graph_builder()
+    compiled_graph = graph.compile()
+    input = DeepResearchInput(log_messages=[])
     return run_graph(compiled_graph, config, input)
 
 

@@ -13,6 +13,7 @@ from langgraph.graph import END
 from langgraph.graph import START
 from langgraph.graph import StateGraph
 from langgraph.types import Send
+from langgraph.types import StreamWriter
 
 from onyx.agents.agent_search.deep_research.configuration import (
     DeepPlannerConfiguration,
@@ -43,6 +44,9 @@ from onyx.agents.agent_search.deep_research.tools_and_schemas import Response
 from onyx.agents.agent_search.deep_research.tools_and_schemas import SearchQueryList
 from onyx.agents.agent_search.deep_research.utils import collate_messages
 from onyx.agents.agent_search.deep_research.utils import get_research_topic
+from onyx.agents.agent_search.models import GraphConfig
+from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
+from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import CitationConfig
 from onyx.chat.models import DocumentPruningConfig
@@ -483,16 +487,30 @@ def is_search_query(query: str) -> bool:
     return False
 
 
-def execute_step(state: PlanExecute):
+def execute_step(
+    state: PlanExecute, config: RunnableConfig, writer: StreamWriter = lambda _: None
+):
     """
     LangGraph node that plans the deep research process.
     """
+    graph_config = cast(GraphConfig, config["metadata"]["config"])
+    question = graph_config.inputs.prompt_builder.raw_user_query
     plan = state["plan"]
     task = plan[0]
     step_count = state.get("step_count", 0) + 1
     if is_search_query(task):
         query = translate_task_to_query(
-            plan[0], context=state["past_steps"], initial_question=state["input"]
+            plan[0], context=state["past_steps"], initial_question=question
+        )
+        write_custom_event(
+            "refined_agent_answer",
+            AgentAnswerPiece(
+                answer_piece="  executing a search query with Onyx...",
+                level=0,
+                level_question_num=0,
+                answer_type="agent_level_answer",
+            ),
+            writer,
         )
         graph = deep_research_graph_builder()
         compiled_graph = graph.compile(debug=IS_DEBUG)
@@ -525,6 +543,16 @@ def execute_step(state: PlanExecute):
             company_name=COMPANY_NAME,
             company_context=COMPANY_CONTEXT,
         )
+        write_custom_event(
+            "refined_agent_answer",
+            AgentAnswerPiece(
+                answer_piece="  accomplishing the planned task...",
+                level=0,
+                level_question_num=0,
+                answer_type="agent_level_answer",
+            ),
+            writer,
+        )
         response = primary_llm.invoke(formatted_prompt).content
         return {
             "past_steps": [(task, "task: " + task, response)],
@@ -532,25 +560,45 @@ def execute_step(state: PlanExecute):
         }
 
 
-def plan_step(state: PlanExecute):
+def plan_step(
+    state: PlanExecute, config: RunnableConfig, writer: StreamWriter = lambda _: None
+):
     """
     LangGraph node that replans the deep research process.
     """
+    graph_config = cast(GraphConfig, config["metadata"]["config"])
+    question = graph_config.inputs.prompt_builder.raw_user_query
+
     formatted_prompt = planner_prompt.format(
-        input=state["input"], company_name=COMPANY_NAME, company_context=COMPANY_CONTEXT
+        input=question, company_name=COMPANY_NAME, company_context=COMPANY_CONTEXT
     )
     primary_llm, _ = get_default_llms()
     response = primary_llm.invoke(formatted_prompt).content
     plan = json_to_pydantic(response, Plan)
+    write_custom_event(
+        "refined_agent_answer",
+        AgentAnswerPiece(
+            answer_piece="Generating a plan to answer the user's question... ",
+            level=0,
+            level_question_num=0,
+            answer_type="agent_level_answer",
+        ),
+        writer,
+    )
     return {"plan": plan.steps}
 
 
-def replan_step(state: PlanExecute):
+def replan_step(
+    state: PlanExecute, config: RunnableConfig, writer: StreamWriter = lambda _: None
+):
     """
     LangGraph node that determines if the deep research process should end.
     """
+    graph_config = cast(GraphConfig, config["metadata"]["config"])
+    question = graph_config.inputs.prompt_builder.raw_user_query
+
     formatted_prompt = replanner_prompt.format(
-        input=state["input"],
+        input=question,
         plan=state["plan"],
         past_steps=state["past_steps"],
         company_name=COMPANY_NAME,
@@ -568,16 +616,39 @@ def replan_step(state: PlanExecute):
             }
         else:
             return {"response": output.action.response}
-    elif state["step_count"] >= state["max_steps"]:
+    elif state["step_count"] >= state.get("max_steps", 5):
         return {
             "response": f"I've reached the maximum number of step, my best guess is {state['past_steps'][-1][2]}."
         }
     else:
+        write_custom_event(
+            "refined_agent_answer",
+            AgentAnswerPiece(
+                answer_piece="    moving on to the next step...",
+                level=0,
+                level_question_num=0,
+                answer_type="agent_level_answer",
+            ),
+            writer,
+        )
+
         return {"plan": output.action.steps}
 
 
-def should_end(state: PlanExecute):
+def should_end(
+    state: PlanExecute, config: RunnableConfig, writer: StreamWriter = lambda _: None
+):
     if "response" in state and state["response"]:
+        write_custom_event(
+            "refined_agent_answer",
+            AgentAnswerPiece(
+                answer_piece=state["response"],
+                level=0,
+                level_question_num=0,
+                answer_type="agent_level_answer",
+            ),
+            writer,
+        )
         return END
     else:
         return "agent"
@@ -675,6 +746,5 @@ if __name__ == "__main__":
         print("Question: ", query)
         print("Answer: ", result["response"])
         print("--------------------------------")
-        from pdb import set_trace
-
-        set_trace()
+        # from pdb import set_trace
+        # set_trace()
