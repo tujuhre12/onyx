@@ -8,7 +8,6 @@ Create Date: 2025-06-11 22:18:31.061655
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -30,33 +29,32 @@ def upgrade() -> None:
         unique=False,
     )
 
-    op.create_table(
-        "document_structure",
-        sa.Column("id", sa.String(), primary_key=True, nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("connector_credential_pair", sa.Integer(), nullable=False),
-        sa.Column("document_id", sa.String(), nullable=True),
+    # set parent to channel name for slack docs
+    op.add_column(
+        "document",
         sa.Column("parent", sa.String(), nullable=True),
-        sa.Column("external_user_emails", postgresql.ARRAY(sa.String()), nullable=True),
-        sa.Column(
-            "external_user_group_ids", postgresql.ARRAY(sa.String()), nullable=True
-        ),
-        sa.Column("is_public", sa.Boolean(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["connector_credential_pair"],
-            ["connector_credential_pair.id"],
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(["document_id"], ["document.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(
-            ["parent"], ["document_structure.id"], ondelete="CASCADE"
-        ),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("document_id"),
+    )
+    op.execute(
+        """
+        WITH slack_docs AS(
+            SELECT cc_pair.id
+            FROM document_by_connector_credential_pair AS cc_pair
+            JOIN connector ON cc_pair.connector_id = connector.id
+            WHERE connector.source = 'SLACK'
+        )
+        UPDATE document
+        SET parent = tag.tag_value
+        FROM slack_docs
+        JOIN document__tag ON slack_docs.id = document__tag.document_id
+        JOIN tag ON document__tag.tag_id = tag.id
+        WHERE
+            document.id = slack_docs.id AND
+            tag.tag_key = 'Channel'
+        """
     )
 
 
 def downgrade() -> None:
     op.drop_index(op.f("ix_document_last_perm_synced"), table_name="document")
     op.drop_column("document", "last_perm_synced")
-    op.drop_table("document_structure")
+    op.drop_column("document", "parent")

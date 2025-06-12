@@ -590,6 +590,7 @@ class Document(Base):
     last_perm_synced: Mapped[datetime.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True
     )
+    parent: Mapped[str | None] = mapped_column(NullFilteredString, nullable=True)
 
     # tables for the knowledge graph data
     kg_stage: Mapped[KGStage] = mapped_column(
@@ -618,39 +619,6 @@ class Document(Base):
             last_synced,
         ),
     )
-
-
-class DocumentStructure(Base):
-    __tablename__ = "document_structure"
-
-    id: Mapped[str] = mapped_column(
-        NullFilteredString, primary_key=True, nullable=False
-    )
-
-    name: Mapped[str] = mapped_column(NullFilteredString, nullable=False)
-
-    connector_credential_pair: Mapped[int] = mapped_column(
-        ForeignKey("connector_credential_pair.id"),
-        primary_key=True,
-        nullable=False,
-    )
-    document_id: Mapped[str | None] = mapped_column(
-        ForeignKey("document.id"),
-        nullable=True,
-        unique=True,
-    )
-
-    parent: Mapped[str | None] = mapped_column(
-        NullFilteredString, ForeignKey("document_structure.id"), nullable=True
-    )
-
-    external_user_emails: Mapped[list[str] | None] = mapped_column(
-        postgresql.ARRAY(String), nullable=True
-    )
-    external_user_group_ids: Mapped[list[str] | None] = mapped_column(
-        postgresql.ARRAY(String), nullable=True
-    )
-    is_public: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 # TODO: restructure config management
