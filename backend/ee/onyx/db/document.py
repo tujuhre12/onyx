@@ -98,6 +98,7 @@ def upsert_document_external_perms(
         document.external_user_group_ids = list(prefixed_external_groups)
         document.is_public = external_access.is_public
         document.last_modified = datetime.now(timezone.utc)
+        document.last_perm_synced = datetime.now(timezone.utc)
         db_session.commit()
 
     return False

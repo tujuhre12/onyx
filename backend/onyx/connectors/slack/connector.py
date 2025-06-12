@@ -245,6 +245,7 @@ def thread_to_doc(
         semantic_identifier=doc_sem_id,
         doc_updated_at=get_latest_message_time(thread),
         primary_owners=valid_experts,
+        parent=channel["name"],
         metadata={"Channel": channel["name"]},
         external_access=channel_access,
     )

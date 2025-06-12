@@ -406,6 +406,7 @@ def upsert_documents(
                     last_modified=datetime.now(timezone.utc),
                     primary_owners=doc.primary_owners,
                     secondary_owners=doc.secondary_owners,
+                    parent=doc.parent,
                     kg_stage=KGStage.NOT_STARTED,
                     **(
                         {

@@ -143,6 +143,7 @@ def _upsert_documents_in_db(
             first_link=first_link,
             primary_owners=get_experts_stores_representations(doc.primary_owners),
             secondary_owners=get_experts_stores_representations(doc.secondary_owners),
+            parent=doc.parent,
             from_ingestion_api=doc.from_ingestion_api,
             external_access=doc.external_access,
         )

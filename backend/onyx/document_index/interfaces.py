@@ -88,6 +88,7 @@ class DocumentMetadata:
     # Users may not be in Onyx
     primary_owners: list[str] | None = None
     secondary_owners: list[str] | None = None
+    parent: str | None = None
     from_ingestion_api: bool = False
 
     external_access: ExternalAccess | None = None

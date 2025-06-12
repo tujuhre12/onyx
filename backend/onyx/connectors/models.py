@@ -145,6 +145,7 @@ class DocumentBase(BaseModel):
     primary_owners: list[BasicExpertInfo] | None = None
     # Assignee, space owner, etc.
     secondary_owners: list[BasicExpertInfo] | None = None
+    parent: str | None = None
     # title is used for search whereas semantic_identifier is used for displaying in the UI
     # different because Slack message may display as #general but general should not be part
     # of the search, at least not in the same way as a document title should be for like Confluence
@@ -204,6 +205,7 @@ class DocumentBase(BaseModel):
         else:
             size += sys.getsizeof(self.secondary_owners)
 
+        size += sys.getsizeof(self.parent)
         size += sys.getsizeof(self.title)
         size += sys.getsizeof(self.from_ingestion_api)
         size += sys.getsizeof(self.additional_info)
