@@ -1,7 +1,7 @@
 module.exports = {
   onyx: {
     input: {
-      target: "../backend/generated/openapi.json",
+      target: "openapi/openapi.json",
     },
     output: {
       mode: "tags-split",
