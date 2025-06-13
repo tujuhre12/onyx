@@ -31,12 +31,19 @@ jobs:
         pip install --retries 5 --timeout 30 -r backend/requirements/dev.txt
         pip install --retries 5 --timeout 30 -r backend/requirements/model_server.txt
 
-    - name: Generate OpenAPI schema
+    - name: OpenAPI - Generate schema
       working-directory: ./backend
       env:
         PYTHONPATH: "."
       run: |
         python scripts/onyx_openapi_schema.py --filename generated/openapi.json
+
+    - name: OpenAPI - Compare backend and web schemas
+      run: |
+        diff backend/generated/openapi.json web/openapi/openapi.json || {
+          echo "::error file=web/openapi/openapi.json is out of date. Please regenerate the schema."
+          exit 1
+        }
 
     - name: Generate OpenAPI Python client
       working-directory: ./backend
