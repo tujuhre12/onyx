@@ -425,8 +425,9 @@
           "PYTHONPATH": "."
         },
         "args": [
-          "--filename",
+          "-f",
           "generated/openapi.json",
+          "../web/openapi/openapi.json",
         ]
       },
       {
