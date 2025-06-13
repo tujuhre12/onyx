@@ -12,6 +12,10 @@ from fastapi.openapi.utils import get_openapi
 # Force full enterprise edition schema to be generated
 os.environ["ENABLE_PAID_ENTERPRISE_EDITION_FEATURES"] = "True"
 
+# NOTE(rkuo): we're conditionally including endpoints based on auth type
+# looks like a time bomb / bad design
+os.environ["AUTH_TYPE"] = "basic"
+
 if True:  # noqa: E402
     from onyx.main import app as app_fn
 
