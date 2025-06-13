@@ -22,9 +22,6 @@ const getUrl = (contextUrl: string): string => {
   const search = url.search;
   const baseUrl = "/api";
 
-  // const baseUrl = INTERNAL_URL
-  // const requestUrl = new URL(`${baseUrl}${pathname}${search}`);
-
   const requestUrl = `${baseUrl}${pathname}${search}`;
   return requestUrl.toString();
 };
@@ -33,8 +30,6 @@ const getUrl = (contextUrl: string): string => {
 const getHeaders = (headers?: HeadersInit): HeadersInit => {
   return {
     ...headers,
-    // Authorization: 'token',
-    // 'Content-Type': 'multipart/form-data',
   };
 };
 
