@@ -40,6 +40,8 @@ jobs:
 
     - name: OpenAPI - Compare backend and web schemas
       run: |
+        ls -l backend/generated/openapi.json
+        ls -l web/openapi/openapi.json
         diff backend/generated/openapi.json web/openapi/openapi.json || {
           echo "::error file=web/openapi/openapi.json is out of date. Please regenerate the schema."
           exit 1
