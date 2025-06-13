@@ -9,10 +9,11 @@ import os
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
-from onyx.main import app as app_fn
-
 # Force full enterprise edition schema to be generated
 os.environ["ENABLE_PAID_ENTERPRISE_EDITION_FEATURES"] = "True"
+
+if True:  # noqa: E402
+    from onyx.main import app as app_fn
 
 
 def go(filenames: list[str]) -> None:
