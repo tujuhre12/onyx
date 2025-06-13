@@ -1,9 +1,4 @@
-# NOTE(rkuo): all the python here is just to generate the openapi schema and client
-# for the web app. It can all be removed in theory once we have the schema.
-
-FROM node:22-bookworm AS base
-
-ARG NODE_OPTIONS
+FROM node:20-alpine AS base
 
 LABEL com.onyx.maintainer="founders@onyx.app"
 LABEL com.onyx.description="This image is the web/frontend container of Onyx which \
@@ -19,79 +14,18 @@ RUN echo "ONYX_VERSION: ${ONYX_VERSION}"
 
 # Step 1. Install dependencies + rebuild the source code only when needed
 FROM base AS builder
-
-# this is only possibly needed for alpine based images, not bookworm
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-# RUN apk add --no-cache libc6-compat
-
-RUN echo "ONYX_VERSION: ${ONYX_VERSION}"
-
-# Install system dependencies
-# curl included just for users' convenience
-# ca-certificates for HTTPS
-RUN apt-get update && \
-    apt-get install -y \
-	    python3=3.11.* \
-	    python3-pip \
-	    python3-venv \
-        curl \
-        zip \
-        ca-certificates \
-        pkg-config \
-        nano \
-        vim && \
-    rm -rf /var/lib/apt/lists/* && \
-    apt-get clean
-    
-RUN python3 -m venv /venv
-ENV PATH="/venv/bin:$PATH"
-
-# Install Python dependencies
-# Remove py which is pulled in by retry, py is not needed and is a CVE
-COPY backend/requirements/default.txt /tmp/requirements.txt
-COPY backend/requirements/ee.txt /tmp/ee-requirements.txt
-RUN pip install --no-cache-dir --upgrade \
-        --retries 5 \
-        --timeout 30 \
-        -r /tmp/requirements.txt \
-        -r /tmp/ee-requirements.txt && \
-    pip uninstall -y py && \
-    playwright install chromium && \
-    playwright install-deps chromium && \
-    ln -s /usr/local/bin/supervisord /usr/bin/supervisord
-
-# Cleanup for CVEs and size reduction
-# https://github.com/tornadoweb/tornado/issues/3107
-# xserver-common and xvfb included by playwright installation but not needed after
-# perl-base is part of the base Python Debian image but not needed for Onyx functionality
-# perl-base could only be removed with --allow-remove-essential
-RUN apt-get update && \
-    apt-get remove -y --allow-remove-essential \
-        perl-base \
-        xserver-common \
-        xvfb \
-        cmake \
-        libldap-2.5-0 \
-        libxmlsec1-dev \
-        pkg-config \
-        gcc && \
-    apt-get install -y libxmlsec1-openssl && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/* && \
-    rm -f /usr/local/lib/python3.11/site-packages/tornado/test/test.key
-
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
-COPY backend ./backend
-COPY web .
 
-WORKDIR /app/backend
-RUN PYTHONPATH=/app/backend python3 scripts/onyx_openapi_schema.py --filename generated/openapi.json
+# Add NODE_OPTIONS argument
+ARG NODE_OPTIONS
 
-WORKDIR /app
+# pull in source code / package.json / package-lock.json
+COPY . .
 
 # Install dependencies
 RUN npm ci
-RUN npx orval --config orval-docker.config.js
 
 # needed to get the `standalone` dir we expect later
 ENV NEXT_PRIVATE_STANDALONE=true
