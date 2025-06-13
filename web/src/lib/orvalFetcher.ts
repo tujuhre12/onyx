@@ -1,5 +1,3 @@
-import { INTERNAL_URL } from "./constants";
-
 // NOTE: Supports cases where `content-type` is other than `json`
 const getBody = <T>(c: Response | Request): Promise<T> => {
   const contentType = c.headers.get("content-type");

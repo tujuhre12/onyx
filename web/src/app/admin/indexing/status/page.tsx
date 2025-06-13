@@ -6,7 +6,6 @@ import { CCPairIndexingStatusTable } from "./CCPairIndexingStatusTable";
 import { AdminPageTitle } from "@/components/admin/Title";
 import Link from "next/link";
 import Text from "@/components/ui/text";
-// import { useConnectorCredentialIndexingStatus } from "@/lib/hooks";
 import { usePopupFromQuery } from "@/components/popup/PopupFromQuery";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,18 +38,6 @@ function Main() {
       },
     }
   );
-
-  // const {
-  //   data: indexAttemptData,
-  //   isLoading: indexAttemptIsLoading,
-  //   error: indexAttemptError,
-  // } = useConnectorCredentialIndexingStatus();
-
-  // const {
-  //   data: editableIndexAttemptData,
-  //   isLoading: editableIndexAttemptIsLoading,
-  //   error: editableIndexAttemptError,
-  // } = useConnectorCredentialIndexingStatus(undefined, true);
 
   if (indexAttemptIsLoading || editableIndexAttemptIsLoading) {
     return <LoadingAnimation text="" />;
