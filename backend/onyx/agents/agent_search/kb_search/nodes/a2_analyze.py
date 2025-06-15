@@ -263,7 +263,7 @@ def analyze(
 Format: {output_format.value}, Broken down question: {broken_down_question}"
 
     if (
-        state.query_graph_relationships
+        query_graph_relationships
         or relationship_detection == KGRelationshipDetection.RELATIONSHIPS
     ):
         query_type = "graph_relationships"

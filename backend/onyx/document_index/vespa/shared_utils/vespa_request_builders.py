@@ -82,12 +82,12 @@ def build_vespa_filters(
             else:
                 return f'"{entity}"'
 
-        # AND the entities
+        # OR the entities (give new design)
         if kg_entities:
             filter_parts = []
             for kg_entity in kg_entities:
                 filter_parts.append(f"(kg_entities contains {_build_kge(kg_entity)})")
-            combined_filter_parts.append(f"({' and '.join(filter_parts)})")
+            combined_filter_parts.append(f"({' or '.join(filter_parts)})")
 
         # TODO: handle complex nested relationship logic (e.g., A participated, and B or C participated)
         if kg_relationships:
