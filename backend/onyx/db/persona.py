@@ -325,6 +325,8 @@ def get_personas_for_user(
     include_slack_bot_personas: bool = False,
     include_deleted: bool = False,
     joinedload_all: bool = False,
+    # a bit jank
+    include_prompt: bool = True,
 ) -> Sequence[Persona]:
     stmt = select(Persona)
     stmt = _add_user_filters(stmt, user, get_editable)
@@ -339,13 +341,14 @@ def get_personas_for_user(
 
     if joinedload_all:
         stmt = stmt.options(
-            selectinload(Persona.prompts),
             selectinload(Persona.tools),
             selectinload(Persona.document_sets),
             selectinload(Persona.groups),
             selectinload(Persona.users),
             selectinload(Persona.labels),
         )
+        if include_prompt:
+            stmt = stmt.options(selectinload(Persona.prompts))
 
     results = db_session.execute(stmt).scalars().all()
     return results
