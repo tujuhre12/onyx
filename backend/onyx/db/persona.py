@@ -331,8 +331,9 @@ def get_personas_for_user(
 
     if not include_default:
         stmt = stmt.where(Persona.builtin_persona.is_(False))
-    if not include_slack_bot_personas:
-        stmt = stmt.where(not_(Persona.name.startswith(SLACK_BOT_PERSONA_PREFIX)))
+    # commenting out since it's not necessary for this customer
+    # if not include_slack_bot_personas:
+    #     stmt = stmt.where(not_(Persona.name.startswith(SLACK_BOT_PERSONA_PREFIX)))
     if not include_deleted:
         stmt = stmt.where(Persona.deleted.is_(False))
 
