@@ -91,7 +91,7 @@ class ImageGenerationTool(Tool[None]):
         api_base: str | None,
         api_version: str | None,
         model: str = "gpt-image-1",
-        num_imgs: int = 2,
+        num_imgs: int = 1,
         additional_headers: dict[str, str] | None = None,
         output_format: ImageFormat = _DEFAULT_OUTPUT_FORMAT,
     ) -> None:
