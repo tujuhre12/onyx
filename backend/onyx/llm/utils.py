@@ -2,6 +2,7 @@ import copy
 import json
 from collections.abc import Callable
 from collections.abc import Iterator
+from functools import lru_cache
 from typing import Any
 from typing import cast
 
@@ -350,6 +351,7 @@ def test_llm(llm: LLM) -> str | None:
     return error_msg
 
 
+@lru_cache(maxsize=1)  # the copy.deepcopy is expensive, so we cache the result
 def get_model_map() -> dict:
     starting_map = copy.deepcopy(cast(dict, litellm.model_cost))
 
