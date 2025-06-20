@@ -151,16 +151,26 @@ if LOG_POSTGRES_CONN_COUNTS:
         global checkout_count
         checkout_count += 1
 
-        active_connections = connection_proxy._pool.checkedout()
-        idle_connections = connection_proxy._pool.checkedin()
-        pool_size = connection_proxy._pool.size()
-        logger.debug(
-            "Connection Checkout\n"
-            f"Active Connections: {active_connections};\n"
-            f"Idle: {idle_connections};\n"
-            f"Pool Size: {pool_size};\n"
-            f"Total connection checkouts: {checkout_count}"
-        )
+        try:
+            active_connections = connection_proxy._pool.checkedout()
+            idle_connections = connection_proxy._pool.checkedin()
+            pool_size = connection_proxy._pool.size()
+
+            # Get additional pool information
+            pool_class_name = connection_proxy._pool.__class__.__name__
+            engine_app_name = SqlEngine.get_app_name() or "unknown"
+
+            logger.debug(
+                "SYNC Engine Connection Checkout\n"
+                f"Pool Type: {pool_class_name};\n"
+                f"App Name: {engine_app_name};\n"
+                f"Active Connections: {active_connections};\n"
+                f"Idle Connections: {idle_connections};\n"
+                f"Pool Size: {pool_size};\n"
+                f"Total Sync Checkouts: {checkout_count}"
+            )
+        except Exception as e:
+            logger.error(f"Error logging checkout: {e}")
 
     @event.listens_for(Engine, "checkin")
     def log_checkin(dbapi_connection, connection_record):  # type: ignore
