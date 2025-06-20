@@ -116,7 +116,7 @@ class PersonaSnapshot(BaseModel):
 
     @classmethod
     def from_model(
-        cls, persona: Persona, allow_deleted: bool = False
+        cls, persona: Persona, allow_deleted: bool = False, include_prompts: bool = True
     ) -> "PersonaSnapshot":
         if persona.deleted:
             error_msg = f"Persona with ID {persona.id} has been deleted"
@@ -145,7 +145,11 @@ class PersonaSnapshot(BaseModel):
             starter_messages=persona.starter_messages,
             builtin_persona=persona.builtin_persona,
             is_default_persona=persona.is_default_persona,
-            prompts=[PromptSnapshot.from_model(prompt) for prompt in persona.prompts],
+            prompts=(
+                [PromptSnapshot.from_model(prompt) for prompt in persona.prompts]
+                if include_prompts
+                else []
+            ),
             tools=[ToolSnapshot.from_model(tool) for tool in persona.tools],
             document_sets=[
                 DocumentSet.from_model(document_set_model)

@@ -417,7 +417,7 @@ def list_personas(
         )
     ]
 
-    return [PersonaSnapshot.from_model(p) for p in personas]
+    return [PersonaSnapshot.from_model(p, include_prompts=False) for p in personas]
 
 
 @basic_router.get("/{persona_id}")
