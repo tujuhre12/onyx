@@ -746,3 +746,7 @@ IMAGE_ANALYSIS_SYSTEM_PROMPT = os.environ.get(
 DISABLE_AUTO_AUTH_REFRESH = (
     os.environ.get("DISABLE_AUTO_AUTH_REFRESH", "").lower() == "true"
 )
+
+# Forcing Vespa Language
+# English: en, German:de, etc. See: https://docs.vespa.ai/en/linguistics.html
+VESPA_LANGUAGE_OVERRIDE = os.environ.get("VESPA_LANGUAGE_OVERRIDE")
