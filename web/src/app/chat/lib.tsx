@@ -204,7 +204,7 @@ export async function* sendMessage({
     chat_session_id: chatSessionId,
     parent_message_id: parentMessageId,
     message: message,
-    prompt_id: promptId,
+    prompt_id: promptId ?? null,
     search_doc_ids: documentsAreSelected ? selectedDocumentIds : null,
     file_descriptors: fileDescriptors,
     regenerate,

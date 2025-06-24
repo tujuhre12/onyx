@@ -93,9 +93,7 @@ class CreateChatMessageRequest(ChunkContext):
     # Files that we should attach to this message
     file_descriptors: list[FileDescriptor]
 
-    # If no prompt provided, uses the largest prompt of the chat session
-    # but really this should be explicitly specified, only in the simplified APIs is this inferred
-    # Use prompt_id 0 to use the system default prompt which is Answer-Question
+    # If no prompt provided, uses the largest prompt of the assistant/chat session
     prompt_id: int | None
     # If search_doc_ids provided, then retrieval options are unused
     search_doc_ids: list[int] | None
