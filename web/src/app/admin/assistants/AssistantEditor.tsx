@@ -24,11 +24,7 @@ import { usePopup } from "@/components/admin/connectors/Popup";
 import { getDisplayNameForModel, useLabels } from "@/lib/hooks";
 import { DocumentSetSelectable } from "@/components/documentSet/DocumentSetSelectable";
 import { addAssistantToList } from "@/lib/assistants/updateAssistantPreferences";
-import {
-  checkLLMSupportsImageInput,
-  destructureValue,
-  structureValue,
-} from "@/lib/llm/utils";
+import { destructureValue, structureValue } from "@/lib/llm/utils";
 import { ToolSnapshot } from "@/lib/tools/interfaces";
 import { checkUserIsNoAuthUser } from "@/lib/user";
 
@@ -163,8 +159,6 @@ export function AssistantEditor({
     }
   }, [defaultIconShape]);
 
-  const [isIconDropdownOpen, setIsIconDropdownOpen] = useState(false);
-
   const [removePersonaImage, setRemovePersonaImage] = useState(false);
 
   const autoStarterMessageEnabled = useMemo(
@@ -176,7 +170,6 @@ export function AssistantEditor({
   const defaultProvider = llmProviders.find(
     (llmProvider) => llmProvider.is_default_provider
   );
-  const defaultModelName = defaultProvider?.default_model_name;
   const providerDisplayNameToProviderName = new Map<string, string>();
   llmProviders.forEach((llmProvider) => {
     providerDisplayNameToProviderName.set(
@@ -596,12 +589,6 @@ export function AssistantEditor({
             setFieldValue("enabled_tools_map", updatedEnabledToolsMap);
           }
 
-          // model must support image input for image generation
-          // to work
-          const currentLLMSupportsImageOutput = checkLLMSupportsImageInput(
-            values.llm_model_version_override || defaultModelName || ""
-          );
-
           return (
             <Form className="w-full text-text-950 assistant-editor">
               {/* Refresh starter messages when name or description changes */}
@@ -932,15 +919,8 @@ export function AssistantEditor({
                             name={`enabled_tools_map.${imageGenerationTool.id}`}
                             label={imageGenerationTool.display_name}
                             subtext="Generate and manipulate images using AI-powered tools"
-                            disabled={
-                              !currentLLMSupportsImageOutput ||
-                              !isImageGenerationAvailable
-                            }
-                            disabledTooltip={
-                              !currentLLMSupportsImageOutput
-                                ? "To use Image Generation, select GPT-4 or another image compatible model as the default model for this Assistant."
-                                : "Image Generation requires an OpenAI or Azure Dall-E configuration."
-                            }
+                            disabled={!isImageGenerationAvailable}
+                            disabledTooltip="Image Generation requires an OpenAI or Azure Dall-E configuration."
                           />
                         </div>
                       </>
