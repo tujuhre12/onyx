@@ -116,6 +116,8 @@ def _is_pruning_due(cc_pair: ConnectorCredentialPair) -> bool:
     bind=True,
 )
 def check_for_pruning(self: Task, *, tenant_id: str) -> bool | None:
+    task_logger.info("check_for_pruning - Starting")
+
     r = get_redis_client()
     r_replica = get_redis_replica_client()
     r_celery: Redis = self.app.broker_connection().channel().client  # type: ignore
@@ -164,9 +166,12 @@ def check_for_pruning(self: Task, *, tenant_id: str) -> bool | None:
                     )
             r.set(OnyxRedisSignals.BLOCK_PRUNING, 1, ex=3600)
 
+        task_logger.info("check_for_pruning - pruning task kickoff complete")
+
         # we want to run this less frequently than the overall task
         lock_beat.reacquire()
         if not r.exists(OnyxRedisSignals.BLOCK_VALIDATE_PRUNING_FENCES):
+            task_logger.info("check_for_pruning - validating pruning fences")
             # clear any permission fences that don't have associated celery tasks in progress
             # tasks can be in the queue in redis, in reserved tasks (prefetched by the worker),
             # or be currently executing
@@ -176,6 +181,8 @@ def check_for_pruning(self: Task, *, tenant_id: str) -> bool | None:
                 task_logger.exception("Exception while validating pruning fences")
 
             r.set(OnyxRedisSignals.BLOCK_VALIDATE_PRUNING_FENCES, 1, ex=300)
+
+        task_logger.info("check_for_pruning - pruning fence validation complete")
 
         # use a lookup table to find active fences. We still have to verify the fence
         # exists since it is an optimization and not the source of truth.
@@ -190,8 +197,13 @@ def check_for_pruning(self: Task, *, tenant_id: str) -> bool | None:
 
             key_str = key_bytes.decode("utf-8")
             if key_str.startswith(RedisConnectorPrune.FENCE_PREFIX):
+                task_logger.info(
+                    f"check_for_pruning - monitoring pruning taskset: {key_str}"
+                )
                 with get_session_with_current_tenant() as db_session:
                     monitor_ccpair_pruning_taskset(tenant_id, key_bytes, r, db_session)
+
+        task_logger.info("check_for_pruning - pruning taskset monitoring complete")
     except SoftTimeLimitExceeded:
         task_logger.info(
             "Soft time limit exceeded, task is being terminated gracefully."

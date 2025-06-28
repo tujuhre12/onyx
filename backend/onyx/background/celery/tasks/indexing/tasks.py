@@ -422,6 +422,7 @@ def check_for_indexing(self: Task, *, tenant_id: str) -> int | None:
         # SPECIAL 0/3: sync lookup table for active fences
         # we want to run this less frequently than the overall task
         if not redis_client.exists(OnyxRedisSignals.BLOCK_BUILD_FENCE_LOOKUP_TABLE):
+            task_logger.info("check_for_indexing - building fence lookup table")
             # build a lookup table of existing fences
             # this is just a migration concern and should be unnecessary once
             # lookup tables are rolled out
@@ -439,6 +440,8 @@ def check_for_indexing(self: Task, *, tenant_id: str) -> int | None:
                 1,
                 ex=OnyxRuntime.get_build_fence_lookup_table_interval(),
             )
+
+        task_logger.info("check_for_indexing - fence lookup table build complete")
 
         # 1/3: KICKOFF
 
@@ -461,6 +464,8 @@ def check_for_indexing(self: Task, *, tenant_id: str) -> int | None:
                         embedding_model=embedding_model,
                     )
 
+        task_logger.info("check_for_indexing - search settings check and swap complete")
+
         # gather cc_pair_ids
         lock_beat.reacquire()
         cc_pair_ids: list[int] = []
@@ -470,6 +475,8 @@ def check_for_indexing(self: Task, *, tenant_id: str) -> int | None:
             )
             for cc_pair_entry in cc_pairs:
                 cc_pair_ids.append(cc_pair_entry.id)
+
+        task_logger.info("check_for_indexing - cc_pair_ids gather complete")
 
         # mark CC Pairs that are repeatedly failing as in repeated error state
         with get_session_with_current_tenant() as db_session:
@@ -485,6 +492,10 @@ def check_for_indexing(self: Task, *, tenant_id: str) -> int | None:
                         cc_pair_id=cc_pair_id,
                         in_repeated_error_state=True,
                     )
+
+        task_logger.info(
+            "check_for_indexing - cc_pair_ids repeated error state marking complete"
+        )
 
         # kick off index attempts
         for cc_pair_id in cc_pair_ids:
@@ -588,6 +599,8 @@ def check_for_indexing(self: Task, *, tenant_id: str) -> int | None:
                             f"search_settings={search_settings_instance.id}"
                         )
 
+        task_logger.info("check_for_indexing - indexing task kickoff complete")
+
         lock_beat.reacquire()
 
         # 2/3: VALIDATE
@@ -617,12 +630,17 @@ def check_for_indexing(self: Task, *, tenant_id: str) -> int | None:
                     attempt.id, db_session, failure_reason=failure_reason
                 )
 
+        task_logger.info(
+            "check_for_indexing - unfenced index attempts validation complete"
+        )
+
         lock_beat.reacquire()
         # we want to run this less frequently than the overall task
         if not redis_client.exists(OnyxRedisSignals.BLOCK_VALIDATE_INDEXING_FENCES):
             # clear any indexing fences that don't have associated celery tasks in progress
             # tasks can be in the queue in redis, in reserved tasks (prefetched by the worker),
             # or be currently executing
+            task_logger.info("check_for_indexing - validating all indexing fences")
             try:
                 validate_indexing_fences(
                     tenant_id, redis_client_replica, redis_client_celery, lock_beat
@@ -631,6 +649,8 @@ def check_for_indexing(self: Task, *, tenant_id: str) -> int | None:
                 task_logger.exception("Exception while validating indexing fences")
 
             redis_client.set(OnyxRedisSignals.BLOCK_VALIDATE_INDEXING_FENCES, 1, ex=60)
+
+        task_logger.info("check_for_indexing - validating all indexing fences complete")
 
         # 3/3: FINALIZE
         lock_beat.reacquire()
@@ -647,9 +667,14 @@ def check_for_indexing(self: Task, *, tenant_id: str) -> int | None:
             key_str = key_bytes.decode("utf-8")
             if key_str.startswith(RedisConnectorIndex.FENCE_PREFIX):
                 with get_session_with_current_tenant() as db_session:
+                    task_logger.info(
+                        f"check_for_indexing - monitoring indexing taskset: {key_str}"
+                    )
                     monitor_ccpair_indexing_taskset(
                         tenant_id, key_bytes, redis_client_replica, db_session
                     )
+
+        task_logger.info("check_for_indexing - indexing taskset monitoring complete")
 
     except SoftTimeLimitExceeded:
         task_logger.info(
