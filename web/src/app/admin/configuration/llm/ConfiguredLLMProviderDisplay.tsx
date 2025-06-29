@@ -172,23 +172,10 @@ export function ConfiguredLLMProviderDisplay({
         return (
           <LLMProviderDisplay
             key={provider.id}
-            // if the user has specified custom model names,
-            // then the provider is custom - don't use the default
-            // provider descriptor
-            llmProviderDescriptor={
-              isSubset(
-                defaultProviderDesciptor
-                  ? defaultProviderDesciptor.model_configurations.map(
-                      (model_configuration) => model_configuration.name
-                    )
-                  : [],
-                provider.model_configurations.map(
-                  (model_configuration) => model_configuration.name
-                )
-              )
-                ? defaultProviderDesciptor
-                : null
-            }
+            // When editing an existing provider, always use the provider descriptor
+            // that matches the provider type, regardless of custom model configurations.
+            // This ensures users see the same configuration modal they used originally.
+            llmProviderDescriptor={defaultProviderDesciptor || null}
             existingLlmProvider={provider}
           />
         );
