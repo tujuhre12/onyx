@@ -1,3 +1,4 @@
+import json
 from typing import cast
 from uuid import uuid4
 
@@ -22,6 +23,9 @@ from onyx.configs.chat_configs import USE_SEMANTIC_KEYWORD_EXPANSIONS_BASIC_SEAR
 from onyx.context.search.preprocessing.preprocessing import query_analysis
 from onyx.context.search.retrieval.search_runner import get_query_embedding
 from onyx.llm.factory import get_default_llms
+from onyx.llm.interfaces import LLM
+from onyx.llm.utils import message_to_string
+from onyx.prompts.chat_prompts import GEN_EXCERPT_PROMPT
 from onyx.prompts.chat_prompts import QUERY_KEYWORD_EXPANSION_WITH_HISTORY_PROMPT
 from onyx.prompts.chat_prompts import QUERY_KEYWORD_EXPANSION_WITHOUT_HISTORY_PROMPT
 from onyx.prompts.chat_prompts import QUERY_SEMANTIC_EXPANSION_WITH_HISTORY_PROMPT
@@ -36,6 +40,7 @@ from onyx.utils.threadpool_concurrency import TimeoutThread
 from onyx.utils.threadpool_concurrency import wait_on_background
 from onyx.utils.timing import log_function_time
 from shared_configs.model_server_models import Embedding
+
 
 logger = setup_logger()
 
@@ -55,6 +60,17 @@ def _create_history_str(prompt_builder: AnswerPromptBuilder) -> str:
     return "\n".join(history_segments)
 
 
+HISTORY_PROMPT_MAP = {
+    (QueryExpansionType.KEYWORD, True): QUERY_KEYWORD_EXPANSION_WITH_HISTORY_PROMPT,
+    (QueryExpansionType.KEYWORD, False): QUERY_KEYWORD_EXPANSION_WITHOUT_HISTORY_PROMPT,
+    (QueryExpansionType.SEMANTIC, True): QUERY_SEMANTIC_EXPANSION_WITH_HISTORY_PROMPT,
+    (
+        QueryExpansionType.SEMANTIC,
+        False,
+    ): QUERY_SEMANTIC_EXPANSION_WITHOUT_HISTORY_PROMPT,
+}
+
+
 def _expand_query(
     query: str,
     expansion_type: QueryExpansionType,
@@ -63,18 +79,11 @@ def _expand_query(
 
     history_str = _create_history_str(prompt_builder)
 
+    base_prompt = HISTORY_PROMPT_MAP[(expansion_type, bool(history_str))]
+    format_args = {"question": query}
     if history_str:
-        if expansion_type == QueryExpansionType.KEYWORD:
-            base_prompt = QUERY_KEYWORD_EXPANSION_WITH_HISTORY_PROMPT
-        else:
-            base_prompt = QUERY_SEMANTIC_EXPANSION_WITH_HISTORY_PROMPT
-        expansion_prompt = base_prompt.format(question=query, history=history_str)
-    else:
-        if expansion_type == QueryExpansionType.KEYWORD:
-            base_prompt = QUERY_KEYWORD_EXPANSION_WITHOUT_HISTORY_PROMPT
-        else:
-            base_prompt = QUERY_SEMANTIC_EXPANSION_WITHOUT_HISTORY_PROMPT
-        expansion_prompt = base_prompt.format(question=query)
+        format_args["history"] = history_str
+    expansion_prompt = base_prompt.format(**format_args)
 
     msg = HumanMessage(content=expansion_prompt)
     primary_llm, _ = get_default_llms()
@@ -84,15 +93,34 @@ def _expand_query(
     return rephrased_query
 
 
+# TODO: right now the llm describes the places where stuff could be, I want it to hallucinate real content
+# fine for now since I'm just tryna get the pipeline going
+def _gen_excerpts(
+    prompt_builder: AnswerPromptBuilder,
+    llm: LLM,
+) -> list[str]:
+    user_prompt = prompt_builder.build()
+    prompt_str = GEN_EXCERPT_PROMPT.format(prompt=user_prompt)
+    excerpts_str = message_to_string(llm.invoke(prompt_str))
+    try:
+        excerpts = json.loads(excerpts_str)
+    except json.JSONDecodeError:
+        excerpts = [
+            exc for exc in excerpts_str.split('"') if len(exc) > 5
+        ]  # TODO: jank
+
+    if not isinstance(excerpts, list):
+        raise ValueError(f"Excerpts is not a list: {excerpts}")
+
+    return excerpts
+
+
 def _expand_query_non_tool_calling_llm(
     expanded_keyword_thread: TimeoutThread[str],
     expanded_semantic_thread: TimeoutThread[str],
 ) -> QueryExpansions | None:
-    keyword_expansion: str | None = wait_on_background(expanded_keyword_thread)
-    semantic_expansion: str | None = wait_on_background(expanded_semantic_thread)
-
-    if keyword_expansion is None or semantic_expansion is None:
-        return None
+    keyword_expansion: str = wait_on_background(expanded_keyword_thread)
+    semantic_expansion: str = wait_on_background(expanded_semantic_thread)
 
     return QueryExpansions(
         keywords_expansions=[keyword_expansion],
@@ -124,6 +152,7 @@ def choose_tool(
     keyword_thread: TimeoutThread[tuple[bool, list[str]]] | None = None
     expanded_keyword_thread: TimeoutThread[str] | None = None
     expanded_semantic_thread: TimeoutThread[str] | None = None
+    gen_excerpts_thread: TimeoutThread[list[str]] | None = None
     # If we have override_kwargs, add them to the tool_args
     override_kwargs: SearchToolOverrideKwargs = (
         force_use_tool.override_kwargs or SearchToolOverrideKwargs()
@@ -166,6 +195,12 @@ def choose_tool(
                 agent_config.inputs.prompt_builder.raw_user_query,
                 QueryExpansionType.SEMANTIC,
                 prompt_builder,
+            )
+        if agent_config.behavior.gen_excerpts:
+            gen_excerpts_thread = run_in_background(
+                _gen_excerpts,
+                agent_config.inputs.prompt_builder,
+                llm,
             )
 
     structured_response_format = agent_config.inputs.structured_response_format
@@ -224,6 +259,10 @@ def choose_tool(
                 or override_kwargs.expanded_queries.semantic_expansions is None
             ):
                 raise ValueError("No expanded keyword or semantic threads found.")
+
+        if gen_excerpts_thread:
+            excerpts = wait_on_background(gen_excerpts_thread)
+            override_kwargs.gen_excerpts = excerpts
 
         return ToolChoiceUpdate(
             tool_choice=ToolChoice(
@@ -339,6 +378,10 @@ def choose_tool(
             or override_kwargs.expanded_queries.semantic_expansions is None
         ):
             raise ValueError("No expanded keyword or semantic threads found.")
+
+    if gen_excerpts_thread:
+        excerpts = wait_on_background(gen_excerpts_thread)
+        override_kwargs.gen_excerpts = excerpts
 
     return ToolChoiceUpdate(
         tool_choice=ToolChoice(

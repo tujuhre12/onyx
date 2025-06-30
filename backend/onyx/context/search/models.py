@@ -176,6 +176,7 @@ class SearchRequest(ChunkContext):
     precomputed_query_embedding: Embedding | None = None
     precomputed_is_keyword: bool | None = None
     precomputed_keywords: list[str] | None = None
+    gen_excerpts: list[str] | None = None
 
 
 class SearchQuery(ChunkContext):

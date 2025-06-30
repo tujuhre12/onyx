@@ -339,6 +339,7 @@ class SearchTool(Tool[SearchToolOverrideKwargs]):
         kg_terms = None
         kg_sources = None
         kg_chunk_id_zero_only = False
+        gen_excerpts = []
         if override_kwargs:
             force_no_rerank = use_alt_not_None(override_kwargs.force_no_rerank, False)
             alternate_db_session = override_kwargs.alternate_db_session
@@ -356,6 +357,10 @@ class SearchTool(Tool[SearchToolOverrideKwargs]):
             kg_terms = override_kwargs.kg_terms
             kg_sources = override_kwargs.kg_sources
             kg_chunk_id_zero_only = override_kwargs.kg_chunk_id_zero_only or False
+            precomputed_is_keyword = override_kwargs.precomputed_is_keyword
+            precomputed_keywords = override_kwargs.precomputed_keywords
+            precomputed_query_embedding = override_kwargs.precomputed_query_embedding
+            gen_excerpts = override_kwargs.gen_excerpts or []
 
         if self.selected_sections:
             yield from self._build_response_for_specified_sections(query)
@@ -432,6 +437,7 @@ class SearchTool(Tool[SearchToolOverrideKwargs]):
                 precomputed_keywords=precomputed_keywords,
                 # add expanded queries
                 expanded_queries=expanded_queries,
+                gen_excerpts=gen_excerpts,
             ),
             user=self.user,
             llm=self.llm,

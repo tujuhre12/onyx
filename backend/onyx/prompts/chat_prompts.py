@@ -324,3 +324,22 @@ Respond with EXACTLY and ONLY one rephrased query.
 
 Rephrased query for search engine:
 """.strip()
+
+
+GEN_EXCERPT_PROMPT = """
+The following is the full prompt that a tool-calling LLM will use to produce queries against
+a vectorstore.
+
+<prompt>
+{prompt}
+</prompt>
+
+Your job is to pick the three sources of information that you think are most likely to contain
+relevant, authoritative information about the user query or search terms. For each chosen source,
+generate a sentence or two that plausibly could exist in the real document(s) containing the desired information.
+Try to imagine a variety of contexts in which the information could be found. For example,
+information about a policy or service could exist in a google doc or a slack conversation,
+but the language surrounding the information might be very different across sources.
+
+Return the excerpts as a list of strings, i.e. ["excerpt1", "excerpt2", "excerpt3"]
+""".strip()
