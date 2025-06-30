@@ -130,6 +130,21 @@ Follow Up Input:
 """.strip()
 
 
+QUERY_REPHRASE_INSTRUCTIONS = """
+1. Strip UI / filler words (e.g., "please", "show me", "summary of").
+2. Resolve pronouns and vague references only when the referent is unmistakable from \
+chat context; otherwise leave them unchanged. Replace with explicit entity, product, or \
+document name.
+3. Keep nouns, named entities, titles, and meaningful action words; drop generic verbs.
+4. Copy distinctive tokens verbatim (URLs, ticket numbers, filenames, quoted phrases, \
+error messages, code snippets, etc.)
+5. Expand common abbreviations once only if the full form can be confidently inferred \
+(e.g., SLA (Service Level Agreement)).
+6. Add concise, intent-clarifying context keywords when they are clearly implied \
+(e.g., "how to" -> "instructions", "when did" -> "date of").
+"""
+
+
 HISTORY_QUERY_REPHRASE = f"""
 Given the following conversation and a follow up input, rephrase the follow up into a SHORT, \
 standalone query (which captures any relevant context from previous messages) for a vectorstore.
@@ -138,6 +153,9 @@ with mainly keywords instead of a complete sentence.
 If there is a clear change in topic, disregard the previous messages.
 Strip out any information that is not relevant for the retrieval task.
 If the follow up message is an error or code snippet, repeat the same input back EXACTLY.
+
+Furthermore, when formulating your query, you should follow the following instructions:
+{QUERY_REPHRASE_INSTRUCTIONS}
 
 Chat History:
 {GENERAL_SEP_PAT}

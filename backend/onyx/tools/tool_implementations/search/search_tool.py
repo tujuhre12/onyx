@@ -41,6 +41,7 @@ from onyx.db.models import Persona
 from onyx.db.models import User
 from onyx.llm.interfaces import LLM
 from onyx.llm.models import PreviousMessage
+from onyx.prompts.chat_prompts import QUERY_REPHRASE_INSTRUCTIONS
 from onyx.secondary_llm_flows.choose_search import check_if_need_search
 from onyx.secondary_llm_flows.query_expansion import history_based_query_rephrase
 from onyx.tools.message import ToolCallSummary
@@ -105,7 +106,7 @@ class SearchResponseSummary(SearchQueryInfo):
     predicted_flow: QueryFlow | None
 
 
-SEARCH_TOOL_DESCRIPTION = """
+SEARCH_TOOL_DESCRIPTION = f"""
 Runs a semantic search over the user's knowledge base. The default behavior is to use this tool. \
 The only scenario where you should not use this tool is if:
 
@@ -114,6 +115,9 @@ additional information or details would provide little or no value.
 - The query is some form of request that does not require additional information to handle.
 
 HINT: if you are unfamiliar with the user input OR think the user input is a typo, use this tool.
+
+When you call this tool, it is very important that you modify the query in the following way:
+{QUERY_REPHRASE_INSTRUCTIONS}
 """
 
 
