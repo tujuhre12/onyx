@@ -98,6 +98,13 @@ def _get_doc_score(doc_id: str, doc_results: str) -> float:
     return _calc_score_for_pos(match_pos)
 
 
+def _append_empty_line(csv_path: str = HACKATHON_OUTPUT_CSV_PATH):
+    """
+    Append an empty line to the CSV file.
+    """
+    _append_answer_to_csv("", "", csv_path)
+
+
 def _append_score_to_csv(
     query: str,
     score: float,
@@ -360,11 +367,17 @@ class Answer:
                     for doc_id in ground_truth_docs:
                         doc_score += _get_doc_score(doc_id, doc_results)
 
+                    _append_score_to_csv(question, doc_score)
                     total_score += doc_score
 
                 self._processed_stream = processed_stream
 
-            comprehensive_score = total_score / num_examples_with_ground_truth
+            if num_examples_with_ground_truth > 0:
+                comprehensive_score = total_score / num_examples_with_ground_truth
+            else:
+                comprehensive_score = 0
+
+            _append_empty_line()
 
             _append_score_to_csv(question, comprehensive_score)
 
