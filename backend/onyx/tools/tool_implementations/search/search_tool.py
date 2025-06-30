@@ -1,7 +1,10 @@
 import copy
+import csv
 import json
+import os
 from collections.abc import Callable
 from collections.abc import Generator
+from pathlib import Path
 from typing import Any
 from typing import cast
 from typing import TypeVar
@@ -19,6 +22,7 @@ from onyx.chat.prompt_builder.answer_prompt_builder import AnswerPromptBuilder
 from onyx.chat.prompt_builder.citations_prompt import compute_max_llm_input_tokens
 from onyx.chat.prune_and_merge import prune_and_merge_sections
 from onyx.chat.prune_and_merge import prune_sections
+from onyx.configs.app_configs import HACKATHON_OUTPUT_CSV_PATH
 from onyx.configs.chat_configs import CONTEXT_CHUNKS_ABOVE
 from onyx.configs.chat_configs import CONTEXT_CHUNKS_BELOW
 from onyx.configs.model_configs import GEN_AI_MODEL_FALLBACK_MAX_TOKENS
@@ -60,6 +64,39 @@ SEARCH_RESPONSE_SUMMARY_ID = "search_response_summary"
 SECTION_RELEVANCE_LIST_ID = "section_relevance_list"
 SEARCH_EVALUATION_ID = "llm_doc_eval"
 QUERY_FIELD = "query"
+
+
+def _append_ranking_stats_to_csv(
+    llm_doc_results: list[tuple[int, str]],
+    query: str,
+    csv_path: str = HACKATHON_OUTPUT_CSV_PATH,
+) -> None:
+    """
+    Append ranking statistics to a CSV file.
+
+    Args:
+        ranking_stats: List of tuples containing (query, hit_position, document_id)
+        csv_path: Path to the CSV file to append to
+    """
+    file_exists = os.path.isfile(csv_path)
+
+    # Create directory if it doesn't exist
+    csv_dir = os.path.dirname(csv_path)
+    if csv_dir and not os.path.exists(csv_dir):
+        Path(csv_dir).mkdir(parents=True, exist_ok=True)
+
+    with open(csv_path, mode="a", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+
+        # Write header if file is new
+        if not file_exists:
+            writer.writerow(["query", "position", "document_id", "answer", "score"])
+
+        # Write the ranking stats
+        for pos, doc in llm_doc_results:
+            writer.writerow([query, pos, doc, ""])
+
+    logger.debug(f"Appended {len(llm_doc_results)} ranking stats to {csv_path}")
 
 
 class SearchResponseSummary(SearchQueryInfo):
@@ -498,6 +535,12 @@ def yield_search_responses(
         contextual_pruning_config=search_tool.contextual_pruning_config,
     )
     llm_docs = [llm_doc_from_inference_section(section) for section in pruned_sections]
+
+    # Append ranking statistics to a CSV file
+    llm_doc_results = []
+    for pos, doc in enumerate(llm_docs):
+        llm_doc_results.append((pos, doc.document_id))
+    _append_ranking_stats_to_csv(llm_doc_results, query)
 
     yield ToolResponse(id=FINAL_CONTEXT_DOCUMENTS_ID, response=llm_docs)
 

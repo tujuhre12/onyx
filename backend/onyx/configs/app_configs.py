@@ -787,3 +787,7 @@ S3_AWS_SECRET_ACCESS_KEY = os.environ.get("S3_AWS_SECRET_ACCESS_KEY")
 # Forcing Vespa Language
 # English: en, German:de, etc. See: https://docs.vespa.ai/en/linguistics.html
 VESPA_LANGUAGE_OVERRIDE = os.environ.get("VESPA_LANGUAGE_OVERRIDE")
+
+HACKATHON_OUTPUT_CSV_PATH = os.environ.get(
+    "HACKATHON_OUTPUT_CSV_PATH", "/tmp/hackathon_output.csv"
+)

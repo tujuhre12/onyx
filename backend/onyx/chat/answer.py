@@ -1,7 +1,12 @@
+import csv
+import json
+import os
 from collections import defaultdict
 from collections.abc import Callable
+from pathlib import Path
 from uuid import UUID
 
+from langchain_core.messages import HumanMessage
 from sqlalchemy.orm import Session
 
 from onyx.agents.agent_search.models import GraphConfig
@@ -11,6 +16,9 @@ from onyx.agents.agent_search.models import GraphSearchConfig
 from onyx.agents.agent_search.models import GraphTooling
 from onyx.agents.agent_search.run_graph import run_agent_search_graph
 from onyx.agents.agent_search.run_graph import run_basic_graph
+from onyx.agents.agent_search.run_graph import (
+    run_basic_graph as run_hackathon_graph,
+)  # You can create your own graph
 from onyx.agents.agent_search.run_graph import run_dc_graph
 from onyx.agents.agent_search.run_graph import run_kb_graph
 from onyx.chat.models import AgentAnswerPiece
@@ -22,9 +30,11 @@ from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import StreamStopReason
 from onyx.chat.models import SubQuestionKey
+from onyx.chat.models import ToolCallFinalResult
 from onyx.chat.prompt_builder.answer_prompt_builder import AnswerPromptBuilder
 from onyx.configs.agent_configs import AGENT_ALLOW_REFINEMENT
 from onyx.configs.agent_configs import INITIAL_SEARCH_DECOMPOSITION_ENABLED
+from onyx.configs.app_configs import HACKATHON_OUTPUT_CSV_PATH
 from onyx.configs.chat_configs import USE_DIV_CON_AGENT
 from onyx.configs.constants import BASIC_KEY
 from onyx.context.search.models import RerankingDetails
@@ -42,6 +52,113 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 BASIC_SQ_KEY = SubQuestionKey(level=BASIC_KEY[0], question_num=BASIC_KEY[1])
+
+
+def _calc_score_for_pos(pos: int, max_acceptable_pos: int = 15) -> float:
+    """
+    Calculate the score for a given position.
+    """
+    if pos > max_acceptable_pos:
+        return 0
+
+    elif pos == 1:
+        return 1
+    elif pos == 2:
+        return 0.8
+    else:
+        return 0.5 / (pos - 2)
+
+
+def _clean_google_doc_link(doc_link: str) -> str:
+    """
+    Clean the google doc link.
+    """
+    if "google.com" in doc_link:
+        return "/".join(doc_link.split("/")[:-1])
+    return doc_link
+
+
+def _get_doc_score(doc_id: str, doc_results: str) -> float:
+    """
+    Get the score of a document from the document results.
+    """
+
+    match_pos = None
+    for pos, comp_doc in enumerate(doc_results, start=1):
+
+        clear_doc_id = _clean_google_doc_link(doc_id)
+        clear_comp_doc = _clean_google_doc_link(comp_doc)
+
+        if clear_doc_id == clear_comp_doc:
+            match_pos = pos
+
+    if match_pos is None:
+        return 0
+
+    return _calc_score_for_pos(match_pos)
+
+
+def _append_score_to_csv(
+    query: str,
+    score: float,
+    csv_path: str = HACKATHON_OUTPUT_CSV_PATH,
+) -> None:
+    """
+    Append the score to the CSV file.
+    """
+
+    file_exists = os.path.isfile(csv_path)
+
+    # Create directory if it doesn't exist
+    csv_dir = os.path.dirname(csv_path)
+    if csv_dir and not os.path.exists(csv_dir):
+        Path(csv_dir).mkdir(parents=True, exist_ok=True)
+
+    with open(csv_path, mode="a", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+
+        # Write header if file is new
+        if not file_exists:
+            writer.writerow(["query", "position", "document_id", "answer", "score"])
+
+        # Write the ranking stats
+
+        writer.writerow([query, "", "", "", score])
+
+    logger.debug("Appended score to csv file")
+
+
+def _append_answer_to_csv(
+    query: str,
+    answer: str,
+    csv_path: str = HACKATHON_OUTPUT_CSV_PATH,
+) -> None:
+    """
+    Append ranking statistics to a CSV file.
+
+    Args:
+        ranking_stats: List of tuples containing (query, hit_position, document_id)
+        csv_path: Path to the CSV file to append to
+    """
+    file_exists = os.path.isfile(csv_path)
+
+    # Create directory if it doesn't exist
+    csv_dir = os.path.dirname(csv_path)
+    if csv_dir and not os.path.exists(csv_dir):
+        Path(csv_dir).mkdir(parents=True, exist_ok=True)
+
+    with open(csv_path, mode="a", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+
+        # Write header if file is new
+        if not file_exists:
+            writer.writerow(["query", "position", "document_id", "answer", "score"])
+
+        # Write the ranking stats
+
+        writer.writerow([query, "", "", answer, ""])
+
+    logger.debug("Appended answer to csv file")
 
 
 class Answer:
@@ -134,6 +251,9 @@ class Answer:
 
     @property
     def processed_streamed_output(self) -> AnswerStream:
+
+        _HACKATHON_TEST_EXECUTION = False
+
         if self._processed_stream is not None:
             yield from self._processed_stream
             return
@@ -154,22 +274,115 @@ class Answer:
             )
         ):
             run_langgraph = run_dc_graph
+
+        elif (
+            self.graph_config.inputs.persona
+            and self.graph_config.inputs.persona.description.startswith(
+                "Hackathon Test"
+            )
+        ):
+            _HACKATHON_TEST_EXECUTION = True
+            run_langgraph = run_hackathon_graph
+
         else:
             run_langgraph = run_basic_graph
 
-        stream = run_langgraph(
-            self.graph_config,
-        )
+        if _HACKATHON_TEST_EXECUTION:
 
-        processed_stream = []
-        for packet in stream:
-            if self.is_cancelled():
-                packet = StreamStopInfo(stop_reason=StreamStopReason.CANCELLED)
+            input_data = str(self.graph_config.inputs.prompt_builder.raw_user_query)
+
+            if input_data.startswith("["):
+                input_type = "json"
+                input_list = json.loads(input_data)
+            else:
+                input_type = "list"
+                input_list = input_data.split(";")
+
+            num_examples_with_ground_truth = 0
+            total_score = 0
+
+            for question_data in input_list:
+
+                ground_truth_docs = None
+                if input_type == "json":
+                    question = question_data["question"]
+                    ground_truth = question_data.get("ground_truth")
+                    if ground_truth:
+                        ground_truth_docs = [x.get("doc_link") for x in ground_truth]
+                else:
+                    question = question_data
+
+                self.graph_config.inputs.prompt_builder.raw_user_query = question
+                self.graph_config.inputs.prompt_builder.user_message_and_token_cnt = (
+                    HumanMessage(
+                        content=question, additional_kwargs={}, response_metadata={}
+                    ),
+                    2,
+                )
+                self.graph_config.tooling.force_use_tool.force_use = True
+
+                self.graph_config.inputs.prompt_builder.raw_user_query = question
+                self.graph_config.inputs.prompt_builder.user_message_and_token_cnt = (
+                    HumanMessage(
+                        content=question, additional_kwargs={}, response_metadata={}
+                    ),
+                    2,
+                )
+                self.graph_config.tooling.force_use_tool.force_use = True
+
+                stream = run_langgraph(
+                    self.graph_config,
+                )
+                processed_stream = []
+                for packet in stream:
+                    if self.is_cancelled():
+                        packet = StreamStopInfo(stop_reason=StreamStopReason.CANCELLED)
+                        yield packet
+                        break
+                    processed_stream.append(packet)
+                    yield packet
+
+                llm_answer_segments: list[str] = []
+                doc_results: str | None = None
+                for answer_piece in processed_stream:
+                    if isinstance(answer_piece, OnyxAnswerPiece):
+                        llm_answer_segments.append(answer_piece.answer_piece or "")
+                    elif isinstance(answer_piece, ToolCallFinalResult):
+                        doc_results = [
+                            x.get("document_id") for x in answer_piece.tool_result
+                        ]
+
+                _append_answer_to_csv(question, "".join(llm_answer_segments))
+
+                if ground_truth_docs:
+                    num_examples_with_ground_truth += 1
+                    doc_score = 0
+                    for doc_id in ground_truth_docs:
+                        doc_score += _get_doc_score(doc_id, doc_results)
+
+                    total_score += doc_score
+
+                self._processed_stream = processed_stream
+
+            comprehensive_score = total_score / num_examples_with_ground_truth
+
+            _append_score_to_csv(question, comprehensive_score)
+
+        else:
+
+            stream = run_langgraph(
+                self.graph_config,
+            )
+
+            processed_stream = []
+            for packet in stream:
+                if self.is_cancelled():
+                    packet = StreamStopInfo(stop_reason=StreamStopReason.CANCELLED)
+                    yield packet
+                    break
+                processed_stream.append(packet)
                 yield packet
-                break
-            processed_stream.append(packet)
-            yield packet
-        self._processed_stream = processed_stream
+            self._processed_stream = processed_stream
 
     @property
     def llm_answer(self) -> str:

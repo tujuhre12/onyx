@@ -51,6 +51,7 @@ def _create_history_str(prompt_builder: AnswerPromptBuilder) -> str:
         else:
             continue
         history_segments.append(f"{role}:\n {msg.content}\n\n")
+
     return "\n".join(history_segments)
 
 
