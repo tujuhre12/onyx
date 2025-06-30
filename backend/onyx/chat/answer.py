@@ -377,6 +377,7 @@ class Answer:
 
             num_examples_with_ground_truth = 0
             total_score = 0.0
+            question = None
 
             for question_num, question_data in enumerate(input_list):
 
@@ -445,6 +446,8 @@ class Answer:
 
             _append_empty_line()
 
+            if not question:
+                raise RuntimeError(f"No questions in input list; {input_list=}")
             _append_score_to_csv(question, comprehensive_score)
 
         else:
