@@ -66,7 +66,7 @@ def _calc_score_for_pos(pos: int, max_acceptable_pos: int = 15) -> float:
     elif pos == 2:
         return 0.8
     else:
-        return 0.5 / (pos - 2)
+        return 4 / (pos + 5)
 
 
 def _clean_google_doc_link(doc_link: str) -> str:
@@ -78,7 +78,7 @@ def _clean_google_doc_link(doc_link: str) -> str:
     return doc_link
 
 
-def _get_doc_score(doc_id: str, doc_results: str) -> float:
+def _get_doc_score(doc_id: str, doc_results: list[str]) -> float:
     """
     Get the score of a document from the document results.
     """
@@ -93,7 +93,7 @@ def _get_doc_score(doc_id: str, doc_results: str) -> float:
             match_pos = pos
 
     if match_pos is None:
-        return 0
+        return 0.0
 
     return _calc_score_for_pos(match_pos)
 
@@ -306,7 +306,7 @@ class Answer:
                 input_list = input_data.split(";")
 
             num_examples_with_ground_truth = 0
-            total_score = 0
+            total_score = 0.0
 
             for question_data in input_list:
 
@@ -350,7 +350,7 @@ class Answer:
                     yield packet
 
                 llm_answer_segments: list[str] = []
-                doc_results: str | None = None
+                doc_results: list[str] | None = None
                 for answer_piece in processed_stream:
                     if isinstance(answer_piece, OnyxAnswerPiece):
                         llm_answer_segments.append(answer_piece.answer_piece or "")
@@ -361,9 +361,9 @@ class Answer:
 
                 _append_answer_to_csv(question, "".join(llm_answer_segments))
 
-                if ground_truth_docs:
+                if ground_truth_docs and doc_results:
                     num_examples_with_ground_truth += 1
-                    doc_score = 0
+                    doc_score = 0.0
                     for doc_id in ground_truth_docs:
                         doc_score += _get_doc_score(doc_id, doc_results)
 
