@@ -82,7 +82,7 @@ def _clean_doc_id_link(doc_link: str) -> str:
             return doc_link
 
     if "app.fireflies.ai" in doc_link:
-        return doc_link.split("?")[-1]
+        return "?".join(doc_link.split("?")[:-1])
     return doc_link
 
 
