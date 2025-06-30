@@ -106,7 +106,7 @@ def _get_doc_score(doc_id: str, doc_results: list[str]) -> float:
     return _calc_score_for_pos(match_pos)
 
 
-def _append_empty_line(csv_path: str = HACKATHON_OUTPUT_CSV_PATH):
+def _append_empty_line(csv_path: str = HACKATHON_OUTPUT_CSV_PATH) -> None:
     """
     Append an empty line to the CSV file.
     """
@@ -378,6 +378,7 @@ class Answer:
             num_examples_with_ground_truth = 0
             total_score = 0.0
 
+            question = ""
             for question_num, question_data in enumerate(input_list):
 
                 ground_truth_docs = None

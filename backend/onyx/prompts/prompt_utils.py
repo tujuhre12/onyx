@@ -69,6 +69,19 @@ def handle_onyx_date_awareness(
     return prompt_str
 
 
+def include_connected_sources(
+    prompt_str: str,
+    connected_sources: list[DocumentSource] | None = None,
+) -> str:
+    if connected_sources:
+        return (
+            prompt_str
+            + "You are connected to the following sources: "
+            + ", ".join([src.value for src in connected_sources])
+        )
+    return prompt_str
+
+
 def build_task_prompt_reminders(
     prompt: Prompt | PromptConfig,
     use_language_hint: bool,

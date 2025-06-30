@@ -460,14 +460,14 @@ def should_index(
                 #     f"Not indexing cc_pair={cc_pair.id}: FUTURE model with IN_PROGRESS last index attempt={last_index.id}"
                 # )
                 return False
-        else:
-            if (
-                connector.id == 0 or connector.source == DocumentSource.INGESTION_API
-            ):  # Ingestion API
-                # print(
-                #     f"Not indexing cc_pair={cc_pair.id}: FUTURE model with Ingestion API source"
-                # )
-                return False
+        # else:
+        #     if (
+        #         connector.source == DocumentSource.INGESTION_API
+        #     ):  # Ingestion API
+        #         # print(
+        #         #     f"Not indexing cc_pair={cc_pair.id}: FUTURE model with Ingestion API source"
+        #         # )
+        #         return False
         return True
 
     # If the connector is paused or is the ingestion API, don't index

@@ -51,6 +51,7 @@ from onyx.configs.chat_configs import MAX_CHUNKS_FED_TO_CHAT
 from onyx.configs.chat_configs import SELECTED_SECTIONS_MAX_WINDOW_PERCENTAGE
 from onyx.configs.constants import AGENT_SEARCH_INITIAL_KEY
 from onyx.configs.constants import BASIC_KEY
+from onyx.configs.constants import DocumentSource
 from onyx.configs.constants import MessageType
 from onyx.configs.constants import MilestoneRecordType
 from onyx.configs.constants import NO_AUTH_USER_ID
@@ -79,6 +80,7 @@ from onyx.db.chat import reserve_message_id
 from onyx.db.chat import translate_db_message_to_chat_message_detail
 from onyx.db.chat import translate_db_search_doc_to_server_search_doc
 from onyx.db.chat import update_chat_session_updated_at_timestamp
+from onyx.db.connector_credential_pair import get_connector_credential_pairs_for_user
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.db.milestone import check_multi_assistant_milestone
 from onyx.db.milestone import create_milestone_if_not_exists
@@ -390,6 +392,16 @@ def _get_persona_for_chat_session(
     if not persona:
         raise RuntimeError("No persona specified or found for chat session")
     return persona
+
+
+def _get_connected_sources(
+    user: User | None,
+    db_session: Session,
+) -> list[DocumentSource]:
+    cc_pairs = get_connector_credential_pairs_for_user(
+        db_session, user, eager_load_connector=True
+    )
+    return list(set(cc_pair.connector.source for cc_pair in cc_pairs))
 
 
 ChatPacket = (
@@ -969,6 +981,7 @@ def stream_chat_message_objects(
                 ]
             )
 
+        connected_sources = _get_connected_sources(user, db_session)
         prompt_builder = AnswerPromptBuilder(
             user_message=default_build_user_message(
                 user_query=final_msg.message,
@@ -976,7 +989,9 @@ def stream_chat_message_objects(
                 files=latest_query_files,
                 single_message_history=single_message_history,
             ),
-            system_message=default_build_system_message(prompt_config, llm.config),
+            system_message=default_build_system_message(
+                prompt_config, llm.config, connected_sources
+            ),
             message_history=message_history,
             llm_config=llm.config,
             raw_user_query=final_msg.message,

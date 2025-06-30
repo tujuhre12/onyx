@@ -10,6 +10,7 @@ from pydantic.v1 import BaseModel as BaseModel__v1
 from onyx.chat.models import PromptConfig
 from onyx.chat.prompt_builder.citations_prompt import compute_max_llm_input_tokens
 from onyx.chat.prompt_builder.utils import translate_history_to_basemessages
+from onyx.configs.constants import DocumentSource
 from onyx.file_store.models import InMemoryChatFile
 from onyx.llm.interfaces import LLMConfig
 from onyx.llm.llm_provider_options import OPENAI_PROVIDER_NAME
@@ -24,6 +25,7 @@ from onyx.prompts.chat_prompts import CODE_BLOCK_MARKDOWN
 from onyx.prompts.direct_qa_prompts import HISTORY_BLOCK
 from onyx.prompts.prompt_utils import drop_messages_history_overflow
 from onyx.prompts.prompt_utils import handle_onyx_date_awareness
+from onyx.prompts.prompt_utils import include_connected_sources
 from onyx.tools.force import ForceUseTool
 from onyx.tools.models import ToolCallFinalResult
 from onyx.tools.models import ToolCallKickoff
@@ -34,6 +36,7 @@ from onyx.tools.tool import Tool
 def default_build_system_message(
     prompt_config: PromptConfig,
     llm_config: LLMConfig,
+    connected_sources: list[DocumentSource] | None = None,
 ) -> SystemMessage | None:
     system_prompt = prompt_config.system_prompt.strip()
     # See https://simonwillison.net/tags/markdown/ for context on this temporary fix
@@ -47,6 +50,9 @@ def default_build_system_message(
         system_prompt,
         prompt_config,
         add_additional_info_if_no_tag=prompt_config.datetime_aware,
+    )
+    tag_handled_prompt = include_connected_sources(
+        tag_handled_prompt, connected_sources
     )
 
     if not tag_handled_prompt:
