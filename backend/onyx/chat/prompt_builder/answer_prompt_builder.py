@@ -187,8 +187,12 @@ class AnswerPromptBuilder:
 
         final_messages_with_tokens.append(self.user_message_and_token_cnt)
 
-        if self.new_messages_and_token_cnts:
-            final_messages_with_tokens.extend(self.new_messages_and_token_cnts)
+        if (
+            self.new_messages_and_token_cnts
+            and isinstance(self.user_message_and_token_cnt[0].content, str)
+            and self.user_message_and_token_cnt[0].content.startswith("Refer")
+        ):
+            final_messages_with_tokens.extend(self.new_messages_and_token_cnts[-2:])
 
         return drop_messages_history_overflow(
             final_messages_with_tokens, self.max_tokens
