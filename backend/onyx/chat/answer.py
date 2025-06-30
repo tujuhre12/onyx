@@ -328,15 +328,6 @@ class Answer:
                 )
                 self.graph_config.tooling.force_use_tool.force_use = True
 
-                self.graph_config.inputs.prompt_builder.raw_user_query = question
-                self.graph_config.inputs.prompt_builder.user_message_and_token_cnt = (
-                    HumanMessage(
-                        content=question, additional_kwargs={}, response_metadata={}
-                    ),
-                    2,
-                )
-                self.graph_config.tooling.force_use_tool.force_use = True
-
                 stream = run_langgraph(
                     self.graph_config,
                 )
