@@ -98,7 +98,7 @@ def _get_doc_score(doc_id: str, doc_results: list[str]) -> float:
     return _calc_score_for_pos(match_pos)
 
 
-def _append_empty_line(csv_path: str = HACKATHON_OUTPUT_CSV_PATH):
+def _append_empty_line(csv_path: str = HACKATHON_OUTPUT_CSV_PATH) -> None:
     """
     Append an empty line to the CSV file.
     """
@@ -147,6 +147,7 @@ def _append_answer_to_csv(
         ranking_stats: List of tuples containing (query, hit_position, document_id)
         csv_path: Path to the CSV file to append to
     """
+
     file_exists = os.path.isfile(csv_path)
 
     # Create directory if it doesn't exist
@@ -258,7 +259,6 @@ class Answer:
 
     @property
     def processed_streamed_output(self) -> AnswerStream:
-
         _HACKATHON_TEST_EXECUTION = False
 
         if self._processed_stream is not None:

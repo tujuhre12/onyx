@@ -82,13 +82,16 @@ if __name__ == "__main__":
     from onyx.context.search.models import SearchRequest
     from onyx.llm.factory import get_default_llms
     from onyx.agents.agent_search.shared_graph_utils.utils import get_test_config
+    from onyx.db.engine.sql_engine import SqlEngine
+
+    SqlEngine.init_engine(pool_size=10, max_overflow=0)
 
     graph = basic_graph_builder()
     compiled_graph = graph.compile()
     input = BasicInput(unused=True)
     primary_llm, fast_llm = get_default_llms()
     with get_session_with_current_tenant() as db_session:
-        config, _ = get_test_config(
+        config = get_test_config(
             db_session=db_session,
             primary_llm=primary_llm,
             fast_llm=fast_llm,
