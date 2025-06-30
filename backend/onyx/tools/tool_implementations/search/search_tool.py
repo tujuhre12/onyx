@@ -540,7 +540,7 @@ def yield_search_responses(
     llm_doc_results = []
     for pos, doc in enumerate(llm_docs):
         llm_doc_results.append((pos, doc.document_id))
-    _append_ranking_stats_to_csv(llm_doc_results, query)
+    # _append_ranking_stats_to_csv(llm_doc_results, query)
 
     yield ToolResponse(id=FINAL_CONTEXT_DOCUMENTS_ID, response=llm_docs)
 

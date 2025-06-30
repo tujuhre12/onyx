@@ -69,12 +69,20 @@ def _calc_score_for_pos(pos: int, max_acceptable_pos: int = 15) -> float:
         return 4 / (pos + 5)
 
 
-def _clean_google_doc_link(doc_link: str) -> str:
+def _clean_doc_id_link(doc_link: str) -> str:
     """
     Clean the google doc link.
     """
     if "google.com" in doc_link:
-        return "/".join(doc_link.split("/")[:-1])
+        if "/edit" in doc_link:
+            return "/edit".join(doc_link.split("/edit")[:-1])
+        elif "/view" in doc_link:
+            return "/view".join(doc_link.split("/view")[:-1])
+        else:
+            return doc_link
+
+    if "app.fireflies.ai" in doc_link:
+        return doc_link.split("?")[-1]
     return doc_link
 
 
@@ -86,8 +94,8 @@ def _get_doc_score(doc_id: str, doc_results: list[str]) -> float:
     match_pos = None
     for pos, comp_doc in enumerate(doc_results, start=1):
 
-        clear_doc_id = _clean_google_doc_link(doc_id)
-        clear_comp_doc = _clean_google_doc_link(comp_doc)
+        clear_doc_id = _clean_doc_id_link(doc_id)
+        clear_comp_doc = _clean_doc_id_link(comp_doc)
 
         if clear_doc_id == clear_comp_doc:
             match_pos = pos
@@ -103,6 +111,37 @@ def _append_empty_line(csv_path: str = HACKATHON_OUTPUT_CSV_PATH):
     Append an empty line to the CSV file.
     """
     _append_answer_to_csv("", "", csv_path)
+
+
+def _append_ground_truth_to_csv(
+    query: str,
+    ground_truth_docs: list[str],
+    csv_path: str = HACKATHON_OUTPUT_CSV_PATH,
+) -> None:
+    """
+    Append the score to the CSV file.
+    """
+
+    file_exists = os.path.isfile(csv_path)
+
+    # Create directory if it doesn't exist
+    csv_dir = os.path.dirname(csv_path)
+    if csv_dir and not os.path.exists(csv_dir):
+        Path(csv_dir).mkdir(parents=True, exist_ok=True)
+
+    with open(csv_path, mode="a", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+
+        # Write header if file is new
+        if not file_exists:
+            writer.writerow(["query", "position", "document_id", "answer", "score"])
+
+        # Write the ranking stats
+
+        for doc_id in ground_truth_docs:
+            writer.writerow([query, "-1", _clean_doc_id_link(doc_id), "", ""])
+
+    logger.debug("Appended score to csv file")
 
 
 def _append_score_to_csv(
@@ -133,6 +172,37 @@ def _append_score_to_csv(
         writer.writerow([query, "", "", "", score])
 
     logger.debug("Appended score to csv file")
+
+
+def _append_search_results_to_csv(
+    query: str,
+    doc_results: list[str],
+    csv_path: str = HACKATHON_OUTPUT_CSV_PATH,
+) -> None:
+    """
+    Append the search results to the CSV file.
+    """
+
+    file_exists = os.path.isfile(csv_path)
+
+    # Create directory if it doesn't exist
+    csv_dir = os.path.dirname(csv_path)
+    if csv_dir and not os.path.exists(csv_dir):
+        Path(csv_dir).mkdir(parents=True, exist_ok=True)
+
+    with open(csv_path, mode="a", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+
+        # Write header if file is new
+        if not file_exists:
+            writer.writerow(["query", "position", "document_id", "answer", "score"])
+
+        # Write the ranking stats
+
+        for pos, doc in enumerate(doc_results, start=1):
+            writer.writerow([query, pos, _clean_doc_id_link(doc), "", ""])
+
+    logger.debug("Appended search results to csv file")
 
 
 def _append_answer_to_csv(
@@ -308,7 +378,7 @@ class Answer:
             num_examples_with_ground_truth = 0
             total_score = 0.0
 
-            for question_data in input_list:
+            for question_num, question_data in enumerate(input_list):
 
                 ground_truth_docs = None
                 if input_type == "json":
@@ -316,6 +386,10 @@ class Answer:
                     ground_truth = question_data.get("ground_truth")
                     if ground_truth:
                         ground_truth_docs = [x.get("doc_link") for x in ground_truth]
+                        logger.info(f"Question {question_num}: {question}")
+                        _append_ground_truth_to_csv(question, ground_truth_docs)
+                    else:
+                        continue
                 else:
                     question = question_data
 
@@ -346,9 +420,10 @@ class Answer:
                     if isinstance(answer_piece, OnyxAnswerPiece):
                         llm_answer_segments.append(answer_piece.answer_piece or "")
                     elif isinstance(answer_piece, ToolCallFinalResult):
-                        doc_results = [
-                            x.get("document_id") for x in answer_piece.tool_result
-                        ]
+                        doc_results = [x.get("link") for x in answer_piece.tool_result]
+
+                if doc_results:
+                    _append_search_results_to_csv(question, doc_results)
 
                 _append_answer_to_csv(question, "".join(llm_answer_segments))
 
