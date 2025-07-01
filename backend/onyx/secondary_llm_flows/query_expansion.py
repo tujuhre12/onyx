@@ -80,6 +80,9 @@ def query_expansion(query: str) -> list[str]:
         msg = HumanMessage(content=prompt)
         response = fast_llm.invoke([msg])
         query_rephrases = message_to_string(response).split("\n")[:5]
+        query_rephrases = [rephrase.strip() for rephrase in query_rephrases]
+        if query.lower() not in [rephrase.lower() for rephrase in query_rephrases]:
+            query_rephrases.append(query)
         return query_rephrases
     except Exception as e:
         logger.error(f"Error expanding query: {e}")

@@ -146,8 +146,8 @@ context; otherwise leave them as-is.
 7. Favour nouns, proper names, titles, and meaningful verbs; drop generic verbs (e.g., "do", "is", "have").
 8. Copy distinctive tokens exactly (e.g., URLs, IDs, filenames, quoted strings, error messages, code snippets).
 9. Expand an abbreviation once, alongside the acronym, only if the full form is certain \
-(e.g., "SLA (Service Level Agreement)").
-10. Add concise intent keywords that are clearly implied (e.g., "instructions", "release date", "calendar links"), \
+(e.g., "GitHub PR (Pull Request)").
+10. Add concise intent keywords that are clearly implied (e.g., "how to" -> "instructions", "when" -> "date"), \
 but avoid speculation.
 
 Original query:

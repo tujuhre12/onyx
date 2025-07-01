@@ -292,6 +292,10 @@ def choose_tool(
         if known_tools_by_name:
             selected_tool = known_tools_by_name[0]
             selected_tool_call_request = tool_call_request
+            if isinstance(selected_tool, SearchTool):
+                selected_tool_call_request["args"][
+                    "query"
+                ] = prompt_builder.raw_user_query
             break
 
         logger.error(

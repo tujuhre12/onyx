@@ -105,7 +105,7 @@ class SearchResponseSummary(SearchQueryInfo):
     predicted_flow: QueryFlow | None
 
 
-SEARCH_TOOL_DESCRIPTION = f"""
+SEARCH_TOOL_DESCRIPTION = """
 Runs a semantic search over the user's knowledge base. The default behavior is to use this tool. \
 The only scenario where you should not use this tool is if:
 
@@ -115,8 +115,6 @@ additional information or details would provide little or no value.
 
 HINT: if you are unfamiliar with the user input OR think the user input is a typo, use this tool.
 
-When you call this tool, it is VERY IMPORTANT that you DO NOT modify the query in any way. I.e., \
-if the user asks "How to do X?", your argument should be {{"{QUERY_FIELD}": "How to do X?"}}
 """
 
 
@@ -226,7 +224,7 @@ class SearchTool(Tool[SearchToolOverrideKwargs]):
                     "properties": {
                         QUERY_FIELD: {
                             "type": "string",
-                            "description": "The original search query, in verbatim.",
+                            "description": "What to search for",
                         },
                     },
                     "required": [QUERY_FIELD],
