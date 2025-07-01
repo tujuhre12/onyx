@@ -10,7 +10,6 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import requests
-from dotenv import load_dotenv
 from pydantic import ValidationError
 from requests.exceptions import RequestException
 from retry import retry
@@ -591,13 +590,6 @@ def run_search_eval(
     config: EvalConfig,
     tenant_id: str | None,
 ) -> None:
-    current_dir = Path(__file__).parent
-    env_dir = current_dir.parent.parent.parent.parent / ".vscode" / ".env"
-    if not env_dir.exists():
-        raise RuntimeError(
-            "Could not find .env file. Please create one in the root .vscode directory."
-        )
-    load_dotenv(env_dir)
     if not config.search_only and not os.environ.get("OPENAI_API_KEY"):
         raise RuntimeError("OPENAI_API_KEY is required for answer evaluation")
 
