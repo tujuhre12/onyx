@@ -169,13 +169,20 @@ def process_individual_deep_search(
 
     logger.debug("DivCon Step A2 - Object Source Research - completed for an object")
 
+    if state.research_object_results:
+        research_object_results = state.research_object_results
+    else:
+        research_object_results = []
+
+    research_object_results.append(
+        {
+            "object": object.replace("::", ":: ").capitalize(),
+            "results": object_research_results,
+        }
+    )
+
     return ResearchObjectUpdate(
-        research_object_results=[
-            {
-                "object": object.replace("::", ":: ").capitalize(),
-                "results": object_research_results,
-            }
-        ],
+        research_object_results=research_object_results,
         log_messages=[
             get_langgraph_node_log_string(
                 graph_component="main",

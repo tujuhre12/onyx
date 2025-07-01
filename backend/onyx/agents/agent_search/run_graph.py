@@ -21,6 +21,8 @@ from onyx.agents.agent_search.deep_search.main.states import (
 from onyx.agents.agent_search.kb_search.graph_builder import kb_graph_builder
 from onyx.agents.agent_search.kb_search.states import MainInput as KBMainInput
 from onyx.agents.agent_search.models import GraphConfig
+from onyx.agents.agent_search.naomi.graph_builder import naomi_graph_builder
+from onyx.agents.agent_search.naomi.states import NaomiInput
 from onyx.agents.agent_search.shared_graph_utils.utils import get_test_config
 from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import AnswerPacket
@@ -90,7 +92,7 @@ def _parse_agent_event(
 def manage_sync_streaming(
     compiled_graph: CompiledStateGraph,
     config: GraphConfig,
-    graph_input: BasicInput | MainInput | DCMainInput | KBMainInput,
+    graph_input: BasicInput | MainInput | DCMainInput | KBMainInput | NaomiInput,
 ) -> Iterable[StreamEvent]:
     message_id = config.persistence.message_id if config.persistence else None
     for event in compiled_graph.stream(
@@ -104,7 +106,7 @@ def manage_sync_streaming(
 def run_graph(
     compiled_graph: CompiledStateGraph,
     config: GraphConfig,
-    input: BasicInput | MainInput | DCMainInput | KBMainInput,
+    input: BasicInput | MainInput | DCMainInput | KBMainInput | NaomiInput,
 ) -> AnswerStream:
 
     for event in manage_sync_streaming(
@@ -174,6 +176,25 @@ def run_dc_graph(
         config.inputs.prompt_builder.raw_user_query.strip()
     )
     return run_graph(compiled_graph, config, input)
+
+
+def run_naomi_graph(
+    config: GraphConfig,
+) -> AnswerStream:
+    """
+    Run the naomi orchestration graph that executes both basic and kb_search graphs.
+    """
+    graph = naomi_graph_builder()
+    compiled_graph = graph.compile()
+    input = NaomiInput(log_messages=[])
+
+    # Send tool call kickoff for frontend
+    yield ToolCallKickoff(
+        tool_name="naomi_orchestration",
+        tool_args={"query": config.inputs.prompt_builder.raw_user_query},
+    )
+
+    yield from run_graph(compiled_graph, config, input)
 
 
 if __name__ == "__main__":

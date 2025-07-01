@@ -12,7 +12,7 @@ from onyx.agents.agent_search.models import GraphTooling
 from onyx.agents.agent_search.run_graph import run_agent_search_graph
 from onyx.agents.agent_search.run_graph import run_basic_graph
 from onyx.agents.agent_search.run_graph import run_dc_graph
-from onyx.agents.agent_search.run_graph import run_kb_graph
+from onyx.agents.agent_search.run_graph import run_naomi_graph
 from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
@@ -69,6 +69,7 @@ class Answer:
         is_connected: Callable[[], bool] | None = None,
         use_agentic_search: bool = False,
     ) -> None:
+
         self.is_connected: Callable[[], bool] | None = is_connected
         self._processed_stream: list[AnswerPacket] | None = None
         self._is_cancelled = False
@@ -143,9 +144,12 @@ class Answer:
             and self.graph_config.behavior.kg_config_settings.KG_ENABLED
             and self.graph_config.inputs.persona.name.startswith("KG Beta")
         ):
-            run_langgraph = run_kb_graph
+            # run_langgraph = run_kb_graph
+            run_langgraph = run_naomi_graph
+            print("WE ARE RUNNING KB GRAPH!")
         elif self.graph_config.behavior.use_agentic_search:
             run_langgraph = run_agent_search_graph
+            print("WE ARE RUNNING AGENT SEARCH GRAPH!")
         elif (
             self.graph_config.inputs.persona
             and USE_DIV_CON_AGENT
@@ -154,8 +158,10 @@ class Answer:
             )
         ):
             run_langgraph = run_dc_graph
+            print("WE ARE RUNNING DIV CON GRAPH!")
         else:
             run_langgraph = run_basic_graph
+            print("WE ARE RUNNING BASIC GRAPH!")
 
         stream = run_langgraph(
             self.graph_config,
