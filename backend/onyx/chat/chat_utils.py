@@ -131,13 +131,11 @@ def combine_message_thread(
             if message.sender:
                 role_str += " " + message.sender
             else:
-                # Since other messages might have the user identifying information
-                # better to use Unknown for symmetry
                 role_str += " Unknown"
         else:
             role_str = message.role.value.upper()
 
-        msg_str = f"{role_str}:\n{message.message}"
+        msg_str = f"{message.message}"  # just for now...
         message_token_count = len(llm_tokenizer.encode(msg_str))
 
         if (

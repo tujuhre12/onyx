@@ -134,21 +134,14 @@ QUERY_EXPANSION_PROMPT = """
 Rewrite the user's request into 1-5 standalone search strings that maximise both semantic and keyword recall.
 
 Guidelines:
-1. Strip instruction / filler commands (e.g., "please", "show me", "summary of", "which one is better").
-2. If the request contains many distinct ideas or an unwieldy list of keywords, split it into several focused \
-queries that keep related terms together.
-3. Preserve multi-word terms intact (e.g., "performance issues"); words may repeat across queries when useful.
-4. When specificity is uncertain, output both a broad and a precise version.
-5. If the user clearly asks for multiple pieces of information, create separate queries for each, unless \
-combining them is essential. Make sure the total number of queries is ≤ 5.
-6. Replace pronouns or vague references with explicit names only when the referent is unmistakable from prior \
-context; otherwise leave them as-is.
-7. Favour nouns, proper names, titles, and meaningful verbs; drop generic verbs (e.g., "do", "is", "have").
-8. Copy distinctive tokens exactly (e.g., URLs, IDs, filenames, quoted strings, error messages, code snippets).
-9. Expand an abbreviation once, alongside the acronym, only if the full form is certain \
-(e.g., "GitHub PR (Pull Request)").
-10. Add concise intent keywords that are clearly implied (e.g., "how to" -> "instructions", "when" -> "date"), \
-but avoid speculation.
+1. Strip words that are clearly filler or just part of the instruction (e.g., "please", "show me", "give me a summary of")
+2. The first query should always be the original query, with step 1 applied
+3. Copy distinctive tokens exactly (e.g., URLs, IDs, filenames, quoted strings, error messages, code snippets)
+4. If the request contains many distinct ideas or the user clearly asks for multiple pieces of information, \
+create separate queries for each, unless combining them is essential. Make sure the total number of queries is ≤ 5.
+5. Expand abbreviations once, alongside the acronym, only if the full form is certain (e.g., "GitHub PR (Pull Request)")
+6. Do not add generic words not part of the original query, or generate overly broad queries.
+7. Expand unclear or broad queries into multiple, potentially related, specific queries.
 
 Original query:
 {query}
