@@ -1,4 +1,5 @@
 import csv
+import os
 from collections import defaultdict
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from onyx.db.search_settings import get_multilingual_expansion
 from onyx.document_index.factory import get_default_document_index
 from onyx.utils.logger import setup_logger
 from shared_configs.configs import MULTI_TENANT
+from shared_configs.enums import RerankerProvider
 from tests.regression.search_quality.util_config import load_config
 from tests.regression.search_quality.util_data import export_test_queries
 from tests.regression.search_quality.util_data import load_test_queries
@@ -25,6 +27,8 @@ logger = setup_logger(__name__)
 
 
 def run_search_eval() -> None:
+    rerank_api_key = os.environ.get("COHERE_RERANKER_API_TOKEN")
+
     config = load_config()
     test_queries = load_test_queries()
 
@@ -42,7 +46,14 @@ def run_search_eval() -> None:
         multilingual_expansion = get_multilingual_expansion(db_session)
         search_settings = get_current_search_settings(db_session)
         document_index = get_default_document_index(search_settings, None)
-        rerank_settings = RerankingDetails.from_db_model(search_settings)
+        rerank_settings = RerankingDetails(
+            rerank_api_url="https://api.cohere.ai/v2/rerank",
+            rerank_model_name="rerank-english-v3.0",
+            rerank_provider_type=RerankerProvider.COHERE,
+            rerank_api_key=rerank_api_key,
+            num_rerank=10,
+        )
+        # rerank_settings = RerankingDetails.from_db_model(search_settings)
 
         if config.skip_rerank:
             logger.warning("Reranking is disabled, evaluation will not run")
@@ -72,11 +83,11 @@ def run_search_eval() -> None:
                 # search and write results
                 assert query.question_search is not None
                 search_chunks = search_one_query(
-                    query.question_search,
-                    multilingual_expansion,
-                    document_index,
-                    db_session,
-                    config,
+                    question_search=query.question_search,
+                    multilingual_expansion=multilingual_expansion,
+                    document_index=document_index,
+                    db_session=db_session,
+                    config=config,
                 )
                 for rank, result in enumerate(search_chunks):
                     search_csv_writer.writerow(
