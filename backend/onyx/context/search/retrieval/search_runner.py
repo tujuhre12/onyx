@@ -368,11 +368,13 @@ def retrieve_chunks(
     elif not multilingual_expansion:
         # process and expand the query
         query_rephrases = query_expansion(query.query)
+        adjusted_num_hits = 2 * query.num_hits // (len(query_rephrases) + 1)
 
         for rephrase in query_rephrases:
             q_copy = query.model_copy(
                 update={
                     "query": rephrase,
+                    "num_hits": adjusted_num_hits,
                     "precomputed_query_embedding": None,
                 },
                 deep=True,
