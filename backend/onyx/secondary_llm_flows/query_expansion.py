@@ -1,5 +1,7 @@
 from collections.abc import Callable
 
+from langchain_core.messages import HumanMessage
+
 from onyx.chat.chat_utils import combine_message_chain
 from onyx.configs.chat_configs import DISABLE_LLM_QUERY_REPHRASE
 from onyx.configs.model_configs import GEN_AI_HISTORY_CUTOFF
@@ -11,6 +13,7 @@ from onyx.llm.models import PreviousMessage
 from onyx.llm.utils import dict_based_prompt_to_langchain_prompt
 from onyx.llm.utils import message_to_string
 from onyx.prompts.chat_prompts import HISTORY_QUERY_REPHRASE
+from onyx.prompts.chat_prompts import QUERY_EXPANSION_PROMPT
 from onyx.prompts.miscellaneous_prompts import LANGUAGE_REPHRASE_PROMPT
 from onyx.utils.logger import setup_logger
 from onyx.utils.text_processing import count_punctuation
@@ -68,6 +71,19 @@ def multilingual_query_expansion(
             llm_multilingual_query_expansion(query, language) for language in languages
         ]
         return query_rephrases
+
+
+def query_expansion(query: str) -> list[str]:
+    prompt = QUERY_EXPANSION_PROMPT.format(query=query)
+    try:
+        _, fast_llm = get_default_llms(timeout=5)
+        msg = HumanMessage(content=prompt)
+        response = fast_llm.invoke([msg])
+        query_rephrases = message_to_string(response).split("\n")[:5]
+        return query_rephrases
+    except Exception as e:
+        logger.error(f"Error expanding query: {e}")
+        return [query]
 
 
 def get_contextual_rephrase_messages(

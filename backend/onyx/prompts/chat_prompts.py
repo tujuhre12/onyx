@@ -130,18 +130,30 @@ Follow Up Input:
 """.strip()
 
 
-QUERY_REPHRASE_INSTRUCTIONS = """
-1. Strip UI / filler words (e.g., "please", "show me", "summary of").
-2. Resolve pronouns and vague references only when the referent is unmistakable from \
-chat context; otherwise leave them unchanged. Replace with explicit entity, product, or \
-document name.
-3. Keep nouns, named entities, titles, and meaningful action words; drop generic verbs.
-4. Copy distinctive tokens verbatim (URLs, ticket numbers, filenames, quoted phrases, \
-error messages, code snippets, etc.)
-5. Expand common abbreviations once only if the full form can be confidently inferred \
-(e.g., SLA (Service Level Agreement)).
-6. Add concise, intent-clarifying context keywords when they are clearly implied \
-(e.g., "how to" -> "instructions", "when did" -> "date of").
+QUERY_EXPANSION_PROMPT = """
+Rewrite the user's request into 1-5 standalone search strings that maximise both semantic and keyword recall.
+
+Guidelines:
+1. Strip instruction / filler commands (e.g., "please", "show me", "summary of", "which one is better").
+2. If the request contains many distinct ideas or an unwieldy list of keywords, split it into several focused \
+queries that keep related terms together.
+3. Preserve multi-word terms intact (e.g., "performance issues"); words may repeat across queries when useful.
+4. When specificity is uncertain, output both a broad and a precise version.
+5. If the user clearly asks for multiple pieces of information, create separate queries for each, unless \
+combining them is essential. Make sure the total number of queries is ≤ 5.
+6. Replace pronouns or vague references with explicit names only when the referent is unmistakable from prior \
+context; otherwise leave them as-is.
+7. Favour nouns, proper names, titles, and meaningful verbs; drop generic verbs (e.g., "do", "is", "have").
+8. Copy distinctive tokens exactly (e.g., URLs, IDs, filenames, quoted strings, error messages, code snippets).
+9. Expand an abbreviation once, alongside the acronym, only if the full form is certain \
+(e.g., "SLA (Service Level Agreement)").
+10. Add concise intent keywords that are clearly implied (e.g., "instructions", "release date", "calendar links"), \
+but avoid speculation.
+
+Original query:
+{query}
+
+Output: the new query or queries, one per line, maximum 5 lines, nothing else.
 """
 
 
@@ -153,9 +165,6 @@ with mainly keywords instead of a complete sentence.
 If there is a clear change in topic, disregard the previous messages.
 Strip out any information that is not relevant for the retrieval task.
 If the follow up message is an error or code snippet, repeat the same input back EXACTLY.
-
-Furthermore, when formulating your query, you should follow the following instructions:
-{QUERY_REPHRASE_INSTRUCTIONS}
 
 Chat History:
 {GENERAL_SEP_PAT}

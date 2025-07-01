@@ -27,6 +27,7 @@ from onyx.document_index.vespa.shared_utils.utils import (
 )
 from onyx.natural_language_processing.search_nlp_models import EmbeddingModel
 from onyx.secondary_llm_flows.query_expansion import multilingual_query_expansion
+from onyx.secondary_llm_flows.query_expansion import query_expansion
 from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_functions_tuples_in_parallel
 from onyx.utils.threadpool_concurrency import run_in_background
@@ -358,15 +359,30 @@ def retrieve_chunks(
 ) -> list[InferenceChunk]:
     """Returns a list of the best chunks from an initial keyword/semantic/ hybrid search."""
 
+    run_queries: list[tuple[Callable, tuple]] = []
+
     multilingual_expansion = get_multilingual_expansion(db_session)
-    # Don't do query expansion on complex queries, rephrasings likely would not work well
-    if not multilingual_expansion or "\n" in query.query or "\r" in query.query:
-        top_chunks = doc_index_retrieval(
-            query=query, document_index=document_index, db_session=db_session
-        )
+    if "\n" in query.query or "\r" in query.query:
+        # Don't do query expansion on complex queries, rephrasings likely would not work well
+        run_queries.append((doc_index_retrieval, (query, document_index, db_session)))
+    elif not multilingual_expansion:
+        # process and expand the query
+        query_rephrases = query_expansion(query.query)
+
+        for rephrase in query_rephrases:
+            q_copy = query.model_copy(
+                update={
+                    "query": rephrase,
+                    "precomputed_query_embedding": None,
+                },
+                deep=True,
+            )
+            run_queries.append(
+                (doc_index_retrieval, (q_copy, document_index, db_session))
+            )
     else:
+        # do multilingual query expansion
         simplified_queries = set()
-        run_queries: list[tuple[Callable, tuple]] = []
 
         # Currently only uses query expansion on multilingual use cases
         query_rephrases = multilingual_query_expansion(
@@ -393,13 +409,12 @@ def retrieve_chunks(
                 deep=True,
             )
             run_queries.append(
-                (
-                    doc_index_retrieval,
-                    (q_copy, document_index, db_session),
-                )
+                (doc_index_retrieval, (q_copy, document_index, db_session))
             )
-        parallel_search_results = run_functions_tuples_in_parallel(run_queries)
-        top_chunks = combine_retrieval_results(parallel_search_results)
+
+    # do search in parallel
+    parallel_search_results = run_functions_tuples_in_parallel(run_queries)
+    top_chunks = combine_retrieval_results(parallel_search_results)
 
     if not top_chunks:
         logger.warning(
