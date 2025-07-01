@@ -206,6 +206,7 @@ class SearchQuery(ChunkContext):
     precomputed_query_embedding: Embedding | None = None
 
     expanded_queries: QueryExpansions | None = None
+    gen_excerpts: list[str] | None = None
 
 
 class RetrievalDetails(ChunkContext):

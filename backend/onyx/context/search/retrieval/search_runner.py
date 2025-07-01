@@ -161,9 +161,9 @@ def doc_index_retrieval(
 
     keyword_embeddings_thread: TimeoutThread[list[Embedding]] | None = None
     semantic_embeddings_thread: TimeoutThread[list[Embedding]] | None = None
-    top_base_chunks_standard_ranking_thread: (
-        TimeoutThread[list[InferenceChunkUncleaned]] | None
-    ) = None
+    top_base_chunks_standard_ranking_threads: list[
+        TimeoutThread[list[InferenceChunkUncleaned]]
+    ] = []
 
     top_semantic_chunks_thread: TimeoutThread[list[InferenceChunkUncleaned]] | None = (
         None
@@ -174,19 +174,22 @@ def doc_index_retrieval(
 
     top_semantic_chunks: list[InferenceChunkUncleaned] | None = None
 
-    # original retrieveal method
-    top_base_chunks_standard_ranking_thread = run_in_background(
-        document_index.hybrid_retrieval,
-        query.query,
-        query_embedding,
-        query.processed_keywords,
-        query.filters,
-        query.hybrid_alpha,
-        query.recency_bias_multiplier,
-        query.num_hits,
-        QueryExpansionType.SEMANTIC,
-        query.offset,
-    )
+    # original retrieval method
+    top_base_chunks_standard_ranking_threads = [
+        run_in_background(
+            document_index.hybrid_retrieval,
+            to_search,
+            query_embedding,
+            query.processed_keywords,
+            query.filters,
+            query.hybrid_alpha,
+            query.recency_bias_multiplier,
+            query.num_hits,
+            QueryExpansionType.SEMANTIC,
+            query.offset,
+        )
+        for to_search in [query.query] + (query.gen_excerpts or [])
+    ]
 
     if (
         query.expanded_queries
@@ -245,8 +248,12 @@ def doc_index_retrieval(
                 query.offset,
             )
 
-        top_base_chunks_standard_ranking = wait_on_background(
-            top_base_chunks_standard_ranking_thread
+        top_base_chunks_standard_ranking = sum(
+            [
+                wait_on_background(thread)
+                for thread in top_base_chunks_standard_ranking_threads
+            ],
+            [],
         )
 
         top_keyword_chunks = wait_on_background(top_keyword_chunks_thread)
@@ -267,8 +274,12 @@ def doc_index_retrieval(
 
     else:
 
-        top_base_chunks_standard_ranking = wait_on_background(
-            top_base_chunks_standard_ranking_thread
+        top_base_chunks_standard_ranking = sum(
+            [
+                wait_on_background(thread)
+                for thread in top_base_chunks_standard_ranking_threads
+            ],
+            [],
         )
 
         top_chunks = _dedupe_chunks(top_base_chunks_standard_ranking)
