@@ -19,13 +19,16 @@ from onyx.context.search.preprocessing.preprocessing import HYBRID_ALPHA
 from onyx.context.search.preprocessing.preprocessing import HYBRID_ALPHA_KEYWORD
 from onyx.context.search.utils import inference_section_from_chunks
 from onyx.db.search_settings import get_current_search_settings
+from onyx.db.search_settings import get_multilingual_expansion
 from onyx.document_index.interfaces import DocumentIndex
 from onyx.document_index.interfaces import VespaChunkRequest
 from onyx.document_index.vespa.shared_utils.utils import (
     replace_invalid_doc_id_characters,
 )
 from onyx.natural_language_processing.search_nlp_models import EmbeddingModel
+from onyx.secondary_llm_flows.query_expansion import multilingual_query_expansion
 from onyx.utils.logger import setup_logger
+from onyx.utils.threadpool_concurrency import run_functions_tuples_in_parallel
 from onyx.utils.threadpool_concurrency import run_in_background
 from onyx.utils.threadpool_concurrency import TimeoutThread
 from onyx.utils.threadpool_concurrency import wait_on_background
@@ -353,54 +356,50 @@ def retrieve_chunks(
         Callable[[RetrievalMetricsContainer], None] | None
     ) = None,
 ) -> list[InferenceChunk]:
-    """Returns a list of the best chunks from an initial keyword/semantic/hybrid search."""
+    """Returns a list of the best chunks from an initial keyword/semantic/ hybrid search."""
 
-    # multilingual_expansion = get_multilingual_expansion(db_session)
+    multilingual_expansion = get_multilingual_expansion(db_session)
     # Don't do query expansion on complex queries, rephrasings likely would not work well
-    top_chunks = doc_index_retrieval(
-        query=query, document_index=document_index, db_session=db_session
-    )
+    if not multilingual_expansion or "\n" in query.query or "\r" in query.query:
+        top_chunks = doc_index_retrieval(
+            query=query, document_index=document_index, db_session=db_session
+        )
+    else:
+        simplified_queries = set()
+        run_queries: list[tuple[Callable, tuple]] = []
 
-    # if not multilingual_expansion or "\n" in query.query or "\r" in query.query:
-    #     top_chunks = doc_index_retrieval(
-    #         query=query, document_index=document_index, db_session=db_session
-    #     )
-    # else:
-    #     simplified_queries = set()
-    #     run_queries: list[tuple[Callable, tuple]] = []
+        # Currently only uses query expansion on multilingual use cases
+        query_rephrases = multilingual_query_expansion(
+            query.query, multilingual_expansion
+        )
+        # Just to be extra sure, add the original query.
+        query_rephrases.append(query.query)
+        for rephrase in set(query_rephrases):
+            # Sometimes the model rephrases the query in the same language with minor changes
+            # Avoid doing an extra search with the minor changes as this biases the results
+            simplified_rephrase = _simplify_text(rephrase)
+            if simplified_rephrase in simplified_queries:
+                continue
+            simplified_queries.add(simplified_rephrase)
 
-    #     # Currently only uses query expansion on multilingual use cases
-    #     query_rephrases = multilingual_query_expansion(
-    #         query.query, multilingual_expansion
-    #     )
-    #     # Just to be extra sure, add the original query.
-    #     query_rephrases.append(query.query)
-    #     for rephrase in set(query_rephrases):
-    #         # Sometimes the model rephrases the query in the same language with minor changes
-    #         # Avoid doing an extra search with the minor changes as this biases the results
-    #         simplified_rephrase = _simplify_text(rephrase)
-    #         if simplified_rephrase in simplified_queries:
-    #             continue
-    #         simplified_queries.add(simplified_rephrase)
-
-    #         q_copy = query.model_copy(
-    #             update={
-    #                 "query": rephrase,
-    #                 # need to recompute for each rephrase
-    #                 # note that `SearchQuery` is a frozen model, so we can't update
-    #                 # it below
-    #                 "precomputed_query_embedding": None,
-    #             },
-    #             deep=True,
-    #         )
-    #         run_queries.append(
-    #             (
-    #                 doc_index_retrieval,
-    #                 (q_copy, document_index, db_session),
-    #             )
-    #         )
-    #     parallel_search_results = run_functions_tuples_in_parallel(run_queries)
-    #     top_chunks = combine_retrieval_results(parallel_search_results)
+            q_copy = query.model_copy(
+                update={
+                    "query": rephrase,
+                    # need to recompute for each rephrase
+                    # note that `SearchQuery` is a frozen model, so we can't update
+                    # it below
+                    "precomputed_query_embedding": None,
+                },
+                deep=True,
+            )
+            run_queries.append(
+                (
+                    doc_index_retrieval,
+                    (q_copy, document_index, db_session),
+                )
+            )
+        parallel_search_results = run_functions_tuples_in_parallel(run_queries)
+        top_chunks = combine_retrieval_results(parallel_search_results)
 
     if not top_chunks:
         logger.warning(
