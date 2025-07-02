@@ -1,10 +1,13 @@
+import os
 from collections.abc import Iterator
 from datetime import datetime
 from datetime import timezone
 from typing import cast
 from typing import List
 
+import openai
 import requests
+from pydantic import BaseModel
 
 from onyx.configs.app_configs import INDEX_BATCH_SIZE
 from onyx.configs.constants import DocumentSource
@@ -46,6 +49,133 @@ _FIREFLIES_API_QUERY = """
 """
 
 ONE_MINUTE = 60
+
+
+class DocumentClassificationResult(BaseModel):
+    categories: list[str]
+    entities: list[str]
+
+
+def _extract_categories_and_entities(
+    sections: list[TextSection | ImageSection],
+) -> dict[str, list[str]]:
+    """Extract categories and entities from document sections with retry logic."""
+    import time
+    import random
+
+    prompt = """
+                Analyze this document, classify it with categories, and extract important entities.
+
+                CATEGORIES:
+                Create up to 5 simple categories that best capture what this document is about. Consider categories within:
+                - Document type (e.g., Manual, Report, Email, Transcript, etc.)
+                - Content domain (e.g., Technical, Financial, HR, Marketing, etc.)
+                - Purpose (e.g., Training, Reference, Announcement, Analysis, etc.)
+                - Industry/Topic area (e.g., Software Development, Sales, Legal, etc.)
+
+                Be creative and specific. Use clear, descriptive terms that someone searching for this document might use.
+                Categories should be up to 2 words each.
+
+                ENTITIES:
+                Extract up to 5 important proper nouns, such as:
+                - Company names (e.g., Microsoft, Google, Acme Corp)
+                - Product names (e.g., Office 365, Salesforce, iPhone)
+                - People's names (e.g. John, Jane, Ahmed, Wenjie, etc.)
+                - Department names (e.g., Engineering, Marketing, HR)
+                - Project names (e.g., Project Alpha, Migration 2024)
+                - Technology names (e.g., PostgreSQL, React, AWS)
+                - Location names (e.g., New York Office, Building A)
+            """
+
+    # Retry configuration
+    max_retries = 3
+    base_delay = 1.0  # seconds
+    backoff_factor = 2.0
+
+    for attempt in range(max_retries + 1):
+        try:
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                logger.warning("OPENAI_API_KEY not set, skipping metadata extraction")
+                return {"categories": [], "entities": []}
+
+            client = openai.OpenAI(api_key=api_key)
+
+            # Combine all section text
+            document_text = "\n\n".join(
+                [
+                    section.text
+                    for section in sections
+                    if isinstance(section, TextSection) and section.text.strip()
+                ]
+            )
+
+            # Skip if no text content
+            if not document_text.strip():
+                logger.debug("No text content found, skipping metadata extraction")
+                return {"categories": [], "entities": []}
+
+            # Truncate very long documents to avoid token limits
+            max_chars = 50000  # Roughly 12k tokens
+            if len(document_text) > max_chars:
+                document_text = document_text[:max_chars] + "..."
+                logger.debug(f"Truncated document text to {max_chars} characters")
+
+            response = client.responses.parse(
+                model="o3",
+                input=[
+                    {
+                        "role": "system",
+                        "content": "Extract categories and entities from the document.",
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt + "\n\nDOCUMENT: " + document_text,
+                    },
+                ],
+                text_format=DocumentClassificationResult,
+            )
+
+            classification_result = response.output_parsed
+
+            result = {
+                "categories": classification_result.categories,
+                "entities": classification_result.entities,
+            }
+
+            logger.debug(f"Successfully extracted metadata: {result}")
+            return result
+
+        except Exception as e:
+            attempt_num = attempt + 1
+            is_last_attempt = attempt == max_retries
+
+            # Log the error
+            if is_last_attempt:
+                logger.error(
+                    f"Failed to extract categories and entities after {max_retries + 1} attempts: {e}"
+                )
+            else:
+                logger.warning(
+                    f"Attempt {attempt_num} failed to extract metadata: {e}. Retrying..."
+                )
+
+            # If this is the last attempt, return empty results
+            if is_last_attempt:
+                return {"categories": [], "entities": []}
+
+            # Calculate delay with exponential backoff and jitter
+            delay = base_delay * (backoff_factor**attempt)
+            jitter = random.uniform(0.1, 0.3)  # Add 10-30% jitter
+            total_delay = delay + jitter
+
+            logger.debug(
+                f"Waiting {total_delay:.2f} seconds before retry {attempt_num + 1}"
+            )
+            time.sleep(total_delay)
+
+    # Should never reach here, but just in case
+    return {"categories": [], "entities": []}
 
 
 def _create_doc_from_transcript(transcript: dict) -> Document | None:
@@ -96,12 +226,19 @@ def _create_doc_from_transcript(transcript: dict) -> Document | None:
         if participant != meeting_organizer_email and participant:
             meeting_participants_email_list.append(BasicExpertInfo(email=participant))
 
+    # Extract categories and entities from transcript and store in metadata
+    categories_and_entities = _extract_categories_and_entities(sections)
+    metadata = {
+        "categories": categories_and_entities.get("categories", []),
+        "entities": categories_and_entities.get("entities", []),
+    }
+
     return Document(
         id=fireflies_id,
         sections=cast(list[TextSection | ImageSection], sections),
         source=DocumentSource.FIREFLIES,
         semantic_identifier=meeting_title,
-        metadata={},
+        metadata=metadata,
         doc_updated_at=meeting_date,
         primary_owners=organizer_email_user_info,
         secondary_owners=meeting_participants_email_list,

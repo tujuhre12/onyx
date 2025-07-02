@@ -309,10 +309,30 @@ def docx_to_text_and_images(
     paragraphs = []
     embedded_images: list[tuple[bytes, str]] = []
 
+    # Debug: Check file properties before processing
+    file.seek(0)
+    first_bytes = file.read(100)  # Read first 100 bytes
+    file.seek(0)  # Reset position
+
+    logger.debug(f"Processing file: {file_name}")
+    logger.debug(f"File size: {getattr(file, 'size', 'unknown')}")
+    logger.debug(f"First 100 bytes: {first_bytes}")
+    logger.debug(
+        f"File type check - starts with PK (ZIP): {first_bytes.startswith(b'PK')}"
+    )
+
     try:
         doc = docx.Document(file)
     except BadZipFile as e:
-        logger.warning(f"Failed to extract text from {file_name or 'docx file'}: {e}")
+        logger.error(f"BadZipFile error for {file_name}: {e}")
+        logger.error(f"File first bytes: {first_bytes}")
+        logger.error(f"Is this actually a ZIP file? {first_bytes.startswith(b'PK')}")
+        return "", []
+    except Exception as e:
+        logger.error(
+            f"Unexpected error processing DOCX file {file_name}: {type(e).__name__}: {e}"
+        )
+        logger.error(f"File first bytes: {first_bytes}")
         return "", []
 
     # Grab text from paragraphs
@@ -523,7 +543,7 @@ def extract_text_and_images(
         # docx example for embedded images
         if extension == ".docx":
             file.seek(0)
-            text_content, images = docx_to_text_and_images(file)
+            text_content, images = docx_to_text_and_images(file, file_name=file_name)
             return ExtractionResult(
                 text_content=text_content, embedded_images=images, metadata={}
             )

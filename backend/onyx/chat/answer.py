@@ -366,6 +366,13 @@ class Answer:
 
         if _HACKATHON_TEST_EXECUTION:
 
+            # Enable search-only mode for hackathon test execution
+            self.graph_config.behavior.skip_gen_ai_answer_generation = True
+            # Disable reranking for faster processing
+            self.graph_config.behavior.allow_agent_reranking = False
+            self.graph_config.behavior.allow_refinement = False
+
+            # Disable query rewording for more predictable results
             input_data = str(self.graph_config.inputs.prompt_builder.raw_user_query)
 
             if input_data.startswith("["):
