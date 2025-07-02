@@ -3,6 +3,7 @@ from enum import Enum
 import litellm  # type: ignore
 from pydantic import BaseModel
 
+from onyx.configs.app_configs import LLAMA_STACK_SERVER_URL
 from onyx.llm.utils import model_supports_image_input
 from onyx.server.manage.llm.models import ModelConfigurationView
 
@@ -24,6 +25,7 @@ class CustomConfigKey(BaseModel):
     is_required: bool = True
     is_secret: bool = False
     key_type: CustomConfigKeyType = CustomConfigKeyType.TEXT_INPUT
+    default_value: str | None = None
 
 
 class WellKnownLLMProviderDescriptor(BaseModel):
@@ -189,6 +191,7 @@ def fetch_available_well_known_llms() -> list[WellKnownLLMProviderDescriptor]:
                     description="The base URL for your Llama Stack server.",
                     is_required=True,
                     is_secret=False,
+                    default_value=LLAMA_STACK_SERVER_URL,
                 ),
                 CustomConfigKey(
                     name="LLAMA_STACK_API_KEY",  # TODO: need to accept multiple API keys

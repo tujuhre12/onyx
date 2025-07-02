@@ -787,3 +787,15 @@ S3_AWS_SECRET_ACCESS_KEY = os.environ.get("S3_AWS_SECRET_ACCESS_KEY")
 # Forcing Vespa Language
 # English: en, German:de, etc. See: https://docs.vespa.ai/en/linguistics.html
 VESPA_LANGUAGE_OVERRIDE = os.environ.get("VESPA_LANGUAGE_OVERRIDE")
+
+#####
+# Llama Stack Server Configs
+#####
+LLAMA_STACK_SERVER_HOST = os.environ.get(
+    "LLAMA_STACK_SERVER_HOST", "llama_stack_server"
+)
+LLAMA_STACK_SERVER_PORT = os.environ.get("LLAMA_STACK_SERVER_PORT", "8321")
+LLAMA_STACK_SERVER_URL = os.environ.get(
+    "LLAMA_STACK_SERVER_URL",
+    f"http://{LLAMA_STACK_SERVER_HOST}:{LLAMA_STACK_SERVER_PORT}",
+)

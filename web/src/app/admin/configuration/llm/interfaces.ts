@@ -5,6 +5,7 @@ export interface CustomConfigKey {
   is_required: boolean;
   is_secret: boolean;
   key_type: "text_input" | "file_input";
+  default_value?: string | null;
 }
 
 export interface ModelConfigurationUpsertRequest {

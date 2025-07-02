@@ -80,7 +80,7 @@ export function LLMProviderUpdateForm({
       existingLlmProvider?.custom_config ??
       llmProviderDescriptor.custom_config_keys?.reduce(
         (acc, customConfigKey) => {
-          acc[customConfigKey.name] = "";
+          acc[customConfigKey.name] = customConfigKey.default_value || "";
           return acc;
         },
         {} as { [key: string]: string }
