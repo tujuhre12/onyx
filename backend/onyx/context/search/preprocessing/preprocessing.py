@@ -270,4 +270,5 @@ def retrieval_preprocessing(
         full_doc=search_request.full_doc,
         precomputed_query_embedding=search_request.precomputed_query_embedding,
         expanded_queries=search_request.expanded_queries,
+        gen_excerpts=search_request.gen_excerpts,
     )
