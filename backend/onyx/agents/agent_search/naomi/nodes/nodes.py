@@ -1,8 +1,11 @@
+import json
 from typing import cast
 
 from langchain_core.runnables.config import RunnableConfig
+from langgraph.types import StreamWriter
 
 from onyx.agents.agent_search.basic.states import BasicInput
+from onyx.agents.agent_search.basic.utils import process_llm_stream
 from onyx.agents.agent_search.kb_search.states import MainInput as KBMainInput
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.naomi.basic_graph_builder import basic_graph_builder
@@ -14,36 +17,85 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def decision_node(state: NaomiState) -> NaomiState:
+def decision_node(state: NaomiState, config: RunnableConfig) -> NaomiState:
     """
     Decision node that determines which graph to execute next based on current stage.
     """
     logger.info(f"Decision node: current stage is {state.current_stage}")
+    structured_output_format= \
+        {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "execution_stage_enum",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "execution_stage": {
+                            "type": "string",
+                            "enum": ["BASIC", "KB_SEARCH", "COMPLETE"],
+                            "description": "The current execution stage of the process"
+                        }
+                    },
+                    "required": ["execution_stage"],
+                    "additionalProperties": False
+                },
+                "strict": True
+            }
+        }
 
     # For now, we'll implement a simple flow: BASIC -> KB_SEARCH -> COMPLETE
     # This can be enhanced with more sophisticated logic later
 
-    if state.input_state is None:
-        state.input_state = state
+    agent_config = cast(GraphConfig, config["metadata"]["config"])
+    llm = agent_config.tooling.primary_llm
 
-    if state.current_stage == ExecutionStage.BASIC:
-        # If basic stage is complete, move to kb_search
-        if state.basic_results:
-            state.current_stage = ExecutionStage.KB_SEARCH
-            logger.info("Moving to KB_SEARCH stage")
-        else:
-            # Stay in BASIC stage to execute basic graph
-            logger.info("Executing BASIC graph")
-    if state.current_stage == ExecutionStage.KB_SEARCH:
-        # If kb_search stage is complete, move to complete
-        if state.kb_search_results:
-            state.current_stage = ExecutionStage.COMPLETE
-            logger.info("Moving to COMPLETE stage")
-        else:
-            # Stay in KB_SEARCH stage to execute kb_search graph
-            logger.info("Executing KB_SEARCH graph")
+    prompt =  f"""You are an agent with access to a basic search tool and a knowledge graph search tool. You are given a question and you need to decide whether you neeed to use a tool and if so, which tool to use. Both tools have access to the same base information (which is currently Linear tickets for the Onyx team). However, basic search performs information retrieval from these sources while using the knowledge graph takes the query and performs a relevant SQL query in a postgres database with tables of identified entities and their relationships. Select the tool you believe will be most effective for answering the question. If both tools could be effective, you should use the basic search tool. Return "BASIC" if you need to use the basic search tool, "KB_SEARCH" if you need to use the knowledge graph search tool, and "COMPLETE" if you don't need to use any tool. After each tool is used, you will see the results of from your previous tool calls. You should use the results of your previous tool calls to decide which tool to use next. "COMPLETE" should only be returned if you have already used at least one of the tools and have no more information to gather.
+        
+Here is the query: <START_OF_QUERY>{agent_config.inputs.prompt_builder.raw_user_query}<END_OF_QUERY>
 
-    print(state.current_stage)
+This is the information you've already collected on previous steps:
+
+Basic Search Results: 
+
+{[result["short_output"] for result in state.basic_results]}
+
+----------------------------------
+
+KB Search Results: 
+
+{state.kb_search_results}
+
+----------------------------------
+
+Please make your selection:
+"""
+    
+    output = llm.invoke(
+        prompt,
+        structured_response_format=structured_output_format
+    )
+
+
+    print(prompt)
+    # When using structured_response_format, the content is a JSON string
+    # that needs to be parsed
+    parsed_content = json.loads(output.content)
+    execution_stage = parsed_content["execution_stage"]
+
+    print("EXECUTION STAGE:", execution_stage)
+
+    if execution_stage == ExecutionStage.BASIC:
+    # If basic stage is complete, move to kb_search
+        state.current_stage = ExecutionStage.BASIC
+        logger.info("Moving to BASIC stage")
+    elif execution_stage == ExecutionStage.KB_SEARCH:
+        state.current_stage = ExecutionStage.KB_SEARCH
+        logger.info("Moving to KB_SEARCH stage")
+    elif execution_stage == ExecutionStage.COMPLETE:
+        state.current_stage = ExecutionStage.COMPLETE
+        logger.info("Moving to COMPLETE stage")
+    else:
+        raise ValueError(f"Invalid stage: {state.current_stage}")
 
     return state
 
@@ -69,29 +121,20 @@ def execute_basic_graph(state: NaomiState, config: RunnableConfig) -> NaomiState
             basic_input, config={"metadata": {"config": graph_config}}
         )
 
-        agent_config = cast(GraphConfig, config["metadata"]["config"])
-
         tool_call_output = result["tool_call_output"]
-        tool_call_summary = tool_call_output.tool_call_summary
         tool_call_responses = tool_call_output.tool_call_responses
 
         tool_choice = result["tool_choice"]
         if tool_choice is None:
             raise ValueError("Tool choice is None")
         tool = tool_choice.tool
-        prompt_builder = agent_config.inputs.prompt_builder
-        new_prompt_builder = tool.build_next_prompt(
-            prompt_builder=prompt_builder,
-            tool_call_summary=tool_call_summary,
-            tool_responses=tool_call_responses,
-            using_tool_calling_llm=agent_config.tooling.using_tool_calling_llm,
-        )
 
         # Store results in state
         # The result should contain the tool_call_chunk from BasicOutput
         state.basic_results.append(
             {
-                "output": new_prompt_builder.build(),
+                "output": tool.build_tool_message_content(*tool_call_responses),
+                "short_output": tool_call_output.tool_call_summary,
                 "status": "completed",
             }
         )
@@ -144,7 +187,7 @@ def execute_kb_search_graph(state: NaomiState, config: RunnableConfig) -> NaomiS
     return state
 
 
-def finalize_results(state: NaomiState, config: RunnableConfig) -> NaomiState:
+def finalize_results(state: NaomiState, config: RunnableConfig, writer: StreamWriter = lambda _: None) -> NaomiState:
     """
     Combine results from both graphs and create final answer.
     """
@@ -156,24 +199,46 @@ def finalize_results(state: NaomiState, config: RunnableConfig) -> NaomiState:
 
     for basic_result in state.basic_results:
         if basic_result.get("status") == "completed":
-            basic_answers.append(basic_result.get("output", ""))
+            basic_answers.append(basic_result.get("short_output", ""))
 
     for kb_result in state.kb_search_results:
         if kb_result.get("status") == "completed":
             kb_answers.append(kb_result.get("output", ""))
 
-    # Create final answer by combining both results
-    if basic_answers and kb_answers:
-        state.final_answer = f"Basic Search Results: {basic_answers}\n\nKnowledge Graph Search Results: {kb_answers}"
-    elif basic_answers:
-        state.final_answer = f"Basic Search Results: {basic_answers}"
-    elif kb_answers:
-        state.final_answer = f"Knowledge Graph Search Results: {kb_answers}"
-    else:
-        state.final_answer = "No results available from either search method."
 
-    logger.info("Results finalized")
+    agent_config = cast(GraphConfig, config["metadata"]["config"])
+    llm = agent_config.tooling.primary_llm
 
-    print("FINAL ANSWER", state.final_answer)
+    prompt =  f"""You are an agent with access to a basic search tool and a knowledge graph search tool. You are given a question and you need to decide whether you neeed to use a tool and if so, which tool to use. Both tools have access to the same base information (which is currently Linear tickets for the Onyx team). However, basic search performs information retrieval from these sources while using the knowledge graph takes the query and performs a relevant SQL query in a postgres database with tables of identified entities and their relationships. The following is the information you've already collected on previous steps:
+
+Basic Search Results: 
+
+{basic_answers}
+
+----------------------------------
+
+KB Search Results: 
+
+{kb_answers}
+
+----------------------------------
+
+Here is the original user query: <START_OF_QUERY>{agent_config.inputs.prompt_builder.raw_user_query}<END_OF_QUERY>
+
+Please answer the question based on the information you've collected:
+"""
+    
+    output = llm.invoke(prompt)
+
+
+    state.final_answer = output.content
+
+    stream = llm.stream(prompt)
+
+    process_llm_stream(
+            stream,
+            True,
+            writer,
+        )
 
     return state

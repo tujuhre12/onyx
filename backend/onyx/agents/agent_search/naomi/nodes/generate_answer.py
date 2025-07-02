@@ -131,14 +131,6 @@ def generate_answer(
             writer,
         )
 
-    # continue with the answer generation
-
-    output_format = (
-        state.output_format.value
-        if state.output_format
-        else "<you be the judge how to best present the data>"
-    )
-
     # if deep path was taken:
 
     consolidated_research_object_results_str = (
@@ -156,39 +148,13 @@ def generate_answer(
         research_results = ""
 
     if introductory_answer:
-        output_format_prompt = (
-            OUTPUT_FORMAT_NO_EXAMPLES_PROMPT.replace("---question---", question)
-            .replace(
-                "---introductory_answer---",
-                rename_entities_in_answer(introductory_answer),
-            )
-            .replace("---output_format---", str(output_format) if output_format else "")
-        )
+        output_format_prompt = rename_entities_in_answer(introductory_answer)
     elif research_results and consolidated_research_object_results_str:
-        output_format_prompt = (
-            OUTPUT_FORMAT_NO_EXAMPLES_PROMPT.replace("---question---", question)
-            .replace(
-                "---introductory_answer---",
-                rename_entities_in_answer(consolidated_research_object_results_str),
-            )
-            .replace("---output_format---", str(output_format) if output_format else "")
-        )
+        output_format_prompt = rename_entities_in_answer(consolidated_research_object_results_str)
     elif research_results and not consolidated_research_object_results_str:
-        output_format_prompt = (
-            OUTPUT_FORMAT_NO_OVERALL_ANSWER_PROMPT.replace("---question---", question)
-            .replace("---output_format---", str(output_format) if output_format else "")
-            .replace(
-                "---research_results---", rename_entities_in_answer(research_results)
-            )
-        )
+        output_format_prompt = rename_entities_in_answer(research_results)
     elif consolidated_research_object_results_str:
-        output_format_prompt = (
-            OUTPUT_FORMAT_NO_EXAMPLES_PROMPT.replace("---question---", question)
-            .replace("---output_format---", str(output_format) if output_format else "")
-            .replace(
-                "---research_results---", rename_entities_in_answer(research_results)
-            )
-        )
+        output_format_prompt = rename_entities_in_answer(research_results)
     else:
         raise ValueError("No research results or introductory answer provided")
 

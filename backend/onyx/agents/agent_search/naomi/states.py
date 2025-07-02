@@ -11,12 +11,12 @@ from onyx.agents.agent_search.orchestration.states import ToolCallOutput
 from onyx.agents.agent_search.orchestration.states import ToolChoice
 
 
-class ExecutionStage(Enum):
+class ExecutionStage(str,Enum):
     """Stages of execution for the orchestration graph"""
 
-    BASIC = "basic"
-    KB_SEARCH = "kb_search"
-    COMPLETE = "complete"
+    BASIC = "BASIC"
+    KB_SEARCH = "KB_SEARCH"
+    COMPLETE = "COMPLETE"
 
 
 class NaomiInput(CoreState):
