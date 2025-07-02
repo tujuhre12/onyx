@@ -248,13 +248,16 @@ def doc_index_retrieval(
                 query.offset,
             )
 
-        top_base_chunks_standard_ranking = sum(
-            [
-                wait_on_background(thread)
-                for thread in top_base_chunks_standard_ranking_threads
-            ],
-            [],
-        )
+        top_base_chunks_standard_ranking = [
+            chunk
+            for thread_results in zip(
+                *[
+                    wait_on_background(thread)
+                    for thread in top_base_chunks_standard_ranking_threads
+                ]
+            )
+            for chunk in thread_results
+        ]
 
         top_keyword_chunks = wait_on_background(top_keyword_chunks_thread)
 
@@ -307,6 +310,8 @@ def doc_index_retrieval(
                 )
         else:
             normal_chunks.append(chunk)
+
+    normal_chunks.sort(key=lambda x: x.score or 0, reverse=True)
 
     # If there are no large chunks, just return the normal chunks
     if not retrieval_requests:
