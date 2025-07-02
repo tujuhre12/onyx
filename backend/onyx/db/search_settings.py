@@ -56,6 +56,8 @@ def create_search_settings(
         contextual_rag_llm_name=search_settings.contextual_rag_llm_name,
         contextual_rag_llm_provider=search_settings.contextual_rag_llm_provider,
         multilingual_expansion=search_settings.multilingual_expansion,
+        enable_simple_query_expansion=search_settings.enable_simple_query_expansion,
+        simple_expansion_count=search_settings.simple_expansion_count,
         disable_rerank_for_streaming=search_settings.disable_rerank_for_streaming,
         rerank_model_name=search_settings.rerank_model_name,
         rerank_provider_type=search_settings.rerank_provider_type,
@@ -193,6 +195,26 @@ def get_multilingual_expansion(db_session: Session | None = None) -> list[str]:
     if not search_settings:
         return []
     return search_settings.multilingual_expansion
+
+
+def get_simple_expansion_settings(
+    db_session: Session | None = None,
+) -> tuple[bool, int]:
+    """Get simple query expansion settings from the database.
+
+    Returns:
+        tuple: (enabled, expansion_count)
+    """
+    # if db_session is None:
+    #     with get_session_with_current_tenant() as db_session:
+    #         search_settings = get_current_search_settings(db_session)
+    # else:
+    #     search_settings = get_current_search_settings(db_session)
+    # if not search_settings:
+    #     return False, 2
+    # return search_settings.enable_simple_query_expansion, search_settings.simple_expansion_count
+
+    return True, 3
 
 
 def update_search_settings(

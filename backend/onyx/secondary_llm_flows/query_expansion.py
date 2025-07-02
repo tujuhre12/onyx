@@ -12,6 +12,7 @@ from onyx.llm.utils import dict_based_prompt_to_langchain_prompt
 from onyx.llm.utils import message_to_string
 from onyx.prompts.chat_prompts import HISTORY_QUERY_REPHRASE
 from onyx.prompts.miscellaneous_prompts import LANGUAGE_REPHRASE_PROMPT
+from onyx.prompts.miscellaneous_prompts import SIMPLE_QUERY_EXPANSION_PROMPT
 from onyx.utils.logger import setup_logger
 from onyx.utils.text_processing import count_punctuation
 from onyx.utils.threadpool_concurrency import run_functions_tuples_in_parallel
@@ -164,3 +165,47 @@ def thread_based_query_rephrase(
     logger.debug(f"Rephrased combined query: {rephrased_query}")
 
     return rephrased_query
+
+
+def simple_unilingual_query_expansion(
+    query: str,
+    num_expansions: int = 2,
+    use_threads: bool = True,
+) -> list[str]:
+    """
+    Generate alternative phrasings of a query in the same language.
+    This is useful for improving search recall by trying different ways to express the same intent.
+    """
+
+    def _get_simple_expansion_messages() -> list[dict[str, str]]:
+        messages = [
+            {
+                "role": "user",
+                "content": SIMPLE_QUERY_EXPANSION_PROMPT.format(
+                    query=query, num_expansions=num_expansions
+                ),
+            },
+        ]
+        return messages
+
+    try:
+        _, fast_llm = get_default_llms(timeout=5)
+    except GenAIDisabledException:
+        logger.warning("Unable to perform simple query expansion, Gen AI disabled")
+        return [query]
+
+    messages = _get_simple_expansion_messages()
+    filled_llm_prompt = dict_based_prompt_to_langchain_prompt(messages)
+    model_output = message_to_string(fast_llm.invoke(filled_llm_prompt))
+    logger.debug(f"Simple query expansion output: {model_output}")
+
+    # Parse the response - expect newline-separated queries
+    expanded_queries = [
+        line.strip() for line in model_output.split("\n") if line.strip()
+    ]
+
+    # Add the original query to ensure we always have at least one query
+    if query not in expanded_queries:
+        expanded_queries.append(query)
+
+    return expanded_queries[: num_expansions + 1]  # +1 to account for original query

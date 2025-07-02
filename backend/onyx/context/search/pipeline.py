@@ -483,3 +483,24 @@ def section_relevance_list_impl(
         items=final_context_sections,
     )
     return [ind in llm_indices for ind in range(len(final_context_sections))]
+
+
+if __name__ == "__main__":
+    from onyx.db.engine.sql_engine import SqlEngine, get_session_with_current_tenant
+    from onyx.llm.factory import get_default_llms
+
+    SqlEngine.init_engine(pool_size=10, max_overflow=10)
+
+    llm, fast_llm = get_default_llms()
+
+    with get_session_with_current_tenant() as db_session:
+        sp = SearchPipeline(
+            search_request=SearchRequest(
+                query="What is Onyx?",
+            ),
+            user=None,
+            llm=llm,
+            fast_llm=fast_llm,
+            skip_query_analysis=True,
+            db_session=db_session,
+        )

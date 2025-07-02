@@ -1,5 +1,6 @@
 import string
 from collections.abc import Callable
+from enum import Enum
 
 import nltk  # type:ignore
 from sqlalchemy.orm import Session
@@ -20,6 +21,7 @@ from onyx.context.search.preprocessing.preprocessing import HYBRID_ALPHA_KEYWORD
 from onyx.context.search.utils import inference_section_from_chunks
 from onyx.db.search_settings import get_current_search_settings
 from onyx.db.search_settings import get_multilingual_expansion
+from onyx.db.search_settings import get_simple_expansion_settings
 from onyx.document_index.interfaces import DocumentIndex
 from onyx.document_index.interfaces import VespaChunkRequest
 from onyx.document_index.vespa.shared_utils.utils import (
@@ -27,6 +29,7 @@ from onyx.document_index.vespa.shared_utils.utils import (
 )
 from onyx.natural_language_processing.search_nlp_models import EmbeddingModel
 from onyx.secondary_llm_flows.query_expansion import multilingual_query_expansion
+from onyx.secondary_llm_flows.query_expansion import simple_unilingual_query_expansion
 from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_functions_tuples_in_parallel
 from onyx.utils.threadpool_concurrency import run_in_background
@@ -39,6 +42,33 @@ from shared_configs.enums import EmbedTextType
 from shared_configs.model_server_models import Embedding
 
 logger = setup_logger()
+
+
+class ExpansionType(Enum):
+    Off = "off"
+    Simple = "simple"
+    Multilingual = "multilingual"
+
+
+def _get_expansion_type(
+    db_session: Session,
+    query: str,
+) -> tuple[ExpansionType, list[str], int]:
+    if "\n" in query or "\r" in query:
+        return ExpansionType.Off, [], 0
+
+    multilingual_expansion = get_multilingual_expansion(db_session)
+    if multilingual_expansion:
+        return ExpansionType.Multilingual, multilingual_expansion, 0
+
+    enable_simple_expansion, simple_expansion_count = get_simple_expansion_settings(
+        db_session
+    )
+
+    if enable_simple_expansion:
+        return ExpansionType.Simple, [], simple_expansion_count
+
+    return ExpansionType.Off, [], 0
 
 
 def _dedupe_chunks(
@@ -348,6 +378,92 @@ def _simplify_text(text: str) -> str:
     ).lower()
 
 
+def _retrieve_search_with_simple_expansion(
+    db_session: Session,
+    document_index: DocumentIndex,
+    query: SearchQuery,
+    simple_expansion_count: int,
+) -> list[InferenceChunk]:
+    # Use simple unilingual expansion for basic cases
+    simplified_queries_simple = set()
+    run_queries_simple: list[tuple[Callable, tuple]] = []
+
+    query_rephrases_simple = simple_unilingual_query_expansion(
+        query=query.query,
+        num_expansions=simple_expansion_count,
+    )
+    # Just to be extra sure, add the original query.
+    query_rephrases_simple.append(query.query)
+    for rephrase in set(query_rephrases_simple):
+        # Sometimes the model rephrases the query in the same language with minor changes
+        # Avoid doing an extra search with the minor changes as this biases the results
+        simplified_rephrase = _simplify_text(rephrase)
+        if simplified_rephrase in simplified_queries_simple:
+            continue
+        simplified_queries_simple.add(simplified_rephrase)
+
+        q_copy = query.model_copy(
+            update={
+                "query": rephrase,
+                # need to recompute for each rephrase
+                # note that `SearchQuery` is a frozen model, so we can't update
+                # it below
+                "precomputed_query_embedding": None,
+            },
+            deep=True,
+        )
+        run_queries_simple.append(
+            (
+                doc_index_retrieval,
+                (q_copy, document_index, db_session),
+            )
+        )
+    parallel_search_results = run_functions_tuples_in_parallel(run_queries_simple)
+    return combine_retrieval_results(parallel_search_results)
+
+
+def _retrieve_search_with_multilingual_expansion(
+    db_session: Session,
+    document_index: DocumentIndex,
+    query: SearchQuery,
+    multilingual_expansion: list[str],
+) -> list[InferenceChunk]:
+    # Use multilingual expansion if configured
+    simplified_queries = set()
+    run_queries: list[tuple[Callable, tuple]] = []
+
+    # Currently only uses query expansion on multilingual use cases
+    query_rephrases = multilingual_query_expansion(query.query, multilingual_expansion)
+    # Just to be extra sure, add the original query.
+    query_rephrases.append(query.query)
+    for rephrase in set(query_rephrases):
+        # Sometimes the model rephrases the query in the same language with minor changes
+        # Avoid doing an extra search with the minor changes as this biases the results
+        simplified_rephrase = _simplify_text(rephrase)
+        if simplified_rephrase in simplified_queries:
+            continue
+        simplified_queries.add(simplified_rephrase)
+
+        q_copy = query.model_copy(
+            update={
+                "query": rephrase,
+                # need to recompute for each rephrase
+                # note that `SearchQuery` is a frozen model, so we can't update
+                # it below
+                "precomputed_query_embedding": None,
+            },
+            deep=True,
+        )
+        run_queries.append(
+            (
+                doc_index_retrieval,
+                (q_copy, document_index, db_session),
+            )
+        )
+    parallel_search_results = run_functions_tuples_in_parallel(run_queries)
+    return combine_retrieval_results(parallel_search_results)
+
+
 def retrieve_chunks(
     query: SearchQuery,
     document_index: DocumentIndex,
@@ -358,48 +474,33 @@ def retrieve_chunks(
 ) -> list[InferenceChunk]:
     """Returns a list of the best chunks from an initial keyword/semantic/ hybrid search."""
 
-    multilingual_expansion = get_multilingual_expansion(db_session)
-    # Don't do query expansion on complex queries, rephrasings likely would not work well
-    if not multilingual_expansion or "\n" in query.query or "\r" in query.query:
+    expansion_type, multilingual_expansion, simple_expansion_count = (
+        _get_expansion_type(
+            db_session=db_session,
+            query=query.query,
+        )
+    )
+
+    if expansion_type == ExpansionType.Off:
         top_chunks = doc_index_retrieval(
             query=query, document_index=document_index, db_session=db_session
         )
-    else:
-        simplified_queries = set()
-        run_queries: list[tuple[Callable, tuple]] = []
-
-        # Currently only uses query expansion on multilingual use cases
-        query_rephrases = multilingual_query_expansion(
-            query.query, multilingual_expansion
+    elif expansion_type == ExpansionType.Simple:
+        top_chunks = _retrieve_search_with_simple_expansion(
+            db_session=db_session,
+            document_index=document_index,
+            query=query,
+            simple_expansion_count=simple_expansion_count,
         )
-        # Just to be extra sure, add the original query.
-        query_rephrases.append(query.query)
-        for rephrase in set(query_rephrases):
-            # Sometimes the model rephrases the query in the same language with minor changes
-            # Avoid doing an extra search with the minor changes as this biases the results
-            simplified_rephrase = _simplify_text(rephrase)
-            if simplified_rephrase in simplified_queries:
-                continue
-            simplified_queries.add(simplified_rephrase)
-
-            q_copy = query.model_copy(
-                update={
-                    "query": rephrase,
-                    # need to recompute for each rephrase
-                    # note that `SearchQuery` is a frozen model, so we can't update
-                    # it below
-                    "precomputed_query_embedding": None,
-                },
-                deep=True,
-            )
-            run_queries.append(
-                (
-                    doc_index_retrieval,
-                    (q_copy, document_index, db_session),
-                )
-            )
-        parallel_search_results = run_functions_tuples_in_parallel(run_queries)
-        top_chunks = combine_retrieval_results(parallel_search_results)
+    elif expansion_type == ExpansionType.Multilingual:
+        top_chunks = _retrieve_search_with_multilingual_expansion(
+            db_session=db_session,
+            document_index=document_index,
+            query=query,
+            multilingual_expansion=multilingual_expansion,
+        )
+    else:
+        raise RuntimeError
 
     if not top_chunks:
         logger.warning(
