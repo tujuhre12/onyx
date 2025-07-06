@@ -10,13 +10,14 @@ from alembic import op
 import sqlalchemy as sa
 from urllib.parse import urlparse, urlunparse
 from httpx import HTTPStatusError
+import httpx
 from onyx.document_index.factory import get_default_document_index
 from onyx.db.search_settings import SearchSettings
 from onyx.document_index.vespa.shared_utils.utils import get_vespa_http_client
 from onyx.document_index.vespa.shared_utils.utils import (
     replace_invalid_doc_id_characters,
 )
-from onyx.document_index.vespa_constants import SEARCH_ENDPOINT, DOCUMENT_ID_ENDPOINT
+from onyx.document_index.vespa_constants import DOCUMENT_ID_ENDPOINT
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -276,104 +277,96 @@ def update_document_id_in_database(
     )
 
 
+def _visit_chunks(
+    *,
+    http_client: httpx.Client,
+    cluster: str,
+    selection: str,
+    continuation: str | None = None,
+) -> tuple[list[dict], str | None]:
+    """Helper that calls the /document/v1 visit API once and returns (docs, next_token)."""
+
+    base_url = f"/document/v1/?cluster={cluster}&stream=true&selection={selection}"
+    if continuation:
+        base_url += f"&continuation={continuation}"
+
+    resp = http_client.get(base_url, timeout=None)
+    resp.raise_for_status()
+
+    payload = resp.json()
+    return payload.get("documents", []), payload.get("continuation")
+
+
 def delete_document_chunks_from_vespa(index_name: str, doc_id: str) -> None:
-    """Delete all chunks for a document from Vespa using pagination."""
-    offset = 0
-    limit = 400  # Vespa's maximum hits per query
+    """Delete all chunks for *doc_id* from Vespa using continuation-token paging (no offset)."""
+
     total_deleted = 0
+    selection = (
+        f'document_id contains "{doc_id}"'  # NB: this is a document selector, not YQL
+    )
 
     with get_vespa_http_client() as http_client:
+        continuation: str | None = None
         while True:
-            # Use pagination to handle the 400 hit limit
-            yql = f'select documentid, document_id, chunk_id from sources {index_name} where document_id contains "{doc_id}"'
+            docs, continuation = _visit_chunks(
+                http_client=http_client,
+                cluster=index_name,
+                selection=selection,
+                continuation=continuation,
+            )
 
-            params = {
-                "yql": yql,
-                "hits": str(limit),
-                "offset": str(offset),
-                "timeout": "30s",
-                "format": "json",
-            }
+            if not docs:
+                break
 
-            response = http_client.get(SEARCH_ENDPOINT, params=params, timeout=None)
-            response.raise_for_status()
-
-            search_result = response.json()
-            hits = search_result.get("root", {}).get("children", [])
-
-            if not hits:
-                break  # No more chunks to process
-
-            # Delete each chunk in this batch
-            for hit in hits:
-                vespa_doc_id = hit.get("id")  # This is the internal Vespa document ID
-                if not vespa_doc_id:
-                    print(f"No Vespa document ID found for chunk {hit}")
+            for doc in docs:
+                vespa_full_id = doc.get("id")
+                if not vespa_full_id:
                     continue
-                vespa_doc_id = vespa_doc_id.split("::")[-1]  # get the UUID from the end
 
-                # Delete the chunk using the internal Vespa document ID
-                delete_url = f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{vespa_doc_id}"
+                vespa_doc_uuid = vespa_full_id.split("::")[-1]
+                delete_url = f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{vespa_doc_uuid}"
 
                 try:
                     resp = http_client.delete(delete_url)
                     resp.raise_for_status()
                     total_deleted += 1
                 except Exception as e:
-                    print(f"Failed to delete chunk {vespa_doc_id}: {e}")
-                    # Continue trying to delete other chunks even if one fails
-                    continue
+                    print(f"Failed to delete chunk {vespa_doc_uuid}: {e}")
 
-            # Move to next batch
-            offset += limit
-
-            # If we got fewer hits than the limit, we're done
-            if len(hits) < limit:
+            if not continuation:
                 break
 
 
 def update_document_id_in_vespa(
     index_name: str, old_doc_id: str, new_doc_id: str
 ) -> None:
-    """Update a document's ID in Vespa by updating the document_id field."""
-    # Clean the new document ID for storage in Vespa (this handles invalid characters)
+    """Update all chunks' document_id field from *old_doc_id* to *new_doc_id* using continuation paging."""
+
     clean_new_doc_id = replace_invalid_doc_id_characters(new_doc_id)
 
-    offset = 0
-    limit = 400  # Vespa's maximum hits per query
-    total_updated = 0
+    selection = f'document_id contains "{old_doc_id}"'
 
     with get_vespa_http_client() as http_client:
+        continuation: str | None = None
         while True:
-            # Use pagination to handle the 400 hit limit
-            yql = f'select documentid, document_id, chunk_id from sources {index_name} where document_id contains "{old_doc_id}"'
+            docs, continuation = _visit_chunks(
+                http_client=http_client,
+                cluster=index_name,
+                selection=selection,
+                continuation=continuation,
+            )
 
-            params = {
-                "yql": yql,
-                "hits": str(limit),
-                "offset": str(offset),
-                "timeout": "30s",
-                "format": "json",
-            }
+            if not docs:
+                break
 
-            response = http_client.get(SEARCH_ENDPOINT, params=params, timeout=None)
-            response.raise_for_status()
-
-            search_result = response.json()
-            hits = search_result.get("root", {}).get("children", [])
-
-            if not hits:
-                break  # No more chunks to process
-
-            # Update each chunk in this batch
-            for hit in hits:
-                vespa_doc_id = hit.get("id")  # This is the internal Vespa document ID
-                if not vespa_doc_id:
-                    print(f"No Vespa document ID found for chunk {hit}")
+            for doc in docs:
+                vespa_full_id = doc.get("id")
+                if not vespa_full_id:
                     continue
-                vespa_doc_id = vespa_doc_id.split("::")[-1]  # get the UUID from the end
 
-                vespa_url = f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{vespa_doc_id}"
+                vespa_doc_uuid = vespa_full_id.split("::")[-1]
+                vespa_url = f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{vespa_doc_uuid}"
+
                 update_request = {
                     "fields": {"document_id": {"assign": clean_new_doc_id}}
                 }
@@ -381,16 +374,11 @@ def update_document_id_in_vespa(
                 try:
                     resp = http_client.put(vespa_url, json=update_request)
                     resp.raise_for_status()
-                    total_updated += 1
                 except Exception as e:
-                    print(f"Failed to update chunk {vespa_doc_id}: {e}")
+                    print(f"Failed to update chunk {vespa_doc_uuid}: {e}")
                     raise
 
-            # Move to next batch
-            offset += limit
-
-            # If we got fewer hits than the limit, we're done
-            if len(hits) < limit:
+            if not continuation:
                 break
 
 
