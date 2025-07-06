@@ -110,7 +110,9 @@ def get_google_drive_documents_from_database() -> list[dict]:
     return documents
 
 
-def update_document_id_in_database(old_doc_id: str, new_doc_id: str) -> None:
+def update_document_id_in_database(
+    old_doc_id: str, new_doc_id: str, index_name: str
+) -> None:
     """Update document IDs in all relevant database tables using copy-and-swap approach."""
     bind = op.get_bind()
 
@@ -123,9 +125,9 @@ def update_document_id_in_database(old_doc_id: str, new_doc_id: str) -> None:
     )
     row = result.fetchone()
     if row and row[0] > 0:
-        raise RuntimeError(
-            f"Document with ID {new_doc_id} already exists, cannot create duplicate"
-        )
+        print(f"Document with ID {new_doc_id} already exists, deleting old one")
+        delete_document_from_db(old_doc_id, index_name)
+        return
 
     # Step 1: Create a new document row with the new ID (copy all fields from old row)
     # Use a conservative approach to handle columns that might not exist in all installations
@@ -553,7 +555,9 @@ def upgrade() -> None:
         try:
             # Update both database and Vespa in order
             # Database first to ensure consistency
-            update_document_id_in_database(current_doc_id, normalized_doc_id)
+            update_document_id_in_database(
+                current_doc_id, normalized_doc_id, index_name
+            )
 
             # For Vespa, we can now use the original document IDs since we're using contains matching
             update_document_id_in_vespa(index_name, current_doc_id, normalized_doc_id)
