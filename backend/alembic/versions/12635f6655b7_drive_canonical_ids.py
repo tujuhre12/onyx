@@ -9,7 +9,7 @@ Create Date: 2025-06-20 14:44:54.241159
 from alembic import op
 import sqlalchemy as sa
 from urllib.parse import urlparse, urlunparse
-
+from httpx import HTTPStatusError
 from onyx.document_index.factory import get_default_document_index
 from onyx.db.search_settings import SearchSettings
 from onyx.document_index.vespa.shared_utils.utils import get_vespa_http_client
@@ -175,6 +175,7 @@ def update_document_id_in_database(old_doc_id: str, new_doc_id: str) -> None:
     )
 
     # Update search_doc table (stores search results for chat replay)
+    # This is critical for agent functionality
     bind.execute(
         sa.text(
             "UPDATE search_doc SET document_id = :new_id WHERE document_id = :old_id"
@@ -396,6 +397,39 @@ def delete_document_from_db(current_doc_id: str, index_name: str) -> None:
     try:
         bind = op.get_bind()
 
+        # Delete from agent-related tables first (order matters due to foreign keys)
+        # Delete from agent__sub_query__search_doc first since it references search_doc
+        bind.execute(
+            sa.text(
+                """
+                DELETE FROM agent__sub_query__search_doc
+                WHERE search_doc_id IN (
+                    SELECT id FROM search_doc WHERE document_id = :doc_id
+                )
+                """
+            ),
+            {"doc_id": current_doc_id},
+        )
+
+        # Delete from chat_message__search_doc
+        bind.execute(
+            sa.text(
+                """
+                DELETE FROM chat_message__search_doc
+                WHERE search_doc_id IN (
+                    SELECT id FROM search_doc WHERE document_id = :doc_id
+                )
+                """
+            ),
+            {"doc_id": current_doc_id},
+        )
+
+        # Now we can safely delete from search_doc
+        bind.execute(
+            sa.text("DELETE FROM search_doc WHERE document_id = :doc_id"),
+            {"doc_id": current_doc_id},
+        )
+
         # Delete from document_by_connector_credential_pair
         bind.execute(
             sa.text(
@@ -405,11 +439,6 @@ def delete_document_from_db(current_doc_id: str, index_name: str) -> None:
         )
 
         # Delete from other tables that reference this document
-        bind.execute(
-            sa.text("DELETE FROM search_doc WHERE document_id = :doc_id"),
-            {"doc_id": current_doc_id},
-        )
-
         bind.execute(
             sa.text(
                 "DELETE FROM document_retrieval_feedback WHERE document_id = :doc_id"
@@ -531,7 +560,6 @@ def upgrade() -> None:
             updated_count += 1
         except Exception as e:
             print(f"Failed to update document {current_doc_id}: {e}")
-            from httpx import HTTPStatusError
 
             if isinstance(e, HTTPStatusError):
                 print(f"HTTPStatusError: {e}")
