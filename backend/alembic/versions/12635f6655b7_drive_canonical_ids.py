@@ -87,13 +87,13 @@ def normalize_google_drive_url(url: str) -> str:
     return urlunparse(parsed_url)
 
 
-def get_google_drive_documents_from_database() -> list[dict]:
+def get_google_drive_documents_from_database() -> list[str]:
     """Get all Google Drive documents from the database."""
     bind = op.get_bind()
     result = bind.execute(
         sa.text(
             """
-            SELECT d.id, cc.id as cc_pair_id
+            SELECT d.id
             FROM document d
             JOIN document_by_connector_credential_pair dcc ON d.id = dcc.id
             JOIN connector_credential_pair cc ON dcc.connector_id = cc.connector_id
@@ -106,7 +106,7 @@ def get_google_drive_documents_from_database() -> list[dict]:
 
     documents = []
     for row in result:
-        documents.append({"document_id": row.id, "cc_pair_id": row.cc_pair_id})
+        documents.append(row.id)
 
     return documents
 
@@ -277,7 +277,9 @@ def update_document_id_in_database(
     bind.execute(
         sa.text("DELETE FROM document WHERE id = :old_id"), {"old_id": old_doc_id}
     )
-    # print(f"Successfully deleted document {old_doc_id} from database")
+    print(
+        f"Successfully deleted document {old_doc_id} from database (done with db update)"
+    )
 
 
 def _visit_chunks(
@@ -294,7 +296,7 @@ def _visit_chunks(
 
     params: dict[str, str] = {
         "selection": selection,
-        "wantedDocumentCount": "1000",
+        "wantedDocumentCount": "100",
     }
     if continuation:
         params["continuation"] = continuation
@@ -537,8 +539,7 @@ def upgrade() -> None:
     all_normalized_doc_ids = set()
     updated_count = 0
 
-    for doc_info in gdrive_documents:
-        current_doc_id = doc_info["document_id"]
+    for current_doc_id in gdrive_documents:
         normalized_doc_id = normalize_google_drive_url(current_doc_id)
 
         print(f"Processing document {current_doc_id} -> {normalized_doc_id}")
