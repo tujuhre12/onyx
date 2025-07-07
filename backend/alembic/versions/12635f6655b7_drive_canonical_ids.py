@@ -18,6 +18,7 @@ from onyx.document_index.vespa.shared_utils.utils import (
     replace_invalid_doc_id_characters,
 )
 from onyx.document_index.vespa_constants import DOCUMENT_ID_ENDPOINT
+from onyx.document_index.vespa_constants import VESPA_APP_CONTAINER_URL
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -286,7 +287,7 @@ def _visit_chunks(
 ) -> tuple[list[dict], str | None]:
     """Helper that calls the /document/v1 visit API once and returns (docs, next_token)."""
 
-    base_url = f"/document/v1/?cluster={cluster}&stream=true&selection={selection}"
+    base_url = f"{VESPA_APP_CONTAINER_URL}/document/v1/?cluster={cluster}&stream=true&selection={selection}"
     if continuation:
         base_url += f"&continuation={continuation}"
 
