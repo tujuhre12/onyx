@@ -18,8 +18,6 @@ from onyx.document_index.vespa.shared_utils.utils import (
     replace_invalid_doc_id_characters,
 )
 from onyx.document_index.vespa_constants import DOCUMENT_ID_ENDPOINT
-from onyx.document_index.vespa_constants import VESPA_APP_CONTAINER_URL
-from onyx.configs.app_configs import DOCUMENT_INDEX_NAME
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -119,7 +117,7 @@ def update_document_id_in_database(
     """Update document IDs in all relevant database tables using copy-and-swap approach."""
     bind = op.get_bind()
 
-    logger.info(f"Updating database tables for document {old_doc_id} -> {new_doc_id}")
+    # print(f"Updating database tables for document {old_doc_id} -> {new_doc_id}")
 
     # Check if new document ID already exists
     result = bind.execute(
@@ -128,7 +126,7 @@ def update_document_id_in_database(
     )
     row = result.fetchone()
     if row and row[0] > 0:
-        print(f"Document with ID {new_doc_id} already exists, deleting old one")
+        # print(f"Document with ID {new_doc_id} already exists, deleting old one")
         delete_document_from_db(old_doc_id, index_name)
         return
 
@@ -152,6 +150,7 @@ def update_document_id_in_database(
             ),
             {"new_id": new_doc_id, "old_id": old_doc_id},
         )
+        # print(f"Successfully updated database tables for document {old_doc_id} -> {new_doc_id}")
     except Exception as e:
         # If the full INSERT fails, try a more basic version with only core columns
         logger.warning(f"Full INSERT failed, trying basic version: {e}")
@@ -178,6 +177,7 @@ def update_document_id_in_database(
         ),
         {"new_id": new_doc_id, "old_id": old_doc_id},
     )
+    # print(f"Successfully updated document_by_connector_credential_pair table for document {old_doc_id} -> {new_doc_id}")
 
     # Update search_doc table (stores search results for chat replay)
     # This is critical for agent functionality
@@ -187,7 +187,7 @@ def update_document_id_in_database(
         ),
         {"new_id": new_doc_id, "old_id": old_doc_id},
     )
-
+    # print(f"Successfully updated search_doc table for document {old_doc_id} -> {new_doc_id}")
     # Update document_retrieval_feedback table (user feedback on documents)
     bind.execute(
         sa.text(
@@ -195,7 +195,7 @@ def update_document_id_in_database(
         ),
         {"new_id": new_doc_id, "old_id": old_doc_id},
     )
-
+    # print(f"Successfully updated document_retrieval_feedback table for document {old_doc_id} -> {new_doc_id}")
     # Update document__tag table (document-tag relationships)
     bind.execute(
         sa.text(
@@ -203,7 +203,7 @@ def update_document_id_in_database(
         ),
         {"new_id": new_doc_id, "old_id": old_doc_id},
     )
-
+    # print(f"Successfully updated document__tag table for document {old_doc_id} -> {new_doc_id}")
     # Update user_file table (user uploaded files linked to documents)
     bind.execute(
         sa.text(
@@ -211,7 +211,7 @@ def update_document_id_in_database(
         ),
         {"new_id": new_doc_id, "old_id": old_doc_id},
     )
-
+    # print(f"Successfully updated user_file table for document {old_doc_id} -> {new_doc_id}")
     # Update KG and chunk_stats tables (these may not exist in all installations)
     try:
         # Update kg_entity table
@@ -221,7 +221,7 @@ def update_document_id_in_database(
             ),
             {"new_id": new_doc_id, "old_id": old_doc_id},
         )
-
+        # print(f"Successfully updated kg_entity table for document {old_doc_id} -> {new_doc_id}")
         # Update kg_entity_extraction_staging table
         bind.execute(
             sa.text(
@@ -229,7 +229,7 @@ def update_document_id_in_database(
             ),
             {"new_id": new_doc_id, "old_id": old_doc_id},
         )
-
+        # print(f"Successfully updated kg_entity_extraction_staging table for document {old_doc_id} -> {new_doc_id}")
         # Update kg_relationship table
         bind.execute(
             sa.text(
@@ -237,7 +237,7 @@ def update_document_id_in_database(
             ),
             {"new_id": new_doc_id, "old_id": old_doc_id},
         )
-
+        # print(f"Successfully updated kg_relationship table for document {old_doc_id} -> {new_doc_id}")
         # Update kg_relationship_extraction_staging table
         bind.execute(
             sa.text(
@@ -245,7 +245,7 @@ def update_document_id_in_database(
             ),
             {"new_id": new_doc_id, "old_id": old_doc_id},
         )
-
+        # print(f"Successfully updated kg_relationship_extraction_staging table for document {old_doc_id} -> {new_doc_id}")
         # Update chunk_stats table
         bind.execute(
             sa.text(
@@ -253,7 +253,7 @@ def update_document_id_in_database(
             ),
             {"new_id": new_doc_id, "old_id": old_doc_id},
         )
-
+        # print(f"Successfully updated chunk_stats table for document {old_doc_id} -> {new_doc_id}")
         # Update chunk_stats ID field which includes document_id
         bind.execute(
             sa.text(
@@ -269,7 +269,7 @@ def update_document_id_in_database(
                 "old_id_pattern": f"{old_doc_id}__%",
             },
         )
-
+        # print(f"Successfully updated chunk_stats ID field for document {old_doc_id} -> {new_doc_id}")
     except Exception as e:
         logger.warning(f"Some KG/chunk tables may not exist or failed to update: {e}")
 
@@ -277,22 +277,31 @@ def update_document_id_in_database(
     bind.execute(
         sa.text("DELETE FROM document WHERE id = :old_id"), {"old_id": old_doc_id}
     )
+    # print(f"Successfully deleted document {old_doc_id} from database")
 
 
 def _visit_chunks(
     *,
     http_client: httpx.Client,
-    cluster: str,
+    index_name: str,
     selection: str,
     continuation: str | None = None,
 ) -> tuple[list[dict], str | None]:
     """Helper that calls the /document/v1 visit API once and returns (docs, next_token)."""
 
-    base_url = f"{VESPA_APP_CONTAINER_URL}/document/v1/?cluster={cluster}&stream=true&selection={selection}"
-    if continuation:
-        base_url += f"&continuation={continuation}"
+    # Use the same URL as the document API, but with visit-specific params
+    base_url = DOCUMENT_ID_ENDPOINT.format(index_name=index_name)
 
-    resp = http_client.get(base_url, timeout=None)
+    params: dict[str, str] = {
+        "selection": selection,
+        "wantedDocumentCount": "1000",
+    }
+    if continuation:
+        params["continuation"] = continuation
+
+    # print(f"Visiting chunks for selection '{selection}' with params {params}")
+    resp = http_client.get(base_url, params=params, timeout=None)
+    # print(f"Visited chunks for document {selection}")
     resp.raise_for_status()
 
     payload = resp.json()
@@ -303,16 +312,15 @@ def delete_document_chunks_from_vespa(index_name: str, doc_id: str) -> None:
     """Delete all chunks for *doc_id* from Vespa using continuation-token paging (no offset)."""
 
     total_deleted = 0
-    selection = (
-        f'document_id contains "{doc_id}"'  # NB: this is a document selector, not YQL
-    )
+    # Use exact match instead of contains - Document Selector Language doesn't support contains
+    selection = f'{index_name}.document_id=="{doc_id}"'
 
     with get_vespa_http_client() as http_client:
         continuation: str | None = None
         while True:
             docs, continuation = _visit_chunks(
                 http_client=http_client,
-                cluster=DOCUMENT_INDEX_NAME,
+                index_name=index_name,
                 selection=selection,
                 continuation=continuation,
             )
@@ -346,14 +354,16 @@ def update_document_id_in_vespa(
 
     clean_new_doc_id = replace_invalid_doc_id_characters(new_doc_id)
 
-    selection = f'document_id contains "{old_doc_id}"'
+    # Use exact match instead of contains - Document Selector Language doesn't support contains
+    selection = f'{index_name}.document_id=="{old_doc_id}"'
 
     with get_vespa_http_client() as http_client:
         continuation: str | None = None
         while True:
+            # print(f"Visiting chunks for document {old_doc_id} -> {new_doc_id}")
             docs, continuation = _visit_chunks(
                 http_client=http_client,
-                cluster=DOCUMENT_INDEX_NAME,
+                index_name=index_name,
                 selection=selection,
                 continuation=continuation,
             )
@@ -531,8 +541,10 @@ def upgrade() -> None:
         current_doc_id = doc_info["document_id"]
         normalized_doc_id = normalize_google_drive_url(current_doc_id)
 
+        print(f"Processing document {current_doc_id} -> {normalized_doc_id}")
         # Check for duplicates
         if normalized_doc_id in all_normalized_doc_ids:
+            # print(f"Deleting duplicate document {current_doc_id}")
             delete_document_from_db(current_doc_id, index_name)
             continue
 
@@ -540,6 +552,7 @@ def upgrade() -> None:
 
         # If the document ID already doesn't have query parameters, skip it
         if current_doc_id == normalized_doc_id:
+            # print(f"Skipping document {current_doc_id} -> {normalized_doc_id} because it already has no query parameters")
             continue
 
         try:
@@ -552,6 +565,7 @@ def upgrade() -> None:
             # For Vespa, we can now use the original document IDs since we're using contains matching
             update_document_id_in_vespa(index_name, current_doc_id, normalized_doc_id)
             updated_count += 1
+            # print(f"Finished updating document {current_doc_id} -> {normalized_doc_id}")
         except Exception as e:
             print(f"Failed to update document {current_doc_id}: {e}")
 
