@@ -19,6 +19,7 @@ from onyx.document_index.vespa.shared_utils.utils import (
 )
 from onyx.document_index.vespa_constants import DOCUMENT_ID_ENDPOINT
 from onyx.document_index.vespa_constants import VESPA_APP_CONTAINER_URL
+from onyx.configs.app_configs import DOCUMENT_INDEX_NAME
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -311,7 +312,7 @@ def delete_document_chunks_from_vespa(index_name: str, doc_id: str) -> None:
         while True:
             docs, continuation = _visit_chunks(
                 http_client=http_client,
-                cluster=index_name,
+                cluster=DOCUMENT_INDEX_NAME,
                 selection=selection,
                 continuation=continuation,
             )
@@ -352,7 +353,7 @@ def update_document_id_in_vespa(
         while True:
             docs, continuation = _visit_chunks(
                 http_client=http_client,
-                cluster=index_name,
+                cluster=DOCUMENT_INDEX_NAME,
                 selection=selection,
                 continuation=continuation,
             )
