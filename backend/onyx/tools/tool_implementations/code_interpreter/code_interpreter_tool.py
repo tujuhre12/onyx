@@ -7,12 +7,15 @@ from e2b_code_interpreter import Sandbox
 from langchain_core.messages import SystemMessage
 from pydantic import BaseModel
 
+from onyx.chat.chat_utils import combine_message_chain
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import PromptConfig
 from onyx.chat.prompt_builder.answer_prompt_builder import AnswerPromptBuilder
+from onyx.configs.model_configs import GEN_AI_HISTORY_CUTOFF
 from onyx.file_store.models import InMemoryChatFile
 from onyx.llm.interfaces import LLM
 from onyx.llm.models import PreviousMessage
+from onyx.llm.utils import message_to_string
 from onyx.tools.message import ToolCallSummary
 from onyx.tools.models import ToolResponse
 from onyx.tools.tool import Tool
@@ -39,6 +42,7 @@ COMPUTATIONS & ALGORITHMS:
 AUTOMATED WORKFLOW:
 - When users upload data files, automatically analyzes structure and generates appropriate Python code
 - Executes code in isolated environment with pandas, numpy, matplotlib, seaborn, scikit-learn, and more
+- Automatically truncates large files to manageable sizes (500 lines) to prevent token limit issues
 
 This is the primary tool for any data processing, extraction, analysis, or computational tasks
 involving structured data files.
@@ -46,6 +50,38 @@ involving structured data files.
 
 CODE_INTERPRETER_RESPONSE_ID = "code_interpreter_response"
 CODE_INTERPRETER_EXECUTION_ID = "code_interpreter_execution"
+
+# Configuration for file truncation
+MAX_FILE_LINES = 500
+MAX_FILE_SIZE_BYTES = 1024 * 1024  # 1MB
+
+# Tool selection constants
+YES_CODE_INTERPRETER = "Yes Code Interpreter"
+SKIP_CODE_INTERPRETER = "Skip Code Interpreter"
+
+CODE_INTERPRETER_TEMPLATE = f"""
+Given the conversation history and a follow up query, determine if the system should call \
+the code interpreter tool to better answer the latest user input.
+Your default response is {SKIP_CODE_INTERPRETER}.
+
+Respond "{YES_CODE_INTERPRETER}" if:
+- The user is asking for data analysis, calculations, or computations
+- The user wants to count, analyze, or process data from files (CSV, Excel, JSON, etc.)
+- The user is asking for statistical analysis, visualizations, or data insights
+- The user wants to perform mathematical operations or algorithms
+- The user mentions specific data operations like "count", "sum", "average", "filter", etc.
+- The user uploads data files and asks questions about the data
+- The user wants to generate charts, graphs, or data visualizations
+
+Conversation History:
+{{chat_history}}
+
+If you are at all unsure, respond with {SKIP_CODE_INTERPRETER}.
+Respond with EXACTLY and ONLY "{YES_CODE_INTERPRETER}" or "{SKIP_CODE_INTERPRETER}"
+
+Follow Up Input:
+{{final_query}}
+""".strip()
 
 
 class CodeInterpreterOverrideKwargs(BaseModel):
@@ -83,6 +119,7 @@ class CodeInterpreterTool(Tool[CodeInterpreterOverrideKwargs]):
         self.fast_llm = fast_llm
         self.files = files or []
         self._sandbox: Sandbox | None = None
+        self._split_files: list[str] = []  # Track which files were split into chunks
 
     @property
     def name(self) -> str:
@@ -145,16 +182,26 @@ class CodeInterpreterTool(Tool[CodeInterpreterOverrideKwargs]):
 
         # Create a comprehensive response that includes both code and results
         response_content = f"""
-**Code Interpreter Execution**
+                            **Code Interpreter Execution**
 
-**Code Executed:**
-```python
-{execution_result.code}
-```
+                            **Code Executed:**
+                            ```python
+                            {execution_result.code}
+                            ```
 
-**Execution Results:**
-- Output: {execution_result.output}
-"""
+                            **Execution Results:**
+                            - Output: {execution_result.output}
+                            """
+
+        # Add chunking information if any files were split
+        if self._split_files:
+            split_files_list = ", ".join(self._split_files)
+            response_content += f"""
+                            **File Processing Note:**
+                            - The following files were split into chunks: {split_files_list}
+                            - This enables processing of the complete dataset while avoiding token limit issues
+                            - Each chunk contains up to 500 lines for optimal processing
+                            """
 
         if execution_result.error:
             response_content += f"- Error: {execution_result.error}\n"
@@ -180,14 +227,14 @@ class CodeInterpreterTool(Tool[CodeInterpreterOverrideKwargs]):
         **kwargs: str,
     ) -> Generator[ToolResponse, None, None]:
         user_prompt = cast(str, kwargs["prompt"])
-        logger.error("CodeInterpreterTool.run called with prompt: %s", user_prompt)
-        logger.error("Number of files: %d", len(self.files))
+
+        # Reset split files list for this execution
+        self._split_files = []
 
         try:
             # Initialize the sandbox
             logger.debug("Initializing sandbox...")
             sandbox = self._get_sandbox()
-            logger.error("self.files: %s", self.files)
 
             # If there are files, upload them to the sandbox and analyze them
             if self.files:
@@ -198,7 +245,7 @@ class CodeInterpreterTool(Tool[CodeInterpreterOverrideKwargs]):
                 file_info = self.get_file_info(self.files)
 
                 # Step 2: Generate Python code based on analysis and user request
-                next_prompt = self.construct_next_prompt(file_info, user_prompt)
+                next_prompt = self.construct_prompt(file_info, user_prompt)
                 code = self.llm.invoke(next_prompt).text()
 
                 # Clean the generated code to remove markdown formatting
@@ -281,75 +328,99 @@ class CodeInterpreterTool(Tool[CodeInterpreterOverrideKwargs]):
                 response=execution_result,
             )
 
-    def construct_next_prompt(self, file_info: list[str], user_prompt: str) -> str:
+    def construct_prompt(self, file_info: list[str], user_prompt: str) -> str:
         #                         Based on the following CSV file analysis:
         # {initial_result}
+
+        # Check if any files were split into chunks
+        chunking_note = ""
+        if self._split_files:
+            split_files_list = ", ".join(self._split_files)
+            chunking_note = f"""
+NOTE: The following files were automatically split into smaller chunks to enable
+processing of the full dataset: {split_files_list}
+Each chunk contains up to 500 lines. To analyze the complete dataset, you should:
+1. Process each chunk separately and combine the results
+2. Use pandas to read all chunks and concatenate them: df = pd.concat([pd.read_csv(chunk) for chunk in chunk_files])
+3. Perform your analysis on the combined dataset
+"""
 
         next_prompt = f"""
                         Based on User request: {user_prompt}
                         Available files in the sandbox: {file_info}
+                        {chunking_note}
                         Understand the column names, data types, and what each of them represents in the file.
 
                         Please write Python code that:
                         1. Use fileread to read the CSV file(s) from the sandbox using pandas
-                        2. Performs the analysis requested by the user
-                        3. Provides clear output and visualizations if appropriate
-                        4. Handles any errors gracefully
+                        2. If multiple chunks exist for the same file, combine them using pd.concat()
+                        3. Performs the analysis requested by the user on the complete dataset
+                        4. Provides clear output and visualizations if appropriate
+                        5. Handles any errors gracefully
+                        6. If working with chunked data, combine results from all chunks for accurate analysis
 
                         Return only the Python code with correct format and no explanations.
                         """
         return next_prompt
 
     def get_file_info(self, files: list[InMemoryChatFile]) -> list[str]:
-        sandbox = self._sandbox
+        sandbox = self._get_sandbox()
 
         # Upload files to sandbox and create file info
         file_info = []
-        logger.error("Files are : %s", files[0].filename)
+        logger.info(f"Processing {len(files)} files")
+
         for file in files:
-            logger.error(
-                "Processing file: %s (type: %s)", file.filename, file.file_type.value
+            logger.info(
+                f"Processing file: {file.filename} (type: {file.file_type.value}, size: {len(file.content)} bytes)"
             )
 
             if file.file_type.value in ["csv", "document", "plain_text"]:
-                # Upload text-based files
-                filename = file.filename or f"file_{file.file_id}"
-                logger.error("Uploading text file: %s", filename)
+                # Truncate file content if necessary
+                content = file.content
                 try:
-                    # Upload the dataset to the sandbox using the write method
-                    if file.file_type.value == "csv":
-                        # For CSV files, upload as binary content
-                        uploaded_file_info = sandbox.files.write(filename, file.content)
-                    else:
-                        # For text files, decode content as UTF-8
-                        uploaded_file_info = sandbox.files.write(
-                            filename, file.content.decode("utf-8")
+                    text_content = content.decode("utf-8")
+                    lines = text_content.split("\n")
+                    if len(lines) > MAX_FILE_LINES:
+                        logger.info(
+                            f"Truncating file {file.filename} to {MAX_FILE_LINES} lines"
                         )
-                    logger.error("Successfully uploaded text file: %s", filename)
-
-                    # Verify the file was uploaded by reading it back
-                    try:
-                        content = sandbox.files.read(uploaded_file_info.path)
-                        logger.error(
-                            "Content of the file: %s",
-                            content[:200] + "..." if len(content) > 200 else content,
+                        lines = lines[:MAX_FILE_LINES]
+                        text_content = "\n".join(lines)
+                        content = text_content.encode("utf-8")
+                    if len(content) > MAX_FILE_SIZE_BYTES:
+                        logger.info(
+                            f"Truncating file {file.filename} to {MAX_FILE_SIZE_BYTES} bytes"
                         )
-                    except Exception as read_error:
-                        logger.error(
-                            "Could not read back uploaded file: %s", str(read_error)
-                        )
-
+                        content = content[:MAX_FILE_SIZE_BYTES]
                 except Exception as e:
-                    logger.error("Failed to upload text file %s: %s", filename, str(e))
+                    logger.warning(
+                        f"Could not decode file {file.filename} as UTF-8, using original content: {e}"
+                    )
+                    if len(content) > MAX_FILE_SIZE_BYTES:
+                        content = content[:MAX_FILE_SIZE_BYTES]
 
-                if file.file_type.value == "csv":
-                    file_info.append(f"- CSV file: {uploaded_file_info.path}")
-                elif file.file_type.value == "document":
-                    file_info.append(f"- Document: {uploaded_file_info.path}")
-                elif file.file_type.value == "plain_text":
-                    file_info.append(f"- Text file: {uploaded_file_info.path}")
+                # Upload the (possibly truncated) file to the sandbox
+                try:
+                    if file.file_type.value == "csv":
+                        uploaded_file_info = sandbox.files.write(file.filename, content)
+                        file_info.append(f"- CSV file: {uploaded_file_info.path}")
+                    elif file.file_type.value == "document":
+                        uploaded_file_info = sandbox.files.write(
+                            file.filename, content.decode("utf-8")
+                        )
+                        file_info.append(f"- Document: {uploaded_file_info.path}")
+                    elif file.file_type.value == "plain_text":
+                        uploaded_file_info = sandbox.files.write(
+                            file.filename, content.decode("utf-8")
+                        )
+                        file_info.append(f"- Text file: {uploaded_file_info.path}")
+                    logger.info(f"Successfully uploaded file: {file.filename}")
+                except Exception as e:
+                    logger.error(f"Failed to upload file {file.filename}: {str(e)}")
+                    continue
 
-        logger.error("File info result: %s", file_info)
+        logger.info(f"File info result: {file_info}")
         return file_info
 
     def run_ai_generated_code(self, ai_generated_code: str):
@@ -404,6 +475,17 @@ Code Interpreter Execution Summary:
 
 **Execution Results:**
 - Output: {execution_result.output}
+"""
+
+            # Add chunking information if any files were split
+            if self._split_files:
+                split_files_list = ", ".join(self._split_files)
+                result_summary += f"""
+
+**File Processing Note:**
+- The following files were split into chunks: {split_files_list}
+- This enables processing of the complete dataset while avoiding token limit issues
+- Each chunk contains up to 500 lines for optimal processing
 """
 
             if execution_result.error:
@@ -480,4 +562,30 @@ execution details in your response. Show the user the code that was executed and
         llm: LLM,
         force_run: bool = False,
     ) -> dict[str, Any] | None:
+        args = {"prompt": query}
+        if force_run:
+            return args
+
+        # If there are files, always use code interpreter
+        if self.files:
+            logger.debug("Files present, using CodeInterpreterTool")
+            return args
+
+        history_str = combine_message_chain(
+            messages=history, token_limit=GEN_AI_HISTORY_CUTOFF
+        )
+        prompt = CODE_INTERPRETER_TEMPLATE.format(
+            chat_history=history_str,
+            final_query=query,
+        )
+        use_code_interpreter_tool_output = message_to_string(llm.invoke(prompt))
+
+        logger.debug(
+            f"Evaluated if should use CodeInterpreterTool: {use_code_interpreter_tool_output}"
+        )
+        if (
+            YES_CODE_INTERPRETER.split()[0]
+        ).lower() in use_code_interpreter_tool_output.lower():
+            return args
+
         return None
