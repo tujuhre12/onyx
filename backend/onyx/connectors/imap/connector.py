@@ -12,6 +12,7 @@ from typing import Any
 from typing import cast
 
 import bs4
+from pydantic import BaseModel
 
 from onyx.access.models import ExternalAccess
 from onyx.configs.constants import DocumentSource
@@ -37,6 +38,11 @@ _USERNAME_KEY = "imap_username"
 _PASSWORD_KEY = "imap_password"
 
 
+class CurrentMailbox(BaseModel):
+    mailbox: str
+    todo_email_ids: list[str]
+
+
 # An email has a list of mailboxes.
 # Each mailbox has a list of email-ids inside of it.
 #
@@ -49,7 +55,7 @@ _PASSWORD_KEY = "imap_password"
 # For initial checkpointing, set both fields to `None`.
 class ImapCheckpoint(ConnectorCheckpoint):
     todo_mailboxes: list[str] | None = None
-    todo_email_ids: list[str] | None = None
+    current_mailbox: CurrentMailbox | None = None
 
 
 class LoginState(str, Enum):
@@ -149,23 +155,35 @@ class ImapConnector(
 
             return checkpoint
 
-        if not checkpoint.todo_email_ids:
+        if (
+            not checkpoint.current_mailbox
+            or not checkpoint.current_mailbox.todo_email_ids
+        ):
             if not checkpoint.todo_mailboxes:
                 checkpoint.has_more = False
                 return checkpoint
 
             mailbox = checkpoint.todo_mailboxes.pop()
-            checkpoint.todo_email_ids = _fetch_email_ids_in_mailbox(
+            email_ids = _fetch_email_ids_in_mailbox(
                 mail_client=mail_client,
                 mailbox=mailbox,
                 start=start,
                 end=end,
             )
+            checkpoint.current_mailbox = CurrentMailbox(
+                mailbox=mailbox,
+                todo_email_ids=email_ids,
+            )
 
-        current_todos = cast(
-            list, copy.deepcopy(checkpoint.todo_email_ids[:_PAGE_SIZE])
+        _select_mailbox(
+            mail_client=mail_client, mailbox=checkpoint.current_mailbox.mailbox
         )
-        checkpoint.todo_email_ids = checkpoint.todo_email_ids[_PAGE_SIZE:]
+        current_todos = cast(
+            list, copy.deepcopy(checkpoint.current_mailbox.todo_email_ids[:_PAGE_SIZE])
+        )
+        checkpoint.current_mailbox.todo_email_ids = (
+            checkpoint.current_mailbox.todo_email_ids[_PAGE_SIZE:]
+        )
 
         for email_id in current_todos:
             email_msg = _fetch_email(mail_client=mail_client, email_id=email_id)
@@ -267,15 +285,19 @@ def _fetch_all_mailboxes_for_email_account(mail_client: imaplib.IMAP4_SSL) -> li
     return mailboxes
 
 
+def _select_mailbox(mail_client: imaplib.IMAP4_SSL, mailbox: str) -> None:
+    status, _ids = mail_client.select(mailbox=mailbox, readonly=True)
+    if status != _IMAP_OKAY_STATUS:
+        raise RuntimeError(f"Failed to select {mailbox=}")
+
+
 def _fetch_email_ids_in_mailbox(
     mail_client: imaplib.IMAP4_SSL,
     mailbox: str,
     start: SecondsSinceUnixEpoch,
     end: SecondsSinceUnixEpoch,
 ) -> list[str]:
-    status, _ids = mail_client.select(mailbox=mailbox, readonly=True)
-    if status != _IMAP_OKAY_STATUS:
-        raise RuntimeError(f"Failed to select {mailbox=}")
+    _select_mailbox(mail_client=mail_client, mailbox=mailbox)
 
     start_str = datetime.fromtimestamp(start, tz=timezone.utc).strftime("%d-%b-%Y")
     end_str = datetime.fromtimestamp(end, tz=timezone.utc).strftime("%d-%b-%Y")
