@@ -80,7 +80,25 @@ class ImapConnector(
             )
         return self._credentials
 
-    def _login(self) -> imaplib.IMAP4_SSL:
+    def _get_mail_client(self) -> imaplib.IMAP4_SSL:
+        """
+        Returns a new `imaplib.IMAP4_SSL` instance.
+
+        The `imaplib.IMAP4_SSL` object is supposed to be an "ephemeral" object; it's not something that you can login,
+        logout, then log back into again. I.e., the following will fail:
+
+        ```py
+        mail_client.login(..)
+        mail_client.logout();
+        mail_client.login(..)
+        ```
+
+        Therefore, you need a fresh, new instance in order to operate with IMAP. This function gives one to you.
+
+        # Notes
+        This function will throw an error if the credentials have not yet been set.
+        """
+
         def get_or_raise(name: str) -> str:
             value = self.credentials.get(name)
             if not value:
@@ -112,7 +130,7 @@ class ImapConnector(
         checkpoint = cast(ImapCheckpoint, copy.deepcopy(checkpoint))
         checkpoint.has_more = True
 
-        mail_client = self._login()
+        mail_client = self._get_mail_client()
 
         if checkpoint.todo_mailboxes is None:
             # This is the dummy checkpoint.
@@ -171,7 +189,7 @@ class ImapConnector(
         raise NotImplementedError("Use `set_credentials_provider` instead")
 
     def validate_connector_settings(self) -> None:
-        self._login()
+        self._get_mail_client()
 
     # impls for CredentialsConnector
 
