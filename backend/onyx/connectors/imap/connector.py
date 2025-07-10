@@ -33,6 +33,8 @@ logger = setup_logger()
 _DEFAULT_IMAP_PORT_NUMBER = int(os.environ.get("IMAP_PORT", 993))
 _IMAP_OKAY_STATUS = "OK"
 _PAGE_SIZE = 100
+_USERNAME_KEY = "imap_username"
+_PASSWORD_KEY = "imap_password"
 
 
 # An email has a list of mailboxes.
@@ -102,8 +104,8 @@ class ImapConnector(
         if self._login_state == LoginState.LoggedIn:
             return
 
-        username = get_or_raise("username")
-        password = get_or_raise("password")
+        username = get_or_raise(_USERNAME_KEY)
+        password = get_or_raise(_PASSWORD_KEY)
 
         self._login_state = LoginState.LoggedIn
         self.mail_client.login(user=username, password=password)
@@ -433,8 +435,8 @@ if __name__ == "__main__":
             tenant_id=None,
             connector_name=DocumentSource.IMAP,
             credential_json={
-                "username": username,
-                "password": password,
+                _USERNAME_KEY: username,
+                _PASSWORD_KEY: password,
             },
         )
     )
