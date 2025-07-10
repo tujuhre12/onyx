@@ -71,16 +71,6 @@ class ImapConnector(
         self._port = port
         self._mailboxes = mailboxes
         self._credentials: dict[str, Any] | None = None
-        self._mail_client: imaplib.IMAP4_SSL | None = None
-        self._login_state: LoginState = LoginState.LoggedOut
-
-    @property
-    def mail_client(self) -> imaplib.IMAP4_SSL:
-        if not self._mail_client:
-            raise RuntimeError(
-                "No mail-client has been initialized; call `set_credentials_provider` first"
-            )
-        return self._mail_client
 
     @property
     def credentials(self) -> dict[str, Any]:
@@ -90,7 +80,7 @@ class ImapConnector(
             )
         return self._credentials
 
-    def _login(self) -> None:
+    def _login(self) -> imaplib.IMAP4_SSL:
         def get_or_raise(name: str) -> str:
             value = self.credentials.get(name)
             if not value:
@@ -101,21 +91,16 @@ class ImapConnector(
                 )
             return value
 
-        if self._login_state == LoginState.LoggedIn:
-            return
-
         username = get_or_raise(_USERNAME_KEY)
         password = get_or_raise(_PASSWORD_KEY)
 
-        self._login_state = LoginState.LoggedIn
-        self.mail_client.login(user=username, password=password)
+        mail_client = imaplib.IMAP4_SSL(host=self._host, port=self._port)
+        status, _data = mail_client.login(user=username, password=password)
 
-    def _logout(self) -> None:
-        if self._login_state == LoginState.LoggedOut:
-            return
+        if status != _IMAP_OKAY_STATUS:
+            raise RuntimeError(f"Failed to log into imap server; {status=}")
 
-        self._login_state = LoginState.LoggedOut
-        self.mail_client.logout()
+        return mail_client
 
     def _load_from_checkpoint(
         self,
@@ -127,7 +112,7 @@ class ImapConnector(
         checkpoint = cast(ImapCheckpoint, copy.deepcopy(checkpoint))
         checkpoint.has_more = True
 
-        self._login()
+        mail_client = self._login()
 
         if checkpoint.todo_mailboxes is None:
             # This is the dummy checkpoint.
@@ -136,7 +121,7 @@ class ImapConnector(
                 checkpoint.todo_mailboxes = _sanitize_mailbox_names(self._mailboxes)
             else:
                 fetched_mailboxes = _fetch_all_mailboxes_for_email_account(
-                    mail_client=self.mail_client
+                    mail_client=mail_client
                 )
                 if not fetched_mailboxes:
                     raise RuntimeError(
@@ -153,7 +138,7 @@ class ImapConnector(
 
             mailbox = checkpoint.todo_mailboxes.pop()
             checkpoint.todo_email_ids = _fetch_email_ids_in_mailbox(
-                mail_client=self.mail_client,
+                mail_client=mail_client,
                 mailbox=mailbox,
                 start=start,
                 end=end,
@@ -165,7 +150,7 @@ class ImapConnector(
         checkpoint.todo_email_ids = checkpoint.todo_email_ids[_PAGE_SIZE:]
 
         for email_id in current_todos:
-            email_msg = _fetch_email(mail_client=self.mail_client, email_id=email_id)
+            email_msg = _fetch_email(mail_client=mail_client, email_id=email_id)
             if not email_msg:
                 logger.warn(f"Failed to fetch message {email_id=}; skipping")
                 continue
@@ -187,7 +172,6 @@ class ImapConnector(
 
     def validate_connector_settings(self) -> None:
         self._login()
-        self._logout()
 
     # impls for CredentialsConnector
 
@@ -195,7 +179,6 @@ class ImapConnector(
         self, credentials_provider: CredentialsProviderInterface
     ) -> None:
         self._credentials = credentials_provider.get_credentials()
-        self._mail_client = imaplib.IMAP4_SSL(host=self._host, port=self._port)
 
     # impls for CheckpointedConnector
 
