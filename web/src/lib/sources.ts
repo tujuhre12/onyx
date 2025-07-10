@@ -346,7 +346,7 @@ export const SOURCE_METADATA_MAP: SourceMap = {
     category: SourceCategory.Wiki,
     docs: "https://docs.onyx.app/connectors/highspot",
   },
-  email: {
+  imap: {
     icon: EmailIcon,
     displayName: "Email",
     category: SourceCategory.Personal,
