@@ -351,15 +351,11 @@ def _convert_email_headers_and_body_into_document(
             display_name=sender_name, email=sender_addr
         )
 
-    primary_owners = list(expert_info_map.values())
     email_body = _parse_email_body(email_msg=email_msg, email_headers=email_headers)
+    primary_owners = list(expert_info_map.values())
     external_access = (
         ExternalAccess(
-            external_user_emails=set(
-                expert_info.email
-                for _name, expert_info in expert_info_map.items()
-                if expert_info.email
-            ),
+            external_user_emails=set(expert_info_map.keys()),
             external_user_group_ids=set(),
             is_public=False,
         )
