@@ -491,12 +491,12 @@ export const credentialDisplayNames: Record<string, string> = {
 
   // R2
   account_id: "R2 Account ID",
+  r2_access_key_id: "R2 Access Key ID",
+  r2_secret_access_key: "R2 Secret Access Key",
 
   // IMAP
   imap_username: "IMAP Username",
   imap_password: "IMAP Password",
-  r2_access_key_id: "R2 Access Key ID",
-  r2_secret_access_key: "R2 Secret Access Key",
 
   // S3
   aws_access_key_id: "AWS Access Key ID",

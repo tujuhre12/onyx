@@ -287,8 +287,6 @@ function getCategoryDescription(category: SourceCategory): string {
       return "Connect to cloud storage and file hosting services.";
     case SourceCategory.Wiki:
       return "Link to wiki and knowledge base platforms.";
-    case SourceCategory.Personal:
-      return "Connect to personal tools.";
     case SourceCategory.Other:
       return "Connect to other miscellaneous knowledge sources.";
     default:

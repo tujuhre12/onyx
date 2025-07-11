@@ -349,7 +349,7 @@ export const SOURCE_METADATA_MAP: SourceMap = {
   imap: {
     icon: EmailIcon,
     displayName: "Email",
-    category: SourceCategory.Personal,
+    category: SourceCategory.Messaging,
   },
   // currently used for the Internet Search tool docs, which is why
   // a globe is used

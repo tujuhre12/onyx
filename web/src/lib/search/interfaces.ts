@@ -169,7 +169,6 @@ export enum SourceCategory {
   Messaging = "Messaging",
   ProjectManagement = "Project Management",
   CodeRepository = "Code Repository",
-  Personal = "Personal",
   Other = "Other",
 }
 
