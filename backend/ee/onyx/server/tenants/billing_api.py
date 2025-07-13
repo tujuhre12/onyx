@@ -49,7 +49,12 @@ def gate_product(
         return ProductGatingResponse(updated=False, error=str(e))
 
 
-"""
+@router.post("/product-gating/full-sync")
+def gate_product_full_sync(
+    product_gating_request: ProductGatingFullSyncRequest,
+    _: None = Depends(control_plane_dep),
+) -> ProductGatingResponse:
+    """
     Bulk operation to overwrite the entire gated tenant set.
     This replaces all currently gated tenants with the provided list.
     Gated tenants are not available to access the product and will be

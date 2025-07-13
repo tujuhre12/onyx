@@ -16,10 +16,6 @@ logger = setup_logger()
 def update_tenant_gating(tenant_id: str, status: ApplicationStatus) -> None:
     redis_client = get_redis_client(tenant_id=ONYX_CLOUD_TENANT_ID)
 
-    # Store the full status
-    status_key = f"tenant:{tenant_id}:status"
-    redis_client.set(status_key, status.value)
-
     # Maintain the GATED_ACCESS set
     if status == ApplicationStatus.GATED_ACCESS:
         redis_client.sadd(GATED_TENANTS_KEY, tenant_id)
