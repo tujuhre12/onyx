@@ -60,7 +60,7 @@ def gate_product(
         return ProductGatingResponse(updated=True, error=None)
 
     except Exception as e:
-        logger.exception("Failed to gate product")
+        logger.exception("Failed to gate products during full sync")
         return ProductGatingResponse(updated=False, error=str(e))
 
 
