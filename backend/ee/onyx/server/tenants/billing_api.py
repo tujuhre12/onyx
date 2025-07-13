@@ -10,10 +10,12 @@ from ee.onyx.server.tenants.billing import fetch_billing_information
 from ee.onyx.server.tenants.billing import fetch_stripe_checkout_session
 from ee.onyx.server.tenants.billing import fetch_tenant_stripe_information
 from ee.onyx.server.tenants.models import BillingInformation
+from ee.onyx.server.tenants.models import ProductGatingFullSyncRequest
 from ee.onyx.server.tenants.models import ProductGatingRequest
 from ee.onyx.server.tenants.models import ProductGatingResponse
 from ee.onyx.server.tenants.models import SubscriptionSessionResponse
 from ee.onyx.server.tenants.models import SubscriptionStatusResponse
+from ee.onyx.server.tenants.product_gating import overwrite_full_gated_set
 from ee.onyx.server.tenants.product_gating import store_product_gating
 from onyx.auth.users import User
 from onyx.configs.app_configs import WEB_DOMAIN
@@ -40,6 +42,25 @@ def gate_product(
         store_product_gating(
             product_gating_request.tenant_id, product_gating_request.application_status
         )
+        return ProductGatingResponse(updated=True, error=None)
+
+    except Exception as e:
+        logger.exception("Failed to gate product")
+        return ProductGatingResponse(updated=False, error=str(e))
+
+
+@router.post("/product-gating/full-sync")
+def gate_product_full_sync(
+    product_gating_request: ProductGatingFullSyncRequest,
+    _: None = Depends(control_plane_dep),
+) -> ProductGatingResponse:
+    """
+    Gating the product means that the product is not available to the tenant.
+    They will be directed to the billing page.
+    We gate the product when their subscription has ended.
+    """
+    try:
+        overwrite_full_gated_set(product_gating_request.gated_tenant_ids)
         return ProductGatingResponse(updated=True, error=None)
 
     except Exception as e:

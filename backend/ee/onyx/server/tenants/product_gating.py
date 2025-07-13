@@ -46,6 +46,22 @@ def store_product_gating(tenant_id: str, application_status: ApplicationStatus) 
         raise
 
 
+def overwrite_full_gated_set(tenant_ids: list[str]) -> None:
+    redis_client = get_redis_client(tenant_id=ONYX_CLOUD_TENANT_ID)
+
+    pipeline = redis_client.pipeline()
+
+    # Clear the existing set
+    pipeline.delete(GATED_TENANTS_KEY)
+
+    # Add all tenant IDs to the set and set their status
+    for tenant_id in tenant_ids:
+        pipeline.sadd(GATED_TENANTS_KEY, tenant_id)
+
+    # Execute all commands at once
+    pipeline.execute()
+
+
 def get_gated_tenants() -> set[str]:
     redis_client = get_redis_replica_client(tenant_id=ONYX_CLOUD_TENANT_ID)
     gated_tenants_bytes = cast(set[bytes], redis_client.smembers(GATED_TENANTS_KEY))
