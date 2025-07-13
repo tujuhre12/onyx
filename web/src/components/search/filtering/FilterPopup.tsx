@@ -13,7 +13,7 @@ import {
   FiBook,
 } from "react-icons/fi";
 import { FilterManager } from "@/lib/hooks";
-import { DocumentSet, Tag } from "@/lib/types";
+import { DocumentSetSummary, Tag } from "@/lib/types";
 import { SourceMetadata } from "@/lib/search/interfaces";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
@@ -26,7 +26,7 @@ interface FilterPopupProps {
   filterManager: FilterManager;
   trigger: React.ReactNode;
   availableSources: SourceMetadata[];
-  availableDocumentSets: DocumentSet[];
+  availableDocumentSets: DocumentSetSummary[];
   availableTags: Tag[];
 }
 
@@ -50,7 +50,7 @@ export function FilterPopup({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [documentSetSearch, setDocumentSetSearch] = useState("");
   const [filteredDocumentSets, setFilteredDocumentSets] = useState<
-    DocumentSet[]
+    DocumentSetSummary[]
   >(availableDocumentSets);
 
   useEffect(() => {
@@ -238,10 +238,10 @@ export function FilterPopup({
     }
   };
 
-  const isDocumentSetSelected = (docSet: DocumentSet) =>
+  const isDocumentSetSelected = (docSet: DocumentSetSummary) =>
     filterManager.selectedDocumentSets.includes(docSet.name);
 
-  const toggleDocumentSet = (docSet: DocumentSet) => {
+  const toggleDocumentSet = (docSet: DocumentSetSummary) => {
     filterManager.setSelectedDocumentSets((prev) =>
       prev.includes(docSet.name)
         ? prev.filter((id) => id !== docSet.name)

@@ -5,7 +5,7 @@ import { Option } from "@/components/Dropdown";
 import { generateRandomIconShape } from "@/lib/assistantIconUtils";
 import {
   CCPairBasicInfo,
-  DocumentSet,
+  DocumentSetSummary,
   User,
   UserGroup,
   UserRole,
@@ -131,7 +131,7 @@ export function AssistantEditor({
 }: {
   existingPersona?: FullPersona | null;
   ccPairs: CCPairBasicInfo[];
-  documentSets: DocumentSet[];
+  documentSets: DocumentSetSummary[];
   user: User | null;
   defaultPublic: boolean;
   llmProviders: LLMProviderView[];

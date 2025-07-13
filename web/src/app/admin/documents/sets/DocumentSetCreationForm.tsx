@@ -8,7 +8,12 @@ import {
   updateDocumentSet,
   DocumentSetCreationRequest,
 } from "./lib";
-import { ConnectorStatus, DocumentSet, UserGroup, UserRole } from "@/lib/types";
+import {
+  ConnectorStatus,
+  DocumentSetSummary,
+  UserGroup,
+  UserRole,
+} from "@/lib/types";
 import { TextFormField } from "@/components/admin/connectors/Field";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -24,7 +29,7 @@ interface SetCreationPopupProps {
   userGroups: UserGroup[] | undefined;
   onClose: () => void;
   setPopup: (popupSpec: PopupSpec | null) => void;
-  existingDocumentSet?: DocumentSet;
+  existingDocumentSet?: DocumentSetSummary;
 }
 
 export const DocumentSetCreationForm = ({
@@ -52,8 +57,8 @@ export const DocumentSetCreationForm = ({
           name: existingDocumentSet?.name ?? "",
           description: existingDocumentSet?.description ?? "",
           cc_pair_ids:
-            existingDocumentSet?.cc_pair_descriptors.map(
-              (ccPairDescriptor) => ccPairDescriptor.id
+            existingDocumentSet?.cc_pair_summaries.map(
+              (ccPairSummary) => ccPairSummary.id
             ) ?? [],
           is_public: existingDocumentSet?.is_public ?? true,
           users: existingDocumentSet?.users ?? [],
