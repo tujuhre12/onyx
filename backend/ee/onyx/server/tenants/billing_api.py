@@ -49,15 +49,11 @@ def gate_product(
         return ProductGatingResponse(updated=False, error=str(e))
 
 
-@router.post("/product-gating/full-sync")
-def gate_product_full_sync(
-    product_gating_request: ProductGatingFullSyncRequest,
-    _: None = Depends(control_plane_dep),
-) -> ProductGatingResponse:
-    """
-    Gating the product means that the product is not available to the tenant.
-    They will be directed to the billing page.
-    We gate the product when their subscription has ended.
+"""
+    Bulk operation to overwrite the entire gated tenant set.
+    This replaces all currently gated tenants with the provided list.
+    Gated tenants are not available to access the product and will be
+    directed to the billing page when their subscription has ended.
     """
     try:
         overwrite_full_gated_set(product_gating_request.gated_tenant_ids)
