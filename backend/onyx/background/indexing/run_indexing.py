@@ -194,7 +194,10 @@ def strip_null_characters(doc_batch: list[Document]) -> list[Document]:
 
 
 def _check_connector_and_attempt_status(
-    db_session_temp: Session, ctx: DocExtractionContext, index_attempt_id: int
+    db_session_temp: Session,
+    cc_pair_id: int,
+    search_settings_status: IndexModelStatus,
+    index_attempt_id: int,
 ) -> None:
     """
     Checks the status of the connector credential pair and index attempt.
@@ -202,14 +205,14 @@ def _check_connector_and_attempt_status(
     """
     cc_pair_loop = get_connector_credential_pair_from_id(
         db_session_temp,
-        ctx.cc_pair_id,
+        cc_pair_id,
     )
     if not cc_pair_loop:
-        raise RuntimeError(f"CC pair {ctx.cc_pair_id} not found in DB.")
+        raise RuntimeError(f"CC pair {cc_pair_id} not found in DB.")
 
     if (
         cc_pair_loop.status == ConnectorCredentialPairStatus.PAUSED
-        and ctx.search_settings_status != IndexModelStatus.FUTURE
+        and search_settings_status != IndexModelStatus.FUTURE
     ) or cc_pair_loop.status == ConnectorCredentialPairStatus.DELETING:
         raise ConnectorStopSignal(f"Connector {cc_pair_loop.status.value.lower()}")
 
@@ -217,9 +220,12 @@ def _check_connector_and_attempt_status(
     if not index_attempt_loop:
         raise RuntimeError(f"Index attempt {index_attempt_id} not found in DB.")
 
+    if index_attempt_loop.status == IndexingStatus.CANCELED:
+        raise ConnectorStopSignal(f"Index attempt {index_attempt_id} was canceled")
+
     if index_attempt_loop.status != IndexingStatus.IN_PROGRESS:
         raise RuntimeError(
-            f"Index Attempt was canceled, status is {index_attempt_loop.status}"
+            f"Index Attempt is not running, status is {index_attempt_loop.status}"
         )
 
     if index_attempt_loop.celery_task_id is None:
@@ -491,7 +497,10 @@ def _run_indexing(
                 with get_session_with_current_tenant() as db_session_temp:
                     # will exception if the connector/index attempt is marked as paused/failed
                     _check_connector_and_attempt_status(
-                        db_session_temp, ctx, index_attempt_id
+                        db_session_temp,
+                        ctx.cc_pair_id,
+                        ctx.search_settings_status,
+                        index_attempt_id,
                     )
 
                 # save record of any failures at the connector level
@@ -838,7 +847,6 @@ def run_indexing_entrypoint(
         index_attempt_id, connector_credential_pair_id
     )
     with get_session_with_current_tenant() as db_session:
-        # TODO: remove long running session entirely
         attempt = transition_attempt_to_in_progress(index_attempt_id, db_session)
 
         tenant_str = ""
@@ -852,7 +860,7 @@ def run_indexing_entrypoint(
         credential_id = attempt.connector_credential_pair.credential_id
 
     logger.info(
-        f"Indexing starting{tenant_str}: "
+        f"Docfetching starting{tenant_str}: "
         f"connector='{connector_name}' "
         f"config='{connector_config}' "
         f"credentials='{credential_id}'"
@@ -868,7 +876,7 @@ def run_indexing_entrypoint(
     )
 
     logger.info(
-        f"Indexing finished{tenant_str}: "
+        f"Docfetching finished{tenant_str}: "
         f"connector='{connector_name}' "
         f"config='{connector_config}' "
         f"credentials='{credential_id}'"
@@ -908,7 +916,7 @@ def connector_document_extraction(
     memory_tracer.start()
 
     index_attempt = None
-    last_batch_num = -1  # used to continue from checkpointing
+    last_batch_num = 0  # used to continue from checkpointing
     # comes from _run_indexing
     with get_session_with_current_tenant() as db_session:
         index_attempt = get_index_attempt(
@@ -943,41 +951,27 @@ def connector_document_extraction(
             is not None
         )
 
-        # TODO: these can just be local variables now
-        ctx = DocExtractionContext(
-            index_name=index_attempt.search_settings.index_name,
-            cc_pair_id=cc_pair_id,
-            connector_id=db_connector.id,
-            credential_id=db_credential.id,
-            source=db_connector.source,
-            earliest_index_time=(
-                db_connector.indexing_start.timestamp()
-                if db_connector.indexing_start
-                else 0
-            ),
-            from_beginning=index_attempt.from_beginning,
-            # Only update cc-pair status for primary index jobs
-            # Secondary index syncs at the end when swapping
-            is_primary=is_primary,
-            search_settings_status=index_attempt.search_settings.status,
-            doc_extraction_complete_batch_num=None,  # None means not completed yet
-            should_fetch_permissions_during_indexing=(
-                index_attempt.connector_credential_pair.access_type == AccessType.SYNC
-                and source_should_fetch_permissions_during_indexing(db_connector.source)
-                and is_primary
-                # if we've already successfully indexed, let the doc_sync job
-                # take care of doc-level permissions
-                and (from_beginning or not has_successful_attempt)
-            ),
+        earliest_index_time = (
+            db_connector.indexing_start.timestamp()
+            if db_connector.indexing_start
+            else 0
+        )
+        should_fetch_permissions_during_indexing = (
+            index_attempt.connector_credential_pair.access_type == AccessType.SYNC
+            and source_should_fetch_permissions_during_indexing(db_connector.source)
+            and is_primary
+            # if we've already successfully indexed, let the doc_sync job
+            # take care of doc-level permissions
+            and (from_beginning or not has_successful_attempt)
         )
 
         # Set up time windows for polling
         last_successful_index_poll_range_end = (
-            ctx.earliest_index_time
-            if ctx.from_beginning
+            earliest_index_time
+            if from_beginning
             else get_last_successful_attempt_poll_range_end(
-                cc_pair_id=ctx.cc_pair_id,
-                earliest_index=ctx.earliest_index_time,
+                cc_pair_id=cc_pair_id,
+                earliest_index=earliest_index_time,
                 search_settings=index_attempt.search_settings,
                 db_session=db_session,
             )
@@ -994,7 +988,7 @@ def connector_document_extraction(
         most_recent_attempt = next(
             iter(
                 get_recent_completed_attempts_for_cc_pair(
-                    cc_pair_id=ctx.cc_pair_id,
+                    cc_pair_id=cc_pair_id,
                     search_settings_id=index_attempt.search_settings_id,
                     db_session=db_session,
                     limit=1,
@@ -1033,7 +1027,7 @@ def connector_document_extraction(
             batch_size=INDEX_BATCH_SIZE,
             start_time=window_start,
             end_time=window_end,
-            include_permissions=ctx.should_fetch_permissions_during_indexing,
+            include_permissions=should_fetch_permissions_during_indexing,
         )
 
         # don't use a checkpoint if we're explicitly indexing from
@@ -1055,7 +1049,7 @@ def connector_document_extraction(
             )
             checkpoint = get_latest_valid_checkpoint(
                 db_session=db_session,
-                cc_pair_id=ctx.cc_pair_id,
+                cc_pair_id=cc_pair_id,
                 search_settings_id=index_attempt.search_settings_id,
                 window_start=window_start,
                 window_end=window_end,
@@ -1090,7 +1084,10 @@ def connector_document_extraction(
             recent_batches = (
                 most_recent_attempt.completed_batches if most_recent_attempt else 0
             )
-            last_batch_num = len(old_batches) + recent_batches - 1
+            # resume from the batch num of the last attempt. This should be one more
+            # than the last batch created by docfetching regardless of whether the batch
+            # is still in the filestore waiting for processing or not.
+            last_batch_num = len(old_batches) + recent_batches
 
         # Save initial checkpoint
         save_checkpoint(
@@ -1100,7 +1097,7 @@ def connector_document_extraction(
         )
 
     try:
-        batch_num = last_batch_num + 1  # starts at 0 if no last batch
+        batch_num = last_batch_num  # starts at 0 if no last batch
         total_doc_batches_queued = 0
         total_failures = 0
         document_count = 0
@@ -1108,7 +1105,7 @@ def connector_document_extraction(
         # Main extraction loop
         while checkpoint.has_more:
             logger.info(
-                f"Running '{ctx.source.value}' connector with checkpoint: {checkpoint}"
+                f"Running '{db_connector.source.value}' connector with checkpoint: {checkpoint}"
             )
             for document_batch, failure, next_checkpoint in connector_runner.run(
                 checkpoint
@@ -1130,7 +1127,10 @@ def connector_document_extraction(
                 # will exception if the connector/index attempt is marked as paused/failed
                 with get_session_with_current_tenant() as db_session:
                     _check_connector_and_attempt_status(
-                        db_session, ctx, index_attempt_id
+                        db_session,
+                        cc_pair_id,
+                        index_attempt.search_settings.status,
+                        index_attempt_id,
                     )
 
                 # save record of any failures at the connector level
@@ -1139,7 +1139,7 @@ def connector_document_extraction(
                     with get_session_with_current_tenant() as db_session:
                         create_index_attempt_error(
                             index_attempt_id,
-                            ctx.cc_pair_id,
+                            cc_pair_id,
                             failure,
                             db_session,
                         )
@@ -1180,10 +1180,6 @@ def connector_document_extraction(
 
                 logger.debug(f"Indexing batch of documents: {batch_description}")
                 memory_tracer.increment_and_maybe_trace()
-                # TODO: replicate index_attempt_md from _run_indexing, store in blob storage
-                # instead of that big extraction state. index_attempt_md will be the
-                # persisted communication between the connector extraction task and the
-                # document processing task
 
                 # Store documents in storage
                 batch_storage.store_batch(batch_num, doc_batch_cleaned)
@@ -1221,7 +1217,7 @@ def connector_document_extraction(
 
             # Save latest checkpoint
             # NOTE: checkpointing is used to track which batches have
-            # been stored, NOT which batches have been fully indexed
+            # been sent to the filestore, NOT which batches have been fully indexed
             # as it used to be.
             with get_session_with_current_tenant() as db_session:
                 save_checkpoint(
@@ -1239,8 +1235,8 @@ def connector_document_extraction(
             f"elapsed={elapsed_time:.2f}s"
         )
 
-        # Set total batches in database to signal extraction completion
-        # This replaces storing extraction state in FileStore
+        # Set total batches in database to signal extraction completion.
+        # Used by check_for_indexing to determine if the index attempt is complete.
         with get_session_with_current_tenant() as db_session:
             IndexingCoordination.set_total_batches(
                 db_session=db_session,
@@ -1298,13 +1294,13 @@ def connector_document_extraction(
 
                     if num_validation_errors >= VALIDATION_ERROR_THRESHOLD:
                         logger.warning(
-                            f"Connector {ctx.connector_id} has {num_validation_errors} consecutive validation"
+                            f"Connector {db_connector.id} has {num_validation_errors} consecutive validation"
                             f" errors. Marking the CC Pair as invalid."
                         )
                         update_connector_credential_pair(
                             db_session=db_session_temp,
-                            connector_id=ctx.connector_id,
-                            credential_id=ctx.credential_id,
+                            connector_id=db_connector.id,
+                            credential_id=db_credential.id,
                             status=ConnectorCredentialPairStatus.INVALID,
                         )
             raise e
