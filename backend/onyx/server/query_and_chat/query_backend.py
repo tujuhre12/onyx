@@ -59,7 +59,7 @@ def admin_search(
     final_filters = IndexFilters(
         source_type=question.filters.source_type,
         document_set=question.filters.document_set,
-        time_cutoff_start=question.filters.time_cutoff_start,
+        time_cutoff=question.filters.time_cutoff,
         tags=question.filters.tags,
         access_control_list=user_acl_filters,
         tenant_id=tenant_id,

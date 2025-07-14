@@ -30,7 +30,7 @@ def get_answer_from_query(
     filters = IndexFilters(
         source_type=None,
         document_set=None,
-        time_cutoff_start=None,
+        time_cutoff=None,
         tags=None,
         access_control_list=None,
     )

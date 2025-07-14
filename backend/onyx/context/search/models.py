@@ -109,7 +109,7 @@ class Tag(BaseModel):
 class BaseFilters(BaseModel):
     source_type: list[DocumentSource] | None = None
     document_set: list[str] | None = None
-    time_cutoff_start: datetime | None = None
+    time_cutoff: datetime | None = None
     time_cutoff_end: datetime | None = None
     tags: list[Tag] | None = None
     kg_entities: list[str] | None = None
@@ -123,14 +123,12 @@ class BaseFilters(BaseModel):
     def validate_time_range(
         cls, time_cutoff_end: datetime | None, info: Any
     ) -> datetime | None:
-        """Validate that time_cutoff_end is after time_cutoff_start when both are provided."""
-        time_cutoff_start = (
-            info.data.get("time_cutoff_start") if hasattr(info, "data") else None
-        )
+        """Validate that time_cutoff_end is after time_cutoff when both are provided."""
+        time_cutoff = info.data.get("time_cutoff") if hasattr(info, "data") else None
 
-        if time_cutoff_start is not None and time_cutoff_end is not None:
-            if time_cutoff_end < time_cutoff_start:
-                raise ValueError("time_cutoff_end must be after time_cutoff_start")
+        if time_cutoff is not None and time_cutoff_end is not None:
+            if time_cutoff_end < time_cutoff:
+                raise ValueError("time_cutoff_end must be after time_cutoff")
 
         return time_cutoff_end
 

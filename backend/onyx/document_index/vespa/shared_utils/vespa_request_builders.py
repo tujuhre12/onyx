@@ -186,7 +186,7 @@ def build_vespa_filters(
     filter_str += _build_int_or_filters(USER_FOLDER, filters.user_folder_ids)
 
     # Time filter
-    filter_str += _build_time_filter(filters.time_cutoff_start)
+    filter_str += _build_time_filter(filters.time_cutoff)
     filter_str += _build_end_time_filter(filters.time_cutoff_end)
 
     # Knowledge Graph Filters
