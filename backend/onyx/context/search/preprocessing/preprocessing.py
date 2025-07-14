@@ -75,6 +75,10 @@ def retrieval_preprocessing(
     if time_filter is None and persona:
         time_filter = persona.search_start_date
 
+    time_filter_end = preset_filters.time_cutoff_end
+    # if time_filter_end is None and persona:
+    #     time_filter_end = persona.search_end_date
+
     source_filter = preset_filters.source_type
 
     auto_detect_time_filter = True
@@ -180,6 +184,7 @@ def retrieval_preprocessing(
         source_type=preset_filters.source_type or predicted_source_filters,
         document_set=preset_filters.document_set,
         time_cutoff=time_filter or predicted_time_cutoff,
+        time_cutoff_end=time_filter_end,
         tags=preset_filters.tags,  # Tags are never auto-extracted
         access_control_list=user_acl_filters,
         tenant_id=get_current_tenant_id() if MULTI_TENANT else None,

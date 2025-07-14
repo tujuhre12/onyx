@@ -110,6 +110,7 @@ class BaseFilters(BaseModel):
     source_type: list[DocumentSource] | None = None
     document_set: list[str] | None = None
     time_cutoff: datetime | None = None
+    time_cutoff_end: datetime | None = None
     tags: list[Tag] | None = None
     kg_entities: list[str] | None = None
     kg_relationships: list[str] | None = None
