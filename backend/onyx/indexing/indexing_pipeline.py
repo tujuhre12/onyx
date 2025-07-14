@@ -1,6 +1,5 @@
 from collections import defaultdict
 from collections.abc import Callable
-from functools import partial
 from typing import Protocol
 
 from pydantic import BaseModel
@@ -1039,8 +1038,10 @@ def index_doc_batch(
     return result
 
 
-def build_indexing_pipeline(
+def run_indexing_pipeline(
     *,
+    document_batch: list[Document],
+    index_attempt_metadata: IndexAttemptMetadata,
     embedder: IndexingEmbedder,
     information_content_classification_model: InformationContentClassificationModel,
     document_index: DocumentIndex,
@@ -1049,7 +1050,7 @@ def build_indexing_pipeline(
     chunker: Chunker | None = None,
     ignore_time_skip: bool = False,
     callback: IndexingHeartbeatInterface | None = None,
-) -> IndexingPipelineProtocol:
+) -> IndexingPipelineResult:
     """Builds a pipeline which takes in a list (batch) of docs and indexes them."""
     all_search_settings = get_active_search_settings(db_session)
     if (
@@ -1082,12 +1083,13 @@ def build_indexing_pipeline(
         callback=callback,
     )
 
-    return partial(
-        index_doc_batch_with_handler,
+    return index_doc_batch_with_handler(
         chunker=chunker,
         embedder=embedder,
         information_content_classification_model=information_content_classification_model,
         document_index=document_index,
+        document_batch=document_batch,
+        index_attempt_metadata=index_attempt_metadata,
         ignore_time_skip=ignore_time_skip,
         db_session=db_session,
         tenant_id=tenant_id,

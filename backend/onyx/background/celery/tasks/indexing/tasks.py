@@ -71,7 +71,7 @@ from onyx.file_store.document_batch_storage import DocumentBatchStorage
 from onyx.file_store.document_batch_storage import get_document_batch_storage
 from onyx.httpx.httpx_pool import HttpxPool
 from onyx.indexing.embedder import DefaultIndexingEmbedder
-from onyx.indexing.indexing_pipeline import build_indexing_pipeline
+from onyx.indexing.indexing_pipeline import run_indexing_pipeline
 from onyx.natural_language_processing.search_nlp_models import EmbeddingModel
 from onyx.natural_language_processing.search_nlp_models import (
     InformationContentClassificationModel,
@@ -916,9 +916,15 @@ def _resolve_indexing_errors(
         doc_id_to_unresolved_errors: dict[str, list[IndexAttemptError]] = defaultdict(
             list
         )
+        entity_id_to_unresolved_errors: dict[str, list[IndexAttemptError]] = (
+            defaultdict(list)
+        )
         for error in unresolved_errors:
             if error.document_id:
                 doc_id_to_unresolved_errors[error.document_id].append(error)
+            elif error.entity_id:
+                entity_id_to_unresolved_errors[error.entity_id].append(error)
+
         # resolve errors for documents that were successfully indexed
         failed_document_ids = [
             failure.failed_document.document_id
@@ -938,6 +944,13 @@ def _resolve_indexing_errors(
             for error in doc_id_to_unresolved_errors[document_id]:
                 error.is_resolved = True
                 db_session_temp.add(error)
+
+        for entity_id in entity_id_to_unresolved_errors:
+            logger.info(f"Resolving IndexAttemptError for entity '{entity_id}'")
+            for error in entity_id_to_unresolved_errors[entity_id]:
+                error.is_resolved = True
+                db_session_temp.add(error)
+
         db_session_temp.commit()
 
 
@@ -1086,16 +1099,6 @@ def _docprocessing_task(
                 httpx_client=HttpxPool.get("vespa"),
             )
 
-            indexing_pipeline = build_indexing_pipeline(
-                embedder=embedding_model,
-                information_content_classification_model=information_content_classification_model,
-                document_index=document_index,
-                ignore_time_skip=True,  # Documents are already filtered during extraction
-                db_session=db_session,
-                tenant_id=tenant_id,
-                callback=callback,
-            )
-
             # Set up metadata for this batch
             index_attempt_metadata = IndexAttemptMetadata(
                 attempt_id=index_attempt_id,
@@ -1112,8 +1115,16 @@ def _docprocessing_task(
             )
 
             per_batch_lock.reacquire()
+
             # real work happens here!
-            index_pipeline_result = indexing_pipeline(
+            index_pipeline_result = run_indexing_pipeline(
+                embedder=embedding_model,
+                information_content_classification_model=information_content_classification_model,
+                document_index=document_index,
+                ignore_time_skip=True,  # Documents are already filtered during extraction
+                db_session=db_session,
+                tenant_id=tenant_id,
+                callback=callback,
                 document_batch=documents,
                 index_attempt_metadata=index_attempt_metadata,
             )
