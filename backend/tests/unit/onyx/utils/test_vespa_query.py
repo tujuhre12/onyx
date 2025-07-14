@@ -220,6 +220,40 @@ class TestBuildVespaFilters:
             == result
         )
 
+    def test_time_cutoff_end_filter(self) -> None:
+        """Test time cutoff end filtering."""
+        # Only end time
+        end_time = datetime(2023, 12, 31, tzinfo=timezone.utc)
+        filters = IndexFilters(access_control_list=[], time_cutoff_end=end_time)
+        result = build_vespa_filters(filters)
+        end_cutoff_secs = int(end_time.timestamp())
+        assert (
+            f"!({HIDDEN}=true) and ({DOC_UPDATED_AT} <= {end_cutoff_secs}) and "
+            == result
+        )
+
+        # Valid time range - both start and end
+        start_time = datetime(2023, 1, 1, tzinfo=timezone.utc)
+        end_time = datetime(2023, 12, 31, tzinfo=timezone.utc)
+        filters = IndexFilters(
+            access_control_list=[], time_cutoff=start_time, time_cutoff_end=end_time
+        )
+        result = build_vespa_filters(filters)
+        start_cutoff_secs = int(start_time.timestamp())
+        end_cutoff_secs = int(end_time.timestamp())
+        assert (
+            f"!({HIDDEN}=true) and !({DOC_UPDATED_AT} < {start_cutoff_secs}) and ({DOC_UPDATED_AT} <= {end_cutoff_secs}) and "
+            == result
+        )
+
+        # Invalid time range - end before start
+        with pytest.raises(
+            ValueError, match="time_cutoff_end must be after time_cutoff"
+        ):
+            IndexFilters(
+                access_control_list=[], time_cutoff=end_time, time_cutoff_end=start_time
+            )
+
     def test_combined_filters(self) -> None:
         """Test combining multiple filter types."""
         filters = IndexFilters(
@@ -270,48 +304,3 @@ class TestBuildVespaFilters:
         filters = IndexFilters(access_control_list=[], document_set=["", ""])
         result = build_vespa_filters(filters)
         assert f"!({HIDDEN}=true) and " == result
-
-    def test_time_range_validation(self) -> None:
-        """Test time range validation - time_cutoff_end must be after time_cutoff."""
-        # Valid time range
-        start_time = datetime(2023, 1, 1, tzinfo=timezone.utc)
-        end_time = datetime(2023, 12, 31, tzinfo=timezone.utc)
-        filters = IndexFilters(
-            access_control_list=[], time_cutoff=start_time, time_cutoff_end=end_time
-        )
-
-        result = build_vespa_filters(filters)
-        assert "!(hidden=true) and " in result
-
-        # Invalid time range - end before start
-        with pytest.raises(
-            ValueError, match="time_cutoff_end must be after time_cutoff"
-        ):
-            IndexFilters(
-                access_control_list=[], time_cutoff=end_time, time_cutoff_end=start_time
-            )
-
-        # Invalid time range - same time
-        with pytest.raises(
-            ValueError, match="time_cutoff_end must be after time_cutoff"
-        ):
-            IndexFilters(
-                access_control_list=[],
-                time_cutoff=start_time,
-                time_cutoff_end=start_time,
-            )
-
-        # Valid cases - only start time
-        filters = IndexFilters(access_control_list=[], time_cutoff=start_time)
-        result = build_vespa_filters(filters)
-        assert "!(hidden=true) and " in result
-
-        # Valid cases - only end time
-        filters = IndexFilters(access_control_list=[], time_cutoff_end=end_time)
-        result = build_vespa_filters(filters)
-        assert "!(hidden=true) and " in result
-
-        # Valid cases - no time filters
-        filters = IndexFilters(access_control_list=[])
-        result = build_vespa_filters(filters)
-        assert "!(hidden=true) and " in result

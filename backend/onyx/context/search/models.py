@@ -127,7 +127,7 @@ class BaseFilters(BaseModel):
         time_cutoff = info.data.get("time_cutoff") if hasattr(info, "data") else None
 
         if time_cutoff is not None and time_cutoff_end is not None:
-            if time_cutoff_end <= time_cutoff:
+            if time_cutoff_end < time_cutoff:
                 raise ValueError("time_cutoff_end must be after time_cutoff")
 
         return time_cutoff_end
