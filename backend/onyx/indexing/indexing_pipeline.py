@@ -23,6 +23,7 @@ from onyx.connectors.cross_connector_utils.miscellaneous_utils import (
     get_experts_stores_representations,
 )
 from onyx.connectors.models import ConnectorFailure
+from onyx.connectors.models import ConnectorStopSignal
 from onyx.connectors.models import Document
 from onyx.connectors.models import DocumentFailure
 from onyx.connectors.models import ImageSection
@@ -289,6 +290,10 @@ def index_doc_batch_with_handler(
             enable_contextual_rag=enable_contextual_rag,
             llm=llm,
         )
+
+    except ConnectorStopSignal as e:
+        logger.warning("Connector stop signal detected in index_doc_batch_with_handler")
+        raise e
     except Exception as e:
         # don't log the batch directly, it's too much text
         document_ids = [doc.id for doc in document_batch]

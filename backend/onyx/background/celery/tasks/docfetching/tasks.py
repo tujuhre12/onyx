@@ -14,6 +14,8 @@ from redis.lock import Lock as RedisLock
 from onyx.background.celery.apps.app_base import task_logger
 from onyx.background.celery.celery_utils import httpx_init_vespa_pool
 from onyx.background.celery.memory_monitoring import emit_process_memory
+from onyx.background.celery.tasks.indexing.heartbeat import start_heartbeat
+from onyx.background.celery.tasks.indexing.heartbeat import stop_heartbeat
 from onyx.background.celery.tasks.indexing.tasks import ConnectorIndexingLogBuilder
 from onyx.background.celery.tasks.indexing.utils import IndexingCallback
 from onyx.background.celery.tasks.models import DocProcessingContext
@@ -123,6 +125,24 @@ def docfetching_task(
     This will cause the primary worker to abort the indexing attempt and clean up.
     """
 
+    # Start heartbeat for this indexing attempt
+    heartbeat_thread, stop_event = start_heartbeat(index_attempt_id)
+    try:
+        _docfetching_task(
+            app, index_attempt_id, cc_pair_id, search_settings_id, is_ee, tenant_id
+        )
+    finally:
+        stop_heartbeat(heartbeat_thread, stop_event)  # Stop heartbeat before exiting
+
+
+def _docfetching_task(
+    app: Celery,
+    index_attempt_id: int,
+    cc_pair_id: int,
+    search_settings_id: int,
+    is_ee: bool,
+    tenant_id: str,
+) -> None:
     # Since connector_indexing_proxy_task spawns a new process using this function as
     # the entrypoint, we init Sentry here.
     if SENTRY_DSN:
@@ -153,6 +173,7 @@ def docfetching_task(
     redis_connector = RedisConnector(tenant_id, cc_pair_id)
     redis_connector_index = redis_connector.new_index(search_settings_id)
 
+    # TODO: remove all fences, cause all signals to be set in postgres
     if redis_connector.delete.fenced:
         raise SimpleJobException(
             f"Indexing will not start because connector deletion is in progress: "
@@ -388,6 +409,7 @@ def docfetching_proxy_task(
     NOTE: we try/except all db access in this function because as a watchdog, this function
     needs to be extremely stable.
     """
+    # TODO: remove dependence on Redis
     start = time.monotonic()
 
     result = SimpleJobResult()

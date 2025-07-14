@@ -134,6 +134,17 @@ class FileStore(ABC):
         """
 
     @abstractmethod
+    def change_file_id(self, old_file_id: str, new_file_id: str) -> None:
+        """
+        Change the file ID of an existing file.
+
+        Parameters:
+        - old_file_id: Current file ID
+        - new_file_id: New file ID to assign
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def list_files_by_prefix(self, prefix: str) -> list[FileRecord]:
         """
         List all file IDs that start with the given prefix.
@@ -403,6 +414,68 @@ class S3BackedFileStore(FileStore):
 
             except Exception:
                 db_session.rollback()
+                raise
+
+    def change_file_id(
+        self, old_file_id: str, new_file_id: str, db_session: Session | None = None
+    ) -> None:
+        with get_session_with_current_tenant_if_none(db_session) as db_session:
+            try:
+                # Get the existing file record
+                old_file_record = get_filerecord_by_file_id(
+                    file_id=old_file_id, db_session=db_session
+                )
+
+                # Generate new S3 key for the new file ID
+                new_s3_key = self._get_s3_key(new_file_id)
+
+                # Copy S3 object to new key
+                s3_client = self._get_s3_client()
+                bucket_name = self._get_bucket_name()
+
+                copy_source = (
+                    f"{old_file_record.bucket_name}/{old_file_record.object_key}"
+                )
+
+                s3_client.copy_object(
+                    CopySource=copy_source,
+                    Bucket=bucket_name,
+                    Key=new_s3_key,
+                    MetadataDirective="COPY",
+                )
+
+                # Create new file record with new file_id
+                # Cast file_metadata to the expected type
+                file_metadata = cast(
+                    dict[Any, Any] | None, old_file_record.file_metadata
+                )
+
+                upsert_filerecord(
+                    file_id=new_file_id,
+                    display_name=old_file_record.display_name,
+                    file_origin=old_file_record.file_origin,
+                    file_type=old_file_record.file_type,
+                    bucket_name=bucket_name,
+                    object_key=new_s3_key,
+                    db_session=db_session,
+                    file_metadata=file_metadata,
+                )
+
+                # Delete old S3 object
+                s3_client.delete_object(
+                    Bucket=old_file_record.bucket_name, Key=old_file_record.object_key
+                )
+
+                # Delete old file record
+                delete_filerecord_by_file_id(file_id=old_file_id, db_session=db_session)
+
+                db_session.commit()
+
+            except Exception as e:
+                db_session.rollback()
+                logger.exception(
+                    f"Failed to change file ID from {old_file_id} to {new_file_id}: {e}"
+                )
                 raise
 
     def get_file_with_mime_type(self, filename: str) -> FileWithMimeType | None:

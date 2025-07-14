@@ -364,6 +364,10 @@ class ConnectorFailure(BaseModel):
         return values
 
 
+class ConnectorStopSignal(Exception):
+    """A custom exception used to signal a stop in processing."""
+
+
 class OnyxMetadata(BaseModel):
     # Note that doc_id cannot be overriden here as it may cause issues
     # with the display functionalities in the UI. Ask @chris if clarification is needed.

@@ -1697,6 +1697,13 @@ class IndexAttempt(Base):
     )
     last_batches_completed_count: Mapped[int] = mapped_column(Integer, default=0)
 
+    # NEW: Heartbeat tracking for worker liveness detection
+    heartbeat_counter: Mapped[int] = mapped_column(Integer, default=0)
+    last_heartbeat_value: Mapped[int] = mapped_column(Integer, default=0)
+    last_heartbeat_time: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     time_created: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
