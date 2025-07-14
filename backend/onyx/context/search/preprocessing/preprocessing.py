@@ -103,6 +103,7 @@ def retrieval_preprocessing(
         logger.debug("Not extract source filter - already provided")
         auto_detect_source_filter = False
 
+    # TODO: Also extract time_cutoff_end from the natural language search query
     # Based on the query figure out if we should apply any hard time filters /
     # if we should bias more recent docs even more strongly
     run_time_filters = (
