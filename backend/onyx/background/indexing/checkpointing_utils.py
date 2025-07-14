@@ -83,7 +83,7 @@ def get_latest_valid_checkpoint(
     # don't keep using checkpoints if we've had a bunch of failed attempts in a row
     # where we make no progress. Only do this if we have had at least
     # _NUM_RECENT_ATTEMPTS_TO_CONSIDER completed attempts.
-    if len(checkpoint_candidates) == _NUM_RECENT_ATTEMPTS_TO_CONSIDER:
+    if len(checkpoint_candidates) >= _NUM_RECENT_ATTEMPTS_TO_CONSIDER:
         had_any_progress = False
         for candidate in checkpoint_candidates:
             if (

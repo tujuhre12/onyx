@@ -71,6 +71,24 @@ def upgrade() -> None:
         ),
     )
 
+    # Heartbeat tracking for worker liveness detection
+    op.add_column(
+        "index_attempt",
+        sa.Column(
+            "heartbeat_counter", sa.Integer(), nullable=False, server_default="0"
+        ),
+    )
+    op.add_column(
+        "index_attempt",
+        sa.Column(
+            "last_heartbeat_value", sa.Integer(), nullable=False, server_default="0"
+        ),
+    )
+    op.add_column(
+        "index_attempt",
+        sa.Column("last_heartbeat_time", sa.DateTime(timezone=True), nullable=True),
+    )
+
     # Add index for coordination queries
     op.create_index(
         "ix_index_attempt_active_coordination",
@@ -86,6 +104,9 @@ def downgrade() -> None:
     # Remove the new columns
     op.drop_column("index_attempt", "last_batches_completed_count")
     op.drop_column("index_attempt", "last_progress_time")
+    op.drop_column("index_attempt", "last_heartbeat_time")
+    op.drop_column("index_attempt", "last_heartbeat_value")
+    op.drop_column("index_attempt", "heartbeat_counter")
     op.drop_column("index_attempt", "total_chunks")
     op.drop_column("index_attempt", "total_failures_batch_level")
     op.drop_column("index_attempt", "completed_batches")

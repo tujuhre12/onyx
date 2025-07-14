@@ -1,3 +1,4 @@
+import sys
 import time
 import traceback
 from collections import defaultdict
@@ -18,6 +19,7 @@ from onyx.configs.app_configs import INDEXING_SIZE_WARNING_THRESHOLD
 from onyx.configs.app_configs import INDEXING_TRACER_INTERVAL
 from onyx.configs.app_configs import INTEGRATION_TESTS_MODE
 from onyx.configs.app_configs import LEAVE_CONNECTOR_ACTIVE_ON_INITIALIZATION_FAILURE
+from onyx.configs.app_configs import MAX_FILE_SIZE_BYTES
 from onyx.configs.app_configs import POLL_CONNECTOR_OFFSET
 from onyx.configs.constants import MilestoneRecordType
 from onyx.configs.constants import OnyxCeleryPriority
@@ -28,6 +30,7 @@ from onyx.connectors.exceptions import ConnectorValidationError
 from onyx.connectors.exceptions import UnexpectedValidationError
 from onyx.connectors.factory import instantiate_connector
 from onyx.connectors.models import ConnectorFailure
+from onyx.connectors.models import ConnectorStopSignal
 from onyx.connectors.models import DocExtractionContext
 from onyx.connectors.models import Document
 from onyx.connectors.models import IndexAttemptMetadata
@@ -152,6 +155,10 @@ def _get_connector_runner(
 def strip_null_characters(doc_batch: list[Document]) -> list[Document]:
     cleaned_batch = []
     for doc in doc_batch:
+        if sys.getsizeof(doc) > MAX_FILE_SIZE_BYTES:
+            logger.warning(
+                f"doc {doc.id} too large, Document size: {sys.getsizeof(doc)}"
+            )
         cleaned_doc = doc.model_copy()
 
         # Postgres cannot handle NUL characters in text fields
@@ -186,10 +193,6 @@ def strip_null_characters(doc_batch: list[Document]) -> list[Document]:
     return cleaned_batch
 
 
-class ConnectorStopSignal(Exception):
-    """A custom exception used to signal a stop in processing."""
-
-
 def _check_connector_and_attempt_status(
     db_session_temp: Session, ctx: DocExtractionContext, index_attempt_id: int
 ) -> None:
@@ -208,7 +211,7 @@ def _check_connector_and_attempt_status(
         cc_pair_loop.status == ConnectorCredentialPairStatus.PAUSED
         and ctx.search_settings_status != IndexModelStatus.FUTURE
     ) or cc_pair_loop.status == ConnectorCredentialPairStatus.DELETING:
-        raise RuntimeError("Connector was disabled mid run")
+        raise ConnectorStopSignal(f"Connector {cc_pair_loop.status.value.lower()}")
 
     index_attempt_loop = get_index_attempt(db_session_temp, index_attempt_id)
     if not index_attempt_loop:
@@ -1020,6 +1023,11 @@ def connector_document_extraction(
         else:
             window_end = datetime.now(tz=timezone.utc)
 
+        # set time range in db
+        index_attempt.poll_range_start = window_start
+        index_attempt.poll_range_end = window_end
+        db_session.commit()
+
         # TODO: maybe memory tracer here
 
         # Set up connector runner
@@ -1060,7 +1068,8 @@ def connector_document_extraction(
 
             # When loading from a checkpoint, we need to start new docprocessing tasks
             # tied to the new index attempt for any batches left over in the file store
-            for batch_id in batch_storage.get_all_batches_for_cc_pair():
+            old_batches = batch_storage.get_all_batches_for_cc_pair()
+            for batch_id in old_batches:
                 logger.info(
                     f"Re-issuing docprocessing task for batch {batch_id} for index attempt {index_attempt_id}"
                 )
@@ -1081,7 +1090,7 @@ def connector_document_extraction(
                     queue=OnyxCeleryQueues.DOCPROCESSING,
                     priority=OnyxCeleryPriority.MEDIUM,
                 )
-                last_batch_num = max(last_batch_num, path_info.batch_num)
+            last_batch_num = len(old_batches) + index_attempt.completed_batches - 1
 
         # Save initial checkpoint
         save_checkpoint(
