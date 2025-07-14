@@ -1,7 +1,5 @@
 """Database-based indexing coordination to replace Redis fencing."""
 
-import datetime
-
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -27,6 +25,7 @@ class CoordinationStatus(BaseModel):
     total_docs: int
     total_chunks: int
     status: IndexingStatus | None = None
+    cancellation_requested: bool = False
 
 
 class IndexingCoordination:
@@ -221,6 +220,7 @@ class IndexingCoordination:
                 total_docs=0,
                 total_chunks=0,
                 status=None,
+                cancellation_requested=False,
             )
 
         return CoordinationStatus(
@@ -231,54 +231,8 @@ class IndexingCoordination:
             total_docs=attempt.total_docs_indexed or 0,
             total_chunks=attempt.total_chunks,
             status=attempt.status,
+            cancellation_requested=attempt.cancellation_requested,
         )
-
-    @staticmethod
-    def cleanup_stale_attempts(
-        db_session: Session,
-        stale_hours: int = 6,
-    ) -> list[int]:
-        """
-        Clean up indexing attempts that have been running too long without progress.
-        This replaces Redis fence validation and TTL cleanup.
-        """
-        stale_cutoff = datetime.datetime.now(
-            datetime.timezone.utc
-        ) - datetime.timedelta(hours=stale_hours)
-
-        stale_attempts = (
-            db_session.execute(
-                select(IndexAttempt).where(
-                    IndexAttempt.status.in_(
-                        [IndexingStatus.NOT_STARTED, IndexingStatus.IN_PROGRESS]
-                    ),
-                    IndexAttempt.time_updated < stale_cutoff,
-                )
-            )
-            .scalars()
-            .all()
-        )
-
-        cleaned_ids = []
-        for attempt in stale_attempts:
-            logger.warning(
-                f"Marking stale indexing attempt as failed: "
-                f"attempt={attempt.id} "
-                f"cc_pair={attempt.connector_credential_pair_id} "
-                f"last_update={attempt.time_updated}"
-            )
-
-            attempt.status = IndexingStatus.FAILED
-            attempt.error_msg = (
-                f"Attempt marked as stale after {stale_hours} hours without progress"
-            )
-            cleaned_ids.append(attempt.id)
-
-        if cleaned_ids:
-            db_session.commit()
-            logger.info(f"Cleaned up {len(cleaned_ids)} stale indexing attempts")
-
-        return cleaned_ids
 
     @staticmethod
     def get_orphaned_index_attempt_ids(db_session: Session) -> list[int]:
@@ -351,24 +305,3 @@ class IndexingCoordination:
         attempt.last_batches_completed_count = current_batches_completed
         db_session.commit()
         return True
-
-    @staticmethod
-    def check_for_stall(
-        db_session: Session,
-        index_attempt_id: int,
-        stall_timeout_hours: int = 6,
-    ) -> bool:
-        """
-        Check if the indexing attempt has stalled (no progress for specified hours).
-        Returns True if stalled.
-        """
-        from onyx.db.engine.time_utils import get_db_current_time
-
-        attempt = get_index_attempt(db_session, index_attempt_id)
-        if not attempt or not attempt.last_progress_time:
-            return False
-
-        current_time = get_db_current_time(db_session)
-        time_since_progress = current_time - attempt.last_progress_time
-
-        return time_since_progress.total_seconds() > (stall_timeout_hours * 3600)
