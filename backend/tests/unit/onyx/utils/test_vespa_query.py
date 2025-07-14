@@ -2,6 +2,8 @@ from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 
+import pytest
+
 from onyx.configs.constants import DocumentSource
 from onyx.configs.constants import INDEX_SEPARATOR
 from onyx.context.search.models import IndexFilters
@@ -268,3 +270,48 @@ class TestBuildVespaFilters:
         filters = IndexFilters(access_control_list=[], document_set=["", ""])
         result = build_vespa_filters(filters)
         assert f"!({HIDDEN}=true) and " == result
+
+    def test_time_range_validation(self) -> None:
+        """Test time range validation - time_cutoff_end must be after time_cutoff."""
+        # Valid time range
+        start_time = datetime(2023, 1, 1, tzinfo=timezone.utc)
+        end_time = datetime(2023, 12, 31, tzinfo=timezone.utc)
+        filters = IndexFilters(
+            access_control_list=[], time_cutoff=start_time, time_cutoff_end=end_time
+        )
+
+        result = build_vespa_filters(filters)
+        assert "!(hidden=true) and " in result
+
+        # Invalid time range - end before start
+        with pytest.raises(
+            ValueError, match="time_cutoff_end must be after time_cutoff"
+        ):
+            IndexFilters(
+                access_control_list=[], time_cutoff=end_time, time_cutoff_end=start_time
+            )
+
+        # Invalid time range - same time
+        with pytest.raises(
+            ValueError, match="time_cutoff_end must be after time_cutoff"
+        ):
+            IndexFilters(
+                access_control_list=[],
+                time_cutoff=start_time,
+                time_cutoff_end=start_time,
+            )
+
+        # Valid cases - only start time
+        filters = IndexFilters(access_control_list=[], time_cutoff=start_time)
+        result = build_vespa_filters(filters)
+        assert "!(hidden=true) and " in result
+
+        # Valid cases - only end time
+        filters = IndexFilters(access_control_list=[], time_cutoff_end=end_time)
+        result = build_vespa_filters(filters)
+        assert "!(hidden=true) and " in result
+
+        # Valid cases - no time filters
+        filters = IndexFilters(access_control_list=[])
+        result = build_vespa_filters(filters)
+        assert "!(hidden=true) and " in result

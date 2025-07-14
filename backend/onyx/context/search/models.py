@@ -118,6 +118,20 @@ class BaseFilters(BaseModel):
     kg_sources: list[str] | None = None
     kg_chunk_id_zero_only: bool | None = False
 
+    @field_validator("time_cutoff_end")
+    @classmethod
+    def validate_time_range(
+        cls, time_cutoff_end: datetime | None, info: Any
+    ) -> datetime | None:
+        """Validate that time_cutoff_end is after time_cutoff when both are provided."""
+        time_cutoff = info.data.get("time_cutoff") if hasattr(info, "data") else None
+
+        if time_cutoff is not None and time_cutoff_end is not None:
+            if time_cutoff_end <= time_cutoff:
+                raise ValueError("time_cutoff_end must be after time_cutoff")
+
+        return time_cutoff_end
+
 
 class UserFileFilters(BaseModel):
     user_file_ids: list[int] | None = None
