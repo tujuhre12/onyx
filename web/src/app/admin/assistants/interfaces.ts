@@ -1,5 +1,5 @@
 import { ToolSnapshot } from "@/lib/tools/interfaces";
-import { DocumentSet, MinimalUserSnapshot } from "@/lib/types";
+import { DocumentSetSummary, MinimalUserSnapshot } from "@/lib/types";
 
 export interface StarterMessageBase {
   message: string;
@@ -38,7 +38,7 @@ export interface Persona {
   owner: MinimalUserSnapshot | null;
   users: MinimalUserSnapshot[];
   groups: number[];
-  document_sets: DocumentSet[];
+  document_sets: DocumentSetSummary[];
   llm_model_provider_override?: string;
   llm_model_version_override?: string;
   num_chunks?: number;
