@@ -64,7 +64,7 @@ from onyx.file_store.document_batch_storage import get_document_batch_storage
 from onyx.httpx.httpx_pool import HttpxPool
 from onyx.indexing.embedder import DefaultIndexingEmbedder
 from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
-from onyx.indexing.indexing_pipeline import build_indexing_pipeline
+from onyx.indexing.indexing_pipeline import run_indexing_pipeline
 from onyx.natural_language_processing.search_nlp_models import (
     InformationContentClassificationModel,
 )
@@ -390,19 +390,6 @@ def _run_indexing(
         httpx_client=HttpxPool.get("vespa"),
     )
 
-    indexing_pipeline = build_indexing_pipeline(
-        embedder=embedding_model,
-        information_content_classification_model=information_content_classification_model,
-        document_index=document_index,
-        ignore_time_skip=(
-            ctx.from_beginning
-            or (ctx.search_settings_status == IndexModelStatus.FUTURE)
-        ),
-        db_session=db_session,
-        tenant_id=tenant_id,
-        callback=callback,
-    )
-
     # Initialize memory tracer. NOTE: won't actually do anything if
     # `INDEXING_TRACER_INTERVAL` is 0.
     memory_tracer = MemoryTracer(interval=INDEXING_TRACER_INTERVAL)
@@ -464,7 +451,6 @@ def _run_indexing(
                 checkpoint=checkpoint,
             )
 
-            # TODO: ensure this logic is moved correctly
             unresolved_errors = get_index_attempt_errors_for_cc_pair(
                 cc_pair_id=ctx.cc_pair_id,
                 unresolved_only=True,
@@ -563,7 +549,17 @@ def _run_indexing(
                 index_attempt_md.batch_num = batch_num + 1  # use 1-index for this
 
                 # real work happens here!
-                index_pipeline_result = indexing_pipeline(
+                index_pipeline_result = run_indexing_pipeline(
+                    embedder=embedding_model,
+                    information_content_classification_model=information_content_classification_model,
+                    document_index=document_index,
+                    ignore_time_skip=(
+                        ctx.from_beginning
+                        or (ctx.search_settings_status == IndexModelStatus.FUTURE)
+                    ),
+                    db_session=db_session,
+                    tenant_id=tenant_id,
+                    callback=callback,
                     document_batch=doc_batch_cleaned,
                     index_attempt_metadata=index_attempt_md,
                 )
@@ -1069,6 +1065,7 @@ def connector_document_extraction(
             # When loading from a checkpoint, we need to start new docprocessing tasks
             # tied to the new index attempt for any batches left over in the file store
             old_batches = batch_storage.get_all_batches_for_cc_pair()
+            batch_storage.update_old_batches_to_new_index_attempt(old_batches)
             for batch_id in old_batches:
                 logger.info(
                     f"Re-issuing docprocessing task for batch {batch_id} for index attempt {index_attempt_id}"
@@ -1090,7 +1087,10 @@ def connector_document_extraction(
                     queue=OnyxCeleryQueues.DOCPROCESSING,
                     priority=OnyxCeleryPriority.MEDIUM,
                 )
-            last_batch_num = len(old_batches) + index_attempt.completed_batches - 1
+            recent_batches = (
+                most_recent_attempt.completed_batches if most_recent_attempt else 0
+            )
+            last_batch_num = len(old_batches) + recent_batches - 1
 
         # Save initial checkpoint
         save_checkpoint(
@@ -1255,13 +1255,8 @@ def connector_document_extraction(
             f"error={str(e)}"
         )
 
-        # Clean up on failure
-        try:
-            batch_storage.cleanup_all_batches()
-        except Exception:
-            logger.exception(
-                "Failed to clean up document batches after extraction failure"
-            )
+        # Do NOT clean up batches on failure; future runs will use those batches
+        # while docfetching will continue from the saved checkpoint if one exists
 
         if isinstance(e, ConnectorValidationError):
             # On validation errors during indexing, we want to cancel the indexing attempt
@@ -1312,7 +1307,6 @@ def connector_document_extraction(
                             credential_id=ctx.credential_id,
                             status=ConnectorCredentialPairStatus.INVALID,
                         )
-            memory_tracer.stop()
             raise e
         elif isinstance(e, ConnectorStopSignal):
             with get_session_with_current_tenant() as db_session_temp:
@@ -1325,14 +1319,6 @@ def connector_document_extraction(
                     reason=str(e),
                 )
 
-                if is_primary:
-                    update_connector_credential_pair(
-                        db_session=db_session_temp,
-                        connector_id=ctx.connector_id,
-                        credential_id=ctx.credential_id,
-                    )
-
-            memory_tracer.stop()
         else:
             with get_session_with_current_tenant() as db_session_temp:
                 mark_attempt_failed(
@@ -1342,12 +1328,7 @@ def connector_document_extraction(
                     full_exception_trace=traceback.format_exc(),
                 )
 
-                if is_primary:
-                    update_connector_credential_pair(
-                        db_session=db_session_temp,
-                        connector_id=ctx.connector_id,
-                        credential_id=ctx.credential_id,
-                    )
-
-            memory_tracer.stop()
             raise e
+
+    finally:
+        memory_tracer.stop()
