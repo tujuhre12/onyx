@@ -267,7 +267,7 @@ def _handle_search_tool_response_summary(
             predicted_flow=response_summary.predicted_flow,
             predicted_search=response_summary.predicted_search,
             applied_source_filters=response_summary.final_filters.source_type,
-            applied_time_cutoff=response_summary.final_filters.time_cutoff,
+            applied_time_cutoff=response_summary.final_filters.time_cutoff_start,
             recency_bias_multiplier=response_summary.recency_bias_multiplier,
             level=level,
             level_question_num=question_num,

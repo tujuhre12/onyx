@@ -194,11 +194,11 @@ class TestBuildVespaFilters:
         result = build_vespa_filters(filters)
         assert f"!({HIDDEN}=true) and " == result
 
-    def test_time_cutoff_filter(self) -> None:
-        """Test time cutoff filtering."""
+    def test_time_cutoff_start_filter(self) -> None:
+        """Test time cutoff start filtering."""
         # With cutoff time
         cutoff_time = datetime(2023, 1, 1, tzinfo=timezone.utc)
-        filters = IndexFilters(access_control_list=[], time_cutoff=cutoff_time)
+        filters = IndexFilters(access_control_list=[], time_cutoff_start=cutoff_time)
         result = build_vespa_filters(filters)
         cutoff_secs = int(cutoff_time.timestamp())
         assert (
@@ -206,13 +206,13 @@ class TestBuildVespaFilters:
         )
 
         # No cutoff time
-        filters = IndexFilters(access_control_list=[], time_cutoff=None)
+        filters = IndexFilters(access_control_list=[], time_cutoff_start=None)
         result = build_vespa_filters(filters)
         assert f"!({HIDDEN}=true) and " == result
 
         # Test untimed logic (when cutoff is old enough)
         old_cutoff = datetime.now(timezone.utc) - timedelta(days=100)
-        filters = IndexFilters(access_control_list=[], time_cutoff=old_cutoff)
+        filters = IndexFilters(access_control_list=[], time_cutoff_start=old_cutoff)
         result = build_vespa_filters(filters)
         old_cutoff_secs = int(old_cutoff.timestamp())
         assert (
@@ -236,7 +236,9 @@ class TestBuildVespaFilters:
         start_time = datetime(2023, 1, 1, tzinfo=timezone.utc)
         end_time = datetime(2023, 12, 31, tzinfo=timezone.utc)
         filters = IndexFilters(
-            access_control_list=[], time_cutoff=start_time, time_cutoff_end=end_time
+            access_control_list=[],
+            time_cutoff_start=start_time,
+            time_cutoff_end=end_time,
         )
         result = build_vespa_filters(filters)
         start_cutoff_secs = int(start_time.timestamp())
@@ -248,10 +250,12 @@ class TestBuildVespaFilters:
 
         # Invalid time range - end before start
         with pytest.raises(
-            ValueError, match="time_cutoff_end must be after time_cutoff"
+            ValueError, match="time_cutoff_end must be after time_cutoff_start"
         ):
             IndexFilters(
-                access_control_list=[], time_cutoff=end_time, time_cutoff_end=start_time
+                access_control_list=[],
+                time_cutoff_start=end_time,
+                time_cutoff_end=start_time,
             )
 
     def test_combined_filters(self) -> None:
@@ -263,7 +267,7 @@ class TestBuildVespaFilters:
             document_set=["set1"],
             user_file_ids=[123],
             user_folder_ids=[789],
-            time_cutoff=datetime(2023, 1, 1, tzinfo=timezone.utc),
+            time_cutoff_start=datetime(2023, 1, 1, tzinfo=timezone.utc),
         )
 
         result = build_vespa_filters(filters)

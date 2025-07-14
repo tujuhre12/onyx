@@ -203,7 +203,7 @@ def handle_regular_answer(
         filters = BaseFilters(
             source_type=None,
             document_set=document_set_names,
-            time_cutoff=None,
+            time_cutoff_start=None,
         )
 
         # Default True because no other ways to apply filters in Slack (no nice UI)

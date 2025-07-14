@@ -140,7 +140,7 @@ def build_vespa_filters(
     if doc_set_str:
         filter_str += f"AND {doc_set_str} "
 
-    time_filter = _build_time_filter(filters.time_cutoff)
+    time_filter = _build_time_filter(filters.time_cutoff_start)
     if time_filter:
         filter_str += f"AND {time_filter} "
 

@@ -71,7 +71,7 @@ def retrieval_preprocessing(
             document_set.name for document_set in persona.document_sets
         ]
 
-    time_filter_start = preset_filters.time_cutoff
+    time_filter_start = preset_filters.time_cutoff_start
     if time_filter_start is None and persona:
         time_filter_start = persona.search_start_date
 
@@ -181,7 +181,7 @@ def retrieval_preprocessing(
         user_folder_ids=user_folder_ids,
         source_type=preset_filters.source_type or predicted_source_filters,
         document_set=preset_filters.document_set,
-        time_cutoff=time_filter_start or predicted_time_cutoff,
+        time_cutoff_start=time_filter_start or predicted_time_cutoff,
         time_cutoff_end=time_filter_end,
         tags=preset_filters.tags,  # Tags are never auto-extracted
         access_control_list=user_acl_filters,

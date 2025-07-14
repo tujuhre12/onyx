@@ -42,7 +42,7 @@ HIGHLIGHT_END_CHAR = "\ue001"
 def build_slack_queries(query: SearchQuery, llm: LLM) -> list[str]:
     # get time filter
     time_filter = ""
-    time_cutoff = query.filters.time_cutoff
+    time_cutoff = query.filters.time_cutoff_start
     if time_cutoff is not None:
         # slack after: is exclusive, so we need to subtract one day
         time_cutoff = time_cutoff - timedelta(days=1)
