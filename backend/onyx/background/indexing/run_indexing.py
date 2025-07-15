@@ -1065,6 +1065,8 @@ def connector_document_extraction(
                     f"Re-issuing docprocessing task for batch {batch_id} for index attempt {index_attempt_id}"
                 )
                 path_info = batch_storage.extract_path_info(batch_id)
+                if path_info is None:
+                    continue
                 if path_info.cc_pair_id != cc_pair_id:
                     raise RuntimeError(
                         f"Batch {batch_id} is not for cc pair {cc_pair_id}"
