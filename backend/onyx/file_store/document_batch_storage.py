@@ -80,7 +80,7 @@ class DocumentBatchStorage(ABC):
         """
 
     @abstractmethod
-    def extract_path_info(self, path: str) -> BatchStoragePathInfo:
+    def extract_path_info(self, path: str) -> BatchStoragePathInfo | None:
         """Extract path info from a path."""
 
     def _serialize_documents(self, documents: list[Document]) -> str:
@@ -193,12 +193,18 @@ class FileStoreDocumentBatchStorage(DocumentBatchStorage):
         """Update all batches to the new index attempt."""
         for batch_file_name in batch_names:
             path_info = self.extract_path_info(batch_file_name)
+            if path_info is None:
+                continue
             new_batch_file_name = self._get_batch_file_name(path_info.batch_num)
             self.file_store.change_file_id(batch_file_name, new_batch_file_name)
 
-    def extract_path_info(self, path: str) -> BatchStoragePathInfo:
+    def extract_path_info(self, path: str) -> BatchStoragePathInfo | None:
         """Extract path info from a path."""
-        cc_pair_id, index_attempt_id, batch_num = path.split("/")
+        path_spl = path.split("/")
+        if len(path) != 3:
+            logger.error(f"incorrectly formatted file path: {path}")
+            return None
+        cc_pair_id, index_attempt_id, batch_num = path_spl
         return BatchStoragePathInfo(
             cc_pair_id=int(cc_pair_id),
             index_attempt_id=int(index_attempt_id),
