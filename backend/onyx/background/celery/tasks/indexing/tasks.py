@@ -421,6 +421,7 @@ def check_indexing_completion(
             )
 
         if attempt.status.is_successful():
+            cc_pair.last_successful_index_time = attempt.poll_range_end
             if cc_pair.status in [
                 ConnectorCredentialPairStatus.SCHEDULED,
                 ConnectorCredentialPairStatus.INITIAL_INDEXING,
@@ -432,6 +433,8 @@ def check_indexing_completion(
             if cc_pair.in_repeated_error_state:
                 cc_pair.in_repeated_error_state = False
                 db_session.commit()
+
+            # TODO: make it so we don't need this (might already be true)
             redis_connector = RedisConnector(
                 tenant_id, attempt.connector_credential_pair_id
             )
