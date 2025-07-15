@@ -12,7 +12,6 @@ from celery import Task
 from redis.lock import Lock as RedisLock
 
 from onyx.background.celery.apps.app_base import task_logger
-from onyx.background.celery.celery_utils import httpx_init_vespa_pool
 from onyx.background.celery.memory_monitoring import emit_process_memory
 from onyx.background.celery.tasks.indexing.heartbeat import start_heartbeat
 from onyx.background.celery.tasks.indexing.heartbeat import stop_heartbeat
@@ -25,9 +24,6 @@ from onyx.background.indexing.job_client import SimpleJob
 from onyx.background.indexing.job_client import SimpleJobClient
 from onyx.background.indexing.job_client import SimpleJobException
 from onyx.background.indexing.run_indexing import run_indexing_entrypoint
-from onyx.configs.app_configs import MANAGED_VESPA
-from onyx.configs.app_configs import VESPA_CLOUD_CERT_PATH
-from onyx.configs.app_configs import VESPA_CLOUD_KEY_PATH
 from onyx.configs.constants import CELERY_INDEXING_LOCK_TIMEOUT
 from onyx.configs.constants import CELERY_INDEXING_WATCHDOG_CONNECTOR_TIMEOUT
 from onyx.configs.constants import OnyxCeleryTask
@@ -161,14 +157,6 @@ def _docfetching_task(
         f"cc_pair={cc_pair_id} "
         f"search_settings={search_settings_id}"
     )
-
-    # 20 is the documented default for httpx max_keepalive_connections
-    if MANAGED_VESPA:
-        httpx_init_vespa_pool(
-            20, ssl_cert=VESPA_CLOUD_CERT_PATH, ssl_key=VESPA_CLOUD_KEY_PATH
-        )
-    else:
-        httpx_init_vespa_pool(20)
 
     redis_connector = RedisConnector(tenant_id, cc_pair_id)
     redis_connector_index = redis_connector.new_index(search_settings_id)
