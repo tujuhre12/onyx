@@ -13,11 +13,9 @@ import {
 import Text from "@/components/ui/text";
 import Title from "@/components/ui/title";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { DocumentSet } from "@/lib/types";
+import { DocumentSetSummary } from "@/lib/types";
 import { useState } from "react";
 import { useDocumentSets } from "./hooks";
-import { ConnectorTitle } from "@/components/admin/connectors/ConnectorTitle";
 import { deleteDocumentSet } from "./lib";
 import { PopupSpec, usePopup } from "@/components/admin/connectors/Popup";
 import { AdminPageTitle } from "@/components/admin/Title";
@@ -41,6 +39,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import CreateButton from "@/components/ui/createButton";
+import { SourceIcon } from "@/components/SourceIcon";
 
 const numToDisplay = 50;
 
@@ -48,7 +47,7 @@ const EditRow = ({
   documentSet,
   isEditable,
 }: {
-  documentSet: DocumentSet;
+  documentSet: DocumentSetSummary;
   isEditable: boolean;
 }) => {
   const router = useRouter();
@@ -98,11 +97,11 @@ const EditRow = ({
 };
 
 interface DocumentFeedbackTableProps {
-  documentSets: DocumentSet[];
+  documentSets: DocumentSetSummary[];
   refresh: () => void;
   refreshEditable: () => void;
   setPopup: (popupSpec: PopupSpec | null) => void;
-  editableDocumentSets: DocumentSet[];
+  editableDocumentSets: DocumentSetSummary[];
 }
 
 const DocumentSetTable = ({
@@ -164,24 +163,27 @@ const DocumentSetTable = ({
                   </TableCell>
                   <TableCell>
                     <div>
-                      {documentSet.cc_pair_descriptors.map(
-                        (ccPairDescriptor, ind) => {
+                      {/* Regular Connectors */}
+                      {documentSet.cc_pair_summaries.map(
+                        (ccPairSummary, ind) => {
                           return (
                             <div
                               className={
-                                ind !==
-                                documentSet.cc_pair_descriptors.length - 1
+                                ind !== documentSet.cc_pair_summaries.length - 1
                                   ? "mb-3"
                                   : ""
                               }
-                              key={ccPairDescriptor.id}
+                              key={ccPairSummary.id}
                             >
-                              <ConnectorTitle
-                                connector={ccPairDescriptor.connector}
-                                ccPairName={ccPairDescriptor.name}
-                                ccPairId={ccPairDescriptor.id}
-                                showMetadata={false}
-                              />
+                              <div className="text-blue-500 dark:text-blue-100 flex w-fit">
+                                <SourceIcon
+                                  sourceType={ccPairSummary.source}
+                                  iconSize={16}
+                                />
+                                <div className="ml-1 my-auto text-xs font-medium truncate">
+                                  {ccPairSummary.name || "Unnamed"}
+                                </div>
+                              </div>
                             </div>
                           );
                         }
@@ -193,7 +195,7 @@ const DocumentSetTable = ({
                       <Badge variant="success" icon={FiCheckCircle}>
                         Up to Date
                       </Badge>
-                    ) : documentSet.cc_pair_descriptors.length > 0 ? (
+                    ) : documentSet.cc_pair_summaries.length > 0 ? (
                       <Badge variant="in_progress" icon={FiClock}>
                         Syncing
                       </Badge>

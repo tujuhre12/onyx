@@ -6,7 +6,7 @@ import {
 import { fetchSS } from "@/lib/utilsSS";
 import {
   CCPairBasicInfo,
-  DocumentSet,
+  DocumentSetSummary,
   Tag,
   User,
   ValidSources,
@@ -32,7 +32,7 @@ interface FetchChatDataResult {
   chatSessions?: ChatSession[];
   ccPairs?: CCPairBasicInfo[];
   availableSources?: ValidSources[];
-  documentSets?: DocumentSet[];
+  documentSets?: DocumentSetSummary[];
   assistants?: Persona[];
   tags?: Tag[];
   llmProviders?: LLMProviderDescriptor[];
@@ -124,7 +124,7 @@ export async function fetchSomeChatData(
         break;
       case "documentSets":
         result.documentSets = result?.ok
-          ? ((await result.json()) as DocumentSet[])
+          ? ((await result.json()) as DocumentSetSummary[])
           : [];
         break;
       case "assistants":

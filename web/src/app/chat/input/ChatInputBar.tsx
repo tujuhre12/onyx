@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { FiPlusCircle, FiPlus, FiInfo, FiX, FiFilter } from "react-icons/fi";
 import { FiLoader } from "react-icons/fi";
 import { ChatInputOption } from "./ChatInputOption";
-import { Persona } from "@/app/admin/assistants/interfaces";
+import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import LLMPopover from "./LLMPopover";
 import { InputPrompt } from "@/app/chat/interfaces";
 
@@ -29,7 +29,7 @@ import UnconfiguredProviderText from "@/components/chat/UnconfiguredProviderText
 import { useAssistants } from "@/components/context/AssistantsContext";
 import { CalendarIcon, TagIcon, XIcon } from "lucide-react";
 import { FilterPopup } from "@/components/search/filtering/FilterPopup";
-import { DocumentSet, Tag } from "@/lib/types";
+import { DocumentSetSummary, Tag } from "@/lib/types";
 import { SourceIcon } from "@/components/SourceIcon";
 import { getFormattedDateRangeString } from "@/lib/dateUtils";
 import { truncateString } from "@/lib/utils";
@@ -37,9 +37,6 @@ import { buildImgUrl } from "../files/images/utils";
 import { useUser } from "@/components/user/UserProvider";
 import { AgenticToggle } from "./AgenticToggle";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
-import { LoadingIndicator } from "react-select/dist/declarations/src/components/indicators";
-import { FidgetSpinner } from "react-loader-spinner";
-import { LoadingAnimation } from "@/components/Loading";
 
 const MAX_INPUT_HEIGHT = 200;
 export const SourceChip2 = ({
@@ -181,10 +178,12 @@ interface ChatInputBarProps {
   onSubmit: () => void;
   llmManager: LlmManager;
   chatState: ChatState;
-  alternativeAssistant: Persona | null;
+  alternativeAssistant: MinimalPersonaSnapshot | null;
   // assistants
-  selectedAssistant: Persona;
-  setAlternativeAssistant: (alternativeAssistant: Persona | null) => void;
+  selectedAssistant: MinimalPersonaSnapshot;
+  setAlternativeAssistant: (
+    alternativeAssistant: MinimalPersonaSnapshot | null
+  ) => void;
   toggleDocumentSidebar: () => void;
   files: FileDescriptor[];
   setFiles: (files: FileDescriptor[]) => void;
@@ -192,7 +191,7 @@ interface ChatInputBarProps {
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
   filterManager: FilterManager;
   availableSources: SourceMetadata[];
-  availableDocumentSets: DocumentSet[];
+  availableDocumentSets: DocumentSetSummary[];
   availableTags: Tag[];
   retrievalEnabled: boolean;
   proSearchEnabled: boolean;
@@ -289,7 +288,7 @@ export function ChatInputBar({
     };
   }, []);
 
-  const updatedTaggedAssistant = (assistant: Persona) => {
+  const updatedTaggedAssistant = (assistant: MinimalPersonaSnapshot) => {
     setAlternativeAssistant(
       assistant.id == selectedAssistant.id ? null : assistant
     );

@@ -26,8 +26,9 @@ from onyx.db.persona import create_assistant_label
 from onyx.db.persona import create_update_persona
 from onyx.db.persona import delete_persona_label
 from onyx.db.persona import get_assistant_labels
+from onyx.db.persona import get_minimal_persona_snapshots_for_user
 from onyx.db.persona import get_persona_by_id
-from onyx.db.persona import get_personas_for_user
+from onyx.db.persona import get_persona_snapshots_for_user
 from onyx.db.persona import mark_persona_as_deleted
 from onyx.db.persona import mark_persona_as_not_deleted
 from onyx.db.persona import update_all_personas_display_priority
@@ -43,8 +44,10 @@ from onyx.file_store.models import ChatFileType
 from onyx.secondary_llm_flows.starter_message_creation import (
     generate_starter_messages,
 )
+from onyx.server.features.persona.models import FullPersonaSnapshot
 from onyx.server.features.persona.models import GenerateStarterMessageRequest
 from onyx.server.features.persona.models import ImageGenerationToolStatus
+from onyx.server.features.persona.models import MinimalPersonaSnapshot
 from onyx.server.features.persona.models import PersonaLabelCreate
 from onyx.server.features.persona.models import PersonaLabelResponse
 from onyx.server.features.persona.models import PersonaSharedNotificationData
@@ -52,6 +55,9 @@ from onyx.server.features.persona.models import PersonaSnapshot
 from onyx.server.features.persona.models import PersonaUpsertRequest
 from onyx.server.features.persona.models import PromptSnapshot
 from onyx.server.models import DisplayPriorityRequest
+from onyx.tools.tool_implementations.images.image_generation_tool import (
+    ImageGenerationTool,
+)
 from onyx.tools.utils import is_image_generation_available
 from onyx.utils.logger import setup_logger
 from onyx.utils.telemetry import create_milestone_and_report
@@ -148,16 +154,12 @@ def list_personas_admin(
     include_deleted: bool = False,
     get_editable: bool = Query(False, description="If true, return editable personas"),
 ) -> list[PersonaSnapshot]:
-    return [
-        PersonaSnapshot.from_model(persona)
-        for persona in get_personas_for_user(
-            db_session=db_session,
-            user=user,
-            get_editable=get_editable,
-            include_deleted=include_deleted,
-            joinedload_all=True,
-        )
-    ]
+    return get_persona_snapshots_for_user(
+        user=user,
+        db_session=db_session,
+        get_editable=get_editable,
+        include_deleted=include_deleted,
+    )
 
 
 @admin_router.patch("/{persona_id}/undelete")
@@ -249,7 +251,7 @@ def update_persona(
     persona_upsert_request: PersonaUpsertRequest,
     user: User | None = Depends(current_user),
     db_session: Session = Depends(get_session),
-) -> PersonaSnapshot:
+) -> FullPersonaSnapshot:
     prompt_id = (
         persona_upsert_request.prompt_ids[0]
         if persona_upsert_request.prompt_ids
@@ -394,14 +396,12 @@ def list_personas(
     db_session: Session = Depends(get_session),
     include_deleted: bool = False,
     persona_ids: list[int] = Query(None),
-) -> list[PersonaSnapshot]:
-    personas = get_personas_for_user(
+) -> list[MinimalPersonaSnapshot]:
+    personas = get_minimal_persona_snapshots_for_user(
         user=user,
         include_deleted=include_deleted,
         db_session=db_session,
         get_editable=False,
-        joinedload_all=True,
-        include_prompt=False,
     )
 
     if persona_ids:
@@ -412,12 +412,14 @@ def list_personas(
         p
         for p in personas
         if not (
-            any(tool.in_code_tool_id == "ImageGenerationTool" for tool in p.tools)
+            any(
+                tool.in_code_tool_id == ImageGenerationTool.__name__ for tool in p.tools
+            )
             and not is_image_generation_available(db_session=db_session)
         )
     ]
 
-    return [PersonaSnapshot.from_model(p, include_prompts=False) for p in personas]
+    return personas
 
 
 @basic_router.get("/{persona_id}")

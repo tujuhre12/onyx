@@ -1,6 +1,6 @@
 import {
   _CompletedWelcomeFlowDummyComponent,
-  _WelcomeModal,
+  WelcomeModal as _WelcomeModal,
 } from "./WelcomeModal";
 import { COMPLETED_WELCOME_FLOW_COOKIE } from "./constants";
 import { User } from "@/lib/types";

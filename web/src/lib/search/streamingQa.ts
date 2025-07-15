@@ -54,7 +54,6 @@ export const searchRequestStreamed = async ({
         messages: [threadMessage],
         persona_id: persona.id,
         agentic,
-        prompt_id: persona.id === 0 ? null : persona.prompts[0]?.id,
         retrieval_options: {
           run_search: "always",
           real_time: true,

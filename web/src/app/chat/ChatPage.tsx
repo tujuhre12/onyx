@@ -29,7 +29,7 @@ import {
 import Prism from "prismjs";
 import Cookies from "js-cookie";
 import { HistorySidebar } from "./sessionSidebar/HistorySidebar";
-import { Persona } from "../admin/assistants/interfaces";
+import { MinimalPersonaSnapshot } from "../admin/assistants/interfaces";
 import { HealthCheckBanner } from "@/components/health/healthcheck";
 import {
   buildChatUrl,
@@ -277,7 +277,7 @@ export function ChatPage({
 
   const existingChatSessionAssistantId = selectedChatSession?.persona_id;
   const [selectedAssistant, setSelectedAssistant] = useState<
-    Persona | undefined
+    MinimalPersonaSnapshot | undefined
   >(
     // NOTE: look through available assistants here, so that even if the user
     // has hidden this assistant it still shows the correct assistant when
@@ -317,7 +317,7 @@ export function ChatPage({
   };
 
   const [alternativeAssistant, setAlternativeAssistant] =
-    useState<Persona | null>(null);
+    useState<MinimalPersonaSnapshot | null>(null);
 
   const [presentingDocument, setPresentingDocument] =
     useState<OnyxDocument | null>(null);
@@ -328,7 +328,7 @@ export function ChatPage({
   // 3. First pinned assistants (ordered list of pinned assistants)
   // 4. Available assistants (ordered list of available assistants)
   // Relevant test: `live_assistant.spec.ts`
-  const liveAssistant: Persona | undefined = useMemo(
+  const liveAssistant: MinimalPersonaSnapshot | undefined = useMemo(
     () =>
       alternativeAssistant ||
       selectedAssistant ||
@@ -392,7 +392,7 @@ export function ChatPage({
   // 2. we "@"ed the `GPT` assistant and sent a message
   // 3. while the `GPT` assistant message is generating, we "@" the `Paraphrase` assistant
   const [alternativeGeneratingAssistant, setAlternativeGeneratingAssistant] =
-    useState<Persona | null>(null);
+    useState<MinimalPersonaSnapshot | null>(null);
 
   // used to track whether or not the initial "submit on load" has been performed
   // this only applies if `?submit-on-load=true` or `?submit-on-load=1` is in the URL
@@ -1149,7 +1149,7 @@ export function ChatPage({
     queryOverride?: string;
     forceSearch?: boolean;
     isSeededChat?: boolean;
-    alternativeAssistantOverride?: Persona | null;
+    alternativeAssistantOverride?: MinimalPersonaSnapshot | null;
     modelOverride?: LlmDescriptor;
     regenerationRequest?: RegenerationRequest | null;
     overrideFileDescriptors?: FileDescriptor[];
@@ -1335,7 +1335,6 @@ export function ChatPage({
           regenerationRequest?.parentMessage.messageId ||
           lastSuccessfulMessageId,
         chatSessionId: currChatSessionId,
-        promptId: liveAssistant?.prompts[0]?.id,
         filters: buildFilters(
           filterManager.selectedSources,
           filterManager.selectedDocumentSets,

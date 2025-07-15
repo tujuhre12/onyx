@@ -3,7 +3,6 @@
 import { PageSelector } from "@/components/PageSelector";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FiEdit } from "react-icons/fi";
 import {
   Table,
   TableBody,
@@ -14,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { SlackBot } from "@/lib/types";
+import { FiEdit } from "react-icons/fi";
 
 const NUM_IN_PAGE = 20;
 

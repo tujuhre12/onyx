@@ -27,7 +27,7 @@ import {
   ToolCallMetadata,
   AgenticMessageResponseIDInfo,
 } from "./interfaces";
-import { Persona } from "../admin/assistants/interfaces";
+import { MinimalPersonaSnapshot } from "../admin/assistants/interfaces";
 import { ReadonlyURLSearchParams } from "next/navigation";
 import { SEARCH_PARAM_NAMES } from "./searchParams";
 import { Settings } from "../admin/settings/interfaces";
@@ -164,7 +164,6 @@ export async function* sendMessage({
   fileDescriptors,
   parentMessageId,
   chatSessionId,
-  promptId,
   filters,
   selectedDocumentIds,
   queryOverride,
@@ -204,19 +203,12 @@ export async function* sendMessage({
     chat_session_id: chatSessionId,
     parent_message_id: parentMessageId,
     message: message,
-    prompt_id: promptId ?? null,
     search_doc_ids: documentsAreSelected ? selectedDocumentIds : null,
     file_descriptors: fileDescriptors,
     regenerate,
     retrieval_options: !documentsAreSelected
       ? {
-          run_search:
-            promptId === null ||
-            promptId === undefined ||
-            queryOverride ||
-            forceSearch
-              ? "always"
-              : "auto",
+          run_search: queryOverride || forceSearch ? "always" : "auto",
           real_time: true,
           filters: filters,
         }
@@ -606,8 +598,8 @@ export function removeMessage(
 
 export function checkAnyAssistantHasSearch(
   messageHistory: Message[],
-  availableAssistants: Persona[],
-  livePersona: Persona
+  availableAssistants: MinimalPersonaSnapshot[],
+  livePersona: MinimalPersonaSnapshot
 ): boolean {
   const response =
     messageHistory.some((message) => {
@@ -628,7 +620,9 @@ export function checkAnyAssistantHasSearch(
   return response;
 }
 
-export function personaIncludesRetrieval(selectedPersona: Persona) {
+export function personaIncludesRetrieval(
+  selectedPersona: MinimalPersonaSnapshot
+) {
   return selectedPersona.tools.some(
     (tool) =>
       tool.in_code_tool_id &&
@@ -636,7 +630,7 @@ export function personaIncludesRetrieval(selectedPersona: Persona) {
   );
 }
 
-export function personaIncludesImage(selectedPersona: Persona) {
+export function personaIncludesImage(selectedPersona: MinimalPersonaSnapshot) {
   return selectedPersona.tools.some(
     (tool) =>
       tool.in_code_tool_id && tool.in_code_tool_id == IIMAGE_GENERATION_TOOL_ID
@@ -704,7 +698,7 @@ export async function uploadFilesForChat(
   return [responseJson.files as FileDescriptor[], null];
 }
 
-export async function useScrollonStream({
+export function useScrollonStream({
   chatState,
   scrollableDivRef,
   scrollDist,

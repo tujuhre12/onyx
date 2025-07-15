@@ -6,13 +6,13 @@ import {
 } from "@/lib/hooks";
 import { StringOrNumberOption } from "@/components/Dropdown";
 
-import { Persona } from "@/app/admin/assistants/interfaces";
-import { destructureValue, getFinalLLM, structureValue } from "@/lib/llm/utils";
+import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { useState } from "react";
 import { Hoverable } from "@/components/Hoverable";
 import { Popover } from "@/components/popover/Popover";
 import { IconType } from "react-icons";
 import { FiRefreshCw, FiCheck } from "react-icons/fi";
+import { destructureValue, getFinalLLM, structureValue } from "@/lib/llm/utils";
 
 export function RegenerateDropdown({
   options,
@@ -105,7 +105,7 @@ export default function RegenerateOption({
   onHoverChange,
   onDropdownVisibleChange,
 }: {
-  selectedAssistant: Persona;
+  selectedAssistant: MinimalPersonaSnapshot;
   regenerate: (modelOverRide: LlmDescriptor) => Promise<void>;
   overriddenModel?: string;
   onHoverChange: (isHovered: boolean) => void;

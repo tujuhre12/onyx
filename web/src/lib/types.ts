@@ -242,11 +242,19 @@ export interface CCPairDescriptor<ConnectorType, CredentialType> {
   access_type: AccessType;
 }
 
-export interface DocumentSet {
+// Simplified interfaces with minimal data
+export interface CCPairSummary {
+  id: number;
+  name: string | null;
+  source: ValidSources;
+  access_type: AccessType;
+}
+
+export interface DocumentSetSummary {
   id: number;
   name: string;
   description: string;
-  cc_pair_descriptors: CCPairDescriptor<any, any>[];
+  cc_pair_summaries: CCPairSummary[];
   is_up_to_date: boolean;
   is_public: boolean;
   users: string[];
@@ -338,7 +346,7 @@ export interface UserGroup {
   users: User[];
   curator_ids: string[];
   cc_pairs: CCPairDescriptor<any, any>[];
-  document_sets: DocumentSet[];
+  document_sets: DocumentSetSummary[];
   personas: Persona[];
   is_up_to_date: boolean;
   is_up_for_deletion: boolean;

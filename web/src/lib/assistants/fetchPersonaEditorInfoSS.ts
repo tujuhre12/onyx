@@ -1,5 +1,5 @@
-import { Persona } from "@/app/admin/assistants/interfaces";
-import { CCPairBasicInfo, DocumentSet, User } from "../types";
+import { FullPersona, Persona } from "@/app/admin/assistants/interfaces";
+import { CCPairBasicInfo, DocumentSetSummary, User } from "../types";
 import { getCurrentUserSS } from "../userSS";
 import { fetchSS } from "../utilsSS";
 import {
@@ -15,10 +15,10 @@ export async function fetchAssistantEditorInfoSS(
   | [
       {
         ccPairs: CCPairBasicInfo[];
-        documentSets: DocumentSet[];
+        documentSets: DocumentSetSummary[];
         llmProviders: LLMProviderView[];
         user: User | null;
-        existingPersona: Persona | null;
+        existingPersona: FullPersona | null;
         tools: ToolSnapshot[];
       },
       null,
@@ -70,7 +70,8 @@ export async function fetchAssistantEditorInfoSS(
       `Failed to fetch document sets - ${await documentSetsResponse.text()}`,
     ];
   }
-  const documentSets = (await documentSetsResponse.json()) as DocumentSet[];
+  const documentSets =
+    (await documentSetsResponse.json()) as DocumentSetSummary[];
 
   if (!toolsResponse) {
     return [null, `Failed to fetch tools`];
@@ -94,7 +95,7 @@ export async function fetchAssistantEditorInfoSS(
   }
 
   const existingPersona = personaResponse
-    ? ((await personaResponse.json()) as Persona)
+    ? ((await personaResponse.json()) as FullPersona)
     : null;
 
   let error: string | null = null;

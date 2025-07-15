@@ -1,5 +1,10 @@
 import { LLMProviderView } from "../configuration/llm/interfaces";
-import { Persona, StarterMessage } from "./interfaces";
+import {
+  FullPersona,
+  MinimalPersonaSnapshot,
+  Persona,
+  StarterMessage,
+} from "./interfaces";
 
 interface PersonaUpsertRequest {
   name: string;
@@ -242,7 +247,10 @@ function closerToZeroNegativesFirstComparator(a: number, b: number) {
   return absA > absB ? 1 : -1;
 }
 
-export function personaComparator(a: Persona, b: Persona) {
+export function personaComparator(
+  a: MinimalPersonaSnapshot | Persona,
+  b: MinimalPersonaSnapshot | Persona
+) {
   if (a.display_priority === null && b.display_priority === null) {
     return closerToZeroNegativesFirstComparator(a.id, b.id);
   }
@@ -323,26 +331,3 @@ export function providersContainImageGeneratingSupport(
 ) {
   return providers.some((provider) => provider.provider === "openai");
 }
-
-// Default fallback persona for when we must display a persona
-// but assistant has access to none
-export const defaultPersona: Persona = {
-  id: 0,
-  name: "Default Assistant",
-  description: "A default assistant",
-  is_visible: true,
-  is_public: true,
-  builtin_persona: false,
-  is_default_persona: true,
-  users: [],
-  groups: [],
-  document_sets: [],
-  prompts: [],
-  tools: [],
-  starter_messages: null,
-  display_priority: null,
-  search_start_date: null,
-  owner: null,
-  icon_shape: 50910,
-  icon_color: "#FF6F6F",
-};

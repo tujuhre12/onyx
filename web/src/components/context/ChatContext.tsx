@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState } from "react";
 import {
   CCPairBasicInfo,
-  DocumentSet,
+  DocumentSetSummary,
   Tag,
   User,
   ValidSources,
@@ -20,8 +20,8 @@ interface ChatContextProps {
   availableSources: ValidSources[];
   ccPairs: CCPairBasicInfo[];
   tags: Tag[];
-  documentSets: DocumentSet[];
-  availableDocumentSets: DocumentSet[];
+  documentSets: DocumentSetSummary[];
+  availableDocumentSets: DocumentSetSummary[];
   availableTags: Tag[];
   llmProviders: LLMProviderDescriptor[];
   folders: Folder[];

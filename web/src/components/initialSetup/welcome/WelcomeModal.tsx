@@ -24,7 +24,7 @@ export function _CompletedWelcomeFlowDummyComponent() {
   return null;
 }
 
-export function _WelcomeModal({ user }: { user: User | null }) {
+export function WelcomeModal({ user }: { user: User | null }) {
   const router = useRouter();
 
   const [providerOptions, setProviderOptions] = useState<

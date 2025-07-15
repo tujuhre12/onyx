@@ -39,6 +39,7 @@ export async function triggerIndexing(
     });
   }
   mutate(buildCCPairInfoUrl(ccPairId));
+  return errorMsg;
 }
 
 export function getTooltipMessage(

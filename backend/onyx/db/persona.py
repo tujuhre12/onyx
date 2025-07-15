@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from datetime import datetime
+from enum import Enum
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -11,7 +12,6 @@ from sqlalchemy import Select
 from sqlalchemy import select
 from sqlalchemy import update
 from sqlalchemy.orm import aliased
-from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import Session
 
@@ -35,6 +35,8 @@ from onyx.db.models import User
 from onyx.db.models import User__UserGroup
 from onyx.db.models import UserGroup
 from onyx.db.notification import create_notification
+from onyx.server.features.persona.models import FullPersonaSnapshot
+from onyx.server.features.persona.models import MinimalPersonaSnapshot
 from onyx.server.features.persona.models import PersonaSharedNotificationData
 from onyx.server.features.persona.models import PersonaSnapshot
 from onyx.server.features.persona.models import PersonaUpsertRequest
@@ -44,9 +46,15 @@ from onyx.utils.variable_functionality import fetch_versioned_implementation
 logger = setup_logger()
 
 
+class PersonaLoadType(Enum):
+    NONE = "none"
+    MINIMAL = "minimal"
+    FULL = "full"
+
+
 def _add_user_filters(
-    stmt: Select, user: User | None, get_editable: bool = True
-) -> Select:
+    stmt: Select[tuple[Persona]], user: User | None, get_editable: bool = True
+) -> Select[tuple[Persona]]:
     # If user is None and auth is disabled, assume the user is an admin
     if (user is None and DISABLE_AUTH) or (user and user.role == UserRole.ADMIN):
         return stmt
@@ -199,7 +207,7 @@ def create_update_persona(
     create_persona_request: PersonaUpsertRequest,
     user: User | None,
     db_session: Session,
-) -> PersonaSnapshot:
+) -> FullPersonaSnapshot:
     """Higher level function than upsert_persona, although either is valid to use."""
     # Permission to actually use these is checked later
 
@@ -268,7 +276,7 @@ def create_update_persona(
         logger.exception("Failed to create persona")
         raise HTTPException(status_code=400, detail=str(e))
 
-    return PersonaSnapshot.from_model(persona)
+    return FullPersonaSnapshot.from_model(persona)
 
 
 def update_persona_shared_users(
@@ -316,7 +324,45 @@ def update_persona_public_status(
     db_session.commit()
 
 
-def get_personas_for_user(
+def _build_persona_filters(
+    stmt: Select[tuple[Persona]],
+    include_default: bool,
+    include_slack_bot_personas: bool,
+    include_deleted: bool,
+) -> Select[tuple[Persona]]:
+    if not include_default:
+        stmt = stmt.where(Persona.builtin_persona.is_(False))
+    if not include_slack_bot_personas:
+        stmt = stmt.where(not_(Persona.name.startswith(SLACK_BOT_PERSONA_PREFIX)))
+    if not include_deleted:
+        stmt = stmt.where(Persona.deleted.is_(False))
+    return stmt
+
+
+def get_minimal_persona_snapshots_for_user(
+    user: User | None,
+    db_session: Session,
+    get_editable: bool = True,
+    include_default: bool = True,
+    include_slack_bot_personas: bool = False,
+    include_deleted: bool = False,
+) -> list[MinimalPersonaSnapshot]:
+    stmt = select(Persona)
+    stmt = _add_user_filters(stmt, user, get_editable)
+    stmt = _build_persona_filters(
+        stmt, include_default, include_slack_bot_personas, include_deleted
+    )
+    stmt = stmt.options(
+        selectinload(Persona.tools),
+        selectinload(Persona.labels),
+        selectinload(Persona.document_sets),
+        selectinload(Persona.user),
+    )
+    results = db_session.scalars(stmt).all()
+    return [MinimalPersonaSnapshot.from_model(persona) for persona in results]
+
+
+def get_persona_snapshots_for_user(
     # if user is `None` assume the user is an admin or auth is disabled
     user: User | None,
     db_session: Session,
@@ -324,34 +370,37 @@ def get_personas_for_user(
     include_default: bool = True,
     include_slack_bot_personas: bool = False,
     include_deleted: bool = False,
-    joinedload_all: bool = False,
-    # a bit jank
-    include_prompt: bool = True,
+) -> list[PersonaSnapshot]:
+    stmt = select(Persona)
+    stmt = _add_user_filters(stmt, user, get_editable)
+    stmt = _build_persona_filters(
+        stmt, include_default, include_slack_bot_personas, include_deleted
+    )
+    stmt = stmt.options(
+        selectinload(Persona.tools),
+        selectinload(Persona.labels),
+        selectinload(Persona.document_sets),
+        selectinload(Persona.user),
+    )
+
+    results = db_session.scalars(stmt).all()
+    return [PersonaSnapshot.from_model(persona) for persona in results]
+
+
+def get_raw_personas_for_user(
+    user: User | None,
+    db_session: Session,
+    get_editable: bool = True,
+    include_default: bool = True,
+    include_slack_bot_personas: bool = False,
+    include_deleted: bool = False,
 ) -> Sequence[Persona]:
     stmt = select(Persona)
     stmt = _add_user_filters(stmt, user, get_editable)
-
-    if not include_default:
-        stmt = stmt.where(Persona.builtin_persona.is_(False))
-    # commenting out since it's not necessary for this customer
-    # if not include_slack_bot_personas:
-    #     stmt = stmt.where(not_(Persona.name.startswith(SLACK_BOT_PERSONA_PREFIX)))
-    if not include_deleted:
-        stmt = stmt.where(Persona.deleted.is_(False))
-
-    if joinedload_all:
-        stmt = stmt.options(
-            selectinload(Persona.tools),
-            selectinload(Persona.document_sets),
-            selectinload(Persona.groups),
-            selectinload(Persona.users),
-            selectinload(Persona.labels),
-        )
-        if include_prompt:
-            stmt = stmt.options(selectinload(Persona.prompts))
-
-    results = db_session.execute(stmt).scalars().all()
-    return results
+    stmt = _build_persona_filters(
+        stmt, include_default, include_slack_bot_personas, include_deleted
+    )
+    return db_session.scalars(stmt).all()
 
 
 def get_personas(db_session: Session) -> Sequence[Persona]:
@@ -776,7 +825,7 @@ def delete_persona_label(label_id: int, db_session: Session) -> None:
 def persona_has_search_tool(persona_id: int, db_session: Session) -> bool:
     persona = (
         db_session.query(Persona)
-        .options(joinedload(Persona.tools))
+        .options(selectinload(Persona.tools))
         .filter(Persona.id == persona_id)
         .one_or_none()
     )

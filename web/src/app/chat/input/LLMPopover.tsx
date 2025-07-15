@@ -1,9 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useLayoutEffect,
-} from "react";
+import React, { useState, useEffect } from "react";
 import {
   Popover,
   PopoverContent,
@@ -20,7 +15,7 @@ import {
   getProviderIcon,
   LLMProviderDescriptor,
 } from "@/app/admin/configuration/llm/interfaces";
-import { Persona } from "@/app/admin/assistants/interfaces";
+import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { LlmManager } from "@/lib/hooks";
 
 import {
@@ -39,7 +34,7 @@ interface LLMPopoverProps {
   llmProviders: LLMProviderDescriptor[];
   llmManager: LlmManager;
   requiresImageGeneration?: boolean;
-  currentAssistant?: Persona;
+  currentAssistant?: MinimalPersonaSnapshot;
 }
 
 export default function LLMPopover({

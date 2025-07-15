@@ -19,8 +19,8 @@ from onyx.db.engine import get_session
 from onyx.db.models import User
 from onyx.server.features.document_set.models import CheckDocSetPublicRequest
 from onyx.server.features.document_set.models import CheckDocSetPublicResponse
-from onyx.server.features.document_set.models import DocumentSet
 from onyx.server.features.document_set.models import DocumentSetCreationRequest
+from onyx.server.features.document_set.models import DocumentSetSummary
 from onyx.server.features.document_set.models import DocumentSetUpdateRequest
 from onyx.utils.variable_functionality import fetch_ee_implementation_or_noop
 
@@ -125,13 +125,11 @@ def list_document_sets_for_user(
     get_editable: bool = Query(
         False, description="If true, return editable document sets"
     ),
-) -> list[DocumentSet]:
-    return [
-        DocumentSet.from_model(ds)
-        for ds in fetch_all_document_sets_for_user(
-            db_session=db_session, user=user, get_editable=get_editable
-        )
-    ]
+) -> list[DocumentSetSummary]:
+    document_sets = fetch_all_document_sets_for_user(
+        db_session=db_session, user=user, get_editable=get_editable
+    )
+    return [DocumentSetSummary.from_model(ds) for ds in document_sets]
 
 
 @router.get("/document-set-public")

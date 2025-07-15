@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { FieldArray, useFormikContext, ErrorMessage, Field } from "formik";
-import { CCPairDescriptor, DocumentSet } from "@/lib/types";
+import { CCPairDescriptor, DocumentSetSummary } from "@/lib/types";
 import {
   Label,
   SelectorFormField,
@@ -11,7 +11,7 @@ import {
   TextFormField,
 } from "@/components/admin/connectors/Field";
 import { Button } from "@/components/ui/button";
-import { Persona } from "@/app/admin/assistants/interfaces";
+import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { DocumentSetSelectable } from "@/components/documentSet/DocumentSetSelectable";
 import CollapsibleSection from "@/app/admin/assistants/CollapsibleSection";
 import { StandardAnswerCategoryResponse } from "@/components/standardAnswers/getStandardAnswerCategoriesIfEE";
@@ -48,9 +48,9 @@ import { Input } from "@/components/ui/input";
 export interface SlackChannelConfigFormFieldsProps {
   isUpdate: boolean;
   isDefault: boolean;
-  documentSets: DocumentSet[];
-  searchEnabledAssistants: Persona[];
-  nonSearchAssistants: Persona[];
+  documentSets: DocumentSetSummary[];
+  searchEnabledAssistants: MinimalPersonaSnapshot[];
+  nonSearchAssistants: MinimalPersonaSnapshot[];
   standardAnswerCategoryResponse: StandardAnswerCategoryResponse;
   setPopup: (popup: {
     message: string;
@@ -77,14 +77,14 @@ export function SlackChannelConfigFormFields({
   const [viewSyncEnabledAssistants, setViewSyncEnabledAssistants] =
     useState(false);
 
-  const documentSetContainsSync = (documentSet: DocumentSet) =>
-    documentSet.cc_pair_descriptors.some(
+  const documentSetContainsSync = (documentSet: DocumentSetSummary) =>
+    documentSet.cc_pair_summaries.some(
       (descriptor) => descriptor.access_type === "sync"
     );
 
   const [syncEnabledAssistants, availableAssistants] = useMemo(() => {
-    const sync: Persona[] = [];
-    const available: Persona[] = [];
+    const sync: MinimalPersonaSnapshot[] = [];
+    const available: MinimalPersonaSnapshot[] = [];
 
     searchEnabledAssistants.forEach((persona) => {
       const hasSyncSet = persona.document_sets.some(documentSetContainsSync);
@@ -100,7 +100,7 @@ export function SlackChannelConfigFormFields({
 
   const unselectableSets = useMemo(() => {
     return documentSets.filter((ds) =>
-      ds.cc_pair_descriptors.some(
+      ds.cc_pair_summaries.some(
         (descriptor) => descriptor.access_type === "sync"
       )
     );
@@ -108,7 +108,7 @@ export function SlackChannelConfigFormFields({
   const memoizedPrivateConnectors = useMemo(() => {
     const uniqueDescriptors = new Map();
     documentSets.forEach((ds) => {
-      ds.cc_pair_descriptors.forEach((descriptor) => {
+      ds.cc_pair_summaries.forEach((descriptor) => {
         if (
           descriptor.access_type === "private" &&
           !uniqueDescriptors.has(descriptor.id)
@@ -139,8 +139,8 @@ export function SlackChannelConfigFormFields({
     }
   }, [unselectableSets, values.document_sets, setFieldValue, setPopup]);
 
-  const documentSetContainsPrivate = (documentSet: DocumentSet) => {
-    return documentSet.cc_pair_descriptors.some(
+  const documentSetContainsPrivate = (documentSet: DocumentSetSummary) => {
+    return documentSet.cc_pair_summaries.some(
       (descriptor) => descriptor.access_type === "private"
     );
   };
@@ -166,7 +166,7 @@ export function SlackChannelConfigFormFields({
   const selectableSets = useMemo(() => {
     return documentSets.filter(
       (ds) =>
-        !ds.cc_pair_descriptors.some(
+        !ds.cc_pair_summaries.some(
           (descriptor) => descriptor.access_type === "sync"
         )
     );
@@ -443,23 +443,25 @@ export function SlackChannelConfigFormFields({
                   Un-selectable assistants:
                 </p>
                 <div className="mb-3 mt-2 flex gap-2 flex-wrap text-sm">
-                  {syncEnabledAssistants.map((persona: Persona) => (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        router.push(`/admin/assistants/${persona.id}`)
-                      }
-                      key={persona.id}
-                      className="p-2 bg-background-100 cursor-pointer rounded-md flex items-center gap-2"
-                    >
-                      <AssistantIcon
-                        assistant={persona}
-                        size={16}
-                        className="flex-none"
-                      />
-                      {persona.name}
-                    </button>
-                  ))}
+                  {syncEnabledAssistants.map(
+                    (persona: MinimalPersonaSnapshot) => (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          router.push(`/admin/assistants/${persona.id}`)
+                        }
+                        key={persona.id}
+                        className="p-2 bg-background-100 cursor-pointer rounded-md flex items-center gap-2"
+                      >
+                        <AssistantIcon
+                          assistant={persona}
+                          size={16}
+                          className="flex-none"
+                        />
+                        {persona.name}
+                      </button>
+                    )
+                  )}
                 </div>
               </div>
             )}

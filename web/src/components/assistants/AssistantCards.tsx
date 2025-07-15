@@ -1,9 +1,8 @@
-import { Persona } from "@/app/admin/assistants/interfaces";
-import { Bubble } from "@/components/Bubble";
+import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { useSortable } from "@dnd-kit/sortable";
-import React, { useState } from "react";
-import { FiBookmark, FiImage, FiSearch } from "react-icons/fi";
+import React from "react";
+import { FiImage, FiSearch } from "react-icons/fi";
 import { MdDragIndicator } from "react-icons/md";
 
 import { Badge } from "../ui/badge";
@@ -15,9 +14,9 @@ export const AssistantCard = ({
   isSelected,
   onSelect,
 }: {
-  assistant: Persona;
+  assistant: MinimalPersonaSnapshot;
   isSelected: boolean;
-  onSelect: (assistant: Persona) => void;
+  onSelect: (assistant: MinimalPersonaSnapshot) => void;
 }) => {
   const renderBadgeContent = (tool: { name: string }) => {
     switch (tool.name) {
@@ -74,9 +73,9 @@ export const AssistantCard = ({
 };
 
 export function DraggableAssistantCard(props: {
-  assistant: Persona;
+  assistant: MinimalPersonaSnapshot;
   isSelected: boolean;
-  onSelect: (assistant: Persona) => void;
+  onSelect: (assistant: MinimalPersonaSnapshot) => void;
   llmName: string;
 }) {
   const {

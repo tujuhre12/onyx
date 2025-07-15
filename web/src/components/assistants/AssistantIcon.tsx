@@ -1,7 +1,9 @@
 import React from "react";
 import crypto from "crypto";
-import { Persona } from "@/app/admin/assistants/interfaces";
-import { CustomTooltip } from "../tooltip/CustomTooltip";
+import {
+  MinimalPersonaSnapshot,
+  Persona,
+} from "@/app/admin/assistants/interfaces";
 import { buildImgUrl } from "@/app/chat/files/images/utils";
 import {
   ArtAsistantIcon,
@@ -94,7 +96,7 @@ export function AssistantIcon({
   className,
   disableToolip,
 }: {
-  assistant: Persona;
+  assistant: MinimalPersonaSnapshot | Persona;
   size?: IconSize;
   className?: string;
   border?: boolean;

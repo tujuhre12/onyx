@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from pydantic import Field
 
 from onyx.db.models import DocumentSet as DocumentSetDBModel
+from onyx.server.documents.models import CCPairSummary
 from onyx.server.documents.models import ConnectorCredentialPairDescriptor
 from onyx.server.documents.models import ConnectorSnapshot
 from onyx.server.documents.models import CredentialSnapshot
@@ -76,4 +77,39 @@ class DocumentSet(BaseModel):
             is_public=document_set_model.is_public,
             users=[user.id for user in document_set_model.users],
             groups=[group.id for group in document_set_model.groups],
+        )
+
+
+class DocumentSetSummary(BaseModel):
+    """Simplified document set model with minimal data for list views"""
+
+    id: int
+    name: str
+    description: str | None
+    cc_pair_summaries: list[CCPairSummary]
+    is_up_to_date: bool
+    is_public: bool
+    users: list[UUID]
+    groups: list[int]
+
+    @classmethod
+    def from_model(cls, document_set: DocumentSetDBModel) -> "DocumentSetSummary":
+        """Create a summary from a DocumentSet database model"""
+        return cls(
+            id=document_set.id,
+            name=document_set.name,
+            description=document_set.description,
+            cc_pair_summaries=[
+                CCPairSummary(
+                    id=cc_pair.id,
+                    name=cc_pair.name,
+                    source=cc_pair.connector.source,
+                    access_type=cc_pair.access_type,
+                )
+                for cc_pair in document_set.connector_credential_pairs
+            ],
+            is_up_to_date=document_set.is_up_to_date,
+            is_public=document_set.is_public,
+            users=[user.id for user in document_set.users],
+            groups=[group.id for group in document_set.groups],
         )

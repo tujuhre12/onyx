@@ -15,6 +15,9 @@ from onyx.db.models import Tool as ToolDBModel
 from onyx.db.persona import upsert_persona
 from onyx.db.prompts import get_prompt_by_name
 from onyx.db.prompts import upsert_prompt
+from onyx.tools.tool_implementations.images.image_generation_tool import (
+    ImageGenerationTool,
+)
 
 
 def load_prompts_from_yaml(
@@ -112,7 +115,7 @@ def load_personas_from_yaml(
         if persona.get("image_generation"):
             image_gen_tool = (
                 db_session.query(ToolDBModel)
-                .filter(ToolDBModel.name == "ImageGenerationTool")
+                .filter(ToolDBModel.name == ImageGenerationTool.__name__)
                 .first()
             )
             if image_gen_tool:
