@@ -39,6 +39,7 @@ from onyx.redis.redis_document_set import RedisDocumentSet
 from onyx.redis.redis_pool import get_redis_client
 from onyx.redis.redis_usergroup import RedisUserGroup
 from onyx.utils.logger import ColoredFormatter
+from onyx.utils.logger import LoggerContextVars
 from onyx.utils.logger import PlainFormatter
 from onyx.utils.logger import setup_logger
 from shared_configs.configs import MULTI_TENANT
@@ -97,7 +98,6 @@ def on_task_prerun(
     # into the next task's log messages. This fixes incorrect [CC Pair:/Index Attempt]
     # prefixes observed when a pruning task finishes and an indexing task
     # runs in the same process.
-    from onyx.utils.logger import LoggerContextVars  # local import to avoid cycles
 
     LoggerContextVars.reset()
 
