@@ -138,7 +138,7 @@ def validate_active_indexing_attempts(
     """
     # Heartbeat timeout: if no heartbeat received for 5 minutes, consider it dead
     # This should be much longer than INDEXING_WORKER_HEARTBEAT_INTERVAL (30s)
-    HEARTBEAT_TIMEOUT_SECONDS = 5 * 60  # 5 minutes
+    HEARTBEAT_TIMEOUT_SECONDS = 30 * 60  # 30 minutes
 
     with get_session_with_current_tenant() as db_session:
         cutoff_time = datetime.now(timezone.utc) - timedelta(

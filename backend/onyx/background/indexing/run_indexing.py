@@ -29,6 +29,7 @@ from onyx.connectors.connector_runner import ConnectorRunner
 from onyx.connectors.exceptions import ConnectorValidationError
 from onyx.connectors.exceptions import UnexpectedValidationError
 from onyx.connectors.factory import instantiate_connector
+from onyx.connectors.interfaces import CheckpointedConnector
 from onyx.connectors.models import ConnectorFailure
 from onyx.connectors.models import ConnectorStopSignal
 from onyx.connectors.models import DocExtractionContext
@@ -60,6 +61,7 @@ from onyx.db.indexing_coordination import IndexingCoordination
 from onyx.db.models import IndexAttempt
 from onyx.db.models import IndexAttemptError
 from onyx.document_index.factory import get_default_document_index
+from onyx.file_store.document_batch_storage import DocumentBatchStorage
 from onyx.file_store.document_batch_storage import get_document_batch_storage
 from onyx.httpx.httpx_pool import HttpxPool
 from onyx.indexing.embedder import DefaultIndexingEmbedder
@@ -1056,40 +1058,15 @@ def connector_document_extraction(
                 connector=connector_runner.connector,
             )
 
-            # When loading from a checkpoint, we need to start new docprocessing tasks
-            # tied to the new index attempt for any batches left over in the file store
-            old_batches = batch_storage.get_all_batches_for_cc_pair()
-            batch_storage.update_old_batches_to_new_index_attempt(old_batches)
-            for batch_id in old_batches:
-                logger.info(
-                    f"Re-issuing docprocessing task for batch {batch_id} for index attempt {index_attempt_id}"
+            if isinstance(connector_runner.connector, CheckpointedConnector):
+                last_batch_num = reissue_old_batches(
+                    batch_storage,
+                    index_attempt_id,
+                    cc_pair_id,
+                    tenant_id,
+                    app,
+                    most_recent_attempt,
                 )
-                path_info = batch_storage.extract_path_info(batch_id)
-                if path_info is None:
-                    continue
-                if path_info.cc_pair_id != cc_pair_id:
-                    raise RuntimeError(
-                        f"Batch {batch_id} is not for cc pair {cc_pair_id}"
-                    )
-
-                app.send_task(
-                    OnyxCeleryTask.DOCPROCESSING_TASK,
-                    kwargs={
-                        "index_attempt_id": index_attempt_id,
-                        "cc_pair_id": cc_pair_id,
-                        "tenant_id": tenant_id,
-                        "batch_num": path_info.batch_num,  # use same batch num as previously
-                    },
-                    queue=OnyxCeleryQueues.DOCPROCESSING,
-                    priority=OnyxCeleryPriority.MEDIUM,
-                )
-            recent_batches = (
-                most_recent_attempt.completed_batches if most_recent_attempt else 0
-            )
-            # resume from the batch num of the last attempt. This should be one more
-            # than the last batch created by docfetching regardless of whether the batch
-            # is still in the filestore waiting for processing or not.
-            last_batch_num = len(old_batches) + recent_batches
 
         # Save initial checkpoint
         save_checkpoint(
@@ -1330,3 +1307,48 @@ def connector_document_extraction(
 
     finally:
         memory_tracer.stop()
+
+
+def reissue_old_batches(
+    batch_storage: DocumentBatchStorage,
+    index_attempt_id: int,
+    cc_pair_id: int,
+    tenant_id: str,
+    app: Celery,
+    most_recent_attempt: IndexAttempt | None,
+) -> int:
+    # When loading from a checkpoint, we need to start new docprocessing tasks
+    # tied to the new index attempt for any batches left over in the file store
+    old_batches = batch_storage.get_all_batches_for_cc_pair()
+    batch_storage.update_old_batches_to_new_index_attempt(old_batches)
+    for batch_id in old_batches:
+        logger.info(
+            f"Re-issuing docprocessing task for batch {batch_id} for index attempt {index_attempt_id}"
+        )
+        path_info = batch_storage.extract_path_info(batch_id)
+        if path_info is None:
+            continue
+        if path_info.cc_pair_id != cc_pair_id:
+            raise RuntimeError(f"Batch {batch_id} is not for cc pair {cc_pair_id}")
+
+        app.send_task(
+            OnyxCeleryTask.DOCPROCESSING_TASK,
+            kwargs={
+                "index_attempt_id": index_attempt_id,
+                "cc_pair_id": cc_pair_id,
+                "tenant_id": tenant_id,
+                "batch_num": path_info.batch_num,  # use same batch num as previously
+            },
+            queue=OnyxCeleryQueues.DOCPROCESSING,
+            priority=OnyxCeleryPriority.MEDIUM,
+        )
+    recent_batches = most_recent_attempt.completed_batches if most_recent_attempt else 0
+    # resume from the batch num of the last attempt. This should be one more
+    # than the last batch created by docfetching regardless of whether the batch
+    # is still in the filestore waiting for processing or not.
+    last_batch_num = len(old_batches) + recent_batches
+    logger.info(
+        f"Starting from batch {last_batch_num} due to "
+        f"re-issued batches: {old_batches}, completed batches: {recent_batches}"
+    )
+    return last_batch_num
