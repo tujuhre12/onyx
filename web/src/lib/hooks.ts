@@ -731,7 +731,7 @@ const MODEL_DISPLAY_NAMES: { [key: string]: string } = {
   "claude-3.5-sonnet-v2@20241022": "Claude 3.5 Sonnet",
   "claude-3-5-haiku-20241022": "Claude 3.5 Haiku",
   "claude-3-5-haiku@20241022": "Claude 3.5 Haiku",
-  "claude-3.5-haiku@20241022": "Claude 3.5 Haiku",
+  "claude-3-5-haiku@20241022": "Claude 3.5 Haiku",
   "claude-3.7-sonnet@202502019": "Claude 3.7 Sonnet",
   "claude-3-7-sonnet-202502019": "Claude 3.7 Sonnet",
 
@@ -826,23 +826,45 @@ export function getDisplayNameForModel(modelName: string): string {
 
 export const defaultModelsByProvider: { [name: string]: string[] } = {
   openai: [
-    "gpt-4",
+    // Models marked as recommended_default_model or recommended_fast_default_model in backend
+    "o3-mini", // recommended_default_model: true
+    "gpt-4o-mini", // recommended_fast_default_model: true
+    // Additional visible models for selection
     "gpt-4o",
-    "gpt-4o-mini",
+    "gpt-4",
     "gpt-4.1",
-    "o3-mini",
-    "o1-mini",
     "o1",
+    "o1-mini",
     "o4-mini",
     "o3",
   ],
   bedrock: [
+    // Models marked as recommended_default_model or recommended_fast_default_model in backend
+    "anthropic.claude-3-7-sonnet-20250219-v1:0", // recommended_default_model: true
+    "anthropic.claude-3-5-sonnet-20241022-v2:0", // recommended_fast_default_model: true
+    // Additional models for selection
     "meta.llama3-1-70b-instruct-v1:0",
     "meta.llama3-1-8b-instruct-v1:0",
     "anthropic.claude-3-opus-20240229-v1:0",
     "mistral.mistral-large-2402-v1:0",
-    "anthropic.claude-3-5-sonnet-20241022-v2:0",
-    "anthropic.claude-3-7-sonnet-20250219-v1:0",
   ],
-  anthropic: ["claude-3-opus-20240229", "claude-3-5-sonnet-20241022"],
+  anthropic: [
+    // Models marked as recommended_default_model or recommended_fast_default_model in backend
+    "claude-3-haiku-20240307", // recommended_default_model: true
+    "claude-3-5-sonnet-20241022", // recommended_fast_default_model: true
+    // Additional models for selection
+    "claude-3-7-sonnet-20250219",
+    "claude-3-opus-20240229",
+    "claude-3-sonnet-20240229",
+  ],
+  vertex_ai: [
+    // Models marked as recommended_default_model or recommended_fast_default_model in backend
+    "gemini-2.0-flash", // recommended_default_model: true
+    "gemini-2.0-flash-lite", // recommended_fast_default_model: true
+    // Additional models for selection
+    "gemini-2.5-pro-preview-06-05",
+    "gemini-2.5-pro-preview-05-06",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash",
+  ],
 };
