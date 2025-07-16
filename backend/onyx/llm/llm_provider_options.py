@@ -46,10 +46,8 @@ class WellKnownLLMProviderDescriptor(BaseModel):
     has_curated_models: bool = False
 
 
-# Curated list of LLM models organized by provider and priority
-# TODO: Add JSON validation, like if recommended_default_model is True, then recommended_is_visible must be True
-# Can just be a unit test
-# TODO: Backfill existing models (with deprecated: True if we wish to hide) for backwards compatibility
+# TODO Before shipping:
+# Backfill existing litellm models (with deprecated: True if we wish to hide) for backwards compatibility
 curated_models = {
     "openai": [
         {
@@ -529,7 +527,9 @@ def get_curated_recommended_fast_default_model(provider_name: str) -> str | None
     return None
 
 
-# Extract model names from curated_models instead of hardcoding them
+# TODO Before shipping: These values are taken from curated_models.
+# Ensure the values before and after this commit are the exact same.
+# Do that for basically the rest of this file.
 OPENAI_PROVIDER_NAME = "openai"
 OPEN_AI_MODEL_NAMES = get_curated_model_names("openai")
 OPEN_AI_VISIBLE_MODEL_NAMES = [
