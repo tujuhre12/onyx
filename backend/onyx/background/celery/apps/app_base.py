@@ -92,7 +92,14 @@ def on_task_prerun(
     kwargs: dict[str, Any] | None = None,
     **other_kwargs: Any,
 ) -> None:
-    pass
+    # Reset any per-task logging context so that prefixes (e.g. pruning_ctx)
+    # from a previous task executed in the same worker process do not leak
+    # into the next task's log messages. This fixes incorrect [CC Pair:/Index Attempt]
+    # prefixes observed when a pruning task finishes and an indexing task
+    # runs in the same process.
+    from onyx.utils.logger import LoggerContextVars  # local import to avoid cycles
+
+    LoggerContextVars.reset()
 
 
 def on_task_postrun(
