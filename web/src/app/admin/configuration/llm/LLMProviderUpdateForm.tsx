@@ -55,6 +55,13 @@ export function LLMProviderUpdateForm({
     existingLlmProvider?.use_recommended_models ?? true
   );
 
+  // Determine which model configurations to use for options
+  // When editing an existing provider, use the database configurations
+  // When creating a new provider, use the hardcoded descriptor configurations
+  const modelConfigurationsForOptions = existingLlmProvider
+    ? existingLlmProvider.model_configurations
+    : llmProviderDescriptor.model_configurations;
+
   // Define the initial values based on the provider's requirements
   const initialValues = {
     name:
@@ -166,15 +173,17 @@ export function LLMProviderUpdateForm({
           api_key_changed: values.api_key !== initialValues.api_key,
           // If using recommended model, use the provider's defaults
           default_model_name: useRecommendedModel
-            ? llmProviderDescriptor.default_model ||
-              llmProviderDescriptor.model_configurations[0]?.name
+            ? (existingLlmProvider?.default_model_name ??
+              (llmProviderDescriptor.default_model ||
+                llmProviderDescriptor.model_configurations[0]?.name))
             : values.default_model_name,
           fast_default_model_name: useRecommendedModel
-            ? llmProviderDescriptor.default_fast_model ||
-              llmProviderDescriptor.default_model ||
-              llmProviderDescriptor.model_configurations[0]?.name
+            ? (existingLlmProvider?.fast_default_model_name ??
+              (llmProviderDescriptor.default_fast_model ||
+                llmProviderDescriptor.default_model ||
+                llmProviderDescriptor.model_configurations[0]?.name))
             : values.fast_default_model_name,
-          model_configurations: llmProviderDescriptor.model_configurations.map(
+          model_configurations: modelConfigurationsForOptions.map(
             (modelConfiguration): ModelConfigurationUpsertRequest => ({
               name: modelConfiguration.name,
               is_visible: useRecommendedModel
@@ -373,12 +382,12 @@ export function LLMProviderUpdateForm({
 
               {!useRecommendedModel && (
                 <>
-                  {llmProviderDescriptor.model_configurations.length > 0 ? (
+                  {modelConfigurationsForOptions.length > 0 ? (
                     <SelectorFormField
                       name="default_model_name"
                       subtext="The model to use by default for this provider unless otherwise specified."
                       label="Default Model"
-                      options={llmProviderDescriptor.model_configurations.map(
+                      options={modelConfigurationsForOptions.map(
                         (modelConfiguration) => ({
                           // don't clean up names here to give admins descriptive names / handle duplicates
                           // like us.anthropic.claude-3-7-sonnet-20250219-v1:0 and anthropic.claude-3-7-sonnet-20250219-v1:0
@@ -406,14 +415,14 @@ export function LLMProviderUpdateForm({
                   )}
 
                   {!llmProviderDescriptor.single_model_supported &&
-                    (llmProviderDescriptor.model_configurations.length > 0 ? (
+                    (modelConfigurationsForOptions.length > 0 ? (
                       <SelectorFormField
                         name="fast_default_model_name"
                         subtext={`The model to use for lighter flows like \`LLM Chunk Filter\`
             for this provider. If \`Default\` is specified, will use
             the Default Model configured above.`}
                         label="[Optional] Fast Model"
-                        options={llmProviderDescriptor.model_configurations.map(
+                        options={modelConfigurationsForOptions.map(
                           (modelConfiguration) => ({
                             // don't clean up names here to give admins descriptive names / handle duplicates
                             // like us.anthropic.claude-3-7-sonnet-20250219-v1:0 and anthropic.claude-3-7-sonnet-20250219-v1:0
@@ -435,7 +444,7 @@ export function LLMProviderUpdateForm({
                       />
                     ))}
 
-                  {llmProviderDescriptor.model_configurations.length > 0 && (
+                  {modelConfigurationsForOptions.length > 0 && (
                     <div className="w-full">
                       <MultiSelectField
                         selectedInitially={
@@ -444,7 +453,7 @@ export function LLMProviderUpdateForm({
                         name="selected_model_names"
                         label="Display Models"
                         subtext="Select the models to make available to users. Unselected models will not be available."
-                        options={llmProviderDescriptor.model_configurations.map(
+                        options={modelConfigurationsForOptions.map(
                           (modelConfiguration) => ({
                             value: modelConfiguration.name,
                             // don't clean up names here to give admins descriptive names / handle duplicates

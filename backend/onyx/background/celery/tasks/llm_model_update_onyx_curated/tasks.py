@@ -78,12 +78,18 @@ def check_for_llm_model_update_onyx_curated(
                         .first()
                     )
                     if model_configuration and (
-                        model_configuration.recommended_default
-                        != curated_model["recommended_default_model"]
-                        or model_configuration.recommended_fast_default
-                        != curated_model["recommended_fast_default_model"]
-                        or model_configuration.recommended_is_visible
-                        != curated_model["recommended_is_visible"]
+                        (
+                            model_configuration.recommended_default
+                            != curated_model["recommended_default_model"]
+                        )
+                        or (
+                            model_configuration.recommended_fast_default
+                            != curated_model["recommended_fast_default_model"]
+                        )
+                        or (
+                            model_configuration.recommended_is_visible
+                            != curated_model["recommended_is_visible"]
+                        )
                     ):
                         db_session.query(ModelConfiguration).filter(
                             ModelConfiguration.id == model_configuration.id
@@ -95,7 +101,7 @@ def check_for_llm_model_update_onyx_curated(
                                 ModelConfiguration.recommended_fast_default: curated_model[
                                     "recommended_fast_default_model"
                                 ],
-                                ModelConfiguration.is_visible: curated_model[
+                                ModelConfiguration.recommended_is_visible: curated_model[
                                     "recommended_is_visible"
                                 ],
                             }
@@ -103,7 +109,9 @@ def check_for_llm_model_update_onyx_curated(
                         task_logger.info(
                             f"Updated model configuration for {curated_model['name']} for provider {llm_provider.provider}"
                         )
-                    elif not model_configuration:
+                    elif not model_configuration and not curated_model.get(
+                        "deprecated", False
+                    ):
                         db_session.add(
                             ModelConfiguration(
                                 llm_provider_id=llm_provider.id,

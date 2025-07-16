@@ -47,6 +47,9 @@ def update_recommended_selected_models(self: Task, *, tenant_id: str) -> bool | 
                                     ModelConfiguration.is_visible: model_configuration.recommended_is_visible
                                 }
                             )
+                            task_logger.info(
+                                f"Updated is_visible for model {model_configuration.name} for provider {llm_provider.provider}"
+                            )
                         if (
                             model_configuration.recommended_default
                             and model_configuration.name
@@ -60,7 +63,10 @@ def update_recommended_selected_models(self: Task, *, tenant_id: str) -> bool | 
                                 }
                             )
                             task_logger.info(
-                                f"Updated recommended default model for provider {llm_provider.provider}"
+                                f"""
+                                Updated default_model_name for model {model_configuration.name}
+                                for provider {llm_provider.provider}
+                                """
                             )
                         if (
                             model_configuration.recommended_fast_default
@@ -75,7 +81,10 @@ def update_recommended_selected_models(self: Task, *, tenant_id: str) -> bool | 
                                 }
                             )
                             task_logger.info(
-                                f"Updated recommended fast default model for provider {llm_provider.provider}"
+                                f"""
+                                Updated fast_default_model_name for model {model_configuration.name}
+                                for provider {llm_provider.provider}
+                                """
                             )
 
             db_session.commit()
