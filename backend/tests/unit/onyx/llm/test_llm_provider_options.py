@@ -21,10 +21,9 @@ class TestCuratedModelsFormat:
                     ), f"Deprecated model '{model['name']}' in provider '{provider_name}' has recommended_is_visible=True"
 
     def test_model_names_are_globally_unique(self):
-        """Test that model names are unique across all providers."""
         all_model_names = []
 
-        for provider_name, models in curated_models.items():
+        for _, models in curated_models.items():
             for model in models:
                 model_name = model["name"]
                 assert (
