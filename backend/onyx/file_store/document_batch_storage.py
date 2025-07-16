@@ -201,7 +201,7 @@ class FileStoreDocumentBatchStorage(DocumentBatchStorage):
     def extract_path_info(self, path: str) -> BatchStoragePathInfo | None:
         """Extract path info from a path."""
         path_spl = path.split("/")
-        if len(path) != 3:
+        if len(path_spl) != 3:
             logger.error(f"incorrectly formatted file path: {path}")
             return None
         cc_pair_id, index_attempt_id, batch_num = path_spl
