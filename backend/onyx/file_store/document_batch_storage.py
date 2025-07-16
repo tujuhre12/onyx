@@ -205,7 +205,7 @@ class FileStoreDocumentBatchStorage(DocumentBatchStorage):
         if len(path_spl) == 3:
             path_spl = ["iab"] + path_spl
         try:
-            cc_pair_id, index_attempt_id, batch_num = path_spl
+            _, cc_pair_id, index_attempt_id, batch_num = path_spl
             return BatchStoragePathInfo(
                 cc_pair_id=int(cc_pair_id),
                 index_attempt_id=int(index_attempt_id),
