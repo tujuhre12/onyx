@@ -726,6 +726,7 @@ def fetch_visible_model_names_for_provider_as_set(
 
 def fetch_model_configurations_for_provider(
     provider_name: str,
+    include_deprecated: bool = False,
 ) -> list[ModelConfigurationView]:
     # Use curated_models to determine which models should be visible
     # If a model is in curated_models, use its recommended_is_visible value
@@ -741,5 +742,17 @@ def fetch_model_configurations_for_provider(
             ),
         )
         for model in curated_models.get(provider_name, [])
-        if not model.get("deprecated", False)  # Filter out deprecated models
+        if include_deprecated
+        or not model.get(
+            "deprecated", False
+        )  # Filter out deprecated models unless include_deprecated is True
     ]
+
+
+def fetch_all_model_configurations_for_provider(
+    provider_name: str,
+) -> list[ModelConfigurationView]:
+    """Fetch all model configurations for a provider, including deprecated ones."""
+    return fetch_model_configurations_for_provider(
+        provider_name, include_deprecated=True
+    )
