@@ -400,6 +400,14 @@ class S3BackedFileStore(FileStore):
                 file_record = get_filerecord_by_file_id(
                     file_id=file_id, db_session=db_session
                 )
+                if not file_record.bucket_name:
+                    logger.error(
+                        f"File record {file_id} with key {file_record.object_key} "
+                        "has no bucket name, cannot delete from filestore"
+                    )
+                    delete_filerecord_by_file_id(file_id=file_id, db_session=db_session)
+                    db_session.commit()
+                    return
 
                 # Delete from external storage
                 s3_client = self._get_s3_client()
