@@ -95,7 +95,7 @@ class DocumentBatchStorage(ABC):
 
     def _per_cc_pair_base_path(self) -> str:
         """Get the base path for the cc pair."""
-        return str(self.cc_pair_id)
+        return f"iab/{self.cc_pair_id}"
 
 
 class FileStoreDocumentBatchStorage(DocumentBatchStorage):
@@ -201,15 +201,19 @@ class FileStoreDocumentBatchStorage(DocumentBatchStorage):
     def extract_path_info(self, path: str) -> BatchStoragePathInfo | None:
         """Extract path info from a path."""
         path_spl = path.split("/")
-        if len(path_spl) != 3:
-            logger.error(f"incorrectly formatted file path: {path}")
+        # TODO: remove this in a few months, just for backwards compatibility
+        if len(path_spl) == 3:
+            path_spl = ["iab"] + path_spl
+        try:
+            cc_pair_id, index_attempt_id, batch_num = path_spl
+            return BatchStoragePathInfo(
+                cc_pair_id=int(cc_pair_id),
+                index_attempt_id=int(index_attempt_id),
+                batch_num=int(batch_num.split(".")[0]),  # remove .json
+            )
+        except Exception as e:
+            logger.error(f"Failed to extract path info from {path}: {e}")
             return None
-        cc_pair_id, index_attempt_id, batch_num = path_spl
-        return BatchStoragePathInfo(
-            cc_pair_id=int(cc_pair_id),
-            index_attempt_id=int(index_attempt_id),
-            batch_num=int(batch_num.split(".")[0]),  # remove .json
-        )
 
 
 def get_document_batch_storage(
