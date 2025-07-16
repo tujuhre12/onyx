@@ -131,7 +131,7 @@ beat_task_templates: list[dict] = [
     {
         "name": "update-recommended-selected-models",
         "task": OnyxCeleryTask.UPDATE_RECOMMENDED_SELECTED_MODELS,
-        "schedule": timedelta(seconds=5),
+        "schedule": timedelta(hours=1),
         "options": {
             "priority": OnyxCeleryPriority.LOW,
             "expires": BEAT_EXPIRES_DEFAULT,
@@ -182,7 +182,11 @@ else:
         {
             "name": "check-for-llm-model-update-onyx-curated",
             "task": OnyxCeleryTask.CHECK_FOR_LLM_MODEL_UPDATE_ONYX_CURATED,
-            "schedule": timedelta(seconds=5),
+            "schedule": timedelta(hours=1),
+            "options": {
+                "priority": OnyxCeleryPriority.LOW,
+                "expires": BEAT_EXPIRES_DEFAULT,
+            },
         }
     )
 

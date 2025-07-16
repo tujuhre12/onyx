@@ -134,14 +134,14 @@ curated_models = {
         },
     ],
     "anthropic": [
-        # {
-        #     "name": "claude-4-sonnet-20250514",
-        #     "friendly_name": "Claude 4 Sonnet",
-        #     "recommended_default_model": True,
-        #     "recommended_fast_default_model": False,
-        #     "recommended_is_visible": True,
-        #     "deprecated": False,
-        # },
+        {
+            "name": "claude-4-sonnet-20250514",
+            "friendly_name": "Claude 4 Sonnet",
+            "recommended_default_model": True,
+            "recommended_fast_default_model": False,
+            "recommended_is_visible": True,
+            "deprecated": False,
+        },
         {
             "name": "claude-3-7-sonnet-20250219",
             "friendly_name": "Claude 3.7 Sonnet (February 2025)",
@@ -161,10 +161,10 @@ curated_models = {
         {
             "name": "claude-3-opus-20240229",
             "friendly_name": "Claude 3 Opus",
-            "recommended_default_model": True,
+            "recommended_default_model": False,
             "recommended_fast_default_model": False,
-            "recommended_is_visible": True,
-            "deprecated": False,
+            "recommended_is_visible": False,
+            "deprecated": True,
         },
         {
             "name": "claude-3-sonnet-20240229",
@@ -180,7 +180,7 @@ curated_models = {
             "recommended_default_model": False,
             "recommended_fast_default_model": False,
             "recommended_is_visible": False,
-            "deprecated": False,
+            "deprecated": True,
         },
     ],
     "vertex_ai": [

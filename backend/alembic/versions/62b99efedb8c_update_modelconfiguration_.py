@@ -21,15 +21,33 @@ def upgrade() -> None:
     # Add the boolean recommendation columns
     op.add_column(
         "model_configuration",
-        sa.Column("recommended_default", sa.Boolean(), nullable=True),
+        sa.Column(
+            "recommended_default",
+            sa.Boolean(),
+            nullable=True,
+            default=False,
+            server_default=sa.text("false"),
+        ),
     )
     op.add_column(
         "model_configuration",
-        sa.Column("recommended_fast_default", sa.Boolean(), nullable=True),
+        sa.Column(
+            "recommended_fast_default",
+            sa.Boolean(),
+            nullable=True,
+            default=False,
+            server_default=sa.text("false"),
+        ),
     )
     op.add_column(
         "model_configuration",
-        sa.Column("recommended_is_visible", sa.Boolean(), nullable=True),
+        sa.Column(
+            "recommended_is_visible",
+            sa.Boolean(),
+            nullable=True,
+            default=False,
+            server_default=sa.text("false"),
+        ),
     )
 
 

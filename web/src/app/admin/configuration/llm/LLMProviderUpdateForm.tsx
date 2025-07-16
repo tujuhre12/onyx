@@ -200,28 +200,27 @@ export function LLMProviderUpdateForm({
           ),
         };
 
-        // test the configuration
-        // if (!isEqual(finalValues, initialValues)) {
-        //   setIsTesting(true);
+        if (!isEqual(finalValues, initialValues)) {
+          setIsTesting(true);
 
-        //   const response = await fetch("/api/admin/llm/test", {
-        //     method: "POST",
-        //     headers: {
-        //       "Content-Type": "application/json",
-        //     },
-        //     body: JSON.stringify({
-        //       provider: llmProviderDescriptor.name,
-        //       ...finalValues,
-        //     }),
-        //   });
-        //   setIsTesting(false);
+          const response = await fetch("/api/admin/llm/test", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              provider: llmProviderDescriptor.name,
+              ...finalValues,
+            }),
+          });
+          setIsTesting(false);
 
-        //   if (!response.ok) {
-        //     const errorMsg = (await response.json()).detail;
-        //     setTestError(errorMsg);
-        //     return;
-        //   }
-        // }
+          if (!response.ok) {
+            const errorMsg = (await response.json()).detail;
+            setTestError(errorMsg);
+            return;
+          }
+        }
 
         const response = await fetch(
           `${LLM_PROVIDERS_ADMIN_URL}${

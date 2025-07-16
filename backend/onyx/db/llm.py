@@ -76,11 +76,10 @@ def upsert_llm_provider(
     )
 
     if not existing_llm_provider:
-        # For new providers, default use_recommended_models to True if not specified
         use_recommended_models = (
             llm_provider_upsert_request.use_recommended_models
             if llm_provider_upsert_request.use_recommended_models is not None
-            else True
+            else False
         )
         existing_llm_provider = LLMProviderModel(
             name=llm_provider_upsert_request.name,
@@ -101,10 +100,6 @@ def upsert_llm_provider(
     )
     existing_llm_provider.is_public = llm_provider_upsert_request.is_public
     existing_llm_provider.deployment_name = llm_provider_upsert_request.deployment_name
-    if llm_provider_upsert_request.use_recommended_models is not None:
-        existing_llm_provider.use_recommended_models = (
-            llm_provider_upsert_request.use_recommended_models
-        )
 
     if not existing_llm_provider.id:
         # If its not already in the db, we need to generate an ID by flushing

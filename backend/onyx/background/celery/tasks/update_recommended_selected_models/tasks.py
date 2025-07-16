@@ -86,8 +86,7 @@ def update_recommended_selected_models(self: Task, *, tenant_id: str) -> bool | 
                                 for provider {llm_provider.provider}
                                 """
                             )
-
-            db_session.commit()
+                    db_session.commit()
             task_logger.info(
                 "Recommended selected models update completed successfully"
             )

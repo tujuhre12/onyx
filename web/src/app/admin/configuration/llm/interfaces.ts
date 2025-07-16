@@ -66,7 +66,6 @@ export interface LLMProvider {
 export interface LLMProviderView extends LLMProvider {
   id: number;
   is_default_provider: boolean | null;
-  use_recommended_models: boolean | null;
   icon?: React.FC<{ size?: number; className?: string }>;
 }
 

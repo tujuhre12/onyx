@@ -21,7 +21,13 @@ def upgrade() -> None:
     # Add use_recommended_models column to llm_provider table
     op.add_column(
         "llm_provider",
-        sa.Column("use_recommended_models", sa.Boolean(), nullable=True, default=True),
+        sa.Column(
+            "use_recommended_models",
+            sa.Boolean(),
+            nullable=False,
+            default=False,
+            server_default=sa.text("false"),
+        ),
     )
 
 
