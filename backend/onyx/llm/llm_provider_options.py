@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import TypedDict
 
 from pydantic import BaseModel
 
@@ -6,6 +7,15 @@ from onyx.llm.chat_llm import VERTEX_CREDENTIALS_FILE_KWARG
 from onyx.llm.chat_llm import VERTEX_LOCATION_KWARG
 from onyx.llm.utils import model_supports_image_input
 from onyx.server.manage.llm.models import ModelConfigurationView
+
+
+class CuratedModelDict(TypedDict):
+    name: str
+    friendly_name: str
+    recommended_default_model: bool
+    recommended_fast_default_model: bool
+    recommended_is_visible: bool
+    deprecated: bool
 
 
 class CustomConfigKeyType(Enum):
@@ -48,7 +58,7 @@ class WellKnownLLMProviderDescriptor(BaseModel):
 
 # TODO Before shipping:
 # Backfill existing litellm models (with deprecated: True if we wish to hide) for backwards compatibility
-curated_models = {
+curated_models: dict[str, list[CuratedModelDict]] = {
     "openai": [
         {
             "name": "o1",
@@ -479,7 +489,9 @@ def get_curated_model_names(provider_name: str) -> list[str]:
     ]
 
 
-def get_curated_model_info(provider_name: str, model_name: str) -> dict | None:
+def get_curated_model_info(
+    provider_name: str, model_name: str
+) -> CuratedModelDict | None:
     """Get curated model information for a specific provider and model."""
     if provider_name not in curated_models:
         return None
@@ -578,7 +590,7 @@ _PROVIDER_TO_MODELS_MAP = {
     VERTEXAI_PROVIDER_NAME: VERTEXAI_MODEL_NAMES,
 }
 
-_PROVIDER_TO_VISIBLE_MODELS_MAP = {
+_PROVIDER_TO_VISIBLE_MODELS_MAP: dict[str, list[str]] = {
     OPENAI_PROVIDER_NAME: OPEN_AI_VISIBLE_MODEL_NAMES,
     BEDROCK_PROVIDER_NAME: [
         model["name"]

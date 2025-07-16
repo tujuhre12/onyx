@@ -4,7 +4,7 @@ from onyx.llm.llm_provider_options import curated_models
 class TestCuratedModelsFormat:
     """Test the format and constraints of the curated_models data structure."""
 
-    def test_deprecated_models_have_false_flags(self):
+    def test_deprecated_models_have_false_flags(self) -> None:
         for provider_name, models in curated_models.items():
             for model in models:
                 if model.get("deprecated", False):
@@ -20,7 +20,7 @@ class TestCuratedModelsFormat:
                         model.get("recommended_is_visible", False) is False
                     ), f"Deprecated model '{model['name']}' in provider '{provider_name}' has recommended_is_visible=True"
 
-    def test_model_names_are_globally_unique(self):
+    def test_model_names_are_globally_unique(self) -> None:
         all_model_names = []
 
         for _, models in curated_models.items():
@@ -31,7 +31,7 @@ class TestCuratedModelsFormat:
                 ), f"Model name '{model_name}' appears in multiple providers."
                 all_model_names.append(model_name)
 
-    def test_at_most_one_default_model_per_provider(self):
+    def test_at_most_one_default_model_per_provider(self) -> None:
         for provider_name, models in curated_models.items():
             default_models = []
             fast_default_models = []
@@ -51,7 +51,7 @@ class TestCuratedModelsFormat:
                 len(fast_default_models) <= 1
             ), f"Provider '{provider_name}' has multiple recommended_fast_default_model set to True: {fast_default_models}"
 
-    def test_required_fields_present(self):
+    def test_required_fields_present(self) -> None:
         """Test that all required fields are present in each model definition."""
         required_fields = [
             "name",
@@ -69,7 +69,7 @@ class TestCuratedModelsFormat:
                         field in model
                     ), f"Model '{model.get('name', 'UNKNOWN')}' in provider '{provider_name}' is missing required field '{field}'"
 
-    def test_field_types_are_correct(self):
+    def test_field_types_are_correct(self) -> None:
         """Test that all fields have the correct types."""
         for provider_name, models in curated_models.items():
             for model in models:
