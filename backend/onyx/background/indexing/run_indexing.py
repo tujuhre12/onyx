@@ -1067,6 +1067,10 @@ def connector_document_extraction(
                     app,
                     most_recent_attempt,
                 )
+            else:
+                # for non-checkpointed connectors, throw out batches from previous unsuccessful attempts
+                # because we'll be getting those documents again anyways.
+                batch_storage.cleanup_all_batches()
 
         # Save initial checkpoint
         save_checkpoint(
