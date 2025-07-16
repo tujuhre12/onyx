@@ -42,6 +42,8 @@ class WellKnownLLMProviderDescriptor(BaseModel):
     deployment_name_required: bool = False
     # set for providers like Azure, which support a single model per deployment.
     single_model_supported: bool = False
+    # indicates whether this provider has curated models available
+    has_curated_models: bool = False
 
 
 # Curated list of LLM models organized by provider and priority
@@ -605,6 +607,7 @@ def fetch_available_well_known_llms() -> list[WellKnownLLMProviderDescriptor]:
             default_fast_model=get_curated_recommended_fast_default_model(
                 OPENAI_PROVIDER_NAME
             ),
+            has_curated_models=OPENAI_PROVIDER_NAME in curated_models,
         ),
         WellKnownLLMProviderDescriptor(
             name=ANTHROPIC_PROVIDER_NAME,
@@ -622,6 +625,7 @@ def fetch_available_well_known_llms() -> list[WellKnownLLMProviderDescriptor]:
             default_fast_model=get_curated_recommended_fast_default_model(
                 ANTHROPIC_PROVIDER_NAME
             ),
+            has_curated_models=ANTHROPIC_PROVIDER_NAME in curated_models,
         ),
         WellKnownLLMProviderDescriptor(
             name=AZURE_PROVIDER_NAME,
@@ -635,6 +639,7 @@ def fetch_available_well_known_llms() -> list[WellKnownLLMProviderDescriptor]:
             ),
             deployment_name_required=True,
             single_model_supported=True,
+            has_curated_models=AZURE_PROVIDER_NAME in curated_models,
         ),
         WellKnownLLMProviderDescriptor(
             name=BEDROCK_PROVIDER_NAME,
@@ -668,6 +673,7 @@ def fetch_available_well_known_llms() -> list[WellKnownLLMProviderDescriptor]:
             default_fast_model=get_curated_recommended_fast_default_model(
                 BEDROCK_PROVIDER_NAME
             ),
+            has_curated_models=BEDROCK_PROVIDER_NAME in curated_models,
         ),
         WellKnownLLMProviderDescriptor(
             name=VERTEXAI_PROVIDER_NAME,
@@ -702,6 +708,7 @@ def fetch_available_well_known_llms() -> list[WellKnownLLMProviderDescriptor]:
             default_fast_model=get_curated_recommended_fast_default_model(
                 VERTEXAI_PROVIDER_NAME
             ),
+            has_curated_models=VERTEXAI_PROVIDER_NAME in curated_models,
         ),
     ]
 

@@ -50,17 +50,23 @@ export function LLMProviderUpdateForm({
   const [isTesting, setIsTesting] = useState(false);
   const [testError, setTestError] = useState<string>("");
 
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
-  const [useRecommendedModel, setUseRecommendedModel] = useState(
-    existingLlmProvider?.use_recommended_models ?? true
-  );
-
   // Determine which model configurations to use for options
   // When editing an existing provider, use the database configurations
   // When creating a new provider, use the hardcoded descriptor configurations
   const modelConfigurationsForOptions = existingLlmProvider
     ? existingLlmProvider.model_configurations
     : llmProviderDescriptor.model_configurations;
+
+  // Check if there are any display models available
+  const hasDisplayModels = modelConfigurationsForOptions.some(
+    (modelConfiguration) => modelConfiguration.is_visible
+  );
+
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [useRecommendedModel, setUseRecommendedModel] = useState(
+    existingLlmProvider?.use_recommended_models ??
+      (hasDisplayModels && llmProviderDescriptor.has_curated_models)
+  );
 
   // Define the initial values based on the provider's requirements
   const initialValues = {
@@ -370,15 +376,17 @@ export function LLMProviderUpdateForm({
             <>
               <Separator />
 
-              <div className="flex items-center space-x-2 mb-4">
-                <Switch
-                  checked={useRecommendedModel}
-                  onCheckedChange={setUseRecommendedModel}
-                />
-                <label className="text-sm font-medium">
-                  Use recommended models
-                </label>
-              </div>
+              {hasDisplayModels && llmProviderDescriptor.has_curated_models && (
+                <div className="flex items-center space-x-2 mb-4">
+                  <Switch
+                    checked={useRecommendedModel}
+                    onCheckedChange={setUseRecommendedModel}
+                  />
+                  <label className="text-sm font-medium">
+                    Use recommended models
+                  </label>
+                </div>
+              )}
 
               {!useRecommendedModel && (
                 <>

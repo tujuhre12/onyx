@@ -78,6 +78,7 @@ def fetch_llm_options_with_all_models(
                 default_fast_model=option.default_fast_model,
                 deployment_name_required=option.deployment_name_required,
                 single_model_supported=option.single_model_supported,
+                has_curated_models=option.has_curated_models,
             )
         )
 

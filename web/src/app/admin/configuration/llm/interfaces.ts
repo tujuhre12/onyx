@@ -36,6 +36,7 @@ export interface WellKnownLLMProviderDescriptor {
   default_fast_model: string | null;
   is_public: boolean;
   groups: number[];
+  has_curated_models: boolean;
 }
 
 export interface LLMModelDescriptor {
