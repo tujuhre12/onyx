@@ -470,7 +470,8 @@ class TenantContextFilter(logging.Filter):
 
         tenant_id = CURRENT_TENANT_ID_CONTEXTVAR.get()
         if tenant_id:
-            tenant_id = tenant_id.split(TENANT_ID_PREFIX)[-1][:5]
+            # Match the 8 character tenant abbreviation used in OnyxLoggingAdapter
+            tenant_id = tenant_id.split(TENANT_ID_PREFIX)[-1][:8]
             record.name = f"[t:{tenant_id}]"
         else:
             record.name = ""
