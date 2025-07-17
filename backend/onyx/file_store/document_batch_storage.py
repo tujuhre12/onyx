@@ -145,7 +145,9 @@ class FileStoreDocumentBatchStorage(DocumentBatchStorage):
                 file_origin=FileOrigin.OTHER,
                 file_type="application/json",
             ):
-                logger.warning(f"Batch {batch_num} not found in FileStore")
+                logger.warning(
+                    f"Batch {batch_num} not found in FileStore with name {file_name}"
+                )
                 return None
 
             content_io = self.file_store.read_file(file_name)
