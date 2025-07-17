@@ -63,7 +63,7 @@ class Settings(BaseModel):
     user_knowledge_enabled: bool | None = True
 
     # Connector settings
-    show_extra_connectors: bool | None = False
+    show_extra_connectors: bool | None = True
 
 
 class UserSettings(Settings):

@@ -30,6 +30,7 @@ import useSWR from "swr";
 import { errorHandlingFetcher } from "@/lib/fetcher";
 import { buildSimilarCredentialInfoURL } from "@/app/admin/connector/[ccPairId]/lib";
 import { Credential } from "@/lib/connectors/credentials";
+import { SettingsContext } from "@/components/settings/SettingsProvider";
 import SourceTile from "@/components/SourceTile";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 
