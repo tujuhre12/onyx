@@ -832,7 +832,7 @@ def index_doc_batch(
             )
         )
 
-        doc_id_to_previous_chunk_cnt: dict[str, int | None] = {
+        doc_id_to_previous_chunk_cnt: dict[str, int] = {
             document_id: chunk_count
             for document_id, chunk_count in fetch_chunk_counts_for_documents(
                 document_ids=updatable_ids,
