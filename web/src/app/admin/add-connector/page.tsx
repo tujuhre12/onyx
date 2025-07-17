@@ -200,7 +200,7 @@ export default function Page() {
     );
 
     // Filter out the "Other" category if show_extra_connectors is false
-    if (settings?.settings?.show_extra_connectors === false) {
+    if (settings?.settings?.show_extra_connectors !== true) {
       const filteredCategories = Object.entries(categories).filter(
         ([category]) => category !== SourceCategory.Other
       );
