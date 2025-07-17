@@ -835,7 +835,7 @@ def get_document_sources(
 def fetch_chunk_counts_for_documents(
     document_ids: list[str],
     db_session: Session,
-) -> list[tuple[str, int | None]]:
+) -> list[tuple[str, int]]:
     """
     Return a list of (document_id, chunk_count) tuples.
     If a document_id is not found in the database, it will be returned with a chunk_count of 0.
@@ -847,24 +847,12 @@ def fetch_chunk_counts_for_documents(
     results = db_session.execute(stmt).all()
 
     # Create a dictionary of document_id to chunk_count
-    # NOTE: If `chunk_count` is NULL, preserve it as `None` so that callers can
-    # distinguish between a document that *truly* has zero chunks (brand-new)
-    # versus a document that was indexed before we started recording
-    # `chunk_count`. Returning 0 in the latter case causes the indexing logic
-    # to assume the document does not yet exist in the vector store, leading to
-    # every document being counted as "new" on the next indexing attempt.
-    #
-    # Keeping the NULL as `None` triggers the fallback path in
-    # `VespaIndex.enrich_basic_chunk_info`, which explicitly checks Vespa to
-    # see if any chunks already exist for the document. This prevents the
-    # inflated "new docs" counts that were observed after the docfetching/
-    # docprocessing refactor.
-    chunk_counts = {str(row.id): row.chunk_count for row in results}
+    chunk_counts = {str(row.id): row.chunk_count or 0 for row in results}
 
     # Return a list of tuples, preserving `None` for documents not found or with
     # an unknown chunk count. Callers should handle the `None` case and fall
     # back to an existence check against the vector DB if necessary.
-    return [(doc_id, chunk_counts.get(doc_id)) for doc_id in document_ids]
+    return [(doc_id, chunk_counts.get(doc_id, 0)) for doc_id in document_ids]
 
 
 def fetch_chunk_count_for_document(
