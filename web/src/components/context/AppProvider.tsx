@@ -7,14 +7,13 @@ import { AssistantsProvider } from "./AssistantsContext";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { User } from "@/lib/types";
 import { ModalProvider } from "./ModalContext";
+import { AuthTypeMetadata } from "@/lib/userSS";
 
 interface AppProviderProps {
   children: React.ReactNode;
   user: User | null;
   settings: CombinedSettings;
   assistants: MinimalPersonaSnapshot[];
-  hasAnyConnectors: boolean;
-  hasImageCompatibleModel: boolean;
 }
 
 export const AppProvider = ({
@@ -22,18 +21,12 @@ export const AppProvider = ({
   user,
   settings,
   assistants,
-  hasAnyConnectors,
-  hasImageCompatibleModel,
 }: AppProviderProps) => {
   return (
     <SettingsProvider settings={settings}>
       <UserProvider settings={settings} user={user}>
         <ProviderContextProvider>
-          <AssistantsProvider
-            initialAssistants={assistants}
-            hasAnyConnectors={hasAnyConnectors}
-            hasImageCompatibleModel={hasImageCompatibleModel}
-          >
+          <AssistantsProvider initialAssistants={assistants}>
             <ModalProvider user={user}>{children}</ModalProvider>
           </AssistantsProvider>
         </ProviderContextProvider>

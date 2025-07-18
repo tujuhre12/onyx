@@ -67,7 +67,7 @@ class BasicCreateChatMessageRequest(ChunkContext):
 class BasicCreateChatMessageWithHistoryRequest(ChunkContext):
     # Last element is the new query. All previous elements are historical context
     messages: list[ThreadMessage]
-    prompt_id: int | None
+    prompt_id: int | None = None
     persona_id: int
     retrieval_options: RetrievalDetails | None = None
     query_override: str | None = None

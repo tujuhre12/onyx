@@ -94,7 +94,7 @@ class CreateChatMessageRequest(ChunkContext):
     file_descriptors: list[FileDescriptor]
 
     # If no prompt provided, uses the largest prompt of the assistant/chat session
-    prompt_id: int | None
+    prompt_id: int | None = None
     # If search_doc_ids provided, then retrieval options are unused
     search_doc_ids: list[int] | None
     retrieval_options: RetrievalDetails | None
