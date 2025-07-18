@@ -313,7 +313,7 @@ except ValueError:
     CELERY_WORKER_INDEXING_CONCURRENCY = CELERY_WORKER_INDEXING_CONCURRENCY_DEFAULT
 
 # The maximum number of tasks that can be queued up to sync to Vespa in a single pass
-VESPA_SYNC_MAX_TASKS = 1024
+VESPA_SYNC_MAX_TASKS = 8192
 
 DB_YIELD_PER_DEFAULT = 64
 
