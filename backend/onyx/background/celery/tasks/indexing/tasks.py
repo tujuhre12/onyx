@@ -437,6 +437,15 @@ def check_indexing_completion(
                 cc_pair.in_repeated_error_state = False
                 db_session.commit()
 
+            if attempt.status == IndexingStatus.SUCCESS:
+                logger.info(
+                    f"Resolving indexing entity errors for attempt {index_attempt_id}"
+                )
+                _resolve_indexing_entity_errors(
+                    cc_pair_id=attempt.connector_credential_pair_id,
+                    db_session=db_session,
+                )
+
             # TODO: make it so we don't need this (might already be true)
             redis_connector = RedisConnector(
                 tenant_id, attempt.connector_credential_pair_id
@@ -454,6 +463,22 @@ def check_indexing_completion(
         logger.exception("Failed to clean up document batches - continuing")
 
     logger.info(f"Database coordination completed for attempt {index_attempt_id}")
+
+
+def _resolve_indexing_entity_errors(
+    cc_pair_id: int,
+    db_session: Session,
+) -> None:
+    unresolved_errors = get_index_attempt_errors_for_cc_pair(
+        cc_pair_id=cc_pair_id,
+        unresolved_only=True,
+        db_session=db_session,
+    )
+    for error in unresolved_errors:
+        if error.entity_id:
+            error.is_resolved = True
+            db_session.add(error)
+    db_session.commit()
 
 
 @shared_task(
@@ -926,7 +951,7 @@ def _check_failure_threshold(
         )
 
 
-def _resolve_indexing_errors(
+def _resolve_indexing_document_errors(
     cc_pair_id: int,
     failures: list[ConnectorFailure],
     document_batch: list[Document],
@@ -941,14 +966,9 @@ def _resolve_indexing_errors(
         doc_id_to_unresolved_errors: dict[str, list[IndexAttemptError]] = defaultdict(
             list
         )
-        entity_id_to_unresolved_errors: dict[str, list[IndexAttemptError]] = (
-            defaultdict(list)
-        )
         for error in unresolved_errors:
             if error.document_id:
                 doc_id_to_unresolved_errors[error.document_id].append(error)
-            elif error.entity_id:
-                entity_id_to_unresolved_errors[error.entity_id].append(error)
 
         # resolve errors for documents that were successfully indexed
         failed_document_ids = [
@@ -967,12 +987,6 @@ def _resolve_indexing_errors(
 
             logger.info(f"Resolving IndexAttemptError for document '{document_id}'")
             for error in doc_id_to_unresolved_errors[document_id]:
-                error.is_resolved = True
-                db_session_temp.add(error)
-
-        for entity_id in entity_id_to_unresolved_errors:
-            logger.info(f"Resolving IndexAttemptError for entity '{entity_id}'")
-            for error in entity_id_to_unresolved_errors[entity_id]:
                 error.is_resolved = True
                 db_session_temp.add(error)
 
@@ -1175,7 +1189,7 @@ def _docprocessing_task(
                 total_chunks=index_pipeline_result.total_chunks,
             )
 
-            _resolve_indexing_errors(
+            _resolve_indexing_document_errors(
                 cc_pair_id,
                 index_pipeline_result.failures,
                 documents,
