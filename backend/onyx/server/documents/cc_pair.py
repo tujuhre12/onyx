@@ -43,10 +43,7 @@ from onyx.db.index_attempt import get_latest_index_attempt_for_cc_pair_id
 from onyx.db.index_attempt import get_paginated_index_attempts_for_cc_pair_id
 from onyx.db.indexing_coordination import IndexingCoordination
 from onyx.db.models import IndexAttempt
-from onyx.db.models import SearchSettings
 from onyx.db.models import User
-from onyx.db.search_settings import get_active_search_settings_list
-from onyx.db.search_settings import get_current_search_settings
 from onyx.redis.redis_connector import RedisConnector
 from onyx.redis.redis_connector_utils import get_deletion_attempt_snapshot
 from onyx.redis.redis_pool import get_redis_client
@@ -143,11 +140,6 @@ def get_cc_pair_full_info(
         only_finished=False,
     )
 
-    search_settings = get_current_search_settings(db_session)
-
-    redis_connector = RedisConnector(tenant_id, cc_pair_id)
-    redis_connector_index = redis_connector.new_index(search_settings.id)
-
     return CCPairFullInfo.from_models(
         cc_pair_model=cc_pair,
         number_of_index_attempts=count_index_attempts_for_connector(
@@ -163,7 +155,9 @@ def get_cc_pair_full_info(
         ),
         num_docs_indexed=documents_indexed,
         is_editable_for_current_user=is_editable_for_current_user,
-        indexing=redis_connector_index.fenced,
+        indexing=bool(
+            latest_attempt and latest_attempt.status == IndexingStatus.IN_PROGRESS
+        ),
     )
 
 
@@ -216,6 +210,9 @@ def update_cc_pair_status(
         for attempt in active_attempts:
             try:
                 IndexingCoordination.request_cancellation(db_session, attempt.id)
+                # Revoke the task to prevent it from running
+                if attempt.celery_task_id:
+                    client_app.control.revoke(attempt.celery_task_id)
                 logger.info(
                     f"Requested cancellation for active indexing attempt {attempt.id} "
                     f"due to connector pause: cc_pair={cc_pair_id}"
@@ -225,31 +222,6 @@ def update_cc_pair_status(
                     f"Failed to request cancellation for indexing attempt {attempt.id}"
                 )
 
-        search_settings_list: list[SearchSettings] = get_active_search_settings_list(
-            db_session
-        )
-
-        while True:
-            for search_settings in search_settings_list:
-                redis_connector_index = redis_connector.new_index(search_settings.id)
-                if not redis_connector_index.fenced:
-                    continue
-
-                index_payload = redis_connector_index.payload
-                if not index_payload:
-                    continue
-
-                if not index_payload.celery_task_id:
-                    continue
-
-                # Revoke the task to prevent it from running
-                client_app.control.revoke(index_payload.celery_task_id)
-
-                # If it is running, then signaling for termination will get the
-                # watchdog thread to kill the spawned task
-                redis_connector_index.set_terminate(index_payload.celery_task_id)
-
-            break
     else:
         redis_connector.stop.set_fence(False)
 

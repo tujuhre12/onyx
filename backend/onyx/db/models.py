@@ -1688,6 +1688,7 @@ class IndexAttempt(Base):
     # NEW: Batch coordination fields (replacing FileStore state)
     total_batches: Mapped[int | None] = mapped_column(Integer, nullable=True)
     completed_batches: Mapped[int] = mapped_column(Integer, default=0)
+    # TODO: unused, remove this column
     total_failures_batch_level: Mapped[int] = mapped_column(Integer, default=0)
     total_chunks: Mapped[int] = mapped_column(Integer, default=0)
 

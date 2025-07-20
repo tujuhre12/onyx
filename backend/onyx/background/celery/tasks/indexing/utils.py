@@ -30,7 +30,6 @@ from onyx.db.models import ConnectorCredentialPair
 from onyx.db.models import SearchSettings
 from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
 from onyx.redis.redis_connector import RedisConnector
-from onyx.redis.redis_connector_index import RedisConnectorIndex
 from onyx.redis.redis_pool import redis_lock_dump
 from onyx.utils.logger import setup_logger
 
@@ -118,19 +117,11 @@ class IndexingCallback(IndexingCallbackBase):
         redis_connector: RedisConnector,
         redis_lock: RedisLock,
         redis_client: Redis,
-        redis_connector_index: RedisConnectorIndex,
     ):
         super().__init__(parent_pid, redis_connector, redis_lock, redis_client)
 
-        self.redis_connector_index: RedisConnectorIndex = redis_connector_index
-
     def progress(self, tag: str, amount: int) -> None:
-        self.redis_connector_index.set_active()
-        self.redis_connector_index.set_connector_active()
         super().progress(tag, amount)
-        self.redis_client.incrby(
-            self.redis_connector_index.generator_progress_key, amount
-        )
 
 
 # NOTE: The validate_indexing_fence and validate_indexing_fences functions have been removed

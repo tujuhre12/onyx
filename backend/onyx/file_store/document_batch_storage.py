@@ -171,7 +171,7 @@ class FileStoreDocumentBatchStorage(DocumentBatchStorage):
         """Delete a specific batch from FileStore."""
         batch_file_name = self._get_batch_file_name(batch_num)
         self.delete_batch_by_name(batch_file_name)
-        logger.debug(f"Deleted batch num {batch_num} from FileStore")
+        logger.debug(f"Deleted batch num {batch_num} {batch_file_name} from FileStore")
 
     def cleanup_all_batches(self) -> None:
         """Clean up all batches for this index attempt."""

@@ -61,7 +61,6 @@ from onyx.file_store.utils import store_user_file_plaintext
 from onyx.indexing.chunker import Chunker
 from onyx.indexing.embedder import embed_chunks_with_failure_handling
 from onyx.indexing.embedder import IndexingEmbedder
-from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
 from onyx.indexing.models import DocAwareChunk
 from onyx.indexing.models import DocMetadataAwareIndexChunk
 from onyx.indexing.models import IndexChunk
@@ -1049,7 +1048,6 @@ def run_indexing_pipeline(
     tenant_id: str,
     chunker: Chunker | None = None,
     ignore_time_skip: bool = False,
-    callback: IndexingHeartbeatInterface | None = None,
 ) -> IndexingPipelineResult:
     """Builds a pipeline which takes in a list (batch) of docs and indexes them."""
     all_search_settings = get_active_search_settings(db_session)
@@ -1080,7 +1078,6 @@ def run_indexing_pipeline(
         enable_large_chunks=multipass_config.enable_large_chunks,
         enable_contextual_rag=enable_contextual_rag,
         # after every doc, update status in case there are a bunch of really long docs
-        callback=callback,
     )
 
     return index_doc_batch_with_handler(

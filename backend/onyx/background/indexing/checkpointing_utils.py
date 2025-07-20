@@ -71,7 +71,7 @@ def get_latest_valid_checkpoint(
     window_start: datetime,
     window_end: datetime,
     connector: BaseConnector,
-) -> ConnectorCheckpoint:
+) -> tuple[ConnectorCheckpoint, bool]:
     """Get the latest valid checkpoint for a given connector credential pair"""
     checkpoint_candidates = get_recent_completed_attempts_for_cc_pair(
         cc_pair_id=cc_pair_id,
@@ -99,7 +99,7 @@ def get_latest_valid_checkpoint(
                 f"found for cc_pair={cc_pair_id}. Ignoring checkpoint to let the run start "
                 "from scratch."
             )
-            return connector.build_dummy_checkpoint()
+            return connector.build_dummy_checkpoint(), False
 
     # filter out any candidates that don't meet the criteria
     checkpoint_candidates = [
@@ -140,7 +140,7 @@ def get_latest_valid_checkpoint(
         logger.info(
             f"No valid checkpoint found for cc_pair={cc_pair_id}. Starting from scratch."
         )
-        return checkpoint
+        return checkpoint, False
 
     try:
         previous_checkpoint = load_checkpoint(
@@ -152,14 +152,14 @@ def get_latest_valid_checkpoint(
             f"Failed to load checkpoint from previous failed attempt with ID "
             f"{latest_valid_checkpoint_candidate.id}. Falling back to default checkpoint."
         )
-        return checkpoint
+        return checkpoint, False
 
     logger.info(
         f"Using checkpoint from previous failed attempt with ID "
         f"{latest_valid_checkpoint_candidate.id}. Previous checkpoint: "
         f"{previous_checkpoint}"
     )
-    return previous_checkpoint
+    return previous_checkpoint, True
 
 
 def get_index_attempts_with_old_checkpoints(

@@ -106,7 +106,6 @@ from onyx.db.search_settings import get_secondary_search_settings
 from onyx.file_processing.extract_file_text import convert_docx_to_txt
 from onyx.file_store.file_store import get_default_file_store
 from onyx.key_value_store.interface import KvKeyNotFoundError
-from onyx.redis.redis_connector import RedisConnector
 from onyx.server.documents.models import AuthStatus
 from onyx.server.documents.models import AuthUrl
 from onyx.server.documents.models import ConnectorCredentialPairIdentifier
@@ -774,7 +773,7 @@ def get_connector_indexing_status(
         if secondary_index
         else get_current_search_settings
     )
-    search_settings = get_search_settings(db_session)
+    get_search_settings(db_session)
     for cc_pair in cc_pairs:
         # TODO remove this to enable ingestion API
         if cc_pair.name == "DefaultCCPair":
@@ -786,15 +785,12 @@ def get_connector_indexing_status(
             # This may happen if background deletion is happening
             continue
 
-        in_progress = False
-        if search_settings:
-            redis_connector = RedisConnector(tenant_id, cc_pair.id)
-            redis_connector_index = redis_connector.new_index(search_settings.id)
-            if redis_connector_index.fenced:
-                in_progress = True
-
         latest_index_attempt = cc_pair_to_latest_index_attempt.get(
             (connector.id, credential.id)
+        )
+        in_progress = bool(
+            latest_index_attempt
+            and latest_index_attempt.status == IndexingStatus.IN_PROGRESS
         )
 
         latest_finished_attempt = cc_pair_to_latest_finished_index_attempt.get(

@@ -7,12 +7,15 @@ from sqlalchemy.orm import Session
 
 from onyx.db.engine.time_utils import get_db_current_time
 from onyx.db.enums import IndexingStatus
+from onyx.db.index_attempt import count_error_rows_for_index_attempt
 from onyx.db.index_attempt import create_index_attempt
 from onyx.db.index_attempt import get_index_attempt
 from onyx.db.models import IndexAttempt
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
+
+INDEXING_PROGRESS_TIMEOUT_HOURS = 6
 
 
 class CoordinationStatus(BaseModel):
@@ -151,7 +154,6 @@ class IndexingCoordination:
         index_attempt_id: int,
         total_docs_indexed: int,
         new_docs_indexed: int,
-        failures: int,
         total_chunks: int,
     ) -> tuple[int, int | None]:
         """
@@ -176,9 +178,6 @@ class IndexingCoordination:
 
             # New coordination updates
             attempt.completed_batches = (attempt.completed_batches or 0) + 1
-            attempt.total_failures_batch_level = (
-                attempt.total_failures_batch_level or 0
-            ) + failures
             attempt.total_chunks = (attempt.total_chunks or 0) + total_chunks
 
             db_session.commit()
@@ -189,7 +188,6 @@ class IndexingCoordination:
                 f"completed={attempt.completed_batches} "
                 f"total={attempt.total_batches} "
                 f"docs={total_docs_indexed} "
-                f"failures={failures}"
             )
 
             return attempt.completed_batches, attempt.total_batches
@@ -227,7 +225,9 @@ class IndexingCoordination:
             found=True,
             total_batches=attempt.total_batches,
             completed_batches=attempt.completed_batches,
-            total_failures=attempt.total_failures_batch_level,
+            total_failures=count_error_rows_for_index_attempt(
+                index_attempt_id, db_session
+            ),
             total_docs=attempt.total_docs_indexed or 0,
             total_chunks=attempt.total_chunks,
             status=attempt.status,
@@ -266,7 +266,7 @@ class IndexingCoordination:
         db_session: Session,
         index_attempt_id: int,
         current_batches_completed: int,
-        timeout_hours: int = 6,
+        timeout_hours: int = INDEXING_PROGRESS_TIMEOUT_HOURS,
     ) -> bool:
         """
         Update progress tracking for stall detection.

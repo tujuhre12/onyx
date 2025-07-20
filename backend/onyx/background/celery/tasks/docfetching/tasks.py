@@ -238,7 +238,6 @@ def _docfetching_task(
             redis_connector,
             lock,
             r,
-            redis_connector_index,
         )
 
         logger.info(
@@ -365,22 +364,46 @@ def docfetching_proxy_task(
     This task spawns a new process for a new scheduled index attempt. That
     new process (which runs the docfetching_task function) does the following:
 
-    TODO: clen up
-    determines parameters of the indexing attempt (which connector indexing function to run,
-    start and end time, from prev checkpoint or not), then run that connector. Specifically,
-    connectors are responsible for reading data from an outside source and converting it to Onyx documents.
-    At the moment these two steps (reading external data and converting to an Onyx document)
-    are not parallelized in most connectors; that's a subject for future work.
-    upserts documents to postgres (index_doc_batch_prepare)
-    chunks each document (optionally adds context for contextual rag)
-    embeds chunks (embed_chunks_with_failure_handling) via a call to the model server
-    write chunks to vespa (write_chunks_to_vector_db_with_backoff)
-    update document and indexing metadata in postgres
+    1)  determines parameters of the indexing attempt (which connector indexing function to run,
+        start and end time, from prev checkpoint or not), then run that connector. Specifically,
+        connectors are responsible for reading data from an outside source and converting it to Onyx documents.
+        At the moment these two steps (reading external data and converting to an Onyx document)
+        are not parallelized in most connectors; that's a subject for future work.
 
-       pulls all document IDs from the source
-    and compares those IDs to locally stored documents and deletes all locally stored IDs missing
-    from the most recently pulled document ID list
+    Each document batch produced by step 1 is stored in the file store, and a docprocessing task is spawned
+    to process it. docprocessing involves the steps listed below.
 
+    2) upserts documents to postgres (index_doc_batch_prepare)
+    3) chunks each document (optionally adds context for contextual rag)
+    4) embeds chunks (embed_chunks_with_failure_handling) via a call to the model server
+    5) write chunks to vespa (write_chunks_to_vector_db_with_backoff)
+    6) update document and indexing metadata in postgres
+    7) pulls all document IDs from the source and compares those IDs to locally stored documents and deletes
+    all locally stored IDs missing from the most recently pulled document ID list
+
+    Some important notes:
+    Invariants:
+    - docfetching proxy tasks are spawned by check_for_indexing. The proxy then runs the docfetching_task wrapped in a watchdog.
+      The watchdog is responsible for monitoring the docfetching_task and marking the index attempt as failed
+      if it is not making progress.
+    - All docprocessing tasks are spawned by a docfetching task.
+    - all docfetching tasks, docprocessing tasks, and document batches in the file store are
+      associated with a specific index attempt.
+    - the index attempt status is the source of truth for what is currently happening with the index attempt.
+      It is coupled with the creation/running of docfetching and docprocessing tasks as much as possible.
+
+    How we deal with failures/ partial indexing:
+    - non-checkpointed connectors/ new runs in general => delete the old document batches from the file store and do the new run
+    - checkpointed connectors + resuming from checkpoint => reissue the old document batches and do a new run
+
+    Misc:
+    - most inter-process communication is handled in postgres, some is still in redis and we're trying to remove it
+    - Heartbeat spawned in docfetching and docprocessing is how check_for_indexing monitors liveliness
+    - progress based liveliness check: if nothing is done in 3-6 hours, mark the attempt as failed
+    - TODO: task level timeouts (i.e. a connector stuck in an infinite loop)
+
+
+    Comments below are from the old version and some may no longer be valid.
     TODO(rkuo): refactor this so that there is a single return path where we canonically
     log the result of running this function.
 
@@ -479,10 +502,6 @@ def docfetching_proxy_task(
     # Track the last time memory info was emitted
     last_memory_emit_time = 0.0
 
-    # track the last ttl and the time it was observed
-    last_activity_ttl_observed: float = time.monotonic()
-    last_activity_ttl: int = 0
-
     try:
         with get_session_with_current_tenant() as db_session:
             index_attempt = get_index_attempt(
@@ -497,21 +516,10 @@ def docfetching_proxy_task(
                 index_attempt.connector_credential_pair.connector.source.value
             )
 
-        redis_connector_index.set_active()  # renew active signal
-
-        # prime the connector active signal (renewed inside the connector)
-        redis_connector_index.set_connector_active()
-
         while True:
             sleep(5)
 
-            now = time.monotonic()
-
-            # renew watchdog signal (this has a shorter timeout than set_active)
-            redis_connector_index.set_watchdog(True)
-
-            # renew active signal
-            redis_connector_index.set_active()
+            time.monotonic()
 
             # if the job is done, clean up and break
             if job.done():
@@ -545,48 +553,6 @@ def docfetching_proxy_task(
                         },
                     )
                     last_memory_emit_time = current_time
-
-            # if a termination signal is detected, break (exit point will clean up)
-            if self.request.id and redis_connector_index.terminating(self.request.id):
-                task_logger.warning(
-                    log_builder.build("Indexing watchdog - termination signal detected")
-                )
-
-                result.status = IndexingWatchdogTerminalStatus.TERMINATED_BY_SIGNAL
-                break
-
-            # if activity timeout is detected, break (exit point will clean up)
-            ttl = redis_connector_index.connector_active_ttl()
-            if ttl < 0:
-                # verify expectations around ttl
-                last_observed = last_activity_ttl_observed - now
-                if now > last_activity_ttl_observed + last_activity_ttl:
-                    task_logger.warning(
-                        log_builder.build(
-                            "Indexing watchdog - activity timeout exceeded",
-                            last_observed=f"{last_observed:.2f}s",
-                            last_ttl=f"{last_activity_ttl}",
-                            timeout=f"{CELERY_INDEXING_WATCHDOG_CONNECTOR_TIMEOUT}s",
-                        )
-                    )
-
-                    result.status = (
-                        IndexingWatchdogTerminalStatus.TERMINATED_BY_ACTIVITY_TIMEOUT
-                    )
-                    break
-                else:
-                    task_logger.warning(
-                        log_builder.build(
-                            "Indexing watchdog - activity timeout expired unexpectedly, "
-                            "waiting for last observed TTL before exiting",
-                            last_observed=f"{last_observed:.2f}s",
-                            last_ttl=f"{last_activity_ttl}",
-                            timeout=f"{CELERY_INDEXING_WATCHDOG_CONNECTOR_TIMEOUT}s",
-                        )
-                    )
-            else:
-                last_activity_ttl_observed = now
-                last_activity_ttl = ttl
 
             # if the spawned task is still running, restart the check once again
             # if the index attempt is not in a finished status
@@ -656,8 +622,6 @@ def docfetching_proxy_task(
                 elapsed=f"{elapsed:.2f}s",
             )
         )
-
-        redis_connector_index.set_watchdog(False)
         raise RuntimeError(f"Exception encountered: traceback={result.exception_str}")
 
     # print without exception
@@ -709,5 +673,3 @@ def docfetching_proxy_task(
             elapsed=f"{elapsed:.2f}s",
         )
     )
-
-    redis_connector_index.set_watchdog(False)

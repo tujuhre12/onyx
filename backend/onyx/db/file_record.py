@@ -47,6 +47,8 @@ def get_filerecord_by_prefix(
     prefix: str,
     db_session: Session,
 ) -> list[FileRecord]:
+    if not prefix:
+        return db_session.query(FileRecord).all()
     return (
         db_session.query(FileRecord).filter(FileRecord.file_id.like(f"{prefix}%")).all()
     )

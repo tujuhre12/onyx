@@ -442,7 +442,7 @@ def _run_indexing(
             ):
                 checkpoint = connector_runner.connector.build_dummy_checkpoint()
             else:
-                checkpoint = get_latest_valid_checkpoint(
+                checkpoint, _ = get_latest_valid_checkpoint(
                     db_session=db_session_temp,
                     cc_pair_id=ctx.cc_pair_id,
                     search_settings_id=index_attempt.search_settings_id,
@@ -570,7 +570,6 @@ def _run_indexing(
                     ),
                     db_session=db_session,
                     tenant_id=tenant_id,
-                    callback=callback,
                     document_batch=doc_batch_cleaned,
                     index_attempt_metadata=index_attempt_md,
                 )
@@ -1041,7 +1040,7 @@ def connector_document_extraction(
             most_recent_attempt and most_recent_attempt.status.is_successful()
         ):
             logger.info(
-                f"Cleaning up all old batches for index attempt {index_attempt_id}"
+                f"Cleaning up all old batches for index attempt {index_attempt_id} before starting new run"
             )
             batch_storage.cleanup_all_batches()
             checkpoint = connector_runner.connector.build_dummy_checkpoint()
@@ -1049,7 +1048,7 @@ def connector_document_extraction(
             logger.info(
                 f"Getting latest valid checkpoint for index attempt {index_attempt_id}"
             )
-            checkpoint = get_latest_valid_checkpoint(
+            checkpoint, resuming_from_checkpoint = get_latest_valid_checkpoint(
                 db_session=db_session,
                 cc_pair_id=cc_pair_id,
                 search_settings_id=index_attempt.search_settings_id,
@@ -1058,8 +1057,11 @@ def connector_document_extraction(
                 connector=connector_runner.connector,
             )
 
-            if isinstance(connector_runner.connector, CheckpointedConnector):
-                last_batch_num = reissue_old_batches(
+            if (
+                isinstance(connector_runner.connector, CheckpointedConnector)
+                and resuming_from_checkpoint
+            ):
+                reissued_batch_count, completed_batches = reissue_old_batches(
                     batch_storage,
                     index_attempt_id,
                     cc_pair_id,
@@ -1067,7 +1069,13 @@ def connector_document_extraction(
                     app,
                     most_recent_attempt,
                 )
+                last_batch_num = reissued_batch_count + completed_batches
+                index_attempt.completed_batches = completed_batches
+                db_session.commit()
             else:
+                logger.info(
+                    f"Cleaning up all batches for index attempt {index_attempt_id} before starting new run"
+                )
                 # for non-checkpointed connectors, throw out batches from previous unsuccessful attempts
                 # because we'll be getting those documents again anyways.
                 batch_storage.cleanup_all_batches()
@@ -1108,9 +1116,9 @@ def connector_document_extraction(
                     callback.progress("_run_indexing", 0)
 
                 # will exception if the connector/index attempt is marked as paused/failed
-                with get_session_with_current_tenant() as db_session:
+                with get_session_with_current_tenant() as db_session_tmp:
                     _check_connector_and_attempt_status(
-                        db_session,
+                        db_session_tmp,
                         cc_pair_id,
                         index_attempt.search_settings.status,
                         index_attempt_id,
@@ -1126,7 +1134,6 @@ def connector_document_extraction(
                             failure,
                             db_session,
                         )
-
                     _check_failure_threshold(
                         total_failures, document_count, batch_num, failure
                     )
@@ -1300,6 +1307,17 @@ def connector_document_extraction(
 
         else:
             with get_session_with_current_tenant() as db_session_temp:
+                # don't overwrite attempts that are already failed/canceled for another reason
+                index_attempt = get_index_attempt(db_session_temp, index_attempt_id)
+                if index_attempt and index_attempt.status in [
+                    IndexingStatus.CANCELED,
+                    IndexingStatus.FAILED,
+                ]:
+                    logger.info(
+                        f"Attempt {index_attempt_id} is already failed/canceled, skipping marking as failed."
+                    )
+                    raise e
+
                 mark_attempt_failed(
                     index_attempt_id,
                     db_session_temp,
@@ -1320,7 +1338,7 @@ def reissue_old_batches(
     tenant_id: str,
     app: Celery,
     most_recent_attempt: IndexAttempt | None,
-) -> int:
+) -> tuple[int, int]:
     # When loading from a checkpoint, we need to start new docprocessing tasks
     # tied to the new index attempt for any batches left over in the file store
     old_batches = batch_storage.get_all_batches_for_cc_pair()
@@ -1355,4 +1373,4 @@ def reissue_old_batches(
         f"Starting from batch {last_batch_num} due to "
         f"re-issued batches: {old_batches}, completed batches: {recent_batches}"
     )
-    return last_batch_num
+    return len(old_batches), recent_batches

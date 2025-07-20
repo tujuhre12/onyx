@@ -13,7 +13,6 @@ from celery import shared_task
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
 from pydantic import BaseModel
-from redis import Redis
 from redis.lock import Lock as RedisLock
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -125,8 +124,6 @@ def _get_fence_validation_block_expiration() -> int:
 
 
 def validate_active_indexing_attempts(
-    tenant_id: str,
-    r_celery: Redis,
     lock_beat: RedisLock,
 ) -> None:
     """
@@ -136,6 +133,7 @@ def validate_active_indexing_attempts(
     This uses the heartbeat_counter field which is incremented by active worker threads
     every INDEXING_WORKER_HEARTBEAT_INTERVAL seconds.
     """
+    logger.info("Validating active indexing attempts")
     # Heartbeat timeout: if no heartbeat received for 5 minutes, consider it dead
     # This should be much longer than INDEXING_WORKER_HEARTBEAT_INTERVAL (30s)
     HEARTBEAT_TIMEOUT_SECONDS = 30 * 60  # 30 minutes
@@ -304,6 +302,7 @@ def monitor_indexing_attempt_progress(
             f"total_batches={coordination_status.total_batches or '?'} "
             f"total_docs={coordination_status.total_docs} "
             f"total_failures={coordination_status.total_failures}"
+            f"elapsed={time.monotonic() - attempt.time_created.timestamp()/1000}"
         )
 
     if coordination_status.cancellation_requested:
@@ -340,6 +339,7 @@ def monitor_indexing_attempt_progress(
 
         # Try to clean up storage
         try:
+            logger.info(f"Cleaning up storage after monitoring failure: {storage}")
             storage.cleanup_all_batches()
         except Exception:
             logger.exception("Failed to cleanup storage after monitoring failure")
@@ -399,9 +399,7 @@ def check_indexing_completion(
         return
 
     # If processing is complete, handle completion
-    logger.info(
-        f"All batches for index attempt {index_attempt_id} have been processed."
-    )
+    logger.info(f"Connector indexing finished for index attempt {index_attempt_id}.")
 
     # All processing is complete
     total_failures = coordination_status.total_failures
@@ -450,6 +448,7 @@ def check_indexing_completion(
 
     # Clean up FileStore storage (still needed for document batches during transition)
     try:
+        logger.info(f"Cleaning up storage after indexing completion: {storage}")
         storage.cleanup_all_batches()
     except Exception:
         logger.exception("Failed to clean up document batches - continuing")
@@ -486,7 +485,7 @@ def check_for_indexing(self: Task, *, tenant_id: str) -> int | None:
 
     # we need to use celery's redis client to access its redis data
     # (which lives on a different db number)
-    redis_client_celery: Redis = self.app.broker_connection().channel().client  # type: ignore
+    # redis_client_celery: Redis = self.app.broker_connection().channel().client  # type: ignore
 
     lock_beat: RedisLock = redis_client.lock(
         OnyxRedisLocks.CHECK_INDEXING_BEAT_LOCK,
@@ -753,9 +752,7 @@ def check_for_indexing(self: Task, *, tenant_id: str) -> int | None:
             # This can happen if workers crash or tasks are terminated unexpectedly
             # We reuse the same Redis signal name for backwards compatibility
             try:
-                validate_active_indexing_attempts(
-                    tenant_id, redis_client_celery, lock_beat
-                )
+                validate_active_indexing_attempts(lock_beat)
             except Exception:
                 task_logger.exception(
                     "Exception while validating active indexing attempts"
@@ -1001,13 +998,12 @@ def docprocessing_task(
     # Start heartbeat for this indexing attempt
     heartbeat_thread, stop_event = start_heartbeat(index_attempt_id)
     try:
-        _docprocessing_task(self, index_attempt_id, cc_pair_id, tenant_id, batch_num)
+        _docprocessing_task(index_attempt_id, cc_pair_id, tenant_id, batch_num)
     finally:
         stop_heartbeat(heartbeat_thread, stop_event)  # Stop heartbeat before exiting
 
 
 def _docprocessing_task(
-    self: Task,
     index_attempt_id: int,
     cc_pair_id: int,
     tenant_id: str,
@@ -1068,7 +1064,9 @@ def _docprocessing_task(
                 index_attempt.celery_task_id is None
                 or index_attempt.status.is_terminal()
             ):
-                raise RuntimeError(f"Index attempt {index_attempt_id} is not running")
+                raise RuntimeError(
+                    f"Index attempt {index_attempt_id} is not running, status {index_attempt.status}"
+                )
 
             redis_connector_index = redis_connector.new_index(
                 index_attempt.search_settings.id
@@ -1114,8 +1112,9 @@ def _docprocessing_task(
                 redis_connector,
                 per_batch_lock,
                 r,
-                redis_connector_index,
             )
+            # TODO: right now this is the only thing the callback is used for,
+            # probably there is a simpler way to handle pausing
             if callback.should_stop():
                 raise RuntimeError("Docprocessing cancelled by connector pausing")
 
@@ -1160,7 +1159,6 @@ def _docprocessing_task(
                 ignore_time_skip=True,  # Documents are already filtered during extraction
                 db_session=db_session,
                 tenant_id=tenant_id,
-                callback=callback,
                 document_batch=documents,
                 index_attempt_metadata=index_attempt_metadata,
             )
@@ -1174,7 +1172,6 @@ def _docprocessing_task(
                 index_attempt_id=index_attempt_id,
                 total_docs_indexed=index_pipeline_result.total_docs,
                 new_docs_indexed=index_pipeline_result.new_docs,
-                failures=len(index_pipeline_result.failures),
                 total_chunks=index_pipeline_result.total_chunks,
             )
 
@@ -1184,6 +1181,7 @@ def _docprocessing_task(
                 documents,
             )
 
+        coordination_status = None
         # Record failures in the database
         if index_pipeline_result.failures:
             with get_session_with_current_tenant() as db_session:
@@ -1206,16 +1204,13 @@ def _docprocessing_task(
                     index_pipeline_result.failures[-1],
                 )
 
-        if callback:
-            # _run_indexing for legacy reasons
-            callback.progress("_run_indexing", len(documents))
-
-        # redis_connector_index.set_generator_complete(HTTPStatus.OK.value)
         # Add telemetry for indexing progress using database coordination status
-        with get_session_with_current_tenant() as db_session:
-            coordination_status = IndexingCoordination.get_coordination_status(
-                db_session, index_attempt_id
-            )
+        # only re-fetch coordination status if necessary
+        if coordination_status is None:
+            with get_session_with_current_tenant() as db_session:
+                coordination_status = IndexingCoordination.get_coordination_status(
+                    db_session, index_attempt_id
+                )
 
         optional_telemetry(
             record_type=RecordType.INDEXING_PROGRESS,
@@ -1236,6 +1231,9 @@ def _docprocessing_task(
         elapsed_time = time.monotonic() - start_time
         task_logger.info(
             f"Completed document batch processing: "
+            f"index_attempt={index_attempt_id} "
+            f"cc_pair={cc_pair_id} "
+            f"search_settings={index_attempt.search_settings.id} "
             f"batch_num={batch_num} "
             f"docs={len(documents)} "
             f"chunks={index_pipeline_result.total_chunks} "

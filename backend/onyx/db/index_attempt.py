@@ -119,6 +119,17 @@ def get_index_attempt(
     return db_session.scalars(stmt).first()
 
 
+def count_error_rows_for_index_attempt(
+    index_attempt_id: int,
+    db_session: Session,
+) -> int:
+    return (
+        db_session.query(IndexAttemptError)
+        .filter(IndexAttemptError.index_attempt_id == index_attempt_id)
+        .count()
+    )
+
+
 def create_index_attempt(
     connector_credential_pair_id: int,
     search_settings_id: int,
