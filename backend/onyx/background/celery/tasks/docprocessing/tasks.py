@@ -20,12 +20,14 @@ from sqlalchemy.orm import Session
 from onyx.background.celery.apps.app_base import task_logger
 from onyx.background.celery.celery_utils import httpx_init_vespa_pool
 from onyx.background.celery.tasks.beat_schedule import CLOUD_BEAT_MULTIPLIER_DEFAULT
-from onyx.background.celery.tasks.indexing.heartbeat import start_heartbeat
-from onyx.background.celery.tasks.indexing.heartbeat import stop_heartbeat
-from onyx.background.celery.tasks.indexing.utils import IndexingCallback
-from onyx.background.celery.tasks.indexing.utils import is_in_repeated_error_state
-from onyx.background.celery.tasks.indexing.utils import should_index
-from onyx.background.celery.tasks.indexing.utils import try_creating_docfetching_task
+from onyx.background.celery.tasks.docprocessing.heartbeat import start_heartbeat
+from onyx.background.celery.tasks.docprocessing.heartbeat import stop_heartbeat
+from onyx.background.celery.tasks.docprocessing.utils import IndexingCallback
+from onyx.background.celery.tasks.docprocessing.utils import is_in_repeated_error_state
+from onyx.background.celery.tasks.docprocessing.utils import should_index
+from onyx.background.celery.tasks.docprocessing.utils import (
+    try_creating_docfetching_task,
+)
 from onyx.background.celery.tasks.models import DocProcessingContext
 from onyx.background.celery.tasks.models import IndexingWatchdogTerminalStatus
 from onyx.background.indexing.checkpointing_utils import cleanup_checkpoint

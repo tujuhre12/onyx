@@ -22,7 +22,7 @@ from onyx.background.celery.celery_redis import celery_get_queued_task_ids
 from onyx.background.celery.celery_redis import celery_get_unacked_task_ids
 from onyx.background.celery.celery_utils import extract_ids_from_runnable_connector
 from onyx.background.celery.tasks.beat_schedule import CLOUD_BEAT_MULTIPLIER_DEFAULT
-from onyx.background.celery.tasks.indexing.utils import IndexingCallbackBase
+from onyx.background.celery.tasks.docprocessing.utils import IndexingCallbackBase
 from onyx.configs.app_configs import ALLOW_SIMULTANEOUS_PRUNING
 from onyx.configs.app_configs import JOB_TIMEOUT
 from onyx.configs.constants import CELERY_GENERIC_BEAT_LOCK_TIMEOUT
