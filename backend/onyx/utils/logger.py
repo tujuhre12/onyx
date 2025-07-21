@@ -207,6 +207,7 @@ def setup_logger(
     name: str = __name__,
     log_level: int = get_log_level_from_str(),
     extra: MutableMapping[str, Any] | None = None,
+    propagate: bool = True,
 ) -> OnyxLoggingAdapter:
     logger = logging.getLogger(name)
 
@@ -248,7 +249,7 @@ def setup_logger(
     # Prevent messages from propagating to the root logger which can cause
     # duplicate log entries when the root logger is also configured with its
     # own handler (e.g. by Uvicorn / Celery).
-    logger.propagate = False
+    logger.propagate = propagate
 
     return OnyxLoggingAdapter(logger, extra=extra)
 

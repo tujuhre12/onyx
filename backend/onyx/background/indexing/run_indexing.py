@@ -79,7 +79,7 @@ from onyx.utils.telemetry import RecordType
 from onyx.utils.variable_functionality import global_version
 from shared_configs.configs import MULTI_TENANT
 
-logger = setup_logger()
+logger = setup_logger(propagate=False)
 
 INDEXING_TRACER_NUM_PRINT_ENTRIES = 5
 
