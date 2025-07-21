@@ -45,8 +45,11 @@ spec:
               "-A",
               "onyx.background.celery.versioned_apps.docprocessing",
               "worker",
+              "--pool=threads",
+              "--concurrency=6",
+              "--prefetch-multiplier=1",
               "--loglevel=INFO",
-              "--hostname=indexing@%n",
+              "--hostname=docprocessing@%n",
               "-Q",
               "docprocessing",
             ]

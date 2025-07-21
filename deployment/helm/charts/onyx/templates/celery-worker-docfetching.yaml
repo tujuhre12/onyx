@@ -38,13 +38,16 @@ spec:
           securityContext:
             {{- toYaml .Values.celery_worker_docfetching.securityContext | nindent 12 }}
           image: "{{ .Values.celery_shared.image.repository }}:{{ .Values.celery_shared.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.celery_shared.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.global.pullPolicy }}
           command:
             [
               "celery",
               "-A",
               "onyx.background.celery.versioned_apps.docfetching",
               "worker",
+              "--pool=threads",
+              "--concurrency=2",
+              "--prefetch-multiplier=1",
               "--loglevel=INFO",
               "--hostname=docfetching@%n",
               "-Q",
