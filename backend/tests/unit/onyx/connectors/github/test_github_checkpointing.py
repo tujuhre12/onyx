@@ -66,6 +66,7 @@ def build_github_connector(
             repositories=repositories,
             include_prs=True,
             include_issues=True,
+            include_files_md=True,
         )
         connector.github_client = mock_github_client
         return connector
@@ -230,7 +231,7 @@ def test_load_from_checkpoint_happy_path(
         )
 
         # Check that we got all documents and final has_more=False
-        assert len(outputs) == 4
+        assert len(outputs) == 5
 
         repo_batch = outputs[0]
         assert len(repo_batch.items) == 0
@@ -273,7 +274,7 @@ def test_load_from_checkpoint_happy_path(
         )
 
         # Check fourth batch (finished checkpoint)
-        fourth_batch = outputs[3]
+        fourth_batch = outputs[4]
         assert len(fourth_batch.items) == 0
         assert fourth_batch.next_checkpoint.has_more is False
 
