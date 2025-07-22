@@ -170,7 +170,7 @@ def _get_batch_rate_limited(
     cursor_url_callback: Callable[[str | None, int], None],
     github_client: Github,
     attempt_num: int = 0,
-) -> Generator[PullRequest | Issue | ContentFile, None, None]:
+) -> Generator[PullRequest | Issue, None, None]:
     if attempt_num > _MAX_NUM_RATE_LIMIT_RETRIES:
         raise RuntimeError(
             "Re-tried fetching batch too many times. Something is going wrong with fetching objects from Github"
@@ -526,14 +526,21 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
         md_files = []
         contents = repo.get_contents("")
 
-        if contents.isinstance(ContentFile):
+        if isinstance(contents, ContentFile):
             # if the contents is a single file or directory, we need to wrap it in a list
-            contents = [contents]
+            contents = [cast(ContentFile, contents)]
+        else:
+            contents = cast(list[ContentFile], contents)
 
         while contents:
             file = contents.pop(0)
             if file.type == "dir":
-                contents.extend(repo.get_contents(file.path))
+                new_contents = repo.get_contents(file.path)
+                if isinstance(new_contents, ContentFile):
+                    new_contents = [cast(ContentFile, new_contents)]
+                else:
+                    new_contents = cast(list[ContentFile], new_contents)
+                contents.extend(new_contents)
             elif file.type == "file" and file.name.endswith(".md"):
                 md_files.append(file)
 
@@ -622,6 +629,8 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
             for pr in pr_batch:
                 num_prs += 1
 
+                pr = cast(PullRequest, pr)
+
                 # we iterate backwards in time, so at this point we stop processing prs
                 if (
                     start is not None
@@ -638,7 +647,7 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
                 ):
                     continue
                 try:
-                    yield _convert_pr_to_document(cast(PullRequest, pr))
+                    yield _convert_pr_to_document(pr)
                 except Exception as e:
                     error_msg = f"Error converting PR to document: {e}"
                     logger.exception(error_msg)
@@ -738,7 +747,7 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
             checkpoint.stage = GithubConnectorStage.FILES_MD
             checkpoint.reset()
 
-        checkpoint.stage = GithubConnectorStage.FILES_MD_
+        checkpoint.stage = GithubConnectorStage.FILES_MD
 
         if self.include_files_md and checkpoint.stage == GithubConnectorStage.FILES_MD:
             logger.info(f"Fetching Markdown files for repo: {repo.name}")
