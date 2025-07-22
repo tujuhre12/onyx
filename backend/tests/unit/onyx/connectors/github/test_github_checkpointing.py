@@ -181,6 +181,7 @@ def test_load_from_checkpoint_happy_path(
     create_mock_repo: Callable[..., MagicMock],
     create_mock_pr: Callable[..., MagicMock],
     create_mock_issue: Callable[..., MagicMock],
+    create_mock_file: Callable[..., MagicMock],
 ) -> None:
     """Test loading from checkpoint - happy path"""
     # Set up mocked repo
