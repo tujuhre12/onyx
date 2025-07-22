@@ -150,6 +150,15 @@ export enum UploadIntent {
   ADD_TO_DOCUMENTS, // For files uploaded via FilePickerModal or similar (just add to repo)
 }
 
+type ChatPageProps = {
+  toggle: (toggled?: boolean) => void;
+  documentSidebarInitialWidth?: number;
+  sidebarVisible: boolean;
+  firstMessage?: string;
+  initialFolders?: any;
+  initialFiles?: any;
+};
+
 // ---
 // File Attachment Behavior in ChatPage
 //
@@ -171,14 +180,7 @@ export function ChatPage({
   firstMessage,
   initialFolders,
   initialFiles,
-}: {
-  toggle: (toggled?: boolean) => void;
-  documentSidebarInitialWidth?: number;
-  sidebarVisible: boolean;
-  firstMessage?: string;
-  initialFolders?: any;
-  initialFiles?: any;
-}) {
+}: ChatPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
