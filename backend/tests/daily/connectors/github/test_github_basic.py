@@ -34,7 +34,7 @@ def test_github_connector_basic(github_connector: GithubConnector) -> None:
     )
     assert len(docs) > 1  # We expect at least one PR and one Issue to exist
 
-    def get_issue_doc(docs: list[Document]) -> Document:
+    def get_issue_doc(docs: list[Document]) -> Document | None:
         for doc in docs:
             if doc.metadata.get("object_type") == "Issue":
                 return doc
@@ -69,6 +69,7 @@ def test_github_connector_basic(github_connector: GithubConnector) -> None:
     assert "created_at" in pr_doc.metadata
 
     # Verify Issue-specific properties
+    assert issue_doc is not None, "Issue document not found"
     assert issue_doc.metadata is not None
     assert issue_doc.metadata.get("object_type") == "Issue"
     assert "id" in issue_doc.metadata
