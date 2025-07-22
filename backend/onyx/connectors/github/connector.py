@@ -776,8 +776,11 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
                     continue
 
             logger.info(f"Fetched {num_files_md} Markdown files for repo: {repo.name}")
+            logger.info(f"Fetched {num_files_md} Markdown files for repo: {repo.name}")
             checkpoint.stage = GithubConnectorStage.PRS
             checkpoint.reset()
+
+        checkpoint.has_more = len(checkpoint.cached_repo_ids) > 0
 
         checkpoint.has_more = len(checkpoint.cached_repo_ids) > 0
         if checkpoint.cached_repo_ids:
