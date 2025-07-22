@@ -1500,7 +1500,7 @@ export interface GithubConfig {
   repositories: string; // Comma-separated list of repository names
   include_prs: boolean;
   include_issues: boolean;
-  include_files_md: boolean;
+  include_files_md?: boolean;
 }
 
 export interface GitlabConfig {
