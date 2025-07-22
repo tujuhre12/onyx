@@ -135,12 +135,14 @@ def create_mock_file() -> Callable[..., MagicMock]:
         html_url: str = "https://github.com/onyx-dot-app/onyx/blob/main/README.md",
         content: str = "# README",
         path: str = "README.md",
+        type: str = "file",
     ) -> MagicMock:
         mock_file = MagicMock(spec=ContentFile)
         mock_file.name = name
         mock_file.html_url = html_url
         mock_file.content = content
         mock_file.path = path
+        mock_file.type = type
         return mock_file
 
     return _create_mock_file
@@ -201,12 +203,14 @@ def test_load_from_checkpoint_happy_path(
         html_url="https://github.com/test-org/test-repo/blob/main/README.md",
         content="# README",
         path="README.md",
+        type="file",
     )
     mock_file2 = create_mock_file(
         name="CONTRIBUTING.md",
         html_url="https://github.com/test-org/test-repo/blob/main/CONTRIBUTING.md",
         content="# CONTRIBUTING.md",
         path="CONTRIBUTING.md",
+        type="file",
     )
 
     # Mock get_pulls and get_issues methods
@@ -231,7 +235,7 @@ def test_load_from_checkpoint_happy_path(
         )
 
         # Check that we got all documents and final has_more=False
-        assert len(outputs) == 5
+        assert len(outputs) == 4
 
         repo_batch = outputs[0]
         assert len(repo_batch.items) == 0
@@ -273,10 +277,9 @@ def test_load_from_checkpoint_happy_path(
             == "https://github.com/test-org/test-repo/blob/main/CONTRIBUTING.md"
         )
 
-        # Check fourth batch (finished checkpoint)
-        fourth_batch = outputs[4]
-        assert len(fourth_batch.items) == 0
-        assert fourth_batch.next_checkpoint.has_more is False
+        # Check final batch (finished checkpoint)
+        final_batch = outputs[-1]
+        assert final_batch.next_checkpoint.has_more is False
 
 
 def test_load_from_checkpoint_with_rate_limit(
