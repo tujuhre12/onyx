@@ -352,11 +352,8 @@ def _convert_file_to_document(file: ContentFile) -> Document:
         semantic_identifier=f"{file.repository.full_name}/{file.path}",
         metadata={
             "object_type": "File",
-            "id": file.html_url,
-            "repo": file.repository.full_name if file.repository else None,
+            "repo": file.repository.full_name if file.repository else "",
             "path": file.path,
-            "size": str(file.size),
-            "type": file.type,
         },
     )
 
@@ -528,6 +525,11 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
     def _files_md_func(self, repo: Repository.Repository) -> list[ContentFile]:
         md_files = []
         contents = repo.get_contents("")
+
+        if contents.isinstance(ContentFile):
+            # if the contents is a single file or directory, we need to wrap it in a list
+            contents = [contents]
+
         while contents:
             file = contents.pop(0)
             if file.type == "dir":
@@ -736,7 +738,7 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
             checkpoint.stage = GithubConnectorStage.FILES_MD
             checkpoint.reset()
 
-        checkpoint.stage = GithubConnectorStage.FILES_MD
+        checkpoint.stage = GithubConnectorStage.FILES_MD_
 
         if self.include_files_md and checkpoint.stage == GithubConnectorStage.FILES_MD:
             logger.info(f"Fetching Markdown files for repo: {repo.name}")
