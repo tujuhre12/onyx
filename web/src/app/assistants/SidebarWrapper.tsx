@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import FixedLogo from "../../components/logo/FixedLogo";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { useChatContext } from "@/components/context/ChatContext";
-import { HistorySidebar } from "@/components/sessionSidebar/HistorySidebar";
+import { HistorySidebar } from "@/components/sidebar/HistorySidebar";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import AssistantModal from "./mine/AssistantModal";
 import { useSidebarShortcut } from "@/lib/browserUtilities";
