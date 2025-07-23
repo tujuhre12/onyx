@@ -35,11 +35,9 @@ export default function SidebarWrapper<T extends object>({
   const toggleSidebar = useCallback(() => {
     Cookies.set(
       SIDEBAR_TOGGLED_COOKIE_NAME,
-      String(!sidebarVisible).toLocaleLowerCase()
-    ),
-      {
-        path: "/",
-      };
+      String(!sidebarVisible).toLocaleLowerCase(),
+      { path: "/" }
+    );
     setSidebarVisible((sidebarVisible) => !sidebarVisible);
   }, [sidebarVisible]);
 
