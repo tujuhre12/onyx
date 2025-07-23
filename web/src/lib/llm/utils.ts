@@ -63,6 +63,7 @@ export function getLLMProviderOverrideForPersona(
 }
 
 const MODEL_NAMES_SUPPORTING_IMAGE_INPUT = [
+  "gpt-4.1",
   "gpt-4o",
   "gpt-4o-mini",
   "gpt-4-vision-preview",
@@ -125,12 +126,22 @@ export function checkLLMSupportsImageInput(model: string) {
   const modelParts = model.split(/[/.]/);
   const lastPart = modelParts[modelParts.length - 1]?.toLowerCase();
 
-  return MODEL_NAMES_SUPPORTING_IMAGE_INPUT.some((modelName) => {
+  const partialMatch = MODEL_NAMES_SUPPORTING_IMAGE_INPUT.some((modelName) => {
     const modelNameParts = modelName.split(/[/.]/);
     const modelNameLastPart = modelNameParts[modelNameParts.length - 1];
     // lastPart is already lowercased above for tiny performance gain
     return modelNameLastPart?.toLowerCase() === lastPart;
   });
+  if (partialMatch) {
+    return true;
+  }
+
+  // all claude models support image input
+  if (model.toLowerCase().includes("claude")) {
+    return true;
+  }
+
+  return false;
 }
 
 export const structureValue = (
