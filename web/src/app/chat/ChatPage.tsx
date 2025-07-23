@@ -28,7 +28,7 @@ import {
 
 import Prism from "prismjs";
 import Cookies from "js-cookie";
-import { HistorySidebar } from "./sessionSidebar/HistorySidebar";
+import { HistorySidebar } from "@/components/sessionSidebar/HistorySidebar";
 import { MinimalPersonaSnapshot } from "../admin/assistants/interfaces";
 import { HealthCheckBanner } from "@/components/health/healthcheck";
 import {

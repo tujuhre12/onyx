@@ -3,7 +3,7 @@ import posthog from "posthog-js";
 import { PostHogProvider } from "posthog-js/react";
 import { useEffect } from "react";
 import React, { createContext, useContext, useState, useMemo } from "react";
-import { HistorySidebar } from "./chat/sessionSidebar/HistorySidebar";
+import { HistorySidebar } from "@/components/sessionSidebar/HistorySidebar";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
