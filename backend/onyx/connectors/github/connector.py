@@ -523,9 +523,10 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
         )
 
     def _files_md_func(self, repo: Repository.Repository) -> list[ContentFile]:
+        github_client = cast(Github, self.github_client)
 
         def _get_contents_rate_limited(
-            path: str, attempt_num: int = 0
+            github_client: Github, path: str, attempt_num: int = 0
         ) -> list[ContentFile]:
             if attempt_num > _MAX_NUM_RATE_LIMIT_RETRIES:
                 raise RuntimeError(
@@ -539,14 +540,14 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
                     contents = cast(list[ContentFile], contents)
                 return contents
             except RateLimitExceededException:
-                _sleep_after_rate_limit_exception(self.github_client)
-                return _get_contents_rate_limited(path, attempt_num + 1)
+                _sleep_after_rate_limit_exception(github_client)
+                return _get_contents_rate_limited(github_client, path, attempt_num + 1)
             except GithubException as e:
                 logger.error(f"Error accessing directory {path}: {e}")
                 return []
 
         md_files = []
-        contents = _get_contents_rate_limited("")
+        contents = _get_contents_rate_limited(github_client, "")
 
         if isinstance(contents, ContentFile):
             # if the contents is a single file or directory, we need to wrap it in a list
@@ -560,7 +561,7 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
                 try:
                     # if the file is a directory, we need to get the contents of the directory
                     # and add the contents to the contents list
-                    new_contents = _get_contents_rate_limited(file.path)
+                    new_contents = _get_contents_rate_limited(github_client, file.path)
                     if isinstance(new_contents, ContentFile):
                         new_contents = [cast(ContentFile, new_contents)]
                     else:
@@ -568,7 +569,7 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
 
                     contents.extend(new_contents)
                 except RateLimitExceededException:
-                    _sleep_after_rate_limit_exception(self.github_client)
+                    _sleep_after_rate_limit_exception(github_client)
                     contents.append(file)
                     continue
             elif file.type == "file" and file.name.endswith(".md"):
