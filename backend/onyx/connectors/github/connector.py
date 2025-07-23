@@ -523,8 +523,30 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
         )
 
     def _files_md_func(self, repo: Repository.Repository) -> list[ContentFile]:
+
+        def _get_contents_rate_limited(
+            path: str, attempt_num: int = 0
+        ) -> list[ContentFile]:
+            if attempt_num > _MAX_NUM_RATE_LIMIT_RETRIES:
+                raise RuntimeError(
+                    "Re-tried fetching contents too many times. Something is going wrong with fetching objects from Github"
+                )
+            try:
+                contents = repo.get_contents(path)
+                if isinstance(contents, ContentFile):
+                    contents = [cast(ContentFile, contents)]
+                else:
+                    contents = cast(list[ContentFile], contents)
+                return contents
+            except RateLimitExceededException:
+                _sleep_after_rate_limit_exception(self.github_client)
+                return _get_contents_rate_limited(path, attempt_num + 1)
+            except GithubException as e:
+                logger.error(f"Error accessing directory {path}: {e}")
+                return []
+
         md_files = []
-        contents = repo.get_contents("")
+        contents = _get_contents_rate_limited("")
 
         if isinstance(contents, ContentFile):
             # if the contents is a single file or directory, we need to wrap it in a list
@@ -535,12 +557,20 @@ class GithubConnector(CheckpointedConnector[GithubConnectorCheckpoint]):
         while contents:
             file = contents.pop(0)
             if file.type == "dir":
-                new_contents = repo.get_contents(file.path)
-                if isinstance(new_contents, ContentFile):
-                    new_contents = [cast(ContentFile, new_contents)]
-                else:
-                    new_contents = cast(list[ContentFile], new_contents)
-                contents.extend(new_contents)
+                try:
+                    # if the file is a directory, we need to get the contents of the directory
+                    # and add the contents to the contents list
+                    new_contents = _get_contents_rate_limited(file.path)
+                    if isinstance(new_contents, ContentFile):
+                        new_contents = [cast(ContentFile, new_contents)]
+                    else:
+                        new_contents = cast(list[ContentFile], new_contents)
+
+                    contents.extend(new_contents)
+                except RateLimitExceededException:
+                    _sleep_after_rate_limit_exception(self.github_client)
+                    contents.append(file)
+                    continue
             elif file.type == "file" and file.name.endswith(".md"):
                 md_files.append(file)
 
