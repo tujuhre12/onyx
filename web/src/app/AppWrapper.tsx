@@ -26,7 +26,6 @@ export default function AppWrapper({ children }: AppWrapperProps) {
   const { chatSessions, folders } = useChatContext();
   const [showAssistantsModal, setShowAssistantsModal] = useState(false);
   const router = useRouter();
-
   const {
     sidebarPinned,
     sidebarVisible,
@@ -36,12 +35,6 @@ export default function AppWrapper({ children }: AppWrapperProps) {
   } = useSidebar();
 
   useSidebarShortcut(router, toggleSidebar);
-
-  const handleNewChat = () => {
-    // This function can be customized based on your needs
-    // For now, it will just navigate to the chat page
-    router.push("/chat");
-  };
 
   return (
     <div className="flex relative overflow-x-hidden overscroll-contain flex-col w-full h-screen">
@@ -97,12 +90,6 @@ export default function AppWrapper({ children }: AppWrapperProps) {
                     : "opacity-100 pointer-events-auto scale-100"
                 }`}
                 href="/chat"
-                onClick={(e) => {
-                  if (e.metaKey || e.ctrlKey) {
-                    return;
-                  }
-                  handleNewChat();
-                }}
               >
                 <NewChatIcon
                   className="text-text-700 hover:text-text-600"
