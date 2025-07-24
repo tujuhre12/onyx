@@ -58,23 +58,6 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { TruncatedText } from "@/components/ui/truncatedText";
 import { FiSidebar } from "react-icons/fi";
 
-interface SidebarProps {
-  liveAssistant?: MinimalPersonaSnapshot | null;
-  page: pageType;
-  existingChats?: ChatSession[];
-  currentChatSession?: ChatSession | null | undefined;
-  folders?: Folder[];
-  toggleSidebar?: () => void;
-  toggled?: boolean;
-  removeToggle?: () => void;
-  reset?: () => void;
-  showShareModal?: (chatSession: ChatSession) => void;
-  showDeleteModal?: (chatSession: ChatSession) => void;
-  explicitlyUntoggle: () => void;
-  setShowAssistantsModal: (show: boolean) => void;
-  toggleChatSessionSearchModal?: () => void;
-}
-
 interface SortableAssistantProps {
   assistant: MinimalPersonaSnapshot;
   active: boolean;
@@ -172,23 +155,44 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
   );
 };
 
+interface SidebarProps {
+  liveAssistant?: MinimalPersonaSnapshot | null;
+  page: pageType;
+  existingChats?: ChatSession[];
+  currentChatSession?: ChatSession | null | undefined;
+  folders?: Folder[];
+  removeToggle?: () => void;
+  reset?: () => void;
+  showShareModal?: (chatSession: ChatSession) => void;
+  showDeleteModal?: (chatSession: ChatSession) => void;
+  setShowAssistantsModal: (show: boolean) => void;
+  toggleChatSessionSearchModal?: () => void;
+
+  // sidebar-visibility related
+  sidebarVisible: boolean;
+  sidebarPinned: boolean;
+  toggleSidebarPinned: () => void;
+}
+
 export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
   (
     {
       liveAssistant,
       reset = () => null,
       setShowAssistantsModal = () => null,
-      toggled,
       page,
       existingChats,
       currentChatSession,
       folders,
-      explicitlyUntoggle,
-      toggleSidebar,
       removeToggle,
       showShareModal,
       toggleChatSessionSearchModal,
       showDeleteModal,
+
+      // sidebar-visibility related
+      sidebarVisible,
+      sidebarPinned,
+      toggleSidebarPinned,
     },
     ref: ForwardedRef<HTMLDivElement>
   ) => {
@@ -283,18 +287,11 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
           <TooltipProvider delayDuration={0}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
-                  onClick={() => {
-                    toggleSidebar?.();
-                    if (toggled) {
-                      explicitlyUntoggle();
-                    }
-                  }}
-                >
-                  {!toggled && !combinedSettings?.isMobile ? (
-                    <RightToLineIcon className="mobile:hidden text-sidebar-toggle" />
-                  ) : (
+                <button onClick={toggleSidebarPinned}>
+                  {sidebarPinned && !combinedSettings?.isMobile ? (
                     <LeftToLineIcon className="mobile:hidden text-sidebar-toggle" />
+                  ) : (
+                    <RightToLineIcon className="mobile:hidden text-sidebar-toggle" />
                   )}
                   <FiSidebar
                     size={20}
@@ -303,7 +300,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
                 </button>
               </TooltipTrigger>
               <TooltipContent className="!border-none">
-                {toggled ? `Unpin sidebar` : "Pin sidebar"}
+                {sidebarVisible ? `Unpin sidebar` : "Pin sidebar"}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

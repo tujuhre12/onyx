@@ -3,6 +3,7 @@ import AppWrapper from "@/app/AppWrapper";
 import { unstable_noStore as noStore } from "next/cache";
 import { fetchChatData } from "@/lib/chat/fetchChatData";
 import { ChatProvider } from "@/components/context/ChatContext";
+import { SidebarProvider } from "@/components/context/SidebarProvider";
 
 export default async function Layout({
   children,
@@ -60,7 +61,9 @@ export default async function Layout({
         defaultAssistantId,
       }}
     >
-      <AppWrapper>{children}</AppWrapper>
+      <SidebarProvider>
+        <AppWrapper>{children}</AppWrapper>
+      </SidebarProvider>
     </ChatProvider>
   );
 }

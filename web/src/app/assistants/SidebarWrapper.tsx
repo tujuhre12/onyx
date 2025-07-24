@@ -15,6 +15,7 @@ import { useSidebarShortcut } from "@/lib/browserUtilities";
 import { UserSettingsModal } from "../chat/modal/UserSettingsModal";
 import { usePopup } from "@/components/admin/connectors/Popup";
 import { useUser } from "@/components/user/UserProvider";
+import { useSidebar } from "@/components/context/SidebarProvider";
 
 interface SidebarWrapperProps<T extends object> {
   size?: "sm" | "lg";
@@ -30,6 +31,8 @@ export default function SidebarWrapper<T extends object>({
   const [showDocSidebar, setShowDocSidebar] = useState(false); // State to track if sidebar is open
   // Used to maintain a "time out" for history sidebar so our existing refs can have time to process change
   const [untoggled, setUntoggled] = useState(false);
+
+  const { sidebarPinned, toggleSidebarPinned } = useSidebar();
 
   const toggleSidebar = useCallback(() => {
     Cookies.set(
@@ -61,7 +64,7 @@ export default function SidebarWrapper<T extends object>({
   const [userSettingsToggled, setUserSettingsToggled] = useState(false);
 
   const { llmProviders } = useChatContext();
-  useSidebarShortcut(router, toggleSidebar);
+  useSidebarShortcut(toggleSidebarPinned);
 
   return (
     <div className="flex relative overflow-x-hidden overscroll-contain flex-col w-full h-screen">
@@ -92,12 +95,12 @@ export default function SidebarWrapper<T extends object>({
         <div className="w-full relative">
           {" "}
           <Sidebar
+            sidebarPinned={sidebarPinned}
             setShowAssistantsModal={setShowAssistantsModal}
             page={"chat"}
-            explicitlyUntoggle={explicitlyUntoggle}
             ref={sidebarElementRef}
-            toggleSidebar={toggleSidebar}
-            toggled={sidebarVisible}
+            toggleSidebarPinned={toggleSidebar}
+            sidebarVisible={sidebarVisible}
             existingChats={chatSessions}
             currentChatSession={null}
             folders={folders}

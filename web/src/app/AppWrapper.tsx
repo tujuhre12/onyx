@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { useChatContext } from "@/components/context/ChatContext";
 import { pageType } from "@/components/sidebar/types";
-import { useSidebar } from "./hooks";
+import { useSidebar } from "@/components/context/SidebarProvider";
 import { useSidebarShortcut } from "@/lib/browserUtilities";
 import FixedLogo from "@/components/logo/FixedLogo";
 import AssistantModal from "./assistants/mine/AssistantModal";
@@ -17,6 +16,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Link from "next/link";
+import { UserDropdown } from "@/components/UserDropdown";
 
 interface AppWrapperProps {
   children: React.ReactNode;
@@ -25,16 +25,14 @@ interface AppWrapperProps {
 export default function AppWrapper({ children }: AppWrapperProps) {
   const { chatSessions, folders } = useChatContext();
   const [showAssistantsModal, setShowAssistantsModal] = useState(false);
-  const router = useRouter();
   const {
+    sidebarElementRef,
     sidebarPinned,
     sidebarVisible,
-    explicitlyUntoggle,
-    toggleSidebar,
-    sidebarElementRef,
+    toggleSidebarPinned,
   } = useSidebar();
 
-  useSidebarShortcut(router, toggleSidebar);
+  useSidebarShortcut(toggleSidebarPinned);
 
   return (
     <div className="flex relative overflow-x-hidden overscroll-contain flex-col w-full h-screen">
@@ -62,12 +60,12 @@ export default function AppWrapper({ children }: AppWrapperProps) {
           <Sidebar
             setShowAssistantsModal={setShowAssistantsModal}
             page={"chat" as pageType}
-            explicitlyUntoggle={explicitlyUntoggle}
-            toggleSidebar={toggleSidebar}
-            toggled={sidebarPinned}
             existingChats={chatSessions}
             currentChatSession={null}
             folders={folders}
+            sidebarVisible={sidebarVisible}
+            sidebarPinned={sidebarPinned}
+            toggleSidebarPinned={toggleSidebarPinned}
           />
         </div>
       </div>
@@ -99,6 +97,13 @@ export default function AppWrapper({ children }: AppWrapperProps) {
             <TooltipContent>New Chat</TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        <div className="fixed top-[16px] right-[16px]">
+          <UserDropdown
+            page="chat"
+            hideUserDropdown={false}
+            toggleUserSettings={() => {}}
+          />
+        </div>
       </main>
     </div>
   );
