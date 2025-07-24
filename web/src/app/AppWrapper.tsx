@@ -63,7 +63,6 @@ export default function AppWrapper({ children }: AppWrapperProps) {
             setShowAssistantsModal={setShowAssistantsModal}
             page={"chat" as pageType}
             explicitlyUntoggle={explicitlyUntoggle}
-            ref={sidebarElementRef}
             toggleSidebar={toggleSidebar}
             toggled={sidebarPinned}
             existingChats={chatSessions}
