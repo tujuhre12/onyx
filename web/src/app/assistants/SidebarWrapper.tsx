@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import FixedLogo from "../../components/logo/FixedLogo";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { useChatContext } from "@/components/context/ChatContext";
-import { HistorySidebar } from "@/components/sidebar/HistorySidebar";
+import { Sidebar } from "@/components/sidebar/Sidebar";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import AssistantModal from "./mine/AssistantModal";
 import { useSidebarShortcut } from "@/lib/browserUtilities";
@@ -99,7 +99,7 @@ export default function SidebarWrapper<T extends object>({
       >
         <div className="w-full relative">
           {" "}
-          <HistorySidebar
+          <Sidebar
             setShowAssistantsModal={setShowAssistantsModal}
             page={"chat"}
             explicitlyUntoggle={explicitlyUntoggle}

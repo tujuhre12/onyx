@@ -28,7 +28,7 @@ import {
 
 import Prism from "prismjs";
 import Cookies from "js-cookie";
-import { HistorySidebar } from "@/components/sidebar/HistorySidebar";
+import { Sidebar } from "@/components/sidebar/Sidebar";
 import { MinimalPersonaSnapshot } from "../admin/assistants/interfaces";
 import { HealthCheckBanner } from "@/components/health/healthcheck";
 import {
@@ -2648,7 +2648,7 @@ export function ChatPage({
                 }`}
             >
               <div className="w-full relative">
-                <HistorySidebar
+                <Sidebar
                   toggleChatSessionSearchModal={() =>
                     setIsChatSearchModalOpen((open) => !open)
                   }

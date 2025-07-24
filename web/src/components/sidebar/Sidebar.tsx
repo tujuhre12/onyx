@@ -55,23 +55,6 @@ import { CircleX, PinIcon } from "lucide-react";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { TruncatedText } from "@/components/ui/truncatedText";
 
-interface HistorySidebarProps {
-  liveAssistant?: MinimalPersonaSnapshot | null;
-  page: pageType;
-  existingChats?: ChatSession[];
-  currentChatSession?: ChatSession | null | undefined;
-  folders?: Folder[];
-  toggleSidebar?: () => void;
-  toggled?: boolean;
-  removeToggle?: () => void;
-  reset?: () => void;
-  showShareModal?: (chatSession: ChatSession) => void;
-  showDeleteModal?: (chatSession: ChatSession) => void;
-  explicitlyUntoggle: () => void;
-  setShowAssistantsModal: (show: boolean) => void;
-  toggleChatSessionSearchModal?: () => void;
-}
-
 interface SortableAssistantProps {
   assistant: MinimalPersonaSnapshot;
   active: boolean;
@@ -169,7 +152,24 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
   );
 };
 
-export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
+interface SidebarProps {
+  liveAssistant?: MinimalPersonaSnapshot | null;
+  page: pageType;
+  existingChats?: ChatSession[];
+  currentChatSession?: ChatSession | null | undefined;
+  folders?: Folder[];
+  toggleSidebar?: () => void;
+  toggled?: boolean;
+  removeToggle?: () => void;
+  reset?: () => void;
+  showShareModal?: (chatSession: ChatSession) => void;
+  showDeleteModal?: (chatSession: ChatSession) => void;
+  explicitlyUntoggle: () => void;
+  setShowAssistantsModal: (show: boolean) => void;
+  toggleChatSessionSearchModal?: () => void;
+}
+
+export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
   (
     {
       liveAssistant,
@@ -429,4 +429,5 @@ export const HistorySidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
     );
   }
 );
-HistorySidebar.displayName = "HistorySidebar";
+
+Sidebar.displayName = "Sidebar";
