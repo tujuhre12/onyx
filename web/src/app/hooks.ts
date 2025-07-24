@@ -1,5 +1,4 @@
 "use client";
-
 import {
   Dispatch,
   SetStateAction,
@@ -10,7 +9,7 @@ import {
 } from "react";
 
 interface UseSidebarVisibilityProps {
-  sidebarVisible: boolean;
+  sidebarPinned: boolean;
   sidebarElementRef: React.RefObject<HTMLElement>;
   showDocSidebar: boolean;
   setShowDocSidebar: Dispatch<SetStateAction<boolean>>;
@@ -20,7 +19,7 @@ interface UseSidebarVisibilityProps {
 }
 
 function useSidebarVisibility({
-  sidebarVisible,
+  sidebarPinned,
   sidebarElementRef,
   setShowDocSidebar,
   setToggled,
@@ -64,7 +63,7 @@ function useSidebarVisibility({
           currentXPosition > 100 &&
           showDocSidebar &&
           !isWithinSidebar &&
-          !sidebarVisible
+          !sidebarPinned
         ) {
           setTimeout(() => {
             setShowDocSidebar((showDocSidebar) => {
@@ -97,19 +96,19 @@ function useSidebarVisibility({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showDocSidebar, sidebarVisible, sidebarElementRef, mobile]);
+  }, [showDocSidebar, sidebarPinned, sidebarElementRef, mobile]);
 
   return { showDocSidebar };
 }
 
 export function useSidebar() {
-  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [sidebarPinned, setSidebarPinned] = useState(true);
   const [showDocSidebar, setShowDocSidebar] = useState(false);
   const [untoggled, setUntoggled] = useState(false);
   const sidebarElementRef = useRef<HTMLDivElement>(null);
 
   const toggleSidebar = useCallback(() => {
-    setSidebarVisible((prev) => !prev);
+    setSidebarPinned((prev) => !prev);
   }, []);
 
   const explicitlyUntoggle = useCallback(() => {
@@ -119,17 +118,17 @@ export function useSidebar() {
   }, []);
 
   useSidebarVisibility({
-    sidebarVisible,
+    sidebarPinned,
     sidebarElementRef,
     showDocSidebar,
     setShowDocSidebar,
   });
 
-  const shouldShowSidebar = !untoggled && (showDocSidebar || sidebarVisible);
+  const sidebarVisible = !untoggled && (showDocSidebar || sidebarPinned);
 
   return {
+    sidebarPinned,
     sidebarVisible,
-    shouldShowSidebar,
     explicitlyUntoggle,
     toggleSidebar,
     sidebarElementRef,

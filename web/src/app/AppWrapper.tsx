@@ -28,8 +28,8 @@ export default function AppWrapper({ children }: AppWrapperProps) {
   const router = useRouter();
 
   const {
+    sidebarPinned,
     sidebarVisible,
-    shouldShowSidebar,
     explicitlyUntoggle,
     toggleSidebar,
     sidebarElementRef,
@@ -59,7 +59,7 @@ export default function AppWrapper({ children }: AppWrapperProps) {
           duration-300
           ease-in-out
           ${
-            shouldShowSidebar
+            sidebarVisible
               ? "opacity-100 w-[250px] translate-x-0"
               : "opacity-0 w-[200px] pointer-events-none -translate-x-10"
           }
@@ -72,7 +72,7 @@ export default function AppWrapper({ children }: AppWrapperProps) {
             explicitlyUntoggle={explicitlyUntoggle}
             ref={sidebarElementRef}
             toggleSidebar={toggleSidebar}
-            toggled={sidebarVisible}
+            toggled={sidebarPinned}
             existingChats={chatSessions}
             currentChatSession={null}
             folders={folders}
@@ -80,7 +80,7 @@ export default function AppWrapper({ children }: AppWrapperProps) {
         </div>
       </div>
       <main
-        className={`flex flex-col h-full transition-all duration-300 ease-in-out ${shouldShowSidebar ? "pl-[250px]" : ""}`}
+        className={`flex flex-col h-full transition-all duration-300 ease-in-out ${sidebarPinned ? "pl-[250px]" : ""}`}
       >
         {children}
         {showAssistantsModal && (
@@ -92,7 +92,7 @@ export default function AppWrapper({ children }: AppWrapperProps) {
             <TooltipTrigger asChild>
               <Link
                 className={`fixed top-[16px] left-[140px] z-50 mobile:hidden transition-all duration-300 ease-in-out ${
-                  shouldShowSidebar
+                  sidebarVisible
                     ? "opacity-0 pointer-events-none scale-95"
                     : "opacity-100 pointer-events-auto scale-100"
                 }`}
