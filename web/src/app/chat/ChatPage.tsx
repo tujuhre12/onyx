@@ -95,7 +95,6 @@ import {
 import { ChatInputBar } from "./input/ChatInputBar";
 import { useChatContext } from "@/components/context/ChatContext";
 import { ChatPopup } from "./ChatPopup";
-import FunctionalHeader from "@/components/chat/Header";
 import { FederatedOAuthModal } from "@/components/chat/FederatedOAuthModal";
 import { useFederatedOAuthStatus } from "@/lib/hooks/useFederatedOAuthStatus";
 import {
@@ -2650,26 +2649,6 @@ export function ChatPage({
               id="scrollableContainer"
               className="flex h-full relative px-2 flex-col w-full"
             >
-              {liveAssistant && (
-                <FunctionalHeader
-                  toggleUserSettings={() => setUserSettingsToggled(true)}
-                  sidebarToggled={sidebarVisible}
-                  reset={() => setMessage("")}
-                  page="chat"
-                  setSharingModalVisible={
-                    chatSessionIdRef.current !== null
-                      ? setSharingModalVisible
-                      : undefined
-                  }
-                  documentSidebarVisible={
-                    documentSidebarVisible && !settings?.isMobile
-                  }
-                  toggleSidebar={toggleSidebar}
-                  currentChatSession={selectedChatSession}
-                  hideUserDropdown={user?.is_anonymous_user}
-                />
-              )}
-
               {documentSidebarInitialWidth !== undefined && isReady ? (
                 <Dropzone
                   key={currentSessionId()}
