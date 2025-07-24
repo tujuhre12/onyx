@@ -341,6 +341,9 @@ def docx_to_text_and_images(
 
     for rel_id, rel in doc.part.rels.items():
         if "image" in rel.reltype:
+            # TODO: we should attempt to get the image from the external source if possible.
+            # We'll sometimes have to give up if the image is on i.e. some private network
+            # the container can't access, but best effort would be nice.
             # Skip images that are linked rather than embedded (TargetMode="External")
             if getattr(rel, "is_external", False):
                 continue
