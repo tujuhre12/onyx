@@ -58,7 +58,7 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { TruncatedText } from "@/components/ui/truncatedText";
 import { FiSidebar } from "react-icons/fi";
 
-interface HistorySidebarProps {
+interface SidebarProps {
   liveAssistant?: MinimalPersonaSnapshot | null;
   page: pageType;
   existingChats?: ChatSession[];
@@ -172,7 +172,7 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
   );
 };
 
-export const Sidebar = forwardRef<HTMLDivElement, HistorySidebarProps>(
+export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
   (
     {
       liveAssistant,
