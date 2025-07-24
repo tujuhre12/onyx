@@ -1,4 +1,13 @@
-import { Dispatch, SetStateAction, useEffect, useRef } from "react";
+"use client";
+
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 interface UseSidebarVisibilityProps {
   sidebarVisible: boolean;
@@ -10,7 +19,7 @@ interface UseSidebarVisibilityProps {
   isAnonymousUser?: boolean;
 }
 
-export const useSidebarVisibility = ({
+function useSidebarVisibility({
   sidebarVisible,
   sidebarElementRef,
   setShowDocSidebar,
@@ -18,7 +27,7 @@ export const useSidebarVisibility = ({
   showDocSidebar,
   mobile,
   isAnonymousUser,
-}: UseSidebarVisibilityProps) => {
+}: UseSidebarVisibilityProps) {
   const xPosition = useRef(0);
 
   useEffect(() => {
@@ -91,4 +100,38 @@ export const useSidebarVisibility = ({
   }, [showDocSidebar, sidebarVisible, sidebarElementRef, mobile]);
 
   return { showDocSidebar };
-};
+}
+
+export function useSidebar() {
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [showDocSidebar, setShowDocSidebar] = useState(false);
+  const [untoggled, setUntoggled] = useState(false);
+  const sidebarElementRef = useRef<HTMLDivElement>(null);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarVisible((prev) => !prev);
+  }, []);
+
+  const explicitlyUntoggle = useCallback(() => {
+    setShowDocSidebar(false);
+    setUntoggled(true);
+    setTimeout(() => setUntoggled(false), 200);
+  }, []);
+
+  useSidebarVisibility({
+    sidebarVisible,
+    sidebarElementRef,
+    showDocSidebar,
+    setShowDocSidebar,
+  });
+
+  const shouldShowSidebar = !untoggled && (showDocSidebar || sidebarVisible);
+
+  return {
+    sidebarVisible,
+    shouldShowSidebar,
+    explicitlyUntoggle,
+    toggleSidebar,
+    sidebarElementRef,
+  };
+}

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import AppWrapper from "@/app/AppWrapper";
 import { unstable_noStore as noStore } from "next/cache";
 import { fetchChatData } from "@/lib/chat/fetchChatData";
 import { ChatProvider } from "@/components/context/ChatContext";
@@ -40,28 +41,26 @@ export default async function Layout({
   } = data;
 
   return (
-    <>
-      <ChatProvider
-        value={{
-          proSearchToggled,
-          inputPrompts,
-          chatSessions,
-          sidebarInitiallyVisible,
-          availableSources,
-          ccPairs,
-          documentSets,
-          tags,
-          availableDocumentSets: documentSets,
-          availableTags: tags,
-          llmProviders,
-          folders,
-          openedFolders,
-          shouldShowWelcomeModal,
-          defaultAssistantId,
-        }}
-      >
-        {children}
-      </ChatProvider>
-    </>
+    <ChatProvider
+      value={{
+        proSearchToggled,
+        inputPrompts,
+        chatSessions,
+        sidebarInitiallyVisible,
+        availableSources,
+        ccPairs,
+        documentSets,
+        tags,
+        availableDocumentSets: documentSets,
+        availableTags: tags,
+        llmProviders,
+        folders,
+        openedFolders,
+        shouldShowWelcomeModal,
+        defaultAssistantId,
+      }}
+    >
+      <AppWrapper>{children}</AppWrapper>
+    </ChatProvider>
   );
 }

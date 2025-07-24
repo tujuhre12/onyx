@@ -3,13 +3,12 @@
 import Cookies from "js-cookie";
 import { SIDEBAR_TOGGLED_COOKIE_NAME } from "@/components/resizable/constants";
 import { ReactNode, useCallback, useContext, useRef, useState } from "react";
-import { useSidebarVisibility } from "@/components/chat/hooks";
 import FunctionalHeader from "@/components/chat/Header";
 import { useRouter } from "next/navigation";
 import FixedLogo from "../../components/logo/FixedLogo";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { useChatContext } from "@/components/context/ChatContext";
-import { HistorySidebar } from "@/components/sidebar/HistorySidebar";
+import { Sidebar } from "@/components/sidebar/Sidebar";
 import { useAssistants } from "@/components/context/AssistantsContext";
 import AssistantModal from "./mine/AssistantModal";
 import { useSidebarShortcut } from "@/lib/browserUtilities";
@@ -55,13 +54,6 @@ export default function SidebarWrapper<T extends object>({
 
   const { popup, setPopup } = usePopup();
   const settings = useContext(SettingsContext);
-  useSidebarVisibility({
-    sidebarVisible,
-    sidebarElementRef,
-    showDocSidebar,
-    setShowDocSidebar,
-    mobile: settings?.isMobile,
-  });
 
   const { user } = useUser();
   const [showAssistantsModal, setShowAssistantsModal] = useState(false);
@@ -99,7 +91,7 @@ export default function SidebarWrapper<T extends object>({
       >
         <div className="w-full relative">
           {" "}
-          <HistorySidebar
+          <Sidebar
             setShowAssistantsModal={setShowAssistantsModal}
             page={"chat"}
             explicitlyUntoggle={explicitlyUntoggle}
