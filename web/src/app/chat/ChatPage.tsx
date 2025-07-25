@@ -144,9 +144,7 @@ export enum UploadIntent {
 }
 
 type ChatPageProps = {
-  toggle: (toggled?: boolean) => void;
   documentSidebarInitialWidth?: number;
-  sidebarVisible: boolean;
   firstMessage?: string;
   initialFolders?: any;
   initialFiles?: any;
@@ -167,9 +165,7 @@ type ChatPageProps = {
 // ---
 
 export function ChatPage({
-  toggle,
   documentSidebarInitialWidth,
-  sidebarVisible,
   firstMessage,
   initialFolders,
   initialFiles,
@@ -373,15 +369,15 @@ export function ChatPage({
     (chatSession) => chatSession.id === existingChatSessionId
   );
 
-  useEffect(() => {
-    if (user?.is_anonymous_user) {
-      Cookies.set(
-        SIDEBAR_TOGGLED_COOKIE_NAME,
-        String(!sidebarVisible).toLocaleLowerCase()
-      );
-      toggle(false);
-    }
-  }, [user]);
+  // useEffect(() => {
+  //   if (user?.is_anonymous_user) {
+  //     Cookies.set(
+  //       SIDEBAR_TOGGLED_COOKIE_NAME,
+  //       String(!sidebarVisible).toLocaleLowerCase()
+  //     );
+  //     toggle(false);
+  //   }
+  // }, [user]);
 
   const processSearchParamsAndSubmitMessage = (searchParamsString: string) => {
     const newSearchParams = new URLSearchParams(searchParamsString);
@@ -2168,16 +2164,16 @@ export function ChatPage({
   // Used to maintain a "time out" for history sidebar so our existing refs can have time to process change
   const [loadingError, setLoadingError] = useState<string | null>(null);
 
-  const toggleSidebar = () => {
-    if (user?.is_anonymous_user) {
-      return;
-    }
-    Cookies.set(
-      SIDEBAR_TOGGLED_COOKIE_NAME,
-      String(!sidebarVisible).toLocaleLowerCase()
-    );
-    toggle();
-  };
+  // const toggleSidebar = () => {
+  //   if (user?.is_anonymous_user) {
+  //     return;
+  //   }
+  //   Cookies.set(
+  //     SIDEBAR_TOGGLED_COOKIE_NAME,
+  //     String(!sidebarVisible).toLocaleLowerCase()
+  //   );
+  //   toggle();
+  // };
 
   const waitForScrollRef = useRef(false);
 
@@ -2659,50 +2655,15 @@ export function ChatPage({
                 >
                   {({ getRootProps }) => (
                     <div className="flex h-full w-full">
-                      {!settings?.isMobile && (
-                        <div
-                          style={{ transition: "width 0.30s ease-out" }}
-                          className={`
-                          overflow-y-hidden
-                          bg-transparent
-                          transition-all
-                          bg-opacity-80
-                          duration-300
-                          ease-in-out
-                          h-full
-                          ${sidebarVisible ? "w-0" : "w-0"}
-                      `}
-                        ></div>
-                      )}
-
                       <div
                         className={`h-full w-full relative flex-auto transition-margin duration-300 overflow-x-auto mobile:pb-12 desktop:pb-[100px]`}
                         {...getRootProps()}
                       >
                         <div
                           onScroll={handleScroll}
-                          className={`w-full h-[calc(100vh-160px)] flex flex-col default-scrollbar overflow-y-auto overflow-x-hidden relative`}
+                          className={`w-full h-[calc(100vh-130px)] flex flex-col default-scrollbar overflow-y-auto overflow-x-hidden relative`}
                           ref={scrollableDivRef}
                         >
-                          {liveAssistant && (
-                            <div className="z-20 fixed top-0 pointer-events-none left-0 w-full flex justify-center overflow-visible">
-                              {!settings?.isMobile && (
-                                <div
-                                  style={{ transition: "width 0.30s ease-out" }}
-                                  className={`
-                                  flex-none 
-                                  overflow-y-hidden 
-                                  transition-all 
-                                  pointer-events-none
-                                  duration-300 
-                                  ease-in-out
-                                  h-full
-                                  ${sidebarVisible ? "w-[200px]" : "w-[0px]"}
-                              `}
-                                />
-                              )}
-                            </div>
-                          )}
                           {/* ChatBanner is a custom banner that displays a admin-specified message at 
                       the top of the chat page. Oly used in the EE version of the app. */}
                           {messageHistory.length === 0 &&
@@ -3420,15 +3381,6 @@ export function ChatPage({
                 </Dropzone>
               ) : (
                 <div className="mx-auto h-full flex">
-                  <div
-                    style={{ transition: "width 0.30s ease-out" }}
-                    className={`flex-none bg-transparent transition-all bg-opacity-80 duration-300 ease-in-out h-full
-                        ${
-                          sidebarVisible && !settings?.isMobile
-                            ? "w-[250px] "
-                            : "w-[0px]"
-                        }`}
-                  />
                   <div className="my-auto">
                     <OnyxInitializingLoader />
                   </div>
