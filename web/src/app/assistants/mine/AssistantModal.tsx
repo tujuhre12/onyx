@@ -64,7 +64,7 @@ interface AssistantModalProps {
   hideModal: () => void;
 }
 
-export function AssistantModal({ hideModal }: AssistantModalProps) {
+export default function AssistantModal({ hideModal }: AssistantModalProps) {
   const { assistants, pinnedAssistants } = useAssistants();
   const { assistantFilters, toggleAssistantFilter } = useAssistantFilter();
   const router = useRouter();
@@ -298,4 +298,3 @@ export function AssistantModal({ hideModal }: AssistantModalProps) {
 
   return isMounted ? ReactDOM.createPortal(modalContent, document.body) : null;
 }
-export default AssistantModal;

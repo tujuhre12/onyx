@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { useChatContext } from "@/components/context/ChatContext";
 import { useSidebar } from "@/components/context/SidebarProvider";
@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/tooltip";
 import Link from "next/link";
 import { UserDropdown } from "@/components/UserDropdown";
-import CollapsibleLogo from "../logo/CollapsibleLogo";
+import CollapsibleLogo from "../../logo/CollapsibleLogo";
+import { Header } from "./Header";
 
 interface MainPageFrameProps {
   children: React.ReactNode;
@@ -33,10 +34,15 @@ export default function MainPageFrame({ children }: MainPageFrameProps) {
 
   return (
     <div className="flex relative overflow-x-hidden overscroll-contain flex-col w-full h-screen">
+      {/* Header framing */}
       <div className="z-50 fixed top-[16px] left-[16px]">
         <CollapsibleLogo />
       </div>
-      <div className="fixed top-0 w-full"></div>
+      <div className="fixed top-0 w-full h-[200px]">
+        <Header />
+      </div>
+
+      {/* Sidebar framing */}
       <div
         ref={sidebarElementRef}
         className={`
@@ -69,6 +75,7 @@ export default function MainPageFrame({ children }: MainPageFrameProps) {
         </div>
       </div>
 
+      {/* Main content framing */}
       <main
         className={`flex flex-col h-full transition-all duration-300 ease-in-out ${sidebarPinned ? "pl-[250px]" : ""}`}
       >
