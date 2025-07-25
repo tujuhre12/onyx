@@ -5,6 +5,7 @@ import React, {
   forwardRef,
   useContext,
   useCallback,
+  useState,
 } from "react";
 import Link from "next/link";
 import {
@@ -27,7 +28,6 @@ import {
   RightToLineIcon,
 } from "@/components/icons/icons";
 import { PagesTab } from "./PagesTab";
-import { pageType } from "./types";
 
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { DragEndEvent } from "@dnd-kit/core";
@@ -57,6 +57,7 @@ import { CircleX, PinIcon } from "lucide-react";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { TruncatedText } from "@/components/ui/truncatedText";
 import { FiSidebar } from "react-icons/fi";
+import AssistantModal from "@/app/assistants/mine/AssistantModal";
 
 interface SortableAssistantProps {
   assistant: MinimalPersonaSnapshot;
@@ -157,7 +158,6 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
 
 interface SidebarProps {
   liveAssistant?: MinimalPersonaSnapshot | null;
-  page: pageType;
   existingChats?: ChatSession[];
   currentChatSession?: ChatSession | null | undefined;
   folders?: Folder[];
@@ -165,7 +165,6 @@ interface SidebarProps {
   reset?: () => void;
   showShareModal?: (chatSession: ChatSession) => void;
   showDeleteModal?: (chatSession: ChatSession) => void;
-  setShowAssistantsModal: (show: boolean) => void;
   toggleChatSessionSearchModal?: () => void;
 
   // sidebar-visibility related
@@ -179,8 +178,6 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
     {
       liveAssistant,
       reset = () => null,
-      setShowAssistantsModal = () => null,
-      page,
       existingChats,
       currentChatSession,
       folders,
@@ -196,6 +193,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
     },
     ref: ForwardedRef<HTMLDivElement>
   ) => {
+    const [showAssistantsModal, setShowAssistantsModal] = useState(false);
     const searchParams = useSearchParams();
     const router = useRouter();
     const { user, toggleAssistantPinnedStatus } = useUser();
@@ -250,16 +248,14 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
       return null;
     }
 
+    function newChatUrl(): string {
+      return `/chat${currentChatSession ? `?assistantId=${currentChatSession.persona_id}` : ""}`;
+    }
+
     const handleNewChat = () => {
       reset();
       console.log("currentChatSession", currentChatSession);
-
-      const newChatUrl =
-        `/${page}` +
-        (currentChatSession
-          ? `?assistantId=${currentChatSession.persona_id}`
-          : "");
-      router.push(newChatUrl);
+      router.push(newChatUrl());
     };
 
     return (
@@ -279,7 +275,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
             flex 
             flex-col relative
             h-screen
-            pt-2
+            pt-4
             transition-transform 
             `}
       >
@@ -305,58 +301,49 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
             </Tooltip>
           </TooltipProvider>
         </div>
-        {page == "chat" && (
-          <div className="px-4 -mx-2 gap-y-1 flex-col text-text-history-sidebar-button flex gap-x-1.5 items-center">
-            <Link
-              className="w-full px-2 py-1 group rounded-md items-center hover:bg-accent-background-hovered cursor-pointer transition-all duration-150 flex gap-x-2"
-              href={
-                `/${page}` +
-                (currentChatSession
-                  ? `?assistantId=${currentChatSession?.persona_id}`
-                  : "")
+        <div className="px-4 -mx-2 gap-y-1 flex-col text-text-history-sidebar-button flex gap-x-1.5 items-center">
+          <Link
+            className="w-full px-2 py-1 group rounded-md items-center hover:bg-accent-background-hovered cursor-pointer transition-all duration-150 flex gap-x-2"
+            href={newChatUrl()}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey) {
+                return;
               }
-              onClick={(e) => {
-                if (e.metaKey || e.ctrlKey) {
-                  return;
-                }
-                if (handleNewChat) {
-                  handleNewChat();
-                }
-              }}
-            >
-              <NewChatIcon size={20} className="flex-none" />
-              <p className="my-auto flex font-normal  items-center ">
-                New Chat
-              </p>
-            </Link>
+              if (handleNewChat) {
+                handleNewChat();
+              }
+            }}
+          >
+            <NewChatIcon size={20} className="flex-none" />
+            <p className="my-auto flex font-normal  items-center ">New Chat</p>
+          </Link>
+          <Link
+            className="w-full px-2 py-1  rounded-md items-center hover:bg-hover cursor-pointer transition-all duration-150 flex gap-x-2"
+            href="/chat/my-documents"
+          >
+            <KnowledgeGroupIcon
+              size={20}
+              className="flex-none text-text-history-sidebar-button"
+            />
+            <p className="my-auto flex font-normal items-center text-base">
+              My Documents
+            </p>
+          </Link>
+          {user?.preferences?.shortcut_enabled && (
             <Link
-              className="w-full px-2 py-1  rounded-md items-center hover:bg-hover cursor-pointer transition-all duration-150 flex gap-x-2"
-              href="/chat/my-documents"
+              className="w-full px-2 py-1  rounded-md items-center hover:bg-accent-background-hovered cursor-pointer transition-all duration-150 flex gap-x-2"
+              href="/chat/input-prompts"
             >
-              <KnowledgeGroupIcon
+              <DocumentIcon2
                 size={20}
                 className="flex-none text-text-history-sidebar-button"
               />
               <p className="my-auto flex font-normal items-center text-base">
-                My Documents
+                Prompt Shortcuts
               </p>
             </Link>
-            {user?.preferences?.shortcut_enabled && (
-              <Link
-                className="w-full px-2 py-1  rounded-md items-center hover:bg-accent-background-hovered cursor-pointer transition-all duration-150 flex gap-x-2"
-                href="/chat/input-prompts"
-              >
-                <DocumentIcon2
-                  size={20}
-                  className="flex-none text-text-history-sidebar-button"
-                />
-                <p className="my-auto flex font-normal items-center text-base">
-                  Prompt Shortcuts
-                </p>
-              </Link>
-            )}
-          </div>
-        )}
+          )}
+        </div>
         <div className="h-full  relative overflow-x-hidden overflow-y-auto">
           <div className="flex px-4 font-normal text-sm gap-x-2 leading-normal text-text-500/80 dark:text-[#D4D4D4] items-center">
             Assistants
@@ -443,6 +430,10 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
             folders={folders}
           />
         </div>
+
+        {showAssistantsModal && (
+          <AssistantModal hideModal={() => setShowAssistantsModal(false)} />
+        )}
       </div>
     );
   }

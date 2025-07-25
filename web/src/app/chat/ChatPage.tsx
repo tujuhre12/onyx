@@ -2168,16 +2168,16 @@ export function ChatPage({
   // Used to maintain a "time out" for history sidebar so our existing refs can have time to process change
   const [loadingError, setLoadingError] = useState<string | null>(null);
 
-  const toggleSidebar = () => {
-    if (user?.is_anonymous_user) {
-      return;
-    }
-    Cookies.set(
-      SIDEBAR_TOGGLED_COOKIE_NAME,
-      String(!sidebarVisible).toLocaleLowerCase()
-    );
-    toggle();
-  };
+  // const toggleSidebar = () => {
+  //   if (user?.is_anonymous_user) {
+  //     return;
+  //   }
+  //   Cookies.set(
+  //     SIDEBAR_TOGGLED_COOKIE_NAME,
+  //     String(!sidebarVisible).toLocaleLowerCase()
+  //   );
+  //   toggle();
+  // };
 
   const waitForScrollRef = useRef(false);
 
@@ -2681,7 +2681,7 @@ export function ChatPage({
                       >
                         <div
                           onScroll={handleScroll}
-                          className={`w-full h-[calc(100vh-160px)] flex flex-col default-scrollbar overflow-y-auto overflow-x-hidden relative`}
+                          className={`w-full h-[calc(100vh-130px)] flex flex-col default-scrollbar overflow-y-auto overflow-x-hidden relative`}
                           ref={scrollableDivRef}
                         >
                           {liveAssistant && (
