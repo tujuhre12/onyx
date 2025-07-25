@@ -39,9 +39,11 @@ export default function MainPageFrame({ children }: MainPageFrameProps) {
           This is so that it can be a part of the seamless animation when opening/closing the sidebar.
         */}
         <div className="fixed top-[12px] left-[16px] z-30">
-          <CollapsibleLogo />
+          <Link href="chat">
+            <CollapsibleLogo />
+          </Link>
         </div>
-        <div className={`fixed top-0 w-full flex flex-1 justify-end z-50`}>
+        <div className={`fixed top-0 w-full flex flex-1 justify-end z-10`}>
           <Header />
         </div>
       </div>
