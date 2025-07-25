@@ -3283,7 +3283,7 @@ export function ChatPage({
                           </div>
                         )}
 
-                        <div className="pointer-events-auto mx-auto relative pb-4">
+                        <div className="pointer-events-auto mx-auto relative pb-10">
                           <ChatInputBar
                             proSearchEnabled={proSearchEnabled}
                             setProSearchEnabled={() => toggleProSearch()}
