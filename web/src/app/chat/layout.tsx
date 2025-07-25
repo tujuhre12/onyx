@@ -4,6 +4,7 @@ import { fetchChatData } from "@/lib/chat/fetchChatData";
 import { ChatProvider } from "@/components/context/ChatContext";
 import { SidebarProvider } from "@/components/context/SidebarProvider";
 import MainPageFrame from "@/components/frames/MainPageFrame";
+import { DocumentsProvider } from "./my-documents/DocumentsContext";
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -27,7 +28,6 @@ export default async function Layout({ children }: LayoutProps) {
   const {
     chatSessions,
     availableSources,
-    user,
     documentSets,
     tags,
     llmProviders,
@@ -62,7 +62,9 @@ export default async function Layout({ children }: LayoutProps) {
       }}
     >
       <SidebarProvider>
-        <MainPageFrame>{children}</MainPageFrame>
+        <DocumentsProvider>
+          <MainPageFrame>{children}</MainPageFrame>
+        </DocumentsProvider>
       </SidebarProvider>
     </ChatProvider>
   );

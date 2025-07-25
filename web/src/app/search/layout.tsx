@@ -1,14 +1,16 @@
 import { redirect } from "next/navigation";
-import AppWrapper from "@/app/AppWrapper";
 import { unstable_noStore as noStore } from "next/cache";
 import { fetchChatData } from "@/lib/chat/fetchChatData";
 import { ChatProvider } from "@/components/context/ChatContext";
+import MainPageFrame from "@/components/frames/MainPageFrame";
+import { SidebarProvider } from "@/components/context/SidebarProvider";
+import { DocumentsProvider } from "../chat/my-documents/DocumentsContext";
 
-export default async function Layout({
-  children,
-}: {
+type LayoutProps = {
   children: React.ReactNode;
-}) {
+};
+
+export default async function Layout({ children }: LayoutProps) {
   noStore();
 
   // Ensure searchParams is an object, even if it's empty
@@ -59,7 +61,11 @@ export default async function Layout({
         defaultAssistantId,
       }}
     >
-      <AppWrapper>{children}</AppWrapper>
+      <SidebarProvider>
+        <DocumentsProvider>
+          <MainPageFrame>{children}</MainPageFrame>
+        </DocumentsProvider>
+      </SidebarProvider>
     </ChatProvider>
   );
 }
