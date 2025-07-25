@@ -275,7 +275,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
             flex 
             flex-col relative
             h-screen
-            pt-4
+            pt-2
             transition-transform 
             `}
       >

@@ -13,7 +13,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Link from "next/link";
-import { UserDropdown } from "@/components/UserDropdown";
 import CollapsibleLogo from "../../logo/CollapsibleLogo";
 import { Header } from "./Header";
 
@@ -34,12 +33,17 @@ export default function MainPageFrame({ children }: MainPageFrameProps) {
 
   return (
     <div className="flex relative overflow-x-hidden overscroll-contain flex-col w-full h-screen">
-      {/* Header framing */}
-      <div className="z-50 fixed top-[16px] left-[16px]">
-        <CollapsibleLogo />
-      </div>
-      <div className="fixed top-0 w-full h-[200px]">
-        <Header />
+      <div className="flex flex-1 w-full">
+        {/* Header framing
+          Interestingly enough, the CollapsibleLogo is not a part of the Header.
+          This is so that it can be a part of the seamless animation when opening/closing the sidebar.
+        */}
+        <div className="fixed top-[12px] left-[16px] z-30">
+          <CollapsibleLogo />
+        </div>
+        <div className={`fixed top-0 w-full flex flex-1 justify-end z-50`}>
+          <Header />
+        </div>
       </div>
 
       {/* Sidebar framing */}
@@ -49,7 +53,7 @@ export default function MainPageFrame({ children }: MainPageFrameProps) {
           flex-none
           fixed
           left-0
-          z-30
+          z-20
           bg-background-100
           h-screen
           transition-all
