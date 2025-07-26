@@ -3,7 +3,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { fetchChatData } from "@/lib/chat/fetchChatData";
 import { ChatProvider } from "@/components/context/ChatContext";
 import { SidebarProvider } from "@/components/context/SidebarProvider";
-import MainPageFrame from "@/components/frames/MainPageFrame";
+import MainPageFrame from "@/components-2/MainPageFrame";
 import { DocumentsProvider } from "./my-documents/DocumentsContext";
 
 type LayoutProps = {

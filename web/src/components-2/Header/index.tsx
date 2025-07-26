@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { UserDropdown } from "@/components/UserDropdown";
 import { UserSettingsModal } from "@/app/chat/modal/UserSettingsModal";
 import { useChatContext } from "@/components/context/ChatContext";
@@ -14,25 +15,25 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDownIcon, SparkleIcon } from "@/components/icons/icons";
 import { useSidebar } from "@/components/context/SidebarProvider";
-import { MagnifyingIcon, ChatIcon } from "@/components/icons/icons";
+import {
+  MagnifyingIcon,
+  ChatIcon,
+  ChevronDownIcon,
+} from "@/components/icons/icons";
 
 const dropdownItems = [
-  {
-    title: "Auto",
-    description: "Automatic Search/Chat Mode",
-    icon: SparkleIcon,
-  },
   {
     title: "Search",
     description: "Quick Search for Documents",
     icon: MagnifyingIcon,
+    link: "/search",
   },
   {
     title: "Chat",
     description: "Conversation and Research with Follow-Up Questions",
     icon: ChatIcon,
+    link: "/chat",
   },
 ];
 
@@ -66,8 +67,22 @@ function DropdownItem({
 
 export function Header() {
   const [userSettingsOpen, setUserSettingsOpen] = useState(false);
-  const [selectedMode, setSelectedMode] = useState("Auto");
+  const [selectedMode, setSelectedMode] = useState<string>("");
   const { sidebarVisible } = useSidebar();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (pathname.startsWith("/chat")) {
+      setSelectedMode("Chat");
+    } else if (pathname.startsWith("/search")) {
+      setSelectedMode("Search");
+    } else {
+      throw new Error(
+        `Invalid URL prefix: ${pathname}. Expected /chat or /search`
+      );
+    }
+  }, [pathname]);
   const { llmProviders, ccPairs } = useChatContext();
   const { user } = useUser();
   const { popup, setPopup } = usePopup();
@@ -80,6 +95,14 @@ export function Header() {
 
   const toggleUserSettings = () => {
     setUserSettingsOpen(!userSettingsOpen);
+  };
+
+  const handleModeSelection = (mode: string) => {
+    setSelectedMode(mode);
+    const selectedItem = dropdownItems.find((item) => item.title === mode);
+    if (selectedItem?.link) {
+      router.push(selectedItem.link);
+    }
   };
 
   const selectedItem = dropdownItems.find(
@@ -107,7 +130,7 @@ export function Header() {
                   title={item.title}
                   description={item.description}
                   icon={item.icon}
-                  onClick={() => setSelectedMode(item.title)}
+                  onClick={() => handleModeSelection(item.title)}
                 />
               ))}
             </DropdownMenuContent>

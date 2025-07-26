@@ -6,8 +6,8 @@ import { useChatContext } from "@/components/context/ChatContext";
 import { useSidebar } from "@/components/context/SidebarProvider";
 import { useSidebarShortcut } from "@/lib/browserUtilities";
 import Link from "next/link";
-import CollapsibleLogo from "../../logo/CollapsibleLogo";
-import { Header } from "./Header";
+import { Header } from "@/components-2/Header";
+import CollapsibleLogo from "@/components/logo/CollapsibleLogo";
 
 interface MainPageFrameProps {
   children: React.ReactNode;
