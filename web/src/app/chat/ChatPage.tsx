@@ -1106,7 +1106,9 @@ export function ChatPage({
 
       // Check if all messages are currently rendered
       // If all messages are already rendered, scroll immediately
-      endDivRef.current.scrollIntoView({
+      // Use scrollTo instead of scrollIntoView to avoid viewport scrolling issues
+      scrollableDivRef.current.scrollTo({
+        top: scrollableDivRef.current.scrollHeight,
         behavior: fast ? "auto" : "smooth",
       });
 
@@ -2660,7 +2662,7 @@ export function ChatPage({
                     >
                       <div
                         onScroll={handleScroll}
-                        className={`w-full h-[calc(100vh-130px)] flex flex-col default-scrollbar overflow-y-auto overflow-x-hidden relative`}
+                        className={`w-full h-[calc(100vh-160px)] flex flex-col default-scrollbar overflow-y-auto overflow-x-hidden relative`}
                         ref={scrollableDivRef}
                       >
                         {/* ChatBanner is a custom banner that displays a admin-specified message at 
@@ -3283,7 +3285,7 @@ export function ChatPage({
                           </div>
                         )}
 
-                        <div className="pointer-events-auto mx-auto relative pb-10">
+                        <div className="pointer-events-auto mx-auto relative pb-6">
                           <ChatInputBar
                             proSearchEnabled={proSearchEnabled}
                             setProSearchEnabled={() => toggleProSearch()}
