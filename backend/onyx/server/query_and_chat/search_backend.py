@@ -18,7 +18,7 @@ logger = setup_logger()
 router = APIRouter(prefix="/search")
 
 
-@router.post("/send-search")
+@router.post("/send-query")
 def handle_new_search(
     search_request: SearchRequest,
     user: User | None = Depends(current_chat_accessible_user),
