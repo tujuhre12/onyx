@@ -59,6 +59,9 @@ from onyx.context.search.enums import QueryFlow
 from onyx.context.search.enums import SearchType
 from onyx.context.search.models import InferenceSection
 from onyx.context.search.models import RetrievalDetails
+from onyx.context.search.models import SavedSearchDoc
+from onyx.context.search.models import SearchRequest
+from onyx.context.search.pipeline import SearchPipeline
 from onyx.context.search.retrieval.search_runner import (
     inference_sections_from_ids,
 )
@@ -77,7 +80,7 @@ from onyx.db.chat import get_doc_query_identifiers_from_model
 from onyx.db.chat import get_or_create_root_message
 from onyx.db.chat import reserve_message_id
 from onyx.db.chat import translate_db_message_to_chat_message_detail
-from onyx.db.chat import translate_db_search_doc_to_server_search_doc
+from onyx.db.chat import translate_db_search_doc_to_saved_search_doc
 from onyx.db.chat import update_chat_session_updated_at_timestamp
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.db.milestone import check_multi_assistant_milestone
@@ -99,6 +102,7 @@ from onyx.file_store.utils import load_all_chat_files
 from onyx.file_store.utils import save_files
 from onyx.kg.models import KGException
 from onyx.llm.exceptions import GenAIDisabledException
+from onyx.llm.factory import get_default_llms
 from onyx.llm.factory import get_llms_for_persona
 from onyx.llm.factory import get_main_llm_from_tuple
 from onyx.llm.interfaces import LLM
@@ -159,12 +163,13 @@ from onyx.utils.timing import log_generator_function_time
 from shared_configs.contextvars import get_current_tenant_id
 
 logger = setup_logger()
-ERROR_TYPE_CANCELLED = "cancelled"
 
+ERROR_TYPE_CANCELLED = "cancelled"
 COMMON_TOOL_RESPONSE_TYPES = {
     "image": ChatFileType.IMAGE,
     "csv": ChatFileType.CSV,
 }
+SEARCH_REQUEST_LIMIT = 50
 
 
 class PartialResponse(Protocol):
@@ -253,7 +258,7 @@ def _handle_search_tool_response_summary(
                 reference_db_search_docs.append(db_doc)
 
     response_docs = [
-        translate_db_search_doc_to_server_search_doc(db_search_doc)
+        translate_db_search_doc_to_saved_search_doc(db_search_doc)
         for db_search_doc in reference_db_search_docs
     ]
 
@@ -291,7 +296,7 @@ def _handle_internet_search_tool_response_summary(
         for doc in server_search_docs
     ]
     response_docs = [
-        translate_db_search_doc_to_server_search_doc(db_search_doc)
+        translate_db_search_doc_to_saved_search_doc(db_search_doc)
         for db_search_doc in reference_db_search_docs
     ]
     return (
@@ -459,7 +464,7 @@ def _process_tool_response(
         llm_indices = relevant_sections_to_indices(
             relevance_sections=relevance_sections,
             items=[
-                translate_db_search_doc_to_server_search_doc(doc)
+                translate_db_search_doc_to_saved_search_doc(doc)
                 for doc in info.reference_db_search_docs
             ],
         )
@@ -520,6 +525,42 @@ def _process_tool_response(
             )
 
     return info_by_subq
+
+
+def _stream_search_result_objects(
+    db_session: Session,
+    user: User | None,
+    query: str,
+) -> Generator[SavedSearchDoc]:
+    llm, fast_llm = get_default_llms()
+
+    search_request = SearchRequest(
+        query=query,
+        limit=SEARCH_REQUEST_LIMIT,
+    )
+
+    search_pipeline = SearchPipeline(
+        db_session=db_session,
+        search_request=search_request,
+        user=user,
+        llm=llm,
+        fast_llm=fast_llm,
+        skip_query_analysis=True,
+    )
+
+    retrieved_sections = search_pipeline.merged_retrieved_sections
+
+    top_server_search_docs = chunks_or_sections_to_search_docs(retrieved_sections)
+    top_db_search_docs = (
+        create_db_search_doc(db_session=db_session, server_search_doc=server_search_doc)
+        for server_search_doc in top_server_search_docs
+    )
+    top_saved_search_docs = (
+        translate_db_search_doc_to_saved_search_doc(db_search_doc)
+        for db_search_doc in top_db_search_docs
+    )
+
+    yield from top_saved_search_docs
 
 
 def stream_chat_message_objects(
@@ -1228,6 +1269,23 @@ def _post_llm_answer_processing(
 
         # Frontend will erase whatever answer and show this instead
         yield StreamingError(error="Failed to parse LLM output")
+
+
+@log_generator_function_time()
+def stream_search_results(
+    query: str,
+    user: User | None,
+) -> Generator[str]:
+    start_time = time.time()
+
+    with get_session_with_current_tenant() as db_session:
+        for saved_search_doc in _stream_search_result_objects(
+            db_session=db_session, query=query, user=user
+        ):
+            document_retrieval_latency = time.time() - start_time
+            logger.debug(f"Doc retrieval time: {document_retrieval_latency=}")
+
+            yield get_json_line(saved_search_doc.model_dump())
 
 
 @log_generator_function_time()
