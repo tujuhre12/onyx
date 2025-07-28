@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLlmManager } from "@/lib/hooks";
 import { OnyxLogoTypeIcon } from "@/components/icons/icons";
 import SearchInputBar from "@/components-2/Search/SearchInputBar";
@@ -14,18 +15,40 @@ type PageProps = {
   searchParams: Promise<{ [key: string]: string }>;
 };
 
-export default function Page({}: PageProps) {
+export default function Page(_props: PageProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryParam = searchParams?.get("query");
+
+  // We only display the "starting page" when we have no query parameter set.
+  // Otherwise, we display the results.
+  const shouldDisplayStartingPage = queryParam === null;
+
+  // Initialize query from URL parameter
+  const [query, setQuery] = useState<string | null>(queryParam);
   const [searchResults, setSearchResults] = useState<SavedSearchDoc[]>([]);
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const { llmProviders } = useChatContext();
   const llmManager = useLlmManager(llmProviders);
 
-  const handleSubmit = async () => {
-    if (!searchInputRef.current) {
+  // Sync query state with URL parameter changes
+  useEffect(() => {
+    if (queryParam !== query) {
+      setQuery(queryParam);
+      if (queryParam) {
+        handleSubmit(queryParam);
+      }
+    }
+  }, [searchParams]);
+
+  const handleSubmit = async (searchQuery: string) => {
+    if (!searchQuery) {
       return;
     }
 
-    const message = searchInputRef.current.value;
+    // Update URL with the query parameter
+    const newSearchParams = new URLSearchParams(searchParams?.toString() || "");
+    newSearchParams.set("query", searchQuery);
+    router.push(`/search?${newSearchParams.toString()}`);
 
     setSearchResults([]);
 
@@ -45,7 +68,7 @@ export default function Page({}: PageProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          query: message.trim(),
+          query: searchQuery.trim(),
           llm_override,
         }),
       });
@@ -84,7 +107,6 @@ export default function Page({}: PageProps) {
 
               const searchDoc = data as SavedSearchDoc;
               setSearchResults((prev) => [...prev, searchDoc]);
-              console.log("Search result:", searchDoc);
             } catch (e) {
               console.warn("Failed to parse streaming data:", line);
             }
@@ -96,38 +118,50 @@ export default function Page({}: PageProps) {
     }
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    if (searchInputRef.current) {
-      searchInputRef.current.value = suggestion;
-      handleSubmit();
+  const handleSearchSubmit = () => {
+    if (query) {
+      handleSubmit(query);
     }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setQuery(suggestion);
+    handleSubmit(suggestion);
+  };
+
+  const handleClear = () => {
+    setQuery(null);
   };
 
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-background">
       <div className="w-full px-4 flex flex-col items-center justify-center h-full overflow-y-scroll">
         {/* Onyx Logo */}
-        <div className="flex justify-center pb-8 flex-shrink-0">
-          <OnyxLogoTypeIcon size={200} />
-        </div>
+        {shouldDisplayStartingPage && (
+          <div className="flex justify-center pb-8 flex-shrink-0">
+            <OnyxLogoTypeIcon size={200} />
+          </div>
+        )}
 
         {/* Search Bar */}
-        <div className="w-full max-w-2xl flex-shrink-0">
-          <SearchInputBar onSubmit={handleSubmit} ref={searchInputRef} />
-          <div className="w-full pt-6 flex-shrink-0">
-            <SearchSuggestions onSuggestionClick={handleSuggestionClick} />
-          </div>
+        <div className="w-full max-w-3xl">
+          <SearchInputBar
+            onSubmit={handleSearchSubmit}
+            value={query}
+            onChange={setQuery}
+            onClear={handleClear}
+          />
+          {shouldDisplayStartingPage && (
+            <div className="w-full pt-6 flex-shrink-0">
+              <SearchSuggestions onSuggestionClick={handleSuggestionClick} />
+            </div>
+          )}
         </div>
 
         {/* Search Results */}
-        {searchResults.length > 0 && (
-          <div className="w-full max-w-3xl p-4 flex-1 min-h-0 flex flex-col">
-            <div className="flex flex-col py-3 gap-y-4 flex-shrink-0">
-              {/* Title */}
-              <h2 className="px-5 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Search Results ({searchResults.length})
-              </h2>
-            </div>
+        {!shouldDisplayStartingPage && (
+          <div className="w-full max-w-3xl p-1 flex-1 min-h-0 flex flex-col">
+            <div className="flex flex-col py-3 gap-y-4 flex-shrink-0"></div>
 
             <Separator />
 

@@ -24,16 +24,16 @@ import {
 
 const dropdownItems = [
   {
-    title: "Search",
-    description: "Quick Search for Documents",
-    icon: MagnifyingIcon,
-    link: "/search",
-  },
-  {
     title: "Chat",
     description: "Conversation and Research with Follow-Up Questions",
     icon: ChatIcon,
     link: "/chat",
+  },
+  {
+    title: "Search",
+    description: "Quick Search for Documents",
+    icon: MagnifyingIcon,
+    link: "/search",
   },
 ];
 
