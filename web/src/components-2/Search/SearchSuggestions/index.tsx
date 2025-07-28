@@ -47,16 +47,16 @@ export default function SearchSuggestions({
           align: "start",
           loop: true,
         }}
-        plugins={[Autoplay({ delay: DELAY_MS, stopOnInteraction: false })]}
+        plugins={[Autoplay({ delay: DELAY_MS, stopOnInteraction: true })]}
       >
-        <CarouselContent className="h-[180px]">
+        <CarouselContent className="h-44">
           {suggestions.map((suggestion, index) => (
             <CarouselItem key={index} className="-mt-4 basis-1/4">
               <div
                 className="p-2 rounded-md hover:bg-gray-100 cursor-pointer transition-colors"
                 onClick={() => onSuggestionClick?.(suggestion)}
               >
-                <span className="text-sm text-neutral-400">{suggestion}</span>
+                <span className="text-sm text-neutral-500">{suggestion}</span>
               </div>
             </CarouselItem>
           ))}
