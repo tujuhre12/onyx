@@ -532,12 +532,11 @@ def _stream_search_result_objects(
     user: User | None,
     query: str,
 ) -> Generator[SavedSearchDoc]:
-    llm, fast_llm = get_default_llms()
-
     search_request = SearchRequest(
         query=query,
         limit=SEARCH_REQUEST_LIMIT,
     )
+    llm, fast_llm = get_default_llms()
 
     search_pipeline = SearchPipeline(
         db_session=db_session,

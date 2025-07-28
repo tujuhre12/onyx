@@ -80,7 +80,7 @@ export default function MainPageFrame({ children }: MainPageFrameProps) {
         </div>
         {/* Main content framing */}
         <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out ${sidebarPinned ? "pl-[250px]" : ""}`}
+          className={`overflow-hidden transition-all duration-300 ease-in-out flex flex-1 justify-center ${sidebarPinned ? "pl-[250px]" : ""}`}
         >
           {children}
         </div>

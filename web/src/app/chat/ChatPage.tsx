@@ -2587,7 +2587,7 @@ export function ChatPage({
         <AssistantModal hideModal={() => setShowAssistantsModal(false)} />
       )}
 
-      <div className="flex flex-col text-text-dark">
+      <div className="flex flex-col text-text-dark w-full">
         <div className="h-[100dvh] overflow-y-hidden">
           <div
             style={{ transition: "width 0.30s ease-out" }}
@@ -3298,7 +3298,7 @@ export function ChatPage({
                             </div>
                           )}
 
-                          <div className="pointer-events-auto w-[95%] mx-auto relative pb-20">
+                          <div className="pointer-events-auto w-[95%] mx-auto relative pb-10">
                             <ChatInputBar
                               proSearchEnabled={proSearchEnabled}
                               setProSearchEnabled={() => toggleProSearch()}
