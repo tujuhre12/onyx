@@ -46,8 +46,9 @@ export default function SearchSuggestions({
         opts={{
           align: "start",
           loop: true,
+          watchDrag: false,
         }}
-        plugins={[Autoplay({ delay: DELAY_MS, stopOnInteraction: true })]}
+        plugins={[Autoplay({ delay: DELAY_MS, stopOnInteraction: false })]}
       >
         <CarouselContent className="h-44">
           {suggestions.map((suggestion, index) => (
