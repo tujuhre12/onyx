@@ -324,3 +324,4 @@ class CreateChatResponse(BaseModel):
 
 class SearchRequest(BaseModel):
     query: str
+    llm_override: LLMOverride | None = None

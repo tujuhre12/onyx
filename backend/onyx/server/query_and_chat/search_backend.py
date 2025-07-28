@@ -27,7 +27,7 @@ def handle_new_search(
     def stream_generator() -> Generator[str, None, None]:
         try:
             for packet in stream_search_results(
-                query=search_request.query,
+                api_search_request=search_request,
                 user=user,
             ):
                 yield packet

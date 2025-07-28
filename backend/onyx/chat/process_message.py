@@ -102,7 +102,6 @@ from onyx.file_store.utils import load_all_chat_files
 from onyx.file_store.utils import save_files
 from onyx.kg.models import KGException
 from onyx.llm.exceptions import GenAIDisabledException
-from onyx.llm.factory import get_default_llms
 from onyx.llm.factory import get_llms_for_persona
 from onyx.llm.factory import get_main_llm_from_tuple
 from onyx.llm.interfaces import LLM
@@ -111,6 +110,7 @@ from onyx.llm.utils import litellm_exception_to_error_msg
 from onyx.natural_language_processing.utils import get_tokenizer
 from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.models import CreateChatMessageRequest
+from onyx.server.query_and_chat.models import SearchRequest as ApiSearchRequest
 from onyx.server.utils import get_json_line
 from onyx.tools.force import ForceUseTool
 from onyx.tools.models import SearchToolOverrideKwargs
@@ -530,13 +530,17 @@ def _process_tool_response(
 def _stream_search_result_objects(
     db_session: Session,
     user: User | None,
-    query: str,
+    api_search_request: ApiSearchRequest,
 ) -> Generator[SavedSearchDoc]:
     search_request = SearchRequest(
-        query=query,
+        query=api_search_request.query,
         limit=SEARCH_REQUEST_LIMIT,
     )
-    llm, fast_llm = get_default_llms()
+
+    llm, fast_llm = get_llms_for_persona(
+        persona=None,
+        llm_override=api_search_request.llm_override,
+    )
 
     search_pipeline = SearchPipeline(
         db_session=db_session,
@@ -1272,14 +1276,14 @@ def _post_llm_answer_processing(
 
 @log_generator_function_time()
 def stream_search_results(
-    query: str,
+    api_search_request: ApiSearchRequest,
     user: User | None,
 ) -> Generator[str]:
     start_time = time.time()
 
     with get_session_with_current_tenant() as db_session:
         for saved_search_doc in _stream_search_result_objects(
-            db_session=db_session, query=query, user=user
+            db_session=db_session, user=user, api_search_request=api_search_request
         ):
             document_retrieval_latency = time.time() - start_time
             logger.debug(f"Doc retrieval time: {document_retrieval_latency=}")
