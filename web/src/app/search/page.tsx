@@ -17,10 +17,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
 import { FiX } from "react-icons/fi";
+import { Calendar } from "lucide-react";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { getXDaysAgo } from "@/components/dateRangeSelectors/dateUtils";
+import { Separator } from "@/components/ui/separator";
 
 type PageProps = {
   searchParams: Promise<{ [key: string]: string }>;
 };
+
+type DateRange =
+  | {
+      from: Date;
+      to: Date;
+    }
+  | undefined;
 
 export default function Page(props: PageProps) {
   const [message, setMessage] = useState("");
@@ -29,10 +49,46 @@ export default function Page(props: PageProps) {
   const [selectedSourceType, setSelectedSourceType] = useState<string | null>(
     null
   );
+  const [dateRange, setDateRange] = useState<DateRange>(undefined);
 
   const { llmProviders } = useChatContext();
   const llmManager: LlmManager = useLlmManager(llmProviders);
   const filterManager = useFilters();
+
+  // Helper function to check if a date falls within the selected range
+  const isDateInRange = (dateString: string | null): boolean => {
+    if (!dateString || !dateRange) return true;
+
+    const date = new Date(dateString);
+    const from = dateRange.from;
+    const to = dateRange.to;
+
+    return date >= from && date <= to;
+  };
+
+  const presets = [
+    {
+      label: "Last 30 days",
+      value: {
+        from: getXDaysAgo(30),
+        to: getXDaysAgo(0),
+      },
+    },
+    {
+      label: "Last 7 days",
+      value: {
+        from: getXDaysAgo(7),
+        to: getXDaysAgo(0),
+      },
+    },
+    {
+      label: "Today",
+      value: {
+        from: getXDaysAgo(1),
+        to: getXDaysAgo(0),
+      },
+    },
+  ];
 
   const handleSubmit = async () => {
     if (!message.trim()) {
@@ -137,20 +193,20 @@ export default function Page(props: PageProps) {
 
         {/* Search Results */}
         {searchResults.length > 0 && (
-          <div className="w-full max-w-3xl pt-4 flex-1 min-h-0 flex flex-col">
-            <div className="flex flex-col py-3 gap-y-2 flex-shrink-0">
+          <div className="w-full max-w-3xl p-4 flex-1 min-h-0 flex flex-col">
+            <div className="flex flex-col py-3 gap-y-4 flex-shrink-0">
               {/* Title */}
               <h2 className="px-5 text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Search Results ({searchResults.length})
               </h2>
 
               {/* Filter Buttons */}
-              <div className="px-2 flex items-center justify-between">
+              <div className="px-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {/* Source Type Filter */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="py-2 px-3 text-sm text-neutral-700 dark:text-neutral-300 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors flex items-center gap-2">
+                      <Button variant="outline">
                         {selectedSourceType ? (
                           <>
                             {listSourceMetadata().find(
@@ -170,7 +226,7 @@ export default function Page(props: PageProps) {
                           "All Sources"
                         )}
                         <ChevronDown className="h-4 w-4" />
-                      </button>
+                      </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem
@@ -200,27 +256,89 @@ export default function Page(props: PageProps) {
                         .filter(Boolean)}
                     </DropdownMenuContent>
                   </DropdownMenu>
+
+                  {/* Date Range Filter */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline">
+                        <CalendarIcon className="h-4 w-4" />
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "LLL dd, y")} -{" "}
+                              {format(dateRange.to, "LLL dd, y")}
+                            </>
+                          ) : (
+                            format(dateRange.from, "LLL dd, y")
+                          )
+                        ) : (
+                          <span>All Dates</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={(range) => {
+                          if (range?.from) {
+                            if (range.to) {
+                              // Normal range selection when initialized with a range
+                              setDateRange({ from: range.from, to: range.to });
+                            } else {
+                              // Single date selection when initilized without a range
+                              const to = new Date(range.from);
+                              const from = new Date(
+                                to.setDate(to.getDate() - 1)
+                              );
+                              setDateRange({ from, to });
+                            }
+                          }
+                        }}
+                        numberOfMonths={2}
+                      />
+                      <div className="border-t p-3">
+                        {presets.map((preset) => (
+                          <Button
+                            key={preset.label}
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setDateRange(preset.value);
+                            }}
+                          >
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {/* Clear Button */}
                 <button
                   className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-                  onClick={() => setSelectedSourceType(null)}
+                  onClick={() => {
+                    setSelectedSourceType(null);
+                    setDateRange(undefined);
+                  }}
                 >
                   <FiX size={16} />
                 </button>
               </div>
             </div>
 
-            {/* Border */}
-            <div className="border-t border-neutral-600 pb-2 flex-shrink-0" />
+            <Separator />
 
             <div className="flex-1">
               {searchResults
                 .filter(
                   (doc) =>
-                    !selectedSourceType ||
-                    doc.source_type === selectedSourceType
+                    (!selectedSourceType ||
+                      doc.source_type === selectedSourceType) &&
+                    isDateInRange(doc.updated_at)
                 )
                 .map((doc, index) => (
                   <div key={index}>
