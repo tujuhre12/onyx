@@ -1,3 +1,4 @@
+import { OnyxDocument } from "@/lib/search/interfaces";
 import { ValidSources } from "@/lib/types";
 
 // Base interface for all streaming objects
@@ -63,7 +64,7 @@ export interface ToolStart extends BaseObj {
 
 export interface ToolDelta extends BaseObj {
   type: "tool_delta";
-  documents: LlmDoc[] | null;
+  documents: OnyxDocument[] | null;
   images: Array<{ [key: string]: string }> | null;
 }
 

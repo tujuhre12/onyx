@@ -17,9 +17,9 @@ import {
 import { useRef, useState } from "react";
 import { copyAll, handleCopy } from "../copyingUtils";
 import RegenerateOption from "../../components/RegenerateOption";
-import { FiChevronDown, FiChevronUp, FiTool } from "react-icons/fi";
 import { MessageSwitcher } from "../MessageSwitcher";
 import { BlinkingDot } from "../BlinkingDot";
+import { STANDARD_TEXT_COLOR } from "./constants";
 
 // Multi-tool renderer component for grouped tools
 function MultiToolRenderer({
@@ -29,8 +29,6 @@ function MultiToolRenderer({
   packets: Packet[];
   chatState: FullChatState;
 }) {
-  const [isExpanded, setIsExpanded] = useState(true);
-
   // Group packets by tool instance (consecutive tool start/delta/end sequences)
   const toolGroups: Packet[][] = [];
   let currentGroup: Packet[] = [];
@@ -53,96 +51,58 @@ function MultiToolRenderer({
     toolGroups.push(currentGroup);
   }
 
-  const toggleExpanded = () => setIsExpanded(!isExpanded);
-
-  // Get summary information
-  const totalTools = toolGroups.length;
-  const toolTypes = new Set(
-    toolGroups.map((group) => {
-      const startPacket = group.find(
-        (p) => p.obj.type === PacketType.TOOL_START
-      );
-      return startPacket ? (startPacket.obj as any).tool_name : "unknown";
-    })
-  );
-
-  // Check if any tool is still in progress
-  const hasActiveTools = toolGroups.some((group) => {
-    const hasStart = group.some((p) => p.obj.type === PacketType.TOOL_START);
-    const hasEnd = group.some((p) => p.obj.type === PacketType.TOOL_END);
-    return hasStart && !hasEnd;
-  });
+  // Previously we computed summary details for a header that has been removed
 
   return (
-    <div className="mb-3">
-      {/* Header */}
-      <div
-        className="flex items-center justify-between py-2 px-3 border border-gray-200 dark:border-gray-700 rounded-t cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        onClick={toggleExpanded}
-      >
-        <div className="flex items-center gap-2">
-          <FiTool className="w-3 h-3 text-gray-600 dark:text-gray-400" />
-          <div>
-            <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300">
-              {totalTools} tool{totalTools !== 1 ? "s" : ""} used
-              {toolTypes.size > 1 && (
-                <span className="text-gray-500">
-                  {" "}
-                  • {Array.from(toolTypes).join(", ")}
-                </span>
-              )}
-              {hasActiveTools && (
-                <span className="ml-2 inline-flex items-center">
-                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-pulse"></div>
-                  <span className="ml-1 text-blue-600 dark:text-blue-400">
-                    Active
-                  </span>
-                </span>
-              )}
-            </h3>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-gray-500 dark:text-gray-500">
-            {isExpanded ? "Hide" : "Show"}
-          </span>
-          {isExpanded ? (
-            <FiChevronUp className="w-3 h-3 text-gray-500" />
-          ) : (
-            <FiChevronDown className="w-3 h-3 text-gray-500" />
-          )}
-        </div>
-      </div>
+    <div className="mb-4 relative border border-border-sidebar-border rounded-lg p-4">
+      <div className="relative">
+        {/* Tool items */}
+        <div>
+          {toolGroups.map((toolGroup, index) => {
+            const [icon, content] = renderMessageComponent(
+              { packets: toolGroup },
+              chatState
+            );
 
-      {/* Expandable content */}
-      {isExpanded && (
-        <div className="border-l border-r border-b border-gray-200 dark:border-gray-700 rounded-b bg-white dark:bg-gray-900">
-          <div className="p-4">
-            {toolGroups.map((toolGroup, index) => (
+            const finalIcon = icon ? icon({ size: 14 }) : null;
+            const isLastItem = index === toolGroups.length - 1;
+
+            return (
               <div key={index} className="relative">
-                {/* Connecting line (except for the last item) */}
-                {index < toolGroups.length - 1 && (
-                  <div className="absolute left-4 top-full w-px h-4 bg-gray-300 dark:bg-gray-600 z-10"></div>
+                {/* Connector line drawn BEFORE content so it's behind everything */}
+                {!isLastItem && (
+                  <div
+                    className="absolute w-px bg-gray-300 dark:bg-gray-600 z-0"
+                    style={{
+                      left: "10px", // Half of icon width (20px / 2)
+                      top: "20px", // Below icon (h-5 = 20px)
+                      bottom: "0", // Stop at the bottom of this container, not beyond
+                    }}
+                  />
                 )}
 
-                {/* Tool content */}
-                <div className="relative">
-                  {/* Tool indicator dot */}
-                  <div className="absolute -left-1 top-3 w-2 h-2 bg-blue-500 rounded-full border-2 border-white dark:border-gray-900 z-20"></div>
+                {/* Main row with icon and content */}
+                <div
+                  className={`flex items-start gap-2 ${STANDARD_TEXT_COLOR} relative z-10`}
+                >
+                  {/* Icon column */}
+                  <div className="flex flex-col items-center w-5">
+                    {/* Icon with background to cover the line */}
+                    <div className="flex-shrink-0 flex items-center justify-center w-5 h-5 bg-background rounded-full">
+                      {finalIcon}
+                    </div>
+                  </div>
 
-                  {/* Tool content with left margin for the connection line */}
-                  <div className="ml-6">
-                    {renderMessageComponent({ packets: toolGroup }, chatState)}
+                  {/* Content with padding */}
+                  <div className={`flex-1 ${!isLastItem ? "pb-3" : ""}`}>
+                    {content}
                   </div>
                 </div>
-
-                {/* Spacing between tools */}
-                {index < toolGroups.length - 1 && <div className="h-4"></div>}
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -225,9 +185,10 @@ export function SimpleMessage({
     const sortedEntries = Array.from(groupedChatPacketsByInd.entries()).sort(
       ([a], [b]) => a - b
     );
+    console.log("sortedEntries", sortedEntries);
     const smartGroups: {
       packets: Packet[];
-      isMultiTool: boolean;
+      isToolGroup: boolean;
       inds: number[];
     }[] = [];
     let currentToolGroup: { packets: Packet[]; inds: number[] } | null = null;
@@ -249,7 +210,7 @@ export function SimpleMessage({
         if (currentToolGroup) {
           smartGroups.push({
             packets: currentToolGroup.packets,
-            isMultiTool: currentToolGroup.inds.length > 1,
+            isToolGroup: true,
             inds: currentToolGroup.inds,
           });
           currentToolGroup = null;
@@ -257,7 +218,7 @@ export function SimpleMessage({
         // Add the non-tool group
         smartGroups.push({
           packets,
-          isMultiTool: false,
+          isToolGroup: false,
           inds: [ind],
         });
       }
@@ -267,7 +228,7 @@ export function SimpleMessage({
     if (currentToolGroup) {
       smartGroups.push({
         packets: currentToolGroup.packets,
-        isMultiTool: currentToolGroup.inds.length > 1,
+        isToolGroup: true,
         inds: currentToolGroup.inds,
       });
     }
@@ -276,6 +237,7 @@ export function SimpleMessage({
   };
 
   const smartGroups = createSmartGroups();
+  console.log("smartGroups", smartGroups);
 
   // Check if streaming is complete (has STOP packet)
   const isStreamingComplete = rawPackets.some(
@@ -328,21 +290,26 @@ export function SimpleMessage({
                         // Show blinking dot when no content yet but message is generating
                         <BlinkingDot />
                       ) : (
-                        smartGroups.map((group, index) => (
-                          <div key={group.inds.join("-")}>
-                            {group.isMultiTool ? (
-                              <MultiToolRenderer
-                                packets={group.packets}
-                                chatState={chatState}
-                              />
-                            ) : (
-                              renderMessageComponent(
-                                { packets: group.packets },
-                                chatState
-                              )
-                            )}
-                          </div>
-                        ))
+                        smartGroups.map((group, index) => {
+                          if (group.isToolGroup) {
+                            return (
+                              <div key={group.inds.join("-")}>
+                                <MultiToolRenderer
+                                  packets={group.packets}
+                                  chatState={chatState}
+                                />
+                              </div>
+                            );
+                          } else {
+                            const [_, content] = renderMessageComponent(
+                              { packets: group.packets },
+                              chatState
+                            );
+                            return (
+                              <div key={group.inds.join("-")}>{content}</div>
+                            );
+                          }
+                        })
                       )}
                     </div>
                   </div>

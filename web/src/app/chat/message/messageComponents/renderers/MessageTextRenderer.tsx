@@ -18,10 +18,11 @@ import { extractCodeText, preprocessLaTeX } from "../../codeUtils";
 import { CodeBlock } from "../../CodeBlock";
 import { transformLinkUri } from "@/lib/utils";
 
-export const MessageTextRenderer: MessageRenderer<
-  ChatPacket,
-  FullChatState
-> = ({ packets, state }: { packets: ChatPacket[]; state: FullChatState }) => {
+// New component that properly uses hooks
+export const MessageTextComponent: React.FC<{
+  packets: ChatPacket[];
+  state: FullChatState;
+}> = ({ packets, state }) => {
   const content = packets
     .map((packet) => {
       if (
@@ -108,4 +109,11 @@ export const MessageTextRenderer: MessageRenderer<
       {processedContent}
     </ReactMarkdown>
   );
+};
+
+export const MessageTextRenderer: MessageRenderer<
+  ChatPacket,
+  FullChatState
+> = ({ packets, state }: { packets: ChatPacket[]; state: FullChatState }) => {
+  return [null, <MessageTextComponent packets={packets} state={state} />];
 };
