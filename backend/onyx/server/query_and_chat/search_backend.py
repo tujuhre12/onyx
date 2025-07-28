@@ -40,3 +40,22 @@ def handle_new_search(
             logger.debug("Stream generator finished")
 
     return StreamingResponse(stream_generator(), media_type="text/event-stream")
+
+
+@router.get("/suggestions")
+def get_search_suggestions(
+    user: User | None = Depends(current_chat_accessible_user),
+) -> list[str]:
+    """Get search suggestions for the user"""
+
+    # Static for now.
+    return [
+        "How to configure authentication?",
+        "What are the best practices for deployment?",
+        "How to integrate with external APIs?",
+        "Troubleshooting common issues",
+        "Performance optimization tips",
+        "Security best practices",
+        "Database migration guide",
+        "API documentation examples",
+    ]
