@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { ChatState } from "@/app/chat/types";
-import { LlmManager, useLlmManager, useFilters } from "@/lib/hooks";
+import { useLlmManager, useFilters } from "@/lib/hooks";
 import { OnyxLogoTypeIcon } from "@/components/icons/icons";
 import SearchInputBar from "@/components-2/SearchBar";
 import { useChatContext } from "@/components/context/ChatContext";
@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
 import { FiX } from "react-icons/fi";
-import { Calendar } from "lucide-react";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Popover,
@@ -52,7 +51,7 @@ export default function Page(props: PageProps) {
   const [dateRange, setDateRange] = useState<DateRange>(undefined);
 
   const { llmProviders } = useChatContext();
-  const llmManager: LlmManager = useLlmManager(llmProviders);
+  const llmManager = useLlmManager(llmProviders);
   const filterManager = useFilters();
 
   // Helper function to check if a date falls within the selected range
