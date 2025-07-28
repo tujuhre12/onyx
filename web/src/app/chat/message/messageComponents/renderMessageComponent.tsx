@@ -15,6 +15,7 @@ import { FullChatState } from "./interfaces";
 import { MessageTextRenderer } from "./renderers/MessageTextRenderer";
 import { SearchToolRenderer } from "./renderers/SearchToolRenderer";
 import { ImageToolRenderer } from "./renderers/ImageToolRenderer";
+import { IconType } from "react-icons";
 
 // Different types of chat packets using discriminated unions
 export interface GroupedPackets {
@@ -46,38 +47,34 @@ function isImageToolPacket(packet: Packet): packet is ToolPacket {
 export function renderMessageComponent(
   groupedPackets: GroupedPackets,
   fullChatState: FullChatState
-) {
+): [IconType | null, JSX.Element] {
   if (!groupedPackets.packets || !groupedPackets.packets[0]) {
-    return null;
+    return [null, <></>];
   }
 
   console.log("groupedPackets", groupedPackets);
 
+  let rendererResult: [IconType | null, JSX.Element] = [null, <></>];
   if (groupedPackets.packets.some((packet) => isChatPacket(packet))) {
-    return (
-      <MessageTextRenderer
-        packets={groupedPackets.packets as ChatPacket[]}
-        state={fullChatState}
-      />
-    );
+    rendererResult = MessageTextRenderer({
+      packets: groupedPackets.packets as ChatPacket[],
+      state: fullChatState,
+    });
   } else if (
     groupedPackets.packets.some((packet) => isSearchToolPacket(packet))
   ) {
-    return (
-      <SearchToolRenderer
-        packets={groupedPackets.packets as ToolPacket[]}
-        state={fullChatState}
-      />
-    );
+    rendererResult = SearchToolRenderer({
+      packets: groupedPackets.packets as ToolPacket[],
+      state: fullChatState,
+    });
   } else if (
     groupedPackets.packets.some((packet) => isImageToolPacket(packet))
   ) {
-    return (
-      <ImageToolRenderer
-        packets={groupedPackets.packets as ToolPacket[]}
-        state={fullChatState}
-      />
-    );
+    rendererResult = ImageToolRenderer({
+      packets: groupedPackets.packets as ToolPacket[],
+      state: fullChatState,
+    });
   }
-  return null;
+
+  return rendererResult;
 }

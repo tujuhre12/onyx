@@ -50,22 +50,24 @@ def create_simplified_packets_for_message(
             )
             llm_docs.append(llm_doc)
 
-        # Start search tool
-        search_tool_start = ToolStart(
-            tool_name="search",
-            tool_icon="search",
-            tool_main_description=f"Searching for: {message.rephrased_query or ''}",
-        )
-        packets.append(Packet(ind=current_index, obj=search_tool_start))
+        # TODO: remove
+        for _ in range(7):
+            # Start search tool
+            search_tool_start = ToolStart(
+                tool_name="search",
+                tool_icon="search",
+                tool_main_description=f"{message.rephrased_query or ''}",
+            )
+            packets.append(Packet(ind=current_index, obj=search_tool_start))
 
-        # Send search results via tool delta
-        search_tool_delta = ToolDelta(documents=llm_docs)
-        packets.append(Packet(ind=current_index, obj=search_tool_delta))
+            # Send search results via tool delta
+            search_tool_delta = ToolDelta(documents=llm_docs)
+            packets.append(Packet(ind=current_index, obj=search_tool_delta))
 
-        # End search tool
-        search_tool_end = ToolEnd()
-        packets.append(Packet(ind=current_index, obj=search_tool_end))
-        current_index += 1
+            # End search tool
+            search_tool_end = ToolEnd()
+            packets.append(Packet(ind=current_index, obj=search_tool_end))
+            current_index += 1
 
     # Create ImageTool packets if there are image files
     if message.files:

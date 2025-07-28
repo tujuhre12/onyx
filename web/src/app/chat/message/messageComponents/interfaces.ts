@@ -4,6 +4,7 @@ import { Packet } from "../../services/streamingModels";
 import { OnyxDocument, MinimalOnyxDocument } from "@/lib/search/interfaces";
 import { FileResponse } from "../../my-documents/DocumentsContext";
 import { LlmDescriptor } from "@/lib/hooks";
+import { IconType } from "react-icons";
 
 export interface FullChatState {
   handleFeedback: (feedback: FeedbackType) => void;
@@ -29,4 +30,7 @@ interface MessageRendererProps<
 export type MessageRenderer<
   T extends Packet,
   S extends Partial<FullChatState>,
-> = ({ packets, state }: MessageRendererProps<T, S>) => JSX.Element;
+> = ({
+  packets,
+  state,
+}: MessageRendererProps<T, S>) => [IconType | null, JSX.Element];
