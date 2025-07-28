@@ -98,6 +98,16 @@ export default function Page(props: PageProps) {
     setSearchResults([]);
 
     try {
+      // Construct llm_override from llmManager
+      const llm_override =
+        llmManager.currentLlm.modelName || llmManager.temperature
+          ? {
+              temperature: llmManager.temperature,
+              model_provider: llmManager.currentLlm.provider,
+              model_version: llmManager.currentLlm.modelName,
+            }
+          : null;
+
       const response = await fetch("/api/search/send-query", {
         method: "POST",
         headers: {
@@ -105,6 +115,7 @@ export default function Page(props: PageProps) {
         },
         body: JSON.stringify({
           query: message.trim(),
+          llm_override,
         }),
       });
 
