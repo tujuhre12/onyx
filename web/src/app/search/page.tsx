@@ -206,7 +206,13 @@ export default function Page(props: PageProps) {
                   {/* Source Type Filter */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline">
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          selectedSourceType &&
+                            "border-blue-500 ring-1 ring-blue-500"
+                        )}
+                      >
                         {selectedSourceType ? (
                           <>
                             {listSourceMetadata().find(
@@ -260,7 +266,12 @@ export default function Page(props: PageProps) {
                   {/* Date Range Filter */}
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline">
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          dateRange && "border-blue-500 ring-1 ring-blue-500"
+                        )}
+                      >
                         <CalendarIcon className="h-4 w-4" />
                         {dateRange?.from ? (
                           dateRange.to ? (
@@ -319,7 +330,12 @@ export default function Page(props: PageProps) {
 
                 {/* Clear Button */}
                 <button
-                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                  className={cn(
+                    "p-2 transition-colors",
+                    selectedSourceType || dateRange
+                      ? "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                      : "text-gray-300 dark:text-gray-600"
+                  )}
                   onClick={() => {
                     setSelectedSourceType(null);
                     setDateRange(undefined);
