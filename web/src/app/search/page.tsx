@@ -170,6 +170,11 @@ export default function Page(_props: PageProps) {
     newSearchParams.set("query", searchQuery);
     router.push(`/search?${newSearchParams.toString()}`);
 
+    // Clear all filters when starting a new search
+    setDateRange(undefined);
+    setSelectedPrimaryOwner(null);
+    setSelectedTag(null);
+
     setSearchResults([]);
 
     try {
