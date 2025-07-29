@@ -19,4 +19,5 @@ export interface SavedSearchDoc {
   db_doc_id: number;
   is_relevant?: boolean | null;
   relevance_explanation?: string | null;
+  tags?: string[] | null;
 }

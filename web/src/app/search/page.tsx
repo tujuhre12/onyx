@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLlmManager } from "@/lib/hooks";
 import { OnyxLogoTypeIcon } from "@/components/icons/icons";
@@ -10,10 +10,70 @@ import { useChatContext } from "@/components/context/ChatContext";
 import { SavedSearchDoc } from "./interfaces";
 import SearchResultItem from "@/components-2/Search/SearchResultItem";
 import { Separator } from "@/components/ui/separator";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon, ChevronDownIcon, Users, Tag } from "lucide-react";
+import { format } from "date-fns";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+interface FilterDropdownProps {
+  selectedValue: string | null;
+  options: string[];
+  onSelect: (value: string | null) => void;
+  allItemsLabel: string;
+  icon?: React.ReactNode;
+}
+
+function FilterDropdown({
+  selectedValue,
+  options,
+  onSelect,
+  allItemsLabel,
+  icon,
+}: FilterDropdownProps) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost">
+          {icon && <div className="mr-1 h-4 w-4 text-neutral-400">{icon}</div>}
+          <p className="text-neutral-400">{selectedValue || allItemsLabel}</p>
+          <ChevronDownIcon className="h-4 w-4 text-neutral-400" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onClick={() => onSelect(null)}>
+          {allItemsLabel}
+        </DropdownMenuItem>
+        {options.map((option) => (
+          <DropdownMenuItem key={option} onClick={() => onSelect(option)}>
+            {option}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 type PageProps = {
   searchParams: Promise<{ [key: string]: string }>;
 };
+
+type DateRange =
+  | {
+      from: Date;
+      to: Date;
+    }
+  | undefined;
 
 export default function Page(_props: PageProps) {
   const router = useRouter();
@@ -29,6 +89,66 @@ export default function Page(_props: PageProps) {
   const [searchResults, setSearchResults] = useState<SavedSearchDoc[]>([]);
   const { llmProviders } = useChatContext();
   const llmManager = useLlmManager(llmProviders);
+
+  // Filter states
+  const [dateRange, setDateRange] = useState<DateRange>(undefined);
+  const [selectedPrimaryOwner, setSelectedPrimaryOwner] = useState<
+    string | null
+  >(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+
+  // Extract unique primary owners and tags from search results
+  const uniquePrimaryOwners = useMemo(() => {
+    const owners = new Set<string>();
+    searchResults.forEach((doc) => {
+      if (doc.primary_owners) {
+        doc.primary_owners.forEach((owner) => owners.add(owner));
+      }
+    });
+    return Array.from(owners).sort();
+  }, [searchResults]);
+
+  const uniqueTags = useMemo(() => {
+    const tags = new Set<string>();
+    searchResults.forEach((doc) => {
+      if (doc.tags) {
+        doc.tags.forEach((tag) => tags.add(tag));
+      }
+    });
+    return Array.from(tags).sort();
+  }, [searchResults]);
+
+  // Filter the search results based on selected filters
+  const filteredSearchResults = useMemo(() => {
+    return searchResults.filter((doc) => {
+      // Filter by date range
+      if (dateRange?.from && dateRange?.to) {
+        const docDate = new Date(doc.updated_at || 0);
+        if (docDate < dateRange.from || docDate > dateRange.to) {
+          return false;
+        }
+      }
+
+      // Filter by primary owner
+      if (selectedPrimaryOwner) {
+        if (
+          !doc.primary_owners ||
+          !doc.primary_owners.includes(selectedPrimaryOwner)
+        ) {
+          return false;
+        }
+      }
+
+      // Filter by tag
+      if (selectedTag) {
+        if (!doc.tags || !doc.tags.includes(selectedTag)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [searchResults, dateRange, selectedPrimaryOwner, selectedTag]);
 
   // Sync query state with URL parameter changes
   useEffect(() => {
@@ -160,13 +280,108 @@ export default function Page(_props: PageProps) {
 
         {/* Search Results */}
         {!shouldDisplayStartingPage && (
-          <div className="w-full max-w-3xl p-1 flex-1 min-h-0 flex flex-col">
-            <div className="flex flex-col py-3 gap-y-4 flex-shrink-0"></div>
+          <div className="w-full max-w-3xl flex-1 min-h-0 flex flex-col">
+            <div className="flex flex-col flex-shrink-0 pt-6">
+              <div className="flex items-center gap-2">
+                {/* Date Range Picker */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" className="text-neutral-400">
+                      <CalendarIcon className="mr-1 h-4 w-4 text-neutral-400" />
+                      <p className="text-neutral-400">
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "LLL dd, y")} -{" "}
+                              {format(dateRange.to, "LLL dd, y")}
+                            </>
+                          ) : (
+                            format(dateRange.from, "LLL dd, y")
+                          )
+                        ) : (
+                          "All Time"
+                        )}
+                      </p>
+                      <ChevronDownIcon className="ml-auto h-4 w-4 text-neutral-400" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={(range) => {
+                        if (range?.from) {
+                          if (range.to) {
+                            setDateRange({ from: range.from, to: range.to });
+                          } else {
+                            const to = new Date(range.from);
+                            const from = new Date(to.setDate(to.getDate() - 1));
+                            setDateRange({ from, to });
+                          }
+                        }
+                      }}
+                      numberOfMonths={2}
+                    />
+                    <div className="border-t p-3">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          const from = new Date();
+                          from.setDate(from.getDate() - 30);
+                          setDateRange({ from, to: new Date() });
+                        }}
+                      >
+                        Last 30 days
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          const from = new Date();
+                          from.setDate(from.getDate() - 7);
+                          setDateRange({ from, to: new Date() });
+                        }}
+                      >
+                        Last 7 days
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => setDateRange(undefined)}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Primary Owner Picker */}
+                <FilterDropdown
+                  selectedValue={selectedPrimaryOwner}
+                  options={uniquePrimaryOwners}
+                  onSelect={setSelectedPrimaryOwner}
+                  allItemsLabel="All owners"
+                  icon={<Users className="h-4 w-4" />}
+                />
+
+                {/* Tag Picker */}
+                <FilterDropdown
+                  selectedValue={selectedTag}
+                  options={uniqueTags}
+                  onSelect={setSelectedTag}
+                  allItemsLabel="All tags"
+                  icon={<Tag className="h-4 w-4" />}
+                />
+              </div>
+            </div>
 
             <Separator />
 
-            <div className="flex-1">
-              {searchResults.map((doc, index) => (
+            <div className="flex flex-1 flex-col gap-y-2 pb-10">
+              {filteredSearchResults.map((doc, index) => (
                 <div key={index}>
                   <SearchResultItem
                     doc={doc}
