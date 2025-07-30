@@ -460,7 +460,7 @@ def connector_external_group_sync_generator_task(
 def _perform_external_group_sync(
     cc_pair_id: int,
     tenant_id: str,
-) -> None:
+) -> SyncWarning | None:
     with get_session_with_current_tenant() as db_session:
         cc_pair = get_connector_credential_pair_from_id(
             db_session=db_session,

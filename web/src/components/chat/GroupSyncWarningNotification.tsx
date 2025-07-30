@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import { Notification } from "@/app/admin/settings/interfaces";
 import { WarningCircle } from "@phosphor-icons/react";

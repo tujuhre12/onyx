@@ -34,7 +34,7 @@ GitHubTestEnvSetupTuple = tuple[
 def github_test_env_setup() -> Generator[GitHubTestEnvSetupTuple]:
     """
     Create a complete GitHub test environment with:
-    - 2 users with email IDs from environment variables
+    - 3 users with email IDs from environment variables
     - GitHub credentials using ACCESS_TOKEN_GITHUB from environment
     - GitHub connector configured for testing
     - Connector-Credential pair linking them together
