@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from onyx.configs.constants import DocumentSource
+from onyx.configs.constants import TagType
 from onyx.db.models import Document
 from onyx.db.models import Document__Tag
 from onyx.db.models import Tag
@@ -58,8 +59,16 @@ def create_or_add_document_tag(
     tag = db_session.execute(tag_stmt).scalar_one_or_none()
 
     if not tag:
-        tag = Tag(tag_key=tag_key, tag_value=tag_value, source=source)
+        tag = Tag(
+            tag_key=tag_key,
+            tag_value=tag_value,
+            source=source,
+            tag_type=TagType.SINGLE,
+        )
         db_session.add(tag)
+
+    elif tag.tag_type is None:
+        tag.tag_type = TagType.SINGLE
 
     if tag not in document.tags:
         document.tags.append(tag)
@@ -107,10 +116,23 @@ def create_or_add_document_tag_list(
     new_tags = []
     for tag_value in valid_tag_values:
         if tag_value not in existing_tag_values:
-            new_tag = Tag(tag_key=tag_key, tag_value=tag_value, source=source)
+            new_tag = Tag(
+                tag_key=tag_key,
+                tag_value=tag_value,
+                source=source,
+                tag_type=TagType.LIST,
+            )
             db_session.add(new_tag)
             new_tags.append(new_tag)
             existing_tag_values.add(tag_value)
+        else:
+            # Find the existing tag and update its type if needed
+            for existing_tag in existing_tags:
+                if (
+                    existing_tag.tag_value == tag_value
+                    and existing_tag.tag_type is None
+                ):
+                    existing_tag.tag_type = TagType.LIST
 
     if new_tags:
         logger.debug(
