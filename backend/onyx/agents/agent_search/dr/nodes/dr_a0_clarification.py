@@ -171,6 +171,10 @@ def clarifier(
     if not active_source_types:
         raise ValueError("No active source types found")
 
+    # active_source_types_descriptions = [
+    #     DocumentSourceDescription[source_type] for source_type in active_source_types
+    # ]
+
     # get clarification (unless time budget is FAST)
     clarification = None
     if time_budget != DRTimeBudget.FAST:
