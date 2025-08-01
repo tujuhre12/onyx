@@ -1,20 +1,13 @@
-/*
-
-
-
-*/
-
-import { FeedbackType } from "../../interfaces";
 import {
   ChatPacket,
   Packet,
   PacketType,
   ToolPacket,
 } from "../../services/streamingModels";
-import { FullChatState } from "./interfaces";
-import { MessageTextRenderer } from "./renderers/MessageTextRenderer";
-import { SearchToolRenderer } from "./renderers/SearchToolRenderer";
-import { ImageToolRenderer } from "./renderers/ImageToolRenderer";
+import { AnimationType, FullChatState, FullRenderer } from "./interfaces";
+import { MessageTextFullRenderer } from "./renderers/MessageTextRenderer";
+import { SearchToolFullRenderer } from "./renderers/SearchToolRenderer";
+import { ImageToolFullRenderer } from "./renderers/ImageToolRenderer";
 import { IconType } from "react-icons";
 
 // Different types of chat packets using discriminated unions
@@ -44,37 +37,52 @@ function isImageToolPacket(packet: Packet): packet is ToolPacket {
   );
 }
 
-export function renderMessageComponent(
+function findRenderer(
   groupedPackets: GroupedPackets,
   fullChatState: FullChatState
-): [IconType | null, JSX.Element] {
-  if (!groupedPackets.packets || !groupedPackets.packets[0]) {
-    return [null, <></>];
-  }
-
-  console.log("groupedPackets", groupedPackets);
-
-  let rendererResult: [IconType | null, JSX.Element] = [null, <></>];
+): FullRenderer<any, any> | null {
   if (groupedPackets.packets.some((packet) => isChatPacket(packet))) {
-    rendererResult = MessageTextRenderer({
-      packets: groupedPackets.packets as ChatPacket[],
-      state: fullChatState,
-    });
-  } else if (
-    groupedPackets.packets.some((packet) => isSearchToolPacket(packet))
-  ) {
-    rendererResult = SearchToolRenderer({
-      packets: groupedPackets.packets as ToolPacket[],
-      state: fullChatState,
-    });
-  } else if (
-    groupedPackets.packets.some((packet) => isImageToolPacket(packet))
-  ) {
-    rendererResult = ImageToolRenderer({
-      packets: groupedPackets.packets as ToolPacket[],
-      state: fullChatState,
-    });
+    return MessageTextFullRenderer;
+  }
+  if (groupedPackets.packets.some((packet) => isSearchToolPacket(packet))) {
+    return SearchToolFullRenderer;
+  }
+  if (groupedPackets.packets.some((packet) => isImageToolPacket(packet))) {
+    return ImageToolFullRenderer;
+  }
+  return null;
+}
+
+export function renderMessageComponent(
+  groupedPackets: GroupedPackets,
+  fullChatState: FullChatState,
+  onComplete: () => void,
+  animationType: AnimationType,
+  useShortRenderer: boolean = false
+): { icon: IconType | null; content: JSX.Element } {
+  if (!groupedPackets.packets || !groupedPackets.packets[0]) {
+    return { icon: null, content: <></> };
   }
 
-  return rendererResult;
+  const renderer = findRenderer(groupedPackets, fullChatState);
+  if (renderer) {
+    return {
+      icon: renderer.icon,
+      content: useShortRenderer
+        ? renderer.shortRenderer({
+            packets: groupedPackets.packets,
+            state: fullChatState,
+            onComplete,
+            animationType,
+          })
+        : renderer.extendedRenderer({
+            packets: groupedPackets.packets,
+            state: fullChatState,
+            onComplete,
+            animationType,
+          }),
+    };
+  }
+
+  return { icon: null, content: <></> };
 }

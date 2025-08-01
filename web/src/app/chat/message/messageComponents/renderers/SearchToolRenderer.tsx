@@ -12,28 +12,28 @@ import { SourceChip2 } from "../../../components/input/ChatInputBar";
 import { ResultIcon } from "@/components/chat/sources/SourceCard";
 import { truncateString } from "@/lib/utils";
 import { OnyxDocument } from "@/lib/search/interfaces";
+import { buildFullRenderer } from "./utils/buildFullRenderer";
 
-const Icon = FiSearch;
-
-export const SearchToolRenderer: MessageRenderer<ToolPacket, {}> = ({
-  packets,
-}: {
-  packets: ToolPacket[];
-}) => {
+const constructCurrentSearchState = (
+  packets: ToolPacket[]
+): {
+  query: string | null;
+  results: OnyxDocument[];
+  isSearching: boolean;
+  isComplete: boolean;
+} => {
   const searchStart = packets.find(
     (packet) => packet.obj.type === PacketType.TOOL_START
-  )?.obj as ToolStart;
+  )?.obj as ToolStart | null;
   const searchDeltas = packets
     .filter((packet) => packet.obj.type === PacketType.TOOL_DELTA)
     .map((packet) => packet.obj as ToolDelta);
-
   const searchEnd = packets.find(
     (packet) => packet.obj.type === PacketType.TOOL_END
-  )?.obj as ToolEnd;
+  )?.obj as ToolEnd | null;
 
-  const query = searchStart?.tool_main_description;
+  const query = searchStart?.tool_main_description ?? null;
 
-  // Collect unique results across deltas
   const seenDocIds = new Set<string>();
   const results = searchDeltas
     .flatMap((delta) => delta?.documents || [])
@@ -44,17 +44,27 @@ export const SearchToolRenderer: MessageRenderer<ToolPacket, {}> = ({
       return true;
     });
 
-  const isSearching = searchStart && !searchEnd;
-  const isComplete = searchStart && searchEnd;
+  const isSearching = Boolean(searchStart && !searchEnd);
+  const isComplete = Boolean(searchStart && searchEnd);
+
+  return { query, results, isSearching, isComplete };
+};
+
+const ExtendedSearchToolRenderer: MessageRenderer<ToolPacket, {}> = ({
+  packets,
+}: {
+  packets: ToolPacket[];
+}) => {
+  const { query, results, isSearching, isComplete } =
+    constructCurrentSearchState(packets);
 
   // Don't render anything if search hasn't started
-  if (!searchStart) {
-    return [Icon, <div></div>];
+  if (!query) {
+    return <div></div>;
   }
 
   // Unified rendering for both searching and complete states
-  return [
-    Icon,
+  return (
     <div className="flex flex-col">
       <div className="text-sm leading-normal flex">
         {isSearching
@@ -64,7 +74,9 @@ export const SearchToolRenderer: MessageRenderer<ToolPacket, {}> = ({
       <div className="flex flex-wrap gap-2 ml-1 mt-1">
         {query && (
           <div
-            className={`text-xs text-gray-600 mb-2 ${isSearching ? "animate-pulse" : ""}`}
+            className={`text-xs text-gray-600 mb-2 ${
+              isSearching ? "animate-pulse" : ""
+            }`}
           >
             <SourceChip2
               icon={<FiSearch size={10} />}
@@ -90,6 +102,48 @@ export const SearchToolRenderer: MessageRenderer<ToolPacket, {}> = ({
           </div>
         ))}
       </div>
-    </div>,
-  ];
+    </div>
+  );
 };
+
+const SearchToolRenderer: MessageRenderer<ToolPacket, {}> = ({
+  packets,
+}: {
+  packets: ToolPacket[];
+}) => {
+  const { query, results, isSearching, isComplete } =
+    constructCurrentSearchState(packets);
+
+  if (isSearching) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Searching for: "{query}"...
+      </div>
+    );
+  }
+
+  if (isComplete && results.length > 0) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Found {results.length} result{results.length > 1 ? "s" : ""} for "
+        {query}"
+      </div>
+    );
+  }
+
+  if (isComplete && results.length === 0) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        No results found for "{query}"
+      </div>
+    );
+  }
+
+  return <div className="text-sm text-muted-foreground">Search: "{query}"</div>;
+};
+
+export const SearchToolFullRenderer = buildFullRenderer(
+  FiSearch,
+  ExtendedSearchToolRenderer,
+  SearchToolRenderer
+);

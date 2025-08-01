@@ -590,6 +590,7 @@ export function useChatController({
         return new Promise((resolve) => setTimeout(resolve, ms));
       };
 
+      await delay(50);
       while (!stack.isComplete || !stack.isEmpty()) {
         if (stack.isEmpty()) {
           await delay(0.5);
