@@ -17,6 +17,7 @@ import {
 import { extractCodeText, preprocessLaTeX } from "../../codeUtils";
 import { CodeBlock } from "../../CodeBlock";
 import { transformLinkUri } from "@/lib/utils";
+import { buildFullRenderer } from "./utils/buildFullRenderer";
 
 // New component that properly uses hooks
 export const MessageTextComponent: React.FC<{
@@ -115,5 +116,11 @@ export const MessageTextRenderer: MessageRenderer<
   ChatPacket,
   FullChatState
 > = ({ packets, state }: { packets: ChatPacket[]; state: FullChatState }) => {
-  return [null, <MessageTextComponent packets={packets} state={state} />];
+  return <MessageTextComponent packets={packets} state={state} />;
 };
+
+export const MessageTextFullRenderer = buildFullRenderer(
+  null,
+  MessageTextRenderer,
+  MessageTextRenderer
+);

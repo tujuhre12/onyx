@@ -346,16 +346,13 @@ def process_streamed_packets(
 ) -> Generator[ChatPacket, None, tuple[dict[SubQuestionKey, AnswerPostInfo], bool]]:
     """Process the streamed output from the answer and yield chat packets."""
     has_transmitted_answer_piece = False
-    current_message_ind = None
     packet_index = 0
     refined_answer_improvement = True
+    current_message_index: int | None = None
 
     # Track ongoing tool operations to prevent concurrent operations of the same type
     ongoing_search = False
     ongoing_image_generation = False
-    # Track the index assigned to each tool operation
-    search_tool_index: int | None = None
-    image_generation_tool_index: int | None = None
 
     for packet in answer_processed_output:
         if isinstance(packet, ToolCallKickoff):
@@ -365,7 +362,6 @@ def process_streamed_packets(
                 and not ongoing_image_generation
             ):
                 ongoing_image_generation = True
-                image_generation_tool_index = packet_index
                 yield Packet(
                     ind=packet_index,
                     obj=ToolStart(
@@ -377,7 +373,6 @@ def process_streamed_packets(
 
             if packet.tool_name == "run_search" and not ongoing_search:
                 ongoing_search = True
-                search_tool_index = packet_index
                 yield Packet(
                     ind=packet_index,
                     obj=ToolStart(
@@ -388,31 +383,29 @@ def process_streamed_packets(
                 )
                 packet_index += 1
 
-        if isinstance(packet, ToolResponse):
+        elif isinstance(packet, ToolResponse):
             if packet.id == SEARCH_RESPONSE_SUMMARY_ID:
                 search_response = cast(SearchResponseSummary, packet.response)
 
-                if search_tool_index is not None:
-                    yield Packet(
-                        ind=search_tool_index,
-                        obj=ToolDelta(
-                            documents=[
-                                section_to_llm_doc(s)
-                                for s in search_response.top_sections
-                            ],
-                        ),
-                    )
+                yield Packet(
+                    ind=packet_index,
+                    obj=ToolDelta(
+                        documents=[
+                            section_to_llm_doc(s) for s in search_response.top_sections
+                        ],
+                    ),
+                )
+                packet_index += 1
 
-                    yield Packet(
-                        ind=search_tool_index,
-                        obj=ToolEnd(),
-                    )
+                yield Packet(
+                    ind=packet_index,
+                    obj=ToolEnd(),
+                )
+                packet_index += 1
                 ongoing_search = False  # Reset search state when tool ends
-                search_tool_index = None  # Reset the tool index
 
                 # Add dummy search tool for simulation purposes
                 # TODO: remove
-                dummy_search_tool_index = packet_index
                 yield Packet(
                     ind=packet_index,
                     obj=ToolStart(
@@ -424,16 +417,18 @@ def process_streamed_packets(
                 packet_index += 1
 
                 yield Packet(
-                    ind=dummy_search_tool_index,
+                    ind=packet_index,
                     obj=ToolDelta(
                         documents=[],  # Empty documents for dummy search
                     ),
                 )
+                packet_index += 1
 
                 yield Packet(
-                    ind=dummy_search_tool_index,
+                    ind=packet_index,
                     obj=ToolEnd(),
                 )
+                packet_index += 1
                 # END DUMMY SECTION
 
             elif packet.id == IMAGE_GENERATION_RESPONSE_ID:
@@ -451,34 +446,32 @@ def process_streamed_packets(
                     ],
                 )
 
-                if image_generation_tool_index is not None:
-                    yield Packet(
-                        ind=image_generation_tool_index,
-                        obj=ToolDelta(
-                            images=[
-                                {
-                                    "id": str(file_id),
-                                    "url": "",  # URL will be constructed by frontend
-                                    "prompt": img.revised_prompt,
-                                }
-                                for file_id, img in zip(
-                                    file_ids, img_generation_response
-                                )
-                            ]
-                        ),
-                    )
+                yield Packet(
+                    ind=packet_index,
+                    obj=ToolDelta(
+                        images=[
+                            {
+                                "id": str(file_id),
+                                "url": "",  # URL will be constructed by frontend
+                                "prompt": img.revised_prompt,
+                            }
+                            for file_id, img in zip(file_ids, img_generation_response)
+                        ]
+                    ),
+                )
+                packet_index += 1
 
-                    # Emit ImageToolEnd packet with file information
-                    yield Packet(
-                        ind=image_generation_tool_index,
-                        obj=ToolEnd(),
-                    )
+                # Emit ImageToolEnd packet with file information
+                yield Packet(
+                    ind=packet_index,
+                    obj=ToolEnd(),
+                )
+                packet_index += 1
                 ongoing_image_generation = (
                     False  # Reset image generation state when tool ends
                 )
-                image_generation_tool_index = None  # Reset the tool index
 
-        if isinstance(packet, ToolResponse):
+            # Process other tool responses
             info_by_subq = yield from process_tool_response(
                 packet=packet,
                 db_session=db_session,
@@ -495,6 +488,40 @@ def process_streamed_packets(
         elif isinstance(packet, RefinedAnswerImprovement):
             refined_answer_improvement = packet.refined_answer_improvement
             yield packet
+        elif isinstance(packet, OnyxAnswerPiece):
+            if has_transmitted_answer_piece:
+                if packet.answer_piece is None:
+                    # Message is ending, use current message index
+                    if current_message_index is not None:
+                        yield Packet(
+                            ind=current_message_index,
+                            obj=MessageEnd(),
+                        )
+                    # Reset for next message
+                    current_message_index = None
+                    has_transmitted_answer_piece = False
+                else:
+                    # Continue with same index for message delta
+                    if current_message_index is not None:
+                        yield Packet(
+                            ind=current_message_index,
+                            obj=MessageDelta(
+                                content=packet.answer_piece or "",
+                            ),
+                        )
+
+            elif packet.answer_piece:
+                # New message starting, allocate new index
+                current_message_index = packet_index
+                packet_index += 1
+                yield Packet(
+                    ind=current_message_index,
+                    obj=MessageStart(
+                        id=str(reserved_message_id),
+                        content=packet.answer_piece,
+                    ),
+                )
+                has_transmitted_answer_piece = True
         else:
             if isinstance(packet, ToolCallFinalResult):
                 level, level_question_num = (
@@ -508,39 +535,7 @@ def process_streamed_packets(
                 ]
                 info.tool_result = packet
 
-            if isinstance(packet, OnyxAnswerPiece):
-                if current_message_ind is None:
-                    current_message_ind = packet_index
-                    packet_index += 1
-
-                if has_transmitted_answer_piece:
-                    if packet.answer_piece is None:
-                        yield Packet(
-                            ind=current_message_ind,
-                            obj=MessageEnd(),
-                        )
-                        current_message_ind = packet_index
-                        packet_index += 1
-                        has_transmitted_answer_piece = False
-                    else:
-                        yield Packet(
-                            ind=current_message_ind,
-                            obj=MessageDelta(
-                                content=packet.answer_piece or "",
-                            ),
-                        )
-
-                elif packet.answer_piece:
-                    yield Packet(
-                        ind=current_message_ind,
-                        obj=MessageStart(
-                            id=str(reserved_message_id),
-                            content=packet.answer_piece,
-                        ),
-                    )
-                    has_transmitted_answer_piece = True
-            else:
-                yield cast(ChatPacket, packet)
+            yield cast(ChatPacket, packet)
 
     # Yield STOP packet to indicate streaming is complete
     yield Packet(ind=packet_index, obj=Stop())

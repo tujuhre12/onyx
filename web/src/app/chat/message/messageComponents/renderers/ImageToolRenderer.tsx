@@ -9,12 +9,10 @@ import {
 } from "../../../services/streamingModels";
 import { MessageRenderer } from "../interfaces";
 import { buildImgUrl } from "../../../components/files/images/utils";
+import { buildFullRenderer } from "./utils/buildFullRenderer";
 
-export const ImageToolRenderer: MessageRenderer<ToolPacket, {}> = ({
-  packets,
-}: {
-  packets: ToolPacket[];
-}) => {
+// Helper function to construct current image state
+function constructCurrentImageState(packets: ToolPacket[]) {
   const imageStart = packets.find(
     (packet) => packet.obj.type === PacketType.TOOL_START
   )?.obj as ToolStart;
@@ -27,10 +25,32 @@ export const ImageToolRenderer: MessageRenderer<ToolPacket, {}> = ({
     (packet) => packet.obj.type === PacketType.TOOL_END
   )?.obj as ToolEnd;
 
-  const prompt = imageStart?.tool_main_description;
+  const prompt = imageStart?.tool_main_description || "";
   const images = imageDeltas.flatMap((delta) => delta?.images || []);
   const isGenerating = imageStart && !imageEnd;
   const isComplete = imageStart && imageEnd;
+
+  const imageUrls = images
+    .filter((image) => image.id)
+    .map((image) => buildImgUrl(image.id!));
+
+  return {
+    prompt,
+    images,
+    imageUrls,
+    isGenerating,
+    isComplete,
+    error: false, // For now, we don't have error state in the packets
+  };
+}
+
+export const ImageToolRenderer: MessageRenderer<ToolPacket, {}> = ({
+  packets,
+}: {
+  packets: ToolPacket[];
+}) => {
+  const { prompt, images, imageUrls, isGenerating, isComplete, error } =
+    constructCurrentImageState(packets);
 
   // Loading state - when generating
   if (isGenerating) {
@@ -141,3 +161,43 @@ export const ImageToolRenderer: MessageRenderer<ToolPacket, {}> = ({
   // Fallback (shouldn't happen in normal flow)
   return <div></div>;
 };
+
+// Short renderer for image tool
+const ImageToolShortRenderer: MessageRenderer<ToolPacket, {}> = ({
+  packets,
+}: {
+  packets: ToolPacket[];
+}) => {
+  const { imageUrls, isGenerating, isComplete, error } =
+    constructCurrentImageState(packets);
+
+  if (isGenerating) {
+    return (
+      <div className="text-sm text-muted-foreground">Generating image...</div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-sm text-red-600 dark:text-red-400">
+        Image generation failed
+      </div>
+    );
+  }
+
+  if (isComplete && imageUrls.length > 0) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Generated {imageUrls.length} image{imageUrls.length > 1 ? "s" : ""}
+      </div>
+    );
+  }
+
+  return <div className="text-sm text-muted-foreground">Image generation</div>;
+};
+
+export const ImageToolFullRenderer = buildFullRenderer(
+  FiImage,
+  ImageToolRenderer,
+  ImageToolShortRenderer
+);
