@@ -1,7 +1,7 @@
 """tag_type_column
 
 Revision ID: 2a04911f3c9f
-Revises: 3fc5d75723b3
+Revises: 62c3a055a141
 Create Date: 2025-08-01 15:32:06.453072
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "2a04911f3c9f"
-down_revision = "3fc5d75723b3"
+down_revision = "62c3a055a141"
 branch_labels = None
 depends_on = None
 
