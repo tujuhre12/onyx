@@ -43,6 +43,13 @@ def create_or_add_document_tag(
     if not document:
         raise ValueError("Invalid Document, cannot attach Tags")
 
+    # Remove any existing tags with the same tag_key for this document
+    previous_tags_for_key_in_document = {
+        tag for tag in document.tags if tag.tag_key == tag_key and tag.source == source
+    }
+
+    # Removal will be done later
+
     tag_stmt = select(Tag).where(
         Tag.tag_key == tag_key,
         Tag.tag_value == tag_value,
@@ -56,6 +63,12 @@ def create_or_add_document_tag(
 
     if tag not in document.tags:
         document.tags.append(tag)
+
+    # remove any tags that are no longer in the document
+    # for this key
+    for previous_tag in previous_tags_for_key_in_document:
+        if previous_tag.tag_value != tag.tag_value:
+            document.tags.remove(previous_tag)
 
     db_session.commit()
     return tag
@@ -77,6 +90,11 @@ def create_or_add_document_tag_list(
     document = db_session.get(Document, document_id)
     if not document:
         raise ValueError("Invalid Document, cannot attach Tags")
+
+    # Prep removing any existing tags with the same tag_key for this document
+    previous_tags_for_key_in_document = [
+        tag for tag in document.tags if tag.tag_key == tag_key and tag.source == source
+    ]
 
     existing_tags_stmt = select(Tag).where(
         Tag.tag_key == tag_key,
@@ -104,6 +122,11 @@ def create_or_add_document_tag_list(
     for tag in all_tags:
         if tag not in document.tags:
             document.tags.append(tag)
+
+    # remove any tags that are no longer in the document
+    for previous_tag in previous_tags_for_key_in_document:
+        if previous_tag.tag_value not in tag_values:
+            document.tags.remove(previous_tag)
 
     db_session.commit()
     return all_tags
