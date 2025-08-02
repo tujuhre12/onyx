@@ -74,10 +74,25 @@ def create_or_add_document_tag(
         document.tags.append(tag)
 
     # remove any tags that are no longer in the document
-    # for this key
-    for previous_tag in previous_tags_for_key_in_document:
-        if previous_tag.tag_value != tag.tag_value:
-            document.tags.remove(previous_tag)
+    # for this key - use SQL operation instead of loop. This is less readable but
+    # more efficient for many tag changes.
+    previous_tags_to_remove = [
+        prev_tag
+        for prev_tag in previous_tags_for_key_in_document
+        if prev_tag.tag_value != tag.tag_value
+    ]
+
+    if previous_tags_to_remove:
+        # Remove the association between document and tags
+        stmt = delete(Document__Tag).where(
+            and_(
+                Document__Tag.document_id == document_id,
+                Document__Tag.tag_id.in_(
+                    [prev_tag.id for prev_tag in previous_tags_to_remove]
+                ),
+            )
+        )
+        db_session.execute(stmt)
 
     db_session.commit()
     return tag
@@ -146,9 +161,31 @@ def create_or_add_document_tag_list(
             document.tags.append(tag)
 
     # remove any tags that are no longer in the document
-    for previous_tag in previous_tags_for_key_in_document:
-        if previous_tag.tag_value not in tag_values:
-            document.tags.remove(previous_tag)
+    # Use a single SQL operation instead of loops. This is less readable but
+    # more efficient.
+    previous_tag_values_to_remove = [
+        tag.tag_value
+        for tag in previous_tags_for_key_in_document
+        if tag.tag_value not in tag_values
+    ]
+
+    if previous_tag_values_to_remove:
+        # Remove the association between document and tags
+        stmt = delete(Document__Tag).where(
+            and_(
+                Document__Tag.document_id == document_id,
+                Document__Tag.tag_id.in_(
+                    select(Tag.id).where(
+                        and_(
+                            Tag.tag_key == tag_key,
+                            Tag.tag_value.in_(previous_tag_values_to_remove),
+                            Tag.source == source,
+                        )
+                    )
+                ),
+            )
+        )
+        db_session.execute(stmt)
 
     db_session.commit()
     return all_tags
