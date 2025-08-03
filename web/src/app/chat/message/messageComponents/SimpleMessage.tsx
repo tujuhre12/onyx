@@ -3,9 +3,11 @@ import {
   MessageStart,
   MessageDelta,
   PacketType,
+  ToolPacket,
 } from "../../services/streamingModels";
-import { AnimationType, FullChatState } from "./interfaces";
-import { renderMessageComponent } from "./renderMessageComponent";
+import { FullChatState, RendererResult } from "./interfaces";
+import { findRenderer, renderMessageComponent } from "./renderMessageComponent";
+import { IconType } from "react-icons";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { CopyButton } from "@/components/CopyButton";
 import { LikeFeedback, DislikeFeedback } from "@/components/icons/icons";
@@ -14,129 +16,76 @@ import {
   CustomTooltip,
   TooltipGroup,
 } from "@/components/tooltip/CustomTooltip";
-import { useMemo, useRef, useState, useCallback } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { copyAll, handleCopy } from "../copyingUtils";
 import RegenerateOption from "../../components/RegenerateOption";
 import { MessageSwitcher } from "../MessageSwitcher";
 import { BlinkingDot } from "../BlinkingDot";
 import { STANDARD_TEXT_COLOR } from "./constants";
 import { FiChevronRight, FiChevronDown } from "react-icons/fi";
+import {
+  getTextContent,
+  groupPacketsByInd,
+  isFinalAnswerComing,
+  isStreamingComplete,
+  isToolPacket,
+} from "./packetUtils";
+import { useMessageSwitching } from "./hooks/useMessageSwitching";
+import { useToolDisplayTiming } from "./hooks/useToolDisplayTiming";
 
-// Custom hook to manage tool display timing
-function useToolDisplayTiming(toolGroups: Packet[][], isComplete: boolean) {
-  const [visibleToolCount, setVisibleToolCount] = useState(0);
-  const [allToolsDisplayed, setAllToolsDisplayed] = useState(false);
-  const lastUpdateTimeRef = useRef<number>(Date.now());
-  const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+// React component wrapper to avoid hook count issues in map loops
+function RendererComponent({
+  packets,
+  chatState,
+  onComplete,
+  animate,
+  useShortRenderer = false,
+  children,
+}: {
+  packets: Packet[];
+  chatState: FullChatState;
+  onComplete: () => void;
+  animate: boolean;
+  useShortRenderer?: boolean;
+  children: (result: RendererResult) => JSX.Element;
+}) {
+  const result = renderMessageComponent(
+    { packets },
+    chatState,
+    onComplete,
+    animate,
+    useShortRenderer
+  );
 
-  useMemo(() => {
-    // Clear any existing interval when component unmounts or isComplete changes
-    if (intervalIdRef.current) {
-      clearInterval(intervalIdRef.current);
-      intervalIdRef.current = null;
-    }
-
-    // If streaming is complete, show all tools
-    if (isComplete) {
-      setVisibleToolCount(toolGroups.length);
-      setAllToolsDisplayed(true);
-      return;
-    }
-
-    // Reset visible count if no tools
-    if (toolGroups.length === 0) {
-      setVisibleToolCount(0);
-      setAllToolsDisplayed(true); // No tools to display, so we're "done"
-      return;
-    }
-
-    // Initialize with at least one tool visible
-    if (visibleToolCount === 0 && toolGroups.length > 0) {
-      setVisibleToolCount(1);
-      lastUpdateTimeRef.current = Date.now();
-    }
-
-    // Set up interval to check if we should show more tools
-    intervalIdRef.current = setInterval(() => {
-      const now = Date.now();
-      const timeSinceLastUpdate = now - lastUpdateTimeRef.current;
-
-      // If at least 5 seconds have passed and there are more tools to show
-      if (timeSinceLastUpdate >= 5000 && visibleToolCount < toolGroups.length) {
-        setVisibleToolCount((prev) => prev + 1);
-        lastUpdateTimeRef.current = now;
-      }
-
-      // Check if we've shown all tools
-      if (visibleToolCount >= toolGroups.length && toolGroups.length > 0) {
-        // Wait 5 more seconds after showing the last tool before allowing final answer
-        if (!allToolsDisplayed && timeSinceLastUpdate >= 5000) {
-          setAllToolsDisplayed(true);
-        }
-
-        if (intervalIdRef.current && allToolsDisplayed) {
-          clearInterval(intervalIdRef.current);
-          intervalIdRef.current = null;
-        }
-      }
-    }, 100); // Check every 100ms
-
-    return () => {
-      if (intervalIdRef.current) {
-        clearInterval(intervalIdRef.current);
-      }
-    };
-  }, [toolGroups.length, isComplete, visibleToolCount, allToolsDisplayed]);
-
-  return { visibleToolCount, allToolsDisplayed };
+  return children(result);
 }
 
 // Multi-tool renderer component for grouped tools
 function MultiToolRenderer({
-  packets,
+  packetGroups,
   chatState,
   isComplete,
   onAllToolsDisplayed,
-  onToolComplete,
 }: {
-  packets: Packet[];
+  packetGroups: { ind: number; packets: ToolPacket[] }[];
   chatState: FullChatState;
   isComplete: boolean;
   onAllToolsDisplayed?: () => void;
-  onToolComplete?: (toolInd: number) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Group packets by tool instance (consecutive tool start/delta/end sequences)
-  const toolGroups: Packet[][] = [];
-  let currentGroup: Packet[] = [];
-
-  for (const packet of packets) {
-    if (packet.obj.type === PacketType.TOOL_START) {
-      // Start a new group
-      if (currentGroup.length > 0) {
-        toolGroups.push(currentGroup);
-      }
-      currentGroup = [packet];
-    } else {
-      // Add to current group
-      currentGroup.push(packet);
-    }
-  }
-
-  // Don't forget the last group
-  if (currentGroup.length > 0) {
-    toolGroups.push(currentGroup);
-  }
+  const toolGroups = useMemo(() => {
+    return packetGroups.filter(
+      (group) => group.packets[0] && isToolPacket(group.packets[0])
+    );
+  }, [packetGroups]);
 
   // Use the custom hook to manage tool display timing
-  const { visibleToolCount, allToolsDisplayed } = useToolDisplayTiming(
-    toolGroups,
-    isComplete
-  );
+  const { visibleTools, allToolsDisplayed, handleToolComplete } =
+    useToolDisplayTiming(toolGroups, isComplete);
 
   // Notify parent when all tools are displayed
-  useMemo(() => {
+  useEffect(() => {
     if (allToolsDisplayed && onAllToolsDisplayed) {
       onAllToolsDisplayed();
     }
@@ -144,59 +93,80 @@ function MultiToolRenderer({
 
   // If still processing, show tools progressively with timing
   if (!isComplete) {
-    // Get the tools to display based on visibleToolCount
-    const toolsToDisplay = toolGroups.slice(0, visibleToolCount);
+    // Get the tools to display based on visibleTools
+    const toolsToDisplay = toolGroups.filter((group) =>
+      visibleTools.has(group.ind)
+    );
 
     if (toolsToDisplay.length === 0) {
       return null;
     }
+
+    // Show only the latest tool visually, but render all for completion tracking
+    const shouldShowOnlyLatest = !isExpanded && toolsToDisplay.length > 1;
+    const latestToolIndex = toolsToDisplay.length - 1;
 
     return (
       <div className="mb-4 relative border border-border-sidebar-border rounded-lg p-4">
         <div className="relative">
           <div>
             {toolsToDisplay.map((toolGroup, index) => {
-              const { icon, content } = renderMessageComponent(
-                { packets: toolGroup },
-                chatState,
-                () => {
-                  // When a tool completes rendering, notify parent
-                  const toolInd = toolGroup[0]?.ind;
-                  if (toolInd !== undefined && onToolComplete) {
-                    onToolComplete(toolInd);
-                  }
-                },
-                AnimationType.FAST,
-                true
-              );
+              if (!toolGroup) return null;
 
-              const finalIcon = icon ? icon({ size: 14 }) : null;
+              // Hide all but the latest tool when shouldShowOnlyLatest is true
+              const isVisible =
+                !shouldShowOnlyLatest || index === latestToolIndex;
               const isLastItem = index === toolsToDisplay.length - 1;
 
               return (
-                <div key={index} className="relative">
-                  {/* Connector line for non-last items */}
-                  {!isLastItem && (
-                    <div
-                      className="absolute w-px bg-gray-300 dark:bg-gray-600 z-0"
-                      style={{
-                        left: "10px",
-                        top: "20px",
-                        bottom: "-12px",
-                      }}
-                    />
-                  )}
-
-                  <div
-                    className={`flex items-start gap-2 ${STANDARD_TEXT_COLOR} relative z-10 ${!isLastItem ? "mb-3" : ""}`}
+                <div
+                  key={index}
+                  style={{ display: isVisible ? "block" : "none" }}
+                >
+                  <RendererComponent
+                    packets={toolGroup.packets}
+                    chatState={chatState}
+                    onComplete={() => {
+                      // When a tool completes rendering, track it in the hook
+                      const toolInd = toolGroup.ind;
+                      if (toolInd !== undefined) {
+                        handleToolComplete(toolInd);
+                      }
+                    }}
+                    animate
+                    useShortRenderer={true}
                   >
-                    <div className="flex flex-col items-center w-5">
-                      <div className="flex-shrink-0 flex items-center justify-center w-5 h-5 bg-background rounded-full">
-                        {finalIcon}
-                      </div>
-                    </div>
-                    <div className="flex-1">{content}</div>
-                  </div>
+                    {({ icon, content, status }) => {
+                      return (
+                        <div className="relative">
+                          {/* Connector line for non-last items */}
+                          {!isLastItem && isVisible && (
+                            <div
+                              className="absolute w-px bg-gray-300 dark:bg-gray-600 z-0"
+                              style={{
+                                left: "10px",
+                                top: "24px",
+                                bottom: "-12px",
+                              }}
+                            />
+                          )}
+
+                          <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                            {icon ? icon({ size: 14 }) : null}
+                            {status}
+                          </div>
+
+                          <div
+                            className={`${STANDARD_TEXT_COLOR} relative z-10 mt-1 ${
+                              !isLastItem ? "mb-3" : ""
+                            }`}
+                          >
+                            {content}
+                          </div>
+                        </div>
+                      );
+                    }}
+                  </RendererComponent>
                 </div>
               );
             })}
@@ -243,55 +213,71 @@ function MultiToolRenderer({
         >
           <div>
             {toolGroups.map((toolGroup, index) => {
-              const { icon, content } = renderMessageComponent(
-                { packets: toolGroup },
-                chatState,
-                () => {
-                  // When a tool completes rendering, notify parent
-                  const toolInd = toolGroup[0]?.ind;
-                  if (toolInd !== undefined && onToolComplete) {
-                    onToolComplete(toolInd);
-                  }
-                },
-                AnimationType.SLOW,
-                false
-              );
-
-              const finalIcon = icon ? icon({ size: 14 }) : null;
               const isLastItem = index === toolGroups.length - 1;
 
               return (
-                <div key={index} className="relative">
-                  {/* Connector line drawn BEFORE content so it's behind everything */}
-                  {!isLastItem && (
-                    <div
-                      className="absolute w-px bg-gray-300 dark:bg-gray-600 z-0"
-                      style={{
-                        left: "10px", // Half of icon width (20px / 2)
-                        top: "20px", // Below icon (h-5 = 20px)
-                        bottom: "0", // Stop at the bottom of this container, not beyond
-                      }}
-                    />
-                  )}
+                <RendererComponent
+                  key={index}
+                  packets={toolGroup.packets}
+                  chatState={chatState}
+                  onComplete={() => {
+                    // When a tool completes rendering, track it in the hook
+                    const toolInd = toolGroup.ind;
+                    if (toolInd !== undefined) {
+                      handleToolComplete(toolInd);
+                    }
+                  }}
+                  animate
+                  useShortRenderer={false}
+                >
+                  {({ icon, content, status }) => {
+                    const finalIcon = icon ? icon({ size: 14 }) : null;
 
-                  {/* Main row with icon and content */}
-                  <div
-                    className={`flex items-start gap-2 ${STANDARD_TEXT_COLOR} relative z-10`}
-                  >
-                    {/* Icon column */}
-                    <div className="flex flex-col items-center w-5">
-                      {/* Icon with background to cover the line */}
-                      <div className="flex-shrink-0 flex items-center justify-center w-5 h-5 bg-background rounded-full">
-                        {finalIcon}
+                    return (
+                      <div className="relative">
+                        {/* Connector line drawn BEFORE content so it's behind everything */}
+                        {!isLastItem && (
+                          <div
+                            className="absolute w-px bg-gray-300 dark:bg-gray-600 z-0"
+                            style={{
+                              left: "10px", // Half of icon width (20px / 2)
+                              top: "20px", // Below icon (h-5 = 20px)
+                              bottom: "0", // Stop at the bottom of this container, not beyond
+                            }}
+                          />
+                        )}
+
+                        {/* Main row with icon and content */}
+                        <div
+                          className={`flex items-start gap-2 ${STANDARD_TEXT_COLOR} relative z-10`}
+                        >
+                          {/* Icon column */}
+                          <div className="flex flex-col items-center w-5">
+                            {/* Icon with background to cover the line */}
+                            <div className="flex-shrink-0 flex items-center justify-center w-5 h-5 bg-background rounded-full">
+                              {finalIcon}
+                            </div>
+                          </div>
+
+                          {/* Content with padding */}
+                          <div
+                            className={`flex-1 ${!isLastItem ? "pb-3" : ""}`}
+                          >
+                            {
+                              <div className="flex mt-0.5 mb-1">
+                                <div className="text-xs text-gray-600 dark:text-gray-400">
+                                  {status}
+                                </div>
+                              </div>
+                            }
+
+                            {content}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-
-                    {/* Content with padding */}
-                    <div className={`flex-1 ${!isLastItem ? "pb-3" : ""}`}>
-                      {content}
-                    </div>
-                  </div>
-                </div>
+                    );
+                  }}
+                </RendererComponent>
               );
             })}
           </div>
@@ -318,204 +304,30 @@ export function SimpleMessage({
   const [isRegenerateDropdownVisible, setIsRegenerateDropdownVisible] =
     useState(false);
 
-  // Track which tool calls have completed displaying
-  const [completedToolInds, setCompletedToolInds] = useState<Set<number>>(
-    new Set()
+  const [allToolsFullyDisplayed, setAllToolsFullyDisplayed] = useState(
+    isFinalAnswerComing(rawPackets)
+  );
+  const [displayComplete, setDisplayComplete] = useState(
+    isStreamingComplete(rawPackets)
   );
 
-  // Calculate message switching state
-  const currentMessageInd = messageId
-    ? otherMessagesCanSwitchTo?.indexOf(messageId)
-    : undefined;
+  // Message switching logic
+  const {
+    currentMessageInd,
+    includeMessageSwitcher,
+    getPreviousMessage,
+    getNextMessage,
+  } = useMessageSwitching({
+    messageId,
+    otherMessagesCanSwitchTo,
+    onMessageSelection,
+  });
 
-  const includeMessageSwitcher =
-    currentMessageInd !== undefined &&
-    onMessageSelection &&
-    otherMessagesCanSwitchTo &&
-    otherMessagesCanSwitchTo.length > 1;
+  const groupedPackets = useMemo(() => {
+    return groupPacketsByInd(rawPackets);
+  }, [rawPackets.length]);
 
-  const getPreviousMessage = () => {
-    if (
-      currentMessageInd !== undefined &&
-      currentMessageInd > 0 &&
-      otherMessagesCanSwitchTo
-    ) {
-      return otherMessagesCanSwitchTo[currentMessageInd - 1];
-    }
-    return undefined;
-  };
-
-  const getNextMessage = () => {
-    if (
-      currentMessageInd !== undefined &&
-      currentMessageInd < (otherMessagesCanSwitchTo?.length || 0) - 1 &&
-      otherMessagesCanSwitchTo
-    ) {
-      return otherMessagesCanSwitchTo[currentMessageInd + 1];
-    }
-    return undefined;
-  };
-
-  // Group all chat packets together by ind
-  const groupedChatPacketsByInd: Map<number, Packet[]> = rawPackets.reduce(
-    (acc: Map<number, Packet[]>, packet) => {
-      const ind = packet.ind;
-      if (!acc.has(ind)) {
-        acc.set(ind, []);
-      }
-      acc.get(ind)!.push(packet);
-      return acc;
-    },
-    new Map()
-  );
-
-  // Helper function to check if packets are tool packets
-  const isToolGroup = (packets: Packet[]) => {
-    return packets.some(
-      (packet) =>
-        packet.obj.type === PacketType.TOOL_START ||
-        packet.obj.type === PacketType.TOOL_DELTA ||
-        packet.obj.type === PacketType.TOOL_END
-    );
-  };
-
-  // Create smart groups that combine consecutive tool groups
-  const createSmartGroups = () => {
-    const sortedEntries = Array.from(groupedChatPacketsByInd.entries()).sort(
-      ([a], [b]) => a - b
-    );
-
-    const smartGroups: {
-      packets: Packet[];
-      isToolGroup: boolean;
-      inds: number[];
-    }[] = [];
-    let currentToolGroup: { packets: Packet[]; inds: number[] } | null = null;
-
-    for (const [ind, packets] of sortedEntries) {
-      const isThisGroupTools = isToolGroup(packets);
-
-      if (isThisGroupTools) {
-        if (currentToolGroup) {
-          // Add to existing tool group
-          currentToolGroup.packets.push(...packets);
-          currentToolGroup.inds.push(ind);
-        } else {
-          // Start new tool group
-          currentToolGroup = { packets: [...packets], inds: [ind] };
-        }
-      } else {
-        // Non-tool group - finalize any pending tool group first
-        if (currentToolGroup) {
-          smartGroups.push({
-            packets: currentToolGroup.packets,
-            isToolGroup: true,
-            inds: currentToolGroup.inds,
-          });
-          currentToolGroup = null;
-        }
-        // Add the non-tool group
-        smartGroups.push({
-          packets,
-          isToolGroup: false,
-          inds: [ind],
-        });
-      }
-    }
-
-    // Don't forget any pending tool group
-    if (currentToolGroup) {
-      smartGroups.push({
-        packets: currentToolGroup.packets,
-        isToolGroup: true,
-        inds: currentToolGroup.inds,
-      });
-    }
-
-    return smartGroups;
-  };
-
-  const smartGroups = createSmartGroups();
-
-  // Check if streaming is complete (has STOP packet)
-  const isStreamingComplete = rawPackets.some(
-    (packet) => packet.obj.type === PacketType.STOP
-  );
-
-  const isFinalAnswerComing = rawPackets.some(
-    (packet) => packet.obj.type === PacketType.MESSAGE_START
-  );
-
-  // Track whether all tools have been displayed
-  const [allToolsFullyDisplayed, setAllToolsFullyDisplayed] = useState(false);
-
-  // Callback to handle when a tool completes
-  const handleToolComplete = useCallback((toolInd: number) => {
-    setCompletedToolInds((prev) => new Set(prev).add(toolInd));
-  }, []);
-
-  // Filter smart groups to only show up to the last completed tool
-  const getVisibleSmartGroups = useCallback(() => {
-    // If streaming is complete, show everything
-    if (isStreamingComplete) {
-      return smartGroups;
-    }
-
-    // Find the highest index of completed tools
-    let highestCompletedInd = -1;
-    for (const group of smartGroups) {
-      if (group.isToolGroup) {
-        // Check if all tools in this group are completed
-        const allIndsCompleted = group.inds.every((ind) =>
-          completedToolInds.has(ind)
-        );
-        if (allIndsCompleted) {
-          highestCompletedInd = Math.max(highestCompletedInd, ...group.inds);
-        }
-      }
-    }
-
-    // Return groups up to and including the last completed tool group
-    const visibleGroups: typeof smartGroups = [];
-    for (const group of smartGroups) {
-      const maxGroupInd = Math.max(...group.inds);
-      if (maxGroupInd <= highestCompletedInd) {
-        visibleGroups.push(group);
-      } else if (
-        group.isToolGroup &&
-        group.inds.some((ind) => ind <= highestCompletedInd)
-      ) {
-        // Include partially completed tool groups
-        visibleGroups.push(group);
-      }
-    }
-
-    return visibleGroups;
-  }, [smartGroups, completedToolInds, isStreamingComplete]);
-
-  const visibleSmartGroups = getVisibleSmartGroups();
-
-  // Extract text content for copying
-  const getTextContent = () => {
-    return smartGroups
-      .map((group) => {
-        // Extract text from packets - this is a simplified approach
-        return group.packets
-          .map((packet) => {
-            if (
-              packet.obj.type === PacketType.MESSAGE_START ||
-              packet.obj.type === PacketType.MESSAGE_DELTA
-            ) {
-              return (packet.obj as MessageStart | MessageDelta).content || "";
-            }
-            return "";
-          })
-          .join("")
-          .trim();
-      })
-      .join("\n")
-      .trim();
-  };
+  console.log("allToolsFullyDisplayed", allToolsFullyDisplayed);
 
   // Return a list of rendered message components, one for each ind
   return (
@@ -537,51 +349,63 @@ export function SimpleMessage({
                       className="overflow-x-visible max-w-content-max focus:outline-none cursor-text select-text"
                       onCopy={(e) => handleCopy(e, markdownRef)}
                     >
-                      {visibleSmartGroups.length === 0 &&
-                      !isStreamingComplete ? (
+                      {groupedPackets.length === 0 ? (
                         // Show blinking dot when no content yet but message is generating
                         <BlinkingDot />
                       ) : (
-                        visibleSmartGroups.map((group, index) => {
-                          if (group.isToolGroup) {
-                            return (
-                              <div key={group.inds.join("-")}>
+                        (() => {
+                          // Separate tool groups from final answer groups
+                          const toolGroups = groupedPackets.filter(
+                            (group) =>
+                              group.packets[0] && isToolPacket(group.packets[0])
+                          ) as { ind: number; packets: ToolPacket[] }[];
+                          // display final answer only if all tools are fully displayed
+                          const finalAnswerGroups = allToolsFullyDisplayed
+                            ? groupedPackets.filter(
+                                (group) =>
+                                  group.packets[0] &&
+                                  !isToolPacket(group.packets[0])
+                              )
+                            : [];
+
+                          return (
+                            <>
+                              {/* Render all tool groups together using MultiToolRenderer */}
+                              {toolGroups.length > 0 && (
                                 <MultiToolRenderer
-                                  packets={group.packets}
+                                  packetGroups={toolGroups}
                                   chatState={chatState}
-                                  isComplete={isFinalAnswerComing}
+                                  isComplete={allToolsFullyDisplayed}
                                   onAllToolsDisplayed={() =>
                                     setAllToolsFullyDisplayed(true)
                                   }
-                                  onToolComplete={handleToolComplete}
                                 />
-                              </div>
-                            );
-                          } else {
-                            // Non-tool groups (final answer) - show based on completion tracking
-                            const { content } = renderMessageComponent(
-                              { packets: group.packets },
-                              chatState,
-                              () => {
-                                // Mark these inds as complete
-                                group.inds.forEach((ind) =>
-                                  handleToolComplete(ind)
-                                );
-                                setAllToolsFullyDisplayed(true);
-                              },
-                              AnimationType.FAST
-                            );
-                            return (
-                              <div key={group.inds.join("-")}>{content}</div>
-                            );
-                          }
-                        })
+                              )}
+
+                              {/* Render final answer groups directly using renderMessageComponent */}
+                              {finalAnswerGroups.map((group) => (
+                                <RendererComponent
+                                  key={group.ind}
+                                  packets={group.packets}
+                                  chatState={chatState}
+                                  onComplete={() => {
+                                    // Final answer completed
+                                    setDisplayComplete(true);
+                                  }}
+                                  animate
+                                >
+                                  {({ content }) => <div>{content}</div>}
+                                </RendererComponent>
+                              ))}
+                            </>
+                          );
+                        })()
                       )}
                     </div>
                   </div>
 
                   {/* Feedback buttons - only show when streaming is complete */}
-                  {chatState.handleFeedback && isStreamingComplete && (
+                  {chatState.handleFeedback && displayComplete && (
                     <div className="flex md:flex-row gap-x-0.5 mt-1 transition-transform duration-300 ease-in-out transform opacity-100">
                       <TooltipGroup>
                         <div className="flex justify-start w-full gap-x-0.5">
@@ -617,7 +441,7 @@ export function SimpleMessage({
                         <CustomTooltip showTick line content="Copy">
                           <CopyButton
                             copyAllFn={() =>
-                              copyAll(getTextContent(), markdownRef)
+                              copyAll(getTextContent(rawPackets), markdownRef)
                             }
                           />
                         </CustomTooltip>

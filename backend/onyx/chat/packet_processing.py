@@ -349,13 +349,20 @@ def process_streamed_packets(
     packet_index = 0
     refined_answer_improvement = True
     current_message_index: int | None = None
+    current_tool_index: int | None = None
 
     # Track ongoing tool operations to prevent concurrent operations of the same type
     ongoing_search = False
     ongoing_image_generation = False
 
     for packet in answer_processed_output:
-        if isinstance(packet, ToolCallKickoff):
+        if isinstance(packet, ToolCallKickoff) and not isinstance(
+            packet, ToolCallFinalResult
+        ):
+            # Allocate a new index for this tool call
+            current_tool_index = packet_index
+            packet_index += 1
+
             # Handle image generation tool start
             if (
                 packet.tool_name == "run_image_generation"
@@ -363,72 +370,86 @@ def process_streamed_packets(
             ):
                 ongoing_image_generation = True
                 yield Packet(
-                    ind=packet_index,
+                    ind=current_tool_index,
                     obj=ToolStart(
                         tool_name="image_generation",
                         tool_icon="🖼️",
                     ),
                 )
-                packet_index += 1
 
             if packet.tool_name == "run_search" and not ongoing_search:
                 ongoing_search = True
                 yield Packet(
-                    ind=packet_index,
+                    ind=current_tool_index,
                     obj=ToolStart(
                         tool_name="search",
                         tool_icon="🔍",
                         tool_main_description=packet.tool_args[QUERY_FIELD],
                     ),
                 )
-                packet_index += 1
+
+                yield Packet(
+                    ind=current_tool_index,
+                    obj=ToolDelta(
+                        queries=[packet.tool_args[QUERY_FIELD]],
+                    ),
+                )
 
         elif isinstance(packet, ToolResponse):
+            # Ensure we have a tool index; fallback to current packet_index if needed
+            if current_tool_index is None:
+                current_tool_index = packet_index
+                packet_index += 1
+
             if packet.id == SEARCH_RESPONSE_SUMMARY_ID:
                 search_response = cast(SearchResponseSummary, packet.response)
 
                 yield Packet(
-                    ind=packet_index,
+                    ind=current_tool_index,
                     obj=ToolDelta(
                         documents=[
                             section_to_llm_doc(s) for s in search_response.top_sections
                         ],
                     ),
                 )
-                packet_index += 1
 
                 yield Packet(
-                    ind=packet_index,
+                    ind=current_tool_index,
                     obj=ToolEnd(),
                 )
-                packet_index += 1
                 ongoing_search = False  # Reset search state when tool ends
 
                 # Add dummy search tool for simulation purposes
                 # TODO: remove
+                dummy_tool_index = packet_index
+                packet_index += 1
                 yield Packet(
-                    ind=packet_index,
+                    ind=dummy_tool_index,
                     obj=ToolStart(
                         tool_name="search",
                         tool_icon="🔍",
                         tool_main_description="Dummy search for simulation",
                     ),
                 )
-                packet_index += 1
 
                 yield Packet(
-                    ind=packet_index,
+                    ind=dummy_tool_index,
+                    obj=ToolDelta(
+                        queries=["Dummy search for simulation", "second search"],
+                    ),
+                )
+
+                yield Packet(
+                    ind=dummy_tool_index,
                     obj=ToolDelta(
                         documents=[],  # Empty documents for dummy search
                     ),
                 )
-                packet_index += 1
 
                 yield Packet(
-                    ind=packet_index,
+                    ind=dummy_tool_index,
                     obj=ToolEnd(),
                 )
-                packet_index += 1
                 # END DUMMY SECTION
 
             elif packet.id == IMAGE_GENERATION_RESPONSE_ID:
@@ -447,7 +468,7 @@ def process_streamed_packets(
                 )
 
                 yield Packet(
-                    ind=packet_index,
+                    ind=current_tool_index,
                     obj=ToolDelta(
                         images=[
                             {
@@ -459,14 +480,12 @@ def process_streamed_packets(
                         ]
                     ),
                 )
-                packet_index += 1
 
                 # Emit ImageToolEnd packet with file information
                 yield Packet(
-                    ind=packet_index,
+                    ind=current_tool_index,
                     obj=ToolEnd(),
                 )
-                packet_index += 1
                 ongoing_image_generation = (
                     False  # Reset image generation state when tool ends
                 )
@@ -536,6 +555,9 @@ def process_streamed_packets(
                 info.tool_result = packet
 
             yield cast(ChatPacket, packet)
+
+    if current_message_index is not None:
+        yield Packet(ind=current_message_index, obj=MessageEnd())
 
     # Yield STOP packet to indicate streaming is complete
     yield Packet(ind=packet_index, obj=Stop())

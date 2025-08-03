@@ -6,10 +6,9 @@ import { FileResponse } from "../../my-documents/DocumentsContext";
 import { LlmDescriptor } from "@/lib/hooks";
 import { IconType } from "react-icons";
 
-export enum AnimationType {
-  FAST = "fast",
-  SLOW = "slow",
-  NONE = "none",
+export enum RenderType {
+  HIGHLIGHT = "highlight",
+  FULL = "full",
 }
 
 export interface FullChatState {
@@ -25,14 +24,10 @@ export interface FullChatState {
   overriddenModel?: string;
 }
 
-interface MessageRendererProps<
-  T extends Packet,
-  S extends Partial<FullChatState>,
-> {
-  packets: T[];
-  state: S;
-  onComplete: () => void;
-  animationType: AnimationType;
+export interface RendererResult {
+  icon: IconType | null;
+  status: string | null;
+  content: JSX.Element;
 }
 
 export type MessageRenderer<
@@ -42,11 +37,12 @@ export type MessageRenderer<
   packets,
   state,
   onComplete,
-  animationType,
-}: MessageRendererProps<T, S>) => JSX.Element;
-
-export type FullRenderer<T extends Packet, S extends Partial<FullChatState>> = {
-  icon: IconType | null;
-  extendedRenderer: MessageRenderer<T, S>;
-  shortRenderer: MessageRenderer<T, S>;
-};
+  renderType,
+  animate,
+}: {
+  packets: T[];
+  state: S;
+  onComplete: () => void;
+  renderType: RenderType;
+  animate: boolean;
+}) => RendererResult;

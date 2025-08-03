@@ -48,6 +48,7 @@ class ToolStart(BaseObj):
 class ToolDelta(BaseObj):
     type: str = "tool_delta"
 
+    queries: list[str] | None = None
     documents: list[LlmDoc] | None = None
     images: list[dict[str, str]] | None = None
 

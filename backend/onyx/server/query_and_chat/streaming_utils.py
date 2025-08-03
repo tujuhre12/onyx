@@ -60,6 +60,13 @@ def create_simplified_packets_for_message(
             )
             packets.append(Packet(ind=current_index, obj=search_tool_start))
 
+            packets.append(
+                Packet(
+                    ind=current_index,
+                    obj=ToolDelta(queries=[message.rephrased_query or message.message]),
+                )
+            )
+
             # Send search results via tool delta
             search_tool_delta = ToolDelta(documents=llm_docs)
             packets.append(Packet(ind=current_index, obj=search_tool_delta))

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { FiSearch, FiGlobe } from "react-icons/fi";
 import {
   PacketType,
@@ -7,17 +7,21 @@ import {
   ToolEnd,
   ToolDelta,
 } from "../../../services/streamingModels";
-import { MessageRenderer, FullChatState } from "../interfaces";
+import { MessageRenderer, RenderType } from "../interfaces";
 import { SourceChip2 } from "../../../components/input/ChatInputBar";
 import { ResultIcon } from "@/components/chat/sources/SourceCard";
 import { truncateString } from "@/lib/utils";
 import { OnyxDocument } from "@/lib/search/interfaces";
-import { buildFullRenderer } from "./utils/buildFullRenderer";
+
+const MAX_RESULTS_TO_SHOW = 3;
+const MAX_TITLE_LENGTH = 25;
+
+const SEARCHING_MIN_DURATION_MS = 500;
 
 const constructCurrentSearchState = (
   packets: ToolPacket[]
 ): {
-  query: string | null;
+  queries: string[];
   results: OnyxDocument[];
   isSearching: boolean;
   isComplete: boolean;
@@ -32,7 +36,10 @@ const constructCurrentSearchState = (
     (packet) => packet.obj.type === PacketType.TOOL_END
   )?.obj as ToolEnd | null;
 
-  const query = searchStart?.tool_main_description ?? null;
+  // Extract queries from ToolDelta packets
+  const queries = searchDeltas
+    .flatMap((delta) => delta?.queries || [])
+    .filter((query, index, arr) => arr.indexOf(query) === index); // Remove duplicates
 
   const seenDocIds = new Set<string>();
   const results = searchDeltas
@@ -47,103 +54,141 @@ const constructCurrentSearchState = (
   const isSearching = Boolean(searchStart && !searchEnd);
   const isComplete = Boolean(searchStart && searchEnd);
 
-  return { query, results, isSearching, isComplete };
+  return { queries, results, isSearching, isComplete };
 };
 
-const ExtendedSearchToolRenderer: MessageRenderer<ToolPacket, {}> = ({
+export const SearchToolRenderer: MessageRenderer<ToolPacket, {}> = ({
   packets,
-}: {
-  packets: ToolPacket[];
+  onComplete,
+  renderType,
+  animate,
 }) => {
-  const { query, results, isSearching, isComplete } =
+  const { queries, results, isSearching, isComplete } =
     constructCurrentSearchState(packets);
+
+  // Track search timing for minimum display duration
+  const [searchStartTime, setSearchStartTime] = useState<number | null>(null);
+  const [shouldShowAsSearching, setShouldShowAsSearching] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const completionHandledRef = useRef(false);
+
+  // Track when search starts (even if the search completes instantly)
+  useEffect(() => {
+    if ((isSearching || isComplete) && searchStartTime === null) {
+      setSearchStartTime(Date.now());
+      setShouldShowAsSearching(true);
+    }
+  }, [isSearching, isComplete, searchStartTime]);
+
+  // Handle search completion with minimum duration
+  useEffect(() => {
+    if (
+      isComplete &&
+      searchStartTime !== null &&
+      !completionHandledRef.current
+    ) {
+      completionHandledRef.current = true;
+      const elapsedTime = Date.now() - searchStartTime;
+      const minimumDuration = animate ? SEARCHING_MIN_DURATION_MS : 0;
+
+      const handleCompletion = () => {
+        setShouldShowAsSearching(false);
+        console.log(
+          `Complete for search tool with queries: ${queries.join(", ")}`
+        );
+        onComplete();
+      };
+
+      if (elapsedTime >= minimumDuration) {
+        // Enough time has passed, show completed state immediately
+        handleCompletion();
+      } else {
+        // Not enough time has passed, delay the completion
+        const remainingTime = minimumDuration - elapsedTime;
+        timeoutRef.current = setTimeout(handleCompletion, remainingTime);
+      }
+    }
+  }, [isComplete, searchStartTime, animate, queries, onComplete]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const status = useMemo(() => {
+    if (isComplete) {
+      return "Searched internal documents";
+    }
+    if (isSearching || isComplete) {
+      return "Searching internal documents";
+    }
+    return null;
+  }, [isSearching, isComplete]);
 
   // Don't render anything if search hasn't started
-  if (!query) {
-    return <div></div>;
+  if (queries.length === 0) {
+    return {
+      icon: FiSearch,
+      status: null,
+      content: <div></div>,
+    };
   }
 
-  // Unified rendering for both searching and complete states
-  return (
-    <div className="flex flex-col">
-      <div className="text-sm leading-normal flex">
-        {isSearching
-          ? "Searching through internal documents"
-          : "Searched internal documents"}
-      </div>
-      <div className="flex flex-wrap gap-2 ml-1 mt-1">
-        {query && (
-          <div
-            className={`text-xs text-gray-600 mb-2 ${
-              isSearching ? "animate-pulse" : ""
-            }`}
-          >
-            <SourceChip2
-              icon={<FiSearch size={10} />}
-              title={truncateString(query, 30)}
-            />
+  return {
+    icon: FiSearch,
+    status,
+    content: (
+      <div className="flex flex-col">
+        <div className="flex flex-col">
+          <div className="flex flex-wrap gap-2 ml-1 mt-1">
+            {queries.map((query, index) => (
+              <div key={index} className={`text-xs text-gray-600 mb-2`}>
+                <SourceChip2
+                  icon={<FiSearch size={10} />}
+                  title={truncateString(query, MAX_TITLE_LENGTH)}
+                />
+              </div>
+            ))}
           </div>
-        )}
-      </div>
-      <div className="flex flex-wrap gap-2 ml-1">
-        {results.slice(0, 3).map((result, index) => (
-          <div
-            key={result.document_id}
-            className="animate-in fade-in slide-in-from-bottom-1 duration-300"
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            <SourceChip2
-              icon={<ResultIcon doc={result} size={10} />}
-              title={result.semantic_identifier || ""}
-              onClick={() => {
-                window.open(result.link, "_blank");
-              }}
-            />
+          <div className="flex flex-wrap gap-2 ml-1">
+            {results.slice(0, MAX_RESULTS_TO_SHOW).map((result, index) => (
+              <div
+                key={result.document_id}
+                className="animate-in fade-in slide-in-from-bottom-1 duration-300"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <SourceChip2
+                  icon={<ResultIcon doc={result} size={10} />}
+                  title={truncateString(
+                    result.semantic_identifier || "",
+                    MAX_TITLE_LENGTH
+                  )}
+                  onClick={() => {
+                    window.open(result.link, "_blank");
+                  }}
+                />
+              </div>
+            ))}
+            {/* Show a blurb if there are more results than we are displaying */}
+            {results.length > MAX_RESULTS_TO_SHOW && (
+              <div
+                className="animate-in fade-in slide-in-from-bottom-1 duration-300"
+                style={{
+                  animationDelay: `${MAX_RESULTS_TO_SHOW * 100}ms`,
+                }}
+              >
+                <SourceChip2
+                  title={`${results.length - MAX_RESULTS_TO_SHOW} more...`}
+                />
+              </div>
+            )}
           </div>
-        ))}
+        </div>
       </div>
-    </div>
-  );
+    ),
+  };
 };
-
-const SearchToolRenderer: MessageRenderer<ToolPacket, {}> = ({
-  packets,
-}: {
-  packets: ToolPacket[];
-}) => {
-  const { query, results, isSearching, isComplete } =
-    constructCurrentSearchState(packets);
-
-  if (isSearching) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        Searching for: "{query}"...
-      </div>
-    );
-  }
-
-  if (isComplete && results.length > 0) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        Found {results.length} result{results.length > 1 ? "s" : ""} for "
-        {query}"
-      </div>
-    );
-  }
-
-  if (isComplete && results.length === 0) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        No results found for "{query}"
-      </div>
-    );
-  }
-
-  return <div className="text-sm text-muted-foreground">Search: "{query}"</div>;
-};
-
-export const SearchToolFullRenderer = buildFullRenderer(
-  FiSearch,
-  ExtendedSearchToolRenderer,
-  SearchToolRenderer
-);

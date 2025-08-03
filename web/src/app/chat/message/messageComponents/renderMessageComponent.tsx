@@ -4,11 +4,15 @@ import {
   PacketType,
   ToolPacket,
 } from "../../services/streamingModels";
-import { AnimationType, FullChatState, FullRenderer } from "./interfaces";
-import { MessageTextFullRenderer } from "./renderers/MessageTextRenderer";
-import { SearchToolFullRenderer } from "./renderers/SearchToolRenderer";
-import { ImageToolFullRenderer } from "./renderers/ImageToolRenderer";
-import { IconType } from "react-icons";
+import {
+  FullChatState,
+  MessageRenderer,
+  RenderType,
+  RendererResult,
+} from "./interfaces";
+import { MessageTextRenderer } from "./renderers/MessageTextRenderer";
+import { SearchToolRenderer } from "./renderers/SearchToolRenderer";
+import { ImageToolRenderer } from "./renderers/ImageToolRenderer";
 
 // Different types of chat packets using discriminated unions
 export interface GroupedPackets {
@@ -37,18 +41,18 @@ function isImageToolPacket(packet: Packet): packet is ToolPacket {
   );
 }
 
-function findRenderer(
+export function findRenderer(
   groupedPackets: GroupedPackets,
   fullChatState: FullChatState
-): FullRenderer<any, any> | null {
+): MessageRenderer<any, any> | null {
   if (groupedPackets.packets.some((packet) => isChatPacket(packet))) {
-    return MessageTextFullRenderer;
+    return MessageTextRenderer;
   }
   if (groupedPackets.packets.some((packet) => isSearchToolPacket(packet))) {
-    return SearchToolFullRenderer;
+    return SearchToolRenderer;
   }
   if (groupedPackets.packets.some((packet) => isImageToolPacket(packet))) {
-    return ImageToolFullRenderer;
+    return ImageToolRenderer;
   }
   return null;
 }
@@ -57,32 +61,27 @@ export function renderMessageComponent(
   groupedPackets: GroupedPackets,
   fullChatState: FullChatState,
   onComplete: () => void,
-  animationType: AnimationType,
+  animate: boolean,
   useShortRenderer: boolean = false
-): { icon: IconType | null; content: JSX.Element } {
+): RendererResult {
   if (!groupedPackets.packets || !groupedPackets.packets[0]) {
-    return { icon: null, content: <></> };
+    return { icon: null, status: null, content: <></> };
   }
 
-  const renderer = findRenderer(groupedPackets, fullChatState);
-  if (renderer) {
-    return {
-      icon: renderer.icon,
-      content: useShortRenderer
-        ? renderer.shortRenderer({
-            packets: groupedPackets.packets,
-            state: fullChatState,
-            onComplete,
-            animationType,
-          })
-        : renderer.extendedRenderer({
-            packets: groupedPackets.packets,
-            state: fullChatState,
-            onComplete,
-            animationType,
-          }),
-    };
+  const Renderer = findRenderer(groupedPackets, fullChatState);
+  if (Renderer) {
+    const renderType = useShortRenderer
+      ? RenderType.HIGHLIGHT
+      : RenderType.FULL;
+
+    return Renderer({
+      packets: groupedPackets.packets,
+      state: fullChatState,
+      onComplete,
+      renderType,
+      animate,
+    });
   }
 
-  return { icon: null, content: <></> };
+  return { icon: null, status: null, content: <></> };
 }
