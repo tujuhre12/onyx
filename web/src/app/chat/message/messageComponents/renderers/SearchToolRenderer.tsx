@@ -120,14 +120,14 @@ export const SearchToolRenderer: MessageRenderer<ToolPacket, {}> = ({
   }, []);
 
   const status = useMemo(() => {
-    if (isComplete) {
+    if (isComplete && !shouldShowAsSearching) {
       return "Searched internal documents";
     }
-    if (isSearching || isComplete) {
+    if (isSearching || isComplete || shouldShowAsSearching) {
       return "Searching internal documents";
     }
     return null;
-  }, [isSearching, isComplete]);
+  }, [isSearching, isComplete, shouldShowAsSearching]);
 
   // Don't render anything if search hasn't started
   if (queries.length === 0) {

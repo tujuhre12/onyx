@@ -1,13 +1,6 @@
-import {
-  Packet,
-  MessageStart,
-  MessageDelta,
-  PacketType,
-  ToolPacket,
-} from "../../services/streamingModels";
+import { Packet, ToolPacket } from "../../services/streamingModels";
 import { FullChatState, RendererResult } from "./interfaces";
-import { findRenderer, renderMessageComponent } from "./renderMessageComponent";
-import { IconType } from "react-icons";
+import { renderMessageComponent } from "./renderMessageComponent";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { CopyButton } from "@/components/CopyButton";
 import { LikeFeedback, DislikeFeedback } from "@/components/icons/icons";
@@ -326,8 +319,6 @@ export function SimpleMessage({
   const groupedPackets = useMemo(() => {
     return groupPacketsByInd(rawPackets);
   }, [rawPackets.length]);
-
-  console.log("allToolsFullyDisplayed", allToolsFullyDisplayed);
 
   // Return a list of rendered message components, one for each ind
   return (

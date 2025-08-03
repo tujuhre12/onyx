@@ -15,10 +15,6 @@ export function useToolDisplayTiming(
     new Set()
   );
 
-  console.log("toolGroups", toolGroups);
-  console.log("completedToolInds", completedToolInds);
-  console.log("visibleTools", visibleTools);
-
   // Track when each tool starts displaying
   const toolStartTimesRef = useRef<Map<number, number>>(new Map());
 
