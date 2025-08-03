@@ -902,32 +902,34 @@ export function useChatController({
     resetRegenerationState(frozenSessionId);
 
     updateChatStateAction(frozenSessionId, "input");
-    if (isNewSession) {
-      console.log("Setting up new session");
-      if (finalMessage) {
-        setSelectedMessageForDocDisplay(finalMessage.message_id);
-      }
 
-      if (!searchParamBasedChatSessionName) {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        await nameChatSession(currChatSessionId);
-        refreshChatSessions();
-      }
+    // TODO (chris): cleanup
+    // if (isNewSession) {
+    //   console.log("Setting up new session");
+    //   if (finalMessage) {
+    //     setSelectedMessageForDocDisplay(finalMessage.message_id);
+    //   }
 
-      // NOTE: don't switch pages if the user has navigated away from the chat
-      if (
-        currChatSessionId === frozenSessionId ||
-        existingChatSessionId === null
-      ) {
-        const newUrl = buildChatUrl(searchParams, currChatSessionId, null);
-        // newUrl is like /chat?chatId=10
-        // current page is like /chat
+    //   if (!searchParamBasedChatSessionName) {
+    //     await new Promise((resolve) => setTimeout(resolve, 200));
+    //     await nameChatSession(currChatSessionId);
+    //     refreshChatSessions();
+    //   }
 
-        if (pathname == "/chat" && !navigatingAway.current) {
-          router.push(newUrl, { scroll: false });
-        }
-      }
-    }
+    //   // NOTE: don't switch pages if the user has navigated away from the chat
+    //   if (
+    //     currChatSessionId === frozenSessionId ||
+    //     existingChatSessionId === null
+    //   ) {
+    //     const newUrl = buildChatUrl(searchParams, currChatSessionId, null);
+    //     // newUrl is like /chat?chatId=10
+    //     // current page is like /chat
+
+    //     if (pathname == "/chat" && !navigatingAway.current) {
+    //       router.push(newUrl, { scroll: false });
+    //     }
+    //   }
+    // }
     if (
       finalMessage?.context_docs &&
       finalMessage.context_docs.top_documents.length > 0 &&

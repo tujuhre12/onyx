@@ -64,6 +64,8 @@ export interface ToolStart extends BaseObj {
 
 export interface ToolDelta extends BaseObj {
   type: "tool_delta";
+
+  queries: string[] | null;
   documents: OnyxDocument[] | null;
   images: Array<{ [key: string]: string }> | null;
 }

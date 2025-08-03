@@ -47,7 +47,7 @@ export const SourceChip2 = ({
   includeAnimation,
   truncateTitle = true,
 }: {
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   title: string;
   onRemove?: () => void;
   onClick?: () => void;
@@ -88,9 +88,11 @@ export const SourceChip2 = ({
             ${onClick ? "cursor-pointer" : ""}
           `}
           >
-            <div className="w-[17px] h-4 p-[3px] flex-col justify-center items-center gap-2.5 inline-flex">
-              <div className="h-2.5 relative">{icon}</div>
-            </div>
+            {icon && (
+              <div className="w-[17px] h-4 p-[3px] flex-col justify-center items-center gap-2.5 inline-flex">
+                <div className="h-2.5 relative">{icon}</div>
+              </div>
+            )}
             <div className="text-text-800 text-xs font-medium leading-normal">
               {truncateTitle ? truncateString(title, 50) : title}
             </div>

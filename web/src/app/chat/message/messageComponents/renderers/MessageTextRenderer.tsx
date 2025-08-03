@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -17,13 +17,18 @@ import {
 import { extractCodeText, preprocessLaTeX } from "../../codeUtils";
 import { CodeBlock } from "../../CodeBlock";
 import { transformLinkUri } from "@/lib/utils";
-import { buildFullRenderer } from "./utils/buildFullRenderer";
+import { isFinalAnswerComplete } from "../packetUtils";
 
-// New component that properly uses hooks
-export const MessageTextComponent: React.FC<{
-  packets: ChatPacket[];
-  state: FullChatState;
-}> = ({ packets, state }) => {
+export const MessageTextRenderer: MessageRenderer<
+  ChatPacket,
+  FullChatState
+> = ({ packets, state, onComplete, renderType, animate }) => {
+  useEffect(() => {
+    if (isFinalAnswerComplete(packets)) {
+      onComplete();
+    }
+  }, [packets.length]);
+
   const content = packets
     .map((packet) => {
       if (
@@ -99,28 +104,19 @@ export const MessageTextComponent: React.FC<{
     [anchorCallback, paragraphCallback, processedContent]
   );
 
-  return (
-    <ReactMarkdown
-      className="prose dark:prose-invert max-w-full text-base"
-      components={markdownComponents}
-      remarkPlugins={[remarkGfm, remarkMath]}
-      rehypePlugins={[[rehypePrism, { ignoreMissing: true }], rehypeKatex]}
-      urlTransform={transformLinkUri}
-    >
-      {processedContent}
-    </ReactMarkdown>
-  );
+  return {
+    icon: null,
+    status: null,
+    content: (
+      <ReactMarkdown
+        className="prose dark:prose-invert max-w-full text-base"
+        components={markdownComponents}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[[rehypePrism, { ignoreMissing: true }], rehypeKatex]}
+        urlTransform={transformLinkUri}
+      >
+        {processedContent}
+      </ReactMarkdown>
+    ),
+  };
 };
-
-export const MessageTextRenderer: MessageRenderer<
-  ChatPacket,
-  FullChatState
-> = ({ packets, state }: { packets: ChatPacket[]; state: FullChatState }) => {
-  return <MessageTextComponent packets={packets} state={state} />;
-};
-
-export const MessageTextFullRenderer = buildFullRenderer(
-  null,
-  MessageTextRenderer,
-  MessageTextRenderer
-);
