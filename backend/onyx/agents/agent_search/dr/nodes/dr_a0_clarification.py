@@ -14,23 +14,28 @@ from onyx.agents.agent_search.dr.models import DRPromptPurpose
 from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import OrchestrationClarificationInfo
 from onyx.agents.agent_search.dr.models import OrchestratorTool
+from onyx.agents.agent_search.dr.models import QueryEvaluationResponse
 from onyx.agents.agent_search.dr.states import DRPath
 from onyx.agents.agent_search.dr.states import MainState
 from onyx.agents.agent_search.dr.states import OrchestrationUpdate
 from onyx.agents.agent_search.dr.utils import get_chat_history_string
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.llm import invoke_llm_json
+from onyx.agents.agent_search.shared_graph_utils.llm import stream_llm_answer
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.chat.models import AgentAnswerPiece
+from onyx.configs.constants import DocumentSourceDescription
 from onyx.configs.constants import MessageType
 from onyx.configs.constants import TMP_KG_TOOL_NAME
 from onyx.db.connector import fetch_unique_document_sources
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.kg.utils.extraction_utils import get_entity_types_str
 from onyx.kg.utils.extraction_utils import get_relationship_types_str
+from onyx.prompts.dr_prompts import QUERY_EVALUATION_PROMPT
+from onyx.prompts.dr_prompts import QUERY_REJECTION_PROMPT
 from onyx.prompts.dr_prompts import TOOL_DESCRIPTION
 from onyx.tools.tool_implementations.custom.custom_tool import CUSTOM_TOOL_RESPONSE_ID
 from onyx.tools.tool_implementations.custom.custom_tool import CustomTool
@@ -45,6 +50,7 @@ from onyx.tools.tool_implementations.search.search_tool import (
 )
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
 from onyx.utils.logger import setup_logger
+from onyx.utils.threadpool_concurrency import run_with_timeout
 
 logger = setup_logger()
 
@@ -171,9 +177,59 @@ def clarifier(
     if not active_source_types:
         raise ValueError("No active source types found")
 
-    # active_source_types_descriptions = [
-    #     DocumentSourceDescription[source_type] for source_type in active_source_types
-    # ]
+    active_source_types_descriptions = [
+        DocumentSourceDescription[source_type] for source_type in active_source_types
+    ]
+
+    # Quick evaluation whether the query should be answered or rejected
+    query_evaluation_prompt = QUERY_EVALUATION_PROMPT.replace(
+        "---query---", original_question
+    )
+
+    try:
+        evaluation_response = invoke_llm_json(
+            llm=graph_config.tooling.primary_llm,
+            prompt=query_evaluation_prompt,
+            schema=QueryEvaluationResponse,
+            timeout_override=10,
+            max_tokens=100,
+        )
+    except Exception as e:
+        logger.error(f"Error in clarification generation: {e}")
+        raise e
+
+    if not evaluation_response.query_permitted:
+
+        rejection_prompt = QUERY_REJECTION_PROMPT.replace(
+            "---query---", original_question
+        ).replace("---reasoning---", evaluation_response.reasoning)
+
+        _ = run_with_timeout(
+            80,
+            lambda: stream_llm_answer(
+                llm=graph_config.tooling.primary_llm,
+                prompt=rejection_prompt,
+                event_name="basic_response",
+                writer=writer,
+                agent_answer_level=0,
+                agent_answer_question_num=0,
+                agent_answer_type="agent_level_answer",
+                timeout_override=60,
+                max_tokens=None,
+            ),
+        )
+
+        logger.info(
+            f"""Rejected query: {original_question}, \
+Rejection reason: {evaluation_response.reasoning}"""
+        )
+
+        return OrchestrationUpdate(
+            original_question=original_question,
+            chat_history_string="",
+            query_path=[DRPath.END],
+            query_list=[],
+        )
 
     # get clarification (unless time budget is FAST)
     clarification = None
@@ -269,4 +325,5 @@ def clarifier(
         clarification=clarification,
         available_tools=available_tools,
         active_source_types=active_source_types,
+        active_source_types_descriptions="\n".join(active_source_types_descriptions),
     )

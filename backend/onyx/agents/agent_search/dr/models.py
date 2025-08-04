@@ -36,6 +36,11 @@ class ClarificationGenerationResponse(BaseModel):
     clarification_question: str
 
 
+class QueryEvaluationResponse(BaseModel):
+    reasoning: str
+    query_permitted: bool
+
+
 class OrchestrationClarificationInfo(BaseModel):
     clarification_question: str
     clarification_response: str | None = None

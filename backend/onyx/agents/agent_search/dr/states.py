@@ -37,6 +37,7 @@ class OrchestrationUpdate(LoggerUpdate):
         []
     )  # gaps that may be identified by the closer before being able to answer the question.
     active_source_types: list[DocumentSource] | None = None
+    active_source_types_descriptions: str | None = None
 
 
 class QuestionInputState(LoggerUpdate):
