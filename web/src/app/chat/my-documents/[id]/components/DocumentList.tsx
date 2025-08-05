@@ -482,7 +482,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
   return (
     <>
       <div className="flex flex-col h-full">
-        <div className="relative h-[calc(100vh-550px)] w-full overflow-hidden">
+        <div className="relative h-[calc(100vh-400px)] md:h-[calc(100vh-450px)] lg:h-[calc(100vh-500px)] xl:h-[calc(100vh-550px)] w-full overflow-hidden">
           {presentingDocument && (
             <TextView
               presentingDocument={{
@@ -730,7 +730,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
           </div>
         </div>
 
-        <div className="w-full flex justify-center z-10 py-4 dark:border-neutral-800 relative">
+        <div className="w-full flex justify-center z-10 py-2 dark:border-neutral-800 relative">
           {showInvalidFileMessage && invalidFiles.length > 0 && (
             <div className="z-50 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md text-yellow-800 dark:text-yellow-200 text-sm shadow-md max-w-md flex items-start absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2">
               <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />

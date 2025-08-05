@@ -15,6 +15,7 @@ from fastapi import HTTPException
 from fastapi import Query
 from fastapi import UploadFile
 from pydantic import BaseModel
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from onyx.auth.users import current_user
@@ -22,14 +23,22 @@ from onyx.configs.constants import DocumentSource
 from onyx.connectors.models import InputType
 from onyx.db.connector import create_connector
 from onyx.db.connector_credential_pair import add_credential_to_connector
+from onyx.db.connector_credential_pair import (
+    delete_connector_credential_pair__no_commit,
+)
 from onyx.db.credentials import create_credential
+from onyx.db.document import delete_documents_complete__no_commit
 from onyx.db.engine.sql_engine import get_session
 from onyx.db.enums import AccessType
 from onyx.db.enums import ConnectorCredentialPairStatus
+from onyx.db.models import Connector
 from onyx.db.models import ConnectorCredentialPair
+from onyx.db.models import Credential
+from onyx.db.models import Persona__UserFile
 from onyx.db.models import User
 from onyx.db.models import UserFile
 from onyx.db.models import UserFolder
+from onyx.db.search_settings import get_active_search_settings
 from onyx.db.user_documents import calculate_user_files_token_count
 from onyx.db.user_documents import create_user_files
 from onyx.db.user_documents import get_user_file_indexing_status
@@ -38,7 +47,9 @@ from onyx.db.user_documents import share_folder_with_assistant
 from onyx.db.user_documents import unshare_file_with_assistant
 from onyx.db.user_documents import unshare_folder_with_assistant
 from onyx.db.user_documents import upload_files_to_user_files_with_indexing
+from onyx.document_index.factory import get_default_document_index
 from onyx.file_processing.html_utils import web_html_cleanup
+from onyx.file_store.file_store import get_default_file_store
 from onyx.server.documents.connector import trigger_indexing_for_cc_pair
 from onyx.server.documents.models import ConnectorBase
 from onyx.server.documents.models import CredentialBase
@@ -227,8 +238,132 @@ def delete_file(
     )
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
-    db_session.delete(file)
-    db_session.commit()
+
+    try:
+        # Delete from Vespa first (if this fails, we abort everything)
+        if file.document_id:
+            logger.info(f"Deleting document {file.document_id} from Vespa")
+            active_search_settings = get_active_search_settings(db_session)
+            document_index = get_default_document_index(
+                active_search_settings.primary,
+                active_search_settings.secondary,
+            )
+
+            # This will raise an exception if it fails, which will abort the entire operation
+            document_index.delete_single(doc_id=file.document_id)
+            logger.info(f"Successfully deleted document {file.document_id} from Vespa")
+    except Exception as e:
+        logger.error(f"Error deleting document {file.document_id} from Vespa: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete document from Vespa: {str(e)}"
+        )
+
+    # Delete from PostgreSQL
+    if file.file_id:
+        try:
+            file_store = get_default_file_store()
+            file_store.delete_file(file.file_id)
+            logger.info(f"Successfully deleted file {file.file_id} from filestore")
+        except Exception as e:
+            # Log warning but don't fail the entire operation since the important data is already cleaned up
+            logger.warning(f"Failed to delete file {file.file_id} from filestore: {e}")
+
+    try:
+        # Prepare all PostgreSQL operations using no_commit pattern
+        # Store references before deletion
+        cc_pair = file.cc_pair
+        connector_id = cc_pair.connector_id if cc_pair else None
+        credential_id = cc_pair.credential_id if cc_pair else None
+
+        # Delete Persona__UserFile relationships (no_commit)
+        db_session.execute(
+            delete(Persona__UserFile).where(Persona__UserFile.user_file_id == file_id)
+        )
+        logger.info(f"Prepared deletion of persona associations for file {file_id}")
+
+        # Delete document and all its relationships (no_commit)
+        if file.document_id:
+            delete_documents_complete__no_commit(
+                db_session=db_session, document_ids=[file.document_id]
+            )
+            logger.info(
+                f"Prepared deletion of document {file.document_id} and relationships"
+            )
+
+        # Delete ConnectorCredentialPair (no_commit)
+        if cc_pair and connector_id and credential_id:
+            delete_connector_credential_pair__no_commit(
+                db_session=db_session,
+                connector_id=connector_id,
+                credential_id=credential_id,
+            )
+            logger.info(f"Prepared deletion of connector credential pair {cc_pair.id}")
+
+        # Delete Connector if it exists and has no other relationships (no_commit)
+        if connector_id:
+            connector = (
+                db_session.query(Connector).filter(Connector.id == connector_id).first()
+            )
+            if connector:
+                # Check if this connector has other credentials
+                other_cc_pairs = (
+                    db_session.query(ConnectorCredentialPair)
+                    .filter(
+                        ConnectorCredentialPair.connector_id == connector_id,
+                        ConnectorCredentialPair.credential_id != credential_id,
+                    )
+                    .count()
+                )
+
+                if other_cc_pairs == 0:
+                    db_session.delete(connector)
+                    logger.info(f"Prepared deletion of connector {connector_id}")
+                else:
+                    logger.info(
+                        f"Connector {connector_id} has other relationships, not deleting"
+                    )
+
+        # Delete Credential if it exists and has no other relationships (no_commit)
+        if credential_id:
+            credential = (
+                db_session.query(Credential)
+                .filter(Credential.id == credential_id)
+                .first()
+            )
+            if credential:
+                # Check if this credential has other connectors
+                other_cc_pairs = (
+                    db_session.query(ConnectorCredentialPair)
+                    .filter(
+                        ConnectorCredentialPair.credential_id == credential_id,
+                        ConnectorCredentialPair.connector_id != connector_id,
+                    )
+                    .count()
+                )
+
+                if other_cc_pairs == 0:
+                    db_session.delete(credential)
+                    logger.info(f"Prepared deletion of credential {credential_id}")
+                else:
+                    logger.info(
+                        f"Credential {credential_id} has other relationships, not deleting"
+                    )
+        # Delete UserFile record (no_commit)
+        db_session.delete(file)
+        logger.info(f"Prepared deletion of UserFile {file_id}")
+
+        # Execute all PostgreSQL deletions together
+        db_session.commit()
+        logger.info(
+            f"Successfully committed all PostgreSQL deletions for file {file_id}"
+        )
+    except Exception as e:
+        db_session.rollback()
+        logger.error(
+            f"Error committing PostgreSQL deletions for file {file_id}: {str(e)}"
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+
     return MessageResponse(message="File deleted successfully")
 
 
