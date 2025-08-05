@@ -1,6 +1,7 @@
 from operator import add
 from typing import Annotated
 
+from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.states import LoggerUpdate
 from onyx.db.connector import DocumentSource
@@ -20,6 +21,7 @@ class SubAgentInput(LoggerUpdate):
     main_question: str | None = None
     context: str | None = None
     active_source_types: list[DocumentSource] | None = None
+    time_budget: DRTimeBudget | None = None
 
 
 class SubAgentMainState(

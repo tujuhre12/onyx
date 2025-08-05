@@ -5,6 +5,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
 from onyx.agents.agent_search.dr.models import DRPath
+from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import SearchAnswer
 from onyx.agents.agent_search.dr.sub_agents.states import (
@@ -20,8 +21,6 @@ from onyx.agents.agent_search.shared_graph_utils.llm import invoke_llm_json
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
-from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
-from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import LlmDoc
 from onyx.context.search.models import InferenceSection
 from onyx.prompts.dr_prompts import BASIC_SEARCH_PROMPTS
@@ -52,19 +51,19 @@ def internet_search(
     if not search_query:
         raise ValueError("search_query is not set")
 
-    write_custom_event(
-        "basic_response",
-        AgentAnswerPiece(
-            answer_piece=(
-                f"SUB-QUESTION {iteration_nr}.{parallelization_nr} "
-                f"(INTERNET SEARCH): {search_query}\n\n"
-            ),
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+    # write_custom_event(
+    #     "basic_response",
+    #     AgentAnswerPiece(
+    #         answer_piece=(
+    #             f"SUB-QUESTION {iteration_nr}.{parallelization_nr} "
+    #             f"(INTERNET SEARCH): {search_query}\n\n"
+    #         ),
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
 
     graph_config = cast(GraphConfig, config["metadata"]["config"])
     base_question = graph_config.inputs.prompt_builder.raw_user_query
@@ -122,51 +121,61 @@ def internet_search(
 
     # Built prompt
 
-    search_prompt = (
-        BASIC_SEARCH_PROMPTS[time_budget]
-        .replace("---search_query---", search_query)
-        .replace("---base_question---", base_question)
-        .replace("---document_text---", document_texts)
-    )
+    if time_budget == DRTimeBudget.DEEP:
 
-    # Run LLM
+        search_prompt = (
+            BASIC_SEARCH_PROMPTS[time_budget]
+            .replace("---search_query---", search_query)
+            .replace("---base_question---", base_question)
+            .replace("---document_text---", document_texts)
+        )
 
-    search_answer_json = invoke_llm_json(
-        llm=graph_config.tooling.primary_llm,
-        prompt=search_prompt,
-        schema=SearchAnswer,
-        timeout_override=40,
-        max_tokens=3000,
-    )
+        # Run LLM
 
-    logger.debug(
-        f"LLM/all done for Internet Search {iteration_nr}.{parallelization_nr} at {datetime.now()}"
-    )
+        search_answer_json = invoke_llm_json(
+            llm=graph_config.tooling.primary_llm,
+            prompt=search_prompt,
+            schema=SearchAnswer,
+            timeout_override=40,
+            max_tokens=3000,
+        )
 
-    write_custom_event(
-        "basic_response",
-        AgentAnswerPiece(
-            answer_piece=f"ANSWERED {iteration_nr}.{parallelization_nr}\n\n",
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+        logger.debug(
+            f"LLM/all done for Internet Search {iteration_nr}.{parallelization_nr} at {datetime.now()}"
+        )
 
-    # get cited documents
-    answer_string = search_answer_json.answer
-    claims = search_answer_json.claims or []
+        # write_custom_event(
+        #     "basic_response",
+        #     AgentAnswerPiece(
+        #         answer_piece=f"ANSWERED {iteration_nr}.{parallelization_nr}\n\n",
+        #         level=0,
+        #         level_question_num=0,
+        #         answer_type="agent_level_answer",
+        #     ),
+        #     writer,
+        # )
 
-    (
-        citation_numbers,
-        answer_string,
-        claims,
-    ) = extract_document_citations(answer_string, claims)
-    cited_documents = {
-        citation_number: retrieved_docs[citation_number - 1]
-        for citation_number in citation_numbers
-    }
+        # get cited documents
+        answer_string = search_answer_json.answer
+        claims = search_answer_json.claims or []
+
+        (
+            citation_numbers,
+            answer_string,
+            claims,
+        ) = extract_document_citations(answer_string, claims)
+        cited_documents = {
+            citation_number: retrieved_docs[citation_number - 1]
+            for citation_number in citation_numbers
+        }
+
+    else:
+        answer_string = ""
+        claims = []
+        cited_documents = {
+            doc_num + 1: retrieved_doc
+            for doc_num, retrieved_doc in enumerate(retrieved_docs[:15])
+        }
 
     return BranchUpdate(
         branch_iteration_responses=[

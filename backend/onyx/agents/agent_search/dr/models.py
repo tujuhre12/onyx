@@ -103,6 +103,8 @@ class DRTimeBudget(str, Enum):
 class DRPromptPurpose(str, Enum):
     PLAN = "PLAN"
     NEXT_STEP = "NEXT_STEP"
+    NEXT_STEP_REASONING = "NEXT_STEP_REASONING"
+    NEXT_STEP_PURPOSE = "NEXT_STEP_PURPOSE"
     CLARIFICATION = "CLARIFICATION"
 
 

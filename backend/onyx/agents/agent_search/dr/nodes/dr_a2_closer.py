@@ -72,10 +72,19 @@ def closer(
         or "(No chat history yet available)"
     )
 
-    aggregated_context = aggregate_context(
-        state.iteration_responses,
-        include_documents=True,
-    )
+    if time_budget == DRTimeBudget.FAST:
+
+        aggregated_context = aggregate_context(
+            state.iteration_responses,
+            include_documents=True,
+            include_answers_claims=False,
+        )
+    else:
+        aggregated_context = aggregate_context(
+            state.iteration_responses,
+            include_documents=True,
+        )
+
     iteration_responses_string = aggregated_context.context
     all_cited_documents = aggregated_context.cited_documents
 
@@ -85,45 +94,49 @@ def closer(
         num_closer_suggestions < MAX_NUM_CLOSER_SUGGESTIONS
         and time_budget == DRTimeBudget.DEEP
     ):
-        test_info_complete_prompt = (
-            TEST_INFO_COMPLETE_PROMPT.replace("---base_question---", prompt_question)
-            .replace("---questions_answers_claims---", iteration_responses_string)
-            .replace("---chat_history_string---", chat_history_string)
-            .replace(
-                "---high_level_plan---",
-                (
-                    state.plan_of_record.plan
-                    if state.plan_of_record
-                    else "No plan available"
-                ),
+        if time_budget == DRTimeBudget.DEEP:
+
+            test_info_complete_prompt = (
+                TEST_INFO_COMPLETE_PROMPT.replace(
+                    "---base_question---", prompt_question
+                )
+                .replace("---questions_answers_claims---", iteration_responses_string)
+                .replace("---chat_history_string---", chat_history_string)
+                .replace(
+                    "---high_level_plan---",
+                    (
+                        state.plan_of_record.plan
+                        if state.plan_of_record
+                        else "No plan available"
+                    ),
+                )
             )
-        )
 
-        test_info_complete_json = invoke_llm_json(
-            llm=graph_config.tooling.primary_llm,
-            prompt=test_info_complete_prompt,
-            schema=TestInfoCompleteResponse,
-            timeout_override=40,
-            max_tokens=1000,
-        )
-
-        if test_info_complete_json.complete:
-            pass
-
-        else:
-            return OrchestrationUpdate(
-                query_path=[DRPath.ORCHESTRATOR],
-                query_list=[],
-                log_messages=[
-                    get_langgraph_node_log_string(
-                        graph_component="main",
-                        node_name="closer",
-                        node_start_time=node_start_time,
-                    )
-                ],
-                gaps=test_info_complete_json.gaps,
-                num_closer_suggestions=num_closer_suggestions + 1,
+            test_info_complete_json = invoke_llm_json(
+                llm=graph_config.tooling.primary_llm,
+                prompt=test_info_complete_prompt,
+                schema=TestInfoCompleteResponse,
+                timeout_override=40,
+                max_tokens=1000,
             )
+
+            if test_info_complete_json.complete:
+                pass
+
+            else:
+                return OrchestrationUpdate(
+                    query_path=[DRPath.ORCHESTRATOR],
+                    query_list=[],
+                    log_messages=[
+                        get_langgraph_node_log_string(
+                            graph_component="main",
+                            node_name="closer",
+                            node_start_time=node_start_time,
+                        )
+                    ],
+                    gaps=test_info_complete_json.gaps,
+                    num_closer_suggestions=num_closer_suggestions + 1,
+                )
 
     # Stream out docs - TODO: Improve this with new frontend
     write_custom_event(

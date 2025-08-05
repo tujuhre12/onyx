@@ -4,6 +4,7 @@ from langchain.schema.messages import BaseMessage
 from langchain.schema.messages import HumanMessage
 
 from onyx.agents.agent_search.dr.models import AggregatedDRContext
+from onyx.agents.agent_search.dr.models import DRPath
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import OrchestrationClarificationInfo
 from onyx.agents.agent_search.kb_search.graph_utils import build_document_context
@@ -40,7 +41,9 @@ def extract_document_citations(
 
 
 def aggregate_context(
-    iteration_responses: list[IterationAnswer], include_documents: bool = False
+    iteration_responses: list[IterationAnswer],
+    include_documents: bool = False,
+    include_answers_claims: bool = True,
 ) -> AggregatedDRContext:
     """
     Converts the iteration response into a single string with unified citations.
@@ -79,6 +82,7 @@ def aggregate_context(
 
         # compute global citation and replace citation in string
         local_citations = iteration_response.cited_documents
+        local_retrieved_document_ids: list[str] = []
         for local_number, cited_doc in local_citations.items():
             cited_doc_id = cited_doc.center_chunk.document_id
             if cited_doc_id not in global_citations:
@@ -92,9 +96,17 @@ def aggregate_context(
             claims_str = claims_str.replace(
                 f"[{CITATION_PREFIX}{local_number}]", f"[{global_number}]"
             )
+            local_retrieved_document_ids.append(f"[{global_number}]")
 
-        output_strings.append(f"Answer: {answer_str}")
-        output_strings.append(f"Claims: {claims_str}")
+        if include_answers_claims:
+            output_strings.append(f"Answer: {answer_str}")
+            output_strings.append(f"Claims: {claims_str}")
+        else:
+            local_retrieved_document_ids_str = ", ".join(local_retrieved_document_ids)
+            output_strings.append(
+                f"Retrieved documents: {local_retrieved_document_ids_str}"
+            )
+
         output_strings.append("\n---\n")
 
     # add document contents if requested
@@ -148,3 +160,11 @@ def get_prompt_question(
         )
 
     return question
+
+
+def create_tool_call_string(query_path: DRPath, query_list: list[str]) -> str:
+    """
+    Create a string representation of the tool call.
+    """
+    questions_str = "\n  - ".join(query_list)
+    return f"Tool: {query_path.value}\n\nQuestions:\n{questions_str}"

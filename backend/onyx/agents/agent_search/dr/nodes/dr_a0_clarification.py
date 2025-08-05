@@ -8,7 +8,9 @@ from langgraph.types import StreamWriter
 from onyx.agents.agent_search.dr.constants import AVERAGE_TOOL_COSTS
 from onyx.agents.agent_search.dr.constants import CLARIFICATION_REQUEST_PREFIX
 from onyx.agents.agent_search.dr.constants import MAX_CHAT_HISTORY_MESSAGES
-from onyx.agents.agent_search.dr.dr_prompt_builder import get_dr_prompt_template
+from onyx.agents.agent_search.dr.dr_prompt_builder import (
+    get_dr_prompt_orchestration_templates,
+)
 from onyx.agents.agent_search.dr.models import ClarificationGenerationResponse
 from onyx.agents.agent_search.dr.models import DRPromptPurpose
 from onyx.agents.agent_search.dr.models import DRTimeBudget
@@ -247,7 +249,7 @@ Rejection reason: {evaluation_response.reasoning}"""
                 or "(No chat history yet available)"
             )
 
-            base_clarification_prompt = get_dr_prompt_template(
+            base_clarification_prompt = get_dr_prompt_orchestration_templates(
                 DRPromptPurpose.CLARIFICATION,
                 time_budget,
                 entity_types_string=all_entity_types,

@@ -21,6 +21,7 @@ def branching_router(state: SubAgentInput) -> list[Send | Hashable] | DRPath | s
                 log_messages=[],
                 tool=DRPath.SEARCH,
                 active_source_types=state.active_source_types,
+                time_budget=state.time_budget,
             ),
         )
         for parallelization_nr, query in enumerate(

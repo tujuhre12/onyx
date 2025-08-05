@@ -7,6 +7,7 @@ from langgraph.types import StreamWriter
 
 from onyx.agents.agent_search.dr.models import BaseSearchProcessingResponse
 from onyx.agents.agent_search.dr.models import DRPath
+from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import SearchAnswer
 from onyx.agents.agent_search.dr.states import AnswerUpdate
@@ -18,8 +19,6 @@ from onyx.agents.agent_search.shared_graph_utils.llm import invoke_llm_json
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
-from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
-from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import LlmDoc
 from onyx.context.search.models import InferenceSection
 from onyx.db.connector import DocumentSource
@@ -105,23 +104,23 @@ def basic_search(
     if specified_source_types is not None and len(specified_source_types) == 0:
         specified_source_types = None
 
-    write_custom_event(
-        "basic_response",
-        AgentAnswerPiece(
-            answer_piece=(
-                f"SUB-QUESTION {iteration_nr}.{parallelization_nr} "
-                f"(SEARCH): {branch_query}\n\n"
-                f"REWRITTEN QUERY: {rewritten_query}\n\n"
-                f"PREDICTED SOURCE TYPES: {specified_source_types}\n\n"
-                f"PREDICTED TIME FILTER: {implied_time_filter}\n\n"
-                " --- \n\n"
-            ),
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+    # write_custom_event(
+    #     "basic_response",
+    #     AgentAnswerPiece(
+    #         answer_piece=(
+    #             f"SUB-QUESTION {iteration_nr}.{parallelization_nr} "
+    #             f"(SEARCH): {branch_query}\n\n"
+    #             f"REWRITTEN QUERY: {rewritten_query}\n\n"
+    #             f"PREDICTED SOURCE TYPES: {specified_source_types}\n\n"
+    #             f"PREDICTED TIME FILTER: {implied_time_filter}\n\n"
+    #             " --- \n\n"
+    #         ),
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
 
     logger.debug(
         f"Search start for Standard Search {iteration_nr}.{parallelization_nr} at {datetime.now()}"
@@ -166,56 +165,66 @@ def basic_search(
 
     # Built prompt
 
-    search_prompt = (
-        BASIC_SEARCH_PROMPTS[time_budget]
-        .replace(
-            "---search_query---", branch_query
-        )  # use branch query to create answer
-        .replace("---base_question---", base_question)
-        .replace("---document_text---", document_texts)
-    )
+    if time_budget == DRTimeBudget.DEEP:
 
-    # Run LLM
+        search_prompt = (
+            BASIC_SEARCH_PROMPTS[time_budget]
+            .replace(
+                "---search_query---", branch_query
+            )  # use branch query to create answer
+            .replace("---base_question---", base_question)
+            .replace("---document_text---", document_texts)
+        )
 
-    # search_answer_json = None
-    search_answer_json = invoke_llm_json(
-        llm=graph_config.tooling.primary_llm,
-        prompt=search_prompt,
-        schema=SearchAnswer,
-        timeout_override=40,
-        max_tokens=1500,
-    )
+        # Run LLM
 
-    logger.debug(
-        f"LLM/all done for Standard Search {iteration_nr}.{parallelization_nr} at {datetime.now()}"
-    )
+        # search_answer_json = None
+        search_answer_json = invoke_llm_json(
+            llm=graph_config.tooling.primary_llm,
+            prompt=search_prompt,
+            schema=SearchAnswer,
+            timeout_override=40,
+            max_tokens=1500,
+        )
 
-    write_custom_event(
-        "basic_response",
-        AgentAnswerPiece(
-            answer_piece=f"ANSWERED {iteration_nr}.{parallelization_nr}\n\n",
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+        logger.debug(
+            f"LLM/all done for Standard Search {iteration_nr}.{parallelization_nr} at {datetime.now()}"
+        )
 
-    # get cited documents
-    answer_string = search_answer_json.answer
-    claims = search_answer_json.claims or []
-    # answer_string = ""
-    # claims = []
+        # write_custom_event(
+        #     "basic_response",
+        #     AgentAnswerPiece(
+        #         answer_piece=f"ANSWERED {iteration_nr}.{parallelization_nr}\n\n",
+        #         level=0,
+        #         level_question_num=0,
+        #         answer_type="agent_level_answer",
+        #     ),
+        #     writer,
+        # )
 
-    (
-        citation_numbers,
-        answer_string,
-        claims,
-    ) = extract_document_citations(answer_string, claims)
-    cited_documents = {
-        citation_number: retrieved_docs[citation_number - 1]
-        for citation_number in citation_numbers
-    }
+        # get cited documents
+        answer_string = search_answer_json.answer
+        claims = search_answer_json.claims or []
+        # answer_string = ""
+        # claims = []
+
+        (
+            citation_numbers,
+            answer_string,
+            claims,
+        ) = extract_document_citations(answer_string, claims)
+        cited_documents = {
+            citation_number: retrieved_docs[citation_number - 1]
+            for citation_number in citation_numbers
+        }
+
+    else:
+        answer_string = ""
+        claims = []
+        cited_documents = {
+            doc_num + 1: retrieved_doc
+            for doc_num, retrieved_doc in enumerate(retrieved_docs[:15])
+        }
 
     return AnswerUpdate(
         iteration_responses=[

@@ -13,8 +13,6 @@ from onyx.agents.agent_search.kb_search.states import MainInput as KbMainInput
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
-from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
-from onyx.chat.models import AgentAnswerPiece
 from onyx.context.search.models import InferenceSection
 from onyx.utils.logger import setup_logger
 
@@ -37,19 +35,19 @@ def kg_query(
     if not search_query:
         raise ValueError("search_query is not set")
 
-    write_custom_event(
-        "basic_response",
-        AgentAnswerPiece(
-            answer_piece=(
-                f"SUB-QUESTION {iteration_nr}.{parallelization_nr} "
-                f"(KNOWLEDGE GRAPH): {search_query}\n\n"
-            ),
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+    # write_custom_event(
+    #     "basic_response",
+    #     AgentAnswerPiece(
+    #         answer_piece=(
+    #             f"SUB-QUESTION {iteration_nr}.{parallelization_nr} "
+    #             f"(KNOWLEDGE GRAPH): {search_query}\n\n"
+    #         ),
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
 
     logger.debug(f"Conducting a knowledge graph search for: {search_query}")
 
@@ -60,16 +58,16 @@ def kg_query(
         config=config,
     )
 
-    write_custom_event(
-        "basic_response",
-        AgentAnswerPiece(
-            answer_piece=f"ANSWERED {iteration_nr}.{parallelization_nr}\n\n",
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+    # write_custom_event(
+    #     "basic_response",
+    #     AgentAnswerPiece(
+    #         answer_piece=f"ANSWERED {iteration_nr}.{parallelization_nr}\n\n",
+    #         level=0,
+    #         level_question_num=0,
+    #         answer_type="agent_level_answer",
+    #     ),
+    #     writer,
+    # )
 
     # get cited documents
     answer_string = kb_results.get("final_answer") or "No answer provided"
