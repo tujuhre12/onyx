@@ -144,6 +144,7 @@ function SourceTileTooltipWrapper({
 
 export default function Page() {
   const sources = useMemo(() => listSourceMetadata(), []);
+
   const [searchTerm, setSearchTerm] = useState("");
   const { data: federatedConnectors } = useFederatedConnectors();
   const settings = useContext(SettingsContext);
