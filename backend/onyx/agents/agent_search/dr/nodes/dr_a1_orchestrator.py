@@ -104,10 +104,10 @@ def orchestrator(
     query_list = ["Answer the question with the information you have."]
     decision_prompt = None
 
-    if time_budget == DRTimeBudget.FAST:
+    reasoning_result = "(No reasoning result provided yet.)"
+    tool_calls_string = "(No tool calls provided yet.)"
 
-        reasoning_result = "(No reasoning result provided yet.)"
-        tool_calls_string = "(No tool calls provided yet.)"
+    if time_budget == DRTimeBudget.FAST:
 
         if iteration_nr == 1:
             remaining_time_budget = DR_TIME_BUDGET_BY_TYPE[DRTimeBudget.FAST]
@@ -312,7 +312,8 @@ def orchestrator(
             remaining_time_budget = (
                 remaining_time_budget - AVERAGE_TOOL_COSTS[query_path]
             )
-
+        else:
+            reasoning_result = "Time to wrap up."
     orchestration_next_step_purpose_prompt = (
         ORCHESTRATOR_NEXT_STEP_PURPOSE_PROMPT.replace("---question---", prompt_question)
         .replace("---reasoning_result---", reasoning_result)

@@ -77,7 +77,7 @@ def closer(
         aggregated_context = aggregate_context(
             state.iteration_responses,
             include_documents=True,
-            include_answers_claims=False,
+            include_answers_claims=True,
         )
     else:
         aggregated_context = aggregate_context(
@@ -177,7 +177,7 @@ def closer(
 
     try:
         streamed_output = run_with_timeout(
-            80,
+            240,
             lambda: stream_llm_answer(
                 llm=graph_config.tooling.primary_llm,
                 prompt=final_answer_prompt,

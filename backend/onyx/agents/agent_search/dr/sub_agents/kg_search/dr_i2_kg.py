@@ -83,10 +83,15 @@ def kg_query(
         answer_string,
         claims,
     ) = extract_document_citations(answer_string, claims)
-    cited_documents = {
-        citation_number: retrieved_docs[citation_number - 1]
-        for citation_number in citation_numbers
-    }
+
+    if len(citation_numbers) >= 1:
+        cited_documents = {
+            citation_number: retrieved_docs[citation_number - 1]
+            for citation_number in citation_numbers
+            if citation_number <= len(retrieved_docs)
+        }
+    else:
+        cited_documents = {}
 
     return AnswerUpdate(
         iteration_responses=[
