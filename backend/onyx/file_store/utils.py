@@ -245,6 +245,7 @@ def get_user_files_as_user(
     """
     Fetches all UserFile database records for a given user.
     """
+    filtered_user_files: list[UserFile] = []
     user_files = get_user_files(user_file_ids, user_folder_ids, db_session)
     current_user_files = []
     for user_file in user_files:

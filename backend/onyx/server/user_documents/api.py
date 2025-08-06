@@ -31,6 +31,7 @@ from onyx.db.document import delete_documents_complete__no_commit
 from onyx.db.engine.sql_engine import get_session
 from onyx.db.enums import AccessType
 from onyx.db.enums import ConnectorCredentialPairStatus
+from onyx.db.index_attempt import delete_index_attempts
 from onyx.db.models import Connector
 from onyx.db.models import ConnectorCredentialPair
 from onyx.db.models import Credential
@@ -249,9 +250,14 @@ def delete_file(
                 active_search_settings.secondary,
             )
 
-            # This will raise an exception if it fails, which will abort the entire operation
-            document_index.delete_single(doc_id=file.document_id)
-            logger.info(f"Successfully deleted document {file.document_id} from Vespa")
+            total_chunks_deleted = document_index.delete_single(
+                doc_id=file.document_id,
+                tenant_id=get_current_tenant_id(),
+                chunk_count=None,
+            )
+            logger.info(
+                f"Successfully deleted document {file.document_id} from Vespa with {total_chunks_deleted} chunks deleted"
+            )
     except Exception as e:
         logger.error(f"Error deleting document {file.document_id} from Vespa: {str(e)}")
         raise HTTPException(
@@ -289,6 +295,20 @@ def delete_file(
             logger.info(
                 f"Prepared deletion of document {file.document_id} and relationships"
             )
+
+        # Delete index attempts first to avoid foreign key violations (no_commit)
+        if cc_pair:
+            delete_index_attempts(
+                cc_pair_id=cc_pair.id,
+                db_session=db_session,
+            )
+            logger.info(
+                f"Prepared deletion of index attempts for connector credential pair {cc_pair.id}"
+            )
+
+        # Delete UserFile record before ConnectorCredentialPair to avoid foreign key violations (no_commit)
+        db_session.delete(file)
+        logger.info(f"Prepared deletion of UserFile {file_id}")
 
         # Delete ConnectorCredentialPair (no_commit)
         if cc_pair and connector_id and credential_id:
@@ -348,9 +368,6 @@ def delete_file(
                     logger.info(
                         f"Credential {credential_id} has other relationships, not deleting"
                     )
-        # Delete UserFile record (no_commit)
-        db_session.delete(file)
-        logger.info(f"Prepared deletion of UserFile {file_id}")
 
         # Execute all PostgreSQL deletions together
         db_session.commit()
