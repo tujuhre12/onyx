@@ -2,14 +2,7 @@ import { MinimalOnyxDocument, OnyxDocument } from "@/lib/search/interfaces";
 import { ChatDocumentDisplay } from "./ChatDocumentDisplay";
 import { removeDuplicateDocs } from "@/lib/documentUtils";
 import { ChatFileType, Message } from "@/app/chat/interfaces";
-import {
-  Dispatch,
-  ForwardedRef,
-  forwardRef,
-  SetStateAction,
-  useEffect,
-  useState,
-} from "react";
+import { Dispatch, ForwardedRef, forwardRef, SetStateAction } from "react";
 import { XIcon } from "@/components/icons/icons";
 import { FileSourceCardInResults } from "@/app/chat/message/SourcesDisplay";
 import { useDocumentsContext } from "@/app/chat/my-documents/DocumentsContext";
@@ -30,7 +23,6 @@ interface DocumentResultsProps {
   isSharedChat?: boolean;
   modal: boolean;
   setPresentingDocument: Dispatch<SetStateAction<MinimalOnyxDocument | null>>;
-  removeHeader?: boolean;
   citations?: CitationMap | null;
 }
 
@@ -51,7 +43,6 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
       isSharedChat,
       isOpen,
       setPresentingDocument,
-      removeHeader,
       citations,
     },
     ref: ForwardedRef<HTMLDivElement>
@@ -116,22 +107,6 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
             }}
           >
             <div className="flex flex-col h-full">
-              {!removeHeader && (
-                <>
-                  <div className="p-4 flex items-center justify-between gap-x-2">
-                    <div className="flex items-center gap-x-2">
-                      <h2 className="text-xl font-bold text-text-900">
-                        Sources
-                      </h2>
-                    </div>
-                    <button className="my-auto" onClick={closeSidebar}>
-                      <XIcon size={16} />
-                    </button>
-                  </div>
-                  <div className="border-b border-divider-history-sidebar-bar mx-3" />
-                </>
-              )}
-
               <div className="overflow-y-auto h-fit mb-8 pb-8 sm:mx-0 flex-grow gap-y-0 default-scrollbar dark-scrollbar flex flex-col">
                 {userFiles && userFiles.length > 0 ? (
                   <div className=" gap-y-2 flex flex-col pt-2 mx-3">
@@ -157,11 +132,20 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
                   <>
                     {/* Cited Documents Section */}
                     {citedDocuments.length > 0 && (
-                      <div className="mt-2">
-                        <div className="px-4 pb-2">
-                          <h3 className="text-sm font-semibold text-text-700">
-                            Cited Documents
+                      <div className="mt-4">
+                        <div className="px-4 pb-3 pt-2 flex justify-between border-b border-border">
+                          <h3 className="text-base font-semibold text-text-700">
+                            Cited Sources
                           </h3>
+
+                          <button
+                            aria-label="Close sidebar"
+                            title="Close"
+                            className="my-auto p-1 rounded transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                            onClick={closeSidebar}
+                          >
+                            <XIcon size={16} />
+                          </button>
                         </div>
                         {citedDocuments.map((document, ind) => (
                           <div
@@ -194,14 +178,12 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
 
                     {/* Other Documents Section */}
                     {otherDocuments.length > 0 && (
-                      <div
-                        className={citedDocuments.length > 0 ? "mt-4" : "mt-2"}
-                      >
+                      <div className="mt-4">
                         {citedDocuments.length > 0 && (
                           <>
-                            <div className="px-4 pb-2">
-                              <h3 className="text-sm font-semibold text-text-700">
-                                Other Documents
+                            <div className="px-4 pb-3 pt-2 border-b border-border">
+                              <h3 className="text-base font-semibold text-text-700">
+                                More
                               </h3>
                             </div>
                           </>
@@ -209,7 +191,7 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
                         {otherDocuments.map((document, ind) => (
                           <div
                             key={document.document_id}
-                            className={`desktop:px-2 w-full`}
+                            className={`desktop:px-2 w-full mb-2`}
                           >
                             <ChatDocumentDisplay
                               agenticMessage={agenticMessage}

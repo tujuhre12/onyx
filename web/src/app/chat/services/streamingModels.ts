@@ -79,16 +79,18 @@ export interface ToolEnd extends BaseObj {
 }
 
 // Citation Packets
+export interface StreamingCitation {
+  citation_num: number;
+  document_id: string;
+}
+
 export interface CitationStart extends BaseObj {
   type: "citation_start";
 }
 
 export interface CitationDelta extends BaseObj {
   type: "citation_delta";
-  citations: Array<{
-    citation_num: number;
-    document_id: string;
-  }> | null;
+  citations: StreamingCitation[] | null;
 }
 
 export interface CitationEnd extends BaseObj {

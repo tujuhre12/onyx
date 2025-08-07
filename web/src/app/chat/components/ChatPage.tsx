@@ -845,7 +845,6 @@ export function ChatPage({
               maxTokens={maxTokens}
               initialWidth={400}
               isOpen={true}
-              removeHeader
               citations={aiMessage?.citations}
             />
           </Modal>
