@@ -1,15 +1,10 @@
-from typing import Any
-
 from fastapi import APIRouter
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from onyx.auth.users import current_admin_user
 from onyx.configs.constants import TMP_DRALPHA_PERSONA_NAME
-from onyx.configs.constants import TMP_KG_TOOL_NAME
 from onyx.configs.kg_configs import KG_BETA_ASSISTANT_DESCRIPTION
-from onyx.configs.kg_configs import KG_TOOL_DESCRIPTION
-from onyx.configs.kg_configs import KG_TOOL_DISPLAY_NAME
 from onyx.context.search.enums import RecencyBiasSetting
 from onyx.db.engine.sql_engine import get_session
 from onyx.db.entities import get_entity_stats_by_grounded_source_name
@@ -24,8 +19,6 @@ from onyx.db.persona import create_update_persona
 from onyx.db.persona import get_persona_by_id
 from onyx.db.persona import mark_persona_as_deleted
 from onyx.db.persona import mark_persona_as_not_deleted
-from onyx.db.tools import create_tool
-from onyx.db.tools import get_tool_by_name
 from onyx.kg.resets.reset_index import reset_full_kg_index__commit
 from onyx.kg.setup.kg_default_entity_definitions import (
     populate_missing_default_entity_types__commit,
@@ -40,6 +33,7 @@ from onyx.server.kg.models import KGConfig
 from onyx.server.kg.models import KGConfig as KGConfigAPIModel
 from onyx.server.kg.models import SourceAndEntityTypeView
 from onyx.server.kg.models import SourceStatistics
+from onyx.tools.built_in_tools import get_kg_tool
 from onyx.tools.built_in_tools import get_search_tool
 
 
@@ -101,42 +95,14 @@ def enable_or_disable_kg(
     enable_kg(enable_req=req)
     populate_missing_default_entity_types__commit(db_session=db_session)
 
-    # Get the search tool
+    # Get the search and knowledge graph tools
     search_tool = get_search_tool(db_session=db_session)
     if not search_tool:
         raise RuntimeError("SearchTool not found in the database.")
 
-    # Get or create the KG tool
-    try:
-        kg_tool = get_tool_by_name(KG_TOOL_DISPLAY_NAME, db_session=db_session)
-    except ValueError:
-        kg_openapi_schema: dict[str, Any] = {
-            "openapi": "3.0.0",
-            "info": {
-                "version": "1.0.0",
-                "title": KG_TOOL_DISPLAY_NAME,
-                "description": KG_TOOL_DESCRIPTION,
-            },
-            "servers": [{"url": "http://localhost:8080"}],
-            "paths": {
-                "/kg_search": {
-                    "get": {
-                        "summary": KG_TOOL_DESCRIPTION,
-                        "operationId": TMP_KG_TOOL_NAME,
-                    }
-                }
-            },
-        }
-
-        kg_tool = create_tool(
-            name=KG_TOOL_DISPLAY_NAME,
-            description=KG_TOOL_DESCRIPTION,
-            openapi_schema=kg_openapi_schema,
-            custom_headers=None,
-            user_id=user.id if user else None,
-            db_session=db_session,
-            passthrough_auth=False,
-        )
+    kg_tool = get_kg_tool(db_session=db_session)
+    if not kg_tool:
+        raise RuntimeError("KnowledgeGraphTool not found in the database.")
 
     # Check if we have a previously created persona
     kg_config_settings = get_kg_config_settings()

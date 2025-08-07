@@ -142,5 +142,3 @@ KG_MAX_DECOMPOSITION_SEGMENTS: int = int(
 )
 KG_BETA_ASSISTANT_DESCRIPTION = "The KG Beta assistant uses the Onyx Knowledge Graph (beta) structure \
 to answer questions"
-KG_TOOL_DISPLAY_NAME = "KG Search"
-KG_TOOL_DESCRIPTION = "Runs the KG Search. Only works inside the KG Beta agent."

@@ -29,7 +29,6 @@ from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.chat.models import AgentAnswerPiece
 from onyx.configs.constants import DocumentSourceDescription
 from onyx.configs.constants import MessageType
-from onyx.configs.constants import TMP_KG_TOOL_NAME
 from onyx.db.connector import fetch_unique_document_sources
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.kg.utils.extraction_utils import get_entity_types_str
@@ -42,6 +41,9 @@ from onyx.tools.tool_implementations.internet_search.internet_search_tool import
 )
 from onyx.tools.tool_implementations.internet_search.internet_search_tool import (
     InternetSearchTool,
+)
+from onyx.tools.tool_implementations.knowledge_graph.knowledge_graph_tool import (
+    KnowledgeGraphTool,
 )
 from onyx.tools.tool_implementations.search.search_tool import (
     SEARCH_RESPONSE_SUMMARY_ID,
@@ -68,13 +70,7 @@ def _get_available_tools(
             cost=1.0,
         )
 
-        # TODO: add proper KG search tool
-        if tool.name == TMP_KG_TOOL_NAME:
-            if not kg_enabled:
-                logger.warning("KG must be enabled to use KG search tool")
-                continue
-            tool_info.path = DRPath.KNOWLEDGE_GRAPH
-        elif isinstance(tool, CustomTool):
+        if isinstance(tool, CustomTool):
             tool_info.metadata["summary_signature"] = CUSTOM_TOOL_RESPONSE_ID
             tool_info.path = DRPath.GENERIC_TOOL
         elif isinstance(tool, InternetSearchTool):
@@ -85,6 +81,11 @@ def _get_available_tools(
         elif isinstance(tool, SearchTool):
             tool_info.metadata["summary_signature"] = SEARCH_RESPONSE_SUMMARY_ID
             tool_info.path = DRPath.INTERNAL_SEARCH
+        elif isinstance(tool, KnowledgeGraphTool):
+            if not kg_enabled:
+                logger.warning("KG must be enabled to use KG search tool, skipping")
+                continue
+            tool_info.path = DRPath.KNOWLEDGE_GRAPH
         else:
             logger.warning(f"Tool {tool.name} ({type(tool)}) is not supported")
             continue
