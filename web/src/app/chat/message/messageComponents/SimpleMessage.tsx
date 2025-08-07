@@ -4,6 +4,7 @@ import {
   PacketType,
   CitationDelta,
   ToolDelta,
+  StreamingCitation,
 } from "../../services/streamingModels";
 import { FullChatState, RendererResult } from "./interfaces";
 import { renderMessageComponent } from "./renderMessageComponent";
@@ -354,12 +355,7 @@ export function SimpleMessage({
   );
 
   // Track citations
-  const [citations, setCitations] = useState<
-    Array<{
-      citation_num: number;
-      document_id: string;
-    }>
-  >([]);
+  const [citations, setCitations] = useState<StreamingCitation[]>([]);
 
   // Track documents from tool packets
   const [documentMap, setDocumentMap] = useState<Map<string, OnyxDocument>>(

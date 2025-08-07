@@ -60,6 +60,11 @@ class ToolEnd(BaseObj):
 """Citation Packets"""
 
 
+class StreamingCitation(BaseModel):
+    citation_num: int
+    document_id: str
+
+
 class CitationStart(BaseObj):
     type: str = "citation_start"
 
@@ -67,7 +72,7 @@ class CitationStart(BaseObj):
 class CitationDelta(BaseObj):
     type: str = "citation_delta"
 
-    citations: list[dict[str, str | int]] | None = None
+    citations: list[StreamingCitation] | None = None
 
 
 class CitationEnd(BaseObj):

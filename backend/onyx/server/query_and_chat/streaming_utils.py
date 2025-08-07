@@ -1,11 +1,16 @@
 from onyx.chat.models import LlmDoc
 from onyx.configs.constants import MessageType
+from onyx.file_store.models import ChatFileType
 from onyx.server.query_and_chat.models import ChatMessageDetail
+from onyx.server.query_and_chat.streaming_models import CitationDelta
+from onyx.server.query_and_chat.streaming_models import CitationEnd
+from onyx.server.query_and_chat.streaming_models import CitationStart
 from onyx.server.query_and_chat.streaming_models import MessageDelta
 from onyx.server.query_and_chat.streaming_models import MessageEnd
 from onyx.server.query_and_chat.streaming_models import MessageStart
 from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.server.query_and_chat.streaming_models import Stop
+from onyx.server.query_and_chat.streaming_models import StreamingCitation
 from onyx.server.query_and_chat.streaming_models import ToolDelta
 from onyx.server.query_and_chat.streaming_models import ToolEnd
 from onyx.server.query_and_chat.streaming_models import ToolStart
@@ -50,36 +55,8 @@ def create_simplified_packets_for_message(
             )
             llm_docs.append(llm_doc)
 
-        # TODO: remove
-        for _ in range(7):
-            # Start search tool
-            search_tool_start = ToolStart(
-                tool_name="search",
-                tool_icon="search",
-                tool_main_description=f"{message.rephrased_query or ''}",
-            )
-            packets.append(Packet(ind=current_index, obj=search_tool_start))
-
-            packets.append(
-                Packet(
-                    ind=current_index,
-                    obj=ToolDelta(queries=[message.rephrased_query or message.message]),
-                )
-            )
-
-            # Send search results via tool delta
-            search_tool_delta = ToolDelta(documents=llm_docs)
-            packets.append(Packet(ind=current_index, obj=search_tool_delta))
-
-            # End search tool
-            search_tool_end = ToolEnd()
-            packets.append(Packet(ind=current_index, obj=search_tool_end))
-            current_index += 1
-
     # Create ImageTool packets if there are image files
     if message.files:
-        from onyx.file_store.models import ChatFileType
-
         image_files = [f for f in message.files if f["type"] == ChatFileType.IMAGE]
         if image_files:
             # Start image tool
@@ -109,6 +86,30 @@ def create_simplified_packets_for_message(
             image_tool_end = ToolEnd()
             packets.append(Packet(ind=current_index, obj=image_tool_end))
             current_index += 1
+
+    # Create Citation packets if there are citations
+    if message.citations:
+        # Start citation flow
+        citation_start = CitationStart()
+        packets.append(Packet(ind=current_index, obj=citation_start))
+
+        # Create citation data
+        # Convert dict[int, int] to list[StreamingCitation] format
+        citations_list: list[StreamingCitation] = []
+        for citation_num, doc_id in message.citations.items():
+            citation = StreamingCitation(
+                citation_num=citation_num, document_id=str(doc_id)
+            )
+            citations_list.append(citation)
+
+        # Send citations via citation delta
+        citation_delta = CitationDelta(citations=citations_list)
+        packets.append(Packet(ind=current_index, obj=citation_delta))
+
+        # End citation flow
+        citation_end = CitationEnd(total_citations=len(message.citations))
+        packets.append(Packet(ind=current_index, obj=citation_end))
+        current_index += 1
 
     # Create MESSAGE_START packet
     message_start = MessageStart(id=str(message.message_id), content="")

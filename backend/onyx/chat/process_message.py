@@ -747,28 +747,17 @@ def stream_chat_message_objects(
         info_by_subq: dict[SubQuestionKey, AnswerPostInfo] = defaultdict(
             lambda: AnswerPostInfo(ai_message_files=[])
         )
-        refined_answer_improvement = True
 
         # Process streamed packets using the new packet processing module
-        packet_generator = process_streamed_packets(
+        yield from process_streamed_packets(
             answer_processed_output=answer.processed_streamed_output,
             selected_db_search_docs=selected_db_search_docs,
-            info_by_subq=info_by_subq,
             retrieval_options=retrieval_options,
             user_file_models=user_file_models,
             in_memory_user_files=in_memory_user_files,
             reserved_message_id=reserved_message_id,
             db_session=db_session,
         )
-
-        for packet_result in packet_generator:
-            if isinstance(packet_result, tuple):
-                # This is the final result with updated info_by_subq and refined_answer_improvement
-                info_by_subq, refined_answer_improvement = packet_result
-                break
-            else:
-                # This is a chat packet to yield
-                yield packet_result
 
     except ValueError as e:
         logger.exception("Failed to process chat message.")
@@ -812,7 +801,6 @@ def stream_chat_message_objects(
         llm_tokenizer_encode_func=llm_tokenizer_encode_func,
         db_session=db_session,
         chat_session_id=chat_session_id,
-        refined_answer_improvement=refined_answer_improvement,
     )
 
 
@@ -824,7 +812,6 @@ def _post_llm_answer_processing(
     llm_tokenizer_encode_func: Callable[[str], list[int]],
     db_session: Session,
     chat_session_id: UUID,
-    refined_answer_improvement: bool | None,
 ) -> Generator[ChatPacket, None, None]:
     """
     Stores messages in the db and yields some final packets to the frontend
@@ -926,7 +913,6 @@ def _post_llm_answer_processing(
                     else None
                 ),
                 error=ERROR_TYPE_CANCELLED if answer.is_cancelled() else None,
-                refined_answer_improvement=refined_answer_improvement,
                 is_agentic=True,
             )
             agentic_message_ids.append(
