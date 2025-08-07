@@ -4,10 +4,10 @@ import Prism from "prismjs";
 import { humanReadableFormat } from "@/lib/time";
 import { BackendChatSession } from "../../interfaces";
 import {
-  buildLatestMessageChain,
   getCitedDocumentsFromMessage,
   processRawChatHistory,
 } from "../../services/lib";
+import { getLatestMessageChain } from "../../services/messageTree";
 import { AIMessage, HumanMessage } from "../../message/Messages";
 import { AgenticMessage } from "../../message/AgenticMessage";
 import { Callout } from "@/components/ui/callout";
@@ -88,8 +88,8 @@ export function SharedChatDisplay({
     );
   }
 
-  const messages = buildLatestMessageChain(
-    processRawChatHistory(chatSession.messages)
+  const messages = getLatestMessageChain(
+    processRawChatHistory(chatSession.messages, chatSession.packets)
   );
 
   const firstMessage = messages[0];
@@ -201,6 +201,14 @@ export function SharedChatDisplay({
                     setDocumentSidebarVisible(false);
                   }}
                   selectedDocuments={[]}
+                  citations={
+                    selectedMessageForDocDisplay
+                      ? messages.find(
+                          (message) =>
+                            message.messageId === selectedMessageForDocDisplay
+                        )?.citations || null
+                      : null
+                  }
                 />
               </div>
             )}

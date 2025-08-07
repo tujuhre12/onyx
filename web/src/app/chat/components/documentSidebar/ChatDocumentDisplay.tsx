@@ -8,6 +8,7 @@ import { MetadataBadge } from "@/components/MetadataBadge";
 import { WebResultIcon } from "@/components/WebResultIcon";
 import { Dispatch, SetStateAction } from "react";
 import { openDocument } from "@/lib/search/utils";
+import { ValidSources } from "@/lib/types";
 
 interface DocumentDisplayProps {
   agenticMessage: boolean;
@@ -93,7 +94,8 @@ export function ChatDocumentDisplay({
           className="cursor-pointer text-left flex flex-col"
         >
           <div className="line-clamp-1 mb-1 flex h-6 items-center gap-2 text-xs">
-            {document.is_internet || document.source_type === "web" ? (
+            {document.is_internet ||
+            document.source_type === ValidSources.Web ? (
               <WebResultIcon url={document.link} />
             ) : (
               <SourceIcon sourceType={document.source_type} iconSize={18} />

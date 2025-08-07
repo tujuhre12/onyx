@@ -1,15 +1,28 @@
-import { Packet, ToolPacket } from "../../services/streamingModels";
+import {
+  Packet,
+  ToolPacket,
+  PacketType,
+  CitationDelta,
+  ToolDelta,
+} from "../../services/streamingModels";
 import { FullChatState, RendererResult } from "./interfaces";
 import { renderMessageComponent } from "./renderMessageComponent";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { CopyButton } from "@/components/CopyButton";
 import { LikeFeedback, DislikeFeedback } from "@/components/icons/icons";
 import { HoverableIcon } from "@/components/Hoverable";
+import { OnyxDocument } from "@/lib/search/interfaces";
+import { CitedSourcesToggle } from "./CitedSourcesToggle";
 import {
   CustomTooltip,
   TooltipGroup,
 } from "@/components/tooltip/CustomTooltip";
 import { useMemo, useRef, useState, useEffect } from "react";
+import {
+  useChatSessionStore,
+  useDocumentSidebarVisible,
+  useSelectedMessageForDocDisplay,
+} from "../../stores/useChatSessionStore";
 import { copyAll, handleCopy } from "../copyingUtils";
 import RegenerateOption from "../../components/RegenerateOption";
 import { MessageSwitcher } from "../MessageSwitcher";
@@ -229,16 +242,15 @@ function MultiToolRenderer({
                     return (
                       <div className="relative">
                         {/* Connector line drawn BEFORE content so it's behind everything */}
-                        {!isLastItem && (
-                          <div
-                            className="absolute w-px bg-gray-300 dark:bg-gray-600 z-0"
-                            style={{
-                              left: "10px", // Half of icon width (20px / 2)
-                              top: "20px", // Below icon (h-5 = 20px)
-                              bottom: "0", // Stop at the bottom of this container, not beyond
-                            }}
-                          />
-                        )}
+                        {/* Now all tools get a connector line since we have a Done node at the end */}
+                        <div
+                          className="absolute w-px bg-gray-300 dark:bg-gray-600 z-0"
+                          style={{
+                            left: "10px", // Half of icon width (20px / 2)
+                            top: "20px", // Below icon (h-5 = 20px)
+                            bottom: "0", // Stop at the bottom of this container, not beyond
+                          }}
+                        />
 
                         {/* Main row with icon and content */}
                         <div
@@ -273,6 +285,43 @@ function MultiToolRenderer({
                 </RendererComponent>
               );
             })}
+
+            {/* Done node at the bottom - only show after all tools are displayed */}
+            {allToolsDisplayed && (
+              <div className="relative">
+                {/* Connector line from previous tool */}
+                <div
+                  className="absolute w-px bg-gray-300 dark:bg-gray-600 z-0"
+                  style={{
+                    left: "10px",
+                    top: "0",
+                    height: "20px",
+                  }}
+                />
+
+                {/* Main row with icon and content */}
+                <div
+                  className={`flex items-start gap-2 ${STANDARD_TEXT_COLOR} relative z-10 pb-3`}
+                >
+                  {/* Icon column */}
+                  <div className="flex flex-col items-center w-5">
+                    {/* Dot with background to cover the line */}
+                    <div className="flex-shrink-0 flex items-center justify-center w-5 h-5 bg-background rounded-full">
+                      <div className="w-2 h-2 bg-gray-300 dark:bg-gray-700 rounded-full" />
+                    </div>
+                  </div>
+
+                  {/* Content with padding */}
+                  <div className="flex-1">
+                    <div className="flex mt-0.5 mb-1">
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        Done
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -304,6 +353,48 @@ export function SimpleMessage({
     isStreamingComplete(rawPackets)
   );
 
+  // Track citations
+  const [citations, setCitations] = useState<
+    Array<{
+      citation_num: number;
+      document_id: string;
+    }>
+  >([]);
+
+  // Track documents from tool packets
+  const [documentMap, setDocumentMap] = useState<Map<string, OnyxDocument>>(
+    new Map()
+  );
+
+  // Use store for document sidebar
+  const documentSidebarVisible = useDocumentSidebarVisible();
+  const selectedMessageForDocDisplay = useSelectedMessageForDocDisplay();
+  const updateCurrentDocumentSidebarVisible = useChatSessionStore(
+    (state) => state.updateCurrentDocumentSidebarVisible
+  );
+  const updateCurrentSelectedMessageForDocDisplay = useChatSessionStore(
+    (state) => state.updateCurrentSelectedMessageForDocDisplay
+  );
+
+  // Calculate unique source count
+  const uniqueSourceCount = useMemo(() => {
+    const uniqueDocIds = new Set<string>();
+
+    // Add document IDs from citations
+    citations.forEach((citation) => {
+      if (citation.document_id) {
+        uniqueDocIds.add(citation.document_id);
+      }
+    });
+
+    // Add document IDs from documentMap
+    documentMap.forEach((_, docId) => {
+      uniqueDocIds.add(docId);
+    });
+
+    return uniqueDocIds.size;
+  }, [citations, documentMap]);
+
   // Message switching logic
   const {
     currentMessageInd,
@@ -318,6 +409,62 @@ export function SimpleMessage({
 
   const groupedPackets = useMemo(() => {
     return groupPacketsByInd(rawPackets);
+  }, [rawPackets.length]);
+
+  // Process citation packets
+  useEffect(() => {
+    const citationPackets = rawPackets.filter(
+      (packet) =>
+        packet.obj.type === PacketType.CITATION_START ||
+        packet.obj.type === PacketType.CITATION_DELTA ||
+        packet.obj.type === PacketType.CITATION_END
+    );
+
+    for (const packet of citationPackets) {
+      if (packet.obj.type === PacketType.CITATION_DELTA) {
+        const citationDelta = packet.obj as CitationDelta;
+        if (citationDelta.citations) {
+          setCitations((prevCitations) => {
+            // Merge new citations with existing ones, avoiding duplicates
+            const existingIds = new Set(
+              prevCitations.map((c) => c.document_id)
+            );
+            const newCitations = citationDelta.citations!.filter(
+              (c) => !existingIds.has(c.document_id)
+            );
+            return [...prevCitations, ...newCitations];
+          });
+        }
+      }
+    }
+  }, [rawPackets.length]);
+
+  // Process tool packets to extract documents
+  useEffect(() => {
+    const toolPackets = rawPackets.filter(
+      (packet) => packet.obj.type === PacketType.TOOL_DELTA
+    );
+
+    const newDocumentMap = new Map<string, OnyxDocument>();
+
+    for (const packet of toolPackets) {
+      const toolDelta = packet.obj as ToolDelta;
+      if (toolDelta.documents) {
+        for (const doc of toolDelta.documents) {
+          if (doc.document_id) {
+            newDocumentMap.set(doc.document_id, doc);
+          }
+        }
+      }
+    }
+
+    if (newDocumentMap.size > 0) {
+      setDocumentMap((prevMap) => {
+        const combinedMap = new Map(prevMap);
+        newDocumentMap.forEach((doc, id) => combinedMap.set(id, doc));
+        return combinedMap;
+      });
+    }
   }, [rawPackets.length]);
 
   // Return a list of rendered message components, one for each ind
@@ -351,13 +498,15 @@ export function SimpleMessage({
                               group.packets[0] && isToolPacket(group.packets[0])
                           ) as { ind: number; packets: ToolPacket[] }[];
                           // display final answer only if all tools are fully displayed
-                          const finalAnswerGroups = allToolsFullyDisplayed
-                            ? groupedPackets.filter(
-                                (group) =>
-                                  group.packets[0] &&
-                                  !isToolPacket(group.packets[0])
-                              )
-                            : [];
+                          // OR if there are no tools at all (in which case show immediately)
+                          const finalAnswerGroups =
+                            allToolsFullyDisplayed || toolGroups.length === 0
+                              ? groupedPackets.filter(
+                                  (group) =>
+                                    group.packets[0] &&
+                                    !isToolPacket(group.packets[0])
+                                )
+                              : [];
 
                           return (
                             <>
@@ -397,11 +546,11 @@ export function SimpleMessage({
 
                   {/* Feedback buttons - only show when streaming is complete */}
                   {chatState.handleFeedback && displayComplete && (
-                    <div className="flex md:flex-row gap-x-0.5 mt-1 transition-transform duration-300 ease-in-out transform opacity-100">
+                    <div className="flex md:flex-row justify-between items-center w-full mt-1 transition-transform duration-300 ease-in-out transform opacity-100">
                       <TooltipGroup>
-                        <div className="flex justify-start w-full gap-x-0.5">
+                        <div className="flex items-center gap-x-0.5">
                           {includeMessageSwitcher && (
-                            <div className="-mx-1 mr-auto">
+                            <div className="-mx-1">
                               <MessageSwitcher
                                 currentPage={(currentMessageInd ?? 0) + 1}
                                 totalPages={
@@ -428,46 +577,91 @@ export function SimpleMessage({
                               />
                             </div>
                           )}
-                        </div>
-                        <CustomTooltip showTick line content="Copy">
-                          <CopyButton
-                            copyAllFn={() =>
-                              copyAll(getTextContent(rawPackets), markdownRef)
-                            }
-                          />
-                        </CustomTooltip>
 
-                        <CustomTooltip showTick line content="Good response">
-                          <HoverableIcon
-                            icon={<LikeFeedback size={16} />}
-                            onClick={() => chatState.handleFeedback("like")}
-                          />
-                        </CustomTooltip>
-
-                        <CustomTooltip showTick line content="Bad response">
-                          <HoverableIcon
-                            icon={<DislikeFeedback size={16} />}
-                            onClick={() => chatState.handleFeedback("dislike")}
-                          />
-                        </CustomTooltip>
-
-                        {chatState.regenerate && (
-                          <CustomTooltip
-                            disabled={isRegenerateDropdownVisible}
-                            showTick
-                            line
-                            content="Regenerate"
-                          >
-                            <RegenerateOption
-                              onDropdownVisibleChange={
-                                setIsRegenerateDropdownVisible
+                          <CustomTooltip showTick line content="Copy">
+                            <CopyButton
+                              copyAllFn={() =>
+                                copyAll(getTextContent(rawPackets), markdownRef)
                               }
-                              selectedAssistant={chatState.assistant}
-                              regenerate={chatState.regenerate}
-                              overriddenModel={chatState.overriddenModel}
                             />
                           </CustomTooltip>
-                        )}
+
+                          <CustomTooltip showTick line content="Good response">
+                            <HoverableIcon
+                              icon={<LikeFeedback size={16} />}
+                              onClick={() => chatState.handleFeedback("like")}
+                            />
+                          </CustomTooltip>
+
+                          <CustomTooltip showTick line content="Bad response">
+                            <HoverableIcon
+                              icon={<DislikeFeedback size={16} />}
+                              onClick={() =>
+                                chatState.handleFeedback("dislike")
+                              }
+                            />
+                          </CustomTooltip>
+
+                          {chatState.regenerate && (
+                            <CustomTooltip
+                              disabled={isRegenerateDropdownVisible}
+                              showTick
+                              line
+                              content="Regenerate"
+                            >
+                              <RegenerateOption
+                                onDropdownVisibleChange={
+                                  setIsRegenerateDropdownVisible
+                                }
+                                selectedAssistant={chatState.assistant}
+                                regenerate={chatState.regenerate}
+                                overriddenModel={chatState.overriddenModel}
+                              />
+                            </CustomTooltip>
+                          )}
+
+                          {messageId &&
+                            (citations.length > 0 || documentMap.size > 0) && (
+                              <>
+                                {chatState.regenerate && (
+                                  <div className="h-4 w-px bg-border mx-2" />
+                                )}
+                                <CustomTooltip
+                                  showTick
+                                  line
+                                  content={`${uniqueSourceCount} Sources`}
+                                >
+                                  <CitedSourcesToggle
+                                    citations={citations}
+                                    documentMap={documentMap}
+                                    messageId={messageId}
+                                    onToggle={(messageId) => {
+                                      // Toggle sidebar if clicking on the same message
+                                      if (
+                                        selectedMessageForDocDisplay ===
+                                          messageId &&
+                                        documentSidebarVisible
+                                      ) {
+                                        updateCurrentDocumentSidebarVisible(
+                                          false
+                                        );
+                                        updateCurrentSelectedMessageForDocDisplay(
+                                          null
+                                        );
+                                      } else {
+                                        updateCurrentSelectedMessageForDocDisplay(
+                                          messageId
+                                        );
+                                        updateCurrentDocumentSidebarVisible(
+                                          true
+                                        );
+                                      }
+                                    }}
+                                  />
+                                </CustomTooltip>
+                              </>
+                            )}
+                        </div>
                       </TooltipGroup>
                     </div>
                   )}

@@ -846,6 +846,7 @@ export function ChatPage({
               initialWidth={400}
               isOpen={true}
               removeHeader
+              citations={aiMessage?.citations}
             />
           </Modal>
         </div>
@@ -1013,6 +1014,7 @@ export function ChatPage({
               // TODO (chris): fix
               selectedDocumentTokens={0}
               maxTokens={maxTokens}
+              citations={aiMessage?.citations}
               initialWidth={400}
               isOpen={documentSidebarVisible && !settings?.isMobile}
             />

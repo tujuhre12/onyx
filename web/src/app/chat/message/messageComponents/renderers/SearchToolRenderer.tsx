@@ -16,7 +16,7 @@ import { OnyxDocument } from "@/lib/search/interfaces";
 const MAX_RESULTS_TO_SHOW = 3;
 const MAX_TITLE_LENGTH = 25;
 
-const SEARCHING_MIN_DURATION_MS = 500;
+const SEARCHING_MIN_DURATION_MS = 1000;
 
 const constructCurrentSearchState = (
   packets: ToolPacket[]
