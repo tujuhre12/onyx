@@ -8,6 +8,9 @@ from onyx.agents.agent_search.dr.models import AggregatedDRContext
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import OrchestrationClarificationInfo
 from onyx.agents.agent_search.kb_search.graph_utils import build_document_context
+from onyx.agents.agent_search.shared_graph_utils.operators import (
+    dedup_inference_section_list,
+)
 from onyx.context.search.models import InferenceSection
 
 CITATION_PREFIX = "CITE:"
@@ -57,12 +60,23 @@ def aggregate_context(
         [2]: doc_abc
         [3]: doc_pqr
     """
-    # mapping of document id to citation number
-    global_citations: dict[str, int] = {}
-    global_documents: list[InferenceSection] = []
-    output_strings: list[str] = []
+    # dedupe and merge inference section contents
+    unrolled_inference_sections: list[InferenceSection] = []
+    for iteration_response in sorted(
+        iteration_responses,
+        key=lambda x: (x.iteration_nr, x.parallelization_nr),
+    ):
+        for cited_doc in iteration_response.cited_documents.values():
+            unrolled_inference_sections.append(cited_doc)
+            cited_doc.center_chunk.score = None  # None means maintain order
+
+    global_documents = dedup_inference_section_list(unrolled_inference_sections)
+    global_citations = {
+        doc.center_chunk.document_id: i for i, doc in enumerate(global_documents, 1)
+    }
 
     # build output string
+    output_strings: list[str] = []
     for iteration_response in sorted(
         iteration_responses,
         key=lambda x: (x.iteration_nr, x.parallelization_nr),
@@ -80,41 +94,40 @@ def aggregate_context(
             or "No claims provided"
         )
 
-        # compute global citation and replace citation in string
-        local_citations = iteration_response.cited_documents
-        local_retrieved_document_ids: list[str] = []
-        for local_number, cited_doc in local_citations.items():
-            cited_doc_id = cited_doc.center_chunk.document_id
-            if cited_doc_id not in global_citations:
-                global_documents.append(cited_doc)
-                global_citations[cited_doc_id] = len(global_documents)
-            global_number = global_citations[cited_doc_id]
-
+        # replace local citations with global citations
+        iteration_citations: list[int] = []
+        for local_number, cited_doc in iteration_response.cited_documents.items():
+            global_number = global_citations[cited_doc.center_chunk.document_id]
+            # translate local citations to global citations
             answer_str = answer_str.replace(
                 f"[{CITATION_PREFIX}{local_number}]", f"[{global_number}]"
             )
             claims_str = claims_str.replace(
                 f"[{CITATION_PREFIX}{local_number}]", f"[{global_number}]"
             )
-            local_retrieved_document_ids.append(f"[{global_number}]")
+            iteration_citations.append(global_number)
 
         if include_answers_claims:
             output_strings.append(f"Answer: {answer_str}")
             output_strings.append(f"Claims: {claims_str}")
         else:
-            local_retrieved_document_ids_str = ", ".join(local_retrieved_document_ids)
             output_strings.append(
-                f"Retrieved documents: {local_retrieved_document_ids_str}"
+                "Retrieved documents: "
+                + (
+                    "".join(
+                        f"[{global_number}]"
+                        for global_number in sorted(iteration_citations)
+                    )
+                    or "No documents retrieved"
+                )
             )
 
         output_strings.append("\n---\n")
 
     # add document contents if requested
     if include_documents:
-        # note: will probably need to merge sections properly with dedup_inference_section_list
-        # at the very start, and use those to build the global citation numbers,
-        # if we intend of frequently calling this with include_documents=True
-        output_strings.append("Cited document contents:")
+        if global_documents:
+            output_strings.append("Cited document contents:")
         for doc in global_documents:
             output_strings.append(
                 build_document_context(
