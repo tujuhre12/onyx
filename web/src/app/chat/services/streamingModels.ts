@@ -16,6 +16,10 @@ export enum PacketType {
   TOOL_START = "tool_start",
   TOOL_DELTA = "tool_delta",
   TOOL_END = "tool_end",
+
+  CITATION_START = "citation_start",
+  CITATION_DELTA = "citation_delta",
+  CITATION_END = "citation_end",
 }
 
 // LlmDoc interface matching the backend model
@@ -74,14 +78,34 @@ export interface ToolEnd extends BaseObj {
   type: "tool_end";
 }
 
+// Citation Packets
+export interface CitationStart extends BaseObj {
+  type: "citation_start";
+}
+
+export interface CitationDelta extends BaseObj {
+  type: "citation_delta";
+  citations: Array<{
+    citation_num: number;
+    document_id: string;
+  }> | null;
+}
+
+export interface CitationEnd extends BaseObj {
+  type: "citation_end";
+  total_citations: number | null;
+}
+
 export type ChatObj = MessageStart | MessageDelta | MessageEnd;
 
 export type StopObj = Stop;
 
 export type ToolObj = ToolStart | ToolDelta | ToolEnd;
 
+export type CitationObj = CitationStart | CitationDelta | CitationEnd;
+
 // Union type for all possible streaming objects
-export type ObjTypes = ChatObj | ToolObj | StopObj;
+export type ObjTypes = ChatObj | ToolObj | StopObj | CitationObj;
 
 // Packet wrapper for streaming objects
 export interface Packet {
@@ -102,4 +126,9 @@ export interface ToolPacket {
 export interface StopPacket {
   ind: number;
   obj: StopObj;
+}
+
+export interface CitationPacket {
+  ind: number;
+  obj: CitationObj;
 }

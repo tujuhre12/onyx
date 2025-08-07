@@ -43,6 +43,9 @@ from onyx.file_store.models import FileDescriptor
 from onyx.file_store.models import InMemoryChatFile
 from onyx.file_store.utils import save_files
 from onyx.server.query_and_chat.models import ChatMessageDetail
+from onyx.server.query_and_chat.streaming_models import CitationDelta
+from onyx.server.query_and_chat.streaming_models import CitationEnd
+from onyx.server.query_and_chat.streaming_models import CitationStart
 from onyx.server.query_and_chat.streaming_models import MessageDelta
 from onyx.server.query_and_chat.streaming_models import MessageEnd
 from onyx.server.query_and_chat.streaming_models import MessageStart
@@ -350,10 +353,15 @@ def process_streamed_packets(
     refined_answer_improvement = True
     current_message_index: int | None = None
     current_tool_index: int | None = None
+    current_citation_index: int | None = None
 
     # Track ongoing tool operations to prevent concurrent operations of the same type
     ongoing_search = False
     ongoing_image_generation = False
+
+    # Track citations
+    citations_emitted = False
+    collected_citations: list[dict[str, str | int]] = []
 
     for packet in answer_processed_output:
         if isinstance(packet, ToolCallKickoff) and not isinstance(
@@ -541,6 +549,21 @@ def process_streamed_packets(
                     ),
                 )
                 has_transmitted_answer_piece = True
+        elif isinstance(packet, CitationInfo):
+            # Collect citations for batch processing
+            if not citations_emitted:
+                # First citation - allocate index but don't emit yet
+                if current_citation_index is None:
+                    current_citation_index = packet_index
+                    packet_index += 1
+
+                # Collect citation info
+                collected_citations.append(
+                    {
+                        "citation_num": packet.citation_num,
+                        "document_id": packet.document_id,
+                    }
+                )
         else:
             if isinstance(packet, ToolCallFinalResult):
                 level, level_question_num = (
@@ -558,6 +581,17 @@ def process_streamed_packets(
 
     if current_message_index is not None:
         yield Packet(ind=current_message_index, obj=MessageEnd())
+
+    # Emit collected citations if any
+    if collected_citations and current_citation_index is not None:
+        yield Packet(ind=current_citation_index, obj=CitationStart())
+        yield Packet(
+            ind=current_citation_index, obj=CitationDelta(citations=collected_citations)
+        )
+        yield Packet(
+            ind=current_citation_index,
+            obj=CitationEnd(total_citations=len(collected_citations)),
+        )
 
     # Yield STOP packet to indicate streaming is complete
     yield Packet(ind=packet_index, obj=Stop())

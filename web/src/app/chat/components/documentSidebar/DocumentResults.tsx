@@ -13,6 +13,8 @@ import {
 import { XIcon } from "@/components/icons/icons";
 import { FileSourceCardInResults } from "@/app/chat/message/SourcesDisplay";
 import { useDocumentsContext } from "@/app/chat/my-documents/DocumentsContext";
+import { CitationMap } from "@/app/chat/interfaces";
+
 interface DocumentResultsProps {
   agenticMessage: boolean;
   humanMessage: Message | null;
@@ -29,6 +31,7 @@ interface DocumentResultsProps {
   modal: boolean;
   setPresentingDocument: Dispatch<SetStateAction<MinimalOnyxDocument | null>>;
   removeHeader?: boolean;
+  citations?: CitationMap | null;
 }
 
 export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
@@ -49,6 +52,7 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
       isOpen,
       setPresentingDocument,
       removeHeader,
+      citations,
     },
     ref: ForwardedRef<HTMLDivElement>
   ) => {
@@ -67,6 +71,27 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
     const dedupedDocuments = removeDuplicateDocs(currentDocuments || []);
 
     const tokenLimitReached = selectedDocumentTokens > maxTokens - 75;
+
+    // Separate cited documents from other documents
+    const citedDocumentIds = new Set<number>();
+    if (citations) {
+      Object.values(citations).forEach((docDbId) => {
+        citedDocumentIds.add(docDbId as number);
+      });
+    }
+
+    const citedDocuments = dedupedDocuments.filter(
+      (doc) =>
+        doc.db_doc_id !== null &&
+        doc.db_doc_id !== undefined &&
+        citedDocumentIds.has(doc.db_doc_id)
+    );
+    const otherDocuments = dedupedDocuments.filter(
+      (doc) =>
+        doc.db_doc_id === null ||
+        doc.db_doc_id === undefined ||
+        !citedDocumentIds.has(doc.db_doc_id)
+    );
 
     return (
       <>
@@ -129,32 +154,87 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
                     ))}
                   </div>
                 ) : dedupedDocuments.length > 0 ? (
-                  dedupedDocuments.map((document, ind) => (
-                    <div
-                      key={document.document_id}
-                      className={`desktop:px-2 w-full`}
-                    >
-                      <ChatDocumentDisplay
-                        agenticMessage={agenticMessage}
-                        setPresentingDocument={setPresentingDocument}
-                        closeSidebar={closeSidebar}
-                        modal={modal}
-                        document={document}
-                        isSelected={selectedDocumentIds.includes(
-                          document.document_id
+                  <>
+                    {/* Cited Documents Section */}
+                    {citedDocuments.length > 0 && (
+                      <div className="mt-2">
+                        <div className="px-4 pb-2">
+                          <h3 className="text-sm font-semibold text-text-700">
+                            Cited Documents
+                          </h3>
+                        </div>
+                        {citedDocuments.map((document, ind) => (
+                          <div
+                            key={document.document_id}
+                            className={`desktop:px-2 w-full`}
+                          >
+                            <ChatDocumentDisplay
+                              agenticMessage={agenticMessage}
+                              setPresentingDocument={setPresentingDocument}
+                              closeSidebar={closeSidebar}
+                              modal={modal}
+                              document={document}
+                              isSelected={selectedDocumentIds.includes(
+                                document.document_id
+                              )}
+                              handleSelect={(documentId) => {
+                                toggleDocumentSelection(
+                                  dedupedDocuments.find(
+                                    (doc) => doc.document_id === documentId
+                                  )!
+                                );
+                              }}
+                              hideSelection={isSharedChat}
+                              tokenLimitReached={tokenLimitReached}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Other Documents Section */}
+                    {otherDocuments.length > 0 && (
+                      <div
+                        className={citedDocuments.length > 0 ? "mt-4" : "mt-2"}
+                      >
+                        {citedDocuments.length > 0 && (
+                          <>
+                            <div className="px-4 pb-2">
+                              <h3 className="text-sm font-semibold text-text-700">
+                                Other Documents
+                              </h3>
+                            </div>
+                          </>
                         )}
-                        handleSelect={(documentId) => {
-                          toggleDocumentSelection(
-                            dedupedDocuments.find(
-                              (doc) => doc.document_id === documentId
-                            )!
-                          );
-                        }}
-                        hideSelection={isSharedChat}
-                        tokenLimitReached={tokenLimitReached}
-                      />
-                    </div>
-                  ))
+                        {otherDocuments.map((document, ind) => (
+                          <div
+                            key={document.document_id}
+                            className={`desktop:px-2 w-full`}
+                          >
+                            <ChatDocumentDisplay
+                              agenticMessage={agenticMessage}
+                              setPresentingDocument={setPresentingDocument}
+                              closeSidebar={closeSidebar}
+                              modal={modal}
+                              document={document}
+                              isSelected={selectedDocumentIds.includes(
+                                document.document_id
+                              )}
+                              handleSelect={(documentId) => {
+                                toggleDocumentSelection(
+                                  dedupedDocuments.find(
+                                    (doc) => doc.document_id === documentId
+                                  )!
+                                );
+                              }}
+                              hideSelection={isSharedChat}
+                              tokenLimitReached={tokenLimitReached}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 ) : null}
               </div>
             </div>

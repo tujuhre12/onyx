@@ -39,7 +39,7 @@ export interface RetrievalDetails {
   enable_auto_detect_filters?: boolean | null;
 }
 
-type CitationMap = { [key: string]: number };
+export type CitationMap = { [key: string]: number };
 
 export enum ChatFileType {
   IMAGE = "image",

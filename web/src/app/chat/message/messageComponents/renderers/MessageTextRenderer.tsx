@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -19,17 +19,20 @@ import { CodeBlock } from "../../CodeBlock";
 import { transformLinkUri } from "@/lib/utils";
 import { isFinalAnswerComplete } from "../packetUtils";
 
+// Control the rate of packet streaming (packets per second)
+const PACKETS_PER_SECOND = 500;
+const PACKET_DELAY_MS = 1000 / PACKETS_PER_SECOND;
+
 export const MessageTextRenderer: MessageRenderer<
   ChatPacket,
   FullChatState
 > = ({ packets, state, onComplete, renderType, animate }) => {
-  useEffect(() => {
-    if (isFinalAnswerComplete(packets)) {
-      onComplete();
-    }
-  }, [packets.length]);
+  const [displayedPacketCount, setDisplayedPacketCount] = useState(
+    animate ? 0 : -1 // -1 means show all packets
+  );
 
-  const content = packets
+  // Get the full content from all packets
+  const fullContent = packets
     .map((packet) => {
       if (
         packet.obj.type === PacketType.MESSAGE_DELTA ||
@@ -40,6 +43,65 @@ export const MessageTextRenderer: MessageRenderer<
       return "";
     })
     .join("");
+
+  // Animation effect - gradually increase displayed packets at controlled rate
+  useEffect(() => {
+    if (!animate) {
+      setDisplayedPacketCount(-1); // Show all packets
+      return;
+    }
+
+    if (displayedPacketCount >= 0 && displayedPacketCount < packets.length) {
+      const timer = setTimeout(() => {
+        setDisplayedPacketCount((prev) => Math.min(prev + 1, packets.length));
+      }, PACKET_DELAY_MS);
+
+      return () => clearTimeout(timer);
+    }
+  }, [animate, displayedPacketCount, packets.length]);
+
+  // Reset displayed count when packet array changes significantly (e.g., new message)
+  useEffect(() => {
+    if (animate && packets.length < displayedPacketCount) {
+      setDisplayedPacketCount(0);
+    }
+  }, [animate, packets.length, displayedPacketCount]);
+
+  // Only mark as complete when all packets are received AND displayed
+  useEffect(() => {
+    if (isFinalAnswerComplete(packets)) {
+      // If animating, wait until all packets are displayed
+      if (
+        animate &&
+        displayedPacketCount >= 0 &&
+        displayedPacketCount < packets.length
+      ) {
+        return;
+      }
+      onComplete();
+    }
+  }, [packets, onComplete, animate, displayedPacketCount]);
+
+  // Get content based on displayed packet count
+  const content = useMemo(() => {
+    if (!animate || displayedPacketCount === -1) {
+      return fullContent; // Show all content
+    }
+
+    // Only show content from packets up to displayedPacketCount
+    return packets
+      .slice(0, displayedPacketCount)
+      .map((packet) => {
+        if (
+          packet.obj.type === PacketType.MESSAGE_DELTA ||
+          packet.obj.type === PacketType.MESSAGE_START
+        ) {
+          return packet.obj.content;
+        }
+        return "";
+      })
+      .join("");
+  }, [animate, displayedPacketCount, fullContent, packets]);
 
   const processContent = (content: string) => {
     const codeBlockRegex = /```(\w*)\n[\s\S]*?```|```[\s\S]*?$/g;

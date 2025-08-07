@@ -57,8 +57,37 @@ class ToolEnd(BaseObj):
     type: str = "tool_end"
 
 
+"""Citation Packets"""
+
+
+class CitationStart(BaseObj):
+    type: str = "citation_start"
+
+
+class CitationDelta(BaseObj):
+    type: str = "citation_delta"
+
+    citations: list[dict[str, str | int]] | None = None
+
+
+class CitationEnd(BaseObj):
+    type: str = "citation_end"
+
+    # Total count of citations for reference
+    total_citations: int | None = None
+
+
 ObjTypes = (
-    MessageStart | MessageDelta | MessageEnd | Stop | ToolStart | ToolDelta | ToolEnd
+    MessageStart
+    | MessageDelta
+    | MessageEnd
+    | Stop
+    | ToolStart
+    | ToolDelta
+    | ToolEnd
+    | CitationStart
+    | CitationDelta
+    | CitationEnd
 )
 
 
