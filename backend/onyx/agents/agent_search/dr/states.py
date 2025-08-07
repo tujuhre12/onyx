@@ -8,6 +8,7 @@ from onyx.agents.agent_search.core_state import CoreState
 from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import IterationAnswer
+from onyx.agents.agent_search.dr.models import IterationInstructions
 from onyx.agents.agent_search.dr.models import OrchestrationClarificationInfo
 from onyx.agents.agent_search.dr.models import OrchestrationPlan
 from onyx.agents.agent_search.dr.models import OrchestratorTool
@@ -39,6 +40,7 @@ class OrchestrationUpdate(LoggerUpdate):
     )  # gaps that may be identified by the closer before being able to answer the question.
     active_source_types: list[DocumentSource] | None = None
     active_source_types_descriptions: str | None = None
+    iteration_instructions: Annotated[list[IterationInstructions], add] = []
 
 
 class QuestionInputState(LoggerUpdate):

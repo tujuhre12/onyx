@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import cast
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
@@ -10,6 +11,7 @@ from onyx.agents.agent_search.dr.states import QuestionInputState
 from onyx.agents.agent_search.dr.utils import extract_document_citations
 from onyx.agents.agent_search.kb_search.graph_builder import kb_graph_builder
 from onyx.agents.agent_search.kb_search.states import MainInput as KbMainInput
+from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
@@ -29,11 +31,20 @@ def kg_query(
     """
 
     node_start_time = datetime.now()
+    graph_config = cast(GraphConfig, config["metadata"]["config"])
     iteration_nr = state.iteration_nr
     parallelization_nr = state.parallelization_nr
     search_query = state.question
     if not search_query:
         raise ValueError("search_query is not set")
+
+    kg_tool_id = None
+    for tool in graph_config.tooling.tools:
+        if tool.name == "run_kg_search":
+            kg_tool_id = tool.id
+            break
+    if kg_tool_id is None:
+        raise ValueError("Knowledge graph tool id is not set. This should not happen.")
 
     # write_custom_event(
     #     "basic_response",
@@ -97,12 +108,15 @@ def kg_query(
         iteration_responses=[
             IterationAnswer(
                 tool=DRPath.KNOWLEDGE_GRAPH,
+                tool_id=kg_tool_id,
                 iteration_nr=iteration_nr,
                 parallelization_nr=parallelization_nr,
                 question=search_query,
                 answer=answer_string,
                 claims=claims,
                 cited_documents=cited_documents,
+                reasoning=None,
+                additional_data=None,
             )
         ],
         log_messages=[

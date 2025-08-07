@@ -95,6 +95,15 @@ def _get_available_tools(
 
         available_tools.append(tool_info)
 
+    available_paths = [tool.path for tool in available_tools]
+    if (
+        DRPath.KNOWLEDGE_GRAPH in available_paths
+        and DRPath.INTERNAL_SEARCH not in available_paths
+    ):
+        raise ValueError(
+            "The Knowledge Graph is not supported without internal search tool"
+        )
+
     return available_tools
 
 

@@ -61,6 +61,13 @@ class OrchestratorTool(BaseModel):
     cost: float
 
 
+class IterationInstructions(BaseModel):
+    iteration_nr: int
+    plan: str | None
+    reasoning: str
+    purpose: str
+
+
 class GenericToolAnswer(BaseModel):
     reasoning: str
     answer: str
@@ -69,13 +76,16 @@ class GenericToolAnswer(BaseModel):
 
 class IterationAnswer(BaseModel):
     tool: DRPath
+    tool_id: int
     iteration_nr: int
     parallelization_nr: int
     question: str
+    reasoning: str | None
     answer: str
     cited_documents: dict[int, InferenceSection]
     background_info: str | None = None
     claims: list[str] | None = None
+    additional_data: dict[str, str] | None = None
 
 
 class AggregatedDRContext(BaseModel):

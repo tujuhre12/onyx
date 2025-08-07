@@ -81,6 +81,9 @@ def internet_search(
         if tool.name == "run_internet_search":
             internet_search_tool = cast(InternetSearchTool, tool)
             break
+    internet_search_tool_id = internet_search_tool.id if internet_search_tool else None
+    if internet_search_tool_id is None:
+        raise ValueError("Internet search tool id is not set. This should not happen.")
 
     if internet_search_tool is None:
         raise ValueError("internet_search_tool is not set. This should not happen.")
@@ -158,6 +161,7 @@ def internet_search(
         # get cited documents
         answer_string = search_answer_json.answer
         claims = search_answer_json.claims or []
+        reasoning = search_answer_json.reasoning or ""
 
         (
             citation_numbers,
@@ -172,6 +176,7 @@ def internet_search(
     else:
         answer_string = ""
         claims = []
+        reasoning = ""
         cited_documents = {
             doc_num + 1: retrieved_doc
             for doc_num, retrieved_doc in enumerate(retrieved_docs[:15])
@@ -183,10 +188,13 @@ def internet_search(
                 tool=DRPath.INTERNET_SEARCH,
                 iteration_nr=iteration_nr,
                 parallelization_nr=parallelization_nr,
+                tool_id=internet_search_tool_id,
                 question=search_query,
                 answer=answer_string,
                 claims=claims,
                 cited_documents=cited_documents,
+                reasoning=reasoning,
+                additional_data=None,
             )
         ],
         log_messages=[

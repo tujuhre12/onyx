@@ -181,3 +181,26 @@ def create_tool_call_string(query_path: DRPath, query_list: list[str]) -> str:
     """
     questions_str = "\n  - ".join(query_list)
     return f"Tool: {query_path.value}\n\nQuestions:\n{questions_str}"
+
+
+def parse_plan_to_dict(plan_text: str) -> dict[str, str]:
+    # Convert plan string to numbered dict format
+    import re
+
+    if not plan_text:
+        return {}
+
+    # Split by numbered items (1., 2., 3., etc. or 1), 2), 3), etc.)
+    parts = re.split(r"(\d+[.)])", plan_text)
+    plan_dict = {}
+
+    for i in range(
+        1, len(parts), 2
+    ):  # Skip empty first part, then take number and text pairs
+        if i + 1 < len(parts):
+            number = parts[i].rstrip(".)")  # Remove the dot or parenthesis
+            text = parts[i + 1].strip()
+            if text:  # Only add if there's actual content
+                plan_dict[number] = text
+
+    return plan_dict

@@ -16,6 +16,7 @@ from onyx.agents.agent_search.dr.models import DRPromptPurpose
 from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import OrchestrationPlan
 from onyx.agents.agent_search.dr.models import OrchestratorDecisonsNoPlan
+from onyx.agents.agent_search.dr.states import IterationInstructions
 from onyx.agents.agent_search.dr.states import MainState
 from onyx.agents.agent_search.dr.states import OrchestrationUpdate
 from onyx.agents.agent_search.dr.utils import aggregate_context
@@ -353,7 +354,7 @@ def orchestrator(
         logger.error(f"Error in orchestration next step purpose: {e}")
         raise e
 
-    cast(str, merge_content(*purpose_tokens))
+    purpose = cast(str, merge_content(*purpose_tokens))
 
     return OrchestrationUpdate(
         query_path=[query_path],
@@ -369,4 +370,12 @@ def orchestrator(
         clarification=clarification,
         plan_of_record=plan_of_record,
         remaining_time_budget=remaining_time_budget,
+        iteration_instructions=[
+            IterationInstructions(
+                iteration_nr=iteration_nr,
+                plan=plan_of_record.plan if plan_of_record else None,
+                reasoning=reasoning_result,
+                purpose=purpose,
+            )
+        ],
     )

@@ -21,12 +21,12 @@ class KnowledgeGraphTool(Tool[None]):
     _DESCRIPTION = "Search the knowledge graph for information. Never call this tool."
     _DISPLAY_NAME = "Knowledge Graph Search"
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, id: int) -> None:
+        self._id = id
 
     @property
     def id(self) -> int:
-        return -1  # FIXME: temp
+        return self._id
 
     @property
     def name(self) -> str:

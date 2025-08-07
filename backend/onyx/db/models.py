@@ -83,7 +83,6 @@ from onyx.utils.headers import HeaderItemDict
 from shared_configs.enums import EmbeddingProvider
 from shared_configs.enums import RerankerProvider
 from onyx.agents.agent_search.dr.enums import ResearchType
-from onyx.configs.research_configs import ResearchToolOption
 
 logger = setup_logger()
 
@@ -3364,7 +3363,6 @@ class ResearchAgentIteration(Base):
     purpose: Mapped[str] = mapped_column(String, nullable=True)
 
     reasoning: Mapped[str] = mapped_column(String, nullable=True)
-    step_tool_id: Mapped[int] = mapped_column(ForeignKey("tool.id"), nullable=True)
 
 
 class ResearchAgentIterationSubStep(Base):
@@ -3383,9 +3381,6 @@ class ResearchAgentIterationSubStep(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
     sub_step_instructions: Mapped[str] = mapped_column(String, nullable=True)
     sub_step_tool_id: Mapped[int] = mapped_column(ForeignKey("tool.id"), nullable=True)
-    sub_step_tool_option: Mapped[ResearchToolOption] = mapped_column(
-        Enum(ResearchToolOption, native_enum=False), nullable=True
-    )
     reasoning: Mapped[str] = mapped_column(String, nullable=True)
     sub_answer: Mapped[str] = mapped_column(String, nullable=True)
     cited_doc_results: Mapped[JSON_ro] = mapped_column(postgresql.JSONB())

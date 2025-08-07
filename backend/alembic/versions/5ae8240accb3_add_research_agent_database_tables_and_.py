@@ -72,7 +72,6 @@ def upgrade() -> None:
             sa.ForeignKey("tool.id"),
             nullable=True,
         ),
-        sa.Column("sub_step_tool_option", sa.String(), nullable=True),
         sa.Column("reasoning", sa.String(), nullable=True),
         sa.Column("sub_answer", sa.String(), nullable=True),
         sa.Column("cited_doc_results", postgresql.JSONB(), nullable=True),

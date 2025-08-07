@@ -73,10 +73,15 @@ def custom_tool_act(
         raise ValueError("persona is not set")
 
     custom_tool: CustomTool | None = None
+    custom_tool_id = None
+
     for tool in graph_config.tooling.tools:
         if tool.name == tool_name:
             custom_tool = cast(CustomTool, tool)
+            custom_tool_id = tool.id
             break
+    if custom_tool_id is None:
+        raise ValueError("Custom tool id is not set. This should not happen.")
 
     if custom_tool is None:
         raise ValueError("Tool is not set. This should not happen.")
@@ -138,11 +143,14 @@ def custom_tool_act(
             IterationAnswer(
                 tool=DRPath.GENERIC_TOOL,
                 iteration_nr=iteration_nr,
+                tool_id=custom_tool_id,
                 parallelization_nr=parallelization_nr,
                 question=query,
                 answer=answer_string,
                 cited_documents={},
                 background_info=background_info_string,
+                reasoning=tool_answer_json.reasoning,
+                additional_data=None,
             )
         ],
         log_messages=[

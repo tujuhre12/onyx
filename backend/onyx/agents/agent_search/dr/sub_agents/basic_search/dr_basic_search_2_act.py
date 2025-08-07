@@ -205,6 +205,7 @@ def basic_search(
         # get cited documents
         answer_string = search_answer_json.answer
         claims = search_answer_json.claims or []
+        reasoning = search_answer_json.reasoning
         # answer_string = ""
         # claims = []
 
@@ -225,17 +226,21 @@ def basic_search(
             doc_num + 1: retrieved_doc
             for doc_num, retrieved_doc in enumerate(retrieved_docs[:15])
         }
+        reasoning = ""
 
     return AnswerUpdate(
         iteration_responses=[
             IterationAnswer(
                 tool=DRPath.INTERNAL_SEARCH,
+                tool_id=search_tool.id,
                 iteration_nr=iteration_nr,
                 parallelization_nr=parallelization_nr,
                 question=branch_query,
                 answer=answer_string,
                 claims=claims,
                 cited_documents=cited_documents,
+                reasoning=reasoning,
+                additional_data=None,
             )
         ],
         log_messages=[
