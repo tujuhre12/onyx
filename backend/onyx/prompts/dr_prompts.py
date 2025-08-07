@@ -1,8 +1,8 @@
 from datetime import datetime
 
 from onyx.agents.agent_search.dr.constants import MAX_DR_PARALLEL_SEARCH
+from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import DRTimeBudget
-from onyx.agents.agent_search.dr.states import DRPath
 
 
 # Standards
@@ -16,7 +16,7 @@ INSUFFICIENT_INFORMATION_STRING = "I do not have enough information"
 
 
 KNOWLEDGE_GRAPH = DRPath.KNOWLEDGE_GRAPH.value
-SEARCH = DRPath.SEARCH.value
+INTERNAL_SEARCH = DRPath.INTERNAL_SEARCH.value
 CLOSER = DRPath.CLOSER.value
 INTERNET_SEARCH = DRPath.INTERNET_SEARCH.value
 
@@ -39,19 +39,19 @@ asking follow-up questions as necessary."
 # TODO: see TODO in OrchestratorTool, move to tool implementation class for v2
 TOOL_DESCRIPTION: dict[DRPath, str] = {}
 TOOL_DESCRIPTION[
-    DRPath.SEARCH
+    DRPath.INTERNAL_SEARCH
 ] = f"""\
-- The "{SEARCH}" tool is used to answer questions that can be answered using the information \
+- The "{INTERNAL_SEARCH}" tool is used to answer questions that can be answered using the information \
 present in the connected documents that will largely be private to the organization/user.
 Note that the search tool is not well suited for time-ordered questions (e.g., '...latest email...', \
 '...last 2 jiras resolved...') and answering aggregation-type questions (e.g., 'how many...') \
 (unless that info is present in the connected documents). If there are better suited tools \
 for answering those questions, use them instead.
 You generally should not need to ask clarification questions about the topics being searched for \
-by the {SEARCH} tool, as the retrieved documents will likely provide you with more context.
-Each request to the {SEARCH} tool should largely be written as a SEARCH QUERY, and NOT as a question \
+by the {INTERNAL_SEARCH} tool, as the retrieved documents will likely provide you with more context.
+Each request to the {INTERNAL_SEARCH} tool should largely be written as a SEARCH QUERY, and NOT as a question \
 or an instruction! Also, \
-The {SEARCH} tool DOES support parallel calls of up to {MAX_DR_PARALLEL_SEARCH} queries.
+The {INTERNAL_SEARCH} tool DOES support parallel calls of up to {MAX_DR_PARALLEL_SEARCH} queries.
 """
 
 TOOL_DESCRIPTION[
@@ -101,29 +101,29 @@ if there is sufficient information in the provided history to answer the questio
 TOOL_DIFFERENTIATION_HINTS: dict[tuple[DRPath, DRPath], str] = {}
 TOOL_DIFFERENTIATION_HINTS[
     (
-        DRPath.SEARCH,
+        DRPath.INTERNAL_SEARCH,
         DRPath.INTERNET_SEARCH,
     )
 ] = f"""\
-- in general, you should use the {SEARCH} tool first, and only use the {INTERNET_SEARCH} tool if the \
-{SEARCH} tool result did not contain the information you need, or the user specifically asks or implies \
+- in general, you should use the {INTERNAL_SEARCH} tool first, and only use the {INTERNET_SEARCH} tool if the \
+{INTERNAL_SEARCH} tool result did not contain the information you need, or the user specifically asks or implies \
 the use of the {INTERNET_SEARCH} tool. Moreover, if the {INTERNET_SEARCH} tool result did not contain the \
-information you need, you can switch to the {SEARCH} tool the following iteration.
+information you need, you can switch to the {INTERNAL_SEARCH} tool the following iteration.
 """
 
 TOOL_DIFFERENTIATION_HINTS[
     (
         DRPath.KNOWLEDGE_GRAPH,
-        DRPath.SEARCH,
+        DRPath.INTERNAL_SEARCH,
     )
 ] = f"""\
 - please look at the user query and the entity types and relationship types in the knowledge graph \
-to see whether the question can be answered by the {KNOWLEDGE_GRAPH} tool at all. If not, the '{SEARCH}' \
+to see whether the question can be answered by the {KNOWLEDGE_GRAPH} tool at all. If not, the '{INTERNAL_SEARCH}' \
 tool may be the best alternative.
 - if the question can be answered by the {KNOWLEDGE_GRAPH} tool, but the question seems like a standard \
-'search for this'-type of question, then also use '{SEARCH}'.
-- also consider whether the user query implies whether a standard {SEARCH} query should be used or a \
-{KNOWLEDGE_GRAPH} query. For example, 'use a simple search to find <xyz>' would refer to a standard {SEARCH} query, \
+'search for this'-type of question, then also use '{INTERNAL_SEARCH}'.
+- also consider whether the user query implies whether a standard {INTERNAL_SEARCH} query should be used or a \
+{KNOWLEDGE_GRAPH} query. For example, 'use a simple search to find <xyz>' would refer to a standard {INTERNAL_SEARCH} query, \
 whereas 'use the knowledge graph (or KG) to summarize...' should be a {KNOWLEDGE_GRAPH} query.
 """
 
@@ -146,7 +146,7 @@ whereas 'use the knowledge graph (or KG) to summarize...' should be a {KNOWLEDGE
 
 
 TOOL_QUESTION_HINTS: dict[DRPath, str] = {
-    DRPath.SEARCH: f"""if the tool is {SEARCH}, the question should be \
+    DRPath.INTERNAL_SEARCH: f"""if the tool is {INTERNAL_SEARCH}, the question should be \
 written as a list of suitable searches of up to {MAX_DR_PARALLEL_SEARCH} queries. \
 If searching for multiple \
 aspects is required you should split the question into multiple sub-questions.
@@ -573,8 +573,8 @@ document sources inline in format [1][7], etc.. So this should have format like 
 }
 """
 
-BASIC_SEARCH_PROMPTS: dict[DRTimeBudget, str] = {}
-BASIC_SEARCH_PROMPTS[
+INTERNAL_SEARCH_PROMPTS: dict[DRTimeBudget, str] = {}
+INTERNAL_SEARCH_PROMPTS[
     DRTimeBudget.FAST
 ] = f"""
 You are a helpful assistant that can use the provided documents, the specific search query, and the \
@@ -629,7 +629,7 @@ relevant to the question sent to you.
 {TOOL_OUTPUT_FORMAT}
 """
 
-BASIC_SEARCH_PROMPTS[
+INTERNAL_SEARCH_PROMPTS[
     DRTimeBudget.DEEP
 ] = f"""
 You are a helpful assistant that can use the provided documents, the specific search query, and the \

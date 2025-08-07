@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from onyx.agents.agent_search.dr.constants import DRPath
+from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import DRPromptPurpose
 from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import OrchestratorTool

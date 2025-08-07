@@ -4,7 +4,7 @@ from typing import cast
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
-from onyx.agents.agent_search.dr.models import DRPath
+from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import SearchAnswer
@@ -23,7 +23,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 )
 from onyx.chat.models import LlmDoc
 from onyx.context.search.models import InferenceSection
-from onyx.prompts.dr_prompts import BASIC_SEARCH_PROMPTS
+from onyx.prompts.dr_prompts import INTERNAL_SEARCH_PROMPTS
 from onyx.tools.tool_implementations.internet_search.internet_search_tool import (
     INTERNET_SEARCH_RESPONSE_SUMMARY_ID,
 )
@@ -124,7 +124,7 @@ def internet_search(
     if time_budget == DRTimeBudget.DEEP:
 
         search_prompt = (
-            BASIC_SEARCH_PROMPTS[time_budget]
+            INTERNAL_SEARCH_PROMPTS[time_budget]
             .replace("---search_query---", search_query)
             .replace("---base_question---", base_question)
             .replace("---document_text---", document_texts)

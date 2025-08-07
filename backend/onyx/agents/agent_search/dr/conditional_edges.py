@@ -4,7 +4,7 @@ from langgraph.graph import END
 from langgraph.types import Send
 
 from onyx.agents.agent_search.dr.constants import MAX_DR_PARALLEL_SEARCH
-from onyx.agents.agent_search.dr.states import DRPath
+from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.states import MainState
 from onyx.agents.agent_search.dr.states import QuestionInputState
 
@@ -30,8 +30,8 @@ def decision_router(state: MainState) -> list[Send | Hashable] | DRPath | str:
         and (state.iteration_nr > 0)
     ):
         return DRPath.CLOSER
-    elif next_path == DRPath.SEARCH:
-        return DRPath.SEARCH
+    elif next_path == DRPath.INTERNAL_SEARCH:
+        return DRPath.INTERNAL_SEARCH
 
     # send search/kg requests (parallel only for search)
     # TODO: remove the stuff below here and refactor kg_search to be similar to the rest

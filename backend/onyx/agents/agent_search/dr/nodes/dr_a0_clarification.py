@@ -11,12 +11,12 @@ from onyx.agents.agent_search.dr.constants import MAX_CHAT_HISTORY_MESSAGES
 from onyx.agents.agent_search.dr.dr_prompt_builder import (
     get_dr_prompt_orchestration_templates,
 )
+from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import ClarificationGenerationResponse
 from onyx.agents.agent_search.dr.models import DRPromptPurpose
 from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import OrchestrationClarificationInfo
 from onyx.agents.agent_search.dr.models import OrchestratorTool
-from onyx.agents.agent_search.dr.states import DRPath
 from onyx.agents.agent_search.dr.states import MainState
 from onyx.agents.agent_search.dr.states import OrchestrationUpdate
 from onyx.agents.agent_search.dr.utils import get_chat_history_string
@@ -59,6 +59,7 @@ def _get_available_tools(
     available_tools: list[OrchestratorTool] = []
     for tool in graph_config.tooling.tools:
         tool_info = OrchestratorTool(
+            tool_id=tool.id,
             name=tool.name,
             display_name=tool.display_name,
             description=tool.description,
@@ -83,7 +84,7 @@ def _get_available_tools(
             tool_info.path = DRPath.INTERNET_SEARCH
         elif isinstance(tool, SearchTool):
             tool_info.metadata["summary_signature"] = SEARCH_RESPONSE_SUMMARY_ID
-            tool_info.path = DRPath.SEARCH
+            tool_info.path = DRPath.INTERNAL_SEARCH
         else:
             logger.warning(f"Tool {tool.name} ({type(tool)}) is not supported")
             continue

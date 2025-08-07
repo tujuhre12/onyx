@@ -198,6 +198,7 @@ def construct_tools(
                     search_tool_config = SearchToolConfig()
 
                 search_tool = SearchTool(
+                    id=db_tool_model.id,
                     db_session=db_session,
                     user=user,
                     persona=persona,

@@ -3,8 +3,8 @@ import re
 from langchain.schema.messages import BaseMessage
 from langchain.schema.messages import HumanMessage
 
+from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import AggregatedDRContext
-from onyx.agents.agent_search.dr.models import DRPath
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import OrchestrationClarificationInfo
 from onyx.agents.agent_search.kb_search.graph_utils import build_document_context

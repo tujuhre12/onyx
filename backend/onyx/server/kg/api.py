@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 from onyx.auth.users import current_admin_user
 from onyx.configs.constants import TMP_DRALPHA_PERSONA_NAME
 from onyx.configs.constants import TMP_KG_TOOL_NAME
+from onyx.configs.kg_configs import KG_BETA_ASSISTANT_DESCRIPTION
+from onyx.configs.kg_configs import KG_TOOL_DESCRIPTION
+from onyx.configs.kg_configs import KG_TOOL_DISPLAY_NAME
 from onyx.context.search.enums import RecencyBiasSetting
 from onyx.db.engine.sql_engine import get_session
 from onyx.db.entities import get_entity_stats_by_grounded_source_name
@@ -39,11 +42,6 @@ from onyx.server.kg.models import SourceAndEntityTypeView
 from onyx.server.kg.models import SourceStatistics
 from onyx.tools.built_in_tools import get_search_tool
 
-
-_KG_BETA_ASSISTANT_DESCRIPTION = "The KG Beta assistant uses the Onyx Knowledge Graph (beta) structure \
-to answer questions"
-_KG_TOOL_DISPLAY_NAME = "KG Search"
-_KG_TOOL_DESCRIPTION = "Runs the KG Search. Only works inside the KG Beta agent."
 
 admin_router = APIRouter(prefix="/admin/kg")
 
@@ -110,20 +108,20 @@ def enable_or_disable_kg(
 
     # Get or create the KG tool
     try:
-        kg_tool = get_tool_by_name(_KG_TOOL_DISPLAY_NAME, db_session=db_session)
+        kg_tool = get_tool_by_name(KG_TOOL_DISPLAY_NAME, db_session=db_session)
     except ValueError:
         kg_openapi_schema: dict[str, Any] = {
             "openapi": "3.0.0",
             "info": {
                 "version": "1.0.0",
-                "title": _KG_TOOL_DISPLAY_NAME,
-                "description": _KG_TOOL_DESCRIPTION,
+                "title": KG_TOOL_DISPLAY_NAME,
+                "description": KG_TOOL_DESCRIPTION,
             },
             "servers": [{"url": "http://localhost:8080"}],
             "paths": {
                 "/kg_search": {
                     "get": {
-                        "summary": _KG_TOOL_DESCRIPTION,
+                        "summary": KG_TOOL_DESCRIPTION,
                         "operationId": TMP_KG_TOOL_NAME,
                     }
                 }
@@ -131,8 +129,8 @@ def enable_or_disable_kg(
         }
 
         kg_tool = create_tool(
-            name=_KG_TOOL_DISPLAY_NAME,
-            description=_KG_TOOL_DESCRIPTION,
+            name=KG_TOOL_DISPLAY_NAME,
+            description=KG_TOOL_DESCRIPTION,
             openapi_schema=kg_openapi_schema,
             custom_headers=None,
             user_id=user.id if user else None,
@@ -171,7 +169,7 @@ def enable_or_disable_kg(
 
     persona_request = PersonaUpsertRequest(
         name=TMP_DRALPHA_PERSONA_NAME,
-        description=_KG_BETA_ASSISTANT_DESCRIPTION,
+        description=KG_BETA_ASSISTANT_DESCRIPTION,
         system_prompt=KG_BETA_ASSISTANT_SYSTEM_PROMPT,
         task_prompt=KG_BETA_ASSISTANT_TASK_PROMPT,
         datetime_aware=False,

@@ -6,7 +6,7 @@ from langgraph.types import StreamWriter
 
 from onyx.agents.agent_search.dr.constants import MAX_CHAT_HISTORY_MESSAGES
 from onyx.agents.agent_search.dr.constants import MAX_NUM_CLOSER_SUGGESTIONS
-from onyx.agents.agent_search.dr.models import DRPath
+from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import TestInfoCompleteResponse
 from onyx.agents.agent_search.dr.states import FinalUpdate
@@ -196,6 +196,8 @@ def closer(
         raise ValueError(f"Error in consolidate_research: {e}")
 
     dispatch_main_answer_stop_info(level=0, writer=writer)
+
+    # Log the research agent steps
 
     return FinalUpdate(
         final_answer=final_answer,

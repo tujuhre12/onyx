@@ -5,7 +5,7 @@ from typing import TypedDict
 from pydantic import BaseModel
 
 from onyx.agents.agent_search.core_state import CoreState
-from onyx.agents.agent_search.dr.models import DRPath
+from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import OrchestrationClarificationInfo

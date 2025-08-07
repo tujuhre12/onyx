@@ -5,8 +5,8 @@ from typing import cast
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
+from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import BaseSearchProcessingResponse
-from onyx.agents.agent_search.dr.models import DRPath
 from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import SearchAnswer
@@ -24,7 +24,7 @@ from onyx.context.search.models import InferenceSection
 from onyx.db.connector import DocumentSource
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.prompts.dr_prompts import BASE_SEARCH_PROCESSING_PROMPT
-from onyx.prompts.dr_prompts import BASIC_SEARCH_PROMPTS
+from onyx.prompts.dr_prompts import INTERNAL_SEARCH_PROMPTS
 from onyx.tools.models import SearchToolOverrideKwargs
 from onyx.tools.tool_implementations.search.search_tool import (
     SEARCH_RESPONSE_SUMMARY_ID,
@@ -168,7 +168,7 @@ def basic_search(
     if time_budget == DRTimeBudget.DEEP:
 
         search_prompt = (
-            BASIC_SEARCH_PROMPTS[time_budget]
+            INTERNAL_SEARCH_PROMPTS[time_budget]
             .replace(
                 "---search_query---", branch_query
             )  # use branch query to create answer
@@ -229,7 +229,7 @@ def basic_search(
     return AnswerUpdate(
         iteration_responses=[
             IterationAnswer(
-                tool=DRPath.SEARCH,
+                tool=DRPath.INTERNAL_SEARCH,
                 iteration_nr=iteration_nr,
                 parallelization_nr=parallelization_nr,
                 question=branch_query,

@@ -3,7 +3,7 @@ from datetime import datetime
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
-from onyx.agents.agent_search.dr.models import DRPath
+from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.states import AnswerUpdate
 from onyx.agents.agent_search.dr.states import QuestionInputState

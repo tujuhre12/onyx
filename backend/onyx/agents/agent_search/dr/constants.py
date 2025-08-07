@@ -1,4 +1,4 @@
-from onyx.agents.agent_search.dr.models import DRPath
+from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import DRTimeBudget
 
 MAX_DR_ITERATION_DEPTH = 5
@@ -16,7 +16,7 @@ CLARIFICATION_REQUEST_PREFIX = "PLEASE CLARIFY:"
 HIGH_LEVEL_PLAN_PREFIX = "HIGH_LEVEL PLAN:"
 
 AVERAGE_TOOL_COSTS: dict[DRPath, float] = {
-    DRPath.SEARCH: 1.0,
+    DRPath.INTERNAL_SEARCH: 1.0,
     DRPath.KNOWLEDGE_GRAPH: 2.0,
     DRPath.INTERNET_SEARCH: 1.5,
     DRPath.GENERIC_TOOL: 1.5,  # TODO: see todo in OrchestratorTool

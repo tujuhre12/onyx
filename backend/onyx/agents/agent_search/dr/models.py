@@ -2,18 +2,8 @@ from enum import Enum
 
 from pydantic import BaseModel
 
+from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.context.search.models import InferenceSection
-
-
-class DRPath(str, Enum):
-    CLARIFIER = "CLARIFIER"
-    ORCHESTRATOR = "ORCHESTRATOR"
-    SEARCH = "SEARCH"
-    GENERIC_TOOL = "GENERIC_TOOL"
-    KNOWLEDGE_GRAPH = "KNOWLEDGE_GRAPH"
-    INTERNET_SEARCH = "INTERNET_SEARCH"
-    CLOSER = "CLOSER"
-    END = "END"
 
 
 class OrchestratorStep(BaseModel):
@@ -62,6 +52,7 @@ class TestInfoCompleteResponse(BaseModel):
 # each tool should be a class with the attributes below, plus the actual tool implementation
 # this will also allow custom tools to have their own cost
 class OrchestratorTool(BaseModel):
+    tool_id: int
     name: str
     display_name: str
     description: str
