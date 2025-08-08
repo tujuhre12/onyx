@@ -2,7 +2,7 @@ from datetime import datetime
 
 from onyx.agents.agent_search.dr.constants import MAX_DR_PARALLEL_SEARCH
 from onyx.agents.agent_search.dr.enums import DRPath
-from onyx.agents.agent_search.dr.models import DRTimeBudget
+from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.prompts.prompt_template import PromptTemplate
 
 
@@ -20,13 +20,13 @@ INTERNET_SEARCH = DRPath.INTERNET_SEARCH.value
 
 
 DONE_STANDARD: dict[str, str] = {}
-DONE_STANDARD[DRTimeBudget.FAST] = (
+DONE_STANDARD[ResearchType.THOUGHTFUL] = (
     "Try to make sure that you think you have enough information to \
 answer the question in the spirit and the level of detail that is pretty explicit in the question. \
 But it should be answerable in full. If information is missing you are not"
 )
 
-DONE_STANDARD[DRTimeBudget.DEEP] = (
+DONE_STANDARD[ResearchType.DEEP] = (
     "Try to make sure that you think you have enough information to \
 answer the question in the spirit and the level of detail that is pretty explicit in the question. \
 Be particularly sensitive to details that you think the user would be interested in. Consider \
@@ -286,7 +286,7 @@ GUIDELINES:
 retrieved documents/information you already have to determine whether there is sufficient \
 information to answer the overall question.
    - here is roughly how you should decide whether you are done or more research is needed:
-{DONE_STANDARD[DRTimeBudget.FAST]}
+{DONE_STANDARD[ResearchType.THOUGHTFUL]}
 
 
 Please reason briefly (1-2 sentences) whether there is sufficient information to answer the overall question, \
@@ -541,7 +541,7 @@ NEW targeted information that gets us to be able to answer the original question
 the request to the CLOSER tool is an option if you think the information is sufficient.)
 
 Here is roughly how you should decide whether you are done to call the {CLOSER} tool:
-{DONE_STANDARD[DRTimeBudget.DEEP]}
+{DONE_STANDARD[ResearchType.DEEP]}
 
 Please format your answer as a json dictionary in the following format:
 {{
@@ -583,8 +583,8 @@ document sources inline in format [1][7], etc.. So this should have format like 
 """
 
 
-INTERNAL_SEARCH_PROMPTS: dict[DRTimeBudget, PromptTemplate] = {}
-INTERNAL_SEARCH_PROMPTS[DRTimeBudget.FAST] = PromptTemplate(
+INTERNAL_SEARCH_PROMPTS: dict[ResearchType, PromptTemplate] = {}
+INTERNAL_SEARCH_PROMPTS[ResearchType.THOUGHTFUL] = PromptTemplate(
     f"""\
 You are a helpful assistant that can use the provided documents, the specific search query, and the \
 user query that needs to be ultimately answered, to provide a succinct, relevant, and grounded \
@@ -639,7 +639,7 @@ relevant to the question sent to you.
 """
 )
 
-INTERNAL_SEARCH_PROMPTS[DRTimeBudget.DEEP] = PromptTemplate(
+INTERNAL_SEARCH_PROMPTS[ResearchType.DEEP] = PromptTemplate(
     f"""\
 You are a helpful assistant that can use the provided documents, the specific search query, and the \
 user query that needs to be ultimately answered, to provide a succinct, relevant, and grounded \

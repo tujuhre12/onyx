@@ -94,7 +94,7 @@ class AggregatedDRContext(BaseModel):
     global_iteration_responses: list[IterationAnswer]
 
 
-class DRTimeBudget(str, Enum):
+class ResearchType(str, Enum):
     """Time budget options for agent search operations"""
 
     FAST = "fast"

@@ -12,8 +12,8 @@ from onyx.agents.agent_search.dr.dr_prompt_builder import (
     get_dr_prompt_orchestration_templates,
 )
 from onyx.agents.agent_search.dr.enums import DRPath
+from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import DRPromptPurpose
-from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import OrchestrationPlan
 from onyx.agents.agent_search.dr.models import OrchestratorDecisonsNoPlan
 from onyx.agents.agent_search.dr.states import IterationInstructions
@@ -59,7 +59,7 @@ def orchestrator(
     time_budget = graph_config.behavior.time_budget
     remaining_time_budget = state.remaining_time_budget
     chat_history_string = state.chat_history_string or "(No chat history yet available)"
-    if time_budget == DRTimeBudget.FAST:
+    if time_budget == ResearchType.THOUGHTFUL:
         answer_history_string = (
             aggregate_context(
                 state.iteration_responses,
@@ -107,10 +107,10 @@ def orchestrator(
     reasoning_result = "(No reasoning result provided yet.)"
     tool_calls_string = "(No tool calls provided yet.)"
 
-    if time_budget == DRTimeBudget.FAST:
+    if time_budget == ResearchType.THOUGHTFUL:
 
         if iteration_nr == 1:
-            remaining_time_budget = DR_TIME_BUDGET_BY_TYPE[DRTimeBudget.FAST]
+            remaining_time_budget = DR_TIME_BUDGET_BY_TYPE[ResearchType.THOUGHTFUL]
 
         if iteration_nr > 1:
 
@@ -121,7 +121,7 @@ def orchestrator(
 
             base_reasoning_prompt = get_dr_prompt_orchestration_templates(
                 DRPromptPurpose.NEXT_STEP_REASONING,
-                DRTimeBudget.FAST,
+                ResearchType.THOUGHTFUL,
                 entity_types_string=all_entity_types,
                 relationship_types_string=all_relationship_types,
                 available_tools=state.available_tools,
@@ -184,7 +184,7 @@ def orchestrator(
 
         base_decision_prompt = get_dr_prompt_orchestration_templates(
             DRPromptPurpose.NEXT_STEP,
-            DRTimeBudget.FAST,
+            ResearchType.THOUGHTFUL,
             entity_types_string=all_entity_types,
             relationship_types_string=all_relationship_types,
             available_tools=state.available_tools,
@@ -227,11 +227,11 @@ def orchestrator(
             # by default, we start a new iteration, but if there is a feedback request,
             # we start a new iteration 0 again (set a bit later)
 
-            remaining_time_budget = DR_TIME_BUDGET_BY_TYPE[DRTimeBudget.DEEP]
+            remaining_time_budget = DR_TIME_BUDGET_BY_TYPE[ResearchType.DEEP]
 
             base_plan_prompt = get_dr_prompt_orchestration_templates(
                 DRPromptPurpose.PLAN,
-                DRTimeBudget.DEEP,
+                ResearchType.DEEP,
                 entity_types_string=all_entity_types,
                 relationship_types_string=all_relationship_types,
                 available_tools=state.available_tools,
@@ -271,7 +271,7 @@ def orchestrator(
 
         base_decision_prompt = get_dr_prompt_orchestration_templates(
             DRPromptPurpose.NEXT_STEP,
-            DRTimeBudget.DEEP,
+            ResearchType.DEEP,
             entity_types_string=all_entity_types,
             relationship_types_string=all_relationship_types,
             available_tools=state.available_tools,
@@ -316,7 +316,7 @@ def orchestrator(
 
     base_next_step_purpose_prompt = get_dr_prompt_orchestration_templates(
         DRPromptPurpose.NEXT_STEP_PURPOSE,
-        DRTimeBudget.DEEP,
+        ResearchType.DEEP,
         entity_types_string=all_entity_types,
         relationship_types_string=all_relationship_types,
         available_tools=state.available_tools,

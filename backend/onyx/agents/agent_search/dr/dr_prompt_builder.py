@@ -1,8 +1,8 @@
 from datetime import datetime
 
 from onyx.agents.agent_search.dr.enums import DRPath
+from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import DRPromptPurpose
-from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import OrchestratorTool
 from onyx.prompts.dr_prompts import GET_CLARIFICATION_PROMPT
 from onyx.prompts.dr_prompts import KG_TYPES_DESCRIPTIONS
@@ -18,7 +18,7 @@ from onyx.prompts.prompt_template import PromptTemplate
 
 def get_dr_prompt_orchestration_templates(
     purpose: DRPromptPurpose,
-    time_budget: DRTimeBudget,
+    time_budget: ResearchType,
     entity_types_string: str | None = None,
     relationship_types_string: str | None = None,
     available_tools: list[OrchestratorTool] | None = None,
@@ -69,12 +69,12 @@ def get_dr_prompt_orchestration_templates(
         kg_types_descriptions = "(The Knowledge Graph is not used.)"
 
     if purpose == DRPromptPurpose.PLAN:
-        if time_budget == DRTimeBudget.FAST:
+        if time_budget == ResearchType.THOUGHTFUL:
             raise ValueError("plan generation is not supported for FAST time budget")
         base_template = ORCHESTRATOR_DEEP_INITIAL_PLAN_PROMPT
 
     elif purpose == DRPromptPurpose.NEXT_STEP_REASONING:
-        if time_budget == DRTimeBudget.FAST:
+        if time_budget == ResearchType.THOUGHTFUL:
             base_template = ORCHESTRATOR_FAST_ITERATIVE_REASONING_PROMPT
         else:
             raise ValueError(
@@ -85,13 +85,13 @@ def get_dr_prompt_orchestration_templates(
         base_template = ORCHESTRATOR_NEXT_STEP_PURPOSE_PROMPT
 
     elif purpose == DRPromptPurpose.NEXT_STEP:
-        if time_budget == DRTimeBudget.FAST:
+        if time_budget == ResearchType.THOUGHTFUL:
             base_template = ORCHESTRATOR_FAST_ITERATIVE_DECISION_PROMPT
         else:
             base_template = ORCHESTRATOR_DEEP_ITERATIVE_DECISION_PROMPT
 
     elif purpose == DRPromptPurpose.CLARIFICATION:
-        if time_budget == DRTimeBudget.FAST:
+        if time_budget == ResearchType.THOUGHTFUL:
             raise ValueError("clarification is not supported for FAST time budget")
         base_template = GET_CLARIFICATION_PROMPT
 

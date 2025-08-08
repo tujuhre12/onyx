@@ -4,7 +4,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from onyx.agents.agent_search.dr.models import DRTimeBudget
+from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.models import GraphInputs
 from onyx.agents.agent_search.models import GraphPersistence
@@ -126,7 +126,9 @@ class Answer:
             allow_agent_reranking=allow_agent_reranking,
             perform_initial_search_decomposition=INITIAL_SEARCH_DECOMPOSITION_ENABLED,
             kg_config_settings=get_kg_config_settings(),
-            time_budget=DRTimeBudget.DEEP if use_agentic_search else DRTimeBudget.FAST,
+            time_budget=(
+                ResearchType.DEEP if use_agentic_search else ResearchType.THOUGHTFUL
+            ),
         )
         self.graph_config = GraphConfig(
             inputs=self.graph_inputs,

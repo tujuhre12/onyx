@@ -1,5 +1,5 @@
 from onyx.agents.agent_search.dr.enums import DRPath
-from onyx.agents.agent_search.dr.models import DRTimeBudget
+from onyx.agents.agent_search.dr.enums import ResearchType
 
 MAX_CHAT_HISTORY_MESSAGES = (
     3  # note: actual count is x2 to account for user and assistant messages
@@ -23,7 +23,6 @@ AVERAGE_TOOL_COSTS: dict[DRPath, float] = {
 }
 
 DR_TIME_BUDGET_BY_TYPE = {
-    DRTimeBudget.FAST: 3.0,
-    DRTimeBudget.SHALLOW: 4.0,
-    DRTimeBudget.DEEP: 6.0,
+    ResearchType.THOUGHTFUL: 3.0,
+    ResearchType.DEEP: 6.0,
 }

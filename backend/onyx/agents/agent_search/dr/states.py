@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from onyx.agents.agent_search.core_state import CoreState
 from onyx.agents.agent_search.dr.enums import DRPath
-from onyx.agents.agent_search.dr.models import DRTimeBudget
+from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import IterationInstructions
 from onyx.agents.agent_search.dr.models import OrchestrationClarificationInfo
@@ -49,7 +49,7 @@ class QuestionInputState(LoggerUpdate):
     question: str
     tool: DRPath | str | None = None  # needed for custom tools
     active_source_types: list[DocumentSource] | None
-    time_budget: DRTimeBudget | None = None
+    time_budget: ResearchType | None = None
 
 
 class AnswerUpdate(LoggerUpdate):

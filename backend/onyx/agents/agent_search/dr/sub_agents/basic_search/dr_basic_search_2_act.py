@@ -6,8 +6,8 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
 from onyx.agents.agent_search.dr.enums import DRPath
+from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import BaseSearchProcessingResponse
-from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import SearchAnswer
 from onyx.agents.agent_search.dr.states import AnswerUpdate
@@ -166,7 +166,7 @@ def basic_search(
 
     # Built prompt
 
-    if time_budget == DRTimeBudget.DEEP:
+    if time_budget == ResearchType.DEEP:
         search_prompt = INTERNAL_SEARCH_PROMPTS[time_budget].build(
             search_query=branch_query,
             base_question=base_question,

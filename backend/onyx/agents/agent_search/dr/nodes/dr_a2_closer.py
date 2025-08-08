@@ -9,7 +9,6 @@ from onyx.agents.agent_search.dr.constants import MAX_NUM_CLOSER_SUGGESTIONS
 from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import AggregatedDRContext
-from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import TestInfoCompleteResponse
 from onyx.agents.agent_search.dr.states import FinalUpdate
 from onyx.agents.agent_search.dr.states import MainState
@@ -129,7 +128,7 @@ def closer(
         or "(No chat history yet available)"
     )
 
-    if time_budget == DRTimeBudget.FAST:
+    if time_budget == ResearchType.THOUGHTFUL:
         aggregated_context = aggregate_context(
             state.iteration_responses,
             include_documents=True,
@@ -148,9 +147,9 @@ def closer(
 
     if (
         num_closer_suggestions < MAX_NUM_CLOSER_SUGGESTIONS
-        and time_budget == DRTimeBudget.DEEP
+        and time_budget == ResearchType.DEEP
     ):
-        if time_budget == DRTimeBudget.DEEP:
+        if time_budget == ResearchType.DEEP:
             test_info_complete_prompt = TEST_INFO_COMPLETE_PROMPT.build(
                 base_question=prompt_question,
                 questions_answers_claims=iteration_responses_string,

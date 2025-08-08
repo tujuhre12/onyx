@@ -14,9 +14,9 @@ from onyx.agents.agent_search.dr.dr_prompt_builder import (
     get_dr_prompt_orchestration_templates,
 )
 from onyx.agents.agent_search.dr.enums import DRPath
+from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import ClarificationGenerationResponse
 from onyx.agents.agent_search.dr.models import DRPromptPurpose
-from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import OrchestrationClarificationInfo
 from onyx.agents.agent_search.dr.models import OrchestratorTool
 from onyx.agents.agent_search.dr.states import MainState
@@ -346,7 +346,7 @@ def clarifier(
 
     # Continue, as external knowledge is required.
     clarification = None
-    if time_budget != DRTimeBudget.FAST:
+    if time_budget != ResearchType.THOUGHTFUL:
         result = _get_existing_clarification_request(graph_config)
         if result is not None:
             clarification, original_question, chat_history_string = result
