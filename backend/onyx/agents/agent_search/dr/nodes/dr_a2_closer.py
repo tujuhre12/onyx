@@ -80,7 +80,6 @@ def closer(
     )
 
     if time_budget == DRTimeBudget.FAST:
-
         aggregated_context = aggregate_context(
             state.iteration_responses,
             include_documents=True,

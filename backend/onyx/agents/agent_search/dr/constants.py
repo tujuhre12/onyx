@@ -5,7 +5,7 @@ MAX_CHAT_HISTORY_MESSAGES = (
     3  # note: actual count is x2 to account for user and assistant messages
 )
 
-MAX_DR_PARALLEL_SEARCH = 1
+MAX_DR_PARALLEL_SEARCH = 4
 
 MAX_NUM_CLOSER_SUGGESTIONS = (
     1  # how many times the closer was suggested. (Closer can send back)
