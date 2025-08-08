@@ -1,5 +1,6 @@
 import { OnyxDocument } from "@/lib/search/interfaces";
 import { ValidSources } from "@/lib/types";
+import { CitationMap } from "../interfaces";
 
 // Base interface for all streaming objects
 interface BaseObj {
@@ -90,7 +91,7 @@ export interface CitationStart extends BaseObj {
 
 export interface CitationDelta extends BaseObj {
   type: "citation_delta";
-  citations: StreamingCitation[] | null;
+  citations: StreamingCitation[];
 }
 
 export interface CitationEnd extends BaseObj {

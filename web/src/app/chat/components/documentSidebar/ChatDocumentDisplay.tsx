@@ -11,7 +11,6 @@ import { openDocument } from "@/lib/search/utils";
 import { ValidSources } from "@/lib/types";
 
 interface DocumentDisplayProps {
-  agenticMessage: boolean;
   closeSidebar: () => void;
   document: OnyxDocument;
   modal?: boolean;
@@ -61,7 +60,6 @@ export function DocumentMetadataBlock({
 }
 
 export function ChatDocumentDisplay({
-  agenticMessage,
   closeSidebar,
   document,
   modal,
@@ -117,12 +115,10 @@ export function ChatDocumentDisplay({
               hasMetadata ? "mt-2" : ""
             }`}
           >
-            {!agenticMessage
-              ? buildDocumentSummaryDisplay(
-                  document.match_highlights,
-                  document.blurb
-                )
-              : document.blurb}
+            {buildDocumentSummaryDisplay(
+              document.match_highlights,
+              document.blurb
+            )}
           </div>
           <div className="absolute top-2 right-2">
             {!isInternet && !hideSelection && (

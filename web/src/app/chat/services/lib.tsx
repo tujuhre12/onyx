@@ -497,10 +497,8 @@ export function processRawChatHistory(
     } else {
       retrievalType = RetrievalType.None;
     }
-    const subQuestions = messageInfo.sub_questions?.map((q) => ({
-      ...q,
-      is_complete: true,
-    }));
+
+    console.log("messageInfo", messageInfo);
 
     const message: Message = {
       messageId: messageInfo.message_id,
@@ -526,10 +524,6 @@ export function processRawChatHistory(
       childrenMessageIds: [],
       latestChildMessageId: messageInfo.latest_child_message,
       overridden_model: messageInfo.overridden_model,
-      sub_questions: subQuestions,
-      isImprovement:
-        (messageInfo.refined_answer_improvement as unknown as boolean) || false,
-      is_agentic: messageInfo.is_agentic,
       packets: packetsForMessage || [],
     };
 

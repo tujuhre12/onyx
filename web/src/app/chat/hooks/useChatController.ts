@@ -46,6 +46,7 @@ import {
   ChatFileType,
   ChatSessionSharedStatus,
   ChatState,
+  CitationMap,
   DocumentsResponse,
   FileChatDisplay,
   FileDescriptor,
@@ -91,7 +92,12 @@ import {
   useCurrentChatState,
   useCurrentMessageHistory,
 } from "../stores/useChatSessionStore";
-import { Packet } from "../services/streamingModels";
+import {
+  Packet,
+  ToolDelta,
+  CitationDelta,
+  StreamingCitation,
+} from "../services/streamingModels";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -514,19 +520,14 @@ export function useChatController({
         ? RetrievalType.SelectedDocs
         : RetrievalType.None;
     let documents: OnyxDocument[] = selectedDocuments;
+    let citations: CitationMap | null = null;
     let aiMessageImages: FileDescriptor[] | null = null;
-    let agenticDocs: OnyxDocument[] | null = null;
     let error: string | null = null;
     let stackTrace: string | null = null;
 
     let sub_questions: SubQuestionDetail[] = [];
-    let is_generating: boolean = false;
-    let second_level_generating: boolean = false;
     let finalMessage: BackendMessage | null = null;
     let toolCall: ToolCallMetadata | null = null;
-    let isImprovement: boolean | undefined = undefined;
-    let isStreamingQuestions = true;
-    let isAgentic: boolean = false;
     let files: FileDescriptor[] = [];
     let packets: Packet[] = [];
 
@@ -617,11 +618,6 @@ export function useChatController({
               .reserved_assistant_message_id;
           }
 
-          if (Object.hasOwn(packet, "level")) {
-            if ((packet as any).level === 1) {
-              second_level_generating = true;
-            }
-          }
           if (Object.hasOwn(packet, "user_files")) {
             const userFiles = (packet as UserKnowledgeFilePacket).user_files;
             // Ensure files are unique by id
@@ -631,130 +627,8 @@ export function useChatController({
             );
             files = files.concat(newUserFiles);
           }
-          if (Object.hasOwn(packet, "is_agentic")) {
-            isAgentic = (packet as any).is_agentic;
-          }
 
-          if (Object.hasOwn(packet, "refined_answer_improvement")) {
-            isImprovement = (packet as RefinedAnswerImprovement)
-              .refined_answer_improvement;
-          }
-
-          if (Object.hasOwn(packet, "stream_type")) {
-            if ((packet as any).stream_type == "main_answer") {
-              is_generating = false;
-              second_level_generating = true;
-            }
-          }
-
-          // // Continuously refine the sub_questions based on the packets that we receive
-          if (
-            Object.hasOwn(packet, "stop_reason") &&
-            Object.hasOwn(packet, "level_question_num")
-          ) {
-            if ((packet as StreamStopInfo).stream_type == "main_answer") {
-              updateChatStateAction(frozenSessionId, "streaming");
-            }
-            if (
-              (packet as StreamStopInfo).stream_type == "sub_questions" &&
-              (packet as StreamStopInfo).level_question_num == undefined
-            ) {
-              isStreamingQuestions = false;
-            }
-            sub_questions = constructSubQuestions(
-              sub_questions,
-              packet as StreamStopInfo
-            );
-          } else if (Object.hasOwn(packet, "sub_question")) {
-            updateChatStateAction(frozenSessionId, "toolBuilding");
-            isAgentic = true;
-            is_generating = true;
-            sub_questions = constructSubQuestions(
-              sub_questions,
-              packet as SubQuestionPiece
-            );
-            setAgenticGenerating(frozenSessionId, true);
-          } else if (Object.hasOwn(packet, "sub_query")) {
-            sub_questions = constructSubQuestions(
-              sub_questions,
-              packet as SubQueryPiece
-            );
-          } else if (
-            Object.hasOwn(packet, "answer_piece") &&
-            Object.hasOwn(packet, "answer_type") &&
-            (packet as AgentAnswerPiece).answer_type === "agent_sub_answer"
-          ) {
-            sub_questions = constructSubQuestions(
-              sub_questions,
-              packet as AgentAnswerPiece
-            );
-          } else if (Object.hasOwn(packet, "answer_piece")) {
-            // Mark every sub_question's is_generating as false
-            sub_questions = sub_questions.map((subQ) => ({
-              ...subQ,
-              is_generating: false,
-            }));
-
-            if (Object.hasOwn(packet, "level") && (packet as any).level === 1) {
-              second_level_answer += (packet as AnswerPiecePacket).answer_piece;
-            } else {
-              answer += (packet as AnswerPiecePacket).answer_piece;
-            }
-          } else if (
-            Object.hasOwn(packet, "top_documents") &&
-            Object.hasOwn(packet, "level_question_num") &&
-            (packet as DocumentsResponse).level_question_num != undefined
-          ) {
-            const documentsResponse = packet as DocumentsResponse;
-            sub_questions = constructSubQuestions(
-              sub_questions,
-              documentsResponse
-            );
-
-            if (
-              documentsResponse.level_question_num === 0 &&
-              documentsResponse.level == 0
-            ) {
-              documents = (packet as DocumentsResponse).top_documents;
-            } else if (
-              documentsResponse.level_question_num === 0 &&
-              documentsResponse.level == 1
-            ) {
-              agenticDocs = (packet as DocumentsResponse).top_documents;
-            }
-          } else if (Object.hasOwn(packet, "top_documents")) {
-            documents = (packet as DocumentInfoPacket).top_documents;
-            retrievalType = RetrievalType.Search;
-
-            if (documents && documents.length > 0) {
-              // point to the latest message (we don't know the messageId yet, which is why
-              // we have to use -1)
-              setSelectedMessageForDocDisplay(newAssistantMessageId);
-            }
-          } else if (Object.hasOwn(packet, "tool_name")) {
-            // Will only ever be one tool call per message
-            toolCall = {
-              tool_name: (packet as ToolCallMetadata).tool_name,
-              tool_args: (packet as ToolCallMetadata).tool_args,
-              tool_result: (packet as ToolCallMetadata).tool_result,
-            };
-
-            if (!toolCall.tool_name.includes("agent")) {
-              if (!toolCall.tool_result || toolCall.tool_result == undefined) {
-                updateChatStateAction(frozenSessionId, "toolBuilding");
-              } else {
-                updateChatStateAction(frozenSessionId, "streaming");
-              }
-
-              // This will be consolidated in upcoming tool calls udpate,
-              // but for now, we need to set query as early as possible
-              if (toolCall.tool_name == SEARCH_TOOL_NAME) {
-                query = toolCall.tool_args["query"];
-              }
-            } else {
-              toolCall = null;
-            }
-          } else if (Object.hasOwn(packet, "file_ids")) {
+          if (Object.hasOwn(packet, "file_ids")) {
             aiMessageImages = (packet as FileChatDisplay).file_ids.map(
               (fileId) => {
                 return {
@@ -797,6 +671,26 @@ export function useChatController({
           } else if (Object.hasOwn(packet, "obj")) {
             console.log("Object packet:", JSON.stringify(packet));
             packets.push(packet as Packet);
+
+            // Check if the packet contains document information
+            const packetObj = (packet as Packet).obj;
+            if (packetObj.type === "tool_delta") {
+              const toolDelta = packetObj as ToolDelta;
+              if (toolDelta.documents) {
+                documents = toolDelta.documents;
+                setSelectedMessageForDocDisplay(newAssistantMessageId);
+              }
+            } else if (packetObj.type === "citation_delta") {
+              const citationDelta = packetObj as CitationDelta;
+              if (citationDelta.citations) {
+                citations = Object.fromEntries(
+                  citationDelta.citations.map((c) => [
+                    c.document_id,
+                    c.citation_num,
+                  ])
+                );
+              }
+            }
           } else {
             console.log("Unknown packet:", JSON.stringify(packet));
           }
@@ -841,17 +735,13 @@ export function useChatController({
 
           // Assistant message (always added)
           messagesToAdd.push({
-            isStreamingQuestions: isStreamingQuestions,
-            is_generating: is_generating,
-            isImprovement: isImprovement,
             messageId: newAssistantMessageId!,
             message: error || answer,
-            second_level_message: second_level_answer,
             type: error ? "error" : "assistant",
             retrievalType,
             query: finalMessage?.rephrased_query || query,
             documents: documents,
-            citations: finalMessage?.citations || {},
+            citations: finalMessage?.citations || citations || {},
             files: finalMessage?.files || aiMessageImages || [],
             toolCall: finalMessage?.tool_call || toolCall,
             parentMessageId:
@@ -859,10 +749,6 @@ export function useChatController({
             stackTrace: stackTrace,
             overridden_model: finalMessage?.overridden_model,
             stopReason: stopReason,
-            sub_questions: sub_questions,
-            second_level_generating: second_level_generating,
-            agentic_docs: agenticDocs,
-            is_agentic: isAgentic,
             packets: packets,
           });
 
@@ -932,8 +818,7 @@ export function useChatController({
     // }
     if (
       finalMessage?.context_docs &&
-      finalMessage.context_docs.top_documents.length > 0 &&
-      retrievalType === RetrievalType.Search
+      finalMessage.context_docs.top_documents.length > 0
     ) {
       setSelectedMessageForDocDisplay(finalMessage.message_id);
     }
