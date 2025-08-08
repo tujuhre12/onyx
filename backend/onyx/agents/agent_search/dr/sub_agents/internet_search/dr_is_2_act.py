@@ -138,7 +138,7 @@ def internet_search(
             prompt=search_prompt,
             schema=SearchAnswer,
             timeout_override=40,
-            max_tokens=3000,
+            # max_tokens=3000,
         )
 
         logger.debug(

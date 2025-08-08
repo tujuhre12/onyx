@@ -78,7 +78,7 @@ def basic_search(
             prompt=base_search_processing_prompt,
             schema=BaseSearchProcessingResponse,
             timeout_override=5,
-            max_tokens=100,
+            # max_tokens=100,
         )
     except Exception as e:
         logger.error(f"Could not process query: {e}")
@@ -181,7 +181,7 @@ def basic_search(
             prompt=search_prompt,
             schema=SearchAnswer,
             timeout_override=40,
-            max_tokens=1500,
+            # max_tokens=1500,
         )
 
         logger.debug(

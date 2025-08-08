@@ -273,7 +273,7 @@ def clarifier(
                     prompt=clarification_prompt,
                     schema=ClarificationGenerationResponse,
                     timeout_override=25,
-                    max_tokens=1500,
+                    # max_tokens=1500,
                 )
             except Exception as e:
                 logger.error(f"Error in clarification generation: {e}")

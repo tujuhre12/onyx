@@ -114,7 +114,7 @@ def custom_tool_act(
         prompt=search_prompt,
         schema=GenericToolAnswer,
         timeout_override=40,
-        max_tokens=1500,
+        # max_tokens=1500,
     )
 
     logger.debug(

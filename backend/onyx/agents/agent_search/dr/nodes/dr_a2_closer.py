@@ -167,7 +167,7 @@ def closer(
                 prompt=test_info_complete_prompt,
                 schema=TestInfoCompleteResponse,
                 timeout_override=40,
-                max_tokens=1000,
+                # max_tokens=1000,
             )
 
             if test_info_complete_json.complete:
@@ -237,7 +237,7 @@ def closer(
                 agent_answer_question_num=0,
                 agent_answer_type="agent_level_answer",
                 timeout_override=60,
-                max_tokens=None,
+                # kens=None,
             ),
         )
 

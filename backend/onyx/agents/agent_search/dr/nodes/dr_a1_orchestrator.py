@@ -159,7 +159,7 @@ def orchestrator(
                     agent_answer_question_num=0,
                     agent_answer_type="agent_level_answer",
                     timeout_override=60,
-                    max_tokens=None,
+                    # max_tokens=None,
                 ),
             )
             reasoning_result = cast(str, merge_content(*reasoning_tokens))
@@ -207,7 +207,7 @@ def orchestrator(
                     prompt=decision_prompt,
                     schema=OrchestratorDecisonsNoPlan,
                     timeout_override=35,
-                    max_tokens=2500,
+                    # max_tokens=2500,
                 )
                 next_step = orchestrator_action.next_step
                 query_path = next_step.tool
@@ -247,7 +247,7 @@ def orchestrator(
                     prompt=plan_generation_prompt,
                     schema=OrchestrationPlan,
                     timeout_override=25,
-                    max_tokens=3000,
+                    # max_tokens=3000,
                 )
             except Exception as e:
                 logger.error(f"Error in plan generation: {e}")
@@ -296,7 +296,7 @@ def orchestrator(
                     prompt=decision_prompt,
                     schema=OrchestratorDecisonsNoPlan,
                     timeout_override=15,
-                    max_tokens=1500,
+                    # max_tokens=1500,
                 )
                 next_step = orchestrator_action.next_step
                 query_path = next_step.tool
@@ -353,7 +353,7 @@ def orchestrator(
                 agent_answer_question_num=0,
                 agent_answer_type="agent_level_answer",
                 timeout_override=60,
-                max_tokens=None,
+                # max_tokens=None,
             ),
         )
     except Exception as e:
