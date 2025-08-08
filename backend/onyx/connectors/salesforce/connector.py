@@ -949,9 +949,13 @@ class SalesforceConnector(LoadConnector, PollConnector, SlimConnector):
                         any_not_found = True
                         logger.warning(f"Association {k} not found in {parent_type}")
                 if any_not_found:
+                    queryable_fields = sf_client.get_queryable_fields_by_type(
+                        parent_type
+                    )
                     raise RuntimeError(
                         f"Associations {associations_config} not found in {parent_type} "
                         f"with child objects {child_types_all}"
+                        f" and fields {queryable_fields}"
                     )
 
             parent_to_child_relationships[parent_type] = set()
