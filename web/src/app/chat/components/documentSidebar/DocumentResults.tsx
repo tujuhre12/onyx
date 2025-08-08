@@ -9,7 +9,6 @@ import { useDocumentsContext } from "@/app/chat/my-documents/DocumentsContext";
 import { CitationMap } from "@/app/chat/interfaces";
 
 interface DocumentResultsProps {
-  agenticMessage: boolean;
   humanMessage: Message | null;
   closeSidebar: () => void;
   selectedMessage: Message | null;
@@ -23,13 +22,11 @@ interface DocumentResultsProps {
   isSharedChat?: boolean;
   modal: boolean;
   setPresentingDocument: Dispatch<SetStateAction<MinimalOnyxDocument | null>>;
-  citations?: CitationMap | null;
 }
 
 export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
   (
     {
-      agenticMessage,
       humanMessage,
       closeSidebar,
       modal,
@@ -43,7 +40,6 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
       isSharedChat,
       isOpen,
       setPresentingDocument,
-      citations,
     },
     ref: ForwardedRef<HTMLDivElement>
   ) => {
@@ -64,24 +60,25 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
     const tokenLimitReached = selectedDocumentTokens > maxTokens - 75;
 
     // Separate cited documents from other documents
-    const citedDocumentIds = new Set<number>();
+    const citedDocumentIds = new Set<string>();
+    const citations = selectedMessage?.citations || null;
     if (citations) {
-      Object.values(citations).forEach((docDbId) => {
-        citedDocumentIds.add(docDbId as number);
+      Object.keys(citations).forEach((docId) => {
+        citedDocumentIds.add(docId);
       });
     }
 
     const citedDocuments = dedupedDocuments.filter(
       (doc) =>
-        doc.db_doc_id !== null &&
-        doc.db_doc_id !== undefined &&
-        citedDocumentIds.has(doc.db_doc_id)
+        doc.document_id !== null &&
+        doc.document_id !== undefined &&
+        citedDocumentIds.has(doc.document_id)
     );
     const otherDocuments = dedupedDocuments.filter(
       (doc) =>
-        doc.db_doc_id === null ||
-        doc.db_doc_id === undefined ||
-        !citedDocumentIds.has(doc.db_doc_id)
+        doc.document_id === null ||
+        doc.document_id === undefined ||
+        !citedDocumentIds.has(doc.document_id)
     );
 
     return (
@@ -153,7 +150,6 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
                             className={`desktop:px-2 w-full`}
                           >
                             <ChatDocumentDisplay
-                              agenticMessage={agenticMessage}
                               setPresentingDocument={setPresentingDocument}
                               closeSidebar={closeSidebar}
                               modal={modal}
@@ -194,7 +190,6 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
                             className={`desktop:px-2 w-full mb-2`}
                           >
                             <ChatDocumentDisplay
-                              agenticMessage={agenticMessage}
                               setPresentingDocument={setPresentingDocument}
                               closeSidebar={closeSidebar}
                               modal={modal}

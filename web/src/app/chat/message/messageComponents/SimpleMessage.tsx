@@ -425,7 +425,7 @@ export function SimpleMessage({
             const existingIds = new Set(
               prevCitations.map((c) => c.document_id)
             );
-            const newCitations = citationDelta.citations!.filter(
+            const newCitations = citationDelta.citations.filter(
               (c) => !existingIds.has(c.document_id)
             );
             return [...prevCitations, ...newCitations];

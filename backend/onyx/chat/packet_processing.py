@@ -2,8 +2,6 @@ from collections.abc import Generator
 from typing import cast
 from typing import Union
 
-from sqlalchemy.orm import Session
-
 from onyx.chat.models import AgenticMessageResponseIDInfo
 from onyx.chat.models import AgentSearchPacket
 from onyx.chat.models import AllCitations
@@ -21,11 +19,11 @@ from onyx.chat.models import StreamingError
 from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import StreamStopReason
 from onyx.chat.models import UserKnowledgeFilePacket
-from onyx.context.search.models import RetrievalDetails
-from onyx.db.models import SearchDoc as DbSearchDoc
-from onyx.db.models import UserFile
+from onyx.context.search.utils import chunks_or_sections_to_search_docs
+from onyx.db.chat import create_db_search_doc
+from onyx.db.chat import translate_db_search_doc_to_server_search_doc
+from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.file_store.models import ChatFileType
-from onyx.file_store.models import InMemoryChatFile
 from onyx.file_store.utils import save_files
 from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.streaming_models import CitationDelta
@@ -36,7 +34,6 @@ from onyx.server.query_and_chat.streaming_models import MessageEnd
 from onyx.server.query_and_chat.streaming_models import MessageStart
 from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.server.query_and_chat.streaming_models import Stop
-from onyx.server.query_and_chat.streaming_models import StreamingCitation
 from onyx.server.query_and_chat.streaming_models import ToolDelta
 from onyx.server.query_and_chat.streaming_models import ToolEnd
 from onyx.server.query_and_chat.streaming_models import ToolStart
@@ -53,7 +50,6 @@ from onyx.tools.tool_implementations.search.search_tool import (
     SEARCH_RESPONSE_SUMMARY_ID,
 )
 from onyx.tools.tool_implementations.search.search_tool import SearchResponseSummary
-from onyx.tools.tool_implementations.search.search_utils import section_to_llm_doc
 from onyx.tools.tool_runner import ToolCallFinalResult
 from onyx.utils.logger import setup_logger
 
@@ -87,12 +83,7 @@ ChatPacket = Union[
 
 def process_streamed_packets(
     answer_processed_output: AnswerStream,
-    selected_db_search_docs: list[DbSearchDoc] | None,
-    retrieval_options: RetrievalDetails | None,
-    user_file_models: list[UserFile] | None,
-    in_memory_user_files: list[InMemoryChatFile] | None,
     reserved_message_id: int,
-    db_session: Session,
 ) -> Generator[ChatPacket, None, None]:
     """Process the streamed output from the answer and yield chat packets."""
     has_transmitted_answer_piece = False
@@ -107,7 +98,7 @@ def process_streamed_packets(
 
     # Track citations
     citations_emitted = False
-    collected_citations: list[StreamingCitation] = []
+    collected_citations: list[CitationInfo] = []
 
     for packet in answer_processed_output:
         if isinstance(packet, ToolCallKickoff) and not isinstance(
@@ -158,12 +149,24 @@ def process_streamed_packets(
             if packet.id == SEARCH_RESPONSE_SUMMARY_ID:
                 search_response = cast(SearchResponseSummary, packet.response)
 
+                with get_session_with_current_tenant() as db_session:
+                    reference_db_search_docs = [
+                        create_db_search_doc(
+                            server_search_doc=doc, db_session=db_session
+                        )
+                        for doc in chunks_or_sections_to_search_docs(
+                            search_response.top_sections
+                        )
+                    ]
+                    response_docs = [
+                        translate_db_search_doc_to_server_search_doc(db_search_doc)
+                        for db_search_doc in reference_db_search_docs
+                    ]
+
                 yield Packet(
                     ind=current_tool_index,
                     obj=ToolDelta(
-                        documents=[
-                            section_to_llm_doc(s) for s in search_response.top_sections
-                        ],
+                        documents=response_docs,
                     ),
                 )
 
@@ -258,7 +261,7 @@ def process_streamed_packets(
 
                 # Collect citation info
                 collected_citations.append(
-                    StreamingCitation(
+                    CitationInfo(
                         citation_num=packet.citation_num,
                         document_id=packet.document_id,
                     )

@@ -104,8 +104,6 @@ export interface Message {
   type: "user" | "assistant" | "system" | "error";
   retrievalType?: RetrievalType;
   query?: string | null;
-  documents?: OnyxDocument[] | null;
-  citations?: CitationMap;
   files: FileDescriptor[];
   toolCall: ToolCallMetadata | null;
   // for rebuilding the message tree
@@ -116,19 +114,13 @@ export interface Message {
   stackTrace?: string | null;
   overridden_model?: string;
   stopReason?: StreamStopReason | null;
-  sub_questions?: SubQuestionDetail[] | null;
-  is_agentic?: boolean | null;
-
-  // Streaming only
-  second_level_generating?: boolean;
-  agentic_docs?: OnyxDocument[] | null;
-  second_level_message?: string;
-  second_level_subquestions?: SubQuestionDetail[] | null;
-  isImprovement?: boolean | null;
-  isStreamingQuestions?: boolean;
 
   // new gen
   packets: Packet[];
+
+  // cached values for easy access
+  documents?: OnyxDocument[] | null;
+  citations?: CitationMap;
 }
 
 export interface BackendChatSession {

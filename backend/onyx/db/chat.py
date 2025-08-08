@@ -1058,11 +1058,6 @@ def translate_db_message_to_chat_message_detail(
         ),
         alternate_assistant_id=chat_message.alternate_assistant_id,
         overridden_model=chat_message.overridden_model,
-        sub_questions=translate_db_sub_questions_to_server_objects(
-            chat_message.sub_questions
-        ),
-        refined_answer_improvement=chat_message.refined_answer_improvement,
-        is_agentic=chat_message.is_agentic,
         error=chat_message.error,
     )
 

@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
-from onyx.chat.models import LlmDoc
+from onyx.chat.models import CitationInfo
+from onyx.context.search.models import SavedSearchDoc
 
 
 class BaseObj(BaseModel):
@@ -49,7 +50,7 @@ class ToolDelta(BaseObj):
     type: str = "tool_delta"
 
     queries: list[str] | None = None
-    documents: list[LlmDoc] | None = None
+    documents: list[SavedSearchDoc] | None = None
     images: list[dict[str, str]] | None = None
 
 
@@ -60,11 +61,6 @@ class ToolEnd(BaseObj):
 """Citation Packets"""
 
 
-class StreamingCitation(BaseModel):
-    citation_num: int
-    document_id: str
-
-
 class CitationStart(BaseObj):
     type: str = "citation_start"
 
@@ -72,7 +68,7 @@ class CitationStart(BaseObj):
 class CitationDelta(BaseObj):
     type: str = "citation_delta"
 
-    citations: list[StreamingCitation] | None = None
+    citations: list[CitationInfo] | None = None
 
 
 class CitationEnd(BaseObj):

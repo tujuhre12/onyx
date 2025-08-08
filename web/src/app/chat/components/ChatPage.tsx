@@ -823,14 +823,6 @@ export function ChatPage({
             title="Sources"
           >
             <DocumentResults
-              agenticMessage={
-                aiMessage?.sub_questions?.length! > 0 ||
-                messageHistory.find(
-                  (m) => m.messageId === aiMessage?.parentMessageId
-                )?.sub_questions?.length! > 0
-                  ? true
-                  : false
-              }
               humanMessage={humanMessage ?? null}
               setPresentingDocument={setPresentingDocument}
               modal={true}
@@ -845,7 +837,6 @@ export function ChatPage({
               maxTokens={maxTokens}
               initialWidth={400}
               isOpen={true}
-              citations={aiMessage?.citations}
             />
           </Modal>
         </div>
@@ -989,14 +980,6 @@ export function ChatPage({
           >
             <DocumentResults
               humanMessage={humanMessage ?? null}
-              agenticMessage={
-                aiMessage?.sub_questions?.length! > 0 ||
-                messageHistory.find(
-                  (m) => m.messageId === aiMessage?.parentMessageId
-                )?.sub_questions?.length! > 0
-                  ? true
-                  : false
-              }
               setPresentingDocument={setPresentingDocument}
               modal={false}
               ref={innerSidebarElementRef}
@@ -1013,7 +996,6 @@ export function ChatPage({
               // TODO (chris): fix
               selectedDocumentTokens={0}
               maxTokens={maxTokens}
-              citations={aiMessage?.citations}
               initialWidth={400}
               isOpen={documentSidebarVisible && !settings?.isMobile}
             />

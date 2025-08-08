@@ -1,3 +1,4 @@
+from onyx.chat.models import CitationInfo
 from onyx.chat.models import LlmDoc
 from onyx.configs.constants import MessageType
 from onyx.file_store.models import ChatFileType
@@ -10,7 +11,6 @@ from onyx.server.query_and_chat.streaming_models import MessageEnd
 from onyx.server.query_and_chat.streaming_models import MessageStart
 from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.server.query_and_chat.streaming_models import Stop
-from onyx.server.query_and_chat.streaming_models import StreamingCitation
 from onyx.server.query_and_chat.streaming_models import ToolDelta
 from onyx.server.query_and_chat.streaming_models import ToolEnd
 from onyx.server.query_and_chat.streaming_models import ToolStart
@@ -95,11 +95,9 @@ def create_simplified_packets_for_message(
 
         # Create citation data
         # Convert dict[int, int] to list[StreamingCitation] format
-        citations_list: list[StreamingCitation] = []
+        citations_list: list[CitationInfo] = []
         for citation_num, doc_id in message.citations.items():
-            citation = StreamingCitation(
-                citation_num=citation_num, document_id=str(doc_id)
-            )
+            citation = CitationInfo(citation_num=citation_num, document_id=str(doc_id))
             citations_list.append(citation)
 
         # Send citations via citation delta

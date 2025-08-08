@@ -738,12 +738,7 @@ def stream_chat_message_objects(
         # Process streamed packets using the new packet processing module
         yield from process_streamed_packets(
             answer_processed_output=answer.processed_streamed_output,
-            selected_db_search_docs=selected_db_search_docs,
-            retrieval_options=retrieval_options,
-            user_file_models=user_file_models,
-            in_memory_user_files=in_memory_user_files,
             reserved_message_id=reserved_message_id,
-            db_session=db_session,
         )
 
     except ValueError as e:
