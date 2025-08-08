@@ -1,5 +1,9 @@
 from typing import Any
 
+from langchain_core.messages import BaseMessage
+from langchain_core.messages import HumanMessage
+from langchain_core.messages import SystemMessage
+
 from onyx.context.search.models import InferenceSection
 
 
@@ -24,3 +28,12 @@ def create_citation_format_list(
         citation_list.append(document_citation_dict)
 
     return citation_list
+
+
+def create_question_prompt(
+    system_prompt: str | None, human_prompt: str
+) -> list[BaseMessage]:
+    return [
+        SystemMessage(content=system_prompt or ""),
+        HumanMessage(content=human_prompt),
+    ]

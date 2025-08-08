@@ -2,9 +2,11 @@ from datetime import datetime
 from typing import cast
 
 from langchain_core.messages import HumanMessage
+from langchain_core.messages import merge_content
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
+from onyx.agents.agent_search.basic.utils import process_llm_stream
 from onyx.agents.agent_search.dr.constants import AVERAGE_TOOL_COSTS
 from onyx.agents.agent_search.dr.constants import CLARIFICATION_REQUEST_PREFIX
 from onyx.agents.agent_search.dr.constants import MAX_CHAT_HISTORY_MESSAGES
@@ -22,10 +24,13 @@ from onyx.agents.agent_search.dr.states import OrchestrationUpdate
 from onyx.agents.agent_search.dr.utils import get_chat_history_string
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.llm import invoke_llm_json
+from onyx.agents.agent_search.shared_graph_utils.llm import stream_llm_answer
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
+from onyx.agents.agent_search.shared_graph_utils.utils import run_with_timeout
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
+from onyx.agents.agent_search.utils import create_question_prompt
 from onyx.chat.models import AgentAnswerPiece
 from onyx.configs.constants import DocumentSourceDescription
 from onyx.configs.constants import MessageType
@@ -33,6 +38,10 @@ from onyx.db.connector import fetch_unique_document_sources
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.kg.utils.extraction_utils import get_entity_types_str
 from onyx.kg.utils.extraction_utils import get_relationship_types_str
+from onyx.prompts.dr_prompts import DECISION_PROMPT_W_TOOL_CALLING
+from onyx.prompts.dr_prompts import DECISION_PROMPT_WO_TOOL_CALLING
+from onyx.prompts.dr_prompts import EVAL_SYSTEM_PROMPT_W_TOOL_CALLING
+from onyx.prompts.dr_prompts import EVAL_SYSTEM_PROMPT_WO_TOOL_CALLING
 from onyx.prompts.dr_prompts import TOOL_DESCRIPTION
 from onyx.tools.tool_implementations.custom.custom_tool import CUSTOM_TOOL_RESPONSE_ID
 from onyx.tools.tool_implementations.custom.custom_tool import CustomTool
@@ -158,6 +167,26 @@ def _get_existing_clarification_request(
     return clarification, original_question, chat_history_string
 
 
+_ARTIFICIAL_ALL_ENCOMPASSING_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "run_any_knowledge_retrieval_and_any_action_tool",
+        "description": "Use this tool to get any external information \
+that is relevant to the question, or for any action to be taken.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "request": {
+                    "type": "string",
+                    "description": "The request to be made to the tool",
+                },
+            },
+            "required": ["request"],
+        },
+    },
+}
+
+
 def clarifier(
     state: MainState, config: RunnableConfig, writer: StreamWriter = lambda _: None
 ) -> OrchestrationUpdate:
@@ -169,6 +198,9 @@ def clarifier(
     node_start_time = datetime.now()
 
     graph_config = cast(GraphConfig, config["metadata"]["config"])
+
+    use_tool_calling_llm = graph_config.tooling.using_tool_calling_llm
+
     original_question = graph_config.inputs.prompt_builder.raw_user_query
     time_budget = graph_config.behavior.time_budget
 
@@ -240,6 +272,79 @@ def clarifier(
     #         )
 
     # get clarification (unless time budget is FAST)
+
+    # Verification of whether the LLM can answer the question without any external tool or knowledge
+
+    chat_history_string = (
+        get_chat_history_string(
+            graph_config.inputs.prompt_builder.message_history,
+            MAX_CHAT_HISTORY_MESSAGES,
+        )
+        or "(No chat history yet available)"
+    )
+
+    if not use_tool_calling_llm:
+        decision_prompt = DECISION_PROMPT_WO_TOOL_CALLING.build(
+            question=original_question, chat_history_string=chat_history_string
+        )
+
+        initial_decision_tokens, _ = run_with_timeout(
+            80,
+            lambda: stream_llm_answer(
+                llm=graph_config.tooling.primary_llm,
+                prompt=create_question_prompt(
+                    EVAL_SYSTEM_PROMPT_WO_TOOL_CALLING, decision_prompt
+                ),
+                event_name="basic_response",
+                writer=writer,
+                agent_answer_level=0,
+                agent_answer_question_num=0,
+                agent_answer_type="agent_level_answer",
+                timeout_override=60,
+                max_tokens=None,
+            ),
+        )
+
+        initial_decision_str = cast(str, merge_content(*initial_decision_tokens))
+
+        if len(initial_decision_str.replace(" ", "")) > 0:
+            return OrchestrationUpdate(
+                original_question=original_question,
+                chat_history_string="",
+                query_path=[DRPath.END],
+                query_list=[],
+            )
+
+    else:
+
+        decision_prompt = DECISION_PROMPT_W_TOOL_CALLING.build(
+            question=original_question, chat_history_string=chat_history_string
+        )
+
+        stream = graph_config.tooling.primary_llm.stream(
+            prompt=create_question_prompt(
+                EVAL_SYSTEM_PROMPT_W_TOOL_CALLING, decision_prompt
+            ),
+            tools=([_ARTIFICIAL_ALL_ENCOMPASSING_TOOL]),
+            tool_choice=(None),
+            structured_response_format=graph_config.inputs.structured_response_format,
+        )
+
+        tool_message = process_llm_stream(
+            stream,
+            True,
+            writer,
+        ).ai_message_chunk
+
+        if tool_message is None or len(tool_message.tool_calls) == 0:
+            return OrchestrationUpdate(
+                original_question=original_question,
+                chat_history_string="",
+                query_path=[DRPath.END],
+                query_list=[],
+            )
+
+    # Continue, as external knowledge is required.
     clarification = None
     if time_budget != DRTimeBudget.FAST:
         result = _get_existing_clarification_request(graph_config)
