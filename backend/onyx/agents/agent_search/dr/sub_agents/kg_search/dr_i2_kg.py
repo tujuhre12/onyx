@@ -85,24 +85,22 @@ def kg_query(
     claims: list[str] = []
     retrieved_docs: list[InferenceSection] = kb_results.get("retrieved_documents", [])
 
-    # add citations for the sql retrieved documents
-    for i in range(len(retrieved_docs)):
-        answer_string += f"[{i+1}]"
-
     (
         citation_numbers,
         answer_string,
         claims,
     ) = extract_document_citations(answer_string, claims)
 
-    if len(citation_numbers) >= 1:
-        cited_documents = {
-            citation_number: retrieved_docs[citation_number - 1]
-            for citation_number in citation_numbers
-            if citation_number <= len(retrieved_docs)
-        }
-    else:
-        cited_documents = {}
+    # if citation is empty, the answer must have come from the KG rather than a doc
+    # in that case, simply cite the docs returned by the KG
+    if not citation_numbers:
+        citation_numbers = [i + 1 for i in range(len(retrieved_docs))]
+
+    cited_documents = {
+        citation_number: retrieved_docs[citation_number - 1]
+        for citation_number in citation_numbers
+        if citation_number <= len(retrieved_docs)
+    }
 
     return AnswerUpdate(
         iteration_responses=[
