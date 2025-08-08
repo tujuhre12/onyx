@@ -45,6 +45,8 @@ def extract_document_citations(
 
 def aggregate_context(
     iteration_responses: list[IterationAnswer],
+    # TODO: maybe use a single enum instead of the two booleans
+    # as some combinations don't make sense
     include_documents: bool = False,
     include_answers_claims: bool = True,
 ) -> AggregatedDRContext:
@@ -77,10 +79,13 @@ def aggregate_context(
 
     # build output string
     output_strings: list[str] = []
+    global_iteration_responses: list[IterationAnswer] = []
+
     for iteration_response in sorted(
         iteration_responses,
         key=lambda x: (x.iteration_nr, x.parallelization_nr),
     ):
+        # add basic iteration info
         output_strings.append(
             f"Iteration: {iteration_response.iteration_nr}, "
             f"Question {iteration_response.parallelization_nr}"
@@ -88,13 +93,10 @@ def aggregate_context(
         output_strings.append(f"Tool: {iteration_response.tool.value}")
         output_strings.append(f"Question: {iteration_response.question}")
 
+        # get answer and claims with global citations
         answer_str = iteration_response.answer
-        claims_str = (
-            "".join(f"\n  - {claim}" for claim in iteration_response.claims or [])
-            or "No claims provided"
-        )
+        claims = iteration_response.claims or []
 
-        # replace local citations with global citations
         iteration_citations: list[int] = []
         for local_number, cited_doc in iteration_response.cited_documents.items():
             global_number = global_citations[cited_doc.center_chunk.document_id]
@@ -102,14 +104,21 @@ def aggregate_context(
             answer_str = answer_str.replace(
                 f"[{CITATION_PREFIX}{local_number}]", f"[{global_number}]"
             )
-            claims_str = claims_str.replace(
-                f"[{CITATION_PREFIX}{local_number}]", f"[{global_number}]"
-            )
+            claims = [
+                claim.replace(
+                    f"[{CITATION_PREFIX}{local_number}]", f"[{global_number}]"
+                )
+                for claim in claims
+            ]
             iteration_citations.append(global_number)
 
+        # add answer, claims, and citation info
         if include_answers_claims:
             output_strings.append(f"Answer: {answer_str}")
-            output_strings.append(f"Claims: {claims_str}")
+            output_strings.append(
+                "Claims: " + "".join(f"\n  - {claim}" for claim in claims or [])
+                or "No claims provided"
+            )
         else:
             output_strings.append(
                 "Retrieved documents: "
@@ -121,8 +130,27 @@ def aggregate_context(
                     or "No documents retrieved"
                 )
             )
-
         output_strings.append("\n---\n")
+
+        # save global iteration response
+        global_iteration_responses.append(
+            IterationAnswer(
+                tool=iteration_response.tool,
+                tool_id=iteration_response.tool_id,
+                iteration_nr=iteration_response.iteration_nr,
+                parallelization_nr=iteration_response.parallelization_nr,
+                question=iteration_response.question,
+                reasoning=iteration_response.reasoning,
+                answer=answer_str,
+                cited_documents={
+                    global_citations[doc.center_chunk.document_id]: doc
+                    for doc in iteration_response.cited_documents.values()
+                },
+                background_info=iteration_response.background_info,
+                claims=claims,
+                additional_data=iteration_response.additional_data,
+            )
+        )
 
     # add document contents if requested
     if include_documents:
@@ -139,6 +167,7 @@ def aggregate_context(
     return AggregatedDRContext(
         context="\n".join(output_strings),
         cited_documents=global_documents,
+        global_iteration_responses=global_iteration_responses,
     )
 
 
@@ -185,8 +214,6 @@ def create_tool_call_string(query_path: DRPath, query_list: list[str]) -> str:
 
 def parse_plan_to_dict(plan_text: str) -> dict[str, str]:
     # Convert plan string to numbered dict format
-    import re
-
     if not plan_text:
         return {}
 

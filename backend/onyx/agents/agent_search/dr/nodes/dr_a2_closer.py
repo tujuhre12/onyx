@@ -8,6 +8,7 @@ from onyx.agents.agent_search.dr.constants import MAX_CHAT_HISTORY_MESSAGES
 from onyx.agents.agent_search.dr.constants import MAX_NUM_CLOSER_SUGGESTIONS
 from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.enums import ResearchType
+from onyx.agents.agent_search.dr.models import AggregatedDRContext
 from onyx.agents.agent_search.dr.models import DRTimeBudget
 from onyx.agents.agent_search.dr.models import TestInfoCompleteResponse
 from onyx.agents.agent_search.dr.states import FinalUpdate
@@ -47,6 +48,55 @@ from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_with_timeout
 
 logger = setup_logger()
+
+
+def save_iteration(
+    message_id: int, state: MainState, aggregated_context: AggregatedDRContext
+):
+    # TODO: generate plan as dict in the first place
+    plan_of_record = state.plan_of_record.plan if state.plan_of_record else ""
+    plan_of_record_dict = parse_plan_to_dict(plan_of_record)
+
+    with get_session_with_current_tenant() as db_session:
+        chat_message = (
+            db_session.query(ChatMessage).filter(ChatMessage.id == message_id).first()
+        )
+        if not chat_message:
+            raise ValueError("Chat message with id not found")  # should never happen
+
+        chat_message.research_type = ResearchType.THOUGHTFUL  # FIXME: joachim
+        chat_message.research_plan = plan_of_record_dict
+
+        for iteration_preparation in state.iteration_instructions:
+            research_agent_iteration_step = ResearchAgentIteration(
+                primary_question_id=message_id,
+                reasoning=iteration_preparation.reasoning,
+                purpose=iteration_preparation.purpose,
+                iteration_nr=iteration_preparation.iteration_nr,
+                created_at=datetime.now(),
+            )
+            db_session.add(research_agent_iteration_step)
+
+        for iteration_answer in aggregated_context.global_iteration_responses:
+            research_agent_iteration_sub_step = ResearchAgentIterationSubStep(
+                primary_question_id=message_id,
+                parent_question_id=None,
+                iteration_nr=iteration_answer.iteration_nr,
+                iteration_sub_step_nr=iteration_answer.parallelization_nr,
+                sub_step_instructions=iteration_answer.question,
+                sub_step_tool_id=iteration_answer.tool_id,
+                sub_answer=iteration_answer.answer,
+                reasoning=iteration_answer.reasoning,
+                claims=iteration_answer.claims,
+                cited_doc_results=create_citation_format_list(
+                    [doc for doc in iteration_answer.cited_documents.values()]
+                ),
+                additional_data=iteration_answer.additional_data,
+                created_at=datetime.now(),
+            )
+            db_session.add(research_agent_iteration_sub_step)
+
+        db_session.commit()
 
 
 def closer(
@@ -198,59 +248,7 @@ def closer(
     dispatch_main_answer_stop_info(level=0, writer=writer)
 
     # Log the research agent steps
-
-    message_id = graph_config.persistence.message_id
-
-    json_research_plan = parse_plan_to_dict(
-        state.plan_of_record.plan if state.plan_of_record else ""
-    )
-
-    # Update chat message with research metadata
-    with get_session_with_current_tenant() as update_db_session:
-        chat_message = (
-            update_db_session.query(ChatMessage)
-            .filter(ChatMessage.id == message_id)
-            .first()
-        )
-        if chat_message:
-            chat_message.research_type = ResearchType.THOUGHTFUL
-            chat_message.research_plan = json_research_plan
-        else:
-            raise ValueError(
-                "Chat message with id not found"
-            )  # This should never happen
-
-        for iteration_preparation in state.iteration_instructions:
-            research_agent_iteration_step = ResearchAgentIteration(
-                primary_question_id=message_id,
-                reasoning=iteration_preparation.reasoning,
-                purpose=iteration_preparation.purpose,
-                iteration_nr=iteration_preparation.iteration_nr,
-                created_at=datetime.now(),
-            )
-
-            update_db_session.add(research_agent_iteration_step)
-
-        for iteration_answer in state.iteration_responses:
-            research_agent_iteration_sub_step = ResearchAgentIterationSubStep(
-                primary_question_id=message_id,
-                parent_question_id=None,
-                iteration_nr=iteration_answer.iteration_nr,
-                iteration_sub_step_nr=iteration_answer.parallelization_nr,
-                sub_step_instructions=iteration_answer.question,
-                sub_step_tool_id=iteration_answer.tool_id,
-                sub_answer=iteration_answer.answer,
-                reasoning=iteration_answer.reasoning,
-                claims=iteration_answer.claims,
-                cited_doc_results=create_citation_format_list(
-                    [doc for doc in iteration_answer.cited_documents.values()]
-                ),
-                additional_data=iteration_answer.additional_data,
-                created_at=datetime.now(),
-            )
-            update_db_session.add(research_agent_iteration_sub_step)
-
-        update_db_session.commit()
+    save_iteration(graph_config.persistence.message_id, state, aggregated_context)
 
     return FinalUpdate(
         final_answer=final_answer,
