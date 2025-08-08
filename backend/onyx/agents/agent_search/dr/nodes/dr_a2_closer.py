@@ -102,21 +102,15 @@ def closer(
         and time_budget == DRTimeBudget.DEEP
     ):
         if time_budget == DRTimeBudget.DEEP:
-
-            test_info_complete_prompt = (
-                TEST_INFO_COMPLETE_PROMPT.replace(
-                    "---base_question---", prompt_question
-                )
-                .replace("---questions_answers_claims---", iteration_responses_string)
-                .replace("---chat_history_string---", chat_history_string)
-                .replace(
-                    "---high_level_plan---",
-                    (
-                        state.plan_of_record.plan
-                        if state.plan_of_record
-                        else "No plan available"
-                    ),
-                )
+            test_info_complete_prompt = TEST_INFO_COMPLETE_PROMPT.build(
+                base_question=prompt_question,
+                questions_answers_claims=iteration_responses_string,
+                chat_history_string=chat_history_string,
+                high_level_plan=(
+                    state.plan_of_record.plan
+                    if state.plan_of_record
+                    else "No plan available"
+                ),
             )
 
             test_info_complete_json = invoke_llm_json(
@@ -176,10 +170,10 @@ def closer(
         writer,
     )
 
-    final_answer_prompt = (
-        FINAL_ANSWER_PROMPT.replace("---base_question---", prompt_question)
-        .replace("---iteration_responses_string---", iteration_responses_string)
-        .replace("---chat_history_string---", chat_history_string)
+    final_answer_prompt = FINAL_ANSWER_PROMPT.build(
+        base_question=prompt_question,
+        iteration_responses_string=iteration_responses_string,
+        chat_history_string=chat_history_string,
     )
 
     try:

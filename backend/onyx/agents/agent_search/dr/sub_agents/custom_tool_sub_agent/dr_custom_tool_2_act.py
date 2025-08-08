@@ -101,11 +101,10 @@ def custom_tool_act(
     )
 
     # Built prompt
-
-    search_prompt = (
-        TOOL_PROCESSING_PROMPT.replace("---search_query---", query)
-        .replace("---base_question---", base_question)
-        .replace("---document_text---", document_texts)
+    search_prompt = TOOL_PROCESSING_PROMPT.build(
+        search_query=query,
+        base_question=base_question,
+        document_text=document_texts,
     )
 
     # Run LLM

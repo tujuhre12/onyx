@@ -3,14 +3,12 @@ from datetime import datetime
 from onyx.agents.agent_search.dr.constants import MAX_DR_PARALLEL_SEARCH
 from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import DRTimeBudget
+from onyx.prompts.prompt_template import PromptTemplate
 
 
 # Standards
 SEPARATOR_LINE = "-------"
 SEPARATOR_LINE_LONG = "---------------"
-NO_EXTRACTION = "No extraction of knowledge graph objects was feasible."
-YES = "yes"
-NO = "no"
 SUFFICIENT_INFORMATION_STRING = "I have enough information"
 INSUFFICIENT_INFORMATION_STRING = "I do not have enough information"
 
@@ -165,7 +163,8 @@ written as a list of one question.
 }
 
 
-KG_TYPES_DESCRIPTIONS = f"""\
+KG_TYPES_DESCRIPTIONS = PromptTemplate(
+    f"""\
 Here are the entity types that are available in the knowledge graph:
 {SEPARATOR_LINE}
 ---possible_entities---
@@ -176,8 +175,11 @@ Here are the relationship types that are available in the knowledge graph:
 ---possible_relationships---
 {SEPARATOR_LINE}
 """
+)
 
-ORCHESTRATOR_DEEP_INITIAL_PLAN_PROMPT = f"""
+
+ORCHESTRATOR_DEEP_INITIAL_PLAN_PROMPT = PromptTemplate(
+    f"""
 You are a great Assistant that is an expert at analyzing a question and breaking it up into a \
 series of high-level, answerable sub-questions.
 
@@ -244,8 +246,10 @@ should NOT contain the specific tool although it may have been used to construct
 the question. Just show the question.)>"
 }}
 """
+)
 
-ORCHESTRATOR_FAST_ITERATIVE_REASONING_PROMPT = f"""
+ORCHESTRATOR_FAST_ITERATIVE_REASONING_PROMPT = PromptTemplate(
+    f"""
 Overall, you need to answer a user question/query. To do so, you may have to do various searches or \
 call other tools/sub-agents.
 
@@ -255,8 +259,7 @@ previous iterations.
 YOUR TASK is to decide whether there are sufficient previously retrieved documents and information \
 to answer the user question IN FULL.
 
-Note:
- - the current time is ---current_time---.
+Note: the current time is ---current_time---.
 
 Here is the overall question that you need to answer:
 {SEPARATOR_LINE}
@@ -293,9 +296,10 @@ YOU MUST end with one of these two phrases LITERALLY.
 
 ANSWER:
 """
+)
 
-
-ORCHESTRATOR_FAST_ITERATIVE_DECISION_PROMPT = f"""
+ORCHESTRATOR_FAST_ITERATIVE_DECISION_PROMPT = PromptTemplate(
+    f"""
 Overall, you need to answer a user query. To do so, you may have to do various searches.
 
 You may already have some answers to earlier searches you generated in previous iterations.
@@ -379,8 +383,10 @@ question should be appropriate for the tool. For example:
 ---tool_question_hints---]>"}}
 }}
 """
+)
 
-ORCHESTRATOR_NEXT_STEP_PURPOSE_PROMPT = f"""
+ORCHESTRATOR_NEXT_STEP_PURPOSE_PROMPT = PromptTemplate(
+    f"""
 Overall, you need to answer a user query. To do so, you may have to do various searches.
 
 You may already have some answers to earlier searches you generated in previous iterations.
@@ -414,8 +420,10 @@ Internet Search" (assuming that Internet Search is the chosen tool, the proper t
 be named here.)
 ANSWER:
 """
+)
 
-ORCHESTRATOR_DEEP_ITERATIVE_DECISION_PROMPT = f"""
+ORCHESTRATOR_DEEP_ITERATIVE_DECISION_PROMPT = PromptTemplate(
+    f"""
 Overall, you need to answer a user query. To do so, you have various tools at your disposal that you \
 can call iteratively. And an initial plan that should guide your thinking.
 
@@ -548,6 +556,7 @@ Also, make sure that each question HAS THE FULL CONTEXT, so don't use questions 
 science'.>"}}
 }}
 """
+)
 
 
 TOOL_OUTPUT_FORMAT = """\
@@ -573,10 +582,10 @@ document sources inline in format [1][7], etc.. So this should have format like 
 }
 """
 
-INTERNAL_SEARCH_PROMPTS: dict[DRTimeBudget, str] = {}
-INTERNAL_SEARCH_PROMPTS[
-    DRTimeBudget.FAST
-] = f"""
+
+INTERNAL_SEARCH_PROMPTS: dict[DRTimeBudget, PromptTemplate] = {}
+INTERNAL_SEARCH_PROMPTS[DRTimeBudget.FAST] = PromptTemplate(
+    f"""\
 You are a helpful assistant that can use the provided documents, the specific search query, and the \
 user query that needs to be ultimately answered, to provide a succinct, relevant, and grounded \
 answer to the specific search query. Although your response should pertain mainly to the specific search \
@@ -628,10 +637,10 @@ relevant to the question sent to you.
 
 {TOOL_OUTPUT_FORMAT}
 """
+)
 
-INTERNAL_SEARCH_PROMPTS[
-    DRTimeBudget.DEEP
-] = f"""
+INTERNAL_SEARCH_PROMPTS[DRTimeBudget.DEEP] = PromptTemplate(
+    f"""\
 You are a helpful assistant that can use the provided documents, the specific search query, and the \
 user query that needs to be ultimately answered, to provide a succinct, relevant, and grounded \
 analysis to the specific search query. Although your response should pertain mainly to the specific search \
@@ -683,8 +692,11 @@ relevant to the question sent to you.
 
 {TOOL_OUTPUT_FORMAT}
 """
+)
 
-TOOL_PROCESSING_PROMPT = f"""
+
+TOOL_PROCESSING_PROMPT = PromptTemplate(
+    f"""\
 You are a helpful assistant that is great at summarizing and processing the \
 response of a tool as it is relevent to a broader user question. You can use the \
 provided documents, the specific task sent to the tool, \
@@ -740,8 +752,11 @@ relevant to the question sent to you.
 
 {TOOL_OUTPUT_FORMAT}
 """
+)
 
-TEST_INFO_COMPLETE_PROMPT = f"""\
+
+TEST_INFO_COMPLETE_PROMPT = PromptTemplate(
+    f"""\
 You are a helpful assistant that is an expert iun trying to determine whether \
 a high-level plan created to gather information in pursuit of a higher-level \
 problem has been sufficiently completed AND the higher-level problem \
@@ -789,8 +804,11 @@ Please list in format ['gap 1', 'gap 2', 'gap 3', ...]. If no gaps are found, ke
 liste empty as in [].>"
 }}
 """
+)
 
-FINAL_ANSWER_PROMPT = f"""
+
+FINAL_ANSWER_PROMPT = PromptTemplate(
+    f"""
 You are a helpful assistant that can answer a user question based on sub-answers generated earlier \
 and a list of documents that were used to generate the sub-answers. The list of documents is \
 for further reference to get more details.
@@ -833,8 +851,11 @@ are provided above.
 
 ANSWER:
 """
+)
 
-GET_CLARIFICATION_PROMPT = f"""
+
+GET_CLARIFICATION_PROMPT = PromptTemplate(
+    f"""\
 You are a helpful assistant that is great at asking clarifying questions in case \
 a base question is not as clear enough. Your task is to ask necessary clarification \
 questions to the user, before the question is sent to the deep research agent.
@@ -940,8 +961,11 @@ think multiple clarification questions are needed.>"
 
 ANSWER:
 """
+)
 
-BASE_SEARCH_PROCESSING_PROMPT = f"""
+
+BASE_SEARCH_PROCESSING_PROMPT = PromptTemplate(
+    f"""\
 You are a helpful assistant that is great at processing a search request in order to \
 understand which document types should be included in the search if specified in the query, \
 whether there is a time filter implied in the query, and to rewrite the \
@@ -1000,6 +1024,7 @@ looks in the documents.>"
 
 ANSWER:
 """
+)
 
 # We do not want to be too aggressive here because for example questions about other users is
 # usually fine (i.e. 'what did my team work on last week?') with permissions handled within \
@@ -1036,27 +1061,29 @@ ANSWER:
 # ANSWER:
 # """
 
-QUERY_REJECTION_PROMPT = f"""
-You are a helpful assistant that is great at politely rejecting a user query/action request.
+# QUERY_REJECTION_PROMPT = PromptTemplate(
+#     f"""\
+# You are a helpful assistant that is great at politely rejecting a user query/action request.
 
-A query was rejected and a short reasoning was provided.
+# A query was rejected and a short reasoning was provided.
 
-Your task is to politely reject the query and provide a short explanation of why it was rejected, \
-reflecting the provided reasoning.
+# Your task is to politely reject the query and provide a short explanation of why it was rejected, \
+# reflecting the provided reasoning.
 
-Here is the user query:
-{SEPARATOR_LINE}
----query---
-{SEPARATOR_LINE}
+# Here is the user query:
+# {SEPARATOR_LINE}
+# ---query---
+# {SEPARATOR_LINE}
 
-Here is the reasoning for the rejection:
-{SEPARATOR_LINE}
----reasoning---
-{SEPARATOR_LINE}
+# Here is the reasoning for the rejection:
+# {SEPARATOR_LINE}
+# ---reasoning---
+# {SEPARATOR_LINE}
 
-Please provide a short explanation of why the query was rejected to the user. \
-Keep it short and concise, but polite and friendly. And DO NOT try to answer the query, \
-as simple, humble, or innocent it may be.
+# Please provide a short explanation of why the query was rejected to the user. \
+# Keep it short and concise, but polite and friendly. And DO NOT try to answer the query, \
+# as simple, humble, or innocent it may be.
 
-ANSWER:
-"""
+# ANSWER:
+# """
+# )

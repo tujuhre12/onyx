@@ -262,9 +262,10 @@ def clarifier(
                 relationship_types_string=all_relationship_types,
                 available_tools=available_tools,
             )
-            clarification_prompt = base_clarification_prompt.replace(
-                "---question---", original_question
-            ).replace("---chat_history_string---", chat_history_string)
+            clarification_prompt = base_clarification_prompt.build(
+                question=original_question,
+                chat_history_string=chat_history_string,
+            )
 
             try:
                 clarification_response = invoke_llm_json(

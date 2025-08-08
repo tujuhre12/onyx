@@ -13,16 +13,7 @@ from onyx.prompts.dr_prompts import ORCHESTRATOR_FAST_ITERATIVE_REASONING_PROMPT
 from onyx.prompts.dr_prompts import ORCHESTRATOR_NEXT_STEP_PURPOSE_PROMPT
 from onyx.prompts.dr_prompts import TOOL_DIFFERENTIATION_HINTS
 from onyx.prompts.dr_prompts import TOOL_QUESTION_HINTS
-
-
-def _replace_signature_strings_in_template(
-    template: str,
-    string_replacements: dict[str, str],
-) -> str:
-    for key, value in string_replacements.items():
-        if value:
-            template = template.replace(f"---{key}---", value)
-    return template
+from onyx.prompts.prompt_template import PromptTemplate
 
 
 def get_dr_prompt_orchestration_templates(
@@ -33,14 +24,14 @@ def get_dr_prompt_orchestration_templates(
     available_tools: list[OrchestratorTool] | None = None,
     reasoning_result: str | None = None,
     tool_calls_string: str | None = None,
-) -> str:
+) -> PromptTemplate:
     # TODO: instead of using paths as names, have either a TOOL or CLOSER path
     # the LLM spits out the tool name or CLOSER, which gets converted into a
     # (TOOL, <TOOL_NAME>) request, or a CLOSER request
     # revisit in v2 when we have tools and subagents more neatly laid out
     available_tool_names = [tool.path.value for tool in available_tools or []]
     available_tool_paths = [tool.path for tool in available_tools or []]
-    available_tool_cost_strings = "\n".join(
+    available_tool_cost_string = "\n".join(
         f"{tool.path}: {tool.cost}" for tool in available_tools or []
     )
 
@@ -65,29 +56,17 @@ def get_dr_prompt_orchestration_templates(
         or "(No examples available)"
     )
 
-    string_replacements = {
-        "num_available_tools": str(len(available_tool_names)),
-        "available_tools": ", ".join(available_tool_names),
-        "tool_choice_options": " or ".join(available_tool_names),
-        "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "kg_types_descriptions": (
-            KG_TYPES_DESCRIPTIONS
-            if DRPath.KNOWLEDGE_GRAPH in available_tool_paths
-            else "(The Knowledge Graph is not used.)"
-        ),
-        "tool_descriptions": "\n".join(
-            tool.description for tool in available_tools or []
-        ),
-        "tool_differentiation_hints": tool_differentiation_hint_string,
-        "tool_question_hints": tool_question_hint_string,
-        "average_tool_costs": available_tool_cost_strings,
-        "possible_entities": entity_types_string
-        or "(The Knowledge Graph is not used.)",
-        "possible_relationships": relationship_types_string
-        or "(The Knowledge Graph is not used.)",
-        "reasoning_result": reasoning_result or "(No reasoning result provided.)",
-        "tool_calls_string": tool_calls_string or "(No tool calls provided.)",
-    }
+    if DRPath.KNOWLEDGE_GRAPH in available_tool_paths:
+        if not entity_types_string or not relationship_types_string:
+            raise ValueError(
+                "Entity types and relationship types must be provided if the Knowledge Graph is used."
+            )
+        kg_types_descriptions = KG_TYPES_DESCRIPTIONS.build(
+            possible_entities=entity_types_string,
+            possible_relationships=relationship_types_string,
+        )
+    else:
+        kg_types_descriptions = "(The Knowledge Graph is not used.)"
 
     if purpose == DRPromptPurpose.PLAN:
         if time_budget == DRTimeBudget.FAST:
@@ -120,4 +99,16 @@ def get_dr_prompt_orchestration_templates(
         # for mypy, clearly a mypy bug
         raise ValueError(f"Invalid purpose: {purpose}")
 
-    return _replace_signature_strings_in_template(base_template, string_replacements)
+    return base_template.partial_build(
+        num_available_tools=str(len(available_tool_names)),
+        available_tools=", ".join(available_tool_names),
+        tool_choice_options=" or ".join(available_tool_names),
+        current_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        kg_types_descriptions=kg_types_descriptions,
+        tool_descriptions="\n".join(tool.description for tool in available_tools or []),
+        tool_differentiation_hints=tool_differentiation_hint_string,
+        tool_question_hints=tool_question_hint_string,
+        average_tool_costs=available_tool_cost_string,
+        reasoning_result=reasoning_result or "(No reasoning result provided.)",
+        tool_calls_string=tool_calls_string or "(No tool calls provided.)",
+    )

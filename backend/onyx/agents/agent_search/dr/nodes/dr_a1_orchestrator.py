@@ -33,7 +33,6 @@ from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.chat.models import AgentAnswerPiece
 from onyx.kg.utils.extraction_utils import get_entity_types_str
 from onyx.kg.utils.extraction_utils import get_relationship_types_str
-from onyx.prompts.dr_prompts import ORCHESTRATOR_NEXT_STEP_PURPOSE_PROMPT
 from onyx.prompts.dr_prompts import SUFFICIENT_INFORMATION_STRING
 from onyx.utils.logger import setup_logger
 
@@ -139,12 +138,12 @@ def orchestrator(
                 writer,
             )
 
-            reasoning_prompt = (
-                base_reasoning_prompt.replace("---question---", question)
-                .replace("---chat_history_string---", chat_history_string)
-                .replace("---answer_history_string---", answer_history_string)
-                .replace("---iteration_nr---", str(iteration_nr))
-                .replace("---remaining_time_budget---", str(remaining_time_budget))
+            reasoning_prompt = base_reasoning_prompt.build(
+                question=question,
+                chat_history_string=chat_history_string,
+                answer_history_string=answer_history_string,
+                iteration_nr=str(iteration_nr),
+                remaining_time_budget=str(remaining_time_budget),
             )
 
             reasoning_tokens: list[str] = [""]
@@ -190,13 +189,13 @@ def orchestrator(
             relationship_types_string=all_relationship_types,
             available_tools=state.available_tools,
         )
-        decision_prompt = (
-            base_decision_prompt.replace("---question---", question)
-            .replace("---chat_history_string---", chat_history_string)
-            .replace("---answer_history_string---", answer_history_string)
-            .replace("---iteration_nr---", str(iteration_nr))
-            .replace("---remaining_time_budget---", str(remaining_time_budget))
-            .replace("---reasoning_result---", reasoning_result)
+        decision_prompt = base_decision_prompt.build(
+            question=question,
+            chat_history_string=chat_history_string,
+            answer_history_string=answer_history_string,
+            iteration_nr=str(iteration_nr),
+            remaining_time_budget=str(remaining_time_budget),
+            reasoning_result=reasoning_result,
         )
 
         if remaining_time_budget > 0:
@@ -237,9 +236,10 @@ def orchestrator(
                 relationship_types_string=all_relationship_types,
                 available_tools=state.available_tools,
             )
-            plan_generation_prompt = base_plan_prompt.replace(
-                "---question---", prompt_question
-            ).replace("---chat_history_string---", chat_history_string)
+            plan_generation_prompt = base_plan_prompt.build(
+                question=prompt_question,
+                chat_history_string=chat_history_string,
+            )
 
             try:
                 plan_of_record = invoke_llm_json(
@@ -276,17 +276,15 @@ def orchestrator(
             relationship_types_string=all_relationship_types,
             available_tools=state.available_tools,
         )
-        decision_prompt = (
-            base_decision_prompt.replace(
-                "---answer_history_string---", answer_history_string
-            )
-            .replace("---question_history_string---", question_history_string)
-            .replace("---question---", prompt_question)
-            .replace("---iteration_nr---", str(iteration_nr))
-            .replace("---current_plan_of_record_string---", plan_of_record.plan)
-            .replace("---chat_history_string---", chat_history_string)
-            .replace("---remaining_time_budget---", str(remaining_time_budget))
-            .replace("---gaps---", gaps_str)
+        decision_prompt = base_decision_prompt.build(
+            answer_history_string=answer_history_string,
+            question_history_string=question_history_string,
+            question=prompt_question,
+            iteration_nr=str(iteration_nr),
+            current_plan_of_record_string=plan_of_record.plan,
+            chat_history_string=chat_history_string,
+            remaining_time_budget=str(remaining_time_budget),
+            gaps=gaps_str,
         )
 
         if remaining_time_budget > 0:
@@ -315,10 +313,18 @@ def orchestrator(
             )
         else:
             reasoning_result = "Time to wrap up."
-    orchestration_next_step_purpose_prompt = (
-        ORCHESTRATOR_NEXT_STEP_PURPOSE_PROMPT.replace("---question---", prompt_question)
-        .replace("---reasoning_result---", reasoning_result)
-        .replace("---tool_calls---", tool_calls_string)
+
+    base_next_step_purpose_prompt = get_dr_prompt_orchestration_templates(
+        DRPromptPurpose.NEXT_STEP_PURPOSE,
+        DRTimeBudget.DEEP,
+        entity_types_string=all_entity_types,
+        relationship_types_string=all_relationship_types,
+        available_tools=state.available_tools,
+    )
+    orchestration_next_step_purpose_prompt = base_next_step_purpose_prompt.build(
+        question=prompt_question,
+        reasoning_result=reasoning_result,
+        tool_calls=tool_calls_string,
     )
 
     purpose_tokens: list[str] = [""]

@@ -67,9 +67,10 @@ def basic_search(
         [source.value for source in state.active_source_types or []]
     )
 
-    base_search_processing_prompt = BASE_SEARCH_PROCESSING_PROMPT.replace(
-        "---active_source_types_str---", active_source_types_str
-    ).replace("---branch_query---", branch_query)
+    base_search_processing_prompt = BASE_SEARCH_PROCESSING_PROMPT.build(
+        active_source_types_str=active_source_types_str,
+        branch_query=branch_query,
+    )
 
     try:
         search_processing = invoke_llm_json(
@@ -166,14 +167,10 @@ def basic_search(
     # Built prompt
 
     if time_budget == DRTimeBudget.DEEP:
-
-        search_prompt = (
-            INTERNAL_SEARCH_PROMPTS[time_budget]
-            .replace(
-                "---search_query---", branch_query
-            )  # use branch query to create answer
-            .replace("---base_question---", base_question)
-            .replace("---document_text---", document_texts)
+        search_prompt = INTERNAL_SEARCH_PROMPTS[time_budget].build(
+            search_query=branch_query,
+            base_question=base_question,
+            document_text=document_texts,
         )
 
         # Run LLM

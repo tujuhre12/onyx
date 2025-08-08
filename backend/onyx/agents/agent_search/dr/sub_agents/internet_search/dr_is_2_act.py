@@ -125,12 +125,10 @@ def internet_search(
     # Built prompt
 
     if time_budget == DRTimeBudget.DEEP:
-
-        search_prompt = (
-            INTERNAL_SEARCH_PROMPTS[time_budget]
-            .replace("---search_query---", search_query)
-            .replace("---base_question---", base_question)
-            .replace("---document_text---", document_texts)
+        search_prompt = INTERNAL_SEARCH_PROMPTS[time_budget].build(
+            search_query=search_query,
+            base_question=base_question,
+            document_text=document_texts,
         )
 
         # Run LLM
