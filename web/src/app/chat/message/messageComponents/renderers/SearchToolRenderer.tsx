@@ -2,10 +2,10 @@ import React, { useEffect, useState, useRef, useMemo } from "react";
 import { FiSearch, FiGlobe } from "react-icons/fi";
 import {
   PacketType,
-  ToolPacket,
-  ToolStart,
-  ToolEnd,
-  ToolDelta,
+  SearchToolPacket,
+  SearchToolStart,
+  SearchToolDelta,
+  SectionEnd,
 } from "../../../services/streamingModels";
 import { MessageRenderer, RenderType } from "../interfaces";
 import { SourceChip2 } from "../../../components/input/ChatInputBar";
@@ -19,22 +19,23 @@ const MAX_TITLE_LENGTH = 25;
 const SEARCHING_MIN_DURATION_MS = 1000;
 
 const constructCurrentSearchState = (
-  packets: ToolPacket[]
+  packets: SearchToolPacket[]
 ): {
   queries: string[];
   results: OnyxDocument[];
   isSearching: boolean;
   isComplete: boolean;
 } => {
+  // Check for new specific search tool packets first
   const searchStart = packets.find(
-    (packet) => packet.obj.type === PacketType.TOOL_START
-  )?.obj as ToolStart | null;
+    (packet) => packet.obj.type === PacketType.SEARCH_TOOL_START
+  )?.obj as SearchToolStart | null;
   const searchDeltas = packets
-    .filter((packet) => packet.obj.type === PacketType.TOOL_DELTA)
-    .map((packet) => packet.obj as ToolDelta);
+    .filter((packet) => packet.obj.type === PacketType.SEARCH_TOOL_DELTA)
+    .map((packet) => packet.obj as SearchToolDelta);
   const searchEnd = packets.find(
-    (packet) => packet.obj.type === PacketType.TOOL_END
-  )?.obj as ToolEnd | null;
+    (packet) => packet.obj.type === PacketType.SECTION_END
+  )?.obj as SectionEnd | null;
 
   // Extract queries from ToolDelta packets
   const queries = searchDeltas
@@ -57,7 +58,7 @@ const constructCurrentSearchState = (
   return { queries, results, isSearching, isComplete };
 };
 
-export const SearchToolRenderer: MessageRenderer<ToolPacket, {}> = ({
+export const SearchToolRenderer: MessageRenderer<SearchToolPacket, {}> = ({
   packets,
   onComplete,
   renderType,

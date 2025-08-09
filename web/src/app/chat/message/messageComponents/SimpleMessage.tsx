@@ -1,9 +1,9 @@
 import {
   Packet,
-  ToolPacket,
   PacketType,
   CitationDelta,
-  ToolDelta,
+  SearchToolDelta,
+  ImageGenerationToolDelta,
   StreamingCitation,
 } from "../../services/streamingModels";
 import { FullChatState, RendererResult } from "./interfaces";
@@ -74,7 +74,7 @@ function MultiToolRenderer({
   isComplete,
   onAllToolsDisplayed,
 }: {
-  packetGroups: { ind: number; packets: ToolPacket[] }[];
+  packetGroups: { ind: number; packets: Packet[] }[];
   chatState: FullChatState;
   isComplete: boolean;
   onAllToolsDisplayed?: () => void;
@@ -354,13 +354,60 @@ export function SimpleMessage({
     isStreamingComplete(rawPackets)
   );
 
-  // Track citations
-  const [citations, setCitations] = useState<StreamingCitation[]>([]);
+  // Extract citations from packets
+  const citations = useMemo(() => {
+    const extractedCitations: StreamingCitation[] = [];
+    const seenDocumentIds = new Set<string>();
 
-  // Track documents from tool packets
-  const [documentMap, setDocumentMap] = useState<Map<string, OnyxDocument>>(
-    new Map()
-  );
+    const citationPackets = rawPackets.filter(
+      (packet) =>
+        packet.obj.type === PacketType.CITATION_START ||
+        packet.obj.type === PacketType.CITATION_DELTA ||
+        packet.obj.type === PacketType.CITATION_END
+    );
+
+    for (const packet of citationPackets) {
+      if (packet.obj.type === PacketType.CITATION_DELTA) {
+        const citationDelta = packet.obj as CitationDelta;
+        if (citationDelta.citations) {
+          for (const citation of citationDelta.citations) {
+            if (!seenDocumentIds.has(citation.document_id)) {
+              seenDocumentIds.add(citation.document_id);
+              extractedCitations.push(citation);
+            }
+          }
+        }
+      }
+    }
+
+    return extractedCitations;
+  }, [rawPackets.length]);
+
+  // Extract documents from tool packets
+  const documentMap = useMemo(() => {
+    const docMap = new Map<string, OnyxDocument>();
+
+    const toolPackets = rawPackets.filter(
+      (packet) =>
+        packet.obj.type === PacketType.SEARCH_TOOL_DELTA ||
+        packet.obj.type === PacketType.IMAGE_GENERATION_TOOL_DELTA
+    );
+
+    for (const packet of toolPackets) {
+      const toolDelta = packet.obj as
+        | SearchToolDelta
+        | ImageGenerationToolDelta;
+      if ("documents" in toolDelta && toolDelta.documents) {
+        for (const doc of toolDelta.documents) {
+          if (doc.document_id) {
+            docMap.set(doc.document_id, doc);
+          }
+        }
+      }
+    }
+
+    return docMap;
+  }, [rawPackets.length]);
 
   // Use store for document sidebar
   const documentSidebarVisible = useDocumentSidebarVisible();
@@ -407,62 +454,6 @@ export function SimpleMessage({
     return groupPacketsByInd(rawPackets);
   }, [rawPackets.length]);
 
-  // Process citation packets
-  useEffect(() => {
-    const citationPackets = rawPackets.filter(
-      (packet) =>
-        packet.obj.type === PacketType.CITATION_START ||
-        packet.obj.type === PacketType.CITATION_DELTA ||
-        packet.obj.type === PacketType.CITATION_END
-    );
-
-    for (const packet of citationPackets) {
-      if (packet.obj.type === PacketType.CITATION_DELTA) {
-        const citationDelta = packet.obj as CitationDelta;
-        if (citationDelta.citations) {
-          setCitations((prevCitations) => {
-            // Merge new citations with existing ones, avoiding duplicates
-            const existingIds = new Set(
-              prevCitations.map((c) => c.document_id)
-            );
-            const newCitations = citationDelta.citations.filter(
-              (c) => !existingIds.has(c.document_id)
-            );
-            return [...prevCitations, ...newCitations];
-          });
-        }
-      }
-    }
-  }, [rawPackets.length]);
-
-  // Process tool packets to extract documents
-  useEffect(() => {
-    const toolPackets = rawPackets.filter(
-      (packet) => packet.obj.type === PacketType.TOOL_DELTA
-    );
-
-    const newDocumentMap = new Map<string, OnyxDocument>();
-
-    for (const packet of toolPackets) {
-      const toolDelta = packet.obj as ToolDelta;
-      if (toolDelta.documents) {
-        for (const doc of toolDelta.documents) {
-          if (doc.document_id) {
-            newDocumentMap.set(doc.document_id, doc);
-          }
-        }
-      }
-    }
-
-    if (newDocumentMap.size > 0) {
-      setDocumentMap((prevMap) => {
-        const combinedMap = new Map(prevMap);
-        newDocumentMap.forEach((doc, id) => combinedMap.set(id, doc));
-        return combinedMap;
-      });
-    }
-  }, [rawPackets.length]);
-
   // Return a list of rendered message components, one for each ind
   return (
     <div className="py-5 ml-4 lg:px-5 relative flex">
@@ -492,7 +483,7 @@ export function SimpleMessage({
                           const toolGroups = groupedPackets.filter(
                             (group) =>
                               group.packets[0] && isToolPacket(group.packets[0])
-                          ) as { ind: number; packets: ToolPacket[] }[];
+                          ) as { ind: number; packets: Packet[] }[];
                           // display final answer only if all tools are fully displayed
                           // OR if there are no tools at all (in which case show immediately)
                           const finalAnswerGroups =

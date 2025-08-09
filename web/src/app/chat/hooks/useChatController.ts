@@ -94,7 +94,8 @@ import {
 } from "../stores/useChatSessionStore";
 import {
   Packet,
-  ToolDelta,
+  SearchToolDelta,
+  ImageGenerationToolDelta,
   CitationDelta,
   StreamingCitation,
 } from "../services/streamingModels";
@@ -674,9 +675,14 @@ export function useChatController({
 
             // Check if the packet contains document information
             const packetObj = (packet as Packet).obj;
-            if (packetObj.type === "tool_delta") {
-              const toolDelta = packetObj as ToolDelta;
-              if (toolDelta.documents) {
+            if (
+              packetObj.type === "internal_search_tool_delta" ||
+              packetObj.type === "image_generation_tool_delta"
+            ) {
+              const toolDelta = packetObj as
+                | SearchToolDelta
+                | ImageGenerationToolDelta;
+              if ("documents" in toolDelta && toolDelta.documents) {
                 documents = toolDelta.documents;
                 setSelectedMessageForDocDisplay(newAssistantMessageId);
               }

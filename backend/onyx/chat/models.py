@@ -407,7 +407,7 @@ AnswerStream = Iterator[AnswerPacket]
 
 class AnswerPostInfo(BaseModel):
     ai_message_files: list[FileDescriptor]
-    qa_docs_response: QADocsResponse | None = None
+    rephrased_query: str | None = None
     reference_db_search_docs: list[DbSearchDoc] | None = None
     dropped_indices: list[int] | None = None
     tool_result: ToolCallFinalResult | None = None

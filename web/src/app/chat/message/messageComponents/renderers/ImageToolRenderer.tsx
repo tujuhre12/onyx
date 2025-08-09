@@ -2,30 +2,30 @@ import React, { useEffect, useMemo } from "react";
 import { FiImage, FiDownload, FiEye } from "react-icons/fi";
 import {
   PacketType,
-  ToolPacket,
-  ToolStart,
-  ToolEnd,
-  ToolDelta,
+  ImageGenerationToolPacket,
+  ImageGenerationToolStart,
+  ImageGenerationToolDelta,
+  SectionEnd,
   Packet,
 } from "../../../services/streamingModels";
 import { MessageRenderer, RenderType } from "../interfaces";
 import { buildImgUrl } from "../../../components/files/images/utils";
 
 // Helper function to construct current image state
-function constructCurrentImageState(packets: ToolPacket[]) {
+function constructCurrentImageState(packets: ImageGenerationToolPacket[]) {
   const imageStart = packets.find(
-    (packet) => packet.obj.type === PacketType.TOOL_START
-  )?.obj as ToolStart;
-
+    (packet) => packet.obj.type === PacketType.IMAGE_GENERATION_TOOL_START
+  )?.obj as ImageGenerationToolStart | null;
   const imageDeltas = packets
-    .filter((packet) => packet.obj.type === PacketType.TOOL_DELTA)
-    .map((packet) => packet.obj as ToolDelta);
-
+    .filter(
+      (packet) => packet.obj.type === PacketType.IMAGE_GENERATION_TOOL_DELTA
+    )
+    .map((packet) => packet.obj as ImageGenerationToolDelta);
   const imageEnd = packets.find(
-    (packet) => packet.obj.type === PacketType.TOOL_END
-  )?.obj as ToolEnd;
+    (packet) => packet.obj.type === PacketType.SECTION_END
+  )?.obj as SectionEnd | null;
 
-  const prompt = imageStart?.tool_main_description || "";
+  const prompt = ""; // Image generation tools don't have a main description
   const images = imageDeltas.flatMap((delta) => delta?.images || []);
   const isGenerating = imageStart && !imageEnd;
   const isComplete = imageStart && imageEnd;
@@ -44,11 +44,10 @@ function constructCurrentImageState(packets: ToolPacket[]) {
   };
 }
 
-export const ImageToolRenderer: MessageRenderer<ToolPacket, {}> = ({
-  packets,
-  onComplete,
-  renderType,
-}) => {
+export const ImageToolRenderer: MessageRenderer<
+  ImageGenerationToolPacket,
+  {}
+> = ({ packets, onComplete, renderType }) => {
   const { prompt, images, imageUrls, isGenerating, isComplete, error } =
     constructCurrentImageState(packets);
 
