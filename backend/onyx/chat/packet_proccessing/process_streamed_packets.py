@@ -1,10 +1,15 @@
+from collections import defaultdict
 from collections.abc import Generator
 from typing import cast
+from typing import DefaultDict
 from typing import Union
+
+from sqlalchemy.orm import Session
 
 from onyx.chat.models import AgenticMessageResponseIDInfo
 from onyx.chat.models import AgentSearchPacket
 from onyx.chat.models import AllCitations
+from onyx.chat.models import AnswerPostInfo
 from onyx.chat.models import AnswerStream
 from onyx.chat.models import CitationInfo
 from onyx.chat.models import CustomToolResponse
@@ -18,25 +23,33 @@ from onyx.chat.models import QADocsResponse
 from onyx.chat.models import StreamingError
 from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import StreamStopReason
+from onyx.chat.models import SubQuestionKey
 from onyx.chat.models import UserKnowledgeFilePacket
-from onyx.context.search.utils import chunks_or_sections_to_search_docs
-from onyx.db.chat import create_db_search_doc
-from onyx.db.chat import translate_db_search_doc_to_server_search_doc
-from onyx.db.engine.sql_engine import get_session_with_current_tenant
+from onyx.chat.packet_proccessing.tool_processing import (
+    handle_image_generation_tool_response,
+)
+from onyx.chat.packet_proccessing.tool_processing import (
+    handle_internet_search_tool_response,
+)
+from onyx.chat.packet_proccessing.tool_processing import (
+    handle_search_tool_response_summary,
+)
+from onyx.configs.constants import BASIC_KEY
+from onyx.context.search.models import RetrievalDetails
+from onyx.db.models import SearchDoc as DbSearchDoc
 from onyx.file_store.models import ChatFileType
-from onyx.file_store.utils import save_files
 from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.streaming_models import CitationDelta
 from onyx.server.query_and_chat.streaming_models import CitationEnd
 from onyx.server.query_and_chat.streaming_models import CitationStart
+from onyx.server.query_and_chat.streaming_models import ImageGenerationToolStart
 from onyx.server.query_and_chat.streaming_models import MessageDelta
 from onyx.server.query_and_chat.streaming_models import MessageEnd
 from onyx.server.query_and_chat.streaming_models import MessageStart
+from onyx.server.query_and_chat.streaming_models import OverallStop
 from onyx.server.query_and_chat.streaming_models import Packet
-from onyx.server.query_and_chat.streaming_models import Stop
-from onyx.server.query_and_chat.streaming_models import ToolDelta
-from onyx.server.query_and_chat.streaming_models import ToolEnd
-from onyx.server.query_and_chat.streaming_models import ToolStart
+from onyx.server.query_and_chat.streaming_models import SearchToolDelta
+from onyx.server.query_and_chat.streaming_models import SearchToolStart
 from onyx.tools.models import ToolCallKickoff
 from onyx.tools.models import ToolResponse
 from onyx.tools.tool_implementations.images.image_generation_tool import (
@@ -44,6 +57,15 @@ from onyx.tools.tool_implementations.images.image_generation_tool import (
 )
 from onyx.tools.tool_implementations.images.image_generation_tool import (
     ImageGenerationResponse,
+)
+from onyx.tools.tool_implementations.internet_search.internet_search_tool import (
+    INTERNET_QUERY_FIELD,
+)
+from onyx.tools.tool_implementations.internet_search.internet_search_tool import (
+    INTERNET_SEARCH_RESPONSE_SUMMARY_ID,
+)
+from onyx.tools.tool_implementations.internet_search.internet_search_tool import (
+    InternetSearchResponseSummary,
 )
 from onyx.tools.tool_implementations.search.search_tool import QUERY_FIELD
 from onyx.tools.tool_implementations.search.search_tool import (
@@ -84,7 +106,10 @@ ChatPacket = Union[
 def process_streamed_packets(
     answer_processed_output: AnswerStream,
     reserved_message_id: int,
-) -> Generator[ChatPacket, None, None]:
+    selected_db_search_docs: list[DbSearchDoc] | None,
+    retrieval_options: RetrievalDetails | None,
+    db_session: Session,
+) -> Generator[ChatPacket, None, dict[SubQuestionKey, AnswerPostInfo]]:
     """Process the streamed output from the answer and yield chat packets."""
     has_transmitted_answer_piece = False
     packet_index = 0
@@ -95,12 +120,35 @@ def process_streamed_packets(
     # Track ongoing tool operations to prevent concurrent operations of the same type
     ongoing_search = False
     ongoing_image_generation = False
+    ongoing_internet_search = False
 
     # Track citations
     citations_emitted = False
     collected_citations: list[CitationInfo] = []
 
+    # Initialize info_by_subq mapping and temp citations storage
+    info_by_subq: dict[SubQuestionKey, AnswerPostInfo] = defaultdict(
+        lambda: AnswerPostInfo(ai_message_files=[])
+    )
+    citations_by_key: DefaultDict[SubQuestionKey, list[CitationInfo]] = defaultdict(
+        list
+    )
+
     for packet in answer_processed_output:
+        # Determine the sub-question key context when applicable
+        level = getattr(packet, "level", None)
+        level_question_num = getattr(packet, "level_question_num", None)
+        key = SubQuestionKey(
+            level=level if level is not None else BASIC_KEY[0],
+            question_num=(
+                level_question_num if level_question_num is not None else BASIC_KEY[1]
+            ),
+        )
+
+        if isinstance(packet, ToolCallFinalResult):
+            info_by_subq[key].tool_result = packet
+
+        # Original packet processing logic continues
         if isinstance(packet, ToolCallKickoff) and not isinstance(
             packet, ToolCallFinalResult
         ):
@@ -116,27 +164,39 @@ def process_streamed_packets(
                 ongoing_image_generation = True
                 yield Packet(
                     ind=current_tool_index,
-                    obj=ToolStart(
-                        tool_name="image_generation",
-                        tool_icon="🖼️",
-                    ),
+                    obj=ImageGenerationToolStart(),
                 )
 
             if packet.tool_name == "run_search" and not ongoing_search:
                 ongoing_search = True
                 yield Packet(
                     ind=current_tool_index,
-                    obj=ToolStart(
-                        tool_name="search",
-                        tool_icon="🔍",
-                        tool_main_description=packet.tool_args[QUERY_FIELD],
+                    obj=SearchToolStart(),
+                )
+
+                yield Packet(
+                    ind=current_tool_index,
+                    obj=SearchToolDelta(
+                        queries=[packet.tool_args[QUERY_FIELD]],
+                    ),
+                )
+
+            if (
+                packet.tool_name == "run_internet_search"
+                and not ongoing_internet_search
+            ):
+                ongoing_internet_search = True
+                yield Packet(
+                    ind=current_tool_index,
+                    obj=SearchToolStart(
+                        is_internet_search=True,
                     ),
                 )
 
                 yield Packet(
                     ind=current_tool_index,
-                    obj=ToolDelta(
-                        queries=[packet.tool_args[QUERY_FIELD]],
+                    obj=SearchToolDelta(
+                        queries=[packet.tool_args[INTERNET_QUERY_FIELD]],
                     ),
                 )
 
@@ -148,67 +208,35 @@ def process_streamed_packets(
 
             if packet.id == SEARCH_RESPONSE_SUMMARY_ID:
                 search_response = cast(SearchResponseSummary, packet.response)
-
-                with get_session_with_current_tenant() as db_session:
-                    reference_db_search_docs = [
-                        create_db_search_doc(
-                            server_search_doc=doc, db_session=db_session
-                        )
-                        for doc in chunks_or_sections_to_search_docs(
-                            search_response.top_sections
-                        )
-                    ]
-                    response_docs = [
-                        translate_db_search_doc_to_server_search_doc(db_search_doc)
-                        for db_search_doc in reference_db_search_docs
-                    ]
-
-                yield Packet(
-                    ind=current_tool_index,
-                    obj=ToolDelta(
-                        documents=response_docs,
-                    ),
+                saved_search_docs, dropped_inds = (
+                    yield from handle_search_tool_response_summary(
+                        current_ind=current_tool_index,
+                        search_response=search_response,
+                        selected_search_docs=selected_db_search_docs,
+                        is_extended=False,
+                        dedupe_docs=bool(
+                            retrieval_options and retrieval_options.dedupe_docs
+                        ),
+                    )
                 )
-
-                yield Packet(
-                    ind=current_tool_index,
-                    obj=ToolEnd(),
-                )
+                info_by_subq[key].reference_db_search_docs = saved_search_docs
+                info_by_subq[key].dropped_indices = dropped_inds
                 ongoing_search = False  # Reset search state when tool ends
+
+            elif packet.id == INTERNET_SEARCH_RESPONSE_SUMMARY_ID:
+                internet_response = cast(InternetSearchResponseSummary, packet.response)
+                saved_internet_docs = yield from handle_internet_search_tool_response(
+                    current_tool_index, internet_response
+                )
+                info_by_subq[key].reference_db_search_docs = saved_internet_docs
+                ongoing_internet_search = False
 
             elif packet.id == IMAGE_GENERATION_RESPONSE_ID:
                 img_generation_response = cast(
                     list[ImageGenerationResponse], packet.response
                 )
-
-                # Save files and get file IDs
-                file_ids = save_files(
-                    urls=[img.url for img in img_generation_response if img.url],
-                    base64_files=[
-                        img.image_data
-                        for img in img_generation_response
-                        if img.image_data
-                    ],
-                )
-
-                yield Packet(
-                    ind=current_tool_index,
-                    obj=ToolDelta(
-                        images=[
-                            {
-                                "id": str(file_id),
-                                "url": "",  # URL will be constructed by frontend
-                                "prompt": img.revised_prompt,
-                            }
-                            for file_id, img in zip(file_ids, img_generation_response)
-                        ]
-                    ),
-                )
-
-                # Emit ImageToolEnd packet with file information
-                yield Packet(
-                    ind=current_tool_index,
-                    obj=ToolEnd(),
+                yield from handle_image_generation_tool_response(
+                    current_tool_index, img_generation_response
                 )
                 ongoing_image_generation = (
                     False  # Reset image generation state when tool ends
@@ -280,8 +308,31 @@ def process_streamed_packets(
         )
         yield Packet(
             ind=current_citation_index,
-            obj=CitationEnd(total_citations=len(collected_citations)),
+            obj=CitationEnd(),
         )
 
     # Yield STOP packet to indicate streaming is complete
-    yield Packet(ind=packet_index, obj=Stop())
+    yield Packet(ind=packet_index, obj=OverallStop())
+
+    # Build citation maps per sub-question key using available docs
+    for key, citation_list in citations_by_key.items():
+        info = info_by_subq[key]
+        if not citation_list:
+            continue
+
+        doc_id_to_saved_db_id = {
+            doc.document_id: doc.id for doc in info.reference_db_search_docs or []
+        }
+
+        citation_map: dict[int, int] = {}
+        for c in citation_list:
+            mapped_db_id = doc_id_to_saved_db_id.get(c.document_id)
+            if mapped_db_id is not None and c.citation_num not in citation_map:
+                citation_map[c.citation_num] = mapped_db_id
+
+        if citation_map:
+            info.message_specific_citations = MessageSpecificCitations(
+                citation_map=citation_map
+            )
+
+    return info_by_subq

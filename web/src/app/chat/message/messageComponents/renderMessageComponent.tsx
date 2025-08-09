@@ -1,9 +1,4 @@
-import {
-  ChatPacket,
-  Packet,
-  PacketType,
-  ToolPacket,
-} from "../../services/streamingModels";
+import { ChatPacket, Packet, PacketType } from "../../services/streamingModels";
 import {
   FullChatState,
   MessageRenderer,
@@ -27,18 +22,12 @@ function isChatPacket(packet: Packet): packet is ChatPacket {
   );
 }
 
-function isSearchToolPacket(packet: Packet): packet is ToolPacket {
-  return (
-    packet.obj.type === PacketType.TOOL_START &&
-    packet.obj.tool_name === "search"
-  );
+function isSearchToolPacket(packet: Packet) {
+  return packet.obj.type === PacketType.SEARCH_TOOL_START;
 }
 
-function isImageToolPacket(packet: Packet): packet is ToolPacket {
-  return (
-    packet.obj.type === PacketType.TOOL_START &&
-    packet.obj.tool_name === "image_generation"
-  );
+function isImageToolPacket(packet: Packet) {
+  return packet.obj.type === PacketType.IMAGE_GENERATION_TOOL_START;
 }
 
 export function findRenderer(

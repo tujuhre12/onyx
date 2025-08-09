@@ -1,6 +1,5 @@
 import time
 import traceback
-from collections import defaultdict
 from collections.abc import Callable
 from collections.abc import Generator
 from collections.abc import Iterator
@@ -33,8 +32,10 @@ from onyx.chat.models import QADocsResponse
 from onyx.chat.models import StreamingError
 from onyx.chat.models import SubQuestionKey
 from onyx.chat.models import UserKnowledgeFilePacket
-from onyx.chat.packet_processing import ChatPacket
-from onyx.chat.packet_processing import process_streamed_packets
+from onyx.chat.packet_proccessing.process_streamed_packets import ChatPacket
+from onyx.chat.packet_proccessing.process_streamed_packets import (
+    process_streamed_packets,
+)
 from onyx.chat.prompt_builder.answer_prompt_builder import AnswerPromptBuilder
 from onyx.chat.prompt_builder.answer_prompt_builder import default_build_system_message
 from onyx.chat.prompt_builder.answer_prompt_builder import default_build_user_message
@@ -701,7 +702,6 @@ def stream_chat_message_objects(
         )
 
         # LLM prompt building, response capturing, etc.
-
         answer = Answer(
             prompt_builder=prompt_builder,
             is_connected=is_connected,
@@ -731,14 +731,13 @@ def stream_chat_message_objects(
             skip_gen_ai_answer_generation=new_msg_req.skip_gen_ai_answer_generation,
         )
 
-        info_by_subq: dict[SubQuestionKey, AnswerPostInfo] = defaultdict(
-            lambda: AnswerPostInfo(ai_message_files=[])
-        )
-
         # Process streamed packets using the new packet processing module
-        yield from process_streamed_packets(
+        info_by_subq = yield from process_streamed_packets(
             answer_processed_output=answer.processed_streamed_output,
             reserved_message_id=reserved_message_id,
+            selected_db_search_docs=selected_db_search_docs,
+            retrieval_options=retrieval_options,
+            db_session=db_session,
         )
 
     except ValueError as e:
@@ -805,20 +804,6 @@ def _post_llm_answer_processing(
             for tool in tool_list:
                 tool_name_to_tool_id[tool.name] = tool_id
 
-        subq_citations = answer.citations_by_subquestion()
-        for subq_key in subq_citations:
-            info = info_by_subq[subq_key]
-            logger.debug("Post-LLM answer processing")
-            if info.reference_db_search_docs:
-                info.message_specific_citations = _translate_citations(
-                    citations_list=subq_citations[subq_key],
-                    db_docs=info.reference_db_search_docs,
-                )
-
-            # TODO: AllCitations should contain subq info?
-            if not answer.is_cancelled():
-                yield AllCitations(citations=subq_citations[subq_key])
-
         # Saving Gen AI answer and responding with message info
 
         basic_key = SubQuestionKey(level=BASIC_KEY[0], question_num=BASIC_KEY[1])
@@ -834,9 +819,7 @@ def _post_llm_answer_processing(
         )
         gen_ai_response_message = partial_response(
             message=answer.llm_answer,
-            rephrased_query=(
-                info.qa_docs_response.rephrased_query if info.qa_docs_response else None
-            ),
+            rephrased_query=info.rephrased_query,
             reference_docs=info.reference_db_search_docs,
             files=info.ai_message_files,
             token_count=len(llm_tokenizer_encode_func(answer.llm_answer)),

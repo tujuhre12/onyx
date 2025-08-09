@@ -1,19 +1,20 @@
 from onyx.chat.models import CitationInfo
-from onyx.chat.models import LlmDoc
 from onyx.configs.constants import MessageType
 from onyx.file_store.models import ChatFileType
 from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.streaming_models import CitationDelta
 from onyx.server.query_and_chat.streaming_models import CitationEnd
 from onyx.server.query_and_chat.streaming_models import CitationStart
+from onyx.server.query_and_chat.streaming_models import ImageGenerationToolDelta
+from onyx.server.query_and_chat.streaming_models import ImageGenerationToolStart
 from onyx.server.query_and_chat.streaming_models import MessageDelta
 from onyx.server.query_and_chat.streaming_models import MessageEnd
 from onyx.server.query_and_chat.streaming_models import MessageStart
+from onyx.server.query_and_chat.streaming_models import OverallStop
 from onyx.server.query_and_chat.streaming_models import Packet
-from onyx.server.query_and_chat.streaming_models import Stop
-from onyx.server.query_and_chat.streaming_models import ToolDelta
-from onyx.server.query_and_chat.streaming_models import ToolEnd
-from onyx.server.query_and_chat.streaming_models import ToolStart
+from onyx.server.query_and_chat.streaming_models import SearchToolDelta
+from onyx.server.query_and_chat.streaming_models import SearchToolStart
+from onyx.server.query_and_chat.streaming_models import SectionEnd
 
 
 def create_simplified_packets_for_message(
@@ -39,32 +40,47 @@ def create_simplified_packets_for_message(
 
     # Create SearchTool packets if there are context docs
     if message.context_docs and message.context_docs.top_documents:
-        llm_docs = []
-        for doc in message.context_docs.top_documents:
-            llm_doc = LlmDoc(
-                document_id=doc.document_id,
-                content=doc.blurb,  # Use blurb as content since SavedSearchDoc doesn't have content
-                blurb=doc.blurb,
-                semantic_identifier=doc.semantic_identifier,
-                source_type=doc.source_type,
-                metadata=doc.metadata,
-                updated_at=doc.updated_at,
-                link=doc.link,
-                source_links=None,  # SavedSearchDoc doesn't have source_links
-                match_highlights=doc.match_highlights,
+        search_docs = message.context_docs.top_documents
+
+        # Start search tool
+        packets.append(
+            Packet(
+                ind=current_index,
+                obj=SearchToolStart(),
             )
-            llm_docs.append(llm_doc)
+        )
+
+        # Include queries and documents in the delta
+        if message.rephrased_query and message.rephrased_query.strip():
+            # Cast to str to satisfy type checker since rephrased_query is Optional[str]
+            queries = [str(message.rephrased_query)]
+        else:
+            queries = [message.message]
+        packets.append(
+            Packet(
+                ind=current_index,
+                obj=SearchToolDelta(
+                    queries=queries,
+                    documents=search_docs,
+                ),
+            )
+        )
+
+        # End search tool
+        packets.append(
+            Packet(
+                ind=current_index,
+                obj=SectionEnd(),
+            )
+        )
+        current_index += 1
 
     # Create ImageTool packets if there are image files
     if message.files:
         image_files = [f for f in message.files if f["type"] == ChatFileType.IMAGE]
         if image_files:
             # Start image tool
-            image_tool_start = ToolStart(
-                tool_name="image_generation",
-                tool_icon="image",
-                tool_main_description="Generated images",
-            )
+            image_tool_start = ImageGenerationToolStart()
             packets.append(Packet(ind=current_index, obj=image_tool_start))
 
             # Send images via tool delta
@@ -74,16 +90,15 @@ def create_simplified_packets_for_message(
                     {
                         "id": file["id"],
                         "url": "",  # URL will be constructed by frontend
-                        "prompt": file.get("name", "Generated image")
-                        or "Generated image",
+                        "prompt": file.get("name") or "Generated image",
                     }
                 )
 
-            image_tool_delta = ToolDelta(images=images)
+            image_tool_delta = ImageGenerationToolDelta(images=images)
             packets.append(Packet(ind=current_index, obj=image_tool_delta))
 
             # End image tool
-            image_tool_end = ToolEnd()
+            image_tool_end = SectionEnd()
             packets.append(Packet(ind=current_index, obj=image_tool_end))
             current_index += 1
 
@@ -105,7 +120,7 @@ def create_simplified_packets_for_message(
         packets.append(Packet(ind=current_index, obj=citation_delta))
 
         # End citation flow
-        citation_end = CitationEnd(total_citations=len(message.citations))
+        citation_end = CitationEnd()
         packets.append(Packet(ind=current_index, obj=citation_end))
         current_index += 1
 
@@ -125,7 +140,7 @@ def create_simplified_packets_for_message(
     current_index += 1
 
     # Create STOP packet
-    stop = Stop()
+    stop = OverallStop()
     packets.append(Packet(ind=current_index, obj=stop))
 
     return packets

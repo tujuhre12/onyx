@@ -7,9 +7,11 @@ import { Packet } from "@/app/chat/services/streamingModels";
 
 export function isToolPacket(packet: Packet) {
   return (
-    packet.obj.type === PacketType.TOOL_START ||
-    packet.obj.type === PacketType.TOOL_DELTA ||
-    packet.obj.type === PacketType.TOOL_END
+    packet.obj.type === PacketType.SEARCH_TOOL_START ||
+    packet.obj.type === PacketType.SEARCH_TOOL_DELTA ||
+    packet.obj.type === PacketType.IMAGE_GENERATION_TOOL_START ||
+    packet.obj.type === PacketType.IMAGE_GENERATION_TOOL_DELTA ||
+    packet.obj.type === PacketType.SECTION_END
   );
 }
 

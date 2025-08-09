@@ -1,4 +1,9 @@
+from typing import Annotated
+from typing import Literal
+from typing import Union
+
 from pydantic import BaseModel
+from pydantic import Field
 
 from onyx.chat.models import CitationInfo
 from onyx.context.search.models import SavedSearchDoc
@@ -13,85 +18,95 @@ class BaseObj(BaseModel):
 
 class MessageStart(BaseObj):
     id: str
-    type: str = "message_start"
+    type: Literal["message_start"] = "message_start"
     content: str
 
 
 class MessageDelta(BaseObj):
     content: str
-    type: str = "message_delta"
+    type: Literal["message_delta"] = "message_delta"
 
 
 class MessageEnd(BaseObj):
-    type: str = "message_end"
+    type: Literal["message_end"] = "message_end"
 
 
 """Control Packets"""
 
 
-class Stop(BaseObj):
-    type: str = "stop"
+class OverallStop(BaseObj):
+    type: Literal["stop"] = "stop"
+
+
+class SectionEnd(BaseObj):
+    type: Literal["section_end"] = "section_end"
 
 
 """Tool Packets"""
 
 
-class ToolStart(BaseObj):
-    type: str = "tool_start"
+class SearchToolStart(BaseObj):
+    type: Literal["internal_search_tool_start"] = "internal_search_tool_start"
 
-    tool_name: str
-    tool_icon: str
-
-    # if left blank, we will use the tool name
-    tool_main_description: str | None = None
+    is_internet_search: bool = False
 
 
-class ToolDelta(BaseObj):
-    type: str = "tool_delta"
+class SearchToolDelta(BaseObj):
+    type: Literal["internal_search_tool_delta"] = "internal_search_tool_delta"
 
     queries: list[str] | None = None
     documents: list[SavedSearchDoc] | None = None
+
+
+class ImageGenerationToolStart(BaseObj):
+    type: Literal["image_generation_tool_start"] = "image_generation_tool_start"
+
+
+class ImageGenerationToolDelta(BaseObj):
+    type: Literal["image_generation_tool_delta"] = "image_generation_tool_delta"
+
     images: list[dict[str, str]] | None = None
-
-
-class ToolEnd(BaseObj):
-    type: str = "tool_end"
 
 
 """Citation Packets"""
 
 
 class CitationStart(BaseObj):
-    type: str = "citation_start"
+    type: Literal["citation_start"] = "citation_start"
 
 
 class CitationDelta(BaseObj):
-    type: str = "citation_delta"
+    type: Literal["citation_delta"] = "citation_delta"
 
     citations: list[CitationInfo] | None = None
 
 
 class CitationEnd(BaseObj):
-    type: str = "citation_end"
-
-    # Total count of citations for reference
-    total_citations: int | None = None
+    type: Literal["citation_end"] = "citation_end"
 
 
-ObjTypes = (
-    MessageStart
-    | MessageDelta
-    | MessageEnd
-    | Stop
-    | ToolStart
-    | ToolDelta
-    | ToolEnd
-    | CitationStart
-    | CitationDelta
-    | CitationEnd
-)
+"""Packet"""
+
+# Discriminated union of all possible packet object types
+PacketObj = Annotated[
+    Union[
+        MessageStart,
+        MessageDelta,
+        MessageEnd,
+        OverallStop,
+        SectionEnd,
+        SearchToolStart,
+        SearchToolDelta,
+        ImageGenerationToolStart,
+        ImageGenerationToolDelta,
+        CitationStart,
+        CitationDelta,
+        CitationEnd,
+    ],
+    Field(discriminator="type"),
+]
 
 
 class Packet(BaseModel):
     ind: int
-    obj: ObjTypes
+    obj: PacketObj
