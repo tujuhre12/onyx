@@ -14,12 +14,8 @@ from onyx.agents.agent_search.dr.sub_agents.internet_search.dr_is_3_reduce impor
 from onyx.agents.agent_search.dr.sub_agents.internet_search.dr_is_conditional_edges import (
     branching_router,
 )
-from onyx.agents.agent_search.dr.sub_agents.states import (
-    SubAgentInput,
-)
-from onyx.agents.agent_search.dr.sub_agents.states import (
-    SubAgentMainState,
-)
+from onyx.agents.agent_search.dr.sub_agents.states import SubAgentInput
+from onyx.agents.agent_search.dr.sub_agents.states import SubAgentMainState
 from onyx.utils.logger import setup_logger
 
 

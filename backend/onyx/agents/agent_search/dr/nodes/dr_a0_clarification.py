@@ -109,6 +109,7 @@ def _get_available_tools(
 
         available_tools.append(tool_info)
 
+    # make sure KG isn't enabled without internal search
     available_paths = [tool.path for tool in available_tools]
     if (
         DRPath.KNOWLEDGE_GRAPH in available_paths
@@ -117,6 +118,19 @@ def _get_available_tools(
         raise ValueError(
             "The Knowledge Graph is not supported without internal search tool"
         )
+
+    # add CLOSER tool, which is always available
+    available_tools.append(
+        OrchestratorTool(
+            tool_id=-1,
+            name="closer",
+            llm_path=DRPath.CLOSER.value,
+            path=DRPath.CLOSER,
+            description=TOOL_DESCRIPTION[DRPath.CLOSER],
+            metadata={},
+            cost=0.0,
+        )
+    )
 
     return available_tools
 

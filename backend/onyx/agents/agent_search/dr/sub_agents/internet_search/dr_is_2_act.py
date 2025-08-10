@@ -8,12 +8,8 @@ from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import SearchAnswer
-from onyx.agents.agent_search.dr.sub_agents.states import (
-    BranchInput,
-)
-from onyx.agents.agent_search.dr.sub_agents.states import (
-    BranchUpdate,
-)
+from onyx.agents.agent_search.dr.sub_agents.states import BranchInput
+from onyx.agents.agent_search.dr.sub_agents.states import BranchUpdate
 from onyx.agents.agent_search.dr.utils import extract_document_citations
 from onyx.agents.agent_search.kb_search.graph_utils import build_document_context
 from onyx.agents.agent_search.models import GraphConfig
@@ -40,7 +36,7 @@ def internet_search(
     state: BranchInput, config: RunnableConfig, writer: StreamWriter = lambda _: None
 ) -> BranchUpdate:
     """
-    LangGraph node to perform a standard search as part of the DR process.
+    LangGraph node to perform a internet search as part of the DR process.
     """
 
     node_start_time = datetime.now()

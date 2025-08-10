@@ -13,22 +13,22 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def is_branch(
+def kg_search_branch(
     state: SubAgentInput, config: RunnableConfig, writer: StreamWriter = lambda _: None
 ) -> LoggerUpdate:
     """
-    LangGraph node to perform a internet search as part of the DR process.
+    LangGraph node to perform a KG search as part of the DR process.
     """
 
     node_start_time = datetime.now()
     iteration_nr = state.iteration_nr
 
-    logger.debug(f"Search start for Internet Search {iteration_nr} at {datetime.now()}")
+    logger.debug(f"Search start for KG Search {iteration_nr} at {datetime.now()}")
 
     return LoggerUpdate(
         log_messages=[
             get_langgraph_node_log_string(
-                graph_component="internet_search",
+                graph_component="kg_search",
                 node_name="branching",
                 node_start_time=node_start_time,
             )

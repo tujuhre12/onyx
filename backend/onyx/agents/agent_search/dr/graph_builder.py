@@ -18,7 +18,9 @@ from onyx.agents.agent_search.dr.sub_agents.custom_tool.dr_custom_tool_graph_bui
 from onyx.agents.agent_search.dr.sub_agents.internet_search.dr_is_graph_builder import (
     dr_is_graph_builder,
 )
-from onyx.agents.agent_search.dr.sub_agents.kg_search.dr_i2_kg import kg_query
+from onyx.agents.agent_search.dr.sub_agents.kg_search.dr_kg_search_graph_builder import (
+    dr_kg_search_graph_builder,
+)
 from onyx.utils.logger import setup_logger
 
 # from onyx.agents.agent_search.dr.sub_agents.basic_search.dr_basic_search_2_act import search
@@ -42,7 +44,8 @@ def dr_graph_builder() -> StateGraph:
     basic_search_graph = dr_basic_search_graph_builder().compile()
     graph.add_node(DRPath.INTERNAL_SEARCH, basic_search_graph)
 
-    graph.add_node(DRPath.KNOWLEDGE_GRAPH, kg_query)
+    kg_search_graph = dr_kg_search_graph_builder().compile()
+    graph.add_node(DRPath.KNOWLEDGE_GRAPH, kg_search_graph)
 
     internet_search_graph = dr_is_graph_builder().compile()
     graph.add_node(DRPath.INTERNET_SEARCH, internet_search_graph)

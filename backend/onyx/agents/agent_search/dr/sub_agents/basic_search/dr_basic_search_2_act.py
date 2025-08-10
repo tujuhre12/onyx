@@ -11,7 +11,7 @@ from onyx.agents.agent_search.dr.models import BaseSearchProcessingResponse
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import SearchAnswer
 from onyx.agents.agent_search.dr.states import AnswerUpdate
-from onyx.agents.agent_search.dr.states import QuestionInputState
+from onyx.agents.agent_search.dr.sub_agents.states import BranchInput
 from onyx.agents.agent_search.dr.utils import extract_document_citations
 from onyx.agents.agent_search.kb_search.graph_utils import build_document_context
 from onyx.agents.agent_search.models import GraphConfig
@@ -36,7 +36,7 @@ logger = setup_logger()
 
 
 def basic_search(
-    state: QuestionInputState,
+    state: BranchInput,
     config: RunnableConfig,
     writer: StreamWriter = lambda _: None,
 ) -> AnswerUpdate:
@@ -48,7 +48,7 @@ def basic_search(
     iteration_nr = state.iteration_nr
     parallelization_nr = state.parallelization_nr
 
-    branch_query = state.question
+    branch_query = state.branch_question
     if not branch_query:
         raise ValueError("branch_query is not set")
 

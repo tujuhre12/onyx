@@ -1,7 +1,6 @@
 from operator import add
 from typing import Annotated
 
-from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.states import LoggerUpdate
 from onyx.db.connector import DocumentSource
@@ -18,10 +17,8 @@ class BranchUpdate(LoggerUpdate):
 class SubAgentInput(LoggerUpdate):
     iteration_nr: int = 0
     query_list: list[str] = []
-    main_question: str | None = None
     context: str | None = None
     active_source_types: list[DocumentSource] | None = None
-    research_type: ResearchType | None = None
 
 
 class SubAgentMainState(
@@ -36,7 +33,3 @@ class SubAgentMainState(
 class BranchInput(SubAgentInput):
     parallelization_nr: int = 0
     branch_question: str | None = None
-
-
-class BranchInformationState(BranchInput, BranchUpdate):
-    pass

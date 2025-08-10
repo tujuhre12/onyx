@@ -4,9 +4,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
 from onyx.agents.agent_search.dr.states import LoggerUpdate
-from onyx.agents.agent_search.dr.sub_agents.states import (
-    SubAgentInput,
-)
+from onyx.agents.agent_search.dr.sub_agents.states import SubAgentInput
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )

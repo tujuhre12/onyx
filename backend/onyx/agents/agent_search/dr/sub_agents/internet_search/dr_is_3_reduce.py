@@ -3,12 +3,8 @@ from datetime import datetime
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
-from onyx.agents.agent_search.dr.sub_agents.states import (
-    SubAgentMainState,
-)
-from onyx.agents.agent_search.dr.sub_agents.states import (
-    SubAgentUpdate,
-)
+from onyx.agents.agent_search.dr.sub_agents.states import SubAgentMainState
+from onyx.agents.agent_search.dr.sub_agents.states import SubAgentUpdate
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
@@ -24,7 +20,7 @@ def is_reducer(
     writer: StreamWriter = lambda _: None,
 ) -> SubAgentUpdate:
     """
-    LangGraph node to perform a standard search as part of the DR process.
+    LangGraph node to perform a internet search as part of the DR process.
     """
 
     node_start_time = datetime.now()

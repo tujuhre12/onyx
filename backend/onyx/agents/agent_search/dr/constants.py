@@ -7,8 +7,9 @@ MAX_CHAT_HISTORY_MESSAGES = (
 
 MAX_DR_PARALLEL_SEARCH = 4
 
+# TODO: test more, generally not needed/adds unnecessary iterations
 MAX_NUM_CLOSER_SUGGESTIONS = (
-    1  # how many times the closer can send back to the orchestrator
+    0  # how many times the closer can send back to the orchestrator
 )
 
 CLARIFICATION_REQUEST_PREFIX = "PLEASE CLARIFY:"

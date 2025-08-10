@@ -2,16 +2,16 @@ from langgraph.graph import END
 from langgraph.graph import START
 from langgraph.graph import StateGraph
 
-from onyx.agents.agent_search.dr.sub_agents.basic_search.dr_basic_search_1_branch import (
-    basic_search_branch,
+from onyx.agents.agent_search.dr.sub_agents.kg_search.dr_kg_search_1_branch import (
+    kg_search_branch,
 )
-from onyx.agents.agent_search.dr.sub_agents.basic_search.dr_basic_search_2_act import (
-    basic_search,
+from onyx.agents.agent_search.dr.sub_agents.kg_search.dr_kg_search_2_act import (
+    kg_search,
 )
-from onyx.agents.agent_search.dr.sub_agents.basic_search.dr_basic_search_3_reduce import (
-    is_reducer,
+from onyx.agents.agent_search.dr.sub_agents.kg_search.dr_kg_search_3_reduce import (
+    kg_search_reducer,
 )
-from onyx.agents.agent_search.dr.sub_agents.basic_search.dr_basic_search_conditional_edges import (
+from onyx.agents.agent_search.dr.sub_agents.kg_search.dr_kg_search_conditional_edges import (
     branching_router,
 )
 from onyx.agents.agent_search.dr.sub_agents.states import SubAgentInput
@@ -22,20 +22,20 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def dr_basic_search_graph_builder() -> StateGraph:
+def dr_kg_search_graph_builder() -> StateGraph:
     """
-    LangGraph graph builder for Internet Search Sub-Agent
+    LangGraph graph builder for KG Search Sub-Agent
     """
 
     graph = StateGraph(state_schema=SubAgentMainState, input=SubAgentInput)
 
     ### Add nodes ###
 
-    graph.add_node("branch", basic_search_branch)
+    graph.add_node("branch", kg_search_branch)
 
-    graph.add_node("act", basic_search)
+    graph.add_node("act", kg_search)
 
-    graph.add_node("reducer", is_reducer)
+    graph.add_node("reducer", kg_search_reducer)
 
     ### Add edges ###
 

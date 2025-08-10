@@ -5,8 +5,6 @@ from typing import TypedDict
 from pydantic import BaseModel
 
 from onyx.agents.agent_search.core_state import CoreState
-from onyx.agents.agent_search.dr.enums import DRPath
-from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import IterationInstructions
 from onyx.agents.agent_search.dr.models import OrchestrationClarificationInfo
@@ -41,15 +39,6 @@ class OrchestrationUpdate(LoggerUpdate):
     active_source_types: list[DocumentSource] | None = None
     active_source_types_descriptions: str | None = None
     iteration_instructions: Annotated[list[IterationInstructions], add] = []
-
-
-class QuestionInputState(LoggerUpdate):
-    iteration_nr: int
-    parallelization_nr: int
-    question: str
-    tool: DRPath | None = None
-    active_source_types: list[DocumentSource] | None
-    research_type: ResearchType | None = None
 
 
 class AnswerUpdate(LoggerUpdate):

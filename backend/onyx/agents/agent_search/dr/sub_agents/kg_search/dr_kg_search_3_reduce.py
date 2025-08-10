@@ -14,13 +14,13 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def is_reducer(
+def kg_search_reducer(
     state: SubAgentMainState,
     config: RunnableConfig,
     writer: StreamWriter = lambda _: None,
 ) -> SubAgentUpdate:
     """
-    LangGraph node to perform a standard search as part of the DR process.
+    LangGraph node to perform a KG search as part of the DR process.
     """
 
     node_start_time = datetime.now()
@@ -36,7 +36,7 @@ def is_reducer(
         iteration_responses=new_updates,
         log_messages=[
             get_langgraph_node_log_string(
-                graph_component="internet_search",
+                graph_component="kg_search",
                 node_name="consolidation",
                 node_start_time=node_start_time,
             )
