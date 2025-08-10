@@ -19,6 +19,10 @@ export enum PacketType {
   IMAGE_GENERATION_TOOL_START = "image_generation_tool_start",
   IMAGE_GENERATION_TOOL_DELTA = "image_generation_tool_delta",
 
+  // Custom tool packets
+  CUSTOM_TOOL_START = "custom_tool_start",
+  CUSTOM_TOOL_DELTA = "custom_tool_delta",
+
   // Reasoning packets
   REASONING_START = "reasoning_start",
   REASONING_DELTA = "reasoning_delta",
@@ -75,6 +79,20 @@ export interface ImageGenerationToolDelta extends BaseObj {
   images: Array<{ [key: string]: string }> | null;
 }
 
+// Custom Tool Packets
+export interface CustomToolStart extends BaseObj {
+  type: "custom_tool_start";
+  tool_name: string;
+}
+
+export interface CustomToolDelta extends BaseObj {
+  type: "custom_tool_delta";
+  tool_name: string;
+  response_type: string;
+  data?: any;
+  file_ids?: string[] | null;
+}
+
 // Reasoning Packets
 export interface ReasoningStart extends BaseObj {
   type: "reasoning_start";
@@ -121,7 +139,8 @@ export type ImageGenerationToolObj =
   | ImageGenerationToolStart
   | ImageGenerationToolDelta
   | SectionEnd;
-export type NewToolObj = SearchToolObj | ImageGenerationToolObj;
+export type CustomToolObj = CustomToolStart | CustomToolDelta | SectionEnd;
+export type NewToolObj = SearchToolObj | ImageGenerationToolObj | CustomToolObj;
 
 export type ReasoningObj = ReasoningStart | ReasoningDelta | ReasoningEnd;
 
@@ -166,6 +185,11 @@ export interface SearchToolPacket {
 export interface ImageGenerationToolPacket {
   ind: number;
   obj: ImageGenerationToolObj;
+}
+
+export interface CustomToolPacket {
+  ind: number;
+  obj: CustomToolObj;
 }
 
 export interface ReasoningPacket {
