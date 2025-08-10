@@ -73,7 +73,7 @@ class GraphSearchConfig(BaseModel):
     skip_gen_ai_answer_generation: bool = False
     allow_agent_reranking: bool = False
     kg_config_settings: KGConfigSettings = KGConfigSettings()
-    time_budget: ResearchType = ResearchType.THOUGHTFUL
+    research_type: ResearchType = ResearchType.THOUGHTFUL
 
 
 class GraphConfig(BaseModel):

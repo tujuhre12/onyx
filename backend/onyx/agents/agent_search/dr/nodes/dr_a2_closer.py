@@ -50,8 +50,11 @@ logger = setup_logger()
 
 
 def save_iteration(
-    message_id: int, state: MainState, aggregated_context: AggregatedDRContext
+    state: MainState, graph_config: GraphConfig, aggregated_context: AggregatedDRContext
 ):
+    message_id = graph_config.persistence.message_id
+    research_type = graph_config.behavior.research_type
+
     # TODO: generate plan as dict in the first place
     plan_of_record = state.plan_of_record.plan if state.plan_of_record else ""
     plan_of_record_dict = parse_plan_to_dict(plan_of_record)
@@ -63,7 +66,7 @@ def save_iteration(
         if not chat_message:
             raise ValueError("Chat message with id not found")  # should never happen
 
-        chat_message.research_type = ResearchType.THOUGHTFUL  # FIXME: joachim
+        chat_message.research_type = research_type
         chat_message.research_plan = plan_of_record_dict
 
         for iteration_preparation in state.iteration_instructions:
@@ -115,7 +118,7 @@ def closer(
     if not base_question:
         raise ValueError("Question is required for closer")
 
-    time_budget = graph_config.behavior.time_budget
+    research_type = graph_config.behavior.research_type
 
     clarification = state.clarification
     prompt_question = get_prompt_question(base_question, clarification)
@@ -128,7 +131,7 @@ def closer(
         or "(No chat history yet available)"
     )
 
-    if time_budget == ResearchType.THOUGHTFUL:
+    if research_type == ResearchType.THOUGHTFUL:
         aggregated_context = aggregate_context(
             state.iteration_responses,
             include_documents=True,
@@ -147,45 +150,44 @@ def closer(
 
     if (
         num_closer_suggestions < MAX_NUM_CLOSER_SUGGESTIONS
-        and time_budget == ResearchType.DEEP
+        and research_type == ResearchType.DEEP
     ):
-        if time_budget == ResearchType.DEEP:
-            test_info_complete_prompt = TEST_INFO_COMPLETE_PROMPT.build(
-                base_question=prompt_question,
-                questions_answers_claims=iteration_responses_string,
-                chat_history_string=chat_history_string,
-                high_level_plan=(
-                    state.plan_of_record.plan
-                    if state.plan_of_record
-                    else "No plan available"
-                ),
+        test_info_complete_prompt = TEST_INFO_COMPLETE_PROMPT.build(
+            base_question=prompt_question,
+            questions_answers_claims=iteration_responses_string,
+            chat_history_string=chat_history_string,
+            high_level_plan=(
+                state.plan_of_record.plan
+                if state.plan_of_record
+                else "No plan available"
+            ),
+        )
+
+        test_info_complete_json = invoke_llm_json(
+            llm=graph_config.tooling.primary_llm,
+            prompt=test_info_complete_prompt,
+            schema=TestInfoCompleteResponse,
+            timeout_override=40,
+            # max_tokens=1000,
+        )
+
+        if test_info_complete_json.complete:
+            pass
+
+        else:
+            return OrchestrationUpdate(
+                query_path=[DRPath.ORCHESTRATOR],
+                query_list=[],
+                log_messages=[
+                    get_langgraph_node_log_string(
+                        graph_component="main",
+                        node_name="closer",
+                        node_start_time=node_start_time,
+                    )
+                ],
+                gaps=test_info_complete_json.gaps,
+                num_closer_suggestions=num_closer_suggestions + 1,
             )
-
-            test_info_complete_json = invoke_llm_json(
-                llm=graph_config.tooling.primary_llm,
-                prompt=test_info_complete_prompt,
-                schema=TestInfoCompleteResponse,
-                timeout_override=40,
-                # max_tokens=1000,
-            )
-
-            if test_info_complete_json.complete:
-                pass
-
-            else:
-                return OrchestrationUpdate(
-                    query_path=[DRPath.ORCHESTRATOR],
-                    query_list=[],
-                    log_messages=[
-                        get_langgraph_node_log_string(
-                            graph_component="main",
-                            node_name="closer",
-                            node_start_time=node_start_time,
-                        )
-                    ],
-                    gaps=test_info_complete_json.gaps,
-                    num_closer_suggestions=num_closer_suggestions + 1,
-                )
 
     # Stream out docs - TODO: Improve this with new frontend
     write_custom_event(
@@ -236,7 +238,7 @@ def closer(
                 agent_answer_question_num=0,
                 agent_answer_type="agent_level_answer",
                 timeout_override=60,
-                # kens=None,
+                # max_tokens=None,
             ),
         )
 
@@ -247,7 +249,7 @@ def closer(
     dispatch_main_answer_stop_info(level=0, writer=writer)
 
     # Log the research agent steps
-    save_iteration(graph_config.persistence.message_id, state, aggregated_context)
+    save_iteration(state, graph_config, aggregated_context)
 
     return FinalUpdate(
         final_answer=final_answer,

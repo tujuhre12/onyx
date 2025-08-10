@@ -56,10 +56,10 @@ def orchestrator(
     plan_of_record = state.plan_of_record
     clarification = state.clarification
     iteration_nr = state.iteration_nr + 1
-    time_budget = graph_config.behavior.time_budget
+    research_type = graph_config.behavior.research_type
     remaining_time_budget = state.remaining_time_budget
     chat_history_string = state.chat_history_string or "(No chat history yet available)"
-    if time_budget == ResearchType.THOUGHTFUL:
+    if research_type == ResearchType.THOUGHTFUL:
         answer_history_string = (
             aggregate_context(
                 state.iteration_responses,
@@ -107,13 +107,11 @@ def orchestrator(
     reasoning_result = "(No reasoning result provided yet.)"
     tool_calls_string = "(No tool calls provided yet.)"
 
-    if time_budget == ResearchType.THOUGHTFUL:
-
+    if research_type == ResearchType.THOUGHTFUL:
         if iteration_nr == 1:
             remaining_time_budget = DR_TIME_BUDGET_BY_TYPE[ResearchType.THOUGHTFUL]
 
-        if iteration_nr > 1:
-
+        elif iteration_nr > 1:
             # for each iteration past the first one, we need to see whether we
             # have enough information to answer the question.
             # if we do, we can stop the iteration and return the answer.

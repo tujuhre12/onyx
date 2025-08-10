@@ -67,7 +67,7 @@ def internet_search(
 
     graph_config = cast(GraphConfig, config["metadata"]["config"])
     base_question = graph_config.inputs.prompt_builder.raw_user_query
-    time_budget = graph_config.behavior.time_budget
+    research_type = graph_config.behavior.research_type
 
     logger.debug(
         f"Search start for Internet Search {iteration_nr}.{parallelization_nr} at {datetime.now()}"
@@ -124,8 +124,8 @@ def internet_search(
 
     # Built prompt
 
-    if time_budget == ResearchType.DEEP:
-        search_prompt = INTERNAL_SEARCH_PROMPTS[time_budget].build(
+    if research_type == ResearchType.DEEP:
+        search_prompt = INTERNAL_SEARCH_PROMPTS[research_type].build(
             search_query=search_query,
             base_question=base_question,
             document_text=document_texts,

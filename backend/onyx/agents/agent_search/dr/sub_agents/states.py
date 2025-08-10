@@ -21,7 +21,7 @@ class SubAgentInput(LoggerUpdate):
     main_question: str | None = None
     context: str | None = None
     active_source_types: list[DocumentSource] | None = None
-    time_budget: ResearchType | None = None
+    research_type: ResearchType | None = None
 
 
 class SubAgentMainState(

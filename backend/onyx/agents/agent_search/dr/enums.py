@@ -4,7 +4,7 @@ from enum import Enum
 class ResearchType(str, Enum):
     """Research type options for agent search operations"""
 
-    BASIC = "BASIC"
+    # BASIC = "BASIC"
     THOUGHTFUL = "THOUGHTFUL"
     DEEP = "DEEP"
 

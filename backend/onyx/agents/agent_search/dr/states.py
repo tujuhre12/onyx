@@ -49,7 +49,7 @@ class QuestionInputState(LoggerUpdate):
     question: str
     tool: DRPath | str | None = None  # needed for custom tools
     active_source_types: list[DocumentSource] | None
-    time_budget: ResearchType | None = None
+    research_type: ResearchType | None = None
 
 
 class AnswerUpdate(LoggerUpdate):

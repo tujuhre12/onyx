@@ -54,7 +54,7 @@ def basic_search(
 
     graph_config = cast(GraphConfig, config["metadata"]["config"])
     base_question = graph_config.inputs.prompt_builder.raw_user_query
-    time_budget = graph_config.behavior.time_budget
+    research_type = graph_config.behavior.research_type
 
     search_tool = graph_config.tooling.search_tool
 
@@ -166,8 +166,8 @@ def basic_search(
 
     # Built prompt
 
-    if time_budget == ResearchType.DEEP:
-        search_prompt = INTERNAL_SEARCH_PROMPTS[time_budget].build(
+    if research_type == ResearchType.DEEP:
+        search_prompt = INTERNAL_SEARCH_PROMPTS[research_type].build(
             search_query=branch_query,
             base_question=base_question,
             document_text=document_texts,

@@ -202,7 +202,7 @@ def clarifier(
     use_tool_calling_llm = graph_config.tooling.using_tool_calling_llm
 
     original_question = graph_config.inputs.prompt_builder.raw_user_query
-    time_budget = graph_config.behavior.time_budget
+    research_type = graph_config.behavior.research_type
 
     # get the connected tools and format for the Deep Research flow
     kg_enabled = graph_config.behavior.kg_config_settings.KG_ENABLED
@@ -346,7 +346,7 @@ def clarifier(
 
     # Continue, as external knowledge is required.
     clarification = None
-    if time_budget != ResearchType.THOUGHTFUL:
+    if research_type != ResearchType.THOUGHTFUL:
         result = _get_existing_clarification_request(graph_config)
         if result is not None:
             clarification, original_question, chat_history_string = result
@@ -362,7 +362,7 @@ def clarifier(
 
             base_clarification_prompt = get_dr_prompt_orchestration_templates(
                 DRPromptPurpose.CLARIFICATION,
-                time_budget,
+                research_type,
                 entity_types_string=all_entity_types,
                 relationship_types_string=all_relationship_types,
                 available_tools=available_tools,

@@ -8,7 +8,7 @@ MAX_CHAT_HISTORY_MESSAGES = (
 MAX_DR_PARALLEL_SEARCH = 4
 
 MAX_NUM_CLOSER_SUGGESTIONS = (
-    1  # how many times the closer was suggested. (Closer can send back)
+    1  # how many times the closer can send back to the orchestrator
 )
 
 CLARIFICATION_REQUEST_PREFIX = "PLEASE CLARIFY:"
