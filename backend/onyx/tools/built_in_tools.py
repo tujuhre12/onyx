@@ -118,50 +118,37 @@ def load_builtin_tools(db_session: Session) -> None:
     logger.notice("All built-in tools are loaded/verified.")
 
 
-def get_search_tool(db_session: Session) -> ToolDBModel | None:
+def get_builtin_tool(
+    db_session: Session,
+    tool_type: Type[
+        SearchTool | ImageGenerationTool | InternetSearchTool | KnowledgeGraphTool
+    ],
+) -> ToolDBModel:
     """
-    Retrieves for the SearchTool from the BUILT_IN_TOOLS list.
+    Retrieves a built-in tool from the database based on the tool type.
     """
-    search_tool_id = next(
+    tool_id = next(
         (
             tool["in_code_tool_id"]
             for tool in BUILT_IN_TOOLS
-            if tool["cls"].__name__ == SearchTool.__name__
+            if tool["cls"].__name__ == tool_type.__name__
         ),
         None,
     )
 
-    if not search_tool_id:
-        raise RuntimeError("SearchTool not found in the BUILT_IN_TOOLS list.")
+    if not tool_id:
+        raise RuntimeError(
+            f"Tool type {tool_type.__name__} not found in the BUILT_IN_TOOLS list."
+        )
 
-    search_tool = db_session.execute(
-        select(ToolDBModel).where(ToolDBModel.in_code_tool_id == search_tool_id)
+    db_tool = db_session.execute(
+        select(ToolDBModel).where(ToolDBModel.in_code_tool_id == tool_id)
     ).scalar_one_or_none()
 
-    return search_tool
+    if not db_tool:
+        raise RuntimeError(f"Tool type {tool_type.__name__} not found in the database.")
 
-
-def get_kg_tool(db_session: Session) -> ToolDBModel | None:
-    """
-    Retrieves for the KnowledgeGraphTool from the BUILT_IN_TOOLS list.
-    """
-    kg_tool_id = next(
-        (
-            tool["in_code_tool_id"]
-            for tool in BUILT_IN_TOOLS
-            if tool["cls"].__name__ == KnowledgeGraphTool.__name__
-        ),
-        None,
-    )
-
-    if not kg_tool_id:
-        raise RuntimeError("KnowledgeGraphTool not found in the BUILT_IN_TOOLS list.")
-
-    kg_tool = db_session.execute(
-        select(ToolDBModel).where(ToolDBModel.in_code_tool_id == kg_tool_id)
-    ).scalar_one_or_none()
-
-    return kg_tool
+    return db_tool
 
 
 def auto_add_search_tool_to_personas(db_session: Session) -> None:
@@ -171,10 +158,7 @@ def auto_add_search_tool_to_personas(db_session: Session) -> None:
     Persona objects that were created before the concept of Tools were added.
     """
     # Fetch the SearchTool from the database based on in_code_tool_id from BUILT_IN_TOOLS
-    search_tool = get_search_tool(db_session)
-
-    if not search_tool:
-        raise RuntimeError("SearchTool not found in the database.")
+    search_tool = get_builtin_tool(db_session=db_session, tool_type=SearchTool)
 
     # Fetch all Personas that need the SearchTool added
     personas_to_update = (

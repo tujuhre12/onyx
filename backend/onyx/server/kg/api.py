@@ -33,8 +33,11 @@ from onyx.server.kg.models import KGConfig
 from onyx.server.kg.models import KGConfig as KGConfigAPIModel
 from onyx.server.kg.models import SourceAndEntityTypeView
 from onyx.server.kg.models import SourceStatistics
-from onyx.tools.built_in_tools import get_kg_tool
-from onyx.tools.built_in_tools import get_search_tool
+from onyx.tools.built_in_tools import get_builtin_tool
+from onyx.tools.tool_implementations.knowledge_graph.knowledge_graph_tool import (
+    KnowledgeGraphTool,
+)
+from onyx.tools.tool_implementations.search.search_tool import SearchTool
 
 
 admin_router = APIRouter(prefix="/admin/kg")
@@ -96,13 +99,8 @@ def enable_or_disable_kg(
     populate_missing_default_entity_types__commit(db_session=db_session)
 
     # Get the search and knowledge graph tools
-    search_tool = get_search_tool(db_session=db_session)
-    if not search_tool:
-        raise RuntimeError("SearchTool not found in the database.")
-
-    kg_tool = get_kg_tool(db_session=db_session)
-    if not kg_tool:
-        raise RuntimeError("KnowledgeGraphTool not found in the database.")
+    search_tool = get_builtin_tool(db_session=db_session, tool_type=SearchTool)
+    kg_tool = get_builtin_tool(db_session=db_session, tool_type=KnowledgeGraphTool)
 
     # Check if we have a previously created persona
     kg_config_settings = get_kg_config_settings()

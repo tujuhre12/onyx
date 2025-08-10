@@ -13,6 +13,8 @@ from onyx.chat.prompt_builder.answer_prompt_builder import AnswerPromptBuilder
 from onyx.configs.app_configs import IMAGE_MODEL_NAME
 from onyx.configs.model_configs import GEN_AI_HISTORY_CUTOFF
 from onyx.configs.tool_configs import IMAGE_GENERATION_OUTPUT_FORMAT
+from onyx.db.engine.sql_engine import get_session_with_current_tenant
+from onyx.db.models import Tool as ToolDBModel
 from onyx.llm.interfaces import LLM
 from onyx.llm.models import PreviousMessage
 from onyx.llm.utils import build_content_with_imgs
@@ -88,7 +90,6 @@ class ImageGenerationTool(Tool[None]):
 
     def __init__(
         self,
-        id: int,
         api_key: str,
         api_base: str | None,
         api_version: str | None,
@@ -106,13 +107,24 @@ class ImageGenerationTool(Tool[None]):
         self.api_key = api_key
         self.api_base = api_base
         self.api_version = api_version
-        self._id = id
 
         self.model = model
         self.num_imgs = num_imgs
 
         self.additional_headers = additional_headers
         self.output_format = output_format
+
+        with get_session_with_current_tenant() as db_session:
+            tool_id: int | None = (
+                db_session.query(ToolDBModel.id)
+                .filter(ToolDBModel.in_code_tool_id == ImageGenerationTool.__name__)
+                .scalar()
+            )
+        if not tool_id:
+            raise ValueError(
+                "Image Generation tool not found. This should never happen."
+            )
+        self._id = tool_id
 
     @property
     def id(self) -> int:

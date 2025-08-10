@@ -395,13 +395,14 @@ def build_custom_tools_from_openapi_schema_and_headers(
 
     with get_session_with_current_tenant() as temp_db_session:
         tools = get_tools(temp_db_session)
+        tool_id: int | None = None
         for tool in tools:
             if tool.openapi_schema and (
                 json.dumps(tool.openapi_schema) == openapi_schema_str
             ):
                 tool_id = tool.id
                 break
-        else:
+        if not tool_id:
             raise ValueError(f"Tool with openapi_schema {openapi_schema_str} not found")
 
     return [

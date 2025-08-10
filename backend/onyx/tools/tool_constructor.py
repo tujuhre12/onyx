@@ -202,7 +202,6 @@ def construct_tools(
                     search_tool_config = SearchToolConfig()
 
                 search_tool = SearchTool(
-                    id=db_tool_model.id,
                     db_session=db_session,
                     user=user,
                     persona=persona,
@@ -237,7 +236,6 @@ def construct_tools(
 
                 tool_dict[db_tool_model.id] = [
                     ImageGenerationTool(
-                        id=db_tool_model.id,
                         api_key=cast(str, img_generation_llm_config.api_key),
                         api_base=img_generation_llm_config.api_base,
                         api_version=img_generation_llm_config.api_version,
@@ -254,7 +252,6 @@ def construct_tools(
                 try:
                     tool_dict[db_tool_model.id] = [
                         InternetSearchTool(
-                            id=db_tool_model.id,
                             db_session=db_session,
                             persona=persona,
                             prompt_config=prompt_config,
@@ -278,7 +275,7 @@ def construct_tools(
                     raise ValueError(
                         f"Knowledge Graph Tool should only be used by the '{TMP_DRALPHA_PERSONA_NAME}' Agent."
                     )
-                tool_dict[db_tool_model.id] = [KnowledgeGraphTool(id=db_tool_model.id)]
+                tool_dict[db_tool_model.id] = [KnowledgeGraphTool()]
 
         # Handle custom tools
         elif db_tool_model.openapi_schema:

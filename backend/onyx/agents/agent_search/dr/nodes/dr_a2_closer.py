@@ -51,7 +51,7 @@ logger = setup_logger()
 
 def save_iteration(
     state: MainState, graph_config: GraphConfig, aggregated_context: AggregatedDRContext
-):
+) -> None:
     message_id = graph_config.persistence.message_id
     research_type = graph_config.behavior.research_type
 
