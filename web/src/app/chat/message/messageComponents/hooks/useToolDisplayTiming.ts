@@ -31,7 +31,9 @@ export function useToolDisplayTiming(
   const toolStartTimesRef = useRef<Map<number, number>>(new Map());
 
   // Track pending completions that are waiting for minimum display time
-  const pendingCompletionsRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
+  const pendingOrFullCompletionsRef = useRef<
+    Map<number, NodeJS.Timeout | null>
+  >(new Map());
 
   // Effect to manage which tools are visible based on completed tools
   useEffect(() => {
@@ -70,7 +72,7 @@ export function useToolDisplayTiming(
   const handleToolComplete = useCallback((toolInd: number) => {
     if (
       completedToolInds.has(toolInd) ||
-      pendingCompletionsRef.current.has(toolInd)
+      pendingOrFullCompletionsRef.current.has(toolInd)
     ) {
       return;
     }
@@ -89,12 +91,13 @@ export function useToolDisplayTiming(
     if (elapsedTime >= MINIMUM_DISPLAY_TIME_MS) {
       // Enough time has passed, mark as complete immediately
       setCompletedToolInds((prev) => new Set(prev).add(toolInd));
+      pendingOrFullCompletionsRef.current.set(toolInd, null);
     } else {
       // Not enough time has passed, delay the completion
       const remainingTime = MINIMUM_DISPLAY_TIME_MS - elapsedTime;
 
       // Clear any existing timeout for this tool
-      const existingTimeout = pendingCompletionsRef.current.get(toolInd);
+      const existingTimeout = pendingOrFullCompletionsRef.current.get(toolInd);
       if (existingTimeout) {
         clearTimeout(existingTimeout);
       }
@@ -102,17 +105,21 @@ export function useToolDisplayTiming(
       // Set a timeout to mark as complete after the remaining time
       const timeoutId = setTimeout(() => {
         setCompletedToolInds((prev) => new Set(prev).add(toolInd));
-        pendingCompletionsRef.current.delete(toolInd);
+        pendingOrFullCompletionsRef.current.set(toolInd, null);
       }, remainingTime);
 
-      pendingCompletionsRef.current.set(toolInd, timeoutId);
+      pendingOrFullCompletionsRef.current.set(toolInd, timeoutId);
     }
   }, []);
 
   // Clean up timeouts on unmount
   useEffect(() => {
     return () => {
-      pendingCompletionsRef.current.forEach((timeout) => clearTimeout(timeout));
+      pendingOrFullCompletionsRef.current.forEach((timeout) => {
+        if (timeout) {
+          clearTimeout(timeout);
+        }
+      });
     };
   }, []);
 
