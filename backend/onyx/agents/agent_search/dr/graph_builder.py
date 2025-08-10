@@ -12,7 +12,7 @@ from onyx.agents.agent_search.dr.states import MainState
 from onyx.agents.agent_search.dr.sub_agents.basic_search.dr_basic_search_graph_builder import (
     dr_basic_search_graph_builder,
 )
-from onyx.agents.agent_search.dr.sub_agents.custom_tool_sub_agent.dr_custom_tool_graph_builder import (
+from onyx.agents.agent_search.dr.sub_agents.custom_tool.dr_custom_tool_graph_builder import (
     dr_custom_tool_graph_builder,
 )
 from onyx.agents.agent_search.dr.sub_agents.internet_search.dr_is_graph_builder import (
