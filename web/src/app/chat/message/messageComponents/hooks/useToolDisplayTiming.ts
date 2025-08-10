@@ -2,6 +2,16 @@ import { Packet } from "@/app/chat/services/streamingModels";
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { useRef } from "react";
 
+function getInitialTools(
+  toolGroups: { ind: number; packets: Packet[] }[],
+  isComplete: boolean
+): Set<number> {
+  if (isComplete) {
+    return new Set(toolGroups.map((group) => group.ind));
+  }
+  return new Set();
+}
+
 export function useToolDisplayTiming(
   toolGroups: { ind: number; packets: Packet[] }[],
   isComplete: boolean
@@ -10,9 +20,11 @@ export function useToolDisplayTiming(
   display tools one after another (e.g. only after the rendering of a tool is complete,
   do we start showing the next tool). */
   const MINIMUM_DISPLAY_TIME_MS = 1500; // 1.5 seconds minimum display time
-  const [visibleTools, setVisibleTools] = useState<Set<number>>(new Set());
-  const [completedToolInds, setCompletedToolInds] = useState<Set<number>>(
-    new Set()
+  const [visibleTools, setVisibleTools] = useState<Set<number>>(() =>
+    getInitialTools(toolGroups, isComplete)
+  );
+  const [completedToolInds, setCompletedToolInds] = useState<Set<number>>(() =>
+    getInitialTools(toolGroups, isComplete)
   );
 
   // Track when each tool starts displaying
@@ -62,8 +74,6 @@ export function useToolDisplayTiming(
     ) {
       return;
     }
-
-    console.log("handleToolComplete", toolInd);
 
     const now = Date.now();
     const startTime = toolStartTimesRef.current.get(toolInd);
