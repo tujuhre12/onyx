@@ -23,8 +23,8 @@ export function useMessageSwitching({
 
   const includeMessageSwitcher =
     currentMessageInd !== undefined &&
-    onMessageSelection &&
-    otherMessagesCanSwitchTo &&
+    onMessageSelection !== undefined &&
+    otherMessagesCanSwitchTo !== undefined &&
     otherMessagesCanSwitchTo.length > 1;
 
   const getPreviousMessage = () => {
