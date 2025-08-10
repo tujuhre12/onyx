@@ -5,7 +5,6 @@ from langchain_core.messages import merge_content
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
-from onyx.agents.agent_search.dr.constants import AVERAGE_TOOL_COSTS
 from onyx.agents.agent_search.dr.constants import DR_TIME_BUDGET_BY_TYPE
 from onyx.agents.agent_search.dr.constants import HIGH_LEVEL_PLAN_PREFIX
 from onyx.agents.agent_search.dr.dr_prompt_builder import (
@@ -75,6 +74,8 @@ def orchestrator(
             ).context
             or "(No answer history yet available)"
         )
+    available_tools = state.available_tools or []
+    available_tool_map = {tool.llm_path: tool for tool in available_tools}
 
     questions = [
         f"{iteration_response.tool}: {iteration_response.question}"
@@ -100,7 +101,7 @@ def orchestrator(
     all_relationship_types = get_relationship_types_str(active=True)
 
     # default to closer
-    query_path = DRPath.CLOSER
+    next_tool = DRPath.CLOSER.value
     query_list = ["Answer the question with the information you have."]
     decision_prompt = None
 
@@ -122,7 +123,7 @@ def orchestrator(
                 ResearchType.THOUGHTFUL,
                 entity_types_string=all_entity_types,
                 relationship_types_string=all_relationship_types,
-                available_tools=state.available_tools,
+                available_tools=available_tools,
             )
 
             write_custom_event(
@@ -163,9 +164,8 @@ def orchestrator(
             reasoning_result = cast(str, merge_content(*reasoning_tokens))
 
             if SUFFICIENT_INFORMATION_STRING in reasoning_result:
-
                 return OrchestrationUpdate(
-                    query_path=[DRPath.CLOSER],
+                    tools_used=[DRPath.CLOSER.value],
                     query_list=[],
                     iteration_nr=iteration_nr,
                     log_messages=[
@@ -185,7 +185,7 @@ def orchestrator(
             ResearchType.THOUGHTFUL,
             entity_types_string=all_entity_types,
             relationship_types_string=all_relationship_types,
-            available_tools=state.available_tools,
+            available_tools=available_tools,
         )
         decision_prompt = base_decision_prompt.build(
             question=question,
@@ -208,18 +208,16 @@ def orchestrator(
                     # max_tokens=2500,
                 )
                 next_step = orchestrator_action.next_step
-                query_path = next_step.tool
-                query_list = [q for q in (next_step.questions or []) if q is not None]
+                next_tool = next_step.tool
+                query_list = [q for q in (next_step.questions or [])]
 
-                tool_calls_string = create_tool_call_string(query_path, query_list)
+                tool_calls_string = create_tool_call_string(next_tool, query_list)
 
             except Exception as e:
                 logger.error(f"Error in approach extraction: {e}")
                 raise e
 
-            remaining_time_budget = (
-                remaining_time_budget - AVERAGE_TOOL_COSTS[query_path]
-            )
+            remaining_time_budget -= available_tool_map[next_tool].cost
     else:
         if iteration_nr == 1 and not plan_of_record:
             # by default, we start a new iteration, but if there is a feedback request,
@@ -232,7 +230,7 @@ def orchestrator(
                 ResearchType.DEEP,
                 entity_types_string=all_entity_types,
                 relationship_types_string=all_relationship_types,
-                available_tools=state.available_tools,
+                available_tools=available_tools,
             )
             plan_generation_prompt = base_plan_prompt.build(
                 question=prompt_question,
@@ -272,7 +270,7 @@ def orchestrator(
             ResearchType.DEEP,
             entity_types_string=all_entity_types,
             relationship_types_string=all_relationship_types,
-            available_tools=state.available_tools,
+            available_tools=available_tools,
         )
         decision_prompt = base_decision_prompt.build(
             answer_history_string=answer_history_string,
@@ -297,18 +295,16 @@ def orchestrator(
                     # max_tokens=1500,
                 )
                 next_step = orchestrator_action.next_step
-                query_path = next_step.tool
-                query_list = [q for q in (next_step.questions or []) if q is not None]
+                next_tool = next_step.tool
+                query_list = [q for q in (next_step.questions or [])]
                 reasoning_result = orchestrator_action.reasoning
 
-                tool_calls_string = create_tool_call_string(query_path, query_list)
+                tool_calls_string = create_tool_call_string(next_tool, query_list)
             except Exception as e:
                 logger.error(f"Error in approach extraction: {e}")
                 raise e
 
-            remaining_time_budget = (
-                remaining_time_budget - AVERAGE_TOOL_COSTS[query_path]
-            )
+            remaining_time_budget -= available_tool_map[next_tool].cost
         else:
             reasoning_result = "Time to wrap up."
 
@@ -317,7 +313,7 @@ def orchestrator(
         ResearchType.DEEP,
         entity_types_string=all_entity_types,
         relationship_types_string=all_relationship_types,
-        available_tools=state.available_tools,
+        available_tools=available_tools,
     )
     orchestration_next_step_purpose_prompt = base_next_step_purpose_prompt.build(
         question=prompt_question,
@@ -361,7 +357,7 @@ def orchestrator(
     purpose = cast(str, merge_content(*purpose_tokens))
 
     return OrchestrationUpdate(
-        query_path=[query_path],
+        tools_used=[next_tool],
         query_list=query_list or [],
         iteration_nr=iteration_nr,
         log_messages=[

@@ -176,7 +176,7 @@ def closer(
 
         else:
             return OrchestrationUpdate(
-                query_path=[DRPath.ORCHESTRATOR],
+                tools_used=[DRPath.ORCHESTRATOR.value],
                 query_list=[],
                 log_messages=[
                     get_langgraph_node_log_string(

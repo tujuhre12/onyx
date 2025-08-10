@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import cast
 
@@ -43,24 +44,25 @@ from onyx.prompts.dr_prompts import DECISION_PROMPT_WO_TOOL_CALLING
 from onyx.prompts.dr_prompts import EVAL_SYSTEM_PROMPT_W_TOOL_CALLING
 from onyx.prompts.dr_prompts import EVAL_SYSTEM_PROMPT_WO_TOOL_CALLING
 from onyx.prompts.dr_prompts import TOOL_DESCRIPTION
-from onyx.tools.tool_implementations.custom.custom_tool import CUSTOM_TOOL_RESPONSE_ID
 from onyx.tools.tool_implementations.custom.custom_tool import CustomTool
-from onyx.tools.tool_implementations.internet_search.internet_search_tool import (
-    INTERNET_SEARCH_RESPONSE_SUMMARY_ID,
-)
 from onyx.tools.tool_implementations.internet_search.internet_search_tool import (
     InternetSearchTool,
 )
 from onyx.tools.tool_implementations.knowledge_graph.knowledge_graph_tool import (
     KnowledgeGraphTool,
 )
-from onyx.tools.tool_implementations.search.search_tool import (
-    SEARCH_RESPONSE_SUMMARY_ID,
-)
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
+
+
+def _format_tool_name(tool_name: str) -> str:
+    """Convert tool name to LLM-friendly format."""
+    name = tool_name.replace(" ", "_")
+    # take care of camel case like GetAPIKey -> GET_API_KEY for LLM readability
+    name = re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", "_", name)
+    return name.upper()
 
 
 def _get_available_tools(
@@ -72,28 +74,31 @@ def _get_available_tools(
         tool_info = OrchestratorTool(
             tool_id=tool.id,
             name=tool.name,
-            display_name=tool.display_name,
-            description=tool.description,
+            llm_path=_format_tool_name(tool.name),
             path=DRPath.GENERIC_TOOL,
+            description=tool.description,
             metadata={},
             cost=1.0,
         )
 
         if isinstance(tool, CustomTool):
-            tool_info.metadata["summary_signature"] = CUSTOM_TOOL_RESPONSE_ID
-            tool_info.path = DRPath.GENERIC_TOOL
+            # tool_info.metadata["summary_signature"] = CUSTOM_TOOL_RESPONSE_ID
+            pass
         elif isinstance(tool, InternetSearchTool):
-            tool_info.metadata["summary_signature"] = (
-                INTERNET_SEARCH_RESPONSE_SUMMARY_ID
-            )
+            # tool_info.metadata["summary_signature"] = (
+            #     INTERNET_SEARCH_RESPONSE_SUMMARY_ID
+            # )
+            tool_info.llm_path = DRPath.INTERNET_SEARCH.value
             tool_info.path = DRPath.INTERNET_SEARCH
         elif isinstance(tool, SearchTool):
-            tool_info.metadata["summary_signature"] = SEARCH_RESPONSE_SUMMARY_ID
+            # tool_info.metadata["summary_signature"] = SEARCH_RESPONSE_SUMMARY_ID
+            tool_info.llm_path = DRPath.INTERNAL_SEARCH.value
             tool_info.path = DRPath.INTERNAL_SEARCH
         elif isinstance(tool, KnowledgeGraphTool):
             if not kg_enabled:
                 logger.warning("KG must be enabled to use KG search tool, skipping")
                 continue
+            tool_info.llm_path = DRPath.KNOWLEDGE_GRAPH.value
             tool_info.path = DRPath.KNOWLEDGE_GRAPH
         else:
             logger.warning(f"Tool {tool.name} ({type(tool)}) is not supported")
@@ -267,7 +272,7 @@ def clarifier(
     #         return OrchestrationUpdate(
     #             original_question=original_question,
     #             chat_history_string="",
-    #             query_path=[DRPath.END],
+    #             tools_used=[DRPath.END.value],
     #             query_list=[],
     #         )
 
@@ -311,7 +316,7 @@ def clarifier(
             return OrchestrationUpdate(
                 original_question=original_question,
                 chat_history_string="",
-                query_path=[DRPath.END],
+                tools_used=[DRPath.END.value],
                 query_list=[],
             )
 
@@ -340,7 +345,7 @@ def clarifier(
             return OrchestrationUpdate(
                 original_question=original_question,
                 chat_history_string="",
-                query_path=[DRPath.END],
+                tools_used=[DRPath.END.value],
                 query_list=[],
             )
 
@@ -419,14 +424,14 @@ def clarifier(
         and clarification.clarification_question
         and clarification.clarification_response is None
     ):
-        query_path = DRPath.END
+        next_tool = DRPath.END.value
     else:
-        query_path = DRPath.ORCHESTRATOR
+        next_tool = DRPath.ORCHESTRATOR.value
 
     return OrchestrationUpdate(
         original_question=original_question,
         chat_history_string=chat_history_string,
-        query_path=[query_path],
+        tools_used=[next_tool],
         query_list=[],
         iteration_nr=0,
         log_messages=[

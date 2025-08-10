@@ -3,7 +3,6 @@ from collections.abc import Hashable
 from langgraph.types import Send
 
 from onyx.agents.agent_search.dr.constants import MAX_DR_PARALLEL_SEARCH
-from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.sub_agents.states import (
     BranchInput,
 )
@@ -12,7 +11,7 @@ from onyx.agents.agent_search.dr.sub_agents.states import (
 )
 
 
-def branching_router(state: SubAgentInput) -> list[Send | Hashable] | DRPath | str:
+def branching_router(state: SubAgentInput) -> list[Send | Hashable]:
     return [
         Send(
             "act",

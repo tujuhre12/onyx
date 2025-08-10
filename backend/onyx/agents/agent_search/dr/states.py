@@ -25,7 +25,7 @@ class LoggerUpdate(BaseModel):
 class OrchestrationUpdate(LoggerUpdate):
     original_question: str | None = None
     chat_history_string: str | None = None
-    query_path: Annotated[list[DRPath | str], add] = []
+    tools_used: Annotated[list[str], add] = []
     query_list: list[str] = []
     iteration_nr: int = 0
     plan_of_record: OrchestrationPlan | None = None  # None for FAST TimeBudget
@@ -47,7 +47,7 @@ class QuestionInputState(LoggerUpdate):
     iteration_nr: int
     parallelization_nr: int
     question: str
-    tool: DRPath | str | None = None  # needed for custom tools
+    tool: DRPath | None = None
     active_source_types: list[DocumentSource] | None
     research_type: ResearchType | None = None
 

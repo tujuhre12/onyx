@@ -3,70 +3,70 @@ from collections.abc import Hashable
 from langgraph.graph import END
 from langgraph.types import Send
 
-from onyx.agents.agent_search.dr.constants import MAX_DR_PARALLEL_SEARCH
 from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.states import MainState
 from onyx.agents.agent_search.dr.states import QuestionInputState
 
 
 def decision_router(state: MainState) -> list[Send | Hashable] | DRPath | str:
-    if not state.query_path:
-        raise IndexError("state.query_path cannot be empty")
+    if not state.tools_used:
+        raise IndexError("state.tools_used cannot be empty")
 
-    # go to closer if path is CLOSER or no queries
-    next_path = state.query_path[-1]
+    # next_tool is either a generic tool name or a DRPath string
+    next_tool = state.tools_used[-1]
+    try:
+        next_path = DRPath(next_tool)
+    except ValueError:
+        next_path = DRPath.GENERIC_TOOL
 
+    # handle END
     if next_path == DRPath.END:
         return END
-    elif next_path == DRPath.ORCHESTRATOR:
-        return DRPath.ORCHESTRATOR
-    elif next_path == DRPath.INTERNET_SEARCH:
-        return DRPath.INTERNET_SEARCH
-    elif next_path == DRPath.CLARIFIER:
+
+    # handle invalid paths
+    if next_path == DRPath.CLARIFIER:
         raise ValueError("CLARIFIER is not a valid path during iteration")
-    elif (
-        next_path == DRPath.CLOSER
-        or (len(state.query_list) == 0)
-        and (state.iteration_nr > 0)
+
+    # handle tool calls without a query
+    if (
+        next_path
+        in (DRPath.INTERNAL_SEARCH, DRPath.INTERNET_SEARCH, DRPath.KNOWLEDGE_GRAPH)
+        and len(state.query_list) == 0
     ):
         return DRPath.CLOSER
-    elif next_path == DRPath.INTERNAL_SEARCH:
-        return DRPath.INTERNAL_SEARCH
 
-    # send search/kg requests (parallel only for search)
-    # TODO: remove the stuff below here and refactor kg_search to be similar to the rest
-    queries = state.query_list[:MAX_DR_PARALLEL_SEARCH]
+    # handle generic tool
+    if next_path == DRPath.GENERIC_TOOL:
+        # TODO: pass corresponding OrchestratorTool.name to subgraph where
+        # OrchestratorTool.llm_path == next_tool so the right tool is used
+        return DRPath.GENERIC_TOOL
+
+    # TODO: restructure KG like the other tools so we can remove this if block
     if next_path == DRPath.KNOWLEDGE_GRAPH:
-        queries = queries[:1]
-
-    if next_path in (DRPath.KNOWLEDGE_GRAPH,):
         return [
             Send(
                 next_path,
                 QuestionInputState(
                     iteration_nr=state.iteration_nr,
-                    parallelization_nr=parallelization_nr,
+                    parallelization_nr=0,
                     log_messages=[],
-                    question=query,
-                    tool=next_path,
+                    question=state.query_list[0],
+                    tool=DRPath.KNOWLEDGE_GRAPH,
                     active_source_types=state.active_source_types,
                 ),
             )
-            for parallelization_nr, query in enumerate(queries)
         ]
-    else:
-        # Custom tools use the gt sub-agent
-        return DRPath.GENERIC_TOOL
+
+    return next_path
 
 
 def completeness_router(state: MainState) -> DRPath | str:
-    if not state.query_path:
-        raise IndexError("query_path cannot be empty")
+    if not state.tools_used:
+        raise IndexError("tools_used cannot be empty")
 
     # go to closer if path is CLOSER or no queries
-    next_path = state.query_path[-1]
+    next_path = state.tools_used[-1]
 
-    if next_path == DRPath.ORCHESTRATOR:
+    if next_path == DRPath.ORCHESTRATOR.value:
         return DRPath.ORCHESTRATOR
-    else:
-        return END
+    return END

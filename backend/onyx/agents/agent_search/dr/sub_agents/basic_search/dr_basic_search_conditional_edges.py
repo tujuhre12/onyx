@@ -10,7 +10,7 @@ from onyx.agents.agent_search.dr.sub_agents.states import (
 )
 
 
-def branching_router(state: SubAgentInput) -> list[Send | Hashable] | DRPath | str:
+def branching_router(state: SubAgentInput) -> list[Send | Hashable]:
     return [
         Send(
             "act",

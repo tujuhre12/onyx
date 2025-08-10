@@ -3,7 +3,6 @@ import re
 from langchain.schema.messages import BaseMessage
 from langchain.schema.messages import HumanMessage
 
-from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import AggregatedDRContext
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import OrchestrationClarificationInfo
@@ -204,12 +203,12 @@ def get_prompt_question(
     return question
 
 
-def create_tool_call_string(query_path: DRPath, query_list: list[str]) -> str:
+def create_tool_call_string(tool_name: str, query_list: list[str]) -> str:
     """
     Create a string representation of the tool call.
     """
     questions_str = "\n  - ".join(query_list)
-    return f"Tool: {query_path.value}\n\nQuestions:\n{questions_str}"
+    return f"Tool: {tool_name}\n\nQuestions:\n{questions_str}"
 
 
 def parse_plan_to_dict(plan_text: str) -> dict[str, str]:

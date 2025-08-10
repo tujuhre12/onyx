@@ -7,7 +7,7 @@ from onyx.context.search.models import InferenceSection
 
 
 class OrchestratorStep(BaseModel):
-    tool: DRPath
+    tool: str
     questions: list[str]
 
 
@@ -54,9 +54,9 @@ class TestInfoCompleteResponse(BaseModel):
 class OrchestratorTool(BaseModel):
     tool_id: int
     name: str
-    display_name: str
+    llm_path: str  # the path for the LLM to refer by
+    path: DRPath  # the actual path in the graph
     description: str
-    path: DRPath
     metadata: dict[str, str]
     cost: float
 

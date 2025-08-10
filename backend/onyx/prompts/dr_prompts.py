@@ -39,7 +39,7 @@ TOOL_DESCRIPTION: dict[DRPath, str] = {}
 TOOL_DESCRIPTION[
     DRPath.INTERNAL_SEARCH
 ] = f"""\
-- The "{INTERNAL_SEARCH}" tool is used to answer questions that can be answered using the information \
+This tool is used to answer questions that can be answered using the information \
 present in the connected documents that will largely be private to the organization/user.
 Note that the search tool is not well suited for time-ordered questions (e.g., '...latest email...', \
 '...last 2 jiras resolved...') and answering aggregation-type questions (e.g., 'how many...') \
@@ -49,21 +49,21 @@ You generally should not need to ask clarification questions about the topics be
 by the {INTERNAL_SEARCH} tool, as the retrieved documents will likely provide you with more context.
 Each request to the {INTERNAL_SEARCH} tool should largely be written as a SEARCH QUERY, and NOT as a question \
 or an instruction! Also, \
-The {INTERNAL_SEARCH} tool DOES support parallel calls of up to {MAX_DR_PARALLEL_SEARCH} queries.
+The {INTERNAL_SEARCH} tool DOES support parallel calls of up to {MAX_DR_PARALLEL_SEARCH} queries. \
 """
 
 TOOL_DESCRIPTION[
     DRPath.INTERNET_SEARCH
 ] = f"""\
-- The "{INTERNET_SEARCH}" tool is used to answer questions that can be answered using the information \
+This tool is used to answer questions that can be answered using the information \
 that is public on the internet. The {INTERNET_SEARCH} tool DOES support parallel calls of up to \
-{MAX_DR_PARALLEL_SEARCH} queries.
+{MAX_DR_PARALLEL_SEARCH} queries. \
 """
 
 TOOL_DESCRIPTION[
     DRPath.KNOWLEDGE_GRAPH
 ] = f"""\
-- The "{KNOWLEDGE_GRAPH}" tool is similar to a search tool but it answers questions based on \
+This tool is similar to a search tool but it answers questions based on \
 entities and relationships extracted from the source documents. \
 It is suitable for answering complex questions about specific entities and relationships, such as \
 "summarize the open tickets assigned to John in the last month". \
@@ -82,17 +82,17 @@ Lastly, to use the {KNOWLEDGE_GRAPH} tool, it is important that you know the spe
 referred to in the question. If it cannot reasonably be inferred, consider asking a clarification question.
 On the other hand, the {KNOWLEDGE_GRAPH} tool does NOT require attributes to be specified. I.e., it is possible \
 to search for entities without narrowing down specific attributes. Thus, if the question asks for an entity or \
-an entity type in general, you should not ask clarification questions to specify the attributes.
+an entity type in general, you should not ask clarification questions to specify the attributes. \
 """
 
 TOOL_DESCRIPTION[
     DRPath.CLOSER
 ] = f"""\
-- The "{CLOSER}" tool does not directly have access to the documents, but will use the results from \
+This tool does not directly have access to the documents, but will use the results from \
 previous tool calls to generate a comprehensive final answer. It should always be called exactly once \
 at the very end to consolidate the gathered information, run any comparisons if needed, and pick out \
 the most relevant information to answer the question. You can also skip straight to the {CLOSER} \
-if there is sufficient information in the provided history to answer the question.
+if there is sufficient information in the provided history to answer the question. \
 """
 
 
@@ -376,7 +376,7 @@ to answer the original question.
 
 Please format your answer as a json dictionary in the following format:
 {{
-   "reasoning": "<keep empty, as it is aleady available>", \
+   "reasoning": "<keep empty, as it is aleady available>",
    "next_step": {{"tool": "<---tool_choice_options--->",
                   "questions": "<the question you want to pose to the tool. Note that the \
 question should be appropriate for the tool. For example:

@@ -19,21 +19,22 @@ from onyx.prompts.prompt_template import PromptTemplate
 def get_dr_prompt_orchestration_templates(
     purpose: DRPromptPurpose,
     research_type: ResearchType,
+    available_tools: list[OrchestratorTool],
     entity_types_string: str | None = None,
     relationship_types_string: str | None = None,
-    available_tools: list[OrchestratorTool] | None = None,
     reasoning_result: str | None = None,
     tool_calls_string: str | None = None,
 ) -> PromptTemplate:
-    # TODO: instead of using paths as names, have either a TOOL or CLOSER path
-    # the LLM spits out the tool name or CLOSER, which gets converted into a
-    # (TOOL, <TOOL_NAME>) request, or a CLOSER request
-    # revisit in v2 when we have tools and subagents more neatly laid out
-    available_tool_names = [tool.path.value for tool in available_tools or []]
-    available_tool_paths = [tool.path for tool in available_tools or []]
-    available_tool_cost_string = "\n".join(
-        f"{tool.path}: {tool.cost}" for tool in available_tools or []
+    available_tools = available_tools or []
+    tool_names = [tool.llm_path for tool in available_tools]
+    tool_description_str = "\n\n".join(
+        f"- {tool.llm_path}: {tool.description}" for tool in available_tools
     )
+    tool_cost_str = "\n".join(
+        f"{tool.llm_path}: {tool.cost}" for tool in available_tools
+    )
+
+    available_tool_paths = [tool.path for tool in available_tools]
 
     tool_differentiations: list[str] = []
     for tool_1 in available_tool_paths:
@@ -100,15 +101,15 @@ def get_dr_prompt_orchestration_templates(
         raise ValueError(f"Invalid purpose: {purpose}")
 
     return base_template.partial_build(
-        num_available_tools=str(len(available_tool_names)),
-        available_tools=", ".join(available_tool_names),
-        tool_choice_options=" or ".join(available_tool_names),
+        num_available_tools=str(len(tool_names)),
+        available_tools=", ".join(tool_names),
+        tool_choice_options=" or ".join(tool_names),
         current_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         kg_types_descriptions=kg_types_descriptions,
-        tool_descriptions="\n".join(tool.description for tool in available_tools or []),
+        tool_descriptions=tool_description_str,
         tool_differentiation_hints=tool_differentiation_hint_string,
         tool_question_hints=tool_question_hint_string,
-        average_tool_costs=available_tool_cost_string,
+        average_tool_costs=tool_cost_str,
         reasoning_result=reasoning_result or "(No reasoning result provided.)",
         tool_calls_string=tool_calls_string or "(No tool calls provided.)",
     )
