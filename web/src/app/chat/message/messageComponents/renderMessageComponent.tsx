@@ -1,4 +1,9 @@
-import { ChatPacket, Packet, PacketType } from "../../services/streamingModels";
+import {
+  ChatPacket,
+  Packet,
+  PacketType,
+  ReasoningPacket,
+} from "../../services/streamingModels";
 import {
   FullChatState,
   MessageRenderer,
@@ -8,6 +13,7 @@ import {
 import { MessageTextRenderer } from "./renderers/MessageTextRenderer";
 import { SearchToolRenderer } from "./renderers/SearchToolRenderer";
 import { ImageToolRenderer } from "./renderers/ImageToolRenderer";
+import { ReasoningRenderer } from "./renderers/ReasoningRenderer";
 
 // Different types of chat packets using discriminated unions
 export interface GroupedPackets {
@@ -30,9 +36,16 @@ function isImageToolPacket(packet: Packet) {
   return packet.obj.type === PacketType.IMAGE_GENERATION_TOOL_START;
 }
 
+function isReasoningPacket(packet: Packet): packet is ReasoningPacket {
+  return (
+    packet.obj.type === PacketType.REASONING_START ||
+    packet.obj.type === PacketType.REASONING_DELTA ||
+    packet.obj.type === PacketType.REASONING_END
+  );
+}
+
 export function findRenderer(
-  groupedPackets: GroupedPackets,
-  fullChatState: FullChatState
+  groupedPackets: GroupedPackets
 ): MessageRenderer<any, any> | null {
   if (groupedPackets.packets.some((packet) => isChatPacket(packet))) {
     return MessageTextRenderer;
@@ -42,6 +55,9 @@ export function findRenderer(
   }
   if (groupedPackets.packets.some((packet) => isImageToolPacket(packet))) {
     return ImageToolRenderer;
+  }
+  if (groupedPackets.packets.some((packet) => isReasoningPacket(packet))) {
+    return ReasoningRenderer;
   }
   return null;
 }
@@ -57,7 +73,7 @@ export function renderMessageComponent(
     return { icon: null, status: null, content: <></> };
   }
 
-  const Renderer = findRenderer(groupedPackets, fullChatState);
+  const Renderer = findRenderer(groupedPackets);
   if (Renderer) {
     const renderType = useShortRenderer
       ? RenderType.HIGHLIGHT

@@ -642,26 +642,12 @@ export function useChatController({
             Object.hasOwn(packet, "error") &&
             (packet as any).error != null
           ) {
-            if (
-              sub_questions.length > 0 &&
-              sub_questions
-                .filter((q) => q.level === 0)
-                .every((q) => q.is_stopped === true)
-            ) {
-              setUncaughtError(
-                frozenSessionId,
-                (packet as StreamingError).error
-              );
-              updateChatStateAction(frozenSessionId, "input");
-              setAgenticGenerating(frozenSessionId, false);
-              // setAlternativeGeneratingAssistant(null);
-              updateSubmittedMessage(getCurrentSessionId(), "");
+            setUncaughtError(frozenSessionId, (packet as StreamingError).error);
+            updateChatStateAction(frozenSessionId, "input");
+            setAgenticGenerating(frozenSessionId, false);
+            updateSubmittedMessage(getCurrentSessionId(), "");
 
-              throw new Error((packet as StreamingError).error);
-            } else {
-              error = (packet as StreamingError).error;
-              stackTrace = (packet as StreamingError).stack_trace;
-            }
+            throw new Error((packet as StreamingError).error);
           } else if (Object.hasOwn(packet, "message_id")) {
             finalMessage = packet as BackendMessage;
           } else if (Object.hasOwn(packet, "stop_reason")) {
@@ -796,40 +782,44 @@ export function useChatController({
     updateChatStateAction(frozenSessionId, "input");
 
     // TODO (chris): cleanup
-    // if (isNewSession) {
-    //   console.log("Setting up new session");
-    //   if (finalMessage) {
-    //     setSelectedMessageForDocDisplay(finalMessage.message_id);
-    //   }
+    if (isNewSession) {
+      console.log("Setting up new session");
+      if (finalMessage) {
+        setSelectedMessageForDocDisplay(finalMessage.message_id);
+      }
 
-    //   if (!searchParamBasedChatSessionName) {
-    //     await new Promise((resolve) => setTimeout(resolve, 200));
-    //     await nameChatSession(currChatSessionId);
-    //     refreshChatSessions();
-    //   }
+      if (!searchParamBasedChatSessionName) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        await nameChatSession(currChatSessionId);
+        refreshChatSessions();
+      }
 
-    //   // NOTE: don't switch pages if the user has navigated away from the chat
-    //   if (
-    //     currChatSessionId === frozenSessionId ||
-    //     existingChatSessionId === null
-    //   ) {
-    //     const newUrl = buildChatUrl(searchParams, currChatSessionId, null);
-    //     // newUrl is like /chat?chatId=10
-    //     // current page is like /chat
+      // NOTE: don't switch pages if the user has navigated away from the chat
+      if (
+        currChatSessionId === frozenSessionId ||
+        existingChatSessionId === null
+      ) {
+        const newUrl = buildChatUrl(
+          searchParams,
+          currChatSessionId,
+          null,
+          false,
+          true
+        );
+        // newUrl is like /chat?chatId=10
+        // current page is like /chat
 
-    //     if (pathname == "/chat" && !navigatingAway.current) {
-    //       router.push(newUrl, { scroll: false });
-    //     }
-    //   }
-    // }
+        if (pathname == "/chat" && !navigatingAway.current) {
+          router.push(newUrl, { scroll: false });
+        }
+      }
+    }
     if (
       finalMessage?.context_docs &&
       finalMessage.context_docs.top_documents.length > 0
     ) {
       setSelectedMessageForDocDisplay(finalMessage.message_id);
     }
-    // setAlternativeGeneratingAssistant(null);
-    // setSubmittedMessage("");
   };
 
   const handleMessageSpecificFileUpload = async (acceptedFiles: File[]) => {

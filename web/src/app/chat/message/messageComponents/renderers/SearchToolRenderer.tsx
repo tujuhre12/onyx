@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { FiSearch, FiGlobe } from "react-icons/fi";
+import { FiSearch } from "react-icons/fi";
 import {
   PacketType,
   SearchToolPacket,
@@ -7,7 +7,7 @@ import {
   SearchToolDelta,
   SectionEnd,
 } from "../../../services/streamingModels";
-import { MessageRenderer, RenderType } from "../interfaces";
+import { MessageRenderer } from "../interfaces";
 import { SourceChip2 } from "../../../components/input/ChatInputBar";
 import { ResultIcon } from "@/components/chat/sources/SourceCard";
 import { truncateString } from "@/lib/utils";
@@ -121,6 +121,11 @@ export const SearchToolRenderer: MessageRenderer<SearchToolPacket, {}> = ({
   }, []);
 
   const status = useMemo(() => {
+    // If we have documents to show, never show "Searching" status
+    if (results.length > 0) {
+      return "Searched internal documents";
+    }
+
     if (isComplete && !shouldShowAsSearching) {
       return "Searched internal documents";
     }
@@ -128,7 +133,7 @@ export const SearchToolRenderer: MessageRenderer<SearchToolPacket, {}> = ({
       return "Searching internal documents";
     }
     return null;
-  }, [isSearching, isComplete, shouldShowAsSearching]);
+  }, [isSearching, isComplete, shouldShowAsSearching, results.length]);
 
   // Don't render anything if search hasn't started
   if (queries.length === 0) {

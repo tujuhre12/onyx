@@ -20,16 +20,21 @@ import { transformLinkUri } from "@/lib/utils";
 import { isFinalAnswerComplete } from "../packetUtils";
 
 // Control the rate of packet streaming (packets per second)
-const PACKETS_PER_SECOND = 500;
-const PACKET_DELAY_MS = 1000 / PACKETS_PER_SECOND;
+const PACKET_DELAY_MS = 10;
 
 export const MessageTextRenderer: MessageRenderer<
   ChatPacket,
   FullChatState
 > = ({ packets, state, onComplete, renderType, animate }) => {
-  const [displayedPacketCount, setDisplayedPacketCount] = useState(
-    animate ? 0 : -1 // -1 means show all packets
-  );
+  // If we're animating and the final answer is already complete, show more packets initially
+  const initialPacketCount = animate
+    ? packets.length > 0
+      ? 1 // Otherwise start with 1 packet
+      : 0
+    : -1; // Show all if not animating
+
+  const [displayedPacketCount, setDisplayedPacketCount] =
+    useState(initialPacketCount);
 
   // Get the full content from all packets
   const fullContent = packets
@@ -63,7 +68,12 @@ export const MessageTextRenderer: MessageRenderer<
   // Reset displayed count when packet array changes significantly (e.g., new message)
   useEffect(() => {
     if (animate && packets.length < displayedPacketCount) {
-      setDisplayedPacketCount(0);
+      const resetCount = isFinalAnswerComplete(packets)
+        ? Math.min(10, packets.length)
+        : packets.length > 0
+          ? 1
+          : 0;
+      setDisplayedPacketCount(resetCount);
     }
   }, [animate, packets.length, displayedPacketCount]);
 

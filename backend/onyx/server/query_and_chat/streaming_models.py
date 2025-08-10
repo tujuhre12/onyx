@@ -68,6 +68,23 @@ class ImageGenerationToolDelta(BaseObj):
     images: list[dict[str, str]] | None = None
 
 
+"""Reasoning Packets"""
+
+
+class ReasoningStart(BaseObj):
+    type: Literal["reasoning_start"] = "reasoning_start"
+
+
+class ReasoningDelta(BaseObj):
+    type: Literal["reasoning_delta"] = "reasoning_delta"
+
+    reasoning: str
+
+
+class ReasoningEnd(BaseObj):
+    type: Literal["reasoning_end"] = "reasoning_end"
+
+
 """Citation Packets"""
 
 
@@ -99,6 +116,9 @@ PacketObj = Annotated[
         SearchToolDelta,
         ImageGenerationToolStart,
         ImageGenerationToolDelta,
+        ReasoningStart,
+        ReasoningDelta,
+        ReasoningEnd,
         CitationStart,
         CitationDelta,
         CitationEnd,

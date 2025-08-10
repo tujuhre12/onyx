@@ -21,9 +21,39 @@ export const CitedSourcesToggle = ({
   messageId,
   onToggle,
 }: SourcesToggleProps) => {
-  if (citations.length === 0) {
+  // If no citations but we have documents, use the first 2 documents as fallback
+  const hasContent = citations.length > 0 || documentMap.size > 0;
+  if (!hasContent) {
     return null;
   }
+
+  // Helper function to create icon for a document
+  const createDocumentIcon = (doc: OnyxDocument, documentId: string) => {
+    let sourceKey: string;
+    let iconElement: React.ReactNode;
+
+    if (doc.is_internet || doc.source_type === ValidSources.Web) {
+      // For web sources, use the hostname as the unique key
+      try {
+        const hostname = new URL(doc.link).hostname;
+        sourceKey = `web_${hostname}`;
+      } catch {
+        sourceKey = `web_${doc.link}`;
+      }
+      iconElement = <WebResultIcon key={documentId} url={doc.link} size={16} />;
+    } else {
+      sourceKey = `source_${doc.source_type}`;
+      iconElement = (
+        <SourceIcon
+          key={documentId}
+          sourceType={doc.source_type}
+          iconSize={16}
+        />
+      );
+    }
+
+    return { sourceKey, iconElement };
+  };
 
   // Get unique icons by creating a unique identifier for each source
   const getUniqueIcons = () => {
@@ -33,42 +63,32 @@ export const CitedSourcesToggle = ({
       element: React.ReactNode;
     }> = [];
 
-    for (const citation of citations) {
+    // Get documents to process - either from citations or fallback to all documents
+    const documentsToProcess =
+      citations.length > 0
+        ? citations.map((citation) => ({
+            documentId: citation.document_id,
+            doc: documentMap.get(citation.document_id),
+          }))
+        : Array.from(documentMap.entries()).map(([documentId, doc]) => ({
+            documentId,
+            doc,
+          }));
+
+    for (const { documentId, doc } of documentsToProcess) {
       if (uniqueIcons.length >= 2) break;
 
-      const doc = documentMap.get(citation.document_id);
       let sourceKey: string;
       let iconElement: React.ReactNode;
 
       if (doc) {
-        if (doc.is_internet || doc.source_type === ValidSources.Web) {
-          // For web sources, use the hostname as the unique key
-          try {
-            const hostname = new URL(doc.link).hostname;
-            sourceKey = `web_${hostname}`;
-          } catch {
-            sourceKey = `web_${doc.link}`;
-          }
-          iconElement = (
-            <WebResultIcon
-              key={citation.document_id}
-              url={doc.link}
-              size={16}
-            />
-          );
-        } else {
-          sourceKey = `source_${doc.source_type}`;
-          iconElement = (
-            <SourceIcon
-              key={citation.document_id}
-              sourceType={doc.source_type}
-              iconSize={16}
-            />
-          );
-        }
+        const iconData = createDocumentIcon(doc, documentId);
+        sourceKey = iconData.sourceKey;
+        iconElement = iconData.iconElement;
       } else {
-        sourceKey = `file_${citation.document_id}`;
-        iconElement = <FiFileText key={citation.document_id} size={16} />;
+        // Fallback for missing document (only possible with citations)
+        sourceKey = `file_${documentId}`;
+        iconElement = <FiFileText key={documentId} size={16} />;
       }
 
       if (!seenSources.has(sourceKey)) {
@@ -110,11 +130,17 @@ export const CitedSourcesToggle = ({
             {icon.element}
           </div>
         ))}
-        {citations.length > uniqueIcons.length && (
-          <span className="text-xs text-text-500 ml-1">
-            +{citations.length - uniqueIcons.length}
-          </span>
-        )}
+        {/* Show count for remaining items */}
+        {(() => {
+          const totalCount =
+            citations.length > 0 ? citations.length : documentMap.size;
+          const remainingCount = totalCount - uniqueIcons.length;
+          return remainingCount > 0 ? (
+            <span className="text-xs text-text-500 ml-1">
+              +{remainingCount}
+            </span>
+          ) : null;
+        })()}
       </div>
       <span className="text-sm text-text-700">Sources</span>
     </div>

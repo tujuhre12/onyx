@@ -19,6 +19,11 @@ export enum PacketType {
   IMAGE_GENERATION_TOOL_START = "image_generation_tool_start",
   IMAGE_GENERATION_TOOL_DELTA = "image_generation_tool_delta",
 
+  // Reasoning packets
+  REASONING_START = "reasoning_start",
+  REASONING_DELTA = "reasoning_delta",
+  REASONING_END = "reasoning_end",
+
   CITATION_START = "citation_start",
   CITATION_DELTA = "citation_delta",
   CITATION_END = "citation_end",
@@ -70,6 +75,20 @@ export interface ImageGenerationToolDelta extends BaseObj {
   images: Array<{ [key: string]: string }> | null;
 }
 
+// Reasoning Packets
+export interface ReasoningStart extends BaseObj {
+  type: "reasoning_start";
+}
+
+export interface ReasoningDelta extends BaseObj {
+  type: "reasoning_delta";
+  reasoning: string;
+}
+
+export interface ReasoningEnd extends BaseObj {
+  type: "reasoning_end";
+}
+
 // Citation Packets
 export interface StreamingCitation {
   citation_num: number;
@@ -104,12 +123,15 @@ export type ImageGenerationToolObj =
   | SectionEnd;
 export type NewToolObj = SearchToolObj | ImageGenerationToolObj;
 
+export type ReasoningObj = ReasoningStart | ReasoningDelta | ReasoningEnd;
+
 export type CitationObj = CitationStart | CitationDelta | CitationEnd;
 
 // Union type for all possible streaming objects
 export type ObjTypes =
   | ChatObj
   | NewToolObj
+  | ReasoningObj
   | StopObj
   | SectionEndObj
   | CitationObj;
@@ -144,6 +166,11 @@ export interface SearchToolPacket {
 export interface ImageGenerationToolPacket {
   ind: number;
   obj: ImageGenerationToolObj;
+}
+
+export interface ReasoningPacket {
+  ind: number;
+  obj: ReasoningObj;
 }
 
 export interface SectionEndPacket {
