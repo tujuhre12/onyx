@@ -20,7 +20,10 @@ import { FilterManager } from "@/lib/hooks";
 import { OnyxDocument } from "@/lib/search/interfaces";
 import { FileDescriptor } from "../interfaces";
 import { FileResponse, FolderResponse } from "../my-documents/DocumentsContext";
-import { useChatSessionStore } from "../stores/useChatSessionStore";
+import {
+  useChatSessionStore,
+  useCurrentMessageHistory,
+} from "../stores/useChatSessionStore";
 
 interface UseChatSessionControllerProps {
   existingChatSessionId: string | null;
@@ -80,8 +83,6 @@ export function useChatSessionController({
   refreshChatSessions,
   onSubmit,
 }: UseChatSessionControllerProps) {
-  const router = useRouter();
-
   // Store actions
   const updateSessionAndMessageTree = useChatSessionStore(
     (state) => state.updateSessionAndMessageTree
@@ -108,6 +109,7 @@ export function useChatSessionController({
     (state) =>
       state.sessions.get(state.currentSessionId || "")?.chatState || "input"
   );
+  const currentChatHistory = useCurrentMessageHistory();
 
   // Fetch chat messages for the chat session
   useEffect(() => {
@@ -274,7 +276,23 @@ export function useChatSessionController({
       }
     }
 
-    initialSessionFetch();
+    // SKIP_RELOAD is used after completing the first message in a new session.
+    // We don't need to re-fetch at that point, we have everything we need.
+    // For safety, we should always re-fetch if there are no messages in the chat history.
+    if (
+      !searchParams?.get(SEARCH_PARAM_NAMES.SKIP_RELOAD) ||
+      currentChatHistory.length === 0
+    ) {
+      initialSessionFetch();
+    } else {
+      // Remove SKIP_RELOAD param without triggering a page reload
+      const currentSearchParams = new URLSearchParams(searchParams?.toString());
+      if (currentSearchParams.has(SEARCH_PARAM_NAMES.SKIP_RELOAD)) {
+        currentSearchParams.delete(SEARCH_PARAM_NAMES.SKIP_RELOAD);
+        const newUrl = `${window.location.pathname}${currentSearchParams.toString() ? "?" + currentSearchParams.toString() : ""}`;
+        window.history.replaceState({}, "", newUrl);
+      }
+    }
   }, [
     existingChatSessionId,
     searchParams?.get(SEARCH_PARAM_NAMES.PERSONA_ID),

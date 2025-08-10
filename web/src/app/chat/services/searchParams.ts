@@ -21,6 +21,10 @@ export const SEARCH_PARAM_NAMES = {
   // for seeding chats
   SEEDED: "seeded",
   SEND_ON_LOAD: "send-on-load",
+
+  // when sending a message for the first time, we don't want to reload the page
+  // and cause a re-render
+  SKIP_RELOAD: "skip-reload",
 };
 
 export function shouldSubmitOnLoad(

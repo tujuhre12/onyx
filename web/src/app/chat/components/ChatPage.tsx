@@ -1,12 +1,7 @@
 "use client";
 
 import { redirect, useRouter, useSearchParams } from "next/navigation";
-import {
-  ChatFileType,
-  ChatSession,
-  ChatSessionSharedStatus,
-  Message,
-} from "../interfaces";
+import { ChatSession, ChatSessionSharedStatus, Message } from "../interfaces";
 
 import Cookies from "js-cookie";
 import { HistorySidebar } from "@/components/sidebar/HistorySidebar";
@@ -38,7 +33,7 @@ import { FeedbackModal } from "./modal/FeedbackModal";
 import { ShareChatSessionModal } from "./modal/ShareChatSessionModal";
 import { FiArrowDown } from "react-icons/fi";
 import { ChatIntro } from "./ChatIntro";
-import { AIMessage, HumanMessage } from "../message/Messages";
+import { HumanMessage } from "../message/Messages";
 import { StarterMessages } from "../../../components/assistants/StarterMessage";
 import { OnyxDocument, MinimalOnyxDocument } from "@/lib/search/interfaces";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
@@ -54,7 +49,7 @@ import {
 } from "@/components/resizable/constants";
 import FixedLogo from "@/components/logo/FixedLogo";
 import ExceptionTraceModal from "@/components/modals/ExceptionTraceModal";
-import { SEARCH_TOOL_ID, SEARCH_TOOL_NAME } from "./tools/constants";
+import { SEARCH_TOOL_ID } from "./tools/constants";
 import { useUser } from "@/components/user/UserProvider";
 import { ApiKeyModal } from "@/components/llm/ApiKeyModal";
 import BlurBackground from "../../../components/chat/BlurBackground";
@@ -93,9 +88,7 @@ import {
   useCurrentChatState,
   useCurrentRegenerationState,
   useSubmittedMessage,
-  useCanContinue,
   useAgenticGenerating,
-  useUncaughtError,
   useLoadingError,
   useIsReady,
   useIsFetching,
@@ -107,7 +100,7 @@ import {
   useChatSessionSharedStatus,
   useHasSentLocalUserMessage,
 } from "../stores/useChatSessionStore";
-import { SimpleMessage } from "../message/messageComponents/SimpleMessage";
+import { AIMessage } from "../message/messageComponents/AIMessage";
 import { FederatedOAuthModal } from "@/components/chat/FederatedOAuthModal";
 
 export function ChatPage({
@@ -486,7 +479,6 @@ export function ChatPage({
 
   // Access chat state directly from the store
   const currentChatState = useCurrentChatState();
-  const currentRegenerationState = useCurrentRegenerationState();
   const chatSessionId = useChatSessionStore((state) => state.currentSessionId);
   const submittedMessage = useSubmittedMessage();
   const agenticGenerating = useAgenticGenerating();
@@ -1190,7 +1182,7 @@ export function ChatPage({
                                         : null
                                     }
                                   >
-                                    <SimpleMessage
+                                    <AIMessage
                                       rawPackets={message.packets}
                                       chatState={{
                                         handleFeedback: (feedback) =>
@@ -1219,50 +1211,9 @@ export function ChatPage({
                                     />
                                   </div>
                                 );
-                              } else {
-                                return (
-                                  <div key={messageReactComponentKey}>
-                                    <AIMessage
-                                      setPresentingDocument={
-                                        setPresentingDocument
-                                      }
-                                      key={-2}
-                                      currentPersona={liveAssistant}
-                                      messageId={message.messageId}
-                                      content={
-                                        <ErrorBanner
-                                          resubmit={handleResubmitLastMessage}
-                                          error={message.message}
-                                          showStackTrace={
-                                            message.stackTrace
-                                              ? () =>
-                                                  setStackTraceModalContent(
-                                                    message.stackTrace!
-                                                  )
-                                              : undefined
-                                          }
-                                        />
-                                      }
-                                    />
-                                  </div>
-                                );
                               }
                             })}
 
-                            {loadingError && (
-                              <div key={-1}>
-                                <AIMessage
-                                  setPresentingDocument={setPresentingDocument}
-                                  currentPersona={liveAssistant}
-                                  messageId={-1}
-                                  content={
-                                    <p className="text-red-700 text-sm my-auto">
-                                      {loadingError}
-                                    </p>
-                                  }
-                                />
-                              </div>
-                            )}
                             {messageHistory.length > 0 && (
                               <div
                                 style={{
