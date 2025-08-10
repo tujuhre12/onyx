@@ -1,11 +1,5 @@
 import React, { useEffect, useMemo } from "react";
-import {
-  FiCpu,
-  FiFile,
-  FiDatabase,
-  FiExternalLink,
-  FiDownload,
-} from "react-icons/fi";
+import { FiExternalLink, FiDownload, FiTool } from "react-icons/fi";
 import {
   PacketType,
   CustomToolPacket,
@@ -69,11 +63,7 @@ export const CustomToolRenderer: MessageRenderer<CustomToolPacket, {}> = ({
     return null;
   }, [toolName, responseType, isComplete, isRunning]);
 
-  const icon = useMemo(() => {
-    if (responseType === "image" || responseType === "csv") return FiFile;
-    if (responseType === "json" || responseType === "text") return FiDatabase;
-    return FiCpu;
-  }, [responseType]);
+  const icon = FiTool;
 
   if (renderType === RenderType.HIGHLIGHT) {
     return {
@@ -92,31 +82,25 @@ export const CustomToolRenderer: MessageRenderer<CustomToolPacket, {}> = ({
     icon,
     status,
     content: (
-      <div className="flex flex-col">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            {status}
-          </span>
-        </div>
-
+      <div className="flex flex-col gap-3">
         {/* File responses */}
         {fileIds && fileIds.length > 0 && (
-          <div className="ml-6 text-sm text-muted-foreground flex flex-col gap-2">
+          <div className="text-sm text-muted-foreground flex flex-col gap-2">
             {fileIds.map((fid, idx) => (
-              <div key={fid} className="flex items-center gap-2">
-                <span>File {idx + 1}</span>
+              <div key={fid} className="flex items-center gap-2 flex-wrap">
+                <span className="whitespace-nowrap">File {idx + 1}</span>
                 <a
                   href={buildImgUrl(fid)}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline whitespace-nowrap"
                 >
                   <FiExternalLink className="w-3 h-3" /> Open
                 </a>
                 <a
                   href={buildImgUrl(fid)}
                   download
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline whitespace-nowrap"
                 >
                   <FiDownload className="w-3 h-3" /> Download
                 </a>
@@ -127,9 +111,16 @@ export const CustomToolRenderer: MessageRenderer<CustomToolPacket, {}> = ({
 
         {/* JSON/Text responses */}
         {data !== undefined && data !== null && (
-          <pre className="ml-6 text-xs bg-muted p-3 rounded-md overflow-auto max-h-64">
+          <div className="text-xs bg-gray-50 dark:bg-gray-800 p-3 rounded border max-h-96 overflow-y-auto font-mono whitespace-pre-wrap break-all">
             {typeof data === "string" ? data : JSON.stringify(data, null, 2)}
-          </pre>
+          </div>
+        )}
+
+        {/* Show placeholder if no response data yet */}
+        {!fileIds && (data === undefined || data === null) && isRunning && (
+          <div className="text-xs text-gray-500 italic">
+            Waiting for response...
+          </div>
         )}
       </div>
     ),
