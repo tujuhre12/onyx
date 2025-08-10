@@ -68,6 +68,23 @@ class ImageGenerationToolDelta(BaseObj):
     images: list[dict[str, str]] | None = None
 
 
+class CustomToolStart(BaseObj):
+    type: Literal["custom_tool_start"] = "custom_tool_start"
+
+    tool_name: str
+
+
+class CustomToolDelta(BaseObj):
+    type: Literal["custom_tool_delta"] = "custom_tool_delta"
+
+    tool_name: str
+    response_type: str
+    # For non-file responses
+    data: dict | list | str | int | float | bool | None = None
+    # For file-based responses like image/csv
+    file_ids: list[str] | None = None
+
+
 """Reasoning Packets"""
 
 
@@ -116,6 +133,8 @@ PacketObj = Annotated[
         SearchToolDelta,
         ImageGenerationToolStart,
         ImageGenerationToolDelta,
+        CustomToolStart,
+        CustomToolDelta,
         ReasoningStart,
         ReasoningDelta,
         ReasoningEnd,

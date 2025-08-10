@@ -42,6 +42,8 @@ from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.streaming_models import CitationDelta
 from onyx.server.query_and_chat.streaming_models import CitationEnd
 from onyx.server.query_and_chat.streaming_models import CitationStart
+from onyx.server.query_and_chat.streaming_models import CustomToolDelta
+from onyx.server.query_and_chat.streaming_models import CustomToolStart
 from onyx.server.query_and_chat.streaming_models import ImageGenerationToolStart
 from onyx.server.query_and_chat.streaming_models import MessageDelta
 from onyx.server.query_and_chat.streaming_models import MessageEnd
@@ -50,8 +52,14 @@ from onyx.server.query_and_chat.streaming_models import OverallStop
 from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.server.query_and_chat.streaming_models import SearchToolDelta
 from onyx.server.query_and_chat.streaming_models import SearchToolStart
+from onyx.server.query_and_chat.streaming_models import SectionEnd
 from onyx.tools.models import ToolCallKickoff
 from onyx.tools.models import ToolResponse
+from onyx.tools.tool_implementations.custom.custom_tool import CUSTOM_TOOL_RESPONSE_ID
+from onyx.tools.tool_implementations.custom.custom_tool import CustomToolCallSummary
+from onyx.tools.tool_implementations.custom.custom_tool import (
+    CustomToolUserFileSnapshot,
+)
 from onyx.tools.tool_implementations.images.image_generation_tool import (
     IMAGE_GENERATION_RESPONSE_ID,
 )
@@ -200,6 +208,17 @@ def process_streamed_packets(
                     ),
                 )
 
+            # Fallback: treat unknown tool kickoffs as custom tool start
+            elif packet.tool_name not in {
+                "run_search",
+                "run_internet_search",
+                "run_image_generation",
+            }:
+                yield Packet(
+                    ind=current_tool_index,
+                    obj=CustomToolStart(tool_name=packet.tool_name),
+                )
+
         elif isinstance(packet, ToolResponse):
             # Ensure we have a tool index; fallback to current packet_index if needed
             if current_tool_index is None:
@@ -240,6 +259,43 @@ def process_streamed_packets(
                 )
                 ongoing_image_generation = (
                     False  # Reset image generation state when tool ends
+                )
+
+            elif packet.id == CUSTOM_TOOL_RESPONSE_ID:
+                summary = cast(CustomToolCallSummary, packet.response)
+                # Emit start if not already started for this index
+                # We emit start once per custom tool index
+                yield Packet(
+                    ind=current_tool_index,
+                    obj=CustomToolStart(tool_name=summary.tool_name),
+                )
+
+                # Decide whether we have file outputs or data
+                file_ids: list[str] | None = None
+                data: dict | list | str | int | float | bool | None = None
+                if summary.response_type in ("image", "csv"):
+                    try:
+                        snapshot = cast(CustomToolUserFileSnapshot, summary.tool_result)
+                        file_ids = snapshot.file_ids
+                    except Exception:
+                        file_ids = None
+                else:
+                    data = summary.tool_result  # type: ignore[assignment]
+
+                yield Packet(
+                    ind=current_tool_index,
+                    obj=CustomToolDelta(
+                        tool_name=summary.tool_name,
+                        response_type=summary.response_type,
+                        data=data,
+                        file_ids=file_ids,
+                    ),
+                )
+
+                # End this tool section
+                yield Packet(
+                    ind=current_tool_index,
+                    obj=SectionEnd(),
                 )
 
         elif isinstance(packet, StreamStopInfo):

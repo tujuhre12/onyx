@@ -11,6 +11,8 @@ export function isToolPacket(packet: Packet) {
     packet.obj.type === PacketType.SEARCH_TOOL_DELTA ||
     packet.obj.type === PacketType.IMAGE_GENERATION_TOOL_START ||
     packet.obj.type === PacketType.IMAGE_GENERATION_TOOL_DELTA ||
+    packet.obj.type === PacketType.CUSTOM_TOOL_START ||
+    packet.obj.type === PacketType.CUSTOM_TOOL_DELTA ||
     packet.obj.type === PacketType.REASONING_START ||
     packet.obj.type === PacketType.REASONING_DELTA ||
     packet.obj.type === PacketType.REASONING_END ||
