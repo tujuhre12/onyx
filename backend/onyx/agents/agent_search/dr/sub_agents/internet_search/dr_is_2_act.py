@@ -4,7 +4,6 @@ from typing import cast
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
-from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import SearchAnswer
@@ -72,17 +71,11 @@ def internet_search(
     if graph_config.inputs.persona is None:
         raise ValueError("persona is not set")
 
-    internet_search_tool: InternetSearchTool | None = None
-    for tool in graph_config.tooling.tools:
-        if tool.name == "run_internet_search":
-            internet_search_tool = cast(InternetSearchTool, tool)
-            break
-    internet_search_tool_id = internet_search_tool.id if internet_search_tool else None
-    if internet_search_tool_id is None:
-        raise ValueError("Internet search tool id is not set. This should not happen.")
+    if not state.available_tools:
+        raise ValueError("available_tools is not set")
 
-    if internet_search_tool is None:
-        raise ValueError("internet_search_tool is not set. This should not happen.")
+    is_tool_info = state.available_tools[state.tools_used[-1]]
+    internet_search_tool = cast(InternetSearchTool, is_tool_info.tool_object)
 
     if internet_search_tool.provider is None:
         raise ValueError(
@@ -179,10 +172,10 @@ def internet_search(
     return BranchUpdate(
         branch_iteration_responses=[
             IterationAnswer(
-                tool=DRPath.INTERNET_SEARCH,
+                tool=is_tool_info.llm_path,
+                tool_id=is_tool_info.tool_id,
                 iteration_nr=iteration_nr,
                 parallelization_nr=parallelization_nr,
-                tool_id=internet_search_tool_id,
                 question=search_query,
                 answer=answer_string,
                 claims=claims,
@@ -193,8 +186,8 @@ def internet_search(
         ],
         log_messages=[
             get_langgraph_node_log_string(
-                graph_component="main",
-                node_name="search",
+                graph_component="internet_search",
+                node_name="searching",
                 node_start_time=node_start_time,
             )
         ],

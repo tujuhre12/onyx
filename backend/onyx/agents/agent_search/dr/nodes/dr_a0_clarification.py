@@ -67,9 +67,9 @@ def _format_tool_name(tool_name: str) -> str:
 
 def _get_available_tools(
     graph_config: GraphConfig, kg_enabled: bool
-) -> list[OrchestratorTool]:
+) -> dict[str, OrchestratorTool]:
 
-    available_tools: list[OrchestratorTool] = []
+    available_tools: dict[str, OrchestratorTool] = {}
     for tool in graph_config.tooling.tools:
         tool_info = OrchestratorTool(
             tool_id=tool.id,
@@ -79,6 +79,7 @@ def _get_available_tools(
             description=tool.description,
             metadata={},
             cost=1.0,
+            tool_object=tool,
         )
 
         if isinstance(tool, CustomTool):
@@ -107,29 +108,28 @@ def _get_available_tools(
         tool_info.description = TOOL_DESCRIPTION.get(tool_info.path, tool.description)
         tool_info.cost = AVERAGE_TOOL_COSTS[tool_info.path]
 
-        available_tools.append(tool_info)
+        # TODO: handle custom tools with same name as other tools (e.g., CLOSER)
+        available_tools[tool_info.llm_path] = tool_info
 
     # make sure KG isn't enabled without internal search
-    available_paths = [tool.path for tool in available_tools]
     if (
-        DRPath.KNOWLEDGE_GRAPH in available_paths
-        and DRPath.INTERNAL_SEARCH not in available_paths
+        DRPath.KNOWLEDGE_GRAPH.value in available_tools
+        and DRPath.INTERNAL_SEARCH.value not in available_tools
     ):
         raise ValueError(
             "The Knowledge Graph is not supported without internal search tool"
         )
 
     # add CLOSER tool, which is always available
-    available_tools.append(
-        OrchestratorTool(
-            tool_id=-1,
-            name="closer",
-            llm_path=DRPath.CLOSER.value,
-            path=DRPath.CLOSER,
-            description=TOOL_DESCRIPTION[DRPath.CLOSER],
-            metadata={},
-            cost=0.0,
-        )
+    available_tools[DRPath.CLOSER.value] = OrchestratorTool(
+        tool_id=-1,
+        name="closer",
+        llm_path=DRPath.CLOSER.value,
+        path=DRPath.CLOSER,
+        description=TOOL_DESCRIPTION[DRPath.CLOSER],
+        metadata={},
+        cost=0.0,
+        tool_object=None,
     )
 
     return available_tools

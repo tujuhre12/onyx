@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.context.search.models import InferenceSection
+from onyx.tools.tool import Tool
 
 
 class OrchestratorStep(BaseModel):
@@ -59,6 +60,10 @@ class OrchestratorTool(BaseModel):
     description: str
     metadata: dict[str, str]
     cost: float
+    tool_object: Tool | None = None  # None for CLOSER
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class IterationInstructions(BaseModel):
@@ -71,11 +76,10 @@ class IterationInstructions(BaseModel):
 class GenericToolAnswer(BaseModel):
     reasoning: str
     answer: str
-    background_info: str
 
 
 class IterationAnswer(BaseModel):
-    tool: DRPath
+    tool: str
     tool_id: int
     iteration_nr: int
     parallelization_nr: int

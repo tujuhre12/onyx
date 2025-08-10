@@ -695,16 +695,11 @@ relevant to the question sent to you.
 )
 
 
-TOOL_PROCESSING_PROMPT = PromptTemplate(
+CUSTOM_TOOL_USE_W_TOOL_CALLING_PROMPT = PromptTemplate(
     f"""\
-You are a helpful assistant that is great at summarizing and processing the \
-response of a tool as it is relevent to a broader user question. You can use the \
-provided documents, the specific task sent to the tool, \
-and the \
-overall user query that needs to be ultimately answered, to provide a succinct, relevant, and grounded \
-answer for a specific task directed to thetool. Although your response should \
-pertain mainly to the specific task \
-query, also keep in mind the base query to provide valuable insights for answering the main too.
+You are a helpful assistant that can use tools to answer a user's question.
+Note that your task is to answer the specific task query provided below, but the \
+overall question that needs to be answered is also provided below for additional context.
 
 Here is the specific task query:
 {SEPARATOR_LINE}
@@ -716,48 +711,36 @@ Here is the base question that ultimately needs to be answered:
 ---base_question---
 {SEPARATOR_LINE}
 
-And here is the list of documents that you must use to answer the specific search query:
-{SEPARATOR_LINE}
----document_text---
-{SEPARATOR_LINE}
-
 Notes:
-   - only use documents that are relevant to the specific task AND you KNOW apply \
-to the context of the question! Example: context is about what Nike was doing to drive sales, \
-and the question is about what Puma is doing to drive sales, DO NOT USE ANY INFORMATION \
-from the information from Nike! In fact, even if the context does not discuss driving \
-sales for Nike but about driving sales w/o mentioning any company (incl. Puma!), you \
-still cannot use the information! You MUST be sure that the context is correct. If in \
-doubt, don't use that document!
+   - clearly state in your answer if the tool response did not provide relevant information, \
+or the response does not apply to this specific context. Do not make up information!
    - It is critical to avoid hallucinations as well as taking information out of context.
    - clearly indicate any assumptions you make in your answer.
-   - while the base question is important, really focus on answering the specific search query. \
+   - while the base question is important, really focus on answering the specific task query. \
 That is your task.
-   - again, do not use/cite any documents that you are not 100% sure are relevant to the \
-SPECIFIC context \
-of the question! And do NOT GUESS HERE and say 'oh, it is reasonable that this context applies here'. \
-DO NOT DO THAT. If the question is about 'yellow curry' and you only see information about 'curry', \
-say something like 'there is no mention of yellow curry specifically', and IGNORE THAT DOCUMENT. But \
-if you still strongly suspect the document is relevant, you can use it, but you MUST clearly \
-indicate that you are not 100% sure and that the document does not mention 'yellow curry'. (As \
-an example.)
-If the specific term or concept is not present, the answer should explicitly state its absence before \
-providing any related information.
-   - Always begin your answer with a direct statement about whether the exact term or phrase, or \
-the exact meaning was found in the documents.
-   - only provide a SHORT answer that i) provides the requested information if the question was \
-very specific, ii) cites the relevant documents at the end, and iii) provides a BRIEF HIGH-LEVEL \
-summary of the information in the cited documents, and cite the documents that are most \
-relevant to the question sent to you.
 
-{TOOL_OUTPUT_FORMAT}
+Please format your answer as a json dictionary in the following format:
+{{
+   "reasoning": "<your reasoning in 5-8 sentences of what guides you to your conclusions of \
+the specific task query given the documents. Start out here with a brief statement whether \
+the SPECIFIC CONTEXT is mentioned in the documents. (Example: 'I was not able to find information \
+about yellow curry specifically, but I found information about curry...'). Generate here the \
+information that will be necessary to provide a succinct answer to the specific task query. >",
+   "answer": "<the specific answer to the specific task query. This may involve some reasoning over \
+the documents. Again, start out here as well with a brief statement whether the SPECIFIC CONTEXT is \
+mentioned in the documents. (Example: 'I was not able to find information about yellow curry specifically, \
+but I found information about curry...'). But this should be be precise and concise, and specifically \
+answer the question.>",
+}}
 """
 )
+
+CUSTOM_TOOL_USE_WO_TOOL_CALLING_PROMPT = ""  # TODO: not implemented
 
 
 TEST_INFO_COMPLETE_PROMPT = PromptTemplate(
     f"""\
-You are a helpful assistant that is an expert iun trying to determine whether \
+You are a helpful assistant that is an expert at trying to determine whether \
 a high-level plan created to gather information in pursuit of a higher-level \
 problem has been sufficiently completed AND the higher-level problem \
 can be addressed. This determination is done by looking at the information gathered so far.

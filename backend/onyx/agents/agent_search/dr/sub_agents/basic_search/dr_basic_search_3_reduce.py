@@ -36,7 +36,7 @@ def is_reducer(
         iteration_responses=new_updates,
         log_messages=[
             get_langgraph_node_log_string(
-                graph_component="internet_search",
+                graph_component="basic_search",
                 node_name="consolidation",
                 node_start_time=node_start_time,
             )

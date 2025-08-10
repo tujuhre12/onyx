@@ -1,17 +1,14 @@
 from datetime import datetime
-from typing import cast
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
-from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.sub_agents.states import BranchInput
 from onyx.agents.agent_search.dr.sub_agents.states import BranchUpdate
 from onyx.agents.agent_search.dr.utils import extract_document_citations
 from onyx.agents.agent_search.kb_search.graph_builder import kb_graph_builder
 from onyx.agents.agent_search.kb_search.states import MainInput as KbMainInput
-from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
@@ -36,19 +33,14 @@ def kg_search(
     if not search_query:
         raise ValueError("search_query is not set")
 
-    graph_config = cast(GraphConfig, config["metadata"]["config"])
-
     logger.debug(
         f"Search start for KG Search {iteration_nr}.{parallelization_nr} at {datetime.now()}"
     )
 
-    kg_tool_id = None
-    for tool in graph_config.tooling.tools:
-        if tool.name == "run_kg_search":
-            kg_tool_id = tool.id
-            break
-    if kg_tool_id is None:
-        raise ValueError("Knowledge graph tool id is not set. This should not happen.")
+    if not state.available_tools:
+        raise ValueError("available_tools is not set")
+
+    kg_tool_info = state.available_tools[state.tools_used[-1]]
 
     kb_graph = kb_graph_builder().compile()
 
@@ -82,10 +74,10 @@ def kg_search(
     return BranchUpdate(
         branch_iteration_responses=[
             IterationAnswer(
-                tool=DRPath.KNOWLEDGE_GRAPH,
+                tool=kg_tool_info.llm_path,
+                tool_id=kg_tool_info.tool_id,
                 iteration_nr=iteration_nr,
                 parallelization_nr=parallelization_nr,
-                tool_id=kg_tool_id,
                 question=search_query,
                 answer=answer_string,
                 claims=claims,
@@ -96,8 +88,8 @@ def kg_search(
         ],
         log_messages=[
             get_langgraph_node_log_string(
-                graph_component="main",
-                node_name="search",
+                graph_component="kg_search",
+                node_name="searching",
                 node_start_time=node_start_time,
             )
         ],

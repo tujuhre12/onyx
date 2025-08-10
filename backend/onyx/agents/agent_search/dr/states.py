@@ -26,13 +26,11 @@ class OrchestrationUpdate(LoggerUpdate):
     tools_used: Annotated[list[str], add] = []
     query_list: list[str] = []
     iteration_nr: int = 0
-    plan_of_record: OrchestrationPlan | None = None  # None for FAST TimeBudget
+    plan_of_record: OrchestrationPlan | None = None  # None for Thoughtful
     remaining_time_budget: float = 2.0  # set by default to about 2 searches
     clarification: OrchestrationClarificationInfo | None = None
-    available_tools: list[OrchestratorTool] | None = None
-    num_closer_suggestions: int = (
-        0  # how many times the closer was suggested. (Closer can send back now.)
-    )
+    available_tools: dict[str, OrchestratorTool] | None = None
+    num_closer_suggestions: int = 0  # how many times the closer was suggested
     gaps: list[str] = (
         []
     )  # gaps that may be identified by the closer before being able to answer the question.

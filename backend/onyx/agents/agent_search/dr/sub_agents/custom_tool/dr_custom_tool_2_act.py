@@ -4,23 +4,16 @@ from typing import cast
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
-from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.models import GenericToolAnswer
 from onyx.agents.agent_search.dr.models import IterationAnswer
-from onyx.agents.agent_search.dr.sub_agents.custom_tool.dr_custom_tool_states import (
-    CustomToolBranchInput,
-)
-from onyx.agents.agent_search.dr.sub_agents.custom_tool.dr_custom_tool_states import (
-    GenericToolBranchUpdate,
-)
+from onyx.agents.agent_search.dr.states import AnswerUpdate
+from onyx.agents.agent_search.dr.sub_agents.states import BranchInput
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.llm import invoke_llm_json
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
-from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
-from onyx.chat.models import AgentAnswerPiece
-from onyx.prompts.dr_prompts import TOOL_PROCESSING_PROMPT
+from onyx.prompts.dr_prompts import CUSTOM_TOOL_USE_W_TOOL_CALLING_PROMPT
 from onyx.tools.tool_implementations.custom.custom_tool import CUSTOM_TOOL_RESPONSE_ID
 from onyx.tools.tool_implementations.custom.custom_tool import CustomTool
 from onyx.tools.tool_implementations.custom.custom_tool import CustomToolCallSummary
@@ -30,10 +23,10 @@ logger = setup_logger()
 
 
 def custom_tool_act(
-    state: CustomToolBranchInput,
+    state: BranchInput,
     config: RunnableConfig,
     writer: StreamWriter = lambda _: None,
-) -> GenericToolBranchUpdate:
+) -> AnswerUpdate:
     """
     LangGraph node to perform a generic tool call as part of the DR process.
     """
@@ -41,121 +34,88 @@ def custom_tool_act(
     node_start_time = datetime.now()
     iteration_nr = state.iteration_nr
     parallelization_nr = state.parallelization_nr
-    tool_dict = state.tool_dict
-    tool_name = tool_dict["name"]
 
-    query = state.branch_question
-    if not query:
-        raise ValueError("query is not set")
+    if not state.available_tools:
+        raise ValueError("available_tools is not set")
 
-    write_custom_event(
-        "basic_response",
-        AgentAnswerPiece(
-            answer_piece=(
-                f"SUB-QUERY {iteration_nr}.{parallelization_nr} "
-                f"({tool_name.upper()}): {query}\n\n"
-            ),
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
+    custom_tool_info = state.available_tools[state.tools_used[-1]]
+    custom_tool_name = custom_tool_info.llm_path
+    custom_tool = cast(CustomTool, custom_tool_info.tool_object)
+
+    branch_query = state.branch_question
+    if not branch_query:
+        raise ValueError("branch_query is not set")
 
     graph_config = cast(GraphConfig, config["metadata"]["config"])
     base_question = graph_config.inputs.prompt_builder.raw_user_query
 
     logger.debug(
-        f"Search start for {tool_name.upper()} {iteration_nr}.{parallelization_nr} at {datetime.now()}"
+        f"Tool call start for {custom_tool_name} {iteration_nr}.{parallelization_nr} at {datetime.now()}"
     )
 
-    if graph_config.inputs.persona is None:
-        raise ValueError("persona is not set")
+    # call tool and generate response
+    if graph_config.tooling.using_tool_calling_llm:
+        tool_use_prompt = CUSTOM_TOOL_USE_W_TOOL_CALLING_PROMPT.build(
+            query=branch_query,
+            base_question=base_question,
+        )
+        # TODO: this fails, probably can't use both structured response and tool calling
+        tool_use_response = invoke_llm_json(
+            llm=graph_config.tooling.primary_llm,
+            prompt=tool_use_prompt,
+            schema=GenericToolAnswer,
+            timeout_override=40,
+            # max_tokens=1500,
+            tools=[custom_tool.tool_definition()],
+            tool_choice="required",
+        )
+    else:
+        # get tool args for non-tool-calling LLM
+        tool_args = custom_tool.get_args_for_non_tool_calling_llm(
+            query=branch_query,
+            history=[],
+            llm=graph_config.tooling.primary_llm,
+            force_run=True,
+        )
+        if tool_args is None:
+            raise ValueError("Failed to call custom tool")
 
-    custom_tool: CustomTool | None = None
-    custom_tool_id = None
+        # call tool with args
+        response: CustomToolCallSummary | None = None
+        for tool_response in custom_tool.run(**tool_args):
+            if tool_response.id == CUSTOM_TOOL_RESPONSE_ID:
+                response = cast(CustomToolCallSummary, tool_response.response)
+                break
 
-    for tool in graph_config.tooling.tools:
-        if tool.name == tool_name:
-            custom_tool = cast(CustomTool, tool)
-            custom_tool_id = tool.id
-            break
-    if custom_tool_id is None:
-        raise ValueError("Custom tool id is not set. This should not happen.")
+        if not response:
+            raise ValueError("Failed to call custom tool")
 
-    if custom_tool is None:
-        raise ValueError("Tool is not set. This should not happen.")
-
-    for tool_response in custom_tool.run(internet_search_query=query):
-        # get retrieved docs to send to the rest of the graph
-        if tool_response.id == CUSTOM_TOOL_RESPONSE_ID:
-            tool_response.response.response_type
-            cast(CustomToolCallSummary, tool_response.response)
-            # TODO: properly handle responses for varying formats
-            break
-
-    document_texts = "<TODO: add document texts>"
+        # TODO: use response and generate GenericToolAnswer
+        raise NotImplementedError("Not implemented")
 
     logger.debug(
-        f"Search end/LLM start for {tool_name.upper()} {iteration_nr}.{parallelization_nr} at {datetime.now()}"
+        f"Tool call end for {custom_tool_name} {iteration_nr}.{parallelization_nr} at {datetime.now()}"
     )
 
-    # Built prompt
-    search_prompt = TOOL_PROCESSING_PROMPT.build(
-        search_query=query,
-        base_question=base_question,
-        document_text=document_texts,
-    )
-
-    # Run LLM
-
-    tool_answer_json = invoke_llm_json(
-        llm=graph_config.tooling.primary_llm,
-        prompt=search_prompt,
-        schema=GenericToolAnswer,
-        timeout_override=40,
-        # max_tokens=1500,
-    )
-
-    logger.debug(
-        f"LLM/all done for {tool_name.upper()} {iteration_nr}.{parallelization_nr} at {datetime.now()}"
-    )
-
-    write_custom_event(
-        "basic_response",
-        AgentAnswerPiece(
-            answer_piece=f"ANSWERED {iteration_nr}.{parallelization_nr}\n\n",
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
-
-    # get all citations and remove them from the answer to avoid
-    # incorrect citations when the documents get reordered by the closer
-    background_info_string = tool_answer_json.background_info
-    answer_string = tool_answer_json.answer
-
-    return GenericToolBranchUpdate(
-        branch_iteration_responses=[
+    return AnswerUpdate(
+        iteration_responses=[
             IterationAnswer(
-                tool=DRPath.GENERIC_TOOL,
+                tool=custom_tool_name,
+                tool_id=custom_tool_info.tool_id,
                 iteration_nr=iteration_nr,
-                tool_id=custom_tool_id,
                 parallelization_nr=parallelization_nr,
-                question=query,
-                answer=answer_string,
+                question=branch_query,
+                answer=tool_use_response.answer,
+                claims=[],
                 cited_documents={},
-                background_info=background_info_string,
-                reasoning=tool_answer_json.reasoning,
+                reasoning=tool_use_response.reasoning,
                 additional_data=None,
             )
         ],
         log_messages=[
             get_langgraph_node_log_string(
-                graph_component="main",
-                node_name="search",
+                graph_component="custom_tool",
+                node_name="tool_calling",
                 node_start_time=node_start_time,
             )
         ],

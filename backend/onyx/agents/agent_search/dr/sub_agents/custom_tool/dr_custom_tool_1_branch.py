@@ -3,12 +3,8 @@ from datetime import datetime
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
-from onyx.agents.agent_search.dr.sub_agents.custom_tool.dr_custom_tool_states import (
-    CustomToolSubAgentInput,
-)
-from onyx.agents.agent_search.dr.sub_agents.custom_tool.dr_custom_tool_states import (
-    CustomToolSubAgentPrepareUpdate,
-)
+from onyx.agents.agent_search.dr.states import LoggerUpdate
+from onyx.agents.agent_search.dr.sub_agents.states import SubAgentInput
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
@@ -18,32 +14,21 @@ logger = setup_logger()
 
 
 def custom_tool_branch(
-    state: CustomToolSubAgentInput,
-    config: RunnableConfig,
-    writer: StreamWriter = lambda _: None,
-) -> CustomToolSubAgentPrepareUpdate:
+    state: SubAgentInput, config: RunnableConfig, writer: StreamWriter = lambda _: None
+) -> LoggerUpdate:
     """
     LangGraph node to perform a generic tool call as part of the DR process.
     """
 
     node_start_time = datetime.now()
-    tool_name = state.query_path[-1]
+    iteration_nr = state.iteration_nr
 
-    if not state.available_tools:
-        raise ValueError("available_tools is not set")
+    logger.debug(f"Search start for Generic Tool {iteration_nr} at {datetime.now()}")
 
-    tool_dict: dict[str, str] = {}
-    for available_tool_dict in state.available_tools:
-        if available_tool_dict["name"] == tool_name:
-            tool_dict = available_tool_dict
-            break
-
-    return CustomToolSubAgentPrepareUpdate(
-        tool_name=tool_name,
-        tool_dict=tool_dict,
+    return LoggerUpdate(
         log_messages=[
             get_langgraph_node_log_string(
-                graph_component="custom_tool_sub_agent",
+                graph_component="custom_tool",
                 node_name="branching",
                 node_start_time=node_start_time,
             )

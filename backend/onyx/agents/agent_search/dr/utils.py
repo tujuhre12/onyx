@@ -89,7 +89,7 @@ def aggregate_context(
             f"Iteration: {iteration_response.iteration_nr}, "
             f"Question {iteration_response.parallelization_nr}"
         )
-        output_strings.append(f"Tool: {iteration_response.tool.value}")
+        output_strings.append(f"Tool: {iteration_response.tool}")
         output_strings.append(f"Question: {iteration_response.question}")
 
         # get answer and claims with global citations

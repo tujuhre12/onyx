@@ -5,7 +5,6 @@ from typing import cast
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
-from onyx.agents.agent_search.dr.enums import DRPath
 from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import BaseSearchProcessingResponse
 from onyx.agents.agent_search.dr.models import IterationAnswer
@@ -30,6 +29,7 @@ from onyx.tools.tool_implementations.search.search_tool import (
     SEARCH_RESPONSE_SUMMARY_ID,
 )
 from onyx.tools.tool_implementations.search.search_tool import SearchResponseSummary
+from onyx.tools.tool_implementations.search.search_tool import SearchTool
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -56,13 +56,17 @@ def basic_search(
     base_question = graph_config.inputs.prompt_builder.raw_user_query
     research_type = graph_config.behavior.research_type
 
-    search_tool = graph_config.tooling.search_tool
+    if not state.available_tools:
+        raise ValueError("available_tools is not set")
 
-    if search_tool is None:
-        raise ValueError("search_tool must be provided for agentic search")
+    search_tool_info = state.available_tools[state.tools_used[-1]]
+    search_tool = cast(SearchTool, search_tool_info.tool_object)
+
+    # sanity check
+    if search_tool != graph_config.tooling.search_tool:
+        raise ValueError("search_tool does not match the configured search tool")
 
     # rewrite query and identify source types
-
     active_source_types_str = ", ".join(
         [source.value for source in state.active_source_types or []]
     )
@@ -228,8 +232,8 @@ def basic_search(
     return AnswerUpdate(
         iteration_responses=[
             IterationAnswer(
-                tool=DRPath.INTERNAL_SEARCH,
-                tool_id=search_tool.id,
+                tool=search_tool_info.llm_path,
+                tool_id=search_tool_info.tool_id,
                 iteration_nr=iteration_nr,
                 parallelization_nr=parallelization_nr,
                 question=branch_query,
@@ -242,8 +246,8 @@ def basic_search(
         ],
         log_messages=[
             get_langgraph_node_log_string(
-                graph_component="main",
-                node_name="search",
+                graph_component="basic_search",
+                node_name="searching",
                 node_start_time=node_start_time,
             )
         ],

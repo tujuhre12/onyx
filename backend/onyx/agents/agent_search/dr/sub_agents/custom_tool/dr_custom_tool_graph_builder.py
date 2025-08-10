@@ -14,12 +14,8 @@ from onyx.agents.agent_search.dr.sub_agents.custom_tool.dr_custom_tool_3_reduce 
 from onyx.agents.agent_search.dr.sub_agents.custom_tool.dr_custom_tool_conditional_edges import (
     branching_router,
 )
-from onyx.agents.agent_search.dr.sub_agents.custom_tool.dr_custom_tool_states import (
-    CustomToolSubAgentInput,
-)
-from onyx.agents.agent_search.dr.sub_agents.custom_tool.dr_custom_tool_states import (
-    GenericToolSubAgentMainState,
-)
+from onyx.agents.agent_search.dr.sub_agents.states import SubAgentInput
+from onyx.agents.agent_search.dr.sub_agents.states import SubAgentMainState
 from onyx.utils.logger import setup_logger
 
 
@@ -28,12 +24,10 @@ logger = setup_logger()
 
 def dr_custom_tool_graph_builder() -> StateGraph:
     """
-    LangGraph graph builder for Internet Search Sub-Agent
+    LangGraph graph builder for Generic Tool Sub-Agent
     """
 
-    graph = StateGraph(
-        state_schema=GenericToolSubAgentMainState, input=CustomToolSubAgentInput
-    )
+    graph = StateGraph(state_schema=SubAgentMainState, input=SubAgentInput)
 
     ### Add nodes ###
 

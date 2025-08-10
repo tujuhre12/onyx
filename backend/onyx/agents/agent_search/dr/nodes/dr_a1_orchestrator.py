@@ -74,8 +74,7 @@ def orchestrator(
             ).context
             or "(No answer history yet available)"
         )
-    available_tools = state.available_tools or []
-    available_tool_map = {tool.llm_path: tool for tool in available_tools}
+    available_tools = state.available_tools or {}
 
     questions = [
         f"{iteration_response.tool}: {iteration_response.question}"
@@ -217,7 +216,7 @@ def orchestrator(
                 logger.error(f"Error in approach extraction: {e}")
                 raise e
 
-            remaining_time_budget -= available_tool_map[next_tool].cost
+            remaining_time_budget -= available_tools[next_tool].cost
     else:
         if iteration_nr == 1 and not plan_of_record:
             # by default, we start a new iteration, but if there is a feedback request,
@@ -304,7 +303,7 @@ def orchestrator(
                 logger.error(f"Error in approach extraction: {e}")
                 raise e
 
-            remaining_time_budget -= available_tool_map[next_tool].cost
+            remaining_time_budget -= available_tools[next_tool].cost
         else:
             reasoning_result = "Time to wrap up."
 

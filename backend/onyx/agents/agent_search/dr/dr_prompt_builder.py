@@ -19,22 +19,23 @@ from onyx.prompts.prompt_template import PromptTemplate
 def get_dr_prompt_orchestration_templates(
     purpose: DRPromptPurpose,
     research_type: ResearchType,
-    available_tools: list[OrchestratorTool],
+    available_tools: dict[str, OrchestratorTool],
     entity_types_string: str | None = None,
     relationship_types_string: str | None = None,
     reasoning_result: str | None = None,
     tool_calls_string: str | None = None,
 ) -> PromptTemplate:
-    available_tools = available_tools or []
-    tool_names = [tool.llm_path for tool in available_tools]
+    available_tools = available_tools or {}
+    tool_names = list(available_tools.keys())
     tool_description_str = "\n\n".join(
-        f"- {tool.llm_path}: {tool.description}" for tool in available_tools
+        f"- {tool_name}: {tool.description}"
+        for tool_name, tool in available_tools.items()
     )
     tool_cost_str = "\n".join(
-        f"{tool.llm_path}: {tool.cost}" for tool in available_tools
+        f"{tool_name}: {tool.cost}" for tool_name, tool in available_tools.items()
     )
 
-    available_tool_paths = [tool.path for tool in available_tools]
+    available_tool_paths = [tool.path for tool in available_tools.values()]
 
     tool_differentiations: list[str] = []
     for tool_1 in available_tool_paths:
