@@ -12,6 +12,7 @@ import { ChatFileType, FileDescriptor } from "../../interfaces";
 import {
   DocumentIcon2,
   FileIcon,
+  FileUploadIcon,
   SendIcon,
   StopGeneratingIcon,
 } from "@/components/icons/icons";
@@ -568,7 +569,7 @@ export function ChatInputBar({
               style={{ scrollbarWidth: "thin" }}
               role="textarea"
               aria-multiline
-              placeholder="How can Onyx help you today"
+              placeholder={`How can ${selectedAssistant.name} help you today`}
               value={message}
               onKeyDown={(event) => {
                 if (
@@ -744,7 +745,7 @@ export function ChatInputBar({
               <div className="space-x-1 flex  px-4 ">
                 <ChatInputOption
                   flexPriority="stiff"
-                  Icon={FiPlusCircle}
+                  Icon={FileUploadIcon}
                   onClick={() => {
                     toggleDocSelection();
                   }}

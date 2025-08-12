@@ -14,6 +14,7 @@ function getInitialTools(
 
 export function useToolDisplayTiming(
   toolGroups: { ind: number; packets: Packet[] }[],
+  isFinalAnswerComing: boolean,
   isComplete: boolean
 ) {
   /* Adds a "minimum display time" for each tool and makes sure that we 
@@ -123,7 +124,7 @@ export function useToolDisplayTiming(
     };
   }, []);
 
-  // Check if all tools are displayed
+  // Check if all tools are displayed + final answer is coming
   const allToolsDisplayed = useMemo(() => {
     if (toolGroups.length === 0) return true;
 
@@ -133,8 +134,8 @@ export function useToolDisplayTiming(
       completedToolInds.has(group.ind)
     );
 
-    return allVisible && allCompleted;
-  }, [toolGroups, visibleTools, completedToolInds]);
+    return allVisible && allCompleted && isFinalAnswerComing;
+  }, [toolGroups, visibleTools, completedToolInds, isFinalAnswerComing]);
 
   return {
     visibleTools,
