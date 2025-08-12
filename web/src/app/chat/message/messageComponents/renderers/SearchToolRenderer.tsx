@@ -16,7 +16,8 @@ import { OnyxDocument } from "@/lib/search/interfaces";
 const MAX_RESULTS_TO_SHOW = 3;
 const MAX_TITLE_LENGTH = 25;
 
-const SEARCHING_MIN_DURATION_MS = 1000;
+const SEARCHING_MIN_DURATION_MS = 1000; // 1 second minimum for "Searching" state
+const SEARCHED_MIN_DURATION_MS = 1000; // 1 second minimum for "Searched" state
 
 const constructCurrentSearchState = (
   packets: SearchToolPacket[]
@@ -70,7 +71,10 @@ export const SearchToolRenderer: MessageRenderer<SearchToolPacket, {}> = ({
   // Track search timing for minimum display duration
   const [searchStartTime, setSearchStartTime] = useState<number | null>(null);
   const [shouldShowAsSearching, setShouldShowAsSearching] = useState(false);
+
+  const [shouldShowAsSearched, setShouldShowAsSearched] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const completionHandledRef = useRef(false);
 
   // Track when search starts (even if the search completes instantly)
@@ -90,50 +94,71 @@ export const SearchToolRenderer: MessageRenderer<SearchToolPacket, {}> = ({
     ) {
       completionHandledRef.current = true;
       const elapsedTime = Date.now() - searchStartTime;
-      const minimumDuration = animate ? SEARCHING_MIN_DURATION_MS : 0;
+      const minimumSearchingDuration = animate ? SEARCHING_MIN_DURATION_MS : 0;
+      const minimumSearchedDuration = animate ? SEARCHED_MIN_DURATION_MS : 0;
 
-      const handleCompletion = () => {
+      const handleSearchingToSearched = () => {
         setShouldShowAsSearching(false);
-        console.log(
-          `Complete for search tool with queries: ${queries.join(", ")}`
-        );
-        onComplete();
+        setShouldShowAsSearched(true);
+
+        searchedTimeoutRef.current = setTimeout(() => {
+          setShouldShowAsSearched(false);
+          onComplete();
+        }, minimumSearchedDuration);
       };
 
-      if (elapsedTime >= minimumDuration) {
-        // Enough time has passed, show completed state immediately
-        handleCompletion();
+      if (elapsedTime >= minimumSearchingDuration) {
+        // Enough time has passed for searching, transition to searched immediately
+        handleSearchingToSearched();
       } else {
-        // Not enough time has passed, delay the completion
-        const remainingTime = minimumDuration - elapsedTime;
-        timeoutRef.current = setTimeout(handleCompletion, remainingTime);
+        // Not enough time has passed for searching, delay the transition
+        const remainingTime = minimumSearchingDuration - elapsedTime;
+        timeoutRef.current = setTimeout(
+          handleSearchingToSearched,
+          remainingTime
+        );
       }
     }
   }, [isComplete, searchStartTime, animate, queries, onComplete]);
 
-  // Cleanup timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
+      if (searchedTimeoutRef.current) {
+        clearTimeout(searchedTimeoutRef.current);
+      }
     };
   }, []);
 
   const status = useMemo(() => {
-    // If we have documents to show, never show "Searching" status
+    // If we have documents to show and we're in the searched state, show "Searched"
     if (results.length > 0) {
+      // If we're still showing as searching (before transition), show "Searching"
+      if (shouldShowAsSearching) {
+        return "Searching internal documents";
+      }
+      // Otherwise show "Searched"
       return "Searched internal documents";
     }
 
-    if (isComplete && !shouldShowAsSearching) {
+    // Handle states based on timing
+    if (shouldShowAsSearched) {
       return "Searched internal documents";
     }
     if (isSearching || isComplete || shouldShowAsSearching) {
       return "Searching internal documents";
     }
     return null;
-  }, [isSearching, isComplete, shouldShowAsSearching, results.length]);
+  }, [
+    isSearching,
+    isComplete,
+    shouldShowAsSearching,
+    shouldShowAsSearched,
+    results.length,
+  ]);
 
   // Don't render anything if search hasn't started
   if (queries.length === 0) {

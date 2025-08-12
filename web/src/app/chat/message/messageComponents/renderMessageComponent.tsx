@@ -45,7 +45,7 @@ function isReasoningPacket(packet: Packet): packet is ReasoningPacket {
   return (
     packet.obj.type === PacketType.REASONING_START ||
     packet.obj.type === PacketType.REASONING_DELTA ||
-    packet.obj.type === PacketType.REASONING_END
+    packet.obj.type === PacketType.SECTION_END
   );
 }
 

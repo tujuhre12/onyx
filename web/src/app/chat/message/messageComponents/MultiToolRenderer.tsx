@@ -125,7 +125,7 @@ function MultiToolRenderer({
                             />
                           )}
 
-                          <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                          <div className="text-sm flex items-center gap-1 loading-text">
                             {icon ? icon({ size: 14 }) : null}
                             {status}
                           </div>

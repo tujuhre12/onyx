@@ -15,7 +15,6 @@ export function isToolPacket(packet: Packet) {
     packet.obj.type === PacketType.CUSTOM_TOOL_DELTA ||
     packet.obj.type === PacketType.REASONING_START ||
     packet.obj.type === PacketType.REASONING_DELTA ||
-    packet.obj.type === PacketType.REASONING_END ||
     packet.obj.type === PacketType.SECTION_END
   );
 }
@@ -29,7 +28,21 @@ export function isFinalAnswerComing(packets: Packet[]) {
 }
 
 export function isFinalAnswerComplete(packets: Packet[]) {
-  return packets.some((packet) => packet.obj.type === PacketType.MESSAGE_END);
+  // Find the first MESSAGE_START packet and get its index
+  const messageStartPacket = packets.find(
+    (packet) => packet.obj.type === PacketType.MESSAGE_START
+  );
+
+  if (!messageStartPacket) {
+    return false;
+  }
+
+  // Check if there's a corresponding SECTION_END with the same index
+  return packets.some(
+    (packet) =>
+      packet.obj.type === PacketType.SECTION_END &&
+      packet.ind === messageStartPacket.ind
+  );
 }
 
 export function groupPacketsByInd(
