@@ -36,7 +36,6 @@ from onyx.chat.models import AgentAnswerPiece
 from onyx.configs.constants import DocumentSourceDescription
 from onyx.configs.constants import MessageType
 from onyx.db.connector import fetch_unique_document_sources
-from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.kg.utils.extraction_utils import get_entity_types_str
 from onyx.kg.utils.extraction_utils import get_relationship_types_str
 from onyx.prompts.dr_prompts import DECISION_PROMPT_W_TOOL_CALLING
@@ -230,8 +229,8 @@ def clarifier(
     all_entity_types = get_entity_types_str(active=True)
     all_relationship_types = get_relationship_types_str(active=True)
 
-    with get_session_with_current_tenant() as db_session:
-        active_source_types = fetch_unique_document_sources(db_session)
+    db_session = graph_config.persistence.db_session
+    active_source_types = fetch_unique_document_sources(db_session)
 
     if not active_source_types:
         raise ValueError("No active source types found")

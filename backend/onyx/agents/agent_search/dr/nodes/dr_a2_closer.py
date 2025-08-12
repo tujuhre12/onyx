@@ -32,7 +32,6 @@ from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import ExtendedToolResponse
 from onyx.context.search.enums import QueryFlow
 from onyx.context.search.enums import SearchType
-from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.db.models import ChatMessage
 from onyx.db.models import ResearchAgentIteration
 from onyx.db.models import ResearchAgentIterationSubStep
@@ -54,51 +53,52 @@ def save_iteration(
 ) -> None:
     message_id = graph_config.persistence.message_id
     research_type = graph_config.behavior.research_type
+    db_session = graph_config.persistence.db_session
 
     # TODO: generate plan as dict in the first place
     plan_of_record = state.plan_of_record.plan if state.plan_of_record else ""
     plan_of_record_dict = parse_plan_to_dict(plan_of_record)
 
-    with get_session_with_current_tenant() as db_session:
-        chat_message = (
-            db_session.query(ChatMessage).filter(ChatMessage.id == message_id).first()
+    # update chat message and save iterations
+    chat_message = (
+        db_session.query(ChatMessage).filter(ChatMessage.id == message_id).first()
+    )
+    if not chat_message:
+        raise ValueError("Chat message with id not found")  # should never happen
+
+    chat_message.research_type = research_type
+    chat_message.research_plan = plan_of_record_dict
+
+    for iteration_preparation in state.iteration_instructions:
+        research_agent_iteration_step = ResearchAgentIteration(
+            primary_question_id=message_id,
+            reasoning=iteration_preparation.reasoning,
+            purpose=iteration_preparation.purpose,
+            iteration_nr=iteration_preparation.iteration_nr,
+            created_at=datetime.now(),
         )
-        if not chat_message:
-            raise ValueError("Chat message with id not found")  # should never happen
+        db_session.add(research_agent_iteration_step)
 
-        chat_message.research_type = research_type
-        chat_message.research_plan = plan_of_record_dict
+    for iteration_answer in aggregated_context.global_iteration_responses:
+        research_agent_iteration_sub_step = ResearchAgentIterationSubStep(
+            primary_question_id=message_id,
+            parent_question_id=None,
+            iteration_nr=iteration_answer.iteration_nr,
+            iteration_sub_step_nr=iteration_answer.parallelization_nr,
+            sub_step_instructions=iteration_answer.question,
+            sub_step_tool_id=iteration_answer.tool_id,
+            sub_answer=iteration_answer.answer,
+            reasoning=iteration_answer.reasoning,
+            claims=iteration_answer.claims,
+            cited_doc_results=create_citation_format_list(
+                [doc for doc in iteration_answer.cited_documents.values()]
+            ),
+            additional_data=iteration_answer.additional_data,
+            created_at=datetime.now(),
+        )
+        db_session.add(research_agent_iteration_sub_step)
 
-        for iteration_preparation in state.iteration_instructions:
-            research_agent_iteration_step = ResearchAgentIteration(
-                primary_question_id=message_id,
-                reasoning=iteration_preparation.reasoning,
-                purpose=iteration_preparation.purpose,
-                iteration_nr=iteration_preparation.iteration_nr,
-                created_at=datetime.now(),
-            )
-            db_session.add(research_agent_iteration_step)
-
-        for iteration_answer in aggregated_context.global_iteration_responses:
-            research_agent_iteration_sub_step = ResearchAgentIterationSubStep(
-                primary_question_id=message_id,
-                parent_question_id=None,
-                iteration_nr=iteration_answer.iteration_nr,
-                iteration_sub_step_nr=iteration_answer.parallelization_nr,
-                sub_step_instructions=iteration_answer.question,
-                sub_step_tool_id=iteration_answer.tool_id,
-                sub_answer=iteration_answer.answer,
-                reasoning=iteration_answer.reasoning,
-                claims=iteration_answer.claims,
-                cited_doc_results=create_citation_format_list(
-                    [doc for doc in iteration_answer.cited_documents.values()]
-                ),
-                additional_data=iteration_answer.additional_data,
-                created_at=datetime.now(),
-            )
-            db_session.add(research_agent_iteration_sub_step)
-
-        db_session.commit()
+    db_session.commit()
 
 
 def closer(
