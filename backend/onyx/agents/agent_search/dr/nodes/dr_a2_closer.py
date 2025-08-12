@@ -37,9 +37,8 @@ from onyx.db.models import ResearchAgentIteration
 from onyx.db.models import ResearchAgentIterationSubStep
 from onyx.prompts.dr_prompts import FINAL_ANSWER_PROMPT
 from onyx.prompts.dr_prompts import TEST_INFO_COMPLETE_PROMPT
-from onyx.server.query_and_chat.streaming_models import MessageEnd
 from onyx.server.query_and_chat.streaming_models import MessageStart
-from onyx.tools.models import ToolCallFinalResult
+from onyx.server.query_and_chat.streaming_models import SectionEnd
 from onyx.tools.tool_implementations.search.search_tool import IndexFilters
 from onyx.tools.tool_implementations.search.search_tool import (
     SEARCH_RESPONSE_SUMMARY_ID,
@@ -205,17 +204,6 @@ def closer(
         writer,
     )
 
-    # Change status from "searching for" to "searched for"
-    write_custom_event(
-        "tool_response",
-        ToolCallFinalResult(
-            tool_name=SearchTool._NAME,
-            tool_args={"query": base_question},
-            tool_result=[],  # unused
-        ),
-        writer,
-    )
-
     # Generate final answer
     write_custom_event(
         "basic_response",
@@ -262,7 +250,7 @@ def closer(
     except Exception as e:
         raise ValueError(f"Error in consolidate_research: {e}")
 
-    write_custom_event("aaa", MessageEnd(), writer)
+    write_custom_event("aaa", SectionEnd(), writer)
 
     dispatch_main_answer_stop_info(level=0, writer=writer)
 
