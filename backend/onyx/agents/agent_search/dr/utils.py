@@ -44,9 +44,8 @@ def extract_document_citations(
 
 def aggregate_context(
     iteration_responses: list[IterationAnswer],
-    # TODO: maybe use a single enum instead of the two booleans
-    # as some combinations don't make sense
     include_documents: bool = False,
+    # TODO: maybe remove? always include answers and claims
     include_answers_claims: bool = True,
 ) -> AggregatedDRContext:
     """

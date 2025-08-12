@@ -131,17 +131,9 @@ def closer(
         or "(No chat history yet available)"
     )
 
-    if research_type == ResearchType.THOUGHTFUL:
-        aggregated_context = aggregate_context(
-            state.iteration_responses,
-            include_documents=True,
-            include_answers_claims=True,
-        )
-    else:
-        aggregated_context = aggregate_context(
-            state.iteration_responses,
-            include_documents=True,
-        )
+    aggregated_context = aggregate_context(
+        state.iteration_responses, include_answers_claims=True, include_documents=True
+    )
 
     iteration_responses_string = aggregated_context.context
     all_cited_documents = aggregated_context.cited_documents
