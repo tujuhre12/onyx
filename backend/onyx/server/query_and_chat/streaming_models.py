@@ -1,3 +1,5 @@
+from collections import OrderedDict
+from collections.abc import Mapping
 from typing import Annotated
 from typing import Literal
 from typing import Union
@@ -5,7 +7,6 @@ from typing import Union
 from pydantic import BaseModel
 from pydantic import Field
 
-from onyx.chat.models import CitationInfo
 from onyx.context.search.models import SavedSearchDoc
 
 
@@ -107,6 +108,51 @@ class ReasoningEnd(BaseObj):
 
 class CitationStart(BaseObj):
     type: Literal["citation_start"] = "citation_start"
+
+
+class SubQuestionIdentifier(BaseModel):
+    """None represents references to objects in the original flow. To our understanding,
+    these will not be None in the packets returned from agent search.
+    """
+
+    level: int | None = None
+    level_question_num: int | None = None
+
+    @staticmethod
+    def make_dict_by_level(
+        original_dict: Mapping[tuple[int, int], "SubQuestionIdentifier"],
+    ) -> dict[int, list["SubQuestionIdentifier"]]:
+        """returns a dict of level to object list (sorted by level_question_num)
+        Ordering is asc for readability.
+        """
+
+        # organize by level, then sort ascending by question_index
+        level_dict: dict[int, list[SubQuestionIdentifier]] = {}
+
+        # group by level
+        for k, obj in original_dict.items():
+            level = k[0]
+            if level not in level_dict:
+                level_dict[level] = []
+            level_dict[level].append(obj)
+
+        # for each level, sort the group
+        for k2, value2 in level_dict.items():
+            # we need to handle the none case due to SubQuestionIdentifier typing
+            # level_question_num as int | None, even though it should never be None here.
+            level_dict[k2] = sorted(
+                value2,
+                key=lambda x: (x.level_question_num is None, x.level_question_num),
+            )
+
+        # sort by level
+        sorted_dict = OrderedDict(sorted(level_dict.items()))
+        return sorted_dict
+
+
+class CitationInfo(SubQuestionIdentifier):
+    citation_num: int
+    document_id: str
 
 
 class CitationDelta(BaseObj):

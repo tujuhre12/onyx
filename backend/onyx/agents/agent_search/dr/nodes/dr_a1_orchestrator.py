@@ -33,6 +33,10 @@ from onyx.chat.models import AgentAnswerPiece
 from onyx.kg.utils.extraction_utils import get_entity_types_str
 from onyx.kg.utils.extraction_utils import get_relationship_types_str
 from onyx.prompts.dr_prompts import SUFFICIENT_INFORMATION_STRING
+from onyx.server.query_and_chat.streaming_models import ReasoningDelta
+from onyx.server.query_and_chat.streaming_models import ReasoningEnd
+from onyx.server.query_and_chat.streaming_models import ReasoningStart
+from onyx.server.query_and_chat.streaming_models import SectionEnd
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -157,6 +161,7 @@ def orchestrator(
                     agent_answer_question_num=0,
                     agent_answer_type="agent_level_answer",
                     timeout_override=60,
+                    answer_piece="reasoning_delta",
                     # max_tokens=None,
                 ),
             )
@@ -259,6 +264,17 @@ def orchestrator(
                 writer,
             )
 
+            write_custom_event(
+                "basic_response",
+                AgentAnswerPiece(
+                    answer_piece=f"{HIGH_LEVEL_PLAN_PREFIX} {plan_of_record.plan}\n\n",
+                    level=0,
+                    level_question_num=0,
+                    answer_type="agent_level_answer",
+                ),
+                writer,
+            )
+
         if not plan_of_record:
             raise ValueError(
                 "Plan information is required for iterative decision making"
@@ -307,6 +323,29 @@ def orchestrator(
         else:
             reasoning_result = "Time to wrap up."
 
+        write_custom_event(
+            "basic_response",
+            ReasoningStart(
+                type="reasoning_start",
+            ),
+            writer,
+        )
+
+        write_custom_event(
+            "basic_response",
+            ReasoningDelta(
+                reasoning=reasoning_result,
+                type="reasoning_delta",
+            ),
+            writer,
+        )
+
+        write_custom_event(
+            "basic_response",
+            SectionEnd(),
+            writer,
+        )
+
     base_next_step_purpose_prompt = get_dr_prompt_orchestration_templates(
         DRPromptPurpose.NEXT_STEP_PURPOSE,
         ResearchType.DEEP,
@@ -335,6 +374,15 @@ def orchestrator(
     )
 
     try:
+
+        write_custom_event(
+            "basic_response",
+            ReasoningStart(
+                type="reasoning_start",
+            ),
+            writer,
+        )
+
         purpose_tokens, _ = run_with_timeout(
             80,
             lambda: stream_llm_answer(
@@ -346,9 +394,19 @@ def orchestrator(
                 agent_answer_question_num=0,
                 agent_answer_type="agent_level_answer",
                 timeout_override=60,
+                answer_piece="reasoning_delta",
                 # max_tokens=None,
             ),
         )
+
+        write_custom_event(
+            "basic_response",
+            ReasoningEnd(
+                type="reasoning_end",
+            ),
+            writer,
+        )
+
     except Exception as e:
         logger.error(f"Error in orchestration next step purpose: {e}")
         raise e

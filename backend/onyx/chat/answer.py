@@ -1,5 +1,6 @@
 from collections import defaultdict
 from collections.abc import Callable
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -18,7 +19,6 @@ from onyx.chat.models import AgentAnswerPiece
 from onyx.chat.models import AnswerPacket
 from onyx.chat.models import AnswerStream
 from onyx.chat.models import AnswerStyleConfig
-from onyx.chat.models import CitationInfo
 from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.models import StreamStopInfo
 from onyx.chat.models import StreamStopReason
@@ -34,6 +34,7 @@ from onyx.db.kg_config import get_kg_config_settings
 from onyx.db.models import Persona
 from onyx.file_store.utils import InMemoryChatFile
 from onyx.llm.interfaces import LLM
+from onyx.server.query_and_chat.streaming_models import CitationInfo
 from onyx.tools.force import ForceUseTool
 from onyx.tools.tool import Tool
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
@@ -70,6 +71,8 @@ class Answer:
         skip_gen_ai_answer_generation: bool = False,
         is_connected: Callable[[], bool] | None = None,
         use_agentic_search: bool = False,
+        research_type: ResearchType | None = None,
+        research_plan: dict[str, Any] | None = None,
     ) -> None:
         self.is_connected: Callable[[], bool] | None = is_connected
         self._processed_stream: list[AnswerPacket] | None = None

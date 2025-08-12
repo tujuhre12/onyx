@@ -11,7 +11,6 @@ from onyx.chat.models import AgentSearchPacket
 from onyx.chat.models import AllCitations
 from onyx.chat.models import AnswerPostInfo
 from onyx.chat.models import AnswerStream
-from onyx.chat.models import CitationInfo
 from onyx.chat.models import CustomToolResponse
 from onyx.chat.models import FileChatDisplay
 from onyx.chat.models import FinalUsedContextDocsResponse
@@ -41,6 +40,7 @@ from onyx.file_store.models import ChatFileType
 from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.streaming_models import CitationDelta
 from onyx.server.query_and_chat.streaming_models import CitationEnd
+from onyx.server.query_and_chat.streaming_models import CitationInfo
 from onyx.server.query_and_chat.streaming_models import CitationStart
 from onyx.server.query_and_chat.streaming_models import CustomToolDelta
 from onyx.server.query_and_chat.streaming_models import CustomToolStart
@@ -50,6 +50,9 @@ from onyx.server.query_and_chat.streaming_models import MessageEnd
 from onyx.server.query_and_chat.streaming_models import MessageStart
 from onyx.server.query_and_chat.streaming_models import OverallStop
 from onyx.server.query_and_chat.streaming_models import Packet
+from onyx.server.query_and_chat.streaming_models import ReasoningDelta
+from onyx.server.query_and_chat.streaming_models import ReasoningEnd
+from onyx.server.query_and_chat.streaming_models import ReasoningStart
 from onyx.server.query_and_chat.streaming_models import SearchToolDelta
 from onyx.server.query_and_chat.streaming_models import SearchToolStart
 from onyx.server.query_and_chat.streaming_models import SectionEnd
@@ -352,6 +355,20 @@ def process_streamed_packets(
                 )
 
             yield cast(ChatPacket, packet)
+
+        elif isinstance(
+            packet,
+            (
+                MessageStart,
+                MessageDelta,
+                MessageEnd,
+                ReasoningStart,
+                ReasoningDelta,
+                ReasoningEnd,
+                SectionEnd,
+            ),
+        ):
+            yield Packet(ind=packet_index, obj=packet)
 
     if current_message_index is not None:
         yield Packet(ind=current_message_index, obj=MessageEnd())

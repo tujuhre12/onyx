@@ -21,7 +21,6 @@ from onyx.chat.models import AnswerPostInfo
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import ChatOnyxBotResponse
 from onyx.chat.models import CitationConfig
-from onyx.chat.models import CitationInfo
 from onyx.chat.models import DocumentPruningConfig
 from onyx.chat.models import LLMRelevanceFilterResponse
 from onyx.chat.models import MessageResponseIDInfo
@@ -91,6 +90,7 @@ from onyx.llm.utils import litellm_exception_to_error_msg
 from onyx.natural_language_processing.utils import get_tokenizer
 from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.models import CreateChatMessageRequest
+from onyx.server.query_and_chat.streaming_models import CitationInfo
 from onyx.server.utils import get_json_line
 from onyx.tools.force import ForceUseTool
 from onyx.tools.models import SearchToolOverrideKwargs

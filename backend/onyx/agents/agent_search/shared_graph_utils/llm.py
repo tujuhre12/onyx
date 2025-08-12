@@ -16,6 +16,8 @@ from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.chat.models import AgentAnswerPiece
 from onyx.llm.interfaces import LLM
 from onyx.llm.interfaces import ToolChoiceOptions
+from onyx.server.query_and_chat.streaming_models import MessageDelta
+from onyx.server.query_and_chat.streaming_models import ReasoningDelta
 from onyx.utils.threadpool_concurrency import run_with_timeout
 
 
@@ -35,6 +37,7 @@ def stream_llm_answer(
     agent_answer_type: Literal["agent_level_answer", "agent_sub_answer"],
     timeout_override: int | None = None,
     max_tokens: int | None = None,
+    answer_piece: str | None = None,
 ) -> tuple[list[str], list[float]]:
     """Stream the initial answer from the LLM.
 
@@ -58,6 +61,7 @@ def stream_llm_answer(
     for message in llm.stream(
         prompt, timeout_override=timeout_override, max_tokens=max_tokens
     ):
+
         # TODO: in principle, the answer here COULD contain images, but we don't support that yet
         content = message.content
         if not isinstance(content, str):
@@ -66,16 +70,37 @@ def stream_llm_answer(
             )
 
         start_stream_token = datetime.now()
-        write_custom_event(
-            event_name,
-            AgentAnswerPiece(
-                answer_piece=content,
-                level=agent_answer_level,
-                level_question_num=agent_answer_question_num,
-                answer_type=agent_answer_type,
-            ),
-            writer,
-        )
+
+        if answer_piece == "answer_piece":
+
+            write_custom_event(
+                event_name,
+                AgentAnswerPiece(
+                    answer_piece=content,
+                    level=agent_answer_level,
+                    level_question_num=agent_answer_question_num,
+                    answer_type=agent_answer_type,
+                ),
+                writer,
+            )
+
+        elif answer_piece == "message_delta":
+            write_custom_event(
+                event_name,
+                MessageDelta(content=content, type="message_delta"),
+                writer,
+            )
+
+        elif answer_piece == "reasoning_delta":
+            write_custom_event(
+                event_name,
+                ReasoningDelta(reasoning=content, type="reasoning_delta"),
+                writer,
+            )
+
+        else:
+            raise ValueError(f"Invalid answer piece: {answer_piece}")
+
         end_stream_token = datetime.now()
 
         dispatch_timings.append((end_stream_token - start_stream_token).microseconds)

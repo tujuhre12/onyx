@@ -98,14 +98,6 @@ class AggregatedDRContext(BaseModel):
     global_iteration_responses: list[IterationAnswer]
 
 
-class ResearchType(str, Enum):
-    """Time budget options for agent search operations"""
-
-    FAST = "fast"
-    SHALLOW = "shallow"
-    DEEP = "deep"
-
-
 class DRPromptPurpose(str, Enum):
     PLAN = "PLAN"
     NEXT_STEP = "NEXT_STEP"
