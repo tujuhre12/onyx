@@ -177,11 +177,6 @@ def run_dr_graph(
     compiled_graph = graph.compile()
     input = DRMainInput(log_messages=[])
 
-    yield ToolCallKickoff(
-        tool_name="agent_search_0",
-        tool_args={"query": config.inputs.prompt_builder.raw_user_query},
-    )
-
     yield from run_graph(compiled_graph, config, input)
 
 

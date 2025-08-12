@@ -1,12 +1,12 @@
 import re
 from collections.abc import Generator
 
-from onyx.chat.models import CitationInfo
 from onyx.chat.models import LlmDoc
 from onyx.chat.models import OnyxAnswerPiece
 from onyx.chat.stream_processing.utils import DocumentIdOrderMapping
 from onyx.configs.chat_configs import STOP_STREAM_PAT
 from onyx.prompts.constants import TRIPLE_BACKTICK
+from onyx.server.query_and_chat.streaming_models import CitationInfo
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()

@@ -435,12 +435,24 @@ class CustomStreamEvent(TypedDict):
     """User defined name for the event."""
     data: Any
     """The data associated with the event. Free form and can be anything."""
+    packet_index_start: int
+    """The index of the first packet in the stream."""
 
 
 def write_custom_event(
-    name: str, event: AnswerPacket, stream_writer: StreamWriter
+    name: str,
+    event: AnswerPacket,
+    stream_writer: StreamWriter,
+    packet_index_start: int = 0,
 ) -> None:
-    stream_writer(CustomStreamEvent(event="on_custom_event", name=name, data=event))
+    stream_writer(
+        CustomStreamEvent(
+            event="on_custom_event",
+            name=name,
+            data=event,
+            packet_index_start=packet_index_start,
+        )
+    )
 
 
 def relevance_from_docs(

@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from datetime import datetime
 from datetime import timedelta
+from typing import Any
 from typing import cast
 from typing import Tuple
 from uuid import UUID
@@ -18,6 +19,7 @@ from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import Session
 
+from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.shared_graph_utils.models import CombinedAgentMetrics
 from onyx.agents.agent_search.shared_graph_utils.models import (
     SubQuestionAnswerResults,
@@ -57,6 +59,7 @@ from onyx.server.query_and_chat.models import SubQuestionDetail
 from onyx.tools.tool_runner import ToolCallFinalResult
 from onyx.utils.logger import setup_logger
 from onyx.utils.special_types import JSON_ro
+
 
 logger = setup_logger()
 
@@ -645,6 +648,8 @@ def create_new_chat_message(
     reserved_message_id: int | None = None,
     overridden_model: str | None = None,
     is_agentic: bool = False,
+    research_type: ResearchType | None = None,
+    research_plan: dict[str, Any] | None = None,
 ) -> ChatMessage:
     if reserved_message_id is not None:
         # Edit existing message
@@ -666,6 +671,8 @@ def create_new_chat_message(
         existing_message.alternate_assistant_id = alternate_assistant_id
         existing_message.overridden_model = overridden_model
         existing_message.is_agentic = is_agentic
+        existing_message.research_type = research_type
+        existing_message.research_plan = research_plan
         new_chat_message = existing_message
     else:
         # Create new message
@@ -685,6 +692,8 @@ def create_new_chat_message(
             alternate_assistant_id=alternate_assistant_id,
             overridden_model=overridden_model,
             is_agentic=is_agentic,
+            research_type=research_type,
+            research_plan=research_plan,
         )
         db_session.add(new_chat_message)
 
