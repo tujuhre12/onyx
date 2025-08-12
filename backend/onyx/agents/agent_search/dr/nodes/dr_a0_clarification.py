@@ -30,9 +30,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import run_with_timeout
-from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.agents.agent_search.utils import create_question_prompt
-from onyx.chat.models import AgentAnswerPiece
 from onyx.configs.constants import DocumentSourceDescription
 from onyx.configs.constants import MessageType
 from onyx.db.connector import fetch_unique_document_sources
@@ -348,11 +346,7 @@ def clarifier(
             structured_response_format=graph_config.inputs.structured_response_format,
         )
 
-        tool_message = process_llm_stream(
-            stream,
-            True,
-            writer,
-        ).ai_message_chunk
+        tool_message = process_llm_stream(stream, True, writer, 0).ai_message_chunk
 
         if tool_message is None or len(tool_message.tool_calls) == 0:
             return OrchestrationUpdate(
@@ -410,19 +404,19 @@ def clarifier(
                     clarification_question=clarification_response.clarification_question,
                     clarification_response=None,
                 )
-                write_custom_event(
-                    "basic_response",
-                    AgentAnswerPiece(
-                        answer_piece=(
-                            f"{CLARIFICATION_REQUEST_PREFIX} "
-                            f"{clarification.clarification_question}\n\n"
-                        ),
-                        level=0,
-                        level_question_num=0,
-                        answer_type="agent_level_answer",
-                    ),
-                    writer,
-                )
+                # write_custom_event(
+                #     "basic_response",
+                #     AgentAnswerPiece(
+                #         answer_piece=(
+                #             f"{CLARIFICATION_REQUEST_PREFIX} "
+                #             f"{clarification.clarification_question}\n\n"
+                #         ),
+                #         level=0,
+                #         level_question_num=0,
+                #         answer_type="agent_level_answer",
+                #     ),
+                #     writer,
+                # )
     else:
         chat_history_string = (
             get_chat_history_string(

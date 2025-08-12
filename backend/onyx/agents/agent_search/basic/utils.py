@@ -23,6 +23,7 @@ def process_llm_stream(
     messages: Iterator[BaseMessage],
     should_stream_answer: bool,
     writer: StreamWriter,
+    ind: int,
     final_search_results: list[LlmDoc] | None = None,
     displayed_search_results: list[LlmDoc] | None = None,
 ) -> BasicSearchProcessedStreamResults:
@@ -56,7 +57,7 @@ def process_llm_stream(
         elif should_stream_answer:
             for response_part in answer_handler.handle_response_part(message, []):
                 write_custom_event(
-                    "basic_response",
+                    ind,
                     response_part,
                     writer,
                 )

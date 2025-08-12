@@ -9,6 +9,7 @@ from onyx.db.connector import DocumentSource
 
 class SubAgentUpdate(LoggerUpdate):
     iteration_responses: Annotated[list[IterationAnswer], add] = []
+    current_step_nr: int = 1
 
 
 class BranchUpdate(LoggerUpdate):
@@ -17,6 +18,7 @@ class BranchUpdate(LoggerUpdate):
 
 class SubAgentInput(LoggerUpdate):
     iteration_nr: int = 0
+    current_step_nr: int = 1
     query_list: list[str] = []
     context: str | None = None
     active_source_types: list[DocumentSource] | None = None

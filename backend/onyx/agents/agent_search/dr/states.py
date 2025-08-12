@@ -26,6 +26,7 @@ class OrchestrationUpdate(LoggerUpdate):
     tools_used: Annotated[list[str], add] = []
     query_list: list[str] = []
     iteration_nr: int = 0
+    current_step_nr: int = 1
     plan_of_record: OrchestrationPlan | None = None  # None for Thoughtful
     remaining_time_budget: float = 2.0  # set by default to about 2 searches
     clarification: OrchestrationClarificationInfo | None = None

@@ -58,6 +58,8 @@ def orchestrator(
     plan_of_record = state.plan_of_record
     clarification = state.clarification
     iteration_nr = state.iteration_nr + 1
+    current_step_nr = state.current_step_nr
+
     research_type = graph_config.behavior.research_type
     remaining_time_budget = state.remaining_time_budget
     chat_history_string = state.chat_history_string or "(No chat history yet available)"
@@ -114,17 +116,6 @@ def orchestrator(
                 entity_types_string=all_entity_types,
                 relationship_types_string=all_relationship_types,
                 available_tools=available_tools,
-            )
-
-            write_custom_event(
-                "basic_response",
-                AgentAnswerPiece(
-                    answer_piece="\n\n\nREASONING TO STOP/CONTINUE:\n\n\n",
-                    level=0,
-                    level_question_num=0,
-                    answer_type="agent_level_answer",
-                ),
-                writer,
             )
 
             reasoning_prompt = base_reasoning_prompt.build(
@@ -344,22 +335,10 @@ def orchestrator(
 
     purpose_tokens: list[str] = [""]
 
-    # Write short purpose
-    write_custom_event(
-        "basic_response",
-        AgentAnswerPiece(
-            answer_piece=f"\n\n\nITERATION {iteration_nr}:\n\n\n",
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
-        ),
-        writer,
-    )
-
     try:
 
         write_custom_event(
-            "basic_response",
+            current_step_nr,
             ReasoningStart(
                 type="reasoning_start",
             ),
@@ -378,15 +357,18 @@ def orchestrator(
                 agent_answer_type="agent_level_answer",
                 timeout_override=60,
                 answer_piece="reasoning_delta",
+                ind=current_step_nr,
                 # max_tokens=None,
             ),
         )
 
         write_custom_event(
-            "basic_response",
+            current_step_nr,
             SectionEnd(),
             writer,
         )
+
+        current_step_nr += 1
 
     except Exception as e:
         logger.error(f"Error in orchestration next step purpose: {e}")
@@ -398,6 +380,7 @@ def orchestrator(
         tools_used=[next_tool],
         query_list=query_list or [],
         iteration_nr=iteration_nr,
+        current_step_nr=current_step_nr,
         log_messages=[
             get_langgraph_node_log_string(
                 graph_component="main",
