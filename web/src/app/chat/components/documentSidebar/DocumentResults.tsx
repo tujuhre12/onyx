@@ -175,15 +175,16 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
                     {/* Other Documents Section */}
                     {otherDocuments.length > 0 && (
                       <div className="mt-4">
-                        {citedDocuments.length > 0 && (
-                          <>
-                            <div className="px-4 pb-3 pt-2 border-b border-border">
-                              <h3 className="text-base font-semibold text-text-700">
-                                More
-                              </h3>
-                            </div>
-                          </>
-                        )}
+                        <>
+                          <div className="px-4 pb-3 pt-2 border-b border-border">
+                            <h3 className="text-base font-semibold text-text-700">
+                              {citedDocuments.length > 0
+                                ? "More"
+                                : "Found Sources"}
+                            </h3>
+                          </div>
+                        </>
+
                         {otherDocuments.map((document, ind) => (
                           <div
                             key={document.document_id}
