@@ -36,6 +36,7 @@ import { AgenticToggle } from "./AgenticToggle";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { useDocumentsContext } from "@/app/chat/my-documents/DocumentsContext";
 import { UnconfiguredLlmProviderText } from "@/components/chat/UnconfiguredLlmProviderText";
+import { DeepResearchToggle } from "./DeepResearchToggle";
 
 const MAX_INPUT_HEIGHT = 200;
 export const SourceChip2 = ({
@@ -519,11 +520,11 @@ export function ChatInputBar({
               flex
               flex-col
               border
-              shadow
+              shadow-lg
               bg-input-background
               border-input-border
               dark:border-none
-              rounded-lg
+              rounded-xl
               overflow-hidden
               text-text-chatbar
               [&:has(textarea:focus)]::ring-1
@@ -547,7 +548,7 @@ export function ChatInputBar({
                 font-normal
                 text-base
                 leading-6
-                placeholder:text-input-text
+                placeholder:text-text-400
                 ${
                   textAreaRef.current &&
                   textAreaRef.current.scrollHeight > MAX_INPUT_HEIGHT
@@ -560,17 +561,14 @@ export function ChatInputBar({
                 outline-none
                 resize-none
                 px-5
-                py-4
+                py-5
                 dark:text-[#D4D4D4]
               `}
               autoFocus
               style={{ scrollbarWidth: "thin" }}
               role="textarea"
               aria-multiline
-              placeholder={`Message ${truncateString(
-                selectedAssistant.name,
-                70
-              )} assistant...`}
+              placeholder="How can Onyx help you today"
               value={message}
               onKeyDown={(event) => {
                 if (
@@ -746,19 +744,11 @@ export function ChatInputBar({
               <div className="space-x-1 flex  px-4 ">
                 <ChatInputOption
                   flexPriority="stiff"
-                  name="File"
                   Icon={FiPlusCircle}
                   onClick={() => {
                     toggleDocSelection();
                   }}
                   tooltipContent={"Upload files and attach user files"}
-                />
-
-                <LLMPopover
-                  llmProviders={llmProviders}
-                  llmManager={llmManager}
-                  requiresImageGeneration={false}
-                  currentAssistant={selectedAssistant}
                 />
 
                 {retrievalEnabled && (
@@ -779,14 +769,22 @@ export function ChatInputBar({
                     }}
                   />
                 )}
-              </div>
-              <div className="flex items-center my-auto">
+
                 {retrievalEnabled && settings?.settings.pro_search_enabled && (
-                  <AgenticToggle
+                  <DeepResearchToggle
                     proSearchEnabled={proSearchEnabled}
                     setProSearchEnabled={setProSearchEnabled}
                   />
                 )}
+              </div>
+              <div className="flex items-center my-auto gap-x-2">
+                <LLMPopover
+                  llmProviders={llmProviders}
+                  llmManager={llmManager}
+                  requiresImageGeneration={true}
+                  currentAssistant={selectedAssistant}
+                />
+
                 <button
                   id="onyx-chat-input-send-button"
                   className={`cursor-pointer ${
