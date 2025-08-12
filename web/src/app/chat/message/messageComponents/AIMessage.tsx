@@ -17,7 +17,7 @@ import {
   CustomTooltip,
   TooltipGroup,
 } from "@/components/tooltip/CustomTooltip";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import {
   useChatSessionStore,
   useDocumentSidebarVisible,
@@ -29,7 +29,6 @@ import { MessageSwitcher } from "../MessageSwitcher";
 import { BlinkingDot } from "../BlinkingDot";
 import {
   getTextContent,
-  groupPacketsByInd,
   isFinalAnswerComing,
   isStreamingComplete,
   isToolPacket,
@@ -62,65 +61,92 @@ export function AIMessage({
     isStreamingComplete(rawPackets)
   );
 
-  // Extract citations from packets
-  const citations = useMemo(() => {
-    const extractedCitations: StreamingCitation[] = [];
-    const seenDocumentIds = new Set<string>();
+  // Incremental packet processing state
+  const lastProcessedIndexRef = useRef<number>(0);
+  const citationsRef = useRef<StreamingCitation[]>([]);
+  const seenCitationDocIdsRef = useRef<Set<string>>(new Set());
+  const documentMapRef = useRef<Map<string, OnyxDocument>>(new Map());
+  const groupedPacketsMapRef = useRef<Map<number, Packet[]>>(new Map());
+  const groupedPacketsRef = useRef<{ ind: number; packets: Packet[] }[]>([]);
 
-    const citationPackets = rawPackets.filter(
-      (packet) =>
-        packet.obj.type === PacketType.CITATION_START ||
-        packet.obj.type === PacketType.CITATION_DELTA ||
-        packet.obj.type === PacketType.CITATION_END
-    );
+  // Reset incremental state when switching messages or when stream resets
+  useEffect(() => {
+    lastProcessedIndexRef.current = 0;
+    citationsRef.current = [];
+    seenCitationDocIdsRef.current = new Set();
+    documentMapRef.current = new Map();
+    groupedPacketsMapRef.current = new Map();
+    groupedPacketsRef.current = [];
+  }, [messageId]);
 
-    console.log("citationPackets", citationPackets);
+  // If the upstream replaces packets with a shorter list (reset), clear state
+  if (lastProcessedIndexRef.current > rawPackets.length) {
+    lastProcessedIndexRef.current = 0;
+    citationsRef.current = [];
+    seenCitationDocIdsRef.current = new Set();
+    documentMapRef.current = new Map();
+    groupedPacketsMapRef.current = new Map();
+    groupedPacketsRef.current = [];
+  }
 
-    for (const packet of citationPackets) {
+  // Process only the new packets synchronously for this render
+  if (rawPackets.length > lastProcessedIndexRef.current) {
+    for (let i = lastProcessedIndexRef.current; i < rawPackets.length; i++) {
+      const packet = rawPackets[i];
+      if (!packet) continue;
+
+      // Grouping by ind
+      const existingGroup = groupedPacketsMapRef.current.get(packet.ind);
+      if (existingGroup) {
+        existingGroup.push(packet);
+      } else {
+        groupedPacketsMapRef.current.set(packet.ind, [packet]);
+      }
+
+      // Citations
       if (packet.obj.type === PacketType.CITATION_DELTA) {
         const citationDelta = packet.obj as CitationDelta;
         if (citationDelta.citations) {
           for (const citation of citationDelta.citations) {
-            if (!seenDocumentIds.has(citation.document_id)) {
-              seenDocumentIds.add(citation.document_id);
-              extractedCitations.push(citation);
+            if (!seenCitationDocIdsRef.current.has(citation.document_id)) {
+              seenCitationDocIdsRef.current.add(citation.document_id);
+              citationsRef.current.push(citation);
+            }
+          }
+        }
+      }
+
+      // Documents from tool deltas
+      if (
+        packet.obj.type === PacketType.SEARCH_TOOL_DELTA ||
+        packet.obj.type === PacketType.IMAGE_GENERATION_TOOL_DELTA
+      ) {
+        const toolDelta = packet.obj as
+          | SearchToolDelta
+          | ImageGenerationToolDelta;
+        if ("documents" in toolDelta && toolDelta.documents) {
+          for (const doc of toolDelta.documents) {
+            if (doc.document_id) {
+              documentMapRef.current.set(doc.document_id, doc);
             }
           }
         }
       }
     }
 
-    return extractedCitations;
-  }, [rawPackets.length]);
+    // Rebuild the grouped packets array sorted by ind
+    // Clone packet arrays to ensure referential changes so downstream memo hooks update
+    groupedPacketsRef.current = Array.from(
+      groupedPacketsMapRef.current.entries()
+    )
+      .map(([ind, packets]) => ({ ind, packets: [...packets] }))
+      .sort((a, b) => a.ind - b.ind);
 
-  // Extract documents from tool packets
-  const documentMap = useMemo(() => {
-    const docMap = new Map<string, OnyxDocument>();
+    lastProcessedIndexRef.current = rawPackets.length;
+  }
 
-    const toolPackets = rawPackets.filter(
-      (packet) =>
-        packet.obj.type === PacketType.SEARCH_TOOL_DELTA ||
-        packet.obj.type === PacketType.IMAGE_GENERATION_TOOL_DELTA
-    );
-
-    for (const packet of toolPackets) {
-      const toolDelta = packet.obj as
-        | SearchToolDelta
-        | ImageGenerationToolDelta;
-      if ("documents" in toolDelta && toolDelta.documents) {
-        for (const doc of toolDelta.documents) {
-          if (doc.document_id) {
-            docMap.set(doc.document_id, doc);
-          }
-        }
-      }
-    }
-
-    return docMap;
-  }, [rawPackets.length]);
-
-  console.log("documentMap", documentMap);
-  console.log("citations", citations);
+  const citations = citationsRef.current;
+  const documentMap = documentMapRef.current;
 
   // Use store for document sidebar
   const documentSidebarVisible = useDocumentSidebarVisible();
@@ -135,21 +161,16 @@ export function AIMessage({
   // Calculate unique source count
   const uniqueSourceCount = useMemo(() => {
     const uniqueDocIds = new Set<string>();
-
-    // Add document IDs from citations
-    citations.forEach((citation) => {
+    for (const citation of citations) {
       if (citation.document_id) {
         uniqueDocIds.add(citation.document_id);
       }
-    });
-
-    // Add document IDs from documentMap
+    }
     documentMap.forEach((_, docId) => {
       uniqueDocIds.add(docId);
     });
-
     return uniqueDocIds.size;
-  }, [citations, documentMap]);
+  }, [citations.length, documentMap.size]);
 
   // Message switching logic
   const {
@@ -163,9 +184,9 @@ export function AIMessage({
     onMessageSelection,
   });
 
-  const groupedPackets = useMemo(() => {
-    return groupPacketsByInd(rawPackets);
-  }, [rawPackets.length]);
+  const groupedPackets = groupedPacketsRef.current;
+
+  console.log("displayComplete", displayComplete);
 
   // Return a list of rendered message components, one for each ind
   return (

@@ -3,14 +3,12 @@ from onyx.configs.constants import MessageType
 from onyx.file_store.models import ChatFileType
 from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.streaming_models import CitationDelta
-from onyx.server.query_and_chat.streaming_models import CitationEnd
 from onyx.server.query_and_chat.streaming_models import CitationStart
 from onyx.server.query_and_chat.streaming_models import CustomToolDelta
 from onyx.server.query_and_chat.streaming_models import CustomToolStart
 from onyx.server.query_and_chat.streaming_models import ImageGenerationToolDelta
 from onyx.server.query_and_chat.streaming_models import ImageGenerationToolStart
 from onyx.server.query_and_chat.streaming_models import MessageDelta
-from onyx.server.query_and_chat.streaming_models import MessageEnd
 from onyx.server.query_and_chat.streaming_models import MessageStart
 from onyx.server.query_and_chat.streaming_models import OverallStop
 from onyx.server.query_and_chat.streaming_models import Packet
@@ -265,7 +263,7 @@ def create_simplified_packets_for_message(
         packets.append(Packet(ind=current_index, obj=citation_delta))
 
         # End citation flow
-        citation_end = CitationEnd()
+        citation_end = SectionEnd()
         packets.append(Packet(ind=current_index, obj=citation_end))
         current_index += 1
 
@@ -280,7 +278,7 @@ def create_simplified_packets_for_message(
         packets.append(Packet(ind=current_index, obj=message_delta))
 
     # Create MESSAGE_END packet
-    message_end = MessageEnd()
+    message_end = SectionEnd()
     packets.append(Packet(ind=current_index, obj=message_end))
     current_index += 1
 
