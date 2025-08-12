@@ -271,7 +271,7 @@ export function FilterPopup({
             items-center 
             space-x-1
             group
-            rounded
+            rounded-lg
             text-input-text
             hover:bg-background-chat-hover
             hover:text-neutral-900
@@ -284,12 +284,6 @@ export function FilterPopup({
           "
         >
           <trigger.Icon size={16} className="h-4 w-4 my-auto flex-none" />
-          <div className="flex items-center">
-            <span className="text-sm break-all line-clamp-1">
-              {trigger.name}
-            </span>
-            <FiChevronDown className="flex-none ml-1" size={12} />
-          </div>
         </button>
       </PopoverTrigger>
       <PopoverContent

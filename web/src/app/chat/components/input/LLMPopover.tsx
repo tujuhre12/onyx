@@ -123,7 +123,8 @@ export default function LLMPopover({
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>{triggerContent}</PopoverTrigger>
       <PopoverContent
-        align="start"
+        side="top"
+        align="end"
         className="w-64 p-1 bg-background border border-background-200 rounded-md shadow-lg flex flex-col"
       >
         <div className="flex-grow max-h-[300px] default-scrollbar overflow-y-auto">
