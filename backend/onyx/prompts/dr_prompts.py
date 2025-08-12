@@ -695,11 +695,10 @@ relevant to the question sent to you.
 )
 
 
-CUSTOM_TOOL_USE_W_TOOL_CALLING_PROMPT = PromptTemplate(
+CUSTOM_TOOL_USE_PROMPT = PromptTemplate(
     f"""\
-You are a helpful assistant that can use tools to answer a user's question.
-Note that your task is to answer the specific task query provided below, but the \
-overall question that needs to be answered is also provided below for additional context.
+You are a helpful assistant that can format the response from a tool into a short reasoning and answer \
+in natural language to answer the specific task query.
 
 Here is the specific task query:
 {SEPARATOR_LINE}
@@ -711,6 +710,11 @@ Here is the base question that ultimately needs to be answered:
 ---base_question---
 {SEPARATOR_LINE}
 
+Here is the tool response:
+{SEPARATOR_LINE}
+---tool_response---
+{SEPARATOR_LINE}
+
 Notes:
    - clearly state in your answer if the tool response did not provide relevant information, \
 or the response does not apply to this specific context. Do not make up information!
@@ -719,23 +723,14 @@ or the response does not apply to this specific context. Do not make up informat
    - while the base question is important, really focus on answering the specific task query. \
 That is your task.
 
-Please format your answer as a json dictionary in the following format:
-{{
-   "reasoning": "<your reasoning in 5-8 sentences of what guides you to your conclusions of \
-the specific task query given the documents. Start out here with a brief statement whether \
-the SPECIFIC CONTEXT is mentioned in the documents. (Example: 'I was not able to find information \
-about yellow curry specifically, but I found information about curry...'). Generate here the \
-information that will be necessary to provide a succinct answer to the specific task query. >",
-   "answer": "<the specific answer to the specific task query. This may involve some reasoning over \
-the documents. Again, start out here as well with a brief statement whether the SPECIFIC CONTEXT is \
-mentioned in the documents. (Example: 'I was not able to find information about yellow curry specifically, \
-but I found information about curry...'). But this should be be precise and concise, and specifically \
-answer the question.>",
-}}
-"""
-)
+Please respond with a concise answer to the specific task query using the provided tool.
+If the tool response did not provide information relevant to the specific context mentioned in the \
+query, start out with a short statement highlighting this (e.g., I was not able to find information \
+about yellow curry specifically, but I found information about curry...).
 
-CUSTOM_TOOL_USE_WO_TOOL_CALLING_PROMPT = ""  # TODO: not implemented
+ANSWER:
+   """
+)
 
 
 TEST_INFO_COMPLETE_PROMPT = PromptTemplate(

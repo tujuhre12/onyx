@@ -196,8 +196,6 @@ def orchestrator(
         )
 
         if remaining_time_budget > 0:
-            if decision_prompt is None:
-                raise ValueError("Decision prompt is required")
             try:
                 orchestrator_action = invoke_llm_json(
                     llm=graph_config.tooling.primary_llm,
@@ -283,8 +281,6 @@ def orchestrator(
         )
 
         if remaining_time_budget > 0:
-            if decision_prompt is None:
-                raise ValueError("Decision prompt is required")
             try:
                 orchestrator_action = invoke_llm_json(
                     llm=graph_config.tooling.primary_llm,
