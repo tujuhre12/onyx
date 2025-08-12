@@ -11,6 +11,9 @@ from onyx.agents.agent_search.shared_graph_utils.operators import (
     dedup_inference_section_list,
 )
 from onyx.context.search.models import InferenceSection
+from onyx.context.search.models import SavedSearchDoc
+from onyx.context.search.utils import chunks_or_sections_to_search_docs
+
 
 CITATION_PREFIX = "CITE:"
 
@@ -230,3 +233,15 @@ def parse_plan_to_dict(plan_text: str) -> dict[str, str]:
                 plan_dict[number] = text
 
     return plan_dict
+
+
+def convert_inference_sections_to_search_docs(
+    inference_sections: list[InferenceSection],
+) -> list[SavedSearchDoc]:
+    # Convert InferenceSections to SavedSearchDocs
+    search_docs = chunks_or_sections_to_search_docs(inference_sections)
+    retrieved_saved_search_docs = [
+        SavedSearchDoc.from_search_doc(search_doc, db_doc_id=0)
+        for search_doc in search_docs
+    ]
+    return retrieved_saved_search_docs

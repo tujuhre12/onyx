@@ -38,6 +38,7 @@ def stream_llm_answer(
     timeout_override: int | None = None,
     max_tokens: int | None = None,
     answer_piece: str | None = None,
+    ind: int | None = None,
 ) -> tuple[list[str], list[float]]:
     """Stream the initial answer from the LLM.
 
@@ -86,14 +87,14 @@ def stream_llm_answer(
 
         elif answer_piece == "message_delta":
             write_custom_event(
-                event_name,
+                ind,
                 MessageDelta(content=content, type="message_delta"),
                 writer,
             )
 
         elif answer_piece == "reasoning_delta":
             write_custom_event(
-                event_name,
+                ind,
                 ReasoningDelta(reasoning=content, type="reasoning_delta"),
                 writer,
             )

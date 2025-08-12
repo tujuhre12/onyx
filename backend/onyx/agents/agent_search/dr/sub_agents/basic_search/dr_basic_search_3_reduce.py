@@ -5,14 +5,14 @@ from langgraph.types import StreamWriter
 
 from onyx.agents.agent_search.dr.sub_agents.states import SubAgentMainState
 from onyx.agents.agent_search.dr.sub_agents.states import SubAgentUpdate
+from onyx.agents.agent_search.dr.utils import convert_inference_sections_to_search_docs
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
-from onyx.context.search.models import SavedSearchDoc
-from onyx.context.search.utils import chunks_or_sections_to_search_docs
 from onyx.server.query_and_chat.streaming_models import SearchToolDelta
 from onyx.server.query_and_chat.streaming_models import SearchToolStart
+from onyx.server.query_and_chat.streaming_models import SectionEnd
 from onyx.utils.logger import setup_logger
 
 
@@ -32,6 +32,7 @@ def is_reducer(
 
     branch_updates = state.iteration_responses
     current_iteration = state.iteration_nr
+    current_step_nr = state.current_step_nr
 
     new_updates = [
         update for update in branch_updates if update.iteration_nr == current_iteration
@@ -46,16 +47,18 @@ def is_reducer(
         for x in xs:
             doc_list.append(x)
 
-    # Convert InferenceSections to SavedSearchDocs
-    search_docs = chunks_or_sections_to_search_docs(doc_list)
-    retrieved_saved_search_docs = [
-        SavedSearchDoc.from_search_doc(search_doc, db_doc_id=0)
-        for search_doc in search_docs
-    ]
+    # # Convert InferenceSections to SavedSearchDocs
+    # search_docs = chunks_or_sections_to_search_docs(doc_list)
+    # retrieved_saved_search_docs = [
+    #     SavedSearchDoc.from_search_doc(search_doc, db_doc_id=0)
+    #     for search_doc in search_docs
+    # ]
+
+    retrieved_search_docs = convert_inference_sections_to_search_docs(doc_list)
 
     # Write the results to the stream
     write_custom_event(
-        "basic_search",
+        current_step_nr,
         SearchToolStart(
             type="internal_search_tool_start",
         ),
@@ -63,17 +66,26 @@ def is_reducer(
     )
 
     write_custom_event(
-        "basic_search",
+        current_step_nr,
         SearchToolDelta(
             queries=queries,
-            documents=retrieved_saved_search_docs,
+            documents=retrieved_search_docs,
             type="internal_search_tool_delta",
         ),
         writer,
     )
 
+    write_custom_event(
+        current_step_nr,
+        SectionEnd(),
+        writer,
+    )
+
+    current_step_nr += 1
+
     return SubAgentUpdate(
         iteration_responses=new_updates,
+        current_step_nr=current_step_nr,
         log_messages=[
             get_langgraph_node_log_string(
                 graph_component="basic_search",

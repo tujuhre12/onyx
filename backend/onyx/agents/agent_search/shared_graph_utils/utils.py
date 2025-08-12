@@ -73,6 +73,7 @@ from onyx.prompts.agent_search import (
     HISTORY_CONTEXT_SUMMARY_PROMPT,
 )
 from onyx.prompts.prompt_utils import handle_onyx_date_awareness
+from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.tools.force import ForceUseTool
 from onyx.tools.models import SearchToolOverrideKwargs
 from onyx.tools.tool_constructor import SearchToolConfig
@@ -353,7 +354,7 @@ def dispatch_main_answer_stop_info(level: int, writer: StreamWriter) -> None:
         stream_type=StreamType.MAIN_ANSWER,
         level=level,
     )
-    write_custom_event("stream_finished", stop_event, writer)
+    write_custom_event(0, stop_event, writer)
 
 
 def retrieve_search_docs(
@@ -435,24 +436,44 @@ class CustomStreamEvent(TypedDict):
     """User defined name for the event."""
     data: Any
     """The data associated with the event. Free form and can be anything."""
-    packet_index_start: int
-    """The index of the first packet in the stream."""
 
 
 def write_custom_event(
-    name: str,
+    ind: int,
     event: AnswerPacket,
     stream_writer: StreamWriter,
-    packet_index_start: int = 0,
 ) -> None:
-    stream_writer(
-        CustomStreamEvent(
-            event="on_custom_event",
-            name=name,
-            data=event,
-            packet_index_start=packet_index_start,
+    # For types that are in PacketObj, wrap in Packet
+    # For types like StreamStopInfo that frontend handles directly, stream directly
+    if hasattr(event, "stop_reason"):  # StreamStopInfo
+        stream_writer(
+            CustomStreamEvent(
+                event="on_custom_event",
+                data=event,
+                name="",
+            )
         )
-    )
+    else:
+        # Try to wrap in Packet for types that are compatible
+        pass
+
+        try:
+            stream_writer(
+                CustomStreamEvent(
+                    event="on_custom_event",
+                    data=Packet(ind=ind, obj=event),
+                    name="",
+                )
+            )
+        except Exception:
+            # Fallback: stream directly if Packet wrapping fails
+            stream_writer(
+                CustomStreamEvent(
+                    event="on_custom_event",
+                    data=event,
+                    name="",
+                )
+            )
 
 
 def relevance_from_docs(

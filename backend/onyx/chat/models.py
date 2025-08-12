@@ -20,9 +20,13 @@ from onyx.context.search.models import RetrievalDocs
 from onyx.db.models import SearchDoc as DbSearchDoc
 from onyx.file_store.models import FileDescriptor
 from onyx.llm.override_models import PromptOverride
+from onyx.server.query_and_chat.streaming_models import CitationDelta
 from onyx.server.query_and_chat.streaming_models import CitationInfo
+from onyx.server.query_and_chat.streaming_models import CitationStart
 from onyx.server.query_and_chat.streaming_models import MessageDelta
 from onyx.server.query_and_chat.streaming_models import MessageStart
+from onyx.server.query_and_chat.streaming_models import OverallStop
+from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.server.query_and_chat.streaming_models import ReasoningDelta
 from onyx.server.query_and_chat.streaming_models import ReasoningStart
 from onyx.server.query_and_chat.streaming_models import SearchToolDelta
@@ -361,6 +365,10 @@ AnswerPacket = (
     | ReasoningDelta
     | SearchToolStart
     | SearchToolDelta
+    | OnyxAnswerPiece
+    | CitationStart
+    | CitationDelta
+    | OverallStop
 )
 
 
@@ -374,7 +382,7 @@ ResponsePart = (
     | AgentSearchPacket
 )
 
-AnswerStream = Iterator[AnswerPacket]
+AnswerStream = Iterator[Packet]
 
 
 class AnswerPostInfo(BaseModel):

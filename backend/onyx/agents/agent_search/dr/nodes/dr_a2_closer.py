@@ -21,29 +21,19 @@ from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.llm import invoke_llm_json
 from onyx.agents.agent_search.shared_graph_utils.llm import stream_llm_answer
 from onyx.agents.agent_search.shared_graph_utils.utils import (
-    dispatch_main_answer_stop_info,
-)
-from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.agents.agent_search.utils import create_citation_format_list
-from onyx.chat.models import AgentAnswerPiece
-from onyx.chat.models import ExtendedToolResponse
-from onyx.context.search.enums import QueryFlow
-from onyx.context.search.enums import SearchType
 from onyx.db.models import ChatMessage
 from onyx.db.models import ResearchAgentIteration
 from onyx.db.models import ResearchAgentIterationSubStep
 from onyx.prompts.dr_prompts import FINAL_ANSWER_PROMPT
 from onyx.prompts.dr_prompts import TEST_INFO_COMPLETE_PROMPT
+from onyx.server.query_and_chat.streaming_models import CitationStart
 from onyx.server.query_and_chat.streaming_models import MessageStart
+from onyx.server.query_and_chat.streaming_models import OverallStop
 from onyx.server.query_and_chat.streaming_models import SectionEnd
-from onyx.tools.tool_implementations.search.search_tool import IndexFilters
-from onyx.tools.tool_implementations.search.search_tool import (
-    SEARCH_RESPONSE_SUMMARY_ID,
-)
-from onyx.tools.tool_implementations.search.search_tool import SearchResponseSummary
 from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_with_timeout
 
@@ -100,8 +90,6 @@ def save_iteration(
         )
         db_session.add(research_agent_iteration_sub_step)
 
-    # db_session.commit()
-
 
 def closer(
     state: MainState, config: RunnableConfig, writer: StreamWriter = lambda _: None
@@ -114,6 +102,8 @@ def closer(
     # TODO: generate final answer using all the previous steps
     # (right now, answers from each step are concatenated onto each other)
     # Also, add missing fields once usage in UI is clear.
+
+    current_step_nr = state.current_step_nr
 
     graph_config = cast(GraphConfig, config["metadata"]["config"])
     base_question = state.original_question
@@ -191,33 +181,16 @@ def closer(
                 num_closer_suggestions=num_closer_suggestions + 1,
             )
 
-    # Stream out docs - TODO: Improve this with new frontend
-    write_custom_event(
-        "tool_response",
-        ExtendedToolResponse(
-            id=SEARCH_RESPONSE_SUMMARY_ID,
-            response=SearchResponseSummary(
-                rephrased_query=base_question,
-                top_sections=all_cited_documents,
-                predicted_flow=QueryFlow.QUESTION_ANSWER,
-                predicted_search=SearchType.KEYWORD,  # unused
-                final_filters=IndexFilters(access_control_list=None),  # unused
-                recency_bias_multiplier=1.0,  # unused
-            ),
-            level=0,
-            level_question_num=0,  # 0, 0 is the base question
-        ),
-        writer,
-    )
+    # retrieved_search_docs = convert_inference_sections_to_search_docs(
+    #     all_cited_documents
+    # )
 
-    # Generate final answer
     write_custom_event(
-        "basic_response",
-        AgentAnswerPiece(
-            answer_piece="\n\n\nFINAL ANSWER:\n\n\n",
-            level=0,
-            level_question_num=0,
-            answer_type="agent_level_answer",
+        current_step_nr,
+        MessageStart(
+            id=str(graph_config.persistence.chat_session_id),
+            content="",
+            type="message_start",
         ),
         writer,
     )
@@ -226,12 +199,6 @@ def closer(
         base_question=prompt_question,
         iteration_responses_string=iteration_responses_string,
         chat_history_string=chat_history_string,
-    )
-
-    write_custom_event(
-        "basic_response",
-        MessageStart(id=str(graph_config.persistence.chat_session_id), content=""),
-        writer,
     )
 
     try:
@@ -247,6 +214,7 @@ def closer(
                 agent_answer_type="agent_level_answer",
                 timeout_override=60,
                 answer_piece="message_delta",
+                ind=current_step_nr,
                 # max_tokens=None,
             ),
         )
@@ -255,9 +223,19 @@ def closer(
     except Exception as e:
         raise ValueError(f"Error in consolidate_research: {e}")
 
-    write_custom_event("aaa", SectionEnd(), writer)
+    write_custom_event(current_step_nr, SectionEnd(), writer)
 
-    dispatch_main_answer_stop_info(level=0, writer=writer)
+    current_step_nr += 1
+
+    write_custom_event(current_step_nr, CitationStart(), writer)
+
+    # write_custom_event(current_step_nr, CitationDelta(citations=retrieved_search_docs), writer)
+
+    write_custom_event(current_step_nr, SectionEnd(), writer)
+
+    current_step_nr += 1
+
+    write_custom_event(current_step_nr, OverallStop(), writer)
 
     # Log the research agent steps
     save_iteration(state, graph_config, aggregated_context)
