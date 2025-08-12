@@ -39,19 +39,16 @@ from onyx.db.models import SearchDoc as DbSearchDoc
 from onyx.file_store.models import ChatFileType
 from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.streaming_models import CitationDelta
-from onyx.server.query_and_chat.streaming_models import CitationEnd
 from onyx.server.query_and_chat.streaming_models import CitationInfo
 from onyx.server.query_and_chat.streaming_models import CitationStart
 from onyx.server.query_and_chat.streaming_models import CustomToolDelta
 from onyx.server.query_and_chat.streaming_models import CustomToolStart
 from onyx.server.query_and_chat.streaming_models import ImageGenerationToolStart
 from onyx.server.query_and_chat.streaming_models import MessageDelta
-from onyx.server.query_and_chat.streaming_models import MessageEnd
 from onyx.server.query_and_chat.streaming_models import MessageStart
 from onyx.server.query_and_chat.streaming_models import OverallStop
 from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.server.query_and_chat.streaming_models import ReasoningDelta
-from onyx.server.query_and_chat.streaming_models import ReasoningEnd
 from onyx.server.query_and_chat.streaming_models import ReasoningStart
 from onyx.server.query_and_chat.streaming_models import SearchToolDelta
 from onyx.server.query_and_chat.streaming_models import SearchToolStart
@@ -311,7 +308,7 @@ def process_streamed_packets(
                     if current_message_index is not None:
                         yield Packet(
                             ind=current_message_index,
-                            obj=MessageEnd(),
+                            obj=SectionEnd(),
                         )
                     # Reset for next message
                     current_message_index = None
@@ -361,17 +358,15 @@ def process_streamed_packets(
             (
                 MessageStart,
                 MessageDelta,
-                MessageEnd,
                 ReasoningStart,
                 ReasoningDelta,
-                ReasoningEnd,
                 SectionEnd,
             ),
         ):
             yield Packet(ind=packet_index, obj=packet)
 
     if current_message_index is not None:
-        yield Packet(ind=current_message_index, obj=MessageEnd())
+        yield Packet(ind=current_message_index, obj=SectionEnd())
 
     # Emit collected citations if any
     if collected_citations and current_citation_index is not None:
@@ -381,7 +376,7 @@ def process_streamed_packets(
         )
         yield Packet(
             ind=current_citation_index,
-            obj=CitationEnd(),
+            obj=SectionEnd(),
         )
 
     # Yield STOP packet to indicate streaming is complete

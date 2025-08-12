@@ -28,10 +28,6 @@ class MessageDelta(BaseObj):
     type: Literal["message_delta"] = "message_delta"
 
 
-class MessageEnd(BaseObj):
-    type: Literal["message_end"] = "message_end"
-
-
 """Control Packets"""
 
 
@@ -99,10 +95,6 @@ class ReasoningDelta(BaseObj):
     reasoning: str
 
 
-class ReasoningEnd(BaseObj):
-    type: Literal["reasoning_end"] = "reasoning_end"
-
-
 """Citation Packets"""
 
 
@@ -161,10 +153,6 @@ class CitationDelta(BaseObj):
     citations: list[CitationInfo] | None = None
 
 
-class CitationEnd(BaseObj):
-    type: Literal["citation_end"] = "citation_end"
-
-
 """Packet"""
 
 # Discriminated union of all possible packet object types
@@ -172,7 +160,6 @@ PacketObj = Annotated[
     Union[
         MessageStart,
         MessageDelta,
-        MessageEnd,
         OverallStop,
         SectionEnd,
         SearchToolStart,
@@ -183,10 +170,8 @@ PacketObj = Annotated[
         CustomToolDelta,
         ReasoningStart,
         ReasoningDelta,
-        ReasoningEnd,
         CitationStart,
         CitationDelta,
-        CitationEnd,
     ],
     Field(discriminator="type"),
 ]

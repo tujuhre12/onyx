@@ -103,10 +103,6 @@ export interface ReasoningDelta extends BaseObj {
   reasoning: string;
 }
 
-export interface ReasoningEnd extends BaseObj {
-  type: "reasoning_end";
-}
-
 // Citation Packets
 export interface StreamingCitation {
   citation_num: number;
@@ -120,11 +116,6 @@ export interface CitationStart extends BaseObj {
 export interface CitationDelta extends BaseObj {
   type: "citation_delta";
   citations: StreamingCitation[];
-}
-
-export interface CitationEnd extends BaseObj {
-  type: "citation_end";
-  total_citations: number | null;
 }
 
 export type ChatObj = MessageStart | MessageDelta | MessageEnd;
@@ -142,9 +133,9 @@ export type ImageGenerationToolObj =
 export type CustomToolObj = CustomToolStart | CustomToolDelta | SectionEnd;
 export type NewToolObj = SearchToolObj | ImageGenerationToolObj | CustomToolObj;
 
-export type ReasoningObj = ReasoningStart | ReasoningDelta | ReasoningEnd;
+export type ReasoningObj = ReasoningStart | ReasoningDelta | SectionEnd;
 
-export type CitationObj = CitationStart | CitationDelta | CitationEnd;
+export type CitationObj = CitationStart | CitationDelta | SectionEnd;
 
 // Union type for all possible streaming objects
 export type ObjTypes =
