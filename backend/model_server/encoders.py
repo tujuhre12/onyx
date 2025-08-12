@@ -217,7 +217,11 @@ class CloudEmbedding:
         return embeddings
 
     async def _embed_vertex(
-        self, texts: list[str], model: str | None, embedding_type: str
+        self,
+        texts: list[str],
+        model: str | None,
+        embedding_type: str,
+        reduced_dimension: int | None = None,
     ) -> list[Embedding]:
         if not model:
             model = DEFAULT_VERTEX_MODEL
@@ -244,9 +248,16 @@ class CloudEmbedding:
         ]
 
         # Dispatch all embedding calls asynchronously at once
-        tasks = [
-            client.get_embeddings_async(batch, auto_truncate=True) for batch in batches
-        ]
+        tasks = []
+        for batch in batches:
+            # Only pass output_dimensionality if reduced_dimension is specified
+            if reduced_dimension is not None:
+                task = client.get_embeddings_async(
+                    batch, auto_truncate=True, output_dimensionality=reduced_dimension
+                )
+            else:
+                task = client.get_embeddings_async(batch, auto_truncate=True)
+            tasks.append(task)
 
         # Wait for all tasks to complete in parallel
         results = await asyncio.gather(*tasks)
@@ -302,7 +313,9 @@ class CloudEmbedding:
             elif self.provider == EmbeddingProvider.VOYAGE:
                 return await self._embed_voyage(texts, model_name, embedding_type)
             elif self.provider == EmbeddingProvider.GOOGLE:
-                return await self._embed_vertex(texts, model_name, embedding_type)
+                return await self._embed_vertex(
+                    texts, model_name, embedding_type, reduced_dimension
+                )
             else:
                 raise ValueError(f"Unsupported provider: {self.provider}")
         except openai.AuthenticationError:
