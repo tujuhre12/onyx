@@ -28,6 +28,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { FilterIcon } from "@/components/icons/icons";
 
 interface FilterPopupProps {
   filterManager: FilterManager;
@@ -283,7 +284,7 @@ export function FilterPopup({
             overflow-hidden
           "
         >
-          <trigger.Icon size={16} className="h-4 w-4 my-auto flex-none" />
+          <FilterIcon size={16} />
         </button>
       </PopoverTrigger>
       <PopoverContent

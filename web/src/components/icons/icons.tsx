@@ -492,6 +492,55 @@ export const FileIcon2 = ({
   );
 };
 
+export const FilterIcon = ({ size = 16 }: IconProps) => {
+  return (
+    <svg
+      width={size}
+      height={size - 2}
+      viewBox={`0 0 ${size} ${size - 2}`}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M14.6667 1H1.33334L6.66668 7.30667V11.6667L9.33334 13V7.30667L14.6667 1Z"
+        stroke="currentColor"
+        stroke-opacity="0.8"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  );
+};
+
+export const FileUploadIcon = ({ size = 16 }: IconProps) => {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g clip-path="url(#clip0_16_2625)">
+        <path
+          d="M7.99999 5.33333V10.6667M5.33333 7.99999H10.6667M14.6667 7.99999C14.6667 11.6819 11.6819 14.6667 7.99999 14.6667C4.3181 14.6667 1.33333 11.6819 1.33333 7.99999C1.33333 4.3181 4.3181 1.33333 7.99999 1.33333C11.6819 1.33333 14.6667 4.3181 14.6667 7.99999Z"
+          stroke="currentColor"
+          stroke-opacity="0.8"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </g>
+      <defs>
+        <clipPath id="clip0_16_2625">
+          <rect width="16" height="16" fill="white" />
+        </clipPath>
+      </defs>
+    </svg>
+  );
+};
+
 export const InfoIcon = ({
   size = 16,
   className = defaultTailwindCSS,
@@ -937,6 +986,7 @@ export const SendIcon = ({
     </svg>
   );
 };
+
 export const SearchIcon = ({
   size = 16,
   className = defaultTailwindCSS,

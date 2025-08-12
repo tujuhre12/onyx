@@ -39,11 +39,13 @@ function MultiToolRenderer({
   packetGroups,
   chatState,
   isComplete,
+  isFinalAnswerComing,
   onAllToolsDisplayed,
 }: {
   packetGroups: { ind: number; packets: Packet[] }[];
   chatState: FullChatState;
   isComplete: boolean;
+  isFinalAnswerComing: boolean;
   onAllToolsDisplayed?: () => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -54,12 +56,9 @@ function MultiToolRenderer({
     );
   }, [packetGroups]);
 
-  console.log("toolGroups", toolGroups);
-  console.log("isComplete", isComplete);
-
   // Use the custom hook to manage tool display timing
   const { visibleTools, allToolsDisplayed, handleToolComplete } =
-    useToolDisplayTiming(toolGroups, isComplete);
+    useToolDisplayTiming(toolGroups, isFinalAnswerComing, isComplete);
 
   // Notify parent when all tools are displayed
   useEffect(() => {

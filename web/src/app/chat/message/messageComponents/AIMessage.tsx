@@ -68,6 +68,7 @@ export function AIMessage({
   const documentMapRef = useRef<Map<string, OnyxDocument>>(new Map());
   const groupedPacketsMapRef = useRef<Map<number, Packet[]>>(new Map());
   const groupedPacketsRef = useRef<{ ind: number; packets: Packet[] }[]>([]);
+  const finalAnswerComingRef = useRef<boolean>(isFinalAnswerComing(rawPackets));
 
   // Reset incremental state when switching messages or when stream resets
   useEffect(() => {
@@ -77,6 +78,7 @@ export function AIMessage({
     documentMapRef.current = new Map();
     groupedPacketsMapRef.current = new Map();
     groupedPacketsRef.current = [];
+    finalAnswerComingRef.current = isFinalAnswerComing(rawPackets);
   }, [messageId]);
 
   // If the upstream replaces packets with a shorter list (reset), clear state
@@ -131,6 +133,14 @@ export function AIMessage({
             }
           }
         }
+      }
+
+      // check if final answer is coming
+      if (
+        packet.obj.type === PacketType.MESSAGE_START ||
+        packet.obj.type === PacketType.MESSAGE_DELTA
+      ) {
+        finalAnswerComingRef.current = true;
       }
     }
 
@@ -237,6 +247,9 @@ export function AIMessage({
                                   packetGroups={toolGroups}
                                   chatState={chatState}
                                   isComplete={allToolsFullyDisplayed}
+                                  isFinalAnswerComing={
+                                    finalAnswerComingRef.current
+                                  }
                                   onAllToolsDisplayed={() =>
                                     setAllToolsFullyDisplayed(true)
                                   }
