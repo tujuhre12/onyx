@@ -54,6 +54,9 @@ function MultiToolRenderer({
     );
   }, [packetGroups]);
 
+  console.log("toolGroups", toolGroups);
+  console.log("isComplete", isComplete);
+
   // Use the custom hook to manage tool display timing
   const { visibleTools, allToolsDisplayed, handleToolComplete } =
     useToolDisplayTiming(toolGroups, isComplete);

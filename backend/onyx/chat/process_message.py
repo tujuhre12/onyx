@@ -602,8 +602,6 @@ def stream_chat_message_objects(
                 is_agentic=is_agentic_overwrite,
             )
 
-        partial_response = create_response
-
         prompt_override = new_msg_req.prompt_override or chat_session.prompt_override
         if new_msg_req.persona_override_config:
             prompt_config = PromptConfig(
@@ -745,12 +743,8 @@ def stream_chat_message_objects(
         )
 
         # Process streamed packets using the new packet processing module
-        info_by_subq = yield from process_streamed_packets(
+        yield from process_streamed_packets(
             answer_processed_output=answer.processed_streamed_output,
-            reserved_message_id=reserved_message_id,
-            selected_db_search_docs=selected_db_search_docs,
-            retrieval_options=retrieval_options,
-            db_session=db_session,
         )
 
     except ValueError as e:
@@ -786,16 +780,6 @@ def stream_chat_message_objects(
 
         db_session.rollback()
         return
-
-    yield from _post_llm_answer_processing(
-        answer=answer,
-        info_by_subq=info_by_subq,
-        tool_dict=tool_dict,
-        partial_response=partial_response,
-        llm_tokenizer_encode_func=llm_tokenizer_encode_func,
-        db_session=db_session,
-        chat_session_id=chat_session_id,
-    )
 
 
 def _post_llm_answer_processing(
