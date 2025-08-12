@@ -34,7 +34,6 @@ from onyx.kg.utils.extraction_utils import get_entity_types_str
 from onyx.kg.utils.extraction_utils import get_relationship_types_str
 from onyx.prompts.dr_prompts import SUFFICIENT_INFORMATION_STRING
 from onyx.server.query_and_chat.streaming_models import ReasoningDelta
-from onyx.server.query_and_chat.streaming_models import ReasoningEnd
 from onyx.server.query_and_chat.streaming_models import ReasoningStart
 from onyx.server.query_and_chat.streaming_models import SectionEnd
 from onyx.utils.logger import setup_logger
@@ -401,9 +400,7 @@ def orchestrator(
 
         write_custom_event(
             "basic_response",
-            ReasoningEnd(
-                type="reasoning_end",
-            ),
+            SectionEnd(),
             writer,
         )
 
