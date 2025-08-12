@@ -22,10 +22,8 @@ from onyx.file_store.models import FileDescriptor
 from onyx.llm.override_models import PromptOverride
 from onyx.server.query_and_chat.streaming_models import CitationInfo
 from onyx.server.query_and_chat.streaming_models import MessageDelta
-from onyx.server.query_and_chat.streaming_models import MessageEnd
 from onyx.server.query_and_chat.streaming_models import MessageStart
 from onyx.server.query_and_chat.streaming_models import ReasoningDelta
-from onyx.server.query_and_chat.streaming_models import ReasoningEnd
 from onyx.server.query_and_chat.streaming_models import ReasoningStart
 from onyx.server.query_and_chat.streaming_models import SearchToolDelta
 from onyx.server.query_and_chat.streaming_models import SearchToolStart
@@ -358,11 +356,9 @@ AnswerPacket = (
     | ToolResponse
     | MessageStart
     | MessageDelta
-    | MessageEnd
     | SectionEnd
     | ReasoningStart
     | ReasoningDelta
-    | ReasoningEnd
     | SearchToolStart
     | SearchToolDelta
 )
