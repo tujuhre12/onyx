@@ -219,6 +219,7 @@ def closer(
     )
 
     try:
+        # TODO: fix citations for non-document returning tools (right now, it cites iteration nr)
         streamed_output = run_with_timeout(
             240,
             lambda: stream_llm_answer(

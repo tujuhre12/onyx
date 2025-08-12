@@ -96,11 +96,11 @@ if there is sufficient information in the provided history to answer the questio
 """
 
 
-TOOL_DIFFERENTIATION_HINTS: dict[tuple[DRPath, DRPath], str] = {}
+TOOL_DIFFERENTIATION_HINTS: dict[tuple[str, str], str] = {}
 TOOL_DIFFERENTIATION_HINTS[
     (
-        DRPath.INTERNAL_SEARCH,
-        DRPath.INTERNET_SEARCH,
+        DRPath.INTERNAL_SEARCH.value,
+        DRPath.INTERNET_SEARCH.value,
     )
 ] = f"""\
 - in general, you should use the {INTERNAL_SEARCH} tool first, and only use the {INTERNET_SEARCH} tool if the \
@@ -111,8 +111,8 @@ information you need, you can switch to the {INTERNAL_SEARCH} tool the following
 
 TOOL_DIFFERENTIATION_HINTS[
     (
-        DRPath.KNOWLEDGE_GRAPH,
-        DRPath.INTERNAL_SEARCH,
+        DRPath.KNOWLEDGE_GRAPH.value,
+        DRPath.INTERNAL_SEARCH.value,
     )
 ] = f"""\
 - please look at the user query and the entity types and relationship types in the knowledge graph \
@@ -127,8 +127,8 @@ whereas 'use the knowledge graph (or KG) to summarize...' should be a {KNOWLEDGE
 
 TOOL_DIFFERENTIATION_HINTS[
     (
-        DRPath.KNOWLEDGE_GRAPH,
-        DRPath.INTERNET_SEARCH,
+        DRPath.KNOWLEDGE_GRAPH.value,
+        DRPath.INTERNET_SEARCH.value,
     )
 ] = f"""\
 - please look at the user query and the entity types and relationship types in the knowledge graph \
@@ -143,21 +143,21 @@ whereas 'use the knowledge graph (or KG) to summarize...' should be a {KNOWLEDGE
 """
 
 
-TOOL_QUESTION_HINTS: dict[DRPath, str] = {
-    DRPath.INTERNAL_SEARCH: f"""if the tool is {INTERNAL_SEARCH}, the question should be \
+TOOL_QUESTION_HINTS: dict[str, str] = {
+    DRPath.INTERNAL_SEARCH.value: f"""if the tool is {INTERNAL_SEARCH}, the question should be \
 written as a list of suitable searches of up to {MAX_DR_PARALLEL_SEARCH} queries. \
 If searching for multiple \
 aspects is required you should split the question into multiple sub-questions.
 """,
-    DRPath.INTERNET_SEARCH: f"""if the tool is {INTERNET_SEARCH}, the question should be \
+    DRPath.INTERNET_SEARCH.value: f"""if the tool is {INTERNET_SEARCH}, the question should be \
 written as a list of suitable searches of up to {MAX_DR_PARALLEL_SEARCH} queries. So the \
 searches should be rather short and focus on one specific aspect. If searching for multiple \
 aspects is required you should split the question into multiple sub-questions.
 """,
-    DRPath.KNOWLEDGE_GRAPH: f"""if the tool is {KNOWLEDGE_GRAPH}, the question should be \
+    DRPath.KNOWLEDGE_GRAPH.value: f"""if the tool is {KNOWLEDGE_GRAPH}, the question should be \
 written as a list of one question.
 """,
-    DRPath.CLOSER: f"""if the tool is {CLOSER}, the list of questions should simply be \
+    DRPath.CLOSER.value: f"""if the tool is {CLOSER}, the list of questions should simply be \
 ['Answer the original question with the information you have.'].
 """,
 }
