@@ -37,11 +37,13 @@ from onyx.db.models import ResearchAgentIteration
 from onyx.db.models import ResearchAgentIterationSubStep
 from onyx.prompts.dr_prompts import FINAL_ANSWER_PROMPT
 from onyx.prompts.dr_prompts import TEST_INFO_COMPLETE_PROMPT
+from onyx.tools.models import ToolCallFinalResult
 from onyx.tools.tool_implementations.search.search_tool import IndexFilters
 from onyx.tools.tool_implementations.search.search_tool import (
     SEARCH_RESPONSE_SUMMARY_ID,
 )
 from onyx.tools.tool_implementations.search.search_tool import SearchResponseSummary
+from onyx.tools.tool_implementations.search.search_tool import SearchTool
 from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_with_timeout
 
@@ -132,7 +134,7 @@ def closer(
     )
 
     aggregated_context = aggregate_context(
-        state.iteration_responses, include_answers_claims=True, include_documents=True
+        state.iteration_responses, include_documents=True
     )
 
     iteration_responses_string = aggregated_context.context
@@ -196,6 +198,17 @@ def closer(
             ),
             level=0,
             level_question_num=0,  # 0, 0 is the base question
+        ),
+        writer,
+    )
+
+    # Change status from "searching for" to "searched for"
+    write_custom_event(
+        "tool_response",
+        ToolCallFinalResult(
+            tool_name=SearchTool._NAME,
+            tool_args={"query": base_question},
+            tool_result=[],  # unused
         ),
         writer,
     )

@@ -43,10 +43,7 @@ def extract_document_citations(
 
 
 def aggregate_context(
-    iteration_responses: list[IterationAnswer],
-    include_documents: bool = False,
-    # TODO: maybe remove? always include answers and claims
-    include_answers_claims: bool = True,
+    iteration_responses: list[IterationAnswer], include_documents: bool = False
 ) -> AggregatedDRContext:
     """
     Converts the iteration response into a single string with unified citations.
@@ -111,13 +108,14 @@ def aggregate_context(
             iteration_citations.append(global_number)
 
         # add answer, claims, and citation info
-        if include_answers_claims:
+        if answer_str:
             output_strings.append(f"Answer: {answer_str}")
+        if claims:
             output_strings.append(
                 "Claims: " + "".join(f"\n  - {claim}" for claim in claims or [])
                 or "No claims provided"
             )
-        else:
+        if not answer_str and not claims:
             output_strings.append(
                 "Retrieved documents: "
                 + (

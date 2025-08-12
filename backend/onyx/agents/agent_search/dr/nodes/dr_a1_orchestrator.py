@@ -59,11 +59,7 @@ def orchestrator(
     remaining_time_budget = state.remaining_time_budget
     chat_history_string = state.chat_history_string or "(No chat history yet available)"
     answer_history_string = (
-        aggregate_context(
-            state.iteration_responses,
-            include_answers_claims=True,
-            include_documents=research_type == ResearchType.DEEP,
-        ).context
+        aggregate_context(state.iteration_responses, include_documents=True).context
         or "(No answer history yet available)"
     )
     available_tools = state.available_tools or {}
