@@ -90,6 +90,8 @@ def save_iteration(
         )
         db_session.add(research_agent_iteration_sub_step)
 
+    db_session.commit()
+
 
 def closer(
     state: MainState, config: RunnableConfig, writer: StreamWriter = lambda _: None
