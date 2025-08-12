@@ -152,14 +152,25 @@ def orchestrator(
                     agent_answer_type="agent_level_answer",
                     timeout_override=60,
                     answer_piece="reasoning_delta",
+                    ind=current_step_nr,
                     # max_tokens=None,
                 ),
             )
+
+            write_custom_event(
+                current_step_nr,
+                SectionEnd(),
+                writer,
+            )
+
+            current_step_nr += 1
+
             reasoning_result = cast(str, merge_content(*reasoning_tokens))
 
             if SUFFICIENT_INFORMATION_STRING in reasoning_result:
                 return OrchestrationUpdate(
                     tools_used=[DRPath.CLOSER.value],
+                    current_step_nr=current_step_nr,
                     query_list=[],
                     iteration_nr=iteration_nr,
                     log_messages=[
