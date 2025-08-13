@@ -467,7 +467,7 @@ export function ChatInputBar({
                 font-normal
                 text-base
                 leading-6
-                placeholder:text-text-400
+                placeholder:text-text-400 dark:placeholder:text-text-500
                 ${
                   textAreaRef.current &&
                   textAreaRef.current.scrollHeight > MAX_INPUT_HEIGHT
@@ -481,7 +481,6 @@ export function ChatInputBar({
                 resize-none
                 px-5
                 py-5
-                dark:text-[#D4D4D4]
               `}
               autoFocus
               style={{ scrollbarWidth: "thin" }}
