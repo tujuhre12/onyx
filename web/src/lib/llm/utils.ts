@@ -113,7 +113,7 @@ export const findModelConfiguration = (
   providerName: string | null = null
 ): ModelConfiguration | null => {
   if (providerName) {
-    const provider = llmProviders.find((p) => p.provider === providerName);
+    const provider = llmProviders.find((p) => p.name === providerName);
     return provider
       ? findModelInModelConfigurations(provider.model_configurations, modelName)
       : null;

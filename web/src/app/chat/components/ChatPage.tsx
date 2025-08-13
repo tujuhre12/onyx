@@ -83,6 +83,7 @@ import { useChatSessionController } from "../hooks/useChatSessionController";
 import {
   useChatSessionStore,
   useMaxTokens,
+  useUncaughtError,
 } from "../stores/useChatSessionStore";
 import {
   useCurrentChatState,
@@ -102,6 +103,7 @@ import {
 } from "../stores/useChatSessionStore";
 import { AIMessage } from "../message/messageComponents/AIMessage";
 import { FederatedOAuthModal } from "@/components/chat/FederatedOAuthModal";
+import { ErrorCallout } from "@/components/ErrorCallout";
 
 export function ChatPage({
   toggle,
@@ -483,6 +485,7 @@ export function ChatPage({
   const submittedMessage = useSubmittedMessage();
   const agenticGenerating = useAgenticGenerating();
   const loadingError = useLoadingError();
+  const uncaughtError = useUncaughtError();
   const isReady = useIsReady();
   const maxTokens = useMaxTokens();
   const isFetchingChatMessages = useIsFetching();
@@ -1171,6 +1174,22 @@ export function ChatPage({
                                 const previousMessage =
                                   i !== 0 ? messageHistory[i - 1] : null;
 
+                                if (
+                                  (uncaughtError || loadingError) &&
+                                  i === messageHistory.length - 1
+                                ) {
+                                  return (
+                                    <div className="max-w-message-max mx-auto">
+                                      <ErrorBanner
+                                        resubmit={handleResubmitLastMessage}
+                                        error={
+                                          uncaughtError || loadingError || ""
+                                        }
+                                      />
+                                    </div>
+                                  );
+                                }
+
                                 return (
                                   <div
                                     className="text-text"
@@ -1213,6 +1232,19 @@ export function ChatPage({
                                 );
                               }
                             })}
+
+                            {((uncaughtError || loadingError) &&
+                              messageHistory[messageHistory.length - 1]
+                                ?.type === "user") ||
+                              (messageHistory[messageHistory.length - 1]
+                                ?.type === "error" && (
+                                <div className="max-w-message-max mx-auto">
+                                  <ErrorBanner
+                                    resubmit={handleResubmitLastMessage}
+                                    error={uncaughtError || loadingError || ""}
+                                  />
+                                </div>
+                              ))}
 
                             {messageHistory.length > 0 && (
                               <div
