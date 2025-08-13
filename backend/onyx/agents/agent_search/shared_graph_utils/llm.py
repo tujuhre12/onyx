@@ -13,7 +13,6 @@ from litellm import supports_response_schema
 from pydantic import BaseModel
 
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
-from onyx.chat.models import AgentAnswerPiece
 from onyx.llm.interfaces import LLM
 from onyx.llm.interfaces import ToolChoiceOptions
 from onyx.server.query_and_chat.streaming_models import MessageDelta
@@ -79,20 +78,9 @@ def stream_llm_answer(
 
         start_stream_token = datetime.now()
 
-        if answer_piece == "answer_piece":
-
-            write_custom_event(
-                event_name,
-                AgentAnswerPiece(
-                    answer_piece=content,
-                    level=agent_answer_level,
-                    level_question_num=agent_answer_question_num,
-                    answer_type=agent_answer_type,
-                ),
-                writer,
-            )
-
-        elif answer_piece == "message_delta":
+        if answer_piece == "message_delta":
+            if ind is None:
+                raise ValueError("index is required when answer_piece is message_delta")
             write_custom_event(
                 ind,
                 MessageDelta(content=content, type="message_delta"),
@@ -100,6 +88,10 @@ def stream_llm_answer(
             )
 
         elif answer_piece == "reasoning_delta":
+            if ind is None:
+                raise ValueError(
+                    "index is required when answer_piece is reasoning_delta"
+                )
             write_custom_event(
                 ind,
                 ReasoningDelta(reasoning=content, type="reasoning_delta"),
