@@ -14,6 +14,9 @@ from onyx.chat.stream_processing.answer_response_handler import (
     PassThroughAnswerResponseHandler,
 )
 from onyx.chat.stream_processing.utils import map_document_id_order
+from onyx.server.query_and_chat.streaming_models import MessageDelta
+from onyx.server.query_and_chat.streaming_models import MessageStart
+from onyx.server.query_and_chat.streaming_models import SectionEnd
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -26,6 +29,8 @@ def process_llm_stream(
     ind: int,
     final_search_results: list[LlmDoc] | None = None,
     displayed_search_results: list[LlmDoc] | None = None,
+    generate_final_answer: bool = False,
+    chat_message_id: str | None = None,
 ) -> BasicSearchProcessedStreamResults:
     tool_call_chunk = AIMessageChunk(content="")
 
@@ -39,6 +44,7 @@ def process_llm_stream(
         answer_handler = PassThroughAnswerResponseHandler()
 
     full_answer = ""
+    start_final_answer_streaming_set = False
     # This stream will be the llm answer if no tool is chosen. When a tool is chosen,
     # the stream will contain AIMessageChunks with tool call information.
     for message in messages:
@@ -56,11 +62,47 @@ def process_llm_stream(
             tool_call_chunk += message  # type: ignore
         elif should_stream_answer:
             for response_part in answer_handler.handle_response_part(message, []):
-                write_custom_event(
-                    ind,
-                    response_part,
-                    writer,
-                )
+
+                if (
+                    hasattr(response_part, "answer_piece")
+                    and generate_final_answer
+                    and response_part.answer_piece
+                ):
+                    if chat_message_id is None:
+                        raise ValueError(
+                            "chat_message_id is required when generating final answer"
+                        )
+
+                    if not start_final_answer_streaming_set:
+                        write_custom_event(
+                            ind,
+                            MessageStart(id=chat_message_id, content=""),
+                            writer,
+                        )
+                        start_final_answer_streaming_set = True
+
+                    write_custom_event(
+                        ind,
+                        MessageDelta(
+                            content=response_part.answer_piece, type="message_delta"
+                        ),
+                        writer,
+                    )
+
+                else:
+                    write_custom_event(
+                        ind,
+                        response_part,
+                        writer,
+                    )
+
+    if generate_final_answer and start_final_answer_streaming_set:
+        # start_final_answer_streaming_set is only set if the answer is verbal and not a tool call
+        write_custom_event(
+            ind,
+            SectionEnd(),
+            writer,
+        )
 
     logger.debug(f"Full answer: {full_answer}")
     return BasicSearchProcessedStreamResults(

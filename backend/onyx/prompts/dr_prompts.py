@@ -784,8 +784,99 @@ liste empty as in [].>"
 """
 )
 
+FINAL_ANSWER_PROMPT_W_SUB_ANSWERS = PromptTemplate(
+    f"""
+You are a helpful assistant that can answer a user question based on sub-answers generated earlier \
+and a list of documents that were used to generate the sub-answers. The list of documents is \
+for further reference to get more details.
 
-FINAL_ANSWER_PROMPT = PromptTemplate(
+Here is the question that needs to be answered:
+{SEPARATOR_LINE}
+---base_question---
+{SEPARATOR_LINE}
+
+Here is the list of sub-questions, their answers, and the extracted facts/claims:
+{SEPARATOR_LINE}
+---iteration_responses_string---
+{SEPARATOR_LINE}
+
+Finally, here is the previous chat history (if any), which may contain relevant information \
+to answer the question:
+{SEPARATOR_LINE}
+---chat_history_string---
+{SEPARATOR_LINE}
+
+
+GUIDANCE:
+ - note that the sub-answers to the sub-questions are designed to be high-level, mostly \
+focussing on providing the citations and providing some answer facts. But the \
+main content should be in the cited documents for each sub-question.
+ - Pay close attention to whether the sub-answers mention whether the topic of interest \
+was explicitly mentioned! If not you cannot reliably use that information to construct your answer, \
+or you MUST then qualify your answer with something like 'xyz was not explicitly \
+mentioned, however the similar concept abc was, and I learned...'
+- if the documents/sub-answers do not explicitly mention the topic of interest with \
+specificity(!) (example: 'yellow curry' vs 'curry'), you MUST sate at the outset that \
+the provided context os based on the less specific concept. (Example: 'I was not able to \
+find information about yellow curry specifically, but here is what I found about curry..'
+- make sure that the text from a document that you use is NOT TAKEN OUT OF CONTEXT!
+- do not make anything up! Only use the information provided in the documents, or, \
+if no documents are provided for a sub-answer, in the actual sub-answer.
+- Provide a thoughtful answer that is concise and to the point, but that is detailed.
+- Please cite your sources inline in format [2][4], etc! The numbers of the documents \
+are provided above.
+
+ANSWER:
+"""
+)
+
+FINAL_ANSWER_PROMPT_WITHOUT_SUB_ANSWERS = PromptTemplate(
+    f"""
+You are a helpful assistant that can answer a user question based \
+a list of documents that were retrieved in response to subh-questions, and possibly also \
+corresponding sub-answers  (note, a given subquestion may or may not have a corresponding sub-answer).
+
+Here is the question that needs to be answered:
+{SEPARATOR_LINE}
+---base_question---
+{SEPARATOR_LINE}
+
+Here is the list of sub-questions, their answers (if available), and the retrieved documents (if available):
+{SEPARATOR_LINE}
+---iteration_responses_string---
+{SEPARATOR_LINE}
+
+Finally, here is the previous chat history (if any), which may contain relevant information \
+to answer the question:
+{SEPARATOR_LINE}
+---chat_history_string---
+{SEPARATOR_LINE}
+
+
+GUIDANCE:
+ - note that the sub-answers (if available) to the sub-questions are designed to be high-level, mostly \
+focussing on providing the citations and providing some answer facts. But the \
+main content should be in the cited documents for each sub-question.
+ - Pay close attention to whether the sub-answers (if available) mention whether the topic of interest \
+was explicitly mentioned! If not you cannot reliably use that information to construct your answer, \
+or you MUST then qualify your answer with something like 'xyz was not explicitly \
+mentioned, however the similar concept abc was, and I learned...'
+- if the documents/sub-answers (if available) do not explicitly mention the topic of interest with \
+specificity(!) (example: 'yellow curry' vs 'curry'), you MUST sate at the outset that \
+the provided context os based on the less specific concept. (Example: 'I was not able to \
+find information about yellow curry specifically, but here is what I found about curry..'
+- make sure that the text from a document that you use is NOT TAKEN OUT OF CONTEXT!
+- do not make anything up! Only use the information provided in the documents, or, \
+if no documents are provided for a sub-answer, in the actual sub-answer.
+- Provide a thoughtful answer that is concise and to the point, but that is detailed.
+- Please cite your sources inline in format [2][4], etc! The numbers of the documents \
+are provided above.
+
+ANSWER:
+"""
+)
+
+FINAL_ANSWER_PROMPT_W_SUB_ANSWERS = PromptTemplate(
     f"""
 You are a helpful assistant that can answer a user question based on sub-answers generated earlier \
 and a list of documents that were used to generate the sub-answers. The list of documents is \

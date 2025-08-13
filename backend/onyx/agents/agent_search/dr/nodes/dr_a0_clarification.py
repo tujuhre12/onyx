@@ -346,9 +346,18 @@ def clarifier(
             structured_response_format=graph_config.inputs.structured_response_format,
         )
 
-        tool_message = process_llm_stream(stream, True, writer, 0).ai_message_chunk
+        tool_message = process_llm_stream(
+            messages=stream,
+            should_stream_answer=True,
+            writer=writer,
+            ind=0,
+            generate_final_answer=True,
+            chat_message_id=str(graph_config.persistence.chat_session_id),
+        ).ai_message_chunk
 
-        if tool_message is None or len(tool_message.tool_calls) == 0:
+        if len(tool_message.tool_calls) == 0:
+
+            db_session.commit()
             return OrchestrationUpdate(
                 original_question=original_question,
                 chat_history_string="",

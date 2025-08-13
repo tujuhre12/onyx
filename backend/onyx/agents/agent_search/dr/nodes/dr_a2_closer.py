@@ -28,7 +28,8 @@ from onyx.agents.agent_search.utils import create_citation_format_list
 from onyx.db.models import ChatMessage
 from onyx.db.models import ResearchAgentIteration
 from onyx.db.models import ResearchAgentIterationSubStep
-from onyx.prompts.dr_prompts import FINAL_ANSWER_PROMPT
+from onyx.prompts.dr_prompts import FINAL_ANSWER_PROMPT_W_SUB_ANSWERS
+from onyx.prompts.dr_prompts import FINAL_ANSWER_PROMPT_WITHOUT_SUB_ANSWERS
 from onyx.prompts.dr_prompts import TEST_INFO_COMPLETE_PROMPT
 from onyx.server.query_and_chat.streaming_models import CitationStart
 from onyx.server.query_and_chat.streaming_models import MessageStart
@@ -190,7 +191,12 @@ def closer(
         writer,
     )
 
-    final_answer_prompt = FINAL_ANSWER_PROMPT.build(
+    if research_type == ResearchType.THOUGHTFUL:
+        final_answer_base_prompt = FINAL_ANSWER_PROMPT_WITHOUT_SUB_ANSWERS
+    else:
+        final_answer_base_prompt = FINAL_ANSWER_PROMPT_W_SUB_ANSWERS
+
+    final_answer_prompt = final_answer_base_prompt.build(
         base_question=prompt_question,
         iteration_responses_string=iteration_responses_string,
         chat_history_string=chat_history_string,
