@@ -38,8 +38,10 @@ from onyx.kg.utils.extraction_utils import get_entity_types_str
 from onyx.kg.utils.extraction_utils import get_relationship_types_str
 from onyx.prompts.dr_prompts import DECISION_PROMPT_W_TOOL_CALLING
 from onyx.prompts.dr_prompts import DECISION_PROMPT_WO_TOOL_CALLING
+from onyx.prompts.dr_prompts import DEFAULT_DR_SYSTEM_PROMPT
 from onyx.prompts.dr_prompts import EVAL_SYSTEM_PROMPT_W_TOOL_CALLING
 from onyx.prompts.dr_prompts import EVAL_SYSTEM_PROMPT_WO_TOOL_CALLING
+from onyx.prompts.dr_prompts import GENERAL_DR_ANSWER_PROMPT
 from onyx.prompts.dr_prompts import TOOL_DESCRIPTION
 from onyx.tools.tool_implementations.custom.custom_tool import CustomTool
 from onyx.tools.tool_implementations.internet_search.internet_search_tool import (
@@ -224,14 +226,20 @@ def clarifier(
     kg_enabled = graph_config.behavior.kg_config_settings.KG_ENABLED
     available_tools = _get_available_tools(graph_config, kg_enabled)
 
+    non_internal_search_tools = [
+        tool
+        for tool in available_tools.values()
+        if tool.path != DRPath.INTERNAL_SEARCH and tool.path != DRPath.KNOWLEDGE_GRAPH
+    ]
+
     all_entity_types = get_entity_types_str(active=True)
     all_relationship_types = get_relationship_types_str(active=True)
 
     db_session = graph_config.persistence.db_session
     active_source_types = fetch_unique_document_sources(db_session)
 
-    if not active_source_types:
-        raise ValueError("No active source types found")
+    # if not active_source_types:
+    #    raise ValueError("No active source types found")
 
     active_source_types_descriptions = [
         DocumentSourceDescription[source_type] for source_type in active_source_types
@@ -299,7 +307,35 @@ def clarifier(
         or "(No chat history yet available)"
     )
 
-    if not use_tool_calling_llm:
+    if graph_config.inputs.persona and len(graph_config.inputs.persona.prompts) > 0:
+        assistant_prompt = graph_config.inputs.persona.prompts[0].system_prompt
+    else:
+        assistant_prompt = DEFAULT_DR_SYSTEM_PROMPT
+
+    if len(available_tools) == 0 or (
+        len(non_internal_search_tools) == 0 and len(active_source_types) == 0
+    ):
+        answer_prompt = GENERAL_DR_ANSWER_PROMPT.build(
+            question=original_question, chat_history_string=chat_history_string
+        )
+
+        stream = graph_config.tooling.primary_llm.stream(
+            prompt=create_question_prompt(assistant_prompt, answer_prompt),
+            tools=None,
+            tool_choice=(None),
+            structured_response_format=None,
+        )
+
+        tool_message = process_llm_stream(
+            messages=stream,
+            should_stream_answer=True,
+            writer=writer,
+            ind=0,
+            generate_final_answer=True,
+            chat_message_id=str(graph_config.persistence.chat_session_id),
+        ).ai_message_chunk
+
+    elif not use_tool_calling_llm:
         decision_prompt = DECISION_PROMPT_WO_TOOL_CALLING.build(
             question=original_question, chat_history_string=chat_history_string
         )

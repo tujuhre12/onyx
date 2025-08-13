@@ -1103,6 +1103,34 @@ if the request DOES NOT require or would strongly benefit from ANY external tool
 (any kind of search [internal, web search, etc.], action taking, etc.) or from external knowledge.
 """
 
+DEFAULT_DR_SYSTEM_PROMPT = """
+You are a helpful Assistant that is great at answering questions. You may or may not \
+have access to tools, but you always try to do your best to answer the questions or \
+address the task given to you. But only provide information you are sure about and \
+communicate any uncertainties.
+"""
+
+GENERAL_DR_ANSWER_PROMPT = PromptTemplate(
+    f"""\
+Below you see a user question and potentially an earlier chat history that can be referred to \
+for context. Also, today is {datetime.now().strftime("%Y-%m-%d")}.
+Please answer it directly, again pointing out any uncertainties \
+you may have.
+
+Here is the user question:
+{SEPARATOR_LINE}
+---question---
+{SEPARATOR_LINE}
+
+Here is the chat history (if any):
+{SEPARATOR_LINE}
+---chat_history_string---
+{SEPARATOR_LINE}
+
+ANSWER:
+"""
+)
+
 DECISION_PROMPT_WO_TOOL_CALLING = PromptTemplate(
     f"""
 Here is the chat history (if any):
