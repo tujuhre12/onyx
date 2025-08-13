@@ -59,7 +59,7 @@ from onyx.llm.override_models import PromptOverride
 from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.models import SubQueryDetail
 from onyx.server.query_and_chat.models import SubQuestionDetail
-from onyx.server.query_and_chat.streaming_models import CitationDelta
+from onyx.server.query_and_chat.streaming_models import CitationDelta, OverallStop
 from onyx.server.query_and_chat.streaming_models import CitationInfo
 from onyx.server.query_and_chat.streaming_models import CitationStart
 from onyx.server.query_and_chat.streaming_models import EndStepPacketList
@@ -1389,6 +1389,8 @@ def translate_db_message_to_packets(
         packet_list.extend(create_citation_packets(citation_info_list, step_nr))
 
         step_nr += 1
+
+    packet_list.append(Packet(ind=step_nr, obj=OverallStop()))
 
     return EndStepPacketList(
         end_step_nr=step_nr,

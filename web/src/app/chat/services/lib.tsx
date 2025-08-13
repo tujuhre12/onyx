@@ -498,8 +498,6 @@ export function processRawChatHistory(
       retrievalType = RetrievalType.None;
     }
 
-    console.log("messageInfo", messageInfo);
-
     const message: Message = {
       messageId: messageInfo.message_id,
       message: messageInfo.message,
@@ -526,6 +524,8 @@ export function processRawChatHistory(
       overridden_model: messageInfo.overridden_model,
       packets: packetsForMessage || [],
     };
+
+    console.log("packetsForMessage", packetsForMessage);
 
     messages.set(messageInfo.message_id, message);
 

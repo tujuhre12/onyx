@@ -62,6 +62,7 @@ export default function RegenerateOption({
           modelName: modelName,
         });
       }}
+      align="start"
     />
   );
 }
