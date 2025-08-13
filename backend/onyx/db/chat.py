@@ -58,6 +58,8 @@ from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.models import SubQueryDetail
 from onyx.server.query_and_chat.models import SubQuestionDetail
 from onyx.server.query_and_chat.streaming_models import EndStepPacketList
+from onyx.server.query_and_chat.streaming_models import MessageDelta
+from onyx.server.query_and_chat.streaming_models import MessageStart
 from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.server.query_and_chat.streaming_models import ReasoningDelta
 from onyx.server.query_and_chat.streaming_models import ReasoningStart
@@ -68,6 +70,42 @@ from onyx.utils.special_types import JSON_ro
 
 
 logger = setup_logger()
+
+
+def create_message_packets(id: str, message_text: str, step_nr: int) -> list[Packet]:
+    packets: list[Packet] = []
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=MessageStart(
+                id=id,
+                type="message_start",
+                content=message_text,
+            ),
+        )
+    )
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=MessageDelta(
+                type="message_delta",
+                content=message_text,
+            ),
+        ),
+    )
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=SectionEnd(
+                type="section_end",
+            ),
+        )
+    )
+
+    return packets
 
 
 def create_reasoning_packets(reasoning_text: str, step_nr: int) -> list[Packet]:
@@ -1122,6 +1160,15 @@ def translate_db_message_to_packets(
                     create_reasoning_packets(research_iteration.reasoning, step_nr)
                 )
                 step_nr += 1
+
+        packet_list.extend(
+            create_message_packets(
+                id=str(chat_message.id),
+                message_text=chat_message.message,
+                step_nr=step_nr,
+            )
+        )
+        step_nr += 1
 
     return EndStepPacketList(
         end_step_nr=step_nr,

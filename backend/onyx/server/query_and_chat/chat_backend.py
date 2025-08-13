@@ -245,13 +245,14 @@ def get_chat_session(
     end_step_nr = 1
     for msg in session_messages:
 
-        msg_packet_object = translate_db_message_to_packets(
-            msg, start_step_nr=end_step_nr
-        )
-        end_step_nr = msg_packet_object.end_step_nr
-        msg_packet_list = msg_packet_object.packet_list
+        if msg.message_type == MessageType.ASSISTANT:
+            msg_packet_object = translate_db_message_to_packets(
+                msg, start_step_nr=end_step_nr
+            )
+            end_step_nr = msg_packet_object.end_step_nr
+            msg_packet_list = msg_packet_object.packet_list
 
-        simplified_packet_lists.append(msg_packet_list)
+            simplified_packet_lists.append(msg_packet_list)
 
     simplified_packet_lists[-1].append(Packet(ind=end_step_nr, obj=OverallStop()))
 
