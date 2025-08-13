@@ -263,17 +263,18 @@ def delete_folder(
                     f"Error deleting file from file store {file_store_id}: {str(file_store_error)}"
                 )
 
-        # run the beat task to pick up this deletion from the db immediately
-        client_app.send_task(
-            OnyxCeleryTask.CHECK_FOR_CONNECTOR_DELETION,
-            priority=OnyxCeleryPriority.HIGH,
-            kwargs={"tenant_id": tenant_id},
-        )
+        if cc_pair_count > 0:
+            # run the beat task to pick up this deletion from the db immediately
+            client_app.send_task(
+                OnyxCeleryTask.CHECK_FOR_CONNECTOR_DELETION,
+                priority=OnyxCeleryPriority.HIGH,
+                kwargs={"tenant_id": tenant_id},
+            )
 
-        logger.info(
-            f"create_deletion_attempt_for_connector_id - running check_for_connector_deletion: "
-            f"cc_pair count ={cc_pair_count}"
-        )
+            logger.info(
+                f"create_deletion_attempt_for_connector_id - running check_for_connector_deletion: "
+                f"cc_pair count ={cc_pair_count}"
+            )
 
         return MessageResponse(
             message=f"Folder and {file_count} files deleted successfully"
@@ -327,17 +328,18 @@ def delete_file(
                 f"Error deleting file from file store {file_store_id}: {str(file_store_error)}"
             )
 
-        # run the beat task to pick up this deletion from the db immediately
-        client_app.send_task(
-            OnyxCeleryTask.CHECK_FOR_CONNECTOR_DELETION,
-            priority=OnyxCeleryPriority.HIGH,
-            kwargs={"tenant_id": tenant_id},
-        )
+        if file.cc_pair:
+            # run the beat task to pick up this deletion from the db immediately
+            client_app.send_task(
+                OnyxCeleryTask.CHECK_FOR_CONNECTOR_DELETION,
+                priority=OnyxCeleryPriority.HIGH,
+                kwargs={"tenant_id": tenant_id},
+            )
 
-        logger.info(
-            f"create_deletion_attempt_for_connector_id - running check_for_connector_deletion: "
-            f"cc_pair={file.cc_pair.id}"
-        )
+            logger.info(
+                f"create_deletion_attempt_for_connector_id - running check_for_connector_deletion: "
+                f"cc_pair={file.cc_pair.id}"
+            )
 
         return MessageResponse(message="File deleted successfully")
     except Exception as e:
