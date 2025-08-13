@@ -416,6 +416,9 @@ class DefaultMultiLLM(LLM):
             "o3-mini",
             "o3",
             "o3-preview",
+            "gpt-5",
+            "gpt-5-mini",
+            "gpt-5-nano",
         ]
 
         try:

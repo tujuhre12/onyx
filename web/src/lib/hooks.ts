@@ -691,6 +691,9 @@ const MODEL_DISPLAY_NAMES: { [key: string]: string } = {
   "gpt-3.5-turbo-0613": "GPT 3.5 Turbo (June 2023)",
   "gpt-3.5-turbo-16k-0613": "GPT 3.5 Turbo 16k (June 2023)",
   "gpt-3.5-turbo-0301": "GPT 3.5 Turbo (March 2023)",
+  "gpt-5": "GPT 5",
+  "gpt-5-mini": "GPT 5 Mini",
+  "gpt-5-nano": "GPT 5 Nano",
 
   // Amazon models
   "amazon.nova-micro@v1": "Amazon Nova Micro",
