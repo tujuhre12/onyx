@@ -138,7 +138,7 @@ function MultiToolRenderer({
                           </div>
 
                           <div
-                            className={`relative z-10 mt-1 text-xs text-text-500 ${
+                            className={`relative z-10 mt-1 text-xs text-text-600 ${
                               !isLastItem ? "mb-3" : ""
                             }`}
                           >
@@ -165,11 +165,9 @@ function MultiToolRenderer({
         className="cursor-pointer transition-colors rounded-md p-1 -m-1"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center">
+        <div className="flex items-center text-text-700 hover:text-text-900">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-text-600 hover:text-text-800">
-              Thought for 1m 21s
-            </span>
+            <span className="text-sm">{toolGroups.length} steps</span>
           </div>
           <div className="transition-transform duration-300 ease-in-out">
             {isExpanded ? (
@@ -249,7 +247,7 @@ function MultiToolRenderer({
                               </div>
                             }
 
-                            <div className="text-xs text-text-500">
+                            <div className="text-xs text-text-600">
                               {content}
                             </div>
                           </div>

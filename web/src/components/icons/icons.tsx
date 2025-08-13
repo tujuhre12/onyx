@@ -506,10 +506,10 @@ export const FilterIcon = ({ size = 16 }: IconProps) => {
       <path
         d="M14.6667 1H1.33334L6.66668 7.30667V11.6667L9.33334 13V7.30667L14.6667 1Z"
         stroke="currentColor"
-        stroke-opacity="0.8"
-        stroke-width="1.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeOpacity="0.8"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
@@ -528,10 +528,10 @@ export const FileUploadIcon = ({ size = 16 }: IconProps) => {
         <path
           d="M7.99999 5.33333V10.6667M5.33333 7.99999H10.6667M14.6667 7.99999C14.6667 11.6819 11.6819 14.6667 7.99999 14.6667C4.3181 14.6667 1.33333 11.6819 1.33333 7.99999C1.33333 4.3181 4.3181 1.33333 7.99999 1.33333C11.6819 1.33333 14.6667 4.3181 14.6667 7.99999Z"
           stroke="currentColor"
-          stroke-opacity="0.8"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+          strokeOpacity="0.8"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
       </g>
       <defs>
@@ -3544,9 +3544,9 @@ export const FolderMoveIcon = ({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     >
       <circle cx="12" cy="12" r="10"></circle>
       <polyline points="12 8 8 12 12 16"></polyline>

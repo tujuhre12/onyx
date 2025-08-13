@@ -32,6 +32,7 @@ interface LLMPopoverProps {
   trigger?: React.ReactElement;
   onSelect?: (value: string) => void;
   currentModelName?: string;
+  align?: "start" | "center" | "end";
 }
 
 export default function LLMPopover({
@@ -42,6 +43,7 @@ export default function LLMPopover({
   trigger,
   onSelect,
   currentModelName,
+  align,
 }: LLMPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useUser();
@@ -124,7 +126,7 @@ export default function LLMPopover({
       <PopoverTrigger asChild>{triggerContent}</PopoverTrigger>
       <PopoverContent
         side="top"
-        align="end"
+        align={align || "end"}
         className="w-64 p-1 bg-background border border-background-200 rounded-md shadow-lg flex flex-col"
       >
         <div className="flex-grow max-h-[300px] default-scrollbar overflow-y-auto">
