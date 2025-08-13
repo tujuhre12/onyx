@@ -5,6 +5,7 @@ import { OnyxDocument, MinimalOnyxDocument } from "@/lib/search/interfaces";
 import { FileResponse } from "../../my-documents/DocumentsContext";
 import { LlmDescriptor } from "@/lib/hooks";
 import { IconType } from "react-icons";
+import { OnyxIconType } from "@/components/icons/icons";
 
 export enum RenderType {
   HIGHLIGHT = "highlight",
@@ -25,7 +26,7 @@ export interface FullChatState {
 }
 
 export interface RendererResult {
-  icon: IconType | null;
+  icon: IconType | OnyxIconType | null;
   status: string | null;
   content: JSX.Element;
 }

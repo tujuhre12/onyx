@@ -196,8 +196,6 @@ export function AIMessage({
 
   const groupedPackets = groupedPacketsRef.current;
 
-  console.log("displayComplete", displayComplete);
-
   // Return a list of rendered message components, one for each ind
   return (
     <div className="py-5 ml-4 lg:px-5 relative flex">
@@ -266,7 +264,7 @@ export function AIMessage({
                                     // Final answer completed
                                     setDisplayComplete(true);
                                   }}
-                                  animate={!displayComplete}
+                                  animate={false}
                                 >
                                   {({ content }) => <div>{content}</div>}
                                 </RendererComponent>
