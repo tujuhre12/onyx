@@ -34,7 +34,6 @@ from onyx.agents.agent_search.utils import create_question_prompt
 from onyx.configs.constants import DocumentSourceDescription
 from onyx.configs.constants import MessageType
 from onyx.db.connector import fetch_unique_document_sources
-from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.kg.utils.extraction_utils import get_entity_types_str
 from onyx.kg.utils.extraction_utils import get_relationship_types_str
 from onyx.prompts.dr_prompts import DECISION_PROMPT_W_TOOL_CALLING
@@ -228,8 +227,8 @@ def clarifier(
     all_entity_types = get_entity_types_str(active=True)
     all_relationship_types = get_relationship_types_str(active=True)
 
-    with get_session_with_current_tenant() as db_session:
-        active_source_types = fetch_unique_document_sources(db_session)
+    db_session = graph_config.persistence.db_session
+    active_source_types = fetch_unique_document_sources(db_session)
 
     if not active_source_types:
         raise ValueError("No active source types found")
@@ -347,9 +346,18 @@ def clarifier(
             structured_response_format=graph_config.inputs.structured_response_format,
         )
 
-        tool_message = process_llm_stream(stream, True, writer, 0).ai_message_chunk
+        tool_message = process_llm_stream(
+            messages=stream,
+            should_stream_answer=True,
+            writer=writer,
+            ind=0,
+            generate_final_answer=True,
+            chat_message_id=str(graph_config.persistence.chat_session_id),
+        ).ai_message_chunk
 
-        if tool_message is None or len(tool_message.tool_calls) == 0:
+        if len(tool_message.tool_calls) == 0:
+
+            db_session.commit()
             return OrchestrationUpdate(
                 original_question=original_question,
                 chat_history_string="",

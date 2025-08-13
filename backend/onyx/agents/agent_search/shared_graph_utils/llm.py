@@ -52,6 +52,11 @@ def stream_llm_answer(
         agent_answer_type: The type of answer ("agent_level_answer" or "agent_sub_answer").
         timeout_override: The LLM timeout to use.
         max_tokens: The LLM max tokens to use.
+        answer_piece: The type of answer piece to write.
+        ind: The index of the answer piece.
+        tools: The tools to use.
+        tool_choice: The tool choice to use.
+        structured_response_format: The structured response format to use.
 
     Returns:
         A tuple of the response and the dispatch timings.
@@ -60,7 +65,9 @@ def stream_llm_answer(
     dispatch_timings: list[float] = []
 
     for message in llm.stream(
-        prompt, timeout_override=timeout_override, max_tokens=max_tokens
+        prompt,
+        timeout_override=timeout_override,
+        max_tokens=max_tokens,
     ):
 
         # TODO: in principle, the answer here COULD contain images, but we don't support that yet
