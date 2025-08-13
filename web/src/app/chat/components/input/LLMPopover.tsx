@@ -132,7 +132,7 @@ export default function LLMPopover({
             ({ modelName, provider, name, icon }, index) => {
               if (
                 !requiresImageGeneration ||
-                modelSupportsImageInput(llmProviders, modelName, provider)
+                modelSupportsImageInput(llmProviders, modelName, name)
               ) {
                 return (
                   <button
