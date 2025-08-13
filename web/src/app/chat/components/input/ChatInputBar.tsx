@@ -40,88 +40,6 @@ import { UnconfiguredLlmProviderText } from "@/components/chat/UnconfiguredLlmPr
 import { DeepResearchToggle } from "./DeepResearchToggle";
 
 const MAX_INPUT_HEIGHT = 200;
-export const SourceChip2 = ({
-  icon,
-  title,
-  onRemove,
-  onClick,
-  includeTooltip,
-  includeAnimation,
-  truncateTitle = true,
-}: {
-  icon?: React.ReactNode;
-  title: string;
-  onRemove?: () => void;
-  onClick?: () => void;
-  truncateTitle?: boolean;
-  includeTooltip?: boolean;
-  includeAnimation?: boolean;
-}) => {
-  const [isNew, setIsNew] = useState(true);
-  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsNew(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <TooltipProvider>
-      <Tooltip
-        delayDuration={0}
-        open={isTooltipOpen}
-        onOpenChange={setIsTooltipOpen}
-      >
-        <TooltipTrigger
-          onMouseEnter={() => setIsTooltipOpen(true)}
-          onMouseLeave={() => setIsTooltipOpen(false)}
-        >
-          <div
-            onClick={onClick ? onClick : undefined}
-            className={`
-            h-6
-            px-2
-            bg-background-dark
-            rounded-2xl
-            justify-center
-            items-center
-            inline-flex
-            ${includeAnimation && isNew ? "animate-fade-in-scale" : ""}
-            ${onClick ? "cursor-pointer" : ""}
-          `}
-          >
-            {icon && (
-              <div className="w-[17px] h-4 p-[3px] flex-col justify-center items-center gap-2.5 inline-flex">
-                <div className="h-2.5 relative">{icon}</div>
-              </div>
-            )}
-            <div className="text-text-800 text-xs font-medium leading-normal">
-              {truncateTitle ? truncateString(title, 50) : title}
-            </div>
-            {onRemove && (
-              <XIcon
-                size={12}
-                className="text-text-800 ml-2 cursor-pointer"
-                onClick={(e: React.MouseEvent<SVGSVGElement>) => {
-                  e.stopPropagation();
-                  onRemove();
-                }}
-              />
-            )}
-          </div>
-        </TooltipTrigger>
-        {includeTooltip && title.length > 50 && (
-          <TooltipContent
-            className="!pointer-events-none z-[2000000]"
-            onMouseEnter={() => setIsTooltipOpen(false)}
-          >
-            <p>{title}</p>
-          </TooltipContent>
-        )}
-      </Tooltip>
-    </TooltipProvider>
-  );
-};
 
 export const SourceChip = ({
   icon,
@@ -549,7 +467,7 @@ export function ChatInputBar({
                 font-normal
                 text-base
                 leading-6
-                placeholder:text-text-400
+                placeholder:text-text-400 dark:placeholder:text-text-500
                 ${
                   textAreaRef.current &&
                   textAreaRef.current.scrollHeight > MAX_INPUT_HEIGHT
@@ -563,7 +481,6 @@ export function ChatInputBar({
                 resize-none
                 px-5
                 py-5
-                dark:text-[#D4D4D4]
               `}
               autoFocus
               style={{ scrollbarWidth: "thin" }}

@@ -97,6 +97,8 @@ export interface LogoIconProps extends IconProps {
   src: string | StaticImageData;
 }
 
+export type OnyxIconType = (props: IconProps) => JSX.Element;
+
 export const OpenAIISVG = ({
   size = 16,
   className = defaultTailwindCSS,

@@ -122,13 +122,7 @@ export const CitedSourcesToggle = ({
     >
       <div className="flex items-center">
         {uniqueIcons.map((icon, index) => (
-          <div
-            key={icon.id}
-            className={index > 0 ? "-ml-1" : ""}
-            style={{ zIndex: uniqueIcons.length - index }}
-          >
-            {icon.element}
-          </div>
+          <div key={icon.id}>{icon.element}</div>
         ))}
         {/* Show count for remaining items */}
         {(() => {
