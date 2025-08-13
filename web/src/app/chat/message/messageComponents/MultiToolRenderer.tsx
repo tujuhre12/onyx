@@ -1,5 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
-import { FiCheck, FiChevronDown, FiChevronRight } from "react-icons/fi";
+import {
+  FiCheck,
+  FiCheckCircle,
+  FiChevronDown,
+  FiChevronRight,
+} from "react-icons/fi";
 import { Packet } from "@/app/chat/services/streamingModels";
 import { FullChatState, RendererResult } from "./interfaces";
 import { renderMessageComponent } from "./renderMessageComponent";
@@ -114,11 +119,11 @@ function MultiToolRenderer({
                   >
                     {({ icon, content, status }) => {
                       return (
-                        <div className="relative">
+                        <div className={`relative ${STANDARD_TEXT_COLOR}`}>
                           {/* Connector line for non-last items */}
                           {!isLastItem && isVisible && (
                             <div
-                              className="absolute w-px bg-gray-300 dark:bg-gray-600 z-0"
+                              className="absolute w-px z-0"
                               style={{
                                 left: "10px",
                                 top: "24px",
@@ -133,7 +138,7 @@ function MultiToolRenderer({
                           </div>
 
                           <div
-                            className={`${STANDARD_TEXT_COLOR} relative z-10 mt-1 ${
+                            className={`relative z-10 mt-1 text-xs text-text-500 ${
                               !isLastItem ? "mb-3" : ""
                             }`}
                           >
@@ -214,7 +219,7 @@ function MultiToolRenderer({
                         {/* Connector line drawn BEFORE content so it's behind everything */}
                         {/* Now all tools get a connector line since we have a Done node at the end */}
                         <div
-                          className="absolute w-px bg-gray-300 dark:bg-gray-600 z-0"
+                          className="absolute w-px bg-background-300 z-0"
                           style={{
                             left: "10px", // Half of icon width (20px / 2)
                             top: "20px", // Below icon (h-5 = 20px)
@@ -240,9 +245,7 @@ function MultiToolRenderer({
                           >
                             {
                               <div className="flex mb-1">
-                                <div className="text-sm text-text-700">
-                                  {status}
-                                </div>
+                                <div className="text-sm">{status}</div>
                               </div>
                             }
 
@@ -263,7 +266,7 @@ function MultiToolRenderer({
               <div className="relative">
                 {/* Connector line from previous tool */}
                 <div
-                  className="absolute w-px bg-gray-300 dark:bg-gray-600 z-0"
+                  className="absolute w-px bg-background-300 z-0"
                   style={{
                     left: "10px",
                     top: "-10px",
@@ -279,7 +282,7 @@ function MultiToolRenderer({
                   <div className="flex flex-col items-center w-5">
                     {/* Dot with background to cover the line */}
                     <div className="flex-shrink-0 flex items-center justify-center w-5 h-5 bg-background rounded-full">
-                      <FiCheck className="w-3 h-3 text-text-700 rounded-full" />
+                      <FiCheckCircle className="w-3 h-3 text-text-700 rounded-full" />
                     </div>
                   </div>
 

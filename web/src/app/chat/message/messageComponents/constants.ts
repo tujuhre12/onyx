@@ -1,1 +1,1 @@
-export const STANDARD_TEXT_COLOR = "text-text-600";
+export const STANDARD_TEXT_COLOR = "text-text-700";
