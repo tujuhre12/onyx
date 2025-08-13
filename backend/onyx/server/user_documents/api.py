@@ -19,7 +19,10 @@ from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from onyx.auth.users import current_user
+from onyx.background.celery.versioned_apps.client import app as client_app
 from onyx.configs.constants import DocumentSource
+from onyx.configs.constants import OnyxCeleryPriority
+from onyx.configs.constants import OnyxCeleryTask
 from onyx.connectors.models import InputType
 from onyx.db.connector import create_connector
 from onyx.db.connector_credential_pair import add_credential_to_connector
@@ -205,6 +208,7 @@ def delete_folder(
     db_session: Session = Depends(get_session),
 ) -> MessageResponse:
     user_id = user.id if user else None
+    tenant_id = get_current_tenant_id()
     folder = (
         db_session.query(UserFolder)
         .filter(UserFolder.id == folder_id, UserFolder.user_id == user_id)
@@ -220,6 +224,7 @@ def delete_folder(
 
         # Store file_ids for later file store deletion
         file_store_ids = []
+        cc_pair_count = 0
 
         # First handle all database records
         for file in files:
@@ -235,7 +240,7 @@ def delete_folder(
             # Set cc_pair to DELETING if exists
             if file.cc_pair:
                 file.cc_pair.status = ConnectorCredentialPairStatus.DELETING
-
+                cc_pair_count += 1
             # Delete the user file record
             db_session.delete(file)
 
@@ -258,6 +263,18 @@ def delete_folder(
                     f"Error deleting file from file store {file_store_id}: {str(file_store_error)}"
                 )
 
+        # run the beat task to pick up this deletion from the db immediately
+        client_app.send_task(
+            OnyxCeleryTask.CHECK_FOR_CONNECTOR_DELETION,
+            priority=OnyxCeleryPriority.HIGH,
+            kwargs={"tenant_id": tenant_id},
+        )
+
+        logger.info(
+            f"create_deletion_attempt_for_connector_id - running check_for_connector_deletion: "
+            f"cc_pair count ={cc_pair_count}"
+        )
+
         return MessageResponse(
             message=f"Folder and {file_count} files deleted successfully"
         )
@@ -277,6 +294,7 @@ def delete_file(
     db_session: Session = Depends(get_session),
 ) -> MessageResponse:
     user_id = user.id if user else None
+    tenant_id = get_current_tenant_id()
     file = (
         db_session.query(UserFile)
         .filter(UserFile.id == file_id, UserFile.user_id == user_id)
@@ -308,6 +326,18 @@ def delete_file(
             logger.error(
                 f"Error deleting file from file store {file_store_id}: {str(file_store_error)}"
             )
+
+        # run the beat task to pick up this deletion from the db immediately
+        client_app.send_task(
+            OnyxCeleryTask.CHECK_FOR_CONNECTOR_DELETION,
+            priority=OnyxCeleryPriority.HIGH,
+            kwargs={"tenant_id": tenant_id},
+        )
+
+        logger.info(
+            f"create_deletion_attempt_for_connector_id - running check_for_connector_deletion: "
+            f"cc_pair={file.cc_pair.id}"
+        )
 
         return MessageResponse(message="File deleted successfully")
     except Exception as e:
