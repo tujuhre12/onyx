@@ -43,13 +43,13 @@ class SectionEnd(BaseObj):
 
 
 class SearchToolStart(BaseObj):
-    type: Literal["search_tool_start"] = "search_tool_start"
+    type: Literal["internal_search_tool_start"] = "internal_search_tool_start"
 
     is_internet_search: bool = False
 
 
 class SearchToolDelta(BaseObj):
-    type: Literal["search_tool_delta"] = "search_tool_delta"
+    type: Literal["internal_search_tool_delta"] = "internal_search_tool_delta"
 
     queries: list[str] | None = None
     documents: list[SavedSearchDoc] | None = None
