@@ -83,7 +83,7 @@ function MultiToolRenderer({
     const latestToolIndex = toolsToDisplay.length - 1;
 
     return (
-      <div className="mb-4 relative border border-border-sidebar-border rounded-lg p-4">
+      <div className="mb-4 relative border border-border-medium rounded-lg p-4">
         <div className="relative">
           <div>
             {toolsToDisplay.map((toolGroup, index) => {
@@ -162,11 +162,11 @@ function MultiToolRenderer({
       >
         <div className="flex items-center">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm text-text-600 hover:text-text-800">
               Thought for 1m 21s
             </span>
           </div>
-          <div className="text-gray-400 transition-transform duration-300 ease-in-out">
+          <div className="transition-transform duration-300 ease-in-out">
             {isExpanded ? (
               <FiChevronDown size={16} />
             ) : (
