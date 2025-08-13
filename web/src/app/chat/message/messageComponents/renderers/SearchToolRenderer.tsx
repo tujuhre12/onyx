@@ -8,13 +8,17 @@ import {
   SectionEnd,
 } from "../../../services/streamingModels";
 import { MessageRenderer } from "../interfaces";
-import { SourceChip2 } from "../../../components/input/ChatInputBar";
 import { ResultIcon } from "@/components/chat/sources/SourceCard";
 import { truncateString } from "@/lib/utils";
 import { OnyxDocument } from "@/lib/search/interfaces";
+import { SourceChip2 } from "@/app/chat/components/SourceChip2";
 
-const MAX_RESULTS_TO_SHOW = 3;
+const INITIAL_RESULTS_TO_SHOW = 3;
+const RESULTS_PER_EXPANSION = 10;
 const MAX_TITLE_LENGTH = 25;
+
+const INITIAL_QUERIES_TO_SHOW = 3;
+const QUERIES_PER_EXPANSION = 5;
 
 const SEARCHING_MIN_DURATION_MS = 1000; // 1 second minimum for "Searching" state
 const SEARCHED_MIN_DURATION_MS = 1000; // 1 second minimum for "Searched" state
@@ -76,6 +80,12 @@ export const SearchToolRenderer: MessageRenderer<SearchToolPacket, {}> = ({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const completionHandledRef = useRef(false);
+
+  // Track how many results to show
+  const [resultsToShow, setResultsToShow] = useState(INITIAL_RESULTS_TO_SHOW);
+
+  // Track how many queries to show
+  const [queriesToShow, setQueriesToShow] = useState(INITIAL_QUERIES_TO_SHOW);
 
   // Track when search starts (even if the search completes instantly)
   useEffect(() => {
@@ -175,49 +185,87 @@ export const SearchToolRenderer: MessageRenderer<SearchToolPacket, {}> = ({
     content: (
       <div className="flex flex-col">
         <div className="flex flex-col">
-          <div className="flex flex-wrap gap-2 ml-1 mt-1">
-            {queries.map((query, index) => (
-              <div key={index} className={`text-xs text-gray-600 mb-2`}>
-                <SourceChip2
-                  icon={<FiSearch size={10} />}
-                  title={truncateString(query, MAX_TITLE_LENGTH)}
-                />
+          {queries.length > 0 && (
+            <>
+              <div className="text-xs font-medium mb-1 ml-1">Queries</div>
+              <div className="flex flex-wrap gap-x-2 gap-y-2 ml-1">
+                {queries.slice(0, queriesToShow).map((query, index) => (
+                  <div key={index} className="text-xs">
+                    <SourceChip2
+                      icon={<FiSearch size={10} />}
+                      title={truncateString(query, MAX_TITLE_LENGTH)}
+                    />
+                  </div>
+                ))}
+                {/* Show a blurb if there are more queries than we are displaying */}
+                {queries.length > queriesToShow && (
+                  <div className="text-xs">
+                    <SourceChip2
+                      title={`${queries.length - queriesToShow} more...`}
+                      onClick={() => {
+                        setQueriesToShow((prevQueries) =>
+                          Math.min(
+                            prevQueries + QUERIES_PER_EXPANSION,
+                            queries.length
+                          )
+                        );
+                      }}
+                    />
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-2 ml-1">
-            {results.slice(0, MAX_RESULTS_TO_SHOW).map((result, index) => (
-              <div
-                key={result.document_id}
-                className="animate-in fade-in slide-in-from-bottom-1 duration-300"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <SourceChip2
-                  icon={<ResultIcon doc={result} size={10} />}
-                  title={truncateString(
-                    result.semantic_identifier || "",
-                    MAX_TITLE_LENGTH
-                  )}
-                  onClick={() => {
-                    window.open(result.link, "_blank");
-                  }}
-                />
+            </>
+          )}
+          {results.length > 0 && (
+            <>
+              <div className="text-xs font-medium mt-2 mb-1 ml-1">
+                Documents
               </div>
-            ))}
-            {/* Show a blurb if there are more results than we are displaying */}
-            {results.length > MAX_RESULTS_TO_SHOW && (
-              <div
-                className="animate-in fade-in slide-in-from-bottom-1 duration-300"
-                style={{
-                  animationDelay: `${MAX_RESULTS_TO_SHOW * 100}ms`,
-                }}
-              >
-                <SourceChip2
-                  title={`${results.length - MAX_RESULTS_TO_SHOW} more...`}
-                />
+              <div className="flex flex-wrap gap-2 ml-1">
+                {results.slice(0, resultsToShow).map((result, index) => (
+                  <div
+                    key={result.document_id}
+                    className="animate-in fade-in slide-in-from-bottom-1 duration-300"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <SourceChip2
+                      icon={<ResultIcon doc={result} size={10} />}
+                      title={truncateString(
+                        result.semantic_identifier || "",
+                        MAX_TITLE_LENGTH
+                      )}
+                      onClick={() => {
+                        window.open(result.link, "_blank");
+                      }}
+                    />
+                  </div>
+                ))}
+                {/* Show a blurb if there are more results than we are displaying */}
+                {results.length > resultsToShow && (
+                  <div
+                    className="animate-in fade-in slide-in-from-bottom-1 duration-300"
+                    style={{
+                      animationDelay: `${
+                        Math.min(resultsToShow, results.length) * 100
+                      }ms`,
+                    }}
+                  >
+                    <SourceChip2
+                      title={`${results.length - resultsToShow} more...`}
+                      onClick={() => {
+                        setResultsToShow((prevResults) =>
+                          Math.min(
+                            prevResults + RESULTS_PER_EXPANSION,
+                            results.length
+                          )
+                        );
+                      }}
+                    />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
     ),

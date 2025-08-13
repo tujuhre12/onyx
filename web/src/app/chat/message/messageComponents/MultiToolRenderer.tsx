@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { FiChevronDown, FiChevronRight } from "react-icons/fi";
+import { FiCheck, FiChevronDown, FiChevronRight } from "react-icons/fi";
 import { Packet } from "@/app/chat/services/streamingModels";
 import { FullChatState, RendererResult } from "./interfaces";
 import { renderMessageComponent } from "./renderMessageComponent";
@@ -239,14 +239,16 @@ function MultiToolRenderer({
                             className={`flex-1 ${!isLastItem ? "pb-3" : ""}`}
                           >
                             {
-                              <div className="flex mt-0.5 mb-1">
-                                <div className="text-xs text-gray-600 dark:text-gray-400">
+                              <div className="flex mb-1">
+                                <div className="text-sm text-text-700">
                                   {status}
                                 </div>
                               </div>
                             }
 
-                            {content}
+                            <div className="text-xs text-text-500">
+                              {content}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -264,29 +266,27 @@ function MultiToolRenderer({
                   className="absolute w-px bg-gray-300 dark:bg-gray-600 z-0"
                   style={{
                     left: "10px",
-                    top: "0",
+                    top: "-10px",
                     height: "20px",
                   }}
                 />
 
                 {/* Main row with icon and content */}
                 <div
-                  className={`flex items-start gap-2 ${STANDARD_TEXT_COLOR} relative z-10 pb-3`}
+                  className={`flex items-start gap-2 ${STANDARD_TEXT_COLOR} relative z-10 pb-3 mt-2`}
                 >
                   {/* Icon column */}
                   <div className="flex flex-col items-center w-5">
                     {/* Dot with background to cover the line */}
                     <div className="flex-shrink-0 flex items-center justify-center w-5 h-5 bg-background rounded-full">
-                      <div className="w-2 h-2 bg-gray-300 dark:bg-gray-700 rounded-full" />
+                      <FiCheck className="w-3 h-3 text-text-700 rounded-full" />
                     </div>
                   </div>
 
                   {/* Content with padding */}
                   <div className="flex-1">
-                    <div className="flex mt-0.5 mb-1">
-                      <div className="text-xs text-gray-600 dark:text-gray-400">
-                        Done
-                      </div>
+                    <div className="flex mb-1">
+                      <div className="text-sm text-text-700">Done</div>
                     </div>
                   </div>
                 </div>

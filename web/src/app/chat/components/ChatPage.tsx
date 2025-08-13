@@ -33,7 +33,7 @@ import { FeedbackModal } from "./modal/FeedbackModal";
 import { ShareChatSessionModal } from "./modal/ShareChatSessionModal";
 import { FiArrowDown } from "react-icons/fi";
 import { ChatIntro } from "./ChatIntro";
-import { HumanMessage } from "../message/Messages";
+import { HumanMessage } from "../message/HumanMessage";
 import { StarterMessages } from "../../../components/assistants/StarterMessage";
 import { OnyxDocument, MinimalOnyxDocument } from "@/lib/search/interfaces";
 import { SettingsContext } from "@/components/settings/SettingsProvider";

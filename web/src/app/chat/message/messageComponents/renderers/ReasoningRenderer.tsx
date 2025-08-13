@@ -5,7 +5,8 @@ import {
   ReasoningPacket,
 } from "../../../services/streamingModels";
 import { MessageRenderer } from "../interfaces";
-import { FiClock } from "react-icons/fi";
+
+import { LightBulbIcon } from "@/components/icons/icons";
 
 const THINKING_MIN_DURATION_MS = 1000; // 1 second minimum for "Thinking" state
 
@@ -93,12 +94,12 @@ export const ReasoningRenderer: MessageRenderer<ReasoningPacket, {}> = ({
     return { icon: null, status: null, content: <></> };
   }
 
-  const status = hasEnd ? "Thinking complete" : "Thinking...";
+  const status = hasEnd ? "Thought for X seconds" : "Thinking...";
 
   return {
-    icon: FiClock,
+    icon: LightBulbIcon,
     status,
-    content: <div className="text-sm">{content}</div>,
+    content: <>{content}</>,
   };
 };
 
