@@ -180,3 +180,8 @@ PacketObj = Annotated[
 class Packet(BaseModel):
     ind: int
     obj: PacketObj
+
+
+class EndStepPacketList(BaseModel):
+    end_step_nr: int
+    packet_list: list[Packet]

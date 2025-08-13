@@ -42,6 +42,7 @@ from onyx.db.models import ChatMessage__SearchDoc
 from onyx.db.models import ChatSession
 from onyx.db.models import ChatSessionSharedStatus
 from onyx.db.models import Prompt
+from onyx.db.models import ResearchAgentIteration
 from onyx.db.models import SearchDoc
 from onyx.db.models import SearchDoc as DBSearchDoc
 from onyx.db.models import ToolCall
@@ -56,12 +57,51 @@ from onyx.llm.override_models import PromptOverride
 from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.models import SubQueryDetail
 from onyx.server.query_and_chat.models import SubQuestionDetail
+from onyx.server.query_and_chat.streaming_models import EndStepPacketList
+from onyx.server.query_and_chat.streaming_models import Packet
+from onyx.server.query_and_chat.streaming_models import ReasoningDelta
+from onyx.server.query_and_chat.streaming_models import ReasoningStart
+from onyx.server.query_and_chat.streaming_models import SectionEnd
 from onyx.tools.tool_runner import ToolCallFinalResult
 from onyx.utils.logger import setup_logger
 from onyx.utils.special_types import JSON_ro
 
 
 logger = setup_logger()
+
+
+def create_reasoning_packets(reasoning_text: str, step_nr: int) -> list[Packet]:
+    packets: list[Packet] = []
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=ReasoningStart(
+                type="reasoning_start",
+            ),
+        )
+    )
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=ReasoningDelta(
+                type="reasoning_delta",
+                reasoning=reasoning_text,
+            ),
+        ),
+    )
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=SectionEnd(
+                type="section_end",
+            ),
+        )
+    )
+
+    return packets
 
 
 def get_chat_session_by_id(
@@ -552,11 +592,23 @@ def get_chat_messages_by_session(
     )
 
     if prefetch_tool_calls:
+        # stmt = stmt.options(
+        #     joinedload(ChatMessage.tool_call),
+        #     joinedload(ChatMessage.sub_questions).joinedload(
+        #         AgentSubQuestion.sub_queries
+        #     ),
+        # )
+        # result = db_session.scalars(stmt).unique().all()
+
+        stmt = (
+            select(ChatMessage)
+            .where(ChatMessage.chat_session_id == chat_session_id)
+            .order_by(nullsfirst(ChatMessage.parent_message))
+        )
         stmt = stmt.options(
-            joinedload(ChatMessage.tool_call),
-            joinedload(ChatMessage.sub_questions).joinedload(
-                AgentSubQuestion.sub_queries
-            ),
+            joinedload(ChatMessage.research_iterations).joinedload(
+                ResearchAgentIteration.sub_steps
+            )
         )
         result = db_session.scalars(stmt).unique().all()
     else:
@@ -1035,6 +1087,46 @@ def get_retrieval_docs_from_search_docs(
     if sort_by_score:
         top_documents = sorted(top_documents, key=lambda doc: doc.score, reverse=True)  # type: ignore
     return RetrievalDocs(top_documents=top_documents)
+
+
+def translate_db_message_to_packets(
+    chat_message: ChatMessage,
+    remove_doc_content: bool = False,
+    start_step_nr: int = 1,
+) -> EndStepPacketList:
+
+    step_nr = start_step_nr
+    packet_list: list[Packet] = []
+
+    # only stream out packets for assistant messages
+    if chat_message.message_type == MessageType.ASSISTANT:
+        if chat_message.research_type == ResearchType.THOUGHTFUL:
+            research_iterations = sorted(
+                chat_message.research_iterations, key=lambda x: x.iteration_nr
+            )  # sorted iterations
+            for research_iteration in research_iterations:
+
+                packet_list.extend(
+                    create_reasoning_packets(research_iteration.purpose, step_nr)
+                )
+                step_nr += 1
+
+                # sub_steps = research_iteration.sub_steps
+                # for sub_step in sub_steps:
+                #     sub_step_docs = sub_step.sub_step_docs
+                #     for sub_step_doc in sub_step_docs:
+                #         sub_step_doc_docs = sub_step_doc.sub_step_doc_docs
+                #         for sub_step_doc_doc in sub_step_doc_docs:
+
+                packet_list.extend(
+                    create_reasoning_packets(research_iteration.reasoning, step_nr)
+                )
+                step_nr += 1
+
+    return EndStepPacketList(
+        end_step_nr=step_nr,
+        packet_list=packet_list,
+    )
 
 
 def translate_db_message_to_chat_message_detail(

@@ -2140,6 +2140,12 @@ class ChatMessage(Base):
         order_by="(AgentSubQuestion.level, AgentSubQuestion.level_question_num)",
     )
 
+    research_iterations: Mapped[list["ResearchAgentIteration"]] = relationship(
+        "ResearchAgentIteration",
+        foreign_keys="ResearchAgentIteration.primary_question_id",
+        cascade="all, delete-orphan",
+    )
+
     standard_answers: Mapped[list["StandardAnswer"]] = relationship(
         "StandardAnswer",
         secondary=ChatMessage__StandardAnswer.__table__,
@@ -3364,6 +3370,25 @@ class ResearchAgentIteration(Base):
 
     reasoning: Mapped[str] = mapped_column(String, nullable=True)
 
+    # Relationships
+    primary_message: Mapped["ChatMessage"] = relationship(
+        "ChatMessage",
+        foreign_keys=[primary_question_id],
+        back_populates="research_iterations",
+    )
+
+    sub_steps: Mapped[list["ResearchAgentIterationSubStep"]] = relationship(
+        "ResearchAgentIterationSubStep",
+        primaryjoin=(
+            "and_("
+            "ResearchAgentIteration.primary_question_id == ResearchAgentIterationSubStep.primary_question_id, "
+            "ResearchAgentIteration.iteration_nr == ResearchAgentIterationSubStep.iteration_nr"
+            ")"
+        ),
+        foreign_keys="[ResearchAgentIterationSubStep.primary_question_id, ResearchAgentIterationSubStep.iteration_nr]",
+        cascade="all, delete-orphan",
+    )
+
 
 class ResearchAgentIterationSubStep(Base):
     __tablename__ = "research_agent_iteration_sub_step"
@@ -3386,3 +3411,15 @@ class ResearchAgentIterationSubStep(Base):
     cited_doc_results: Mapped[JSON_ro] = mapped_column(postgresql.JSONB())
     claims: Mapped[list[str]] = mapped_column(postgresql.JSONB(), nullable=True)
     additional_data: Mapped[JSON_ro] = mapped_column(postgresql.JSONB(), nullable=True)
+
+    # Relationships
+    primary_message: Mapped["ChatMessage"] = relationship(
+        "ChatMessage",
+        foreign_keys=[primary_question_id],
+    )
+
+    parent_sub_step: Mapped["ResearchAgentIterationSubStep"] = relationship(
+        "ResearchAgentIterationSubStep",
+        foreign_keys=[parent_question_id],
+        remote_side="ResearchAgentIterationSubStep.id",
+    )
