@@ -29,7 +29,6 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import run_with_timeout
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
-from onyx.chat.models import AgentAnswerPiece
 from onyx.kg.utils.extraction_utils import get_entity_types_str
 from onyx.kg.utils.extraction_utils import get_relationship_types_str
 from onyx.prompts.dr_prompts import SUFFICIENT_INFORMATION_STRING
@@ -241,26 +240,28 @@ def orchestrator(
                 raise
 
             write_custom_event(
-                "basic_response",
-                AgentAnswerPiece(
-                    answer_piece=f"{HIGH_LEVEL_PLAN_PREFIX} {plan_of_record.plan}\n\n",
-                    level=0,
-                    level_question_num=0,
-                    answer_type="agent_level_answer",
+                current_step_nr,
+                ReasoningStart(
+                    type="reasoning_start",
                 ),
                 writer,
             )
 
             write_custom_event(
-                "basic_response",
-                AgentAnswerPiece(
-                    answer_piece=f"{HIGH_LEVEL_PLAN_PREFIX} {plan_of_record.plan}\n\n",
-                    level=0,
-                    level_question_num=0,
-                    answer_type="agent_level_answer",
+                current_step_nr,
+                ReasoningDelta(
+                    reasoning=f"{HIGH_LEVEL_PLAN_PREFIX} {plan_of_record.plan}\n\n",
+                    type="reasoning_delta",
                 ),
                 writer,
             )
+
+            write_custom_event(
+                current_step_nr,
+                SectionEnd(),
+                writer,
+            )
+            current_step_nr += 1
 
         if not plan_of_record:
             raise ValueError(
@@ -309,7 +310,7 @@ def orchestrator(
             reasoning_result = "Time to wrap up."
 
         write_custom_event(
-            "basic_response",
+            current_step_nr,
             ReasoningStart(
                 type="reasoning_start",
             ),
@@ -317,7 +318,7 @@ def orchestrator(
         )
 
         write_custom_event(
-            "basic_response",
+            current_step_nr,
             ReasoningDelta(
                 reasoning=reasoning_result,
                 type="reasoning_delta",
@@ -326,10 +327,12 @@ def orchestrator(
         )
 
         write_custom_event(
-            "basic_response",
+            current_step_nr,
             SectionEnd(),
             writer,
         )
+
+        current_step_nr += 1
 
     base_next_step_purpose_prompt = get_dr_prompt_orchestration_templates(
         DRPromptPurpose.NEXT_STEP_PURPOSE,

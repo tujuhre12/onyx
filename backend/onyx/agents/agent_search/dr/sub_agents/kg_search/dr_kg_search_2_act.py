@@ -27,6 +27,7 @@ def kg_search(
 
     node_start_time = datetime.now()
     iteration_nr = state.iteration_nr
+    state.current_step_nr
     parallelization_nr = state.parallelization_nr
 
     search_query = state.branch_question
