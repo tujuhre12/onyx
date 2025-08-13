@@ -47,6 +47,7 @@ from onyx.db.chat import get_chat_sessions_by_user
 from onyx.db.chat import get_or_create_root_message
 from onyx.db.chat import set_as_latest_chat_message
 from onyx.db.chat import translate_db_message_to_chat_message_detail
+from onyx.db.chat import translate_db_message_to_packets
 from onyx.db.chat import update_chat_session
 from onyx.db.chat_search import search_chat_sessions
 from onyx.db.connector import create_connector
@@ -92,6 +93,8 @@ from onyx.server.query_and_chat.models import RenameChatSessionResponse
 from onyx.server.query_and_chat.models import SearchFeedbackRequest
 from onyx.server.query_and_chat.models import UpdateChatSessionTemperatureRequest
 from onyx.server.query_and_chat.models import UpdateChatSessionThreadRequest
+from onyx.server.query_and_chat.streaming_models import OverallStop
+from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.server.query_and_chat.streaming_utils import (
     create_simplified_packets_for_session,
 )
@@ -241,8 +244,21 @@ def get_chat_session(
         translate_db_message_to_chat_message_detail(msg) for msg in session_messages
     ]
 
+    simplified_packet_lists: list[list[Packet]] = []
+    end_step_nr = 1
+    for msg in session_messages:
+
+        msg_packet_object = translate_db_message_to_packets(
+            msg, start_step_nr=end_step_nr
+        )
+        end_step_nr = msg_packet_object.end_step_nr
+        msg_packet_list = msg_packet_object.packet_list
+
+        simplified_packet_lists.append(msg_packet_list)
+
+    simplified_packet_lists[-1].append(Packet(ind=end_step_nr, obj=OverallStop()))
     # Create simplified packets for the session
-    simplified_packets = create_simplified_packets_for_session(chat_message_details)
+    create_simplified_packets_for_session(chat_message_details)
 
     return ChatSessionDetailResponse(
         chat_session_id=session_id,
@@ -262,7 +278,7 @@ def get_chat_session(
         current_temperature_override=chat_session.temperature_override,
         deleted=chat_session.deleted,
         # specifically for the Onyx Chat UI
-        packets=simplified_packets,
+        packets=simplified_packet_lists,
     )
 
 

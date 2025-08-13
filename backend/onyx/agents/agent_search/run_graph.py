@@ -114,11 +114,6 @@ def run_kb_graph(
         log_messages=[], question=config.inputs.prompt_builder.raw_user_query
     )
 
-    yield ToolCallKickoff(
-        tool_name="agent_search_0",
-        tool_args={"query": config.inputs.prompt_builder.raw_user_query},
-    )
-
     yield from run_graph(compiled_graph, config, input)
 
 
