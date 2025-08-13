@@ -46,20 +46,6 @@ def internet_search(
     if not search_query:
         raise ValueError("search_query is not set")
 
-    # write_custom_event(
-    #     "basic_response",
-    #     AgentAnswerPiece(
-    #         answer_piece=(
-    #             f"SUB-QUESTION {iteration_nr}.{parallelization_nr} "
-    #             f"(INTERNET SEARCH): {search_query}\n\n"
-    #         ),
-    #         level=0,
-    #         level_question_num=0,
-    #         answer_type="agent_level_answer",
-    #     ),
-    #     writer,
-    # )
-
     graph_config = cast(GraphConfig, config["metadata"]["config"])
     base_question = graph_config.inputs.prompt_builder.raw_user_query
     research_type = graph_config.behavior.research_type
@@ -133,17 +119,6 @@ def internet_search(
         logger.debug(
             f"LLM/all done for Internet Search {iteration_nr}.{parallelization_nr} at {datetime.now()}"
         )
-
-        # write_custom_event(
-        #     "basic_response",
-        #     AgentAnswerPiece(
-        #         answer_piece=f"ANSWERED {iteration_nr}.{parallelization_nr}\n\n",
-        #         level=0,
-        #         level_question_num=0,
-        #         answer_type="agent_level_answer",
-        #     ),
-        #     writer,
-        # )
 
         # get cited documents
         answer_string = search_answer_json.answer

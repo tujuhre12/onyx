@@ -9,8 +9,8 @@ from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import BaseSearchProcessingResponse
 from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.models import SearchAnswer
-from onyx.agents.agent_search.dr.states import AnswerUpdate
 from onyx.agents.agent_search.dr.sub_agents.states import BranchInput
+from onyx.agents.agent_search.dr.sub_agents.states import BranchUpdate
 from onyx.agents.agent_search.dr.utils import extract_document_citations
 from onyx.agents.agent_search.kb_search.graph_utils import build_document_context
 from onyx.agents.agent_search.models import GraphConfig
@@ -39,7 +39,7 @@ def basic_search(
     state: BranchInput,
     config: RunnableConfig,
     writer: StreamWriter = lambda _: None,
-) -> AnswerUpdate:
+) -> BranchUpdate:
     """
     LangGraph node to perform a standard search as part of the DR process.
     """
@@ -109,24 +109,6 @@ def basic_search(
     if specified_source_types is not None and len(specified_source_types) == 0:
         specified_source_types = None
 
-    # write_custom_event(
-    #     "basic_response",
-    #     AgentAnswerPiece(
-    #         answer_piece=(
-    #             f"SUB-QUESTION {iteration_nr}.{parallelization_nr} "
-    #             f"(SEARCH): {branch_query}\n\n"
-    #             f"REWRITTEN QUERY: {rewritten_query}\n\n"
-    #             f"PREDICTED SOURCE TYPES: {specified_source_types}\n\n"
-    #             f"PREDICTED TIME FILTER: {implied_time_filter}\n\n"
-    #             " --- \n\n"
-    #         ),
-    #         level=0,
-    #         level_question_num=0,
-    #         answer_type="agent_level_answer",
-    #     ),
-    #     writer,
-    # )
-
     logger.debug(
         f"Search start for Standard Search {iteration_nr}.{parallelization_nr} at {datetime.now()}"
     )
@@ -192,17 +174,6 @@ def basic_search(
             f"LLM/all done for Standard Search {iteration_nr}.{parallelization_nr} at {datetime.now()}"
         )
 
-        # write_custom_event(
-        #     "basic_response",
-        #     AgentAnswerPiece(
-        #         answer_piece=f"ANSWERED {iteration_nr}.{parallelization_nr}\n\n",
-        #         level=0,
-        #         level_question_num=0,
-        #         answer_type="agent_level_answer",
-        #     ),
-        #     writer,
-        # )
-
         # get cited documents
         answer_string = search_answer_json.answer
         claims = search_answer_json.claims or []
@@ -229,8 +200,8 @@ def basic_search(
         }
         reasoning = ""
 
-    return AnswerUpdate(
-        iteration_responses=[
+    return BranchUpdate(
+        branch_iteration_responses=[
             IterationAnswer(
                 tool=search_tool_info.llm_path,
                 tool_id=search_tool_info.tool_id,

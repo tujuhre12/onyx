@@ -30,7 +30,7 @@ def is_reducer(
 
     node_start_time = datetime.now()
 
-    branch_updates = state.iteration_responses
+    branch_updates = state.branch_iteration_responses
     current_iteration = state.iteration_nr
     current_step_nr = state.current_step_nr
 
@@ -60,7 +60,8 @@ def is_reducer(
     write_custom_event(
         current_step_nr,
         SearchToolStart(
-            type="internal_search_tool_start",
+            type="search_tool_start",
+            is_internet_search=False,
         ),
         writer,
     )
@@ -70,7 +71,7 @@ def is_reducer(
         SearchToolDelta(
             queries=queries,
             documents=retrieved_search_docs,
-            type="internal_search_tool_delta",
+            type="search_tool_delta",
         ),
         writer,
     )
