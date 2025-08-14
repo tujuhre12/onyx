@@ -5,7 +5,6 @@ from langgraph.types import StreamWriter
 
 from onyx.agents.agent_search.dr.sub_agents.states import SubAgentMainState
 from onyx.agents.agent_search.dr.sub_agents.states import SubAgentUpdate
-from onyx.agents.agent_search.dr.utils import convert_inference_sections_to_search_docs
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
@@ -54,8 +53,6 @@ def is_reducer(
     #     for search_doc in search_docs
     # ]
 
-    retrieved_search_docs = convert_inference_sections_to_search_docs(doc_list)
-
     # Write the results to the stream
     write_custom_event(
         current_step_nr,
@@ -70,7 +67,7 @@ def is_reducer(
         current_step_nr,
         SearchToolDelta(
             queries=queries,
-            documents=retrieved_search_docs,
+            documents=doc_list,
             type="internal_search_tool_delta",
         ),
         writer,

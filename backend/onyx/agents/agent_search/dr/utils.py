@@ -66,11 +66,24 @@ def aggregate_context(
         iteration_responses,
         key=lambda x: (x.iteration_nr, x.parallelization_nr),
     ):
+
+        iteration_tool = iteration_response.tool
+        if iteration_tool == "InternetSearchTool":
+            is_internet = True
+        else:
+            is_internet = False
+
+        is_internet_marker_dict: dict[str, bool] = {}
         for cited_doc in iteration_response.cited_documents.values():
             unrolled_inference_sections.append(cited_doc)
+            if cited_doc.center_chunk.document_id not in is_internet_marker_dict:
+                is_internet_marker_dict[cited_doc.center_chunk.document_id] = (
+                    is_internet
+                )
             cited_doc.center_chunk.score = None  # None means maintain order
 
     global_documents = dedup_inference_section_list(unrolled_inference_sections)
+
     global_citations = {
         doc.center_chunk.document_id: i for i, doc in enumerate(global_documents, 1)
     }
@@ -166,6 +179,7 @@ def aggregate_context(
     return AggregatedDRContext(
         context="\n".join(output_strings),
         cited_documents=global_documents,
+        is_internet_marker_dict=is_internet_marker_dict,
         global_iteration_responses=global_iteration_responses,
     )
 
@@ -234,9 +248,13 @@ def parse_plan_to_dict(plan_text: str) -> dict[str, str]:
 
 def convert_inference_sections_to_search_docs(
     inference_sections: list[InferenceSection],
+    is_internet: bool = False,
 ) -> list[SavedSearchDoc]:
     # Convert InferenceSections to SavedSearchDocs
     search_docs = chunks_or_sections_to_search_docs(inference_sections)
+    for search_doc in search_docs:
+        search_doc.is_internet = is_internet
+
     retrieved_saved_search_docs = [
         SavedSearchDoc.from_search_doc(search_doc, db_doc_id=0)
         for search_doc in search_docs

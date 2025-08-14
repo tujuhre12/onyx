@@ -14,6 +14,7 @@ from onyx.agents.agent_search.dr.states import FinalUpdate
 from onyx.agents.agent_search.dr.states import MainState
 from onyx.agents.agent_search.dr.states import OrchestrationUpdate
 from onyx.agents.agent_search.dr.utils import aggregate_context
+from onyx.agents.agent_search.dr.utils import convert_inference_sections_to_search_docs
 from onyx.agents.agent_search.dr.utils import get_chat_history_string
 from onyx.agents.agent_search.dr.utils import get_prompt_question
 from onyx.agents.agent_search.dr.utils import parse_plan_to_dict
@@ -24,7 +25,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
-from onyx.agents.agent_search.utils import create_citation_format_list
+from onyx.context.search.models import InferenceSection
 from onyx.db.models import ChatMessage
 from onyx.db.models import ResearchAgentIteration
 from onyx.db.models import ResearchAgentIterationSubStep
@@ -42,12 +43,29 @@ logger = setup_logger()
 
 
 def save_iteration(
-    state: MainState, graph_config: GraphConfig, aggregated_context: AggregatedDRContext
+    state: MainState,
+    graph_config: GraphConfig,
+    aggregated_context: AggregatedDRContext,
+    final_answer: str,
+    all_cited_documents: list[InferenceSection],
+    is_internet_marker_dict: dict[str, bool],
 ) -> None:
     db_session = graph_config.persistence.db_session
     message_id = graph_config.persistence.message_id
     research_type = graph_config.behavior.research_type
     db_session = graph_config.persistence.db_session
+
+    # search_docs = [
+    #     create_search_doc_from_inference_section(
+    #         inference_section=inference_section,
+    #         is_internet=is_internet_marker_dict.get(
+    #             inference_section.center_chunk.document_id, False
+    #         ),
+    #         db_session=db_session,
+    #         commit=False,
+    #     )
+    #     for inference_section in all_cited_documents
+    # ]
 
     # TODO: generate plan as dict in the first place
     plan_of_record = state.plan_of_record.plan if state.plan_of_record else ""
@@ -61,6 +79,15 @@ def save_iteration(
 
     chat_message.research_type = research_type
     chat_message.research_plan = plan_of_record_dict
+    chat_message.message = final_answer
+
+    parent_chat_message = (
+        db_session.query(ChatMessage)
+        .filter(ChatMessage.id == chat_message.parent_message)
+        .first()
+    )
+    if parent_chat_message:
+        parent_chat_message.latest_child_message = chat_message.id
 
     for iteration_preparation in state.iteration_instructions:
         research_agent_iteration_step = ResearchAgentIteration(
@@ -73,6 +100,14 @@ def save_iteration(
         db_session.add(research_agent_iteration_step)
 
     for iteration_answer in aggregated_context.global_iteration_responses:
+
+        retrieved_search_docs = convert_inference_sections_to_search_docs(
+            list(iteration_answer.cited_documents.values())
+        )
+
+        # Convert SavedSearchDoc objects to JSON-serializable format
+        serialized_search_docs = [doc.model_dump() for doc in retrieved_search_docs]
+
         research_agent_iteration_sub_step = ResearchAgentIterationSubStep(
             primary_question_id=message_id,
             parent_question_id=None,
@@ -83,9 +118,7 @@ def save_iteration(
             sub_answer=iteration_answer.answer,
             reasoning=iteration_answer.reasoning,
             claims=iteration_answer.claims,
-            cited_doc_results=create_citation_format_list(
-                [doc for doc in iteration_answer.cited_documents.values()]
-            ),
+            cited_doc_results=serialized_search_docs,
             additional_data=iteration_answer.additional_data,
             created_at=datetime.now(),
         )
@@ -132,6 +165,7 @@ def closer(
 
     iteration_responses_string = aggregated_context.context
     all_cited_documents = aggregated_context.cited_documents
+    is_internet_marker_dict = aggregated_context.is_internet_marker_dict
 
     num_closer_suggestions = state.num_closer_suggestions
 
@@ -239,7 +273,14 @@ def closer(
     write_custom_event(current_step_nr, OverallStop(), writer)
 
     # Log the research agent steps
-    save_iteration(state, graph_config, aggregated_context)
+    save_iteration(
+        state,
+        graph_config,
+        aggregated_context,
+        final_answer,
+        all_cited_documents,
+        is_internet_marker_dict,
+    )
 
     return FinalUpdate(
         final_answer=final_answer,
