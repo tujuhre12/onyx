@@ -46,7 +46,7 @@ def extract_document_citations(
 
 
 def aggregate_context(
-    iteration_responses: list[IterationAnswer], include_documents: bool = False
+    iteration_responses: list[IterationAnswer], include_documents: bool = True
 ) -> AggregatedDRContext:
     """
     Converts the iteration response into a single string with unified citations.

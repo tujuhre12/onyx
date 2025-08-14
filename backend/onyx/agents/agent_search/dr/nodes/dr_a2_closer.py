@@ -46,7 +46,6 @@ def save_iteration(
 ) -> None:
     db_session = graph_config.persistence.db_session
     message_id = graph_config.persistence.message_id
-    graph_config.persistence.chat_session_id
     research_type = graph_config.behavior.research_type
     db_session = graph_config.persistence.db_session
 
