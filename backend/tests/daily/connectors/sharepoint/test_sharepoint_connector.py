@@ -218,7 +218,9 @@ def test_sharepoint_connector_other_library(
         connector = SharepointConnector(
             sites=[
                 os.environ["SHAREPOINT_SITE"] + "/Other Library",
-            ]
+            ],
+            include_site_pages=False,
+            include_site_documents=True,
         )
 
         # Load credentials
