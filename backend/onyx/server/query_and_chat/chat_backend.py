@@ -247,7 +247,7 @@ def get_chat_session(
 
         if msg.message_type == MessageType.ASSISTANT:
             msg_packet_object = translate_db_message_to_packets(
-                msg, start_step_nr=end_step_nr
+                msg, db_session=db_session, start_step_nr=end_step_nr
             )
             end_step_nr = msg_packet_object.end_step_nr
             msg_packet_list = msg_packet_object.packet_list

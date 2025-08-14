@@ -47,7 +47,9 @@ def is_reducer(
         for x in xs:
             doc_list.append(x)
 
-    retrieved_search_docs = convert_inference_sections_to_search_docs(doc_list)
+    retrieved_search_docs = convert_inference_sections_to_search_docs(
+        doc_list, is_internet=True
+    )
 
     # Write the results to the stream
     write_custom_event(

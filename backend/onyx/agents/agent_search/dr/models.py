@@ -90,6 +90,7 @@ class IterationAnswer(BaseModel):
 class AggregatedDRContext(BaseModel):
     context: str
     cited_documents: list[InferenceSection]
+    is_internet_marker_dict: dict[str, bool]
     global_iteration_responses: list[IterationAnswer]
 
 

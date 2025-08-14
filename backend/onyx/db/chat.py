@@ -30,6 +30,7 @@ from onyx.chat.models import DocumentRelevance
 from onyx.configs.chat_configs import HARD_DELETE_CHATS
 from onyx.configs.constants import DocumentSource
 from onyx.configs.constants import MessageType
+from onyx.context.search.models import InferenceSection
 from onyx.context.search.models import RetrievalDocs
 from onyx.context.search.models import SavedSearchDoc
 from onyx.context.search.models import SearchDoc as ServerSearchDoc
@@ -49,6 +50,7 @@ from onyx.db.models import ToolCall
 from onyx.db.models import User
 from onyx.db.models import UserFile
 from onyx.db.persona import get_best_persona_id_for_user
+from onyx.db.tools import get_tool_by_id
 from onyx.file_store.file_store import get_default_file_store
 from onyx.file_store.models import FileDescriptor
 from onyx.file_store.models import InMemoryChatFile
@@ -58,11 +60,15 @@ from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.models import SubQueryDetail
 from onyx.server.query_and_chat.models import SubQuestionDetail
 from onyx.server.query_and_chat.streaming_models import EndStepPacketList
+from onyx.server.query_and_chat.streaming_models import ImageGenerationToolDelta
+from onyx.server.query_and_chat.streaming_models import ImageGenerationToolStart
 from onyx.server.query_and_chat.streaming_models import MessageDelta
 from onyx.server.query_and_chat.streaming_models import MessageStart
 from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.server.query_and_chat.streaming_models import ReasoningDelta
 from onyx.server.query_and_chat.streaming_models import ReasoningStart
+from onyx.server.query_and_chat.streaming_models import SearchToolDelta
+from onyx.server.query_and_chat.streaming_models import SearchToolStart
 from onyx.server.query_and_chat.streaming_models import SectionEnd
 from onyx.tools.tool_runner import ToolCallFinalResult
 from onyx.utils.logger import setup_logger
@@ -70,6 +76,8 @@ from onyx.utils.special_types import JSON_ro
 
 
 logger = setup_logger()
+
+_CANNOT_SHOW_STEP_RESULTS_STR = "[Cannot display step results]"
 
 
 def create_message_packets(id: str, message_text: str, step_nr: int) -> list[Packet]:
@@ -126,6 +134,80 @@ def create_reasoning_packets(reasoning_text: str, step_nr: int) -> list[Packet]:
             obj=ReasoningDelta(
                 type="reasoning_delta",
                 reasoning=reasoning_text,
+            ),
+        ),
+    )
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=SectionEnd(
+                type="section_end",
+            ),
+        )
+    )
+
+    return packets
+
+
+def create_image_generation_packets(
+    images: list[dict[str, str]] | None, step_nr: int
+) -> list[Packet]:
+    packets: list[Packet] = []
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=ImageGenerationToolStart(type="image_generation_tool_start"),
+        )
+    )
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=ImageGenerationToolDelta(
+                type="image_generation_tool_delta", images=images
+            ),
+        ),
+    )
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=SectionEnd(
+                type="section_end",
+            ),
+        )
+    )
+
+    return packets
+
+
+def create_search_packets(
+    search_queries: list[str],
+    saved_search_docs: list[SavedSearchDoc] | None,
+    is_internet_search: bool,
+    step_nr: int,
+) -> list[Packet]:
+    packets: list[Packet] = []
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=SearchToolStart(
+                type="internal_search_tool_start",
+                is_internet_search=is_internet_search,
+            ),
+        )
+    )
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=SearchToolDelta(
+                type="internal_search_tool_delta",
+                queries=search_queries,
+                documents=saved_search_docs,
             ),
         ),
     )
@@ -1129,6 +1211,7 @@ def get_retrieval_docs_from_search_docs(
 
 def translate_db_message_to_packets(
     chat_message: ChatMessage,
+    db_session: Session,
     remove_doc_content: bool = False,
     start_step_nr: int = 1,
 ) -> EndStepPacketList:
@@ -1144,22 +1227,94 @@ def translate_db_message_to_packets(
             )  # sorted iterations
             for research_iteration in research_iterations:
 
+                if research_iteration.iteration_nr > 1:
+                    # first iteration does noty need to be reasoned for
+                    packet_list.extend(
+                        create_reasoning_packets(research_iteration.reasoning, step_nr)
+                    )
+                    step_nr += 1
+
                 packet_list.extend(
                     create_reasoning_packets(research_iteration.purpose, step_nr)
                 )
                 step_nr += 1
 
-                # sub_steps = research_iteration.sub_steps
-                # for sub_step in sub_steps:
-                #     sub_step_docs = sub_step.sub_step_docs
-                #     for sub_step_doc in sub_step_docs:
-                #         sub_step_doc_docs = sub_step_doc.sub_step_doc_docs
-                #         for sub_step_doc_doc in sub_step_doc_docs:
+                sub_steps = research_iteration.sub_steps
+                tasks = []
+                tool_call_ids = []
+                cited_docs = []
 
-                packet_list.extend(
-                    create_reasoning_packets(research_iteration.reasoning, step_nr)
-                )
-                step_nr += 1
+                for sub_step in sub_steps:
+
+                    tasks.append(sub_step.sub_step_instructions)
+                    tool_call_ids.append(sub_step.sub_step_tool_id)
+
+                    sub_step_cited_docs = sub_step.cited_doc_results
+                    if isinstance(sub_step_cited_docs, list):
+                        # Convert serialized dict data back to SavedSearchDoc objects
+                        saved_search_docs = [
+                            (
+                                SavedSearchDoc.from_dict(doc_data)
+                                if isinstance(doc_data, dict)
+                                else doc_data
+                            )
+                            for doc_data in sub_step_cited_docs
+                        ]
+                        cited_docs.extend(saved_search_docs)
+                    else:
+                        packet_list.extend(
+                            create_reasoning_packets(
+                                _CANNOT_SHOW_STEP_RESULTS_STR, step_nr
+                            )
+                        )
+                    step_nr += 1
+
+                if len(set(tool_call_ids)) > 1:
+                    packet_list.extend(
+                        create_reasoning_packets(_CANNOT_SHOW_STEP_RESULTS_STR, step_nr)
+                    )
+                    step_nr += 1
+
+                else:
+                    tool_id = tool_call_ids[0]
+                    tool = get_tool_by_id(tool_id, db_session)
+                    tool_name = tool.name
+
+                    if tool_name in ["SearchTool", "KnowledgeGraphTool"]:
+
+                        cited_docs = cast(list[SavedSearchDoc], cited_docs)
+
+                        packet_list.extend(
+                            create_search_packets(tasks, cited_docs, False, step_nr)
+                        )
+                        step_nr += 1
+
+                    elif tool_name == "run_internet_search":
+                        cited_docs = cast(list[SavedSearchDoc], cited_docs)
+                        packet_list.extend(
+                            create_search_packets(tasks, cited_docs, True, step_nr)
+                        )
+                        step_nr += 1
+
+                    elif tool_name == "run_image_generation":
+
+                        if len(tasks) > 1:
+                            packet_list.extend(
+                                create_reasoning_packets(
+                                    _CANNOT_SHOW_STEP_RESULTS_STR, step_nr
+                                )
+                            )
+                            step_nr += 1
+
+                        else:
+                            images = cited_docs[0]
+                            packet_list.extend(
+                                create_image_generation_packets(images, step_nr)
+                            )
+                            step_nr += 1
+
+                    else:
+                        raise ValueError(f"Unknown tool name: {tool_name}")
 
         packet_list.extend(
             create_message_packets(
@@ -1316,3 +1471,58 @@ def update_chat_session_updated_at_timestamp(
         .values(time_updated=func.now())
     )
     # No commit - the caller is responsible for committing the transaction
+
+
+def create_search_doc_from_inference_section(
+    inference_section: InferenceSection,
+    is_internet: bool,
+    db_session: Session,
+    score: float = 0.0,
+    is_relevant: bool | None = None,
+    relevance_explanation: str | None = None,
+    commit: bool = False,
+) -> SearchDoc:
+    """Create a SearchDoc in the database from an InferenceSection."""
+
+    db_search_doc = SearchDoc(
+        document_id=inference_section.center_chunk.document_id,
+        chunk_ind=inference_section.center_chunk.chunk_id,
+        semantic_id=inference_section.center_chunk.semantic_identifier,
+        link=(
+            inference_section.center_chunk.source_links.get(0)
+            if inference_section.center_chunk.source_links
+            else None
+        ),
+        blurb=inference_section.center_chunk.blurb,
+        source_type=inference_section.center_chunk.source_type,
+        boost=inference_section.center_chunk.boost,
+        hidden=inference_section.center_chunk.hidden,
+        doc_metadata=inference_section.center_chunk.metadata,
+        score=score,
+        is_relevant=is_relevant,
+        relevance_explanation=relevance_explanation,
+        match_highlights=inference_section.center_chunk.match_highlights,
+        updated_at=inference_section.center_chunk.updated_at,
+        primary_owners=inference_section.center_chunk.primary_owners or [],
+        secondary_owners=inference_section.center_chunk.secondary_owners or [],
+        is_internet=is_internet,
+    )
+
+    db_session.add(db_search_doc)
+    if commit:
+        db_session.commit()
+    else:
+        db_session.flush()
+
+    return db_search_doc
+
+
+def create_search_doc_from_saved_search_doc(
+    saved_search_doc: SavedSearchDoc,
+) -> SearchDoc:
+    """Convert SavedSearchDoc to SearchDoc by excluding the additional fields"""
+    data = saved_search_doc.model_dump()
+    # Remove the fields that are specific to SavedSearchDoc
+    data.pop("db_doc_id", None)
+    # Keep score since SearchDoc has it as an optional field
+    return SearchDoc(**data)
