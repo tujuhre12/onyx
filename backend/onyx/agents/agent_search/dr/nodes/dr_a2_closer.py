@@ -3,6 +3,7 @@ from typing import cast
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
+from sqlalchemy.orm import Session
 
 from onyx.agents.agent_search.dr.constants import MAX_CHAT_HISTORY_MESSAGES
 from onyx.agents.agent_search.dr.constants import MAX_NUM_CLOSER_SUGGESTIONS
@@ -26,7 +27,9 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.context.search.models import InferenceSection
+from onyx.db.chat import create_search_doc_from_inference_section
 from onyx.db.models import ChatMessage
+from onyx.db.models import ChatMessage__SearchDoc
 from onyx.db.models import ResearchAgentIteration
 from onyx.db.models import ResearchAgentIterationSubStep
 from onyx.prompts.dr_prompts import FINAL_ANSWER_PROMPT_W_SUB_ANSWERS
@@ -42,6 +45,24 @@ from onyx.utils.threadpool_concurrency import run_with_timeout
 logger = setup_logger()
 
 
+def insert_chat_message_search_doc_pair(
+    message_id: int, search_doc_ids: list[int], db_session: Session
+) -> None:
+    """
+    Insert a pair of message_id and search_doc_id into the chat_message__search_doc table.
+
+    Args:
+        message_id: The ID of the chat message
+        search_doc_id: The ID of the search document
+        db_session: The database session
+    """
+    for search_doc_id in search_doc_ids:
+        chat_message_search_doc = ChatMessage__SearchDoc(
+            chat_message_id=message_id, search_doc_id=search_doc_id
+        )
+        db_session.add(chat_message_search_doc)
+
+
 def save_iteration(
     state: MainState,
     graph_config: GraphConfig,
@@ -54,17 +75,23 @@ def save_iteration(
     message_id = graph_config.persistence.message_id
     research_type = graph_config.behavior.research_type
 
-    # search_docs = [
-    #     create_search_doc_from_inference_section(
-    #         inference_section=inference_section,
-    #         is_internet=is_internet_marker_dict.get(
-    #             inference_section.center_chunk.document_id, False
-    #         ),
-    #         db_session=db_session,
-    #         commit=False,
-    #     )
-    #     for inference_section in all_cited_documents
-    # ]
+    # insert the search_docs
+    search_docs = [
+        create_search_doc_from_inference_section(
+            inference_section=inference_section,
+            is_internet=is_internet_marker_dict.get(
+                inference_section.center_chunk.document_id, False
+            ),  # TODO: revisit
+            db_session=db_session,
+            commit=False,
+        )
+        for inference_section in all_cited_documents
+    ]
+
+    # map_search_docs to message
+    insert_chat_message_search_doc_pair(
+        message_id, [search_doc.id for search_doc in search_docs], db_session
+    )
 
     # TODO: generate plan as dict in the first place
     plan_of_record = state.plan_of_record.plan if state.plan_of_record else ""

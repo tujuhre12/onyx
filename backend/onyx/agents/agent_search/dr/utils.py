@@ -62,6 +62,7 @@ def aggregate_context(
     """
     # dedupe and merge inference section contents
     unrolled_inference_sections: list[InferenceSection] = []
+    is_internet_marker_dict: dict[str, bool] = {}
     for iteration_response in sorted(
         iteration_responses,
         key=lambda x: (x.iteration_nr, x.parallelization_nr),
@@ -73,7 +74,6 @@ def aggregate_context(
         else:
             is_internet = False
 
-        is_internet_marker_dict: dict[str, bool] = {}
         for cited_doc in iteration_response.cited_documents.values():
             unrolled_inference_sections.append(cited_doc)
             if cited_doc.center_chunk.document_id not in is_internet_marker_dict:

@@ -1234,10 +1234,11 @@ def translate_db_message_to_packets(
                     )
                     step_nr += 1
 
-                packet_list.extend(
-                    create_reasoning_packets(research_iteration.purpose, step_nr)
-                )
-                step_nr += 1
+                if research_iteration.purpose:
+                    packet_list.extend(
+                        create_reasoning_packets(research_iteration.purpose, step_nr)
+                    )
+                    step_nr += 1
 
                 sub_steps = research_iteration.sub_steps
                 tasks = []
@@ -1274,6 +1275,11 @@ def translate_db_message_to_packets(
                         create_reasoning_packets(_CANNOT_SHOW_STEP_RESULTS_STR, step_nr)
                     )
                     step_nr += 1
+
+                elif (
+                    len(sub_steps) == 0
+                ):  # no sub steps, no tool calls. But iteration can have reasoning or purpose
+                    continue
 
                 else:
                     tool_id = tool_call_ids[0]
