@@ -46,7 +46,6 @@ def save_iteration(
 ) -> None:
     db_session = graph_config.persistence.db_session
     message_id = graph_config.persistence.message_id
-    graph_config.persistence.chat_session_id
     research_type = graph_config.behavior.research_type
 
     # TODO: generate plan as dict in the first place
@@ -126,17 +125,9 @@ def closer(
         or "(No chat history yet available)"
     )
 
-    if research_type == ResearchType.THOUGHTFUL:
-        aggregated_context = aggregate_context(
-            state.iteration_responses,
-            include_documents=True,
-            include_answers_claims=True,
-        )
-    else:
-        aggregated_context = aggregate_context(
-            state.iteration_responses,
-            include_documents=True,
-        )
+    aggregated_context = aggregate_context(
+        state.iteration_responses, include_documents=True
+    )
 
     iteration_responses_string = aggregated_context.context
     all_cited_documents = aggregated_context.cited_documents

@@ -73,11 +73,6 @@ class IterationInstructions(BaseModel):
     purpose: str
 
 
-class GenericToolAnswer(BaseModel):
-    reasoning: str
-    answer: str
-
-
 class IterationAnswer(BaseModel):
     tool: str
     tool_id: int

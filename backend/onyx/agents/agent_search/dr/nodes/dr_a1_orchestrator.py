@@ -62,22 +62,10 @@ def orchestrator(
     research_type = graph_config.behavior.research_type
     remaining_time_budget = state.remaining_time_budget
     chat_history_string = state.chat_history_string or "(No chat history yet available)"
-    if research_type == ResearchType.THOUGHTFUL:
-        answer_history_string = (
-            aggregate_context(
-                state.iteration_responses,
-                include_answers_claims=False,
-                include_documents=True,
-            ).context
-            or "(No answer history yet available)"
-        )
-    else:
-        answer_history_string = (
-            aggregate_context(
-                state.iteration_responses, include_answers_claims=True
-            ).context
-            or "(No answer history yet available)"
-        )
+    answer_history_string = (
+        aggregate_context(state.iteration_responses, include_documents=True).context
+        or "(No answer history yet available)"
+    )
     available_tools = state.available_tools or {}
 
     questions = [

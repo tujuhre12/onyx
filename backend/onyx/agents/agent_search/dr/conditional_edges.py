@@ -34,12 +34,6 @@ def decision_router(state: MainState) -> list[Send | Hashable] | DRPath | str:
     ):
         return DRPath.CLOSER
 
-    # handle generic tool
-    if next_path == DRPath.GENERIC_TOOL:
-        # TODO: pass corresponding OrchestratorTool.name to subgraph where
-        # OrchestratorTool.llm_path == next_tool so the right tool is used
-        return DRPath.GENERIC_TOOL
-
     return next_path
 
 
