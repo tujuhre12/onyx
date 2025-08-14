@@ -170,6 +170,14 @@ def orchestrator(
                     clarification=clarification,
                     plan_of_record=plan_of_record,
                     remaining_time_budget=remaining_time_budget,
+                    iteration_instructions=[
+                        IterationInstructions(
+                            iteration_nr=iteration_nr,
+                            plan=None,
+                            reasoning=reasoning_result,
+                            purpose="",
+                        )
+                    ],
                 )
 
         base_decision_prompt = get_dr_prompt_orchestration_templates(
