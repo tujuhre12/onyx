@@ -1,4 +1,5 @@
 import json
+import os
 from collections.abc import Generator
 from enum import Enum
 from typing import Any
@@ -79,6 +80,9 @@ class ImageShape(str, Enum):
     LANDSCAPE = "landscape"
 
 
+MODEL_NAME = os.environ.get("IMAGE_GENERATION_MODEL", "dalle-3")
+
+
 # override_kwargs is not supported for image generation tools
 class ImageGenerationTool(Tool[None]):
     _NAME = "run_image_generation"
@@ -90,7 +94,7 @@ class ImageGenerationTool(Tool[None]):
         api_key: str,
         api_base: str | None,
         api_version: str | None,
-        model: str = "gpt-image-1",
+        model: str = MODEL_NAME,
         num_imgs: int = 1,
         additional_headers: dict[str, str] | None = None,
         output_format: ImageFormat = _DEFAULT_OUTPUT_FORMAT,
