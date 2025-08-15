@@ -59,7 +59,7 @@ from onyx.llm.override_models import PromptOverride
 from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.models import SubQueryDetail
 from onyx.server.query_and_chat.models import SubQuestionDetail
-from onyx.server.query_and_chat.streaming_models import CitationDelta, OverallStop
+from onyx.server.query_and_chat.streaming_models import CitationDelta
 from onyx.server.query_and_chat.streaming_models import CitationInfo
 from onyx.server.query_and_chat.streaming_models import CitationStart
 from onyx.server.query_and_chat.streaming_models import EndStepPacketList
@@ -67,6 +67,7 @@ from onyx.server.query_and_chat.streaming_models import ImageGenerationToolDelta
 from onyx.server.query_and_chat.streaming_models import ImageGenerationToolStart
 from onyx.server.query_and_chat.streaming_models import MessageDelta
 from onyx.server.query_and_chat.streaming_models import MessageStart
+from onyx.server.query_and_chat.streaming_models import OverallStop
 from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.server.query_and_chat.streaming_models import ReasoningDelta
 from onyx.server.query_and_chat.streaming_models import ReasoningStart
@@ -1298,7 +1299,7 @@ def translate_db_message_to_packets(
                 sub_steps = research_iteration.sub_steps
                 tasks = []
                 tool_call_ids = []
-                cited_docs = []
+                cited_docs: list[SavedSearchDoc] = []
 
                 for sub_step in sub_steps:
 
