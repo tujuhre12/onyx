@@ -30,10 +30,12 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import run_with_timeout
+from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.agents.agent_search.utils import create_question_prompt
 from onyx.configs.constants import DocumentSourceDescription
 from onyx.configs.constants import MessageType
 from onyx.db.connector import fetch_unique_document_sources
+from onyx.db.models import ChatMessage
 from onyx.kg.utils.extraction_utils import get_entity_types_str
 from onyx.kg.utils.extraction_utils import get_relationship_types_str
 from onyx.prompts.dr_prompts import DECISION_PROMPT_W_TOOL_CALLING
@@ -43,6 +45,10 @@ from onyx.prompts.dr_prompts import EVAL_SYSTEM_PROMPT_W_TOOL_CALLING
 from onyx.prompts.dr_prompts import EVAL_SYSTEM_PROMPT_WO_TOOL_CALLING
 from onyx.prompts.dr_prompts import GENERAL_DR_ANSWER_PROMPT
 from onyx.prompts.dr_prompts import TOOL_DESCRIPTION
+from onyx.server.query_and_chat.streaming_models import MessageDelta
+from onyx.server.query_and_chat.streaming_models import MessageStart
+from onyx.server.query_and_chat.streaming_models import OverallStop
+from onyx.server.query_and_chat.streaming_models import SectionEnd
 from onyx.tools.tool_implementations.custom.custom_tool import CustomTool
 from onyx.tools.tool_implementations.internet_search.internet_search_tool import (
     InternetSearchTool,
@@ -218,9 +224,12 @@ def clarifier(
     graph_config = cast(GraphConfig, config["metadata"]["config"])
 
     use_tool_calling_llm = graph_config.tooling.using_tool_calling_llm
+    db_session = graph_config.persistence.db_session
 
     original_question = graph_config.inputs.prompt_builder.raw_user_query
     research_type = graph_config.behavior.research_type
+
+    message_id = graph_config.persistence.message_id
 
     # get the connected tools and format for the Deep Research flow
     kg_enabled = graph_config.behavior.kg_config_settings.KG_ENABLED
@@ -326,14 +335,39 @@ def clarifier(
             structured_response_format=None,
         )
 
-        tool_message = process_llm_stream(
+        full_response = process_llm_stream(
             messages=stream,
             should_stream_answer=True,
             writer=writer,
             ind=0,
             generate_final_answer=True,
             chat_message_id=str(graph_config.persistence.chat_session_id),
-        ).ai_message_chunk
+        )
+
+        # TODO: Clean up!!
+        chat_message = (
+            db_session.query(ChatMessage).filter(ChatMessage.id == message_id).first()
+        )
+        if not chat_message:
+            raise ValueError("Chat message with id not found")  # should never happen
+
+        chat_message.message = full_response.full_answer
+
+        parent_chat_message = (
+            db_session.query(ChatMessage)
+            .filter(ChatMessage.id == chat_message.parent_message)
+            .first()
+        )
+        if parent_chat_message:
+            parent_chat_message.latest_child_message = chat_message.id
+
+        db_session.commit()
+        return OrchestrationUpdate(
+            original_question=original_question,
+            chat_history_string="",
+            tools_used=[DRPath.END.value],
+            query_list=[],
+        )
 
     elif not use_tool_calling_llm:
         decision_prompt = DECISION_PROMPT_WO_TOOL_CALLING.build(
@@ -382,16 +416,36 @@ def clarifier(
             structured_response_format=graph_config.inputs.structured_response_format,
         )
 
-        tool_message = process_llm_stream(
+        full_response = process_llm_stream(
             messages=stream,
             should_stream_answer=True,
             writer=writer,
             ind=0,
             generate_final_answer=True,
             chat_message_id=str(graph_config.persistence.chat_session_id),
-        ).ai_message_chunk
+        )
 
-        if len(tool_message.tool_calls) == 0:
+        if len(full_response.ai_message_chunk.tool_calls) == 0:
+
+            chat_message = (
+                db_session.query(ChatMessage)
+                .filter(ChatMessage.id == message_id)
+                .first()
+            )
+            if not chat_message:
+                raise ValueError(
+                    "Chat message with id not found"
+                )  # should never happen
+
+            chat_message.message = full_response.full_answer
+
+            parent_chat_message = (
+                db_session.query(ChatMessage)
+                .filter(ChatMessage.id == chat_message.parent_message)
+                .first()
+            )
+            if parent_chat_message:
+                parent_chat_message.latest_child_message = chat_message.id
 
             db_session.commit()
             return OrchestrationUpdate(
@@ -449,19 +503,61 @@ def clarifier(
                     clarification_question=clarification_response.clarification_question,
                     clarification_response=None,
                 )
-                # write_custom_event(
-                #     "basic_response",
-                #     AgentAnswerPiece(
-                #         answer_piece=(
-                #             f"{CLARIFICATION_REQUEST_PREFIX} "
-                #             f"{clarification.clarification_question}\n\n"
-                #         ),
-                #         level=0,
-                #         level_question_num=0,
-                #         answer_type="agent_level_answer",
-                #     ),
-                #     writer,
-                # )
+                write_custom_event(
+                    0,
+                    MessageStart(
+                        id=str(graph_config.persistence.chat_session_id),
+                        content="",
+                        type="message_start",
+                    ),
+                    writer,
+                )
+
+                write_custom_event(
+                    0,
+                    MessageDelta(
+                        content=clarification_response.clarification_question,
+                        type="message_delta",
+                    ),
+                    writer,
+                )
+
+                write_custom_event(
+                    0,
+                    SectionEnd(
+                        type="section_end",
+                    ),
+                    writer,
+                )
+
+                write_custom_event(
+                    1,
+                    OverallStop(),
+                    writer,
+                )
+
+                chat_message = (
+                    db_session.query(ChatMessage)
+                    .filter(ChatMessage.id == message_id)
+                    .first()
+                )
+                if not chat_message:
+                    raise ValueError(
+                        "Chat message with id not found"
+                    )  # should never happen
+
+                chat_message.message = clarification_response.clarification_question
+
+                parent_chat_message = (
+                    db_session.query(ChatMessage)
+                    .filter(ChatMessage.id == chat_message.parent_message)
+                    .first()
+                )
+                if parent_chat_message:
+                    parent_chat_message.latest_child_message = chat_message.id
+
+                db_session.commit()
+
     else:
         chat_history_string = (
             get_chat_history_string(
