@@ -1179,7 +1179,10 @@ export function ChatPage({
                                   i === messageHistory.length - 1
                                 ) {
                                   return (
-                                    <div className="max-w-message-max mx-auto">
+                                    <div
+                                      key={`error-${message.messageId}`}
+                                      className="max-w-message-max mx-auto"
+                                    >
                                       <ErrorBanner
                                         resubmit={handleResubmitLastMessage}
                                         error={
