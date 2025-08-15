@@ -1,4 +1,4 @@
-name: Community PRs – Approved to Run Workflows
+name: Community PRs Approved to Run Workflows
 
 on:
   pull_request_target:
@@ -15,7 +15,7 @@ jobs:
 
     environment: external-prs   # approval gate; no env secrets needed
 
-    uses: ./github/workflows/pr-playwright-tests.yml
+    uses: ./.github/workflows/pr-playwright-tests.yml
     with:
       pr_repo: ${{ github.event.pull_request.head.repo.full_name }}
       pr_sha:  ${{ github.event.pull_request.head.sha }}

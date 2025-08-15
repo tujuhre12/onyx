@@ -1,8 +1,8 @@
 name: Run Playwright Tests
 
 on:
-  push:            # Internal runs
-  workflow_call:   # Allows a caller to run this against a fork/community PR
+  push:            # keeps existing internal runs
+  workflow_call:   # allows a caller to run this against a fork PR
     inputs:
       pr_repo:
         type: string
@@ -18,34 +18,39 @@ on:
         required: false
         default: '["runs-on","runner=32cpu-linux-x64","disk=large","run-id=${{ github.run_id }}"]'
 
+permissions:
+  contents: read
+
 concurrency:
-  group: Run-Playwright-Tests-${{ github.workflow }}-${{ github.head_ref || github.event.workflow_run.head_branch || github.run_id }}
+  group: Run-Playwright-Tests-${{ github.workflow }}-${{ inputs.pr_sha || github.head_ref || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch) || github.ref_name || github.run_id }}
   cancel-in-progress: true
-  
+
 env:
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-  SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-  GEN_AI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   MOCK_LLM_RESPONSE: true
   PYTEST_PLAYWRIGHT_SKIP_INITIAL_RESET: true
 
 jobs:
   playwright-tests:
     name: Playwright Tests
+    runs-on: ${{ inputs.runner }}
 
-    # See https://runs-on.com/runners/linux/
-    runs-on:
-      [
-        runs-on,
-        runner=32cpu-linux-x64,
-        disk=large,
-        "run-id=${{ github.run_id }}",
-      ]
+    # Secrets come from the caller (via `secrets: inherit`)
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      GEN_AI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # Vars (non-secret) pulled from repo/org vars:
+      RUNS_ON_AWS_REGION: ${{ vars.RUNS_ON_AWS_REGION }}
+      RUNS_ON_S3_BUCKET_CACHE: ${{ vars.RUNS_ON_S3_BUCKET_CACHE }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          repository: ${{ inputs.pr_repo }}
+          ref: ${{ inputs.pr_sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
