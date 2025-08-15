@@ -26,15 +26,18 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
+from onyx.chat.chat_utils import llm_doc_from_inference_section
 from onyx.context.search.models import InferenceSection
 from onyx.db.chat import create_search_doc_from_inference_section
 from onyx.db.models import ChatMessage
 from onyx.db.models import ChatMessage__SearchDoc
 from onyx.db.models import ResearchAgentIteration
 from onyx.db.models import ResearchAgentIterationSubStep
+from onyx.db.models import SearchDoc as DbSearchDoc
 from onyx.prompts.dr_prompts import FINAL_ANSWER_PROMPT_W_SUB_ANSWERS
 from onyx.prompts.dr_prompts import FINAL_ANSWER_PROMPT_WITHOUT_SUB_ANSWERS
 from onyx.prompts.dr_prompts import TEST_INFO_COMPLETE_PROMPT
+from onyx.server.query_and_chat.streaming_models import CitationDelta
 from onyx.server.query_and_chat.streaming_models import CitationStart
 from onyx.server.query_and_chat.streaming_models import MessageStart
 from onyx.server.query_and_chat.streaming_models import OverallStop
@@ -43,6 +46,42 @@ from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_with_timeout
 
 logger = setup_logger()
+
+
+def extract_citation_numbers(text: str) -> list[int]:
+    """
+    Extract all citation numbers from text in the format [[<number>]] or [[<number_1>, <number_2>, ...]].
+    Returns a list of all unique citation numbers found.
+    """
+    import re
+
+    # Pattern to match [[number]] or [[number1, number2, ...]]
+    pattern = r"\[\[(\d+(?:,\s*\d+)*)\]\]"
+    matches = re.findall(pattern, text)
+
+    cited_numbers = []
+    for match in matches:
+        # Split by comma and extract all numbers
+        numbers = [int(num.strip()) for num in match.split(",")]
+        cited_numbers.extend(numbers)
+
+    return list(set(cited_numbers))  # Return unique numbers
+
+
+def replace_citation_with_link(match, docs: list[DbSearchDoc]):
+    citation_content = match.group(1)  # e.g., "3" or "3, 5, 7"
+    numbers = [int(num.strip()) for num in citation_content.split(",")]
+
+    # For multiple citations like [[3, 5, 7]], create separate linked citations
+    linked_citations = []
+    for num in numbers:
+        if num - 1 < len(docs):  # Check bounds
+            link = docs[num - 1].link or ""
+            linked_citations.append(f"[[{num}]]({link})")
+        else:
+            linked_citations.append(f"[[{num}]]")  # No link if out of bounds
+
+    return "".join(linked_citations)
 
 
 def insert_chat_message_search_doc_pair(
@@ -76,7 +115,7 @@ def save_iteration(
     research_type = graph_config.behavior.research_type
     db_session = graph_config.persistence.db_session
 
-    # insert the search_docs
+    # first, insert the search_docs
     search_docs = [
         create_search_doc_from_inference_section(
             inference_section=inference_section,
@@ -89,10 +128,19 @@ def save_iteration(
         for inference_section in all_cited_documents
     ]
 
-    # map_search_docs to message
+    # then, map_search_docs to message
     insert_chat_message_search_doc_pair(
         message_id, [search_doc.id for search_doc in search_docs], db_session
     )
+
+    # lastly, insert the citations
+
+    cited_doc_nrs = extract_citation_numbers(final_answer)
+
+    citation_dict = {}
+
+    for cited_doc_nr in cited_doc_nrs:
+        citation_dict[cited_doc_nr] = search_docs[cited_doc_nr - 1].id
 
     # TODO: generate plan as dict in the first place
     plan_of_record = state.plan_of_record.plan if state.plan_of_record else ""
@@ -107,6 +155,7 @@ def save_iteration(
     chat_message.research_type = research_type
     chat_message.research_plan = plan_of_record_dict
     chat_message.message = final_answer
+    chat_message.citations = citation_dict
 
     parent_chat_message = (
         db_session.query(ChatMessage)
@@ -192,6 +241,7 @@ def closer(
 
     iteration_responses_string = aggregated_context.context
     all_cited_documents = aggregated_context.cited_documents
+
     is_internet_marker_dict = aggregated_context.is_internet_marker_dict
 
     num_closer_suggestions = state.num_closer_suggestions
@@ -262,9 +312,13 @@ def closer(
         chat_history_string=chat_history_string,
     )
 
+    all_context_llmdocs = [
+        llm_doc_from_inference_section(inference_section)
+        for inference_section in all_cited_documents
+    ]
+
     try:
-        # TODO: fix citations for non-document returning tools (right now, it cites iteration nr)
-        streamed_output = run_with_timeout(
+        streamed_output, _, citation_infos = run_with_timeout(
             240,
             lambda: stream_llm_answer(
                 llm=graph_config.tooling.primary_llm,
@@ -277,11 +331,13 @@ def closer(
                 timeout_override=60,
                 answer_piece="message_delta",
                 ind=current_step_nr,
+                context_docs=all_context_llmdocs,
+                replace_citations=True,
                 # max_tokens=None,
             ),
         )
 
-        final_answer = "".join(streamed_output[0])
+        final_answer = "".join(streamed_output)
     except Exception as e:
         raise ValueError(f"Error in consolidate_research: {e}")
 
@@ -291,7 +347,7 @@ def closer(
 
     write_custom_event(current_step_nr, CitationStart(), writer)
 
-    # write_custom_event(current_step_nr, CitationDelta(citations=retrieved_search_docs), writer)
+    write_custom_event(current_step_nr, CitationDelta(citations=citation_infos), writer)
 
     write_custom_event(current_step_nr, SectionEnd(), writer)
 

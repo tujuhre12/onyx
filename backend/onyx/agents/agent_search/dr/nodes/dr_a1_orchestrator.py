@@ -127,7 +127,7 @@ def orchestrator(
 
             reasoning_tokens: list[str] = [""]
 
-            reasoning_tokens, _ = run_with_timeout(
+            reasoning_tokens, _, _ = run_with_timeout(
                 80,
                 lambda: stream_llm_answer(
                     llm=graph_config.tooling.primary_llm,
@@ -367,7 +367,7 @@ def orchestrator(
             writer,
         )
 
-        purpose_tokens, _ = run_with_timeout(
+        purpose_tokens, _, _ = run_with_timeout(
             80,
             lambda: stream_llm_answer(
                 llm=graph_config.tooling.primary_llm,

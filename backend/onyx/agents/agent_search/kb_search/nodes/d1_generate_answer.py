@@ -215,7 +215,7 @@ def generate_answer(
     try:
         if state.individual_flow:
 
-            stream_results: tuple[list[str], list[float]] = run_with_timeout(
+            stream_results, _, _ = run_with_timeout(
                 KG_TIMEOUT_LLM_INITIAL_ANSWER_GENERATION,
                 lambda: stream_llm_answer(
                     llm=graph_config.tooling.primary_llm,
@@ -229,7 +229,7 @@ def generate_answer(
                     max_tokens=KG_MAX_TOKENS_ANSWER_GENERATION,
                 ),
             )
-            final_answer = "".join(stream_results[0])
+            final_answer = "".join(stream_results)
         else:
             final_answer = get_answer_from_llm(
                 llm=graph_config.tooling.primary_llm,

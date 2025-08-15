@@ -571,13 +571,13 @@ information that will be necessary to provide a succinct answer to the specific 
 the documents. Again, start out here as well with a brief statement whether the SPECIFIC CONTEXT is \
 mentioned in the documents. (Example: 'I was not able to find information about yellow curry specifically, \
 but I found information about curry...'). But this should be be precise and concise, and specifically \
-answer the question. Please cite the document sources inline in format [1][7], etc.>",
+answer the question. Please cite the document sources inline in format [[1]][[7]], etc.>",
    "claims": "<a list of short claims discussed in the documents as they pertain to the query and/or \
 the original question. These will later be used for follow-up questions and verifications. Note that \
 these may not actually be in the succinct answer above. Note also that each claim \
 should include ONE fact that contains enough context to be verified/questioned by a different system \
 without the need for going back to these documents for additional context. Also here, please cite the \
-document sources inline in format [1][7], etc.. So this should have format like \
+document sources inline in format [[1]][[7]], etc.. So this should have format like \
 [<claim 1>, <claim 2>, <claim 3>, ...], each with citations.>"
 }
 """
@@ -823,7 +823,7 @@ find information about yellow curry specifically, but here is what I found about
 - do not make anything up! Only use the information provided in the documents, or, \
 if no documents are provided for a sub-answer, in the actual sub-answer.
 - Provide a thoughtful answer that is concise and to the point, but that is detailed.
-- Please cite your sources inline in format [2][4], etc! The numbers of the documents \
+- Please cite your sources inline in format [[2]][[4]], etc! The numbers of the documents \
 are provided above.
 
 ANSWER:
@@ -869,7 +869,7 @@ find information about yellow curry specifically, but here is what I found about
 - do not make anything up! Only use the information provided in the documents, or, \
 if no documents are provided for a sub-answer, in the actual sub-answer.
 - Provide a thoughtful answer that is concise and to the point, but that is detailed.
-- Please cite your sources inline in format [2][4], etc! The numbers of the documents \
+- Please cite your sources inline in format [[2]][[4]], etc! The numbers of the documents \
 are provided above.
 
 ANSWER:
@@ -915,7 +915,7 @@ find information about yellow curry specifically, but here is what I found about
 - do not make anything up! Only use the information provided in the documents, or, \
 if no documents are provided for a sub-answer, in the actual sub-answer.
 - Provide a thoughtful answer that is concise and to the point, but that is detailed.
-- Please cite your sources inline in format [2][4], etc! The numbers of the documents \
+- Please cite your sources inline in format [[2]][[4]], etc! The numbers of the documents \
 are provided above.
 
 ANSWER:

@@ -13,8 +13,11 @@ from litellm import supports_response_schema
 from pydantic import BaseModel
 
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
+from onyx.chat.stream_processing.citation_processing import CitationProcessorGraph
+from onyx.chat.stream_processing.citation_processing import LlmDoc
 from onyx.llm.interfaces import LLM
 from onyx.llm.interfaces import ToolChoiceOptions
+from onyx.server.query_and_chat.streaming_models import CitationInfo
 from onyx.server.query_and_chat.streaming_models import MessageDelta
 from onyx.server.query_and_chat.streaming_models import ReasoningDelta
 from onyx.utils.threadpool_concurrency import run_with_timeout
@@ -38,7 +41,9 @@ def stream_llm_answer(
     max_tokens: int | None = None,
     answer_piece: str | None = None,
     ind: int | None = None,
-) -> tuple[list[str], list[float]]:
+    context_docs: list[LlmDoc] | None = None,
+    replace_citations: bool = False,
+) -> tuple[list[str], list[float], list[CitationInfo]]:
     """Stream the initial answer from the LLM.
 
     Args:
@@ -62,6 +67,14 @@ def stream_llm_answer(
     """
     response: list[str] = []
     dispatch_timings: list[float] = []
+    citation_infos: list[CitationInfo] = []
+
+    if context_docs:
+        citation_processor = CitationProcessorGraph(
+            context_docs=context_docs,
+        )
+    else:
+        replace_citations = False
 
     for message in llm.stream(
         prompt,
@@ -81,6 +94,18 @@ def stream_llm_answer(
         if answer_piece == "message_delta":
             if ind is None:
                 raise ValueError("index is required when answer_piece is message_delta")
+
+            if replace_citations:
+                processed_token = citation_processor.process_token(content)
+
+                if isinstance(processed_token, tuple):
+                    content = processed_token[0]
+                    citation_infos.extend(processed_token[1])
+                elif isinstance(processed_token, str):
+                    content = processed_token
+                else:
+                    continue
+
             write_custom_event(
                 ind,
                 MessageDelta(content=content, type="message_delta"),
@@ -106,7 +131,7 @@ def stream_llm_answer(
         dispatch_timings.append((end_stream_token - start_stream_token).microseconds)
         response.append(content)
 
-    return response, dispatch_timings
+    return response, dispatch_timings, citation_infos
 
 
 def invoke_llm_json(
@@ -180,7 +205,7 @@ def get_answer_from_llm(
 
     if stream:
         # TODO - adjust for new UI. This is currently not working for current UI/Basic Search
-        stream_response, _ = run_with_timeout(
+        stream_response, _, _ = run_with_timeout(
             timeout,
             lambda: stream_llm_answer(
                 llm=llm,

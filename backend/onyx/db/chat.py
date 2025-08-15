@@ -59,6 +59,9 @@ from onyx.llm.override_models import PromptOverride
 from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.models import SubQueryDetail
 from onyx.server.query_and_chat.models import SubQuestionDetail
+from onyx.server.query_and_chat.streaming_models import CitationDelta
+from onyx.server.query_and_chat.streaming_models import CitationInfo
+from onyx.server.query_and_chat.streaming_models import CitationStart
 from onyx.server.query_and_chat.streaming_models import EndStepPacketList
 from onyx.server.query_and_chat.streaming_models import ImageGenerationToolDelta
 from onyx.server.query_and_chat.streaming_models import ImageGenerationToolStart
@@ -102,6 +105,42 @@ def create_message_packets(id: str, message_text: str, step_nr: int) -> list[Pac
                 content=message_text,
             ),
         ),
+    )
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=SectionEnd(
+                type="section_end",
+            ),
+        )
+    )
+
+    return packets
+
+
+def create_citation_packets(
+    citation_info_list: list[CitationInfo], step_nr: int
+) -> list[Packet]:
+    packets: list[Packet] = []
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=CitationStart(
+                type="citation_start",
+            ),
+        )
+    )
+
+    packets.append(
+        Packet(
+            ind=step_nr,
+            obj=CitationDelta(
+                type="citation_delta",
+                citations=citation_info_list,
+            ),
+        )
     )
 
     packets.append(
@@ -1221,6 +1260,22 @@ def translate_db_message_to_packets(
 
     # only stream out packets for assistant messages
     if chat_message.message_type == MessageType.ASSISTANT:
+
+        citations = chat_message.citations
+
+        # Get document IDs from SearchDoc table using citation mapping
+        citation_info_list = []
+        if citations:
+            for citation_num, search_doc_id in citations.items():
+                search_doc = get_db_search_doc_by_id(search_doc_id, db_session)
+                if search_doc:
+                    citation_info_list.append(
+                        CitationInfo(
+                            citation_num=citation_num,
+                            document_id=search_doc.document_id,
+                        )
+                    )
+
         if chat_message.research_type == ResearchType.THOUGHTFUL:
             research_iterations = sorted(
                 chat_message.research_iterations, key=lambda x: x.iteration_nr
@@ -1329,6 +1384,10 @@ def translate_db_message_to_packets(
                 step_nr=step_nr,
             )
         )
+        step_nr += 1
+
+        packet_list.extend(create_citation_packets(citation_info_list, step_nr))
+
         step_nr += 1
 
     return EndStepPacketList(
