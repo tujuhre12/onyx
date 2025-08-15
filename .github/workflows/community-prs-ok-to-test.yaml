@@ -1,0 +1,24 @@
+name: Community PRs – Approved to Run Workflows
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  run-with-approval:
+    if: >
+      github.event.pull_request.head.repo.fork == true &&
+      contains(github.event.pull_request.labels.*.name, 'run-workflows')
+
+    environment: external-prs   # approval gate; no env secrets needed
+
+    uses: ./github/workflows/pr-playwright-tests.yml
+    with:
+      pr_repo: ${{ github.event.pull_request.head.repo.full_name }}
+      pr_sha:  ${{ github.event.pull_request.head.sha }}
+      # If your policy forbids forks on self-hosted runners, uncomment:
+      # runner: '["ubuntu-latest"]'
+    secrets: inherit

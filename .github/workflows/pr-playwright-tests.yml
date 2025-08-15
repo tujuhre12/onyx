@@ -1,10 +1,27 @@
 name: Run Playwright Tests
+
+on:
+  push:            # Internal runs
+  workflow_call:   # Allows a caller to run this against a fork/community PR
+    inputs:
+      pr_repo:
+        type: string
+        required: false
+        default: ${{ github.repository }}
+      pr_sha:
+        type: string
+        required: false
+        default: ${{ github.sha }}
+      # Optional: let the caller switch runners for forks
+      runner:
+        type: string
+        required: false
+        default: '["runs-on","runner=32cpu-linux-x64","disk=large","run-id=${{ github.run_id }}"]'
+
 concurrency:
   group: Run-Playwright-Tests-${{ github.workflow }}-${{ github.head_ref || github.event.workflow_run.head_branch || github.run_id }}
   cancel-in-progress: true
-
-on: push
-
+  
 env:
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
