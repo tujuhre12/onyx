@@ -340,7 +340,7 @@ def clarifier(
             question=original_question, chat_history_string=chat_history_string
         )
 
-        initial_decision_tokens, _ = run_with_timeout(
+        initial_decision_tokens, _, _ = run_with_timeout(
             80,
             lambda: stream_llm_answer(
                 llm=graph_config.tooling.primary_llm,
