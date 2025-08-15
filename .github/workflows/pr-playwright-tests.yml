@@ -32,7 +32,7 @@ env:
 jobs:
   playwright-tests:
     name: Playwright Tests
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner || '["runs-on","runner=32cpu-linux-x64","disk=large","run-id=${{ github.run_id }}"]' }}
 
     # Secrets come from the caller (via `secrets: inherit`)
     env:
