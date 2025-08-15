@@ -155,6 +155,7 @@ def save_iteration(
     chat_message.research_plan = plan_of_record_dict
     chat_message.message = final_answer
     chat_message.citations = citation_dict
+    chat_message.is_agentic = graph_config.behavior.use_agentic_search
 
     parent_chat_message = (
         db_session.query(ChatMessage)

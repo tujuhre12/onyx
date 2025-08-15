@@ -93,7 +93,7 @@ def create_message_packets(id: str, message_text: str, step_nr: int) -> list[Pac
             obj=MessageStart(
                 id=id,
                 type="message_start",
-                content=message_text,
+                content="",
             ),
         )
     )
@@ -1277,7 +1277,7 @@ def translate_db_message_to_packets(
                         )
                     )
 
-        if chat_message.research_type == ResearchType.THOUGHTFUL:
+        if chat_message.research_type in [ResearchType.THOUGHTFUL, ResearchType.DEEP]:
             research_iterations = sorted(
                 chat_message.research_iterations, key=lambda x: x.iteration_nr
             )  # sorted iterations

@@ -251,8 +251,8 @@ def get_chat_session(
             end_step_nr = msg_packet_object.end_step_nr
             msg_packet_list = msg_packet_object.packet_list
 
-            simplified_packet_lists.append(msg_packet_list)
             msg_packet_list.append(Packet(ind=end_step_nr, obj=OverallStop()))
+            simplified_packet_lists.append(msg_packet_list)
 
     return ChatSessionDetailResponse(
         chat_session_id=session_id,
