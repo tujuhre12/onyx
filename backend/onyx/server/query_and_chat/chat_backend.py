@@ -93,7 +93,8 @@ from onyx.server.query_and_chat.models import RenameChatSessionResponse
 from onyx.server.query_and_chat.models import SearchFeedbackRequest
 from onyx.server.query_and_chat.models import UpdateChatSessionTemperatureRequest
 from onyx.server.query_and_chat.models import UpdateChatSessionThreadRequest
-from onyx.server.query_and_chat.streaming_models import OverallStop, Packet
+from onyx.server.query_and_chat.streaming_models import OverallStop
+from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.server.query_and_chat.token_limit import check_token_rate_limits
 from onyx.utils.file_types import UploadMimeTypes
 from onyx.utils.headers import get_custom_tool_additional_request_headers
@@ -251,8 +252,7 @@ def get_chat_session(
             msg_packet_list = msg_packet_object.packet_list
 
             simplified_packet_lists.append(msg_packet_list)
-
-    simplified_packet_lists[-1].append(Packet(ind=end_step_nr, obj=OverallStop()))
+            msg_packet_list.append(Packet(ind=end_step_nr, obj=OverallStop()))
 
     return ChatSessionDetailResponse(
         chat_session_id=session_id,
