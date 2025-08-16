@@ -16,5 +16,6 @@ class DRPath(str, Enum):
     GENERIC_TOOL = "Generic Tool"
     KNOWLEDGE_GRAPH = "Knowledge Graph"
     INTERNET_SEARCH = "Internet Search"
+    IMAGE_GENERATION = "Image Generation"
     CLOSER = "Closer"
     END = "End"

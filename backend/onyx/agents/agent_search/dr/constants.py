@@ -19,6 +19,7 @@ AVERAGE_TOOL_COSTS: dict[DRPath, float] = {
     DRPath.INTERNAL_SEARCH: 1.0,
     DRPath.KNOWLEDGE_GRAPH: 2.0,
     DRPath.INTERNET_SEARCH: 1.5,
+    DRPath.IMAGE_GENERATION: 3.0,
     DRPath.GENERIC_TOOL: 1.5,  # TODO: see todo in OrchestratorTool
     DRPath.CLOSER: 0.0,
 }

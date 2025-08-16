@@ -29,7 +29,12 @@ def decision_router(state: MainState) -> list[Send | Hashable] | DRPath | str:
     # handle tool calls without a query
     if (
         next_path
-        in (DRPath.INTERNAL_SEARCH, DRPath.INTERNET_SEARCH, DRPath.KNOWLEDGE_GRAPH)
+        in (
+            DRPath.INTERNAL_SEARCH,
+            DRPath.INTERNET_SEARCH,
+            DRPath.KNOWLEDGE_GRAPH,
+            DRPath.IMAGE_GENERATION,
+        )
         and len(state.query_list) == 0
     ):
         return DRPath.CLOSER

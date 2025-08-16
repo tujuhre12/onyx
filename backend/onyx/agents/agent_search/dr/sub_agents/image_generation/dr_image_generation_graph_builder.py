@@ -2,16 +2,16 @@ from langgraph.graph import END
 from langgraph.graph import START
 from langgraph.graph import StateGraph
 
-from onyx.agents.agent_search.dr.sub_agents.basic_search.dr_basic_search_1_branch import (
-    basic_search_branch,
+from onyx.agents.agent_search.dr.sub_agents.image_generation.dr_image_generation_1_branch import (
+    image_generation_branch,
 )
-from onyx.agents.agent_search.dr.sub_agents.basic_search.dr_basic_search_2_act import (
-    basic_search,
+from onyx.agents.agent_search.dr.sub_agents.image_generation.dr_image_generation_2_act import (
+    image_generation,
 )
-from onyx.agents.agent_search.dr.sub_agents.basic_search.dr_basic_search_3_reduce import (
+from onyx.agents.agent_search.dr.sub_agents.image_generation.dr_image_generation_3_reduce import (
     is_reducer,
 )
-from onyx.agents.agent_search.dr.sub_agents.basic_search.dr_image_generation_conditional_edges import (
+from onyx.agents.agent_search.dr.sub_agents.image_generation.dr_image_generation_conditional_edges import (
     branching_router,
 )
 from onyx.agents.agent_search.dr.sub_agents.states import SubAgentInput
@@ -22,7 +22,7 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
-def dr_basic_search_graph_builder() -> StateGraph:
+def dr_image_generation_graph_builder() -> StateGraph:
     """
     LangGraph graph builder for Internet Search Sub-Agent
     """
@@ -31,9 +31,9 @@ def dr_basic_search_graph_builder() -> StateGraph:
 
     ### Add nodes ###
 
-    graph.add_node("branch", basic_search_branch)
+    graph.add_node("branch", image_generation_branch)
 
-    graph.add_node("act", basic_search)
+    graph.add_node("act", image_generation)
 
     graph.add_node("reducer", is_reducer)
 
