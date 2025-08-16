@@ -268,7 +268,12 @@ def create_simplified_packets_for_message(
         current_index += 1
 
     # Create MESSAGE_START packet
-    message_start = MessageStart(id=str(message.message_id), content="")
+    message_start = MessageStart(
+        content="",
+        final_documents=(
+            message.context_docs.top_documents if message.context_docs else None
+        ),
+    )
     packets.append(Packet(ind=current_index, obj=message_start))
 
     # Create MESSAGE_DELTA packet with the full message content

@@ -506,9 +506,8 @@ def clarifier(
                 write_custom_event(
                     0,
                     MessageStart(
-                        id=str(graph_config.persistence.chat_session_id),
                         content="",
-                        type="message_start",
+                        final_documents=None,
                     ),
                     writer,
                 )

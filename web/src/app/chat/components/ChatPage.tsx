@@ -103,7 +103,6 @@ import {
 } from "../stores/useChatSessionStore";
 import { AIMessage } from "../message/messageComponents/AIMessage";
 import { FederatedOAuthModal } from "@/components/chat/FederatedOAuthModal";
-import { ErrorCallout } from "@/components/ErrorCallout";
 
 export function ChatPage({
   toggle,
