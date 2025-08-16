@@ -16,6 +16,7 @@ from onyx.agents.agent_search.shared_graph_utils.llm import invoke_llm_json
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
+from onyx.agents.agent_search.utils import create_question_prompt
 from onyx.chat.models import LlmDoc
 from onyx.context.search.models import InferenceSection
 from onyx.prompts.dr_prompts import INTERNAL_SEARCH_PROMPTS
@@ -41,6 +42,9 @@ def internet_search(
     node_start_time = datetime.now()
     iteration_nr = state.iteration_nr
     parallelization_nr = state.parallelization_nr
+
+    assistant_system_prompt = state.assistant_system_prompt
+    assistant_task_prompt = state.assistant_task_prompt
 
     search_query = state.branch_question
     if not search_query:
@@ -110,7 +114,9 @@ def internet_search(
 
         search_answer_json = invoke_llm_json(
             llm=graph_config.tooling.primary_llm,
-            prompt=search_prompt,
+            prompt=create_question_prompt(
+                assistant_system_prompt, search_prompt + (assistant_task_prompt or "")
+            ),
             schema=SearchAnswer,
             timeout_override=40,
             # max_tokens=3000,

@@ -21,23 +21,30 @@ class LoggerUpdate(BaseModel):
 
 
 class OrchestrationUpdate(LoggerUpdate):
-    original_question: str | None = None
-    chat_history_string: str | None = None
     tools_used: Annotated[list[str], add] = []
     query_list: list[str] = []
     iteration_nr: int = 0
     current_step_nr: int = 1
     plan_of_record: OrchestrationPlan | None = None  # None for Thoughtful
     remaining_time_budget: float = 2.0  # set by default to about 2 searches
-    clarification: OrchestrationClarificationInfo | None = None
-    available_tools: dict[str, OrchestratorTool] | None = None
     num_closer_suggestions: int = 0  # how many times the closer was suggested
     gaps: list[str] = (
         []
     )  # gaps that may be identified by the closer before being able to answer the question.
+    iteration_instructions: Annotated[list[IterationInstructions], add] = []
+
+
+class OrchestrationSetup(OrchestrationUpdate):
+    original_question: str | None = None
+    chat_history_string: str | None = None
+    clarification: OrchestrationClarificationInfo | None = None
+    available_tools: dict[str, OrchestratorTool] | None = None
+    num_closer_suggestions: int = 0  # how many times the closer was suggested
+
     active_source_types: list[DocumentSource] | None = None
     active_source_types_descriptions: str | None = None
-    iteration_instructions: Annotated[list[IterationInstructions], add] = []
+    assistant_system_prompt: str | None = None
+    assistant_task_prompt: str | None = None
 
 
 class AnswerUpdate(LoggerUpdate):
@@ -58,7 +65,7 @@ class MainInput(CoreState):
 class MainState(
     # This includes the core state
     MainInput,
-    OrchestrationUpdate,
+    OrchestrationSetup,
     AnswerUpdate,
     FinalUpdate,
 ):

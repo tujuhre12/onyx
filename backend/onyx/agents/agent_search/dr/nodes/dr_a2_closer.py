@@ -26,6 +26,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
+from onyx.agents.agent_search.utils import create_question_prompt
 from onyx.chat.chat_utils import llm_doc_from_inference_section
 from onyx.context.search.models import InferenceSection
 from onyx.db.chat import create_search_doc_from_inference_section
@@ -225,6 +226,9 @@ def closer(
 
     research_type = graph_config.behavior.research_type
 
+    assistant_system_prompt = state.assistant_system_prompt
+    assistant_task_prompt = state.assistant_task_prompt
+
     clarification = state.clarification
     prompt_question = get_prompt_question(base_question, clarification)
 
@@ -264,7 +268,10 @@ def closer(
 
         test_info_complete_json = invoke_llm_json(
             llm=graph_config.tooling.primary_llm,
-            prompt=test_info_complete_prompt,
+            prompt=create_question_prompt(
+                assistant_system_prompt,
+                test_info_complete_prompt + (assistant_task_prompt or ""),
+            ),
             schema=TestInfoCompleteResponse,
             timeout_override=40,
             # max_tokens=1000,
@@ -323,7 +330,10 @@ def closer(
             240,
             lambda: stream_llm_answer(
                 llm=graph_config.tooling.primary_llm,
-                prompt=final_answer_prompt,
+                prompt=create_question_prompt(
+                    assistant_system_prompt,
+                    final_answer_prompt + (assistant_task_prompt or ""),
+                ),
                 event_name="basic_response",
                 writer=writer,
                 agent_answer_level=0,
@@ -347,13 +357,10 @@ def closer(
     current_step_nr += 1
 
     write_custom_event(current_step_nr, CitationStart(), writer)
-
     write_custom_event(current_step_nr, CitationDelta(citations=citation_infos), writer)
-
     write_custom_event(current_step_nr, SectionEnd(), writer)
 
     current_step_nr += 1
-
     write_custom_event(current_step_nr, OverallStop(), writer)
 
     # Log the research agent steps

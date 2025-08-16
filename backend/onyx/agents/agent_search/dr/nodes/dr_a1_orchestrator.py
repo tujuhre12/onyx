@@ -29,6 +29,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 )
 from onyx.agents.agent_search.shared_graph_utils.utils import run_with_timeout
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
+from onyx.agents.agent_search.utils import create_question_prompt
 from onyx.kg.utils.extraction_utils import get_entity_types_str
 from onyx.kg.utils.extraction_utils import get_relationship_types_str
 from onyx.prompts.dr_prompts import SUFFICIENT_INFORMATION_STRING
@@ -56,6 +57,8 @@ def orchestrator(
 
     plan_of_record = state.plan_of_record
     clarification = state.clarification
+    assistant_system_prompt = state.assistant_system_prompt
+    assistant_task_prompt = state.assistant_task_prompt
     iteration_nr = state.iteration_nr + 1
     current_step_nr = state.current_step_nr
 
@@ -131,7 +134,10 @@ def orchestrator(
                 80,
                 lambda: stream_llm_answer(
                     llm=graph_config.tooling.primary_llm,
-                    prompt=reasoning_prompt,
+                    prompt=create_question_prompt(
+                        assistant_system_prompt,
+                        reasoning_prompt + (assistant_task_prompt or ""),
+                    ),
                     event_name="basic_response",
                     writer=writer,
                     agent_answer_level=0,
@@ -167,7 +173,6 @@ def orchestrator(
                             node_start_time=node_start_time,
                         )
                     ],
-                    clarification=clarification,
                     plan_of_record=plan_of_record,
                     remaining_time_budget=remaining_time_budget,
                     iteration_instructions=[
@@ -200,7 +205,10 @@ def orchestrator(
             try:
                 orchestrator_action = invoke_llm_json(
                     llm=graph_config.tooling.primary_llm,
-                    prompt=decision_prompt,
+                    prompt=create_question_prompt(
+                        assistant_system_prompt,
+                        decision_prompt + (assistant_task_prompt or ""),
+                    ),
                     schema=OrchestratorDecisonsNoPlan,
                     timeout_override=35,
                     # max_tokens=2500,
@@ -238,7 +246,10 @@ def orchestrator(
             try:
                 plan_of_record = invoke_llm_json(
                     llm=graph_config.tooling.primary_llm,
-                    prompt=plan_generation_prompt,
+                    prompt=create_question_prompt(
+                        assistant_system_prompt,
+                        plan_generation_prompt + (assistant_task_prompt or ""),
+                    ),
                     schema=OrchestrationPlan,
                     timeout_override=25,
                     # max_tokens=3000,
@@ -298,7 +309,10 @@ def orchestrator(
             try:
                 orchestrator_action = invoke_llm_json(
                     llm=graph_config.tooling.primary_llm,
-                    prompt=decision_prompt,
+                    prompt=create_question_prompt(
+                        assistant_system_prompt,
+                        decision_prompt + (assistant_task_prompt or ""),
+                    ),
                     schema=OrchestratorDecisonsNoPlan,
                     timeout_override=15,
                     # max_tokens=1500,
@@ -371,7 +385,11 @@ def orchestrator(
             80,
             lambda: stream_llm_answer(
                 llm=graph_config.tooling.primary_llm,
-                prompt=orchestration_next_step_purpose_prompt,
+                prompt=create_question_prompt(
+                    assistant_system_prompt,
+                    orchestration_next_step_purpose_prompt
+                    + (assistant_task_prompt or ""),
+                ),
                 event_name="basic_response",
                 writer=writer,
                 agent_answer_level=0,
@@ -410,7 +428,6 @@ def orchestrator(
                 node_start_time=node_start_time,
             )
         ],
-        clarification=clarification,
         plan_of_record=plan_of_record,
         remaining_time_budget=remaining_time_budget,
         iteration_instructions=[

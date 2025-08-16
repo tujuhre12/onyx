@@ -24,6 +24,8 @@ class SubAgentInput(LoggerUpdate):
     active_source_types: list[DocumentSource] | None = None
     tools_used: Annotated[list[str], add] = []
     available_tools: dict[str, OrchestratorTool] | None = None
+    assistant_system_prompt: str | None = None
+    assistant_task_prompt: str | None = None
 
 
 class SubAgentMainState(
