@@ -43,10 +43,7 @@ import { useChatContext } from "@/components/context/ChatContext";
 import { ChatPopup } from "./ChatPopup";
 import FunctionalHeader from "@/components/chat/Header";
 import { useSidebarVisibility } from "@/components/chat/hooks";
-import {
-  PRO_SEARCH_TOGGLED_COOKIE_NAME,
-  SIDEBAR_TOGGLED_COOKIE_NAME,
-} from "@/components/resizable/constants";
+import { SIDEBAR_TOGGLED_COOKIE_NAME } from "@/components/resizable/constants";
 import FixedLogo from "@/components/logo/FixedLogo";
 import ExceptionTraceModal from "@/components/modals/ExceptionTraceModal";
 import { SEARCH_TOOL_ID } from "./tools/constants";
@@ -80,6 +77,7 @@ import { DocumentResults } from "./documentSidebar/DocumentResults";
 import { useChatController } from "../hooks/useChatController";
 import { useAssistantController } from "../hooks/useAssistantController";
 import { useChatSessionController } from "../hooks/useChatSessionController";
+import { useAgentSearchToggle } from "../hooks/useAgentSearchToggle";
 import {
   useChatSessionStore,
   useMaxTokens,
@@ -150,14 +148,6 @@ export function ChatPage({
   const enterpriseSettings = settings?.enterpriseSettings;
 
   const [toggleDocSelection, setToggleDocSelection] = useState(false);
-  const [proSearchEnabled, setProSearchEnabled] = useState(proSearchToggled);
-  const toggleProSearch = () => {
-    Cookies.set(
-      PRO_SEARCH_TOGGLED_COOKIE_NAME,
-      String(!proSearchEnabled).toLocaleLowerCase()
-    );
-    setProSearchEnabled(!proSearchEnabled);
-  };
 
   const isInitialLoad = useRef(true);
   const [userSettingsToggled, setUserSettingsToggled] = useState(false);
@@ -213,6 +203,11 @@ export function ChatPage({
     useAssistantController({
       selectedChatSession,
     });
+
+  const { proSearchEnabled, toggleProSearch } = useAgentSearchToggle({
+    chatSessionId: existingChatSessionId,
+    assistantId: selectedAssistant?.id,
+  });
 
   const [presentingDocument, setPresentingDocument] =
     useState<MinimalOnyxDocument | null>(null);
