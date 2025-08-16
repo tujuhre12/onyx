@@ -39,6 +39,7 @@ export interface RetrievalDetails {
   enable_auto_detect_filters?: boolean | null;
 }
 
+// Document ID -> Citation number
 export type CitationMap = { [key: string]: number };
 
 export enum ChatFileType {

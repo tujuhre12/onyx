@@ -24,6 +24,7 @@ import {
   useChatSessionStore,
   useCurrentMessageHistory,
 } from "../stores/useChatSessionStore";
+import { getCitations } from "../services/packetUtils";
 
 interface UseChatSessionControllerProps {
   existingChatSessionId: string | null;
@@ -289,7 +290,11 @@ export function useChatSessionController({
       const currentSearchParams = new URLSearchParams(searchParams?.toString());
       if (currentSearchParams.has(SEARCH_PARAM_NAMES.SKIP_RELOAD)) {
         currentSearchParams.delete(SEARCH_PARAM_NAMES.SKIP_RELOAD);
-        const newUrl = `${window.location.pathname}${currentSearchParams.toString() ? "?" + currentSearchParams.toString() : ""}`;
+        const newUrl = `${window.location.pathname}${
+          currentSearchParams.toString()
+            ? "?" + currentSearchParams.toString()
+            : ""
+        }`;
         window.history.replaceState({}, "", newUrl);
       }
     }

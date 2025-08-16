@@ -97,7 +97,6 @@ import {
   useCurrentMessageHistory,
   useHasPerformedInitialScroll,
   useDocumentSidebarVisible,
-  useSelectedMessageForDocDisplay,
   useChatSessionSharedStatus,
   useHasSentLocalUserMessage,
 } from "../stores/useChatSessionStore";
@@ -493,7 +492,6 @@ export function ChatPage({
   const hasPerformedInitialScroll = useHasPerformedInitialScroll();
   const currentSessionHasSentLocalUserMessage = useHasSentLocalUserMessage();
   const documentSidebarVisible = useDocumentSidebarVisible();
-  const selectedMessageForDocDisplay = useSelectedMessageForDocDisplay();
   const chatSessionSharedStatus = useChatSessionSharedStatus();
   const updateHasPerformedInitialScroll = useChatSessionStore(
     (state) => state.updateHasPerformedInitialScroll
@@ -746,13 +744,6 @@ export function ChatPage({
     );
   };
 
-  const { aiMessage, humanMessage } = selectedMessageForDocDisplay
-    ? getHumanAndAIMessageFromMessageNumber(
-        messageHistory,
-        selectedMessageForDocDisplay
-      )
-    : { aiMessage: null, humanMessage: null };
-
   return (
     <>
       <HealthCheckBanner />
@@ -817,12 +808,10 @@ export function ChatPage({
             title="Sources"
           >
             <DocumentResults
-              humanMessage={humanMessage ?? null}
               setPresentingDocument={setPresentingDocument}
               modal={true}
               ref={innerSidebarElementRef}
               closeSidebar={() => updateCurrentDocumentSidebarVisible(false)}
-              selectedMessage={aiMessage ?? null}
               selectedDocuments={selectedDocuments}
               toggleDocumentSelection={toggleDocumentSelection}
               clearSelectedDocuments={clearSelectedDocuments}
@@ -973,7 +962,6 @@ export function ChatPage({
             `}
           >
             <DocumentResults
-              humanMessage={humanMessage ?? null}
               setPresentingDocument={setPresentingDocument}
               modal={false}
               ref={innerSidebarElementRef}
@@ -983,7 +971,6 @@ export function ChatPage({
                   300
                 )
               }
-              selectedMessage={aiMessage ?? null}
               selectedDocuments={selectedDocuments}
               toggleDocumentSelection={toggleDocumentSelection}
               clearSelectedDocuments={clearSelectedDocuments}

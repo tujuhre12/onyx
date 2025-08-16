@@ -27,12 +27,6 @@ interface ChatSessionData {
   documentSidebarVisible: boolean;
   hasSentLocalUserMessage: boolean;
 
-  // Citations for currently selected message
-  selectedMessageCitations: Array<{
-    citation_num: number;
-    document_id: string;
-  }> | null;
-
   // Session-specific state (previously global)
   isFetchingChatMessages: boolean;
   agenticGenerating: boolean;
@@ -94,19 +88,6 @@ interface ChatSessionStore {
   updateCurrentDocumentSidebarVisible: (
     documentSidebarVisible: boolean
   ) => void;
-  updateSelectedMessageCitations: (
-    sessionId: string,
-    citations: Array<{
-      citation_num: number;
-      document_id: string;
-    }> | null
-  ) => void;
-  updateCurrentSelectedMessageCitations: (
-    citations: Array<{
-      citation_num: number;
-      document_id: string;
-    }> | null
-  ) => void;
   updateHasSentLocalUserMessage: (
     sessionId: string,
     hasSentLocalUserMessage: boolean
@@ -166,7 +147,6 @@ const createInitialSessionData = (
   hasPerformedInitialScroll: true,
   documentSidebarVisible: false,
   hasSentLocalUserMessage: false,
-  selectedMessageCitations: null,
 
   // Session-specific state defaults
   isFetchingChatMessages: false,
@@ -327,28 +307,6 @@ export const useChatSessionStore = create<ChatSessionStore>()((set, get) => ({
         currentSessionId,
         documentSidebarVisible
       );
-    }
-  },
-
-  updateSelectedMessageCitations: (
-    sessionId: string,
-    citations: Array<{
-      citation_num: number;
-      document_id: string;
-    }> | null
-  ) => {
-    get().updateSessionData(sessionId, { selectedMessageCitations: citations });
-  },
-
-  updateCurrentSelectedMessageCitations: (
-    citations: Array<{
-      citation_num: number;
-      document_id: string;
-    }> | null
-  ) => {
-    const { currentSessionId } = get();
-    if (currentSessionId) {
-      get().updateSelectedMessageCitations(currentSessionId, citations);
     }
   },
 
@@ -690,15 +648,6 @@ export const useSelectedMessageForDocDisplay = () =>
       ? sessions.get(currentSessionId)
       : null;
     return currentSession?.selectedMessageForDocDisplay || null;
-  });
-
-export const useSelectedMessageCitations = () =>
-  useChatSessionStore((state) => {
-    const { currentSessionId, sessions } = state;
-    const currentSession = currentSessionId
-      ? sessions.get(currentSessionId)
-      : null;
-    return currentSession?.selectedMessageCitations || null;
   });
 
 export const useChatSessionSharedStatus = () =>

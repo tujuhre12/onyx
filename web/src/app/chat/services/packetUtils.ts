@@ -1,8 +1,11 @@
+import { CitationMap } from "../interfaces";
 import {
+  CitationDelta,
   MessageDelta,
   MessageStart,
   PacketType,
-} from "../../services/streamingModels";
+  StreamingCitation,
+} from "./streamingModels";
 import { Packet } from "@/app/chat/services/streamingModels";
 
 export function isToolPacket(packet: Packet) {
@@ -81,4 +84,17 @@ export function getTextContent(packets: Packet[]) {
       return "";
     })
     .join("");
+}
+
+export function getCitations(packets: Packet[]): StreamingCitation[] {
+  const citations: StreamingCitation[] = [];
+
+  packets.forEach((packet) => {
+    if (packet.obj.type === PacketType.CITATION_DELTA) {
+      const citationDelta = packet.obj as CitationDelta;
+      citations.push(...(citationDelta.citations || []));
+    }
+  });
+
+  return citations;
 }
