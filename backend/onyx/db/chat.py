@@ -1339,6 +1339,7 @@ def translate_db_message_to_packets(
                     continue
 
                 else:
+                    # TODO: replace with isinstance, resolving circular imports
                     tool_id = tool_call_ids[0]
                     tool = get_tool_by_id(tool_id, db_session)
                     tool_name = tool.name
@@ -1352,14 +1353,14 @@ def translate_db_message_to_packets(
                         )
                         step_nr += 1
 
-                    elif tool_name == "run_internet_search":
+                    elif tool_name == "InternetSearchTool":
                         cited_docs = cast(list[SavedSearchDoc], cited_docs)
                         packet_list.extend(
                             create_search_packets(tasks, cited_docs, True, step_nr)
                         )
                         step_nr += 1
 
-                    elif tool_name == "run_image_generation":
+                    elif tool_name == "ImageGenerationTool":
 
                         if len(tasks) > 1:
                             packet_list.extend(
