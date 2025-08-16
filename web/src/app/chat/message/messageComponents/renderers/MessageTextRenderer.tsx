@@ -17,7 +17,7 @@ import {
 import { extractCodeText, preprocessLaTeX } from "../../codeUtils";
 import { CodeBlock } from "../../CodeBlock";
 import { transformLinkUri } from "@/lib/utils";
-import { isFinalAnswerComplete } from "../packetUtils";
+import { isFinalAnswerComplete } from "../../../services/packetUtils";
 
 // Control the rate of packet streaming (packets per second)
 const PACKET_DELAY_MS = 10;

@@ -32,7 +32,7 @@ import {
   isFinalAnswerComing,
   isStreamingComplete,
   isToolPacket,
-} from "./packetUtils";
+} from "../../services/packetUtils";
 import { useMessageSwitching } from "./hooks/useMessageSwitching";
 import MultiToolRenderer, { RendererComponent } from "./MultiToolRenderer";
 

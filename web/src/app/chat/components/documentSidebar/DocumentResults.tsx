@@ -1,17 +1,25 @@
 import { MinimalOnyxDocument, OnyxDocument } from "@/lib/search/interfaces";
 import { ChatDocumentDisplay } from "./ChatDocumentDisplay";
 import { removeDuplicateDocs } from "@/lib/documentUtils";
-import { ChatFileType, Message } from "@/app/chat/interfaces";
-import { Dispatch, ForwardedRef, forwardRef, SetStateAction } from "react";
+import { ChatFileType } from "@/app/chat/interfaces";
+import {
+  Dispatch,
+  ForwardedRef,
+  forwardRef,
+  SetStateAction,
+  useMemo,
+} from "react";
 import { XIcon } from "@/components/icons/icons";
 import { FileSourceCardInResults } from "@/app/chat/message/SourcesDisplay";
 import { useDocumentsContext } from "@/app/chat/my-documents/DocumentsContext";
-import { CitationMap } from "@/app/chat/interfaces";
+import { getCitations } from "../../services/packetUtils";
+import {
+  useCurrentMessageTree,
+  useSelectedMessageForDocDisplay,
+} from "../../stores/useChatSessionStore";
 
 interface DocumentResultsProps {
-  humanMessage: Message | null;
   closeSidebar: () => void;
-  selectedMessage: Message | null;
   selectedDocuments: OnyxDocument[] | null;
   toggleDocumentSelection: (document: OnyxDocument) => void;
   clearSelectedDocuments: () => void;
@@ -27,10 +35,8 @@ interface DocumentResultsProps {
 export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
   (
     {
-      humanMessage,
       closeSidebar,
       modal,
-      selectedMessage,
       selectedDocuments,
       toggleDocumentSelection,
       clearSelectedDocuments,
@@ -45,6 +51,37 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
   ) => {
     const { files: allUserFiles } = useDocumentsContext();
 
+    const idOfMessageToDisplay = useSelectedMessageForDocDisplay();
+    const currentMessageTree = useCurrentMessageTree();
+
+    const selectedMessage = idOfMessageToDisplay
+      ? currentMessageTree?.get(idOfMessageToDisplay)
+      : null;
+
+    // Separate cited documents from other documents
+    const citedDocumentIds = useMemo(() => {
+      if (!selectedMessage) {
+        return new Set<string>();
+      }
+
+      const citedDocumentIds = new Set<string>();
+      const citations = getCitations(selectedMessage.packets);
+      citations.forEach((citation) => {
+        citedDocumentIds.add(citation.document_id);
+      });
+      return citedDocumentIds;
+    }, [idOfMessageToDisplay, selectedMessage?.packets.length]);
+
+    // if these are missing for some reason, then nothing we can do. Just
+    // don't render.
+    if (!selectedMessage || !currentMessageTree) {
+      return null;
+    }
+
+    const humanMessage = selectedMessage.parentMessageId
+      ? currentMessageTree.get(selectedMessage.parentMessageId)
+      : null;
+
     const humanFileDescriptors = humanMessage?.files.filter(
       (file) => file.type == ChatFileType.USER_KNOWLEDGE
     );
@@ -54,19 +91,10 @@ export const DocumentResults = forwardRef<HTMLDivElement, DocumentResultsProps>(
     const selectedDocumentIds =
       selectedDocuments?.map((document) => document.document_id) || [];
 
-    const currentDocuments = selectedMessage?.documents || null;
+    const currentDocuments = selectedMessage.documents || null;
     const dedupedDocuments = removeDuplicateDocs(currentDocuments || []);
 
     const tokenLimitReached = selectedDocumentTokens > maxTokens - 75;
-
-    // Separate cited documents from other documents
-    const citedDocumentIds = new Set<string>();
-    const citations = selectedMessage?.citations || null;
-    if (citations) {
-      Object.keys(citations).forEach((docId) => {
-        citedDocumentIds.add(docId);
-      });
-    }
 
     const citedDocuments = dedupedDocuments.filter(
       (doc) =>

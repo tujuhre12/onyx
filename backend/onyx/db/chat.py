@@ -84,16 +84,17 @@ logger = setup_logger()
 _CANNOT_SHOW_STEP_RESULTS_STR = "[Cannot display step results]"
 
 
-def create_message_packets(id: str, message_text: str, step_nr: int) -> list[Packet]:
+def create_message_packets(
+    message_text: str, final_documents: list[SavedSearchDoc] | None, step_nr: int
+) -> list[Packet]:
     packets: list[Packet] = []
 
     packets.append(
         Packet(
             ind=step_nr,
             obj=MessageStart(
-                id=id,
-                type="message_start",
                 content="",
+                final_documents=final_documents,
             ),
         )
     )
@@ -1380,8 +1381,11 @@ def translate_db_message_to_packets(
 
         packet_list.extend(
             create_message_packets(
-                id=str(chat_message.id),
                 message_text=chat_message.message,
+                final_documents=[
+                    translate_db_search_doc_to_server_search_doc(doc)
+                    for doc in chat_message.search_docs
+                ],
                 step_nr=step_nr,
             )
         )

@@ -8,7 +8,7 @@ import {
 import { Packet } from "@/app/chat/services/streamingModels";
 import { FullChatState, RendererResult } from "./interfaces";
 import { renderMessageComponent } from "./renderMessageComponent";
-import { isToolPacket } from "./packetUtils";
+import { isToolPacket } from "../../services/packetUtils";
 import { useToolDisplayTiming } from "./hooks/useToolDisplayTiming";
 import { STANDARD_TEXT_COLOR } from "./constants";
 
