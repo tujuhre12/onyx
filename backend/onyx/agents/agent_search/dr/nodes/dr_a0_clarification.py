@@ -50,6 +50,9 @@ from onyx.server.query_and_chat.streaming_models import MessageStart
 from onyx.server.query_and_chat.streaming_models import OverallStop
 from onyx.server.query_and_chat.streaming_models import SectionEnd
 from onyx.tools.tool_implementations.custom.custom_tool import CustomTool
+from onyx.tools.tool_implementations.images.image_generation_tool import (
+    ImageGenerationTool,
+)
 from onyx.tools.tool_implementations.internet_search.internet_search_tool import (
     InternetSearchTool,
 )
@@ -106,6 +109,9 @@ def _get_available_tools(
                 continue
             tool_info.llm_path = DRPath.KNOWLEDGE_GRAPH.value
             tool_info.path = DRPath.KNOWLEDGE_GRAPH
+        elif isinstance(tool, ImageGenerationTool):
+            tool_info.llm_path = DRPath.IMAGE_GENERATION.value
+            tool_info.path = DRPath.IMAGE_GENERATION
         else:
             logger.warning(f"Tool {tool.name} ({type(tool)}) is not supported")
             continue

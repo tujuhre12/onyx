@@ -15,6 +15,9 @@ from onyx.agents.agent_search.dr.sub_agents.basic_search.dr_basic_search_graph_b
 from onyx.agents.agent_search.dr.sub_agents.custom_tool.dr_custom_tool_graph_builder import (
     dr_custom_tool_graph_builder,
 )
+from onyx.agents.agent_search.dr.sub_agents.image_generation.dr_image_generation_graph_builder import (
+    dr_image_generation_graph_builder,
+)
 from onyx.agents.agent_search.dr.sub_agents.internet_search.dr_is_graph_builder import (
     dr_is_graph_builder,
 )
@@ -50,6 +53,9 @@ def dr_graph_builder() -> StateGraph:
     internet_search_graph = dr_is_graph_builder().compile()
     graph.add_node(DRPath.INTERNET_SEARCH, internet_search_graph)
 
+    image_generation_graph = dr_image_generation_graph_builder().compile()
+    graph.add_node(DRPath.IMAGE_GENERATION, image_generation_graph)
+
     custom_tool_graph = dr_custom_tool_graph_builder().compile()
     graph.add_node(DRPath.GENERIC_TOOL, custom_tool_graph)
 
@@ -66,6 +72,7 @@ def dr_graph_builder() -> StateGraph:
     graph.add_edge(start_key=DRPath.INTERNAL_SEARCH, end_key=DRPath.ORCHESTRATOR)
     graph.add_edge(start_key=DRPath.KNOWLEDGE_GRAPH, end_key=DRPath.ORCHESTRATOR)
     graph.add_edge(start_key=DRPath.INTERNET_SEARCH, end_key=DRPath.ORCHESTRATOR)
+    graph.add_edge(start_key=DRPath.IMAGE_GENERATION, end_key=DRPath.ORCHESTRATOR)
     graph.add_edge(start_key=DRPath.GENERIC_TOOL, end_key=DRPath.ORCHESTRATOR)
 
     graph.add_conditional_edges(DRPath.CLOSER, completeness_router)
