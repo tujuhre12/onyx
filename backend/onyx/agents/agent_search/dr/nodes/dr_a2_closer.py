@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import cast
 
@@ -69,7 +70,7 @@ def extract_citation_numbers(text: str) -> list[int]:
     return list(set(cited_numbers))  # Return unique numbers
 
 
-def replace_citation_with_link(match, docs: list[DbSearchDoc]):
+def replace_citation_with_link(match: re.Match[str], docs: list[DbSearchDoc]) -> str:
     citation_content = match.group(1)  # e.g., "3" or "3, 5, 7"
     numbers = [int(num.strip()) for num in citation_content.split(",")]
 
@@ -295,16 +296,15 @@ def closer(
                 num_closer_suggestions=num_closer_suggestions + 1,
             )
 
-    # retrieved_search_docs = convert_inference_sections_to_search_docs(
-    #     all_cited_documents
-    # )
+    retrieved_search_docs = convert_inference_sections_to_search_docs(
+        all_cited_documents
+    )
 
     write_custom_event(
         current_step_nr,
         MessageStart(
-            id=str(graph_config.persistence.chat_session_id),
             content="",
-            type="message_start",
+            final_documents=retrieved_search_docs,
         ),
         writer,
     )
