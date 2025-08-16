@@ -21,7 +21,7 @@ from onyx.agents.agent_search.dr.models import DRPromptPurpose
 from onyx.agents.agent_search.dr.models import OrchestrationClarificationInfo
 from onyx.agents.agent_search.dr.models import OrchestratorTool
 from onyx.agents.agent_search.dr.states import MainState
-from onyx.agents.agent_search.dr.states import OrchestrationUpdate
+from onyx.agents.agent_search.dr.states import OrchestrationSetup
 from onyx.agents.agent_search.dr.utils import get_chat_history_string
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.llm import invoke_llm_json
@@ -213,7 +213,7 @@ that is relevant to the question, or for any action to be taken.",
 
 def clarifier(
     state: MainState, config: RunnableConfig, writer: StreamWriter = lambda _: None
-) -> OrchestrationUpdate:
+) -> OrchestrationSetup:
     """
     Perform a quick search on the question as is and see whether a set of clarification
     questions is needed. For now this is based on the models
@@ -254,59 +254,22 @@ def clarifier(
         DocumentSourceDescription[source_type] for source_type in active_source_types
     ]
 
-    # Quick evaluation whether the query should be answered or rejected
-    # query_evaluation_prompt = QUERY_EVALUATION_PROMPT.replace(
-    #     "---query---", original_question
-    # )
+    if graph_config.inputs.persona and len(graph_config.inputs.persona.prompts) > 0:
+        assistant_system_prompt = (
+            graph_config.inputs.persona.prompts[0].system_prompt
+            or DEFAULT_DR_SYSTEM_PROMPT
+        ) + "\n\n"
+        if graph_config.inputs.persona.prompts[0].task_prompt:
+            assistant_task_prompt = (
+                "\n\nHere are more specifications from the user:\n\n"
+                + graph_config.inputs.persona.prompts[0].task_prompt
+            )
+        else:
+            assistant_task_prompt = ""
 
-    #     try:
-    #         evaluation_response = invoke_llm_json(
-    #             llm=graph_config.tooling.primary_llm,
-    #             prompt=query_evaluation_prompt,
-    #             schema=QueryEvaluationResponse,
-    #             timeout_override=10,
-    #             max_tokens=100,
-    #         )
-    #     except Exception as e:
-    #         logger.error(f"Error in clarification generation: {e}")
-    #         raise e
-
-    #     if not evaluation_response.query_permitted:
-
-    #         rejection_prompt = QUERY_REJECTION_PROMPT.replace(
-    #             "---query---", original_question
-    #         ).replace("---reasoning---", evaluation_response.reasoning)
-
-    #         _ = run_with_timeout(
-    #             80,
-    #             lambda: stream_llm_answer(
-    #                 llm=graph_config.tooling.primary_llm,
-    #                 prompt=rejection_prompt,
-    #                 event_name="basic_response",
-    #                 writer=writer,
-    #                 agent_answer_level=0,
-    #                 agent_answer_question_num=0,
-    #                 agent_answer_type="agent_level_answer",
-    #                 timeout_override=60,
-    #                 max_tokens=None,
-    #             ),
-    #         )
-
-    #         logger.info(
-    #             f"""Rejected query: {original_question}, \
-    # Rejection reason: {evaluation_response.reasoning}"""
-    #         )
-
-    #         return OrchestrationUpdate(
-    #             original_question=original_question,
-    #             chat_history_string="",
-    #             tools_used=[DRPath.END.value],
-    #             query_list=[],
-    #         )
-
-    # get clarification (unless time budget is FAST)
-
-    # Verification of whether the LLM can answer the question without any external tool or knowledge
+    else:
+        assistant_system_prompt = DEFAULT_DR_SYSTEM_PROMPT + "\n\n"
+        assistant_task_prompt = ""
 
     chat_history_string = (
         get_chat_history_string(
@@ -316,11 +279,6 @@ def clarifier(
         or "(No chat history yet available)"
     )
 
-    if graph_config.inputs.persona and len(graph_config.inputs.persona.prompts) > 0:
-        assistant_prompt = graph_config.inputs.persona.prompts[0].system_prompt
-    else:
-        assistant_prompt = DEFAULT_DR_SYSTEM_PROMPT
-
     if len(available_tools) == 0 or (
         len(non_internal_search_tools) == 0 and len(active_source_types) == 0
     ):
@@ -329,7 +287,9 @@ def clarifier(
         )
 
         stream = graph_config.tooling.primary_llm.stream(
-            prompt=create_question_prompt(assistant_prompt, answer_prompt),
+            prompt=create_question_prompt(
+                assistant_system_prompt, answer_prompt + assistant_task_prompt
+            ),
             tools=None,
             tool_choice=(None),
             structured_response_format=None,
@@ -351,7 +311,8 @@ def clarifier(
         if not chat_message:
             raise ValueError("Chat message with id not found")  # should never happen
 
-        chat_message.message = full_response.full_answer
+        if isinstance(full_response.full_answer, str):
+            chat_message.message = full_response.full_answer
 
         parent_chat_message = (
             db_session.query(ChatMessage)
@@ -362,11 +323,13 @@ def clarifier(
             parent_chat_message.latest_child_message = chat_message.id
 
         db_session.commit()
-        return OrchestrationUpdate(
+        return OrchestrationSetup(
             original_question=original_question,
             chat_history_string="",
             tools_used=[DRPath.END.value],
             query_list=[],
+            assistant_system_prompt=assistant_system_prompt,
+            assistant_task_prompt=assistant_task_prompt,
         )
 
     elif not use_tool_calling_llm:
@@ -379,7 +342,8 @@ def clarifier(
             lambda: stream_llm_answer(
                 llm=graph_config.tooling.primary_llm,
                 prompt=create_question_prompt(
-                    EVAL_SYSTEM_PROMPT_WO_TOOL_CALLING, decision_prompt
+                    assistant_system_prompt + EVAL_SYSTEM_PROMPT_WO_TOOL_CALLING,
+                    decision_prompt + assistant_task_prompt,
                 ),
                 event_name="basic_response",
                 writer=writer,
@@ -394,11 +358,13 @@ def clarifier(
         initial_decision_str = cast(str, merge_content(*initial_decision_tokens))
 
         if len(initial_decision_str.replace(" ", "")) > 0:
-            return OrchestrationUpdate(
+            return OrchestrationSetup(
                 original_question=original_question,
                 chat_history_string="",
                 tools_used=[DRPath.END.value],
                 query_list=[],
+                assistant_system_prompt=assistant_system_prompt,
+                assistant_task_prompt=assistant_task_prompt,
             )
 
     else:
@@ -409,7 +375,8 @@ def clarifier(
 
         stream = graph_config.tooling.primary_llm.stream(
             prompt=create_question_prompt(
-                EVAL_SYSTEM_PROMPT_W_TOOL_CALLING, decision_prompt
+                assistant_system_prompt + EVAL_SYSTEM_PROMPT_W_TOOL_CALLING,
+                decision_prompt + assistant_task_prompt,
             ),
             tools=([_ARTIFICIAL_ALL_ENCOMPASSING_TOOL]),
             tool_choice=(None),
@@ -437,7 +404,8 @@ def clarifier(
                     "Chat message with id not found"
                 )  # should never happen
 
-            chat_message.message = full_response.full_answer
+            if isinstance(full_response.full_answer, str):
+                chat_message.message = full_response.full_answer
 
             parent_chat_message = (
                 db_session.query(ChatMessage)
@@ -448,11 +416,13 @@ def clarifier(
                 parent_chat_message.latest_child_message = chat_message.id
 
             db_session.commit()
-            return OrchestrationUpdate(
+            return OrchestrationSetup(
                 original_question=original_question,
                 chat_history_string="",
                 tools_used=[DRPath.END.value],
                 query_list=[],
+                assistant_system_prompt=assistant_system_prompt,
+                assistant_task_prompt=assistant_task_prompt,
             )
 
     # Continue, as external knowledge is required.
@@ -486,7 +456,9 @@ def clarifier(
             try:
                 clarification_response = invoke_llm_json(
                     llm=graph_config.tooling.primary_llm,
-                    prompt=clarification_prompt,
+                    prompt=create_question_prompt(
+                        assistant_system_prompt, clarification_prompt
+                    ),
                     schema=ClarificationGenerationResponse,
                     timeout_override=25,
                     # max_tokens=1500,
@@ -576,7 +548,7 @@ def clarifier(
     else:
         next_tool = DRPath.ORCHESTRATOR.value
 
-    return OrchestrationUpdate(
+    return OrchestrationSetup(
         original_question=original_question,
         chat_history_string=chat_history_string,
         tools_used=[next_tool],
@@ -593,4 +565,6 @@ def clarifier(
         available_tools=available_tools,
         active_source_types=active_source_types,
         active_source_types_descriptions="\n".join(active_source_types_descriptions),
+        assistant_system_prompt=assistant_system_prompt,
+        assistant_task_prompt=assistant_task_prompt,
     )

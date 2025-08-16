@@ -180,7 +180,7 @@ Here are the relationship types that are available in the knowledge graph:
 
 ORCHESTRATOR_DEEP_INITIAL_PLAN_PROMPT = PromptTemplate(
     f"""
-You are a great Assistant that is an expert at analyzing a question and breaking it up into a \
+You are great  at analyzing a question and breaking it up into a \
 series of high-level, answerable sub-questions.
 
 Given the user query and the list of available tools, your task is to devise a high-level plan \
@@ -586,7 +586,7 @@ document sources inline in format [[1]][[7]], etc.. So this should have format l
 INTERNAL_SEARCH_PROMPTS: dict[ResearchType, PromptTemplate] = {}
 INTERNAL_SEARCH_PROMPTS[ResearchType.THOUGHTFUL] = PromptTemplate(
     f"""\
-You are a helpful assistant that can use the provided documents, the specific search query, and the \
+You are a hgreat at using the provided documents, the specific search query, and the \
 user query that needs to be ultimately answered, to provide a succinct, relevant, and grounded \
 answer to the specific search query. Although your response should pertain mainly to the specific search \
 query, also keep in mind the base query to provide valuable insights for answering the base query too.
@@ -641,7 +641,7 @@ relevant to the question sent to you.
 
 INTERNAL_SEARCH_PROMPTS[ResearchType.DEEP] = PromptTemplate(
     f"""\
-You are a helpful assistant that can use the provided documents, the specific search query, and the \
+You are great at using the provided documents, the specific search query, and the \
 user query that needs to be ultimately answered, to provide a succinct, relevant, and grounded \
 analysis to the specific search query. Although your response should pertain mainly to the specific search \
 query, also keep in mind the base query to provide valuable insights for answering the base query too.
@@ -697,7 +697,7 @@ relevant to the question sent to you.
 
 CUSTOM_TOOL_USE_PROMPT = PromptTemplate(
     f"""\
-You are a helpful assistant that can format the response from a tool into a short reasoning and answer \
+You are great at formatting the response from a tool into a short reasoning and answer \
 in natural language to answer the specific task query.
 
 Here is the specific task query:
@@ -736,7 +736,7 @@ ANSWER:
 
 TEST_INFO_COMPLETE_PROMPT = PromptTemplate(
     f"""\
-You are a helpful assistant that is an expert at trying to determine whether \
+You are an expert at trying to determine whether \
 a high-level plan created to gather information in pursuit of a higher-level \
 problem has been sufficiently completed AND the higher-level problem \
 can be addressed. This determination is done by looking at the information gathered so far.
@@ -787,7 +787,7 @@ liste empty as in [].>"
 
 FINAL_ANSWER_PROMPT_W_SUB_ANSWERS = PromptTemplate(
     f"""
-You are a helpful assistant that can answer a user question based on sub-answers generated earlier \
+You are great at answering a user question based on sub-answers generated earlier \
 and a list of documents that were used to generate the sub-answers. The list of documents is \
 for further reference to get more details.
 
@@ -826,6 +826,10 @@ if no documents are provided for a sub-answer, in the actual sub-answer.
 - Provide a thoughtful answer that is concise and to the point, but that is detailed.
 - Please cite your sources inline in format [[2]][[4]], etc! The numbers of the documents \
 are provided above.
+- If you are not that certain that the information does relate to the question topic, \
+point out the ambiguity in your answer. But DO NOT say something like 'I was not able to find \
+information on <X> specifically, but here is what I found about <X> generally....'. Rather say, \
+'Here is what I found about <X> and I hope this is the <X> you were looking for...', or similar.
 
 ANSWER:
 """
@@ -833,7 +837,7 @@ ANSWER:
 
 FINAL_ANSWER_PROMPT_WITHOUT_SUB_ANSWERS = PromptTemplate(
     f"""
-You are a helpful assistant that can answer a user question based \
+You are great at answering a user question based \
 a list of documents that were retrieved in response to subh-questions, and possibly also \
 corresponding sub-answers  (note, a given subquestion may or may not have a corresponding sub-answer).
 
@@ -872,6 +876,10 @@ if no documents are provided for a sub-answer, in the actual sub-answer.
 - Provide a thoughtful answer that is concise and to the point, but that is detailed.
 - Please cite your sources inline in format [[2]][[4]], etc! The numbers of the documents \
 are provided above.
+- If you are not that certain that the information does relate to the question topic, \
+point out the ambiguity in your answer. But DO NOT say something like 'I was not able to find \
+information on <X> specifically, but here is what I found about <X> generally....'. Rather say, \
+'Here is what I found about <X> and I hope this is the <X> you were looking for...', or similar.
 
 ANSWER:
 """
@@ -879,7 +887,7 @@ ANSWER:
 
 FINAL_ANSWER_PROMPT_W_SUB_ANSWERS = PromptTemplate(
     f"""
-You are a helpful assistant that can answer a user question based on sub-answers generated earlier \
+You are great at answering a user question based on sub-answers generated earlier \
 and a list of documents that were used to generate the sub-answers. The list of documents is \
 for further reference to get more details.
 
@@ -926,7 +934,7 @@ ANSWER:
 
 GET_CLARIFICATION_PROMPT = PromptTemplate(
     f"""\
-You are a helpful assistant that is great at asking clarifying questions in case \
+You are great at asking clarifying questions in case \
 a base question is not as clear enough. Your task is to ask necessary clarification \
 questions to the user, before the question is sent to the deep research agent.
 
@@ -1036,7 +1044,7 @@ ANSWER:
 
 BASE_SEARCH_PROCESSING_PROMPT = PromptTemplate(
     f"""\
-You are a helpful assistant that is great at processing a search request in order to \
+You are  great at processing a search request in order to \
 understand which document types should be included in the search if specified in the query, \
 whether there is a time filter implied in the query, and to rewrite the \
 query into a query that is much better suited for a search query against the predicted \
@@ -1097,7 +1105,7 @@ ANSWER:
 )
 
 EVAL_SYSTEM_PROMPT_WO_TOOL_CALLING = """
-You are a helpful Assistant that is great at 1) determining whether a question can be answered \
+You are great at 1) determining whether a question can be answered \
 by you directly using your knowledge alone and the chat history (if any), and 2) actually \
 answering the question/request, \
 if the request DOES NOT require or would strongly benefit from ANY external tool \
@@ -1105,10 +1113,13 @@ if the request DOES NOT require or would strongly benefit from ANY external tool
 """
 
 DEFAULT_DR_SYSTEM_PROMPT = """
-You are a helpful Assistant that is great at answering questions. You may or may not \
-have access to tools, but you always try to do your best to answer the questions or \
-address the task given to you. But only provide information you are sure about and \
-communicate any uncertainties.
+You are a helpful assistant that is great at answering questions and completing tasks. \
+You may or may not \
+have access to external tools, but you always try to do your best to answer the questions or \
+address the task given to you in a thorough and thoughtful manner. \
+But only provide information you are sure about and communicate any uncertainties.
+Also, make sure that you are not pulling information from sources out of context. If in \
+doubt, do not use the information or at minimum communicate that you are not sure about the information.
 """
 
 GENERAL_DR_ANSWER_PROMPT = PromptTemplate(
@@ -1156,7 +1167,7 @@ ANSWER:
 )
 
 EVAL_SYSTEM_PROMPT_W_TOOL_CALLING = """
-You are a helpful Assistant that is great at answering questions. You may also \
+You may also \
 use tools to get additional information.
 """
 

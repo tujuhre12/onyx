@@ -10,11 +10,11 @@ class ResearchType(str, Enum):
 
 
 class DRPath(str, Enum):
-    CLARIFIER = "CLARIFIER"
-    ORCHESTRATOR = "ORCHESTRATOR"
-    INTERNAL_SEARCH = "INTERNAL_SEARCH"
-    GENERIC_TOOL = "GENERIC_TOOL"
-    KNOWLEDGE_GRAPH = "KNOWLEDGE_GRAPH"
-    INTERNET_SEARCH = "INTERNET_SEARCH"
-    CLOSER = "CLOSER"
-    END = "END"
+    CLARIFIER = "Clarifier"
+    ORCHESTRATOR = "Orchestrator"
+    INTERNAL_SEARCH = "Internal Search"
+    GENERIC_TOOL = "Generic Tool"
+    KNOWLEDGE_GRAPH = "Knowledge Graph"
+    INTERNET_SEARCH = "Internet Search"
+    CLOSER = "Closer"
+    END = "End"
