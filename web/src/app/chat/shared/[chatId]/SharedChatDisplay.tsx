@@ -58,15 +58,9 @@ export function SharedChatDisplay({
 }) {
   const settings = useContext(SettingsContext);
   const [documentSidebarVisible, setDocumentSidebarVisible] = useState(false);
-  const [selectedMessageForDocDisplay, setSelectedMessageForDocDisplay] =
-    useState<number | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [presentingDocument, setPresentingDocument] =
     useState<MinimalOnyxDocument | null>(null);
-
-  const toggleDocumentSidebar = () => {
-    setDocumentSidebarVisible(!documentSidebarVisible);
-  };
 
   useEffect(() => {
     Prism.highlightAll();
@@ -116,16 +110,7 @@ export function SharedChatDisplay({
         <div className="md:hidden">
           <Modal noPadding noScroll>
             <DocumentResults
-              humanMessage={firstMessage}
               isSharedChat={true}
-              selectedMessage={
-                selectedMessageForDocDisplay
-                  ? messages.find(
-                      (message) =>
-                        message.messageId === selectedMessageForDocDisplay
-                    ) || null
-                  : null
-              }
               toggleDocumentSelection={() => {
                 setDocumentSidebarVisible(true);
               }}
@@ -172,17 +157,8 @@ export function SharedChatDisplay({
             `}
               >
                 <DocumentResults
-                  humanMessage={firstMessage}
                   modal={false}
                   isSharedChat={true}
-                  selectedMessage={
-                    selectedMessageForDocDisplay
-                      ? messages.find(
-                          (message) =>
-                            message.messageId === selectedMessageForDocDisplay
-                        ) || null
-                      : null
-                  }
                   toggleDocumentSelection={() => {
                     setDocumentSidebarVisible(true);
                   }}
