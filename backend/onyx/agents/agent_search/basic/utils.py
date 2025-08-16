@@ -7,6 +7,7 @@ from langgraph.types import StreamWriter
 
 from onyx.agents.agent_search.basic.models import BasicSearchProcessedStreamResults
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
+from onyx.chat.chat_utils import saved_search_docs_from_llm_docs
 from onyx.chat.models import LlmDoc
 from onyx.chat.stream_processing.answer_response_handler import AnswerResponseHandler
 from onyx.chat.stream_processing.answer_response_handler import CitationResponseHandler
@@ -74,9 +75,13 @@ def process_llm_stream(
                         )
 
                     if not start_final_answer_streaming_set:
+                        # Convert LlmDocs to SavedSearchDocs
+                        saved_search_docs = saved_search_docs_from_llm_docs(
+                            final_search_results
+                        )
                         write_custom_event(
                             ind,
-                            MessageStart(id=chat_message_id, content=""),
+                            MessageStart(content="", final_documents=saved_search_docs),
                             writer,
                         )
                         start_final_answer_streaming_set = True

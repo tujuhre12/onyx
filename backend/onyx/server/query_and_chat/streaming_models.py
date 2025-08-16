@@ -18,8 +18,11 @@ class BaseObj(BaseModel):
 
 
 class MessageStart(BaseObj):
-    id: str
     type: Literal["message_start"] = "message_start"
+
+    # Merged set of all documents considered
+    final_documents: list[SavedSearchDoc] | None
+
     content: str
 
 

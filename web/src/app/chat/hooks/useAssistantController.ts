@@ -62,7 +62,7 @@ export function useAssistantController({
         : undefined;
 
     // if no assistant was passed in / found, use the default assistant
-    if (!newAssistant && defaultAssistantId) {
+    if (!newAssistant && defaultAssistantId !== undefined) {
       newAssistant = availableAssistants.find(
         (assistant) => assistant.id === defaultAssistantId
       );
