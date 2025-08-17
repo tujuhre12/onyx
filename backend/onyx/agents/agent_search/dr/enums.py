@@ -9,6 +9,13 @@ class ResearchType(str, Enum):
     DEEP = "DEEP"
 
 
+class ResearchAnswerPurpose(str, Enum):
+    """Research answer purpose options for agent search operations"""
+
+    ANSWER = "ANSWER"
+    CLARIFICATION_REQUEST = "CLARIFICATION_REQUEST"
+
+
 class DRPath(str, Enum):
     CLARIFIER = "Clarifier"
     ORCHESTRATOR = "Orchestrator"

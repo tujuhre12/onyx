@@ -9,12 +9,12 @@ from langgraph.types import StreamWriter
 
 from onyx.agents.agent_search.basic.utils import process_llm_stream
 from onyx.agents.agent_search.dr.constants import AVERAGE_TOOL_COSTS
-from onyx.agents.agent_search.dr.constants import CLARIFICATION_REQUEST_PREFIX
 from onyx.agents.agent_search.dr.constants import MAX_CHAT_HISTORY_MESSAGES
 from onyx.agents.agent_search.dr.dr_prompt_builder import (
     get_dr_prompt_orchestration_templates,
 )
 from onyx.agents.agent_search.dr.enums import DRPath
+from onyx.agents.agent_search.dr.enums import ResearchAnswerPurpose
 from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import ClarificationGenerationResponse
 from onyx.agents.agent_search.dr.models import DRPromptPurpose
@@ -23,6 +23,7 @@ from onyx.agents.agent_search.dr.models import OrchestratorTool
 from onyx.agents.agent_search.dr.states import MainState
 from onyx.agents.agent_search.dr.states import OrchestrationSetup
 from onyx.agents.agent_search.dr.utils import get_chat_history_string
+from onyx.agents.agent_search.dr.utils import update_db_session_with_messages
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.llm import invoke_llm_json
 from onyx.agents.agent_search.shared_graph_utils.llm import stream_llm_answer
@@ -33,9 +34,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import run_with_timeout
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.agents.agent_search.utils import create_question_prompt
 from onyx.configs.constants import DocumentSourceDescription
-from onyx.configs.constants import MessageType
 from onyx.db.connector import fetch_unique_document_sources
-from onyx.db.models import ChatMessage
 from onyx.kg.utils.extraction_utils import get_entity_types_str
 from onyx.kg.utils.extraction_utils import get_relationship_types_str
 from onyx.prompts.dr_prompts import DECISION_PROMPT_W_TOOL_CALLING
@@ -155,10 +154,10 @@ def _get_existing_clarification_request(
     """
     # check for clarification request and response in message history
     previous_raw_messages = graph_config.inputs.prompt_builder.raw_message_history
-    if (
-        len(previous_raw_messages) < 2
-        or previous_raw_messages[-1].message_type != MessageType.ASSISTANT
-        or CLARIFICATION_REQUEST_PREFIX not in previous_raw_messages[-1].message
+
+    if len(previous_raw_messages) == 0 or (
+        previous_raw_messages[-1].research_answer_purpose
+        != ResearchAnswerPurpose.CLARIFICATION_REQUEST
     ):
         return None
 
@@ -167,9 +166,7 @@ def _get_existing_clarification_request(
     last_message = previous_raw_messages[-1].message
 
     clarification = OrchestrationClarificationInfo(
-        clarification_question=last_message.split(CLARIFICATION_REQUEST_PREFIX, 1)[
-            1
-        ].strip(),
+        clarification_question=last_message.strip(),
         clarification_response=graph_config.inputs.prompt_builder.raw_user_query,
     )
     original_question = graph_config.inputs.prompt_builder.raw_user_query
@@ -310,25 +307,23 @@ def clarifier(
             chat_message_id=str(graph_config.persistence.chat_session_id),
         )
 
-        # TODO: Clean up!!
-        chat_message = (
-            db_session.query(ChatMessage).filter(ChatMessage.id == message_id).first()
-        )
-        if not chat_message:
-            raise ValueError("Chat message with id not found")  # should never happen
-
         if isinstance(full_response.full_answer, str):
-            chat_message.message = full_response.full_answer
+            full_answer = full_response.full_answer
+        else:
+            full_answer = None
 
-        parent_chat_message = (
-            db_session.query(ChatMessage)
-            .filter(ChatMessage.id == chat_message.parent_message)
-            .first()
+        update_db_session_with_messages(
+            db_session=db_session,
+            chat_message_id=message_id,
+            chat_session_id=str(graph_config.persistence.chat_session_id),
+            is_agentic=graph_config.behavior.use_agentic_search,
+            message=full_answer,
+            update_parent_message=True,
+            research_answer_purpose=ResearchAnswerPurpose.ANSWER,
         )
-        if parent_chat_message:
-            parent_chat_message.latest_child_message = chat_message.id
 
         db_session.commit()
+
         return OrchestrationSetup(
             original_question=original_question,
             chat_history_string="",
@@ -400,28 +395,23 @@ def clarifier(
 
         if len(full_response.ai_message_chunk.tool_calls) == 0:
 
-            chat_message = (
-                db_session.query(ChatMessage)
-                .filter(ChatMessage.id == message_id)
-                .first()
-            )
-            if not chat_message:
-                raise ValueError(
-                    "Chat message with id not found"
-                )  # should never happen
-
             if isinstance(full_response.full_answer, str):
-                chat_message.message = full_response.full_answer
+                full_answer = full_response.full_answer
+            else:
+                full_answer = None
 
-            parent_chat_message = (
-                db_session.query(ChatMessage)
-                .filter(ChatMessage.id == chat_message.parent_message)
-                .first()
+            update_db_session_with_messages(
+                db_session=db_session,
+                chat_message_id=message_id,
+                chat_session_id=str(graph_config.persistence.chat_session_id),
+                is_agentic=graph_config.behavior.use_agentic_search,
+                message=full_answer,
+                update_parent_message=True,
+                research_answer_purpose=ResearchAnswerPurpose.ANSWER,
             )
-            if parent_chat_message:
-                parent_chat_message.latest_child_message = chat_message.id
 
             db_session.commit()
+
             return OrchestrationSetup(
                 original_question=original_question,
                 chat_history_string="",
@@ -432,7 +422,9 @@ def clarifier(
             )
 
     # Continue, as external knowledge is required.
+
     clarification = None
+
     if research_type != ResearchType.THOUGHTFUL:
         result = _get_existing_clarification_request(graph_config)
         if result is not None:
@@ -513,25 +505,16 @@ def clarifier(
                     writer,
                 )
 
-                chat_message = (
-                    db_session.query(ChatMessage)
-                    .filter(ChatMessage.id == message_id)
-                    .first()
+                update_db_session_with_messages(
+                    db_session=db_session,
+                    chat_message_id=message_id,
+                    chat_session_id=str(graph_config.persistence.chat_session_id),
+                    is_agentic=graph_config.behavior.use_agentic_search,
+                    message=clarification_response.clarification_question,
+                    update_parent_message=True,
+                    research_type=research_type,
+                    research_answer_purpose=ResearchAnswerPurpose.CLARIFICATION_REQUEST,
                 )
-                if not chat_message:
-                    raise ValueError(
-                        "Chat message with id not found"
-                    )  # should never happen
-
-                chat_message.message = clarification_response.clarification_question
-
-                parent_chat_message = (
-                    db_session.query(ChatMessage)
-                    .filter(ChatMessage.id == chat_message.parent_message)
-                    .first()
-                )
-                if parent_chat_message:
-                    parent_chat_message.latest_child_message = chat_message.id
 
                 db_session.commit()
 
@@ -549,6 +532,20 @@ def clarifier(
         and clarification.clarification_question
         and clarification.clarification_response is None
     ):
+
+        update_db_session_with_messages(
+            db_session=db_session,
+            chat_message_id=message_id,
+            chat_session_id=str(graph_config.persistence.chat_session_id),
+            is_agentic=graph_config.behavior.use_agentic_search,
+            message=clarification.clarification_question,
+            update_parent_message=True,
+            research_type=research_type,
+            research_answer_purpose=ResearchAnswerPurpose.CLARIFICATION_REQUEST,
+        )
+
+        db_session.commit()
+
         next_tool = DRPath.END.value
     else:
         next_tool = DRPath.ORCHESTRATOR.value

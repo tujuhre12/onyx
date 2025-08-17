@@ -83,6 +83,7 @@ from onyx.utils.headers import HeaderItemDict
 from shared_configs.enums import EmbeddingProvider
 from shared_configs.enums import RerankerProvider
 from onyx.agents.agent_search.dr.enums import ResearchType
+from onyx.agents.agent_search.dr.enums import ResearchAnswerPurpose
 
 logger = setup_logger()
 
@@ -2156,6 +2157,9 @@ class ChatMessage(Base):
         Enum(ResearchType, native_enum=False), nullable=True
     )
     research_plan: Mapped[JSON_ro] = mapped_column(postgresql.JSONB(), nullable=True)
+    research_answer_purpose: Mapped[ResearchAnswerPurpose] = mapped_column(
+        Enum(ResearchAnswerPurpose, native_enum=False), nullable=True
+    )
 
 
 class ChatFolder(Base):
