@@ -695,6 +695,40 @@ relevant to the question sent to you.
 )
 
 
+CUSTOM_TOOL_PREP_PROMPT = PromptTemplate(
+    f"""\
+You are presented with ONE tool and a user query that the tool should address. You also have \
+access to the tool description and a broader base question. The base question may provide \
+additional context, but YOUR TASK IS to generate the arguments for a tool call \
+based on the user query.
+
+Here is the specific task query which the tool arguments should be created for:
+{SEPARATOR_LINE}
+---query---
+{SEPARATOR_LINE}
+
+Here is the base question that ultimately needs to be answered (but that should \
+only be used as additional context):
+{SEPARATOR_LINE}
+---base_question---
+{SEPARATOR_LINE}
+
+Here is the description of the tool:
+{SEPARATOR_LINE}
+---tool_description---
+{SEPARATOR_LINE}
+
+Notes:
+   - consider the tool details in creating the arguments for the tool call.
+   - while the base question is important, really focus on answering the specific task query \
+to create the arguments for the tool call.
+   - please consider the tool details to format the answer in the appropriate format for the tool.
+
+TOOL CALL ARGUMENTS:
+"""
+)
+
+
 CUSTOM_TOOL_USE_PROMPT = PromptTemplate(
     f"""\
 You are great at formatting the response from a tool into a short reasoning and answer \

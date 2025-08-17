@@ -6,13 +6,15 @@ from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
-from onyx.agents.agent_search.dr.models import IterationAnswer
 from onyx.agents.agent_search.dr.states import AnswerUpdate
 from onyx.agents.agent_search.dr.sub_agents.states import BranchInput
+from onyx.agents.agent_search.dr.sub_agents.states import BranchUpdate
+from onyx.agents.agent_search.dr.sub_agents.states import IterationAnswer
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.utils import (
     get_langgraph_node_log_string,
 )
+from onyx.prompts.dr_prompts import CUSTOM_TOOL_PREP_PROMPT
 from onyx.prompts.dr_prompts import CUSTOM_TOOL_USE_PROMPT
 from onyx.tools.tool_implementations.custom.custom_tool import CUSTOM_TOOL_RESPONSE_ID
 from onyx.tools.tool_implementations.custom.custom_tool import CustomTool
@@ -57,10 +59,10 @@ def custom_tool_act(
     tool_args: dict | None = None
     if graph_config.tooling.using_tool_calling_llm:
         # get tool call args from tool-calling LLM
-        tool_use_prompt = CUSTOM_TOOL_USE_PROMPT.build(
+        tool_use_prompt = CUSTOM_TOOL_PREP_PROMPT.build(
             query=branch_query,
             base_question=base_question,
-            tool_response="(No tool response yet. You need to call the tool to answer the question.)",
+            tool_description=custom_tool_info.description,
         )
         tool_calling_msg = graph_config.tooling.primary_llm.invoke(
             tool_use_prompt,
@@ -127,8 +129,8 @@ def custom_tool_act(
         f"Tool call end for {custom_tool_name} {iteration_nr}.{parallelization_nr} at {datetime.now()}"
     )
 
-    return AnswerUpdate(
-        iteration_responses=[
+    return BranchUpdate(
+        branch_iteration_responses=[
             IterationAnswer(
                 tool=custom_tool_name,
                 tool_id=custom_tool_info.tool_id,
