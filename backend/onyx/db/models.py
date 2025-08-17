@@ -3409,7 +3409,9 @@ class ResearchAgentIterationSubStep(Base):
     iteration_sub_step_nr: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
     sub_step_instructions: Mapped[str] = mapped_column(String, nullable=True)
-    sub_step_tool_id: Mapped[int] = mapped_column(ForeignKey("tool.id"), nullable=True)
+    sub_step_tool_id: Mapped[int | None] = mapped_column(
+        ForeignKey("tool.id"), nullable=True
+    )
     reasoning: Mapped[str] = mapped_column(String, nullable=True)
     sub_answer: Mapped[str] = mapped_column(String, nullable=True)
     cited_doc_results: Mapped[JSON_ro] = mapped_column(postgresql.JSONB())
