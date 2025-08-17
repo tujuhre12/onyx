@@ -6,7 +6,6 @@ from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
-from onyx.agents.agent_search.dr.states import AnswerUpdate
 from onyx.agents.agent_search.dr.sub_agents.states import BranchInput
 from onyx.agents.agent_search.dr.sub_agents.states import BranchUpdate
 from onyx.agents.agent_search.dr.sub_agents.states import IterationAnswer
@@ -28,7 +27,7 @@ def custom_tool_act(
     state: BranchInput,
     config: RunnableConfig,
     writer: StreamWriter = lambda _: None,
-) -> AnswerUpdate:
+) -> BranchUpdate:
     """
     LangGraph node to perform a generic tool call as part of the DR process.
     """
