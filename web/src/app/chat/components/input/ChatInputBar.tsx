@@ -113,8 +113,8 @@ interface ChatInputBarProps {
   availableDocumentSets: DocumentSetSummary[];
   availableTags: Tag[];
   retrievalEnabled: boolean;
-  proSearchEnabled: boolean;
-  setProSearchEnabled: (proSearchEnabled: boolean) => void;
+  deepResearchEnabled: boolean;
+  setDeepResearchEnabled: (deepResearchEnabled: boolean) => void;
 }
 
 export function ChatInputBar({
@@ -141,8 +141,8 @@ export function ChatInputBar({
   availableDocumentSets,
   availableTags,
   llmManager,
-  proSearchEnabled,
-  setProSearchEnabled,
+  deepResearchEnabled,
+  setDeepResearchEnabled,
 }: ChatInputBarProps) {
   const { user } = useUser();
   const {
@@ -690,8 +690,8 @@ export function ChatInputBar({
 
                 {retrievalEnabled && settings?.settings.pro_search_enabled && (
                   <DeepResearchToggle
-                    proSearchEnabled={proSearchEnabled}
-                    setProSearchEnabled={setProSearchEnabled}
+                    deepResearchEnabled={deepResearchEnabled}
+                    setDeepResearchEnabled={setDeepResearchEnabled}
                   />
                 )}
               </div>

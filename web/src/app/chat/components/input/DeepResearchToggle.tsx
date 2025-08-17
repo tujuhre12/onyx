@@ -1,23 +1,16 @@
 import React from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { FaHourglass, FaHourglassHalf } from "react-icons/fa";
 
-interface AgenticToggleProps {
-  proSearchEnabled: boolean;
-  setProSearchEnabled: (enabled: boolean) => void;
+interface DeepResearchToggleProps {
+  deepResearchEnabled: boolean;
+  setDeepResearchEnabled: (enabled: boolean) => void;
 }
 
 export function DeepResearchToggle({
-  proSearchEnabled,
-  setProSearchEnabled,
-}: AgenticToggleProps) {
+  deepResearchEnabled,
+  setDeepResearchEnabled,
+}: DeepResearchToggleProps) {
   const handleToggle = () => {
-    setProSearchEnabled(!proSearchEnabled);
+    setDeepResearchEnabled(!deepResearchEnabled);
   };
 
   return (
@@ -32,14 +25,14 @@ export function DeepResearchToggle({
     duration-300
     ease-in-out
     ${
-      proSearchEnabled
+      deepResearchEnabled
         ? "bg-blue-highlight text-blue-text dark:bg-transparent"
         : "text-input-text hover:text-neutral-900 hover:bg-background-chat-hover dark:hover:text-neutral-50"
     }
     `}
       onClick={handleToggle}
       role="switch"
-      aria-checked={proSearchEnabled}
+      aria-checked={deepResearchEnabled}
     >
       <svg
         width="16"
@@ -59,7 +52,7 @@ export function DeepResearchToggle({
       </svg>
       <span
         className={`text-sm font-medium overflow-hidden transition-all duration-300 ease-in-out ${
-          proSearchEnabled
+          deepResearchEnabled
             ? "max-w-[100px] opacity-100 ml-2"
             : "max-w-0 opacity-0 ml-0"
         }`}

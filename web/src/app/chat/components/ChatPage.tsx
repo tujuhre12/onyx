@@ -77,7 +77,7 @@ import { DocumentResults } from "./documentSidebar/DocumentResults";
 import { useChatController } from "../hooks/useChatController";
 import { useAssistantController } from "../hooks/useAssistantController";
 import { useChatSessionController } from "../hooks/useChatSessionController";
-import { useAgentSearchToggle } from "../hooks/useAgentSearchToggle";
+import { useDeepResearchToggle } from "../hooks/useDeepResearchToggle";
 import {
   useChatSessionStore,
   useMaxTokens,
@@ -194,7 +194,7 @@ export function ChatPage({
         selectedFiles,
         selectedFolders,
         currentMessageFiles,
-        useAgentSearch: proSearchEnabled,
+        useAgentSearch: deepResearchEnabled,
       });
     }
   };
@@ -204,7 +204,7 @@ export function ChatPage({
       selectedChatSession,
     });
 
-  const { proSearchEnabled, toggleProSearch } = useAgentSearchToggle({
+  const { deepResearchEnabled, toggleDeepResearch } = useDeepResearchToggle({
     chatSessionId: existingChatSessionId,
     assistantId: selectedAssistant?.id,
   });
@@ -464,7 +464,7 @@ export function ChatPage({
       selectedFiles: [],
       selectedFolders: [],
       currentMessageFiles: [],
-      useAgentSearch: proSearchEnabled,
+      useAgentSearch: deepResearchEnabled,
     });
   };
 
@@ -677,7 +677,7 @@ export function ChatPage({
       selectedFiles: selectedFiles,
       selectedFolders: selectedFolders,
       currentMessageFiles: currentMessageFiles,
-      useAgentSearch: proSearchEnabled,
+      useAgentSearch: deepResearchEnabled,
       messageIdToResend: lastUserMsg.messageId,
     });
   };
@@ -706,7 +706,7 @@ export function ChatPage({
         selectedFiles: selectedFiles,
         selectedFolders: selectedFolders,
         currentMessageFiles: currentMessageFiles,
-        useAgentSearch: proSearchEnabled,
+        useAgentSearch: deepResearchEnabled,
         modelOverride,
         messageIdToResend: regenerationRequest.parentMessage.messageId,
         regenerationRequest,
@@ -1080,7 +1080,7 @@ export function ChatPage({
                                       selectedFiles: selectedFiles,
                                       selectedFolders: selectedFolders,
                                       currentMessageFiles: currentMessageFiles,
-                                      useAgentSearch: proSearchEnabled,
+                                      useAgentSearch: deepResearchEnabled,
                                     })
                                   }
                                 />
@@ -1141,7 +1141,7 @@ export function ChatPage({
                                           selectedFiles: [],
                                           selectedFolders: [],
                                           currentMessageFiles: [],
-                                          useAgentSearch: proSearchEnabled,
+                                          useAgentSearch: deepResearchEnabled,
                                         });
                                       }}
                                       otherMessagesCanSwitchTo={
@@ -1263,8 +1263,10 @@ export function ChatPage({
 
                           <div className="pointer-events-auto w-[95%] mx-auto relative mb-8">
                             <ChatInputBar
-                              proSearchEnabled={proSearchEnabled}
-                              setProSearchEnabled={() => toggleProSearch()}
+                              deepResearchEnabled={deepResearchEnabled}
+                              setDeepResearchEnabled={() =>
+                                toggleDeepResearch()
+                              }
                               toggleDocumentSidebar={toggleDocumentSidebar}
                               availableSources={sources}
                               availableDocumentSets={documentSets}
@@ -1291,7 +1293,7 @@ export function ChatPage({
                                   selectedFiles: selectedFiles,
                                   selectedFolders: selectedFolders,
                                   currentMessageFiles: currentMessageFiles,
-                                  useAgentSearch: proSearchEnabled,
+                                  useAgentSearch: deepResearchEnabled,
                                 });
                               }}
                               chatState={currentChatState}
