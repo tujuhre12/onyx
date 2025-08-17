@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from onyx.agents.agent_search.dr.constants import MAX_CHAT_HISTORY_MESSAGES
 from onyx.agents.agent_search.dr.constants import MAX_NUM_CLOSER_SUGGESTIONS
 from onyx.agents.agent_search.dr.enums import DRPath
+from onyx.agents.agent_search.dr.enums import ResearchAnswerPurpose
 from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import AggregatedDRContext
 from onyx.agents.agent_search.dr.models import TestInfoCompleteResponse
@@ -20,6 +21,7 @@ from onyx.agents.agent_search.dr.utils import convert_inference_sections_to_sear
 from onyx.agents.agent_search.dr.utils import get_chat_history_string
 from onyx.agents.agent_search.dr.utils import get_prompt_question
 from onyx.agents.agent_search.dr.utils import parse_plan_to_dict
+from onyx.agents.agent_search.dr.utils import update_db_session_with_messages
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.llm import invoke_llm_json
 from onyx.agents.agent_search.shared_graph_utils.llm import stream_llm_answer
@@ -31,7 +33,6 @@ from onyx.agents.agent_search.utils import create_question_prompt
 from onyx.chat.chat_utils import llm_doc_from_inference_section
 from onyx.context.search.models import InferenceSection
 from onyx.db.chat import create_search_doc_from_inference_section
-from onyx.db.models import ChatMessage
 from onyx.db.models import ChatMessage__SearchDoc
 from onyx.db.models import ResearchAgentIteration
 from onyx.db.models import ResearchAgentIterationSubStep
@@ -144,29 +145,51 @@ def save_iteration(
     for cited_doc_nr in cited_doc_nrs:
         citation_dict[cited_doc_nr] = search_docs[cited_doc_nr - 1].id
 
+    # first, insert the search_docs
+    search_docs = [
+        create_search_doc_from_inference_section(
+            inference_section=inference_section,
+            is_internet=is_internet_marker_dict.get(
+                inference_section.center_chunk.document_id, False
+            ),  # TODO: revisit
+            db_session=db_session,
+            commit=False,
+        )
+        for inference_section in all_cited_documents
+    ]
+
+    # then, map_search_docs to message
+    insert_chat_message_search_doc_pair(
+        message_id, [search_doc.id for search_doc in search_docs], db_session
+    )
+
+    # lastly, insert the citations
+
+    cited_doc_nrs = extract_citation_numbers(final_answer)
+
+    citation_dict: dict[str | int, int] = {}
+
+    for cited_doc_nr in cited_doc_nrs:
+        citation_dict[cited_doc_nr] = search_docs[cited_doc_nr - 1].id
+
     # TODO: generate plan as dict in the first place
     plan_of_record = state.plan_of_record.plan if state.plan_of_record else ""
     plan_of_record_dict = parse_plan_to_dict(plan_of_record)
 
-    chat_message = (
-        db_session.query(ChatMessage).filter(ChatMessage.id == message_id).first()
+    # Update the chat message and its parent message in database
+    update_db_session_with_messages(
+        db_session=db_session,
+        chat_message_id=message_id,
+        chat_session_id=str(graph_config.persistence.chat_session_id),
+        is_agentic=graph_config.behavior.use_agentic_search,
+        message=final_answer,
+        citations=citation_dict,
+        research_type=research_type,
+        research_plan=plan_of_record_dict,
+        final_documents=search_docs,
+        update_parent_message=True,
+        research_answer_purpose=ResearchAnswerPurpose.ANSWER,
     )
-    if not chat_message:
-        raise ValueError("Chat message with id not found")  # should never happen
-
-    chat_message.research_type = research_type
-    chat_message.research_plan = plan_of_record_dict
-    chat_message.message = final_answer
-    chat_message.citations = citation_dict
-    chat_message.is_agentic = graph_config.behavior.use_agentic_search
-
-    parent_chat_message = (
-        db_session.query(ChatMessage)
-        .filter(ChatMessage.id == chat_message.parent_message)
-        .first()
-    )
-    if parent_chat_message:
-        parent_chat_message.latest_child_message = chat_message.id
 
     for iteration_preparation in state.iteration_instructions:
         research_agent_iteration_step = ResearchAgentIteration(

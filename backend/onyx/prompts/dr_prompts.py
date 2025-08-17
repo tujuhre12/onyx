@@ -723,9 +723,10 @@ or the response does not apply to this specific context. Do not make up informat
    - while the base question is important, really focus on answering the specific task query. \
 That is your task.
 
-Please respond with a concise answer to the specific task query using the provided tool.
-If the tool response did not provide information relevant to the specific context mentioned in the \
-query, start out with a short statement highlighting this (e.g., I was not able to find information \
+Please respond with a short sentence explaining what the tool does and provide a concise answer to the \
+specific task query using the tool response.
+If the tool definition and response did not provide information relevant to the specific context mentioned \
+in the query, start out with a short statement highlighting this (e.g., I was not able to find information \
 about yellow curry specifically, but I found information about curry...).
 
 ANSWER:
