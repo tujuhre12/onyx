@@ -1341,6 +1341,8 @@ def translate_db_message_to_packets(
                 else:
                     # TODO: replace with isinstance, resolving circular imports
                     tool_id = tool_call_ids[0]
+                    if not tool_id:
+                        raise ValueError("Tool ID is required")
                     tool = get_tool_by_id(tool_id, db_session)
                     tool_name = tool.name
 
