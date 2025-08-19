@@ -193,11 +193,15 @@ class CitationProcessorGraph:
         self.non_citation_count = 0
 
         # '[', '[[', '[1', '[[1', '[1,', '[1, ', '[1,2', '[1, 2,', etc.
-        self.possible_citation_pattern = re.compile(r"(\[+(?:\d+,? ?)*$)")
+        # Also supports '[D1', '[D1, D3' type patterns
+        self.possible_citation_pattern = re.compile(r"(\[+(?:(?:\d+|D\d+),? ?)*$)")
 
         # group 1: '[[1]]', [[2]], etc.
         # group 2: '[1]', '[1, 2]', '[1,2,16]', etc.
-        self.citation_pattern = re.compile(r"(\[\[\d+\]\])|(\[\d+(?:, ?\d+)*\])")
+        # Also supports '[D1]', '[D1, D3]', '[[D1]]' type patterns
+        self.citation_pattern = re.compile(
+            r"(\[\[(?:\d+|D\d+)\]\])|(\[(?:\d+|D\d+)(?:, ?(?:\d+|D\d+))*\])"
+        )
 
     def process_token(
         self, token: str | None

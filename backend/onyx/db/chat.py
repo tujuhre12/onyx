@@ -1,3 +1,4 @@
+import re
 from collections.abc import Sequence
 from datetime import datetime
 from datetime import timedelta
@@ -84,8 +85,53 @@ logger = setup_logger()
 _CANNOT_SHOW_STEP_RESULTS_STR = "[Cannot display step results]"
 
 
+def _adjust_message_text_for_agent_search_results(
+    adjusted_message_text: str, final_documents: list[SavedSearchDoc]
+) -> str:
+    """
+    Adjust the message text for agent search results.
+    """
+    # Remove all [Q<integer>] patterns (sub-question citations)
+    adjusted_message_text = re.sub(r"\[Q\d+\]", "", adjusted_message_text)
+
+    return adjusted_message_text
+
+
+def _replace_d_citations_with_links(
+    message_text: str, final_documents: list[SavedSearchDoc]
+) -> str:
+    """
+    Replace [D<integer>] patterns with [<integer>](<link from final document with index <integer>-1>).
+    """
+
+    def replace_citation(match):
+        # Extract the number from the match (e.g., "D1" -> "1")
+        d_number = match.group(1)
+        try:
+            # Convert to 0-based index
+            doc_index = int(d_number) - 1
+
+            # Check if index is valid
+            if 0 <= doc_index < len(final_documents):
+                doc = final_documents[doc_index]
+                link = doc.link if doc.link else ""
+                return f"[[{d_number}]]({link})"
+            else:
+                # If index is out of range, return original text
+                return match.group(0)
+        except (ValueError, IndexError):
+            # If conversion fails, return original text
+            return match.group(0)
+
+    # Replace all [D<integer>] patterns
+    return re.sub(r"\[D(\d+)\]", replace_citation, message_text)
+
+
 def create_message_packets(
-    message_text: str, final_documents: list[SavedSearchDoc] | None, step_nr: int
+    message_text: str,
+    final_documents: list[SavedSearchDoc] | None,
+    step_nr: int,
+    is_legacy_agentic: bool = False,
 ) -> list[Packet]:
     packets: list[Packet] = []
 
@@ -99,12 +145,27 @@ def create_message_packets(
         )
     )
 
+    # adjust citations for previous agent_search answers
+    adjusted_message_text = message_text
+    if is_legacy_agentic:
+        if final_documents is not None:
+            adjusted_message_text = _adjust_message_text_for_agent_search_results(
+                message_text, final_documents
+            )
+            # Replace [D<integer>] patterns with [<integer>](<link>)
+            adjusted_message_text = _replace_d_citations_with_links(
+                adjusted_message_text, final_documents
+            )
+        else:
+            # Remove all [Q<integer>] patterns (sub-question citations) even if no final_documents
+            adjusted_message_text = re.sub(r"\[Q\d+\]", "", message_text)
+
     packets.append(
         Packet(
             ind=step_nr,
             obj=MessageDelta(
                 type="message_delta",
-                content=message_text,
+                content=adjusted_message_text,
             ),
         ),
     )
@@ -1277,8 +1338,20 @@ def translate_db_message_to_packets(
                             document_id=search_doc.document_id,
                         )
                     )
+        elif chat_message.search_docs:
+            for i, search_doc in enumerate(chat_message.search_docs):
+                citation_info_list.append(
+                    CitationInfo(
+                        citation_num=i,
+                        document_id=search_doc.document_id,
+                    )
+                )
 
-        if chat_message.research_type in [ResearchType.THOUGHTFUL, ResearchType.DEEP]:
+        if chat_message.research_type in [
+            ResearchType.THOUGHTFUL,
+            ResearchType.DEEP,
+            ResearchType.LEGACY_AGENTIC,
+        ]:
             research_iterations = sorted(
                 chat_message.research_iterations, key=lambda x: x.iteration_nr
             )  # sorted iterations
@@ -1310,14 +1383,25 @@ def translate_db_message_to_packets(
                     sub_step_cited_docs = sub_step.cited_doc_results
                     if isinstance(sub_step_cited_docs, list):
                         # Convert serialized dict data back to SavedSearchDoc objects
-                        saved_search_docs = [
-                            (
+                        saved_search_docs = []
+                        for doc_data in sub_step_cited_docs:
+                            doc_data["db_doc_id"] = 1
+                            doc_data["boost"] = 1
+                            doc_data["hidden"] = False
+                            doc_data["chunk_ind"] = 0
+
+                            if (
+                                doc_data["updated_at"] is None
+                                or doc_data["updated_at"] == "None"
+                            ):
+                                doc_data["updated_at"] = datetime.now()
+
+                            saved_search_docs.append(
                                 SavedSearchDoc.from_dict(doc_data)
                                 if isinstance(doc_data, dict)
                                 else doc_data
                             )
-                            for doc_data in sub_step_cited_docs
-                        ]
+
                         cited_docs.extend(saved_search_docs)
                     else:
                         packet_list.extend(
@@ -1390,6 +1474,8 @@ def translate_db_message_to_packets(
                     for doc in chat_message.search_docs
                 ],
                 step_nr=step_nr,
+                is_legacy_agentic=chat_message.research_type
+                == ResearchType.LEGACY_AGENTIC,
             )
         )
         step_nr += 1

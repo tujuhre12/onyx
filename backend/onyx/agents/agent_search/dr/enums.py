@@ -5,6 +5,7 @@ class ResearchType(str, Enum):
     """Research type options for agent search operations"""
 
     # BASIC = "BASIC"
+    LEGACY_AGENTIC = "LEGACY_AGENTIC"  # only used for legacy agentic search migrations
     THOUGHTFUL = "THOUGHTFUL"
     DEEP = "DEEP"
 
