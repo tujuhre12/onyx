@@ -421,6 +421,11 @@ Please articulate the purpose of these tool calls in 1-2 sentences concisely. An
 example could be "I am now trying to find more information about Nike and Puma using \
 Internet Search" (assuming that Internet Search is the chosen tool, the proper tool must \
 be named here.)
+
+Note that there is ONE EXCEPTION: if the tool cqll/calls is the {CLOSER} tool, then you should \
+say something like "I am now trying to generate the final answer as I have sufficient information", \
+but do not mention the {CLOSER} tool explicitly.
+
 ANSWER:
 """
 )
