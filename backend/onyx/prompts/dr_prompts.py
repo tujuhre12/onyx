@@ -70,7 +70,9 @@ It is suitable for answering complex questions about specific entities and relat
 It can also query a relational database containing the entities and relationships, allowing it to \
 answer aggregation-type questions like 'how many jiras did each employee close last month?'. \
 However, the {KNOWLEDGE_GRAPH} tool MUST ONLY BE USED if the question can be answered with the \
-entity/relationship types that are available in the knowledge graph.
+entity/relationship types that are available in the knowledge graph. (So even if the user is \
+asking for the Knowledge Graph to be used but the question/request does not directly relate \
+to entities/relationships in the knowledge graph, do not use the {KNOWLEDGE_GRAPH} tool.).
 Note that the {KNOWLEDGE_GRAPH} tool can both FIND AND ANALYZE/AGGREGATE/QUERY the relevant documents/entities. \
 E.g., if the question is "how many open jiras are there", you should pass that as a single query to the \
 {KNOWLEDGE_GRAPH} tool, instead of splitting it into finding and counting the open jiras.
@@ -239,7 +241,8 @@ Please format your answer as a json dictionary in the following format:
 {{
    "reasoning": "<your reasoning in 2-4 sentences. Think through it like a person would do it. \
 Also consider the current time if useful for the problem.>",
-   "plan": "<the full plan, formatted as a string. See examples above. \
+   "plan": "<the full plan, NICELY formatted as a string. See examples above, but \
+make sure to use markdown formatting for lists and other formatting. \
 (Note that the plan of record must be a string, not a list of strings! If the question \
 refers to dates etc. you should also consider the current time. Also, again, the steps \
 should NOT contain the specific tool although it may have been used to construct \
@@ -1068,7 +1071,8 @@ Please respond with a json dictionary in the following format:
 needed based on above guidance>,
    "clarification_question": "<the clarification questions if clarification_needed is true, \
 otherwise say 'no clarification needed'. Respond as a string, not as a list, even if you \
-think multiple clarification questions are needed.>"
+think multiple clarification questions are needed. But make sure to use markdown formatting as \
+this should be a numbered list (expressed in one string though)>"
 }}
 
 ANSWER:

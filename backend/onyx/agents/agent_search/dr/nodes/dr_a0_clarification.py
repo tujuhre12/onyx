@@ -33,6 +33,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 from onyx.agents.agent_search.shared_graph_utils.utils import run_with_timeout
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.agents.agent_search.utils import create_question_prompt
+from onyx.configs.constants import DocumentSource
 from onyx.configs.constants import DocumentSourceDescription
 from onyx.db.connector import fetch_unique_document_sources
 from onyx.kg.utils.extraction_utils import get_entity_types_str
@@ -73,7 +74,9 @@ def _format_tool_name(tool_name: str) -> str:
 
 
 def _get_available_tools(
-    graph_config: GraphConfig, kg_enabled: bool
+    graph_config: GraphConfig,
+    kg_enabled: bool,
+    active_source_types: list[DocumentSource],
 ) -> dict[str, OrchestratorTool]:
 
     available_tools: dict[str, OrchestratorTool] = {}
@@ -98,21 +101,24 @@ def _get_available_tools(
             # )
             tool_info.llm_path = DRPath.INTERNET_SEARCH.value
             tool_info.path = DRPath.INTERNET_SEARCH
-        elif isinstance(tool, SearchTool):
+        elif isinstance(tool, SearchTool) and len(active_source_types) > 0:
             # tool_info.metadata["summary_signature"] = SEARCH_RESPONSE_SUMMARY_ID
             tool_info.llm_path = DRPath.INTERNAL_SEARCH.value
             tool_info.path = DRPath.INTERNAL_SEARCH
-        elif isinstance(tool, KnowledgeGraphTool):
-            if not kg_enabled:
-                logger.warning("KG must be enabled to use KG search tool, skipping")
-                continue
+        elif (
+            isinstance(tool, KnowledgeGraphTool)
+            and kg_enabled
+            and len(active_source_types) > 0
+        ):
             tool_info.llm_path = DRPath.KNOWLEDGE_GRAPH.value
             tool_info.path = DRPath.KNOWLEDGE_GRAPH
         elif isinstance(tool, ImageGenerationTool):
             tool_info.llm_path = DRPath.IMAGE_GENERATION.value
             tool_info.path = DRPath.IMAGE_GENERATION
         else:
-            logger.warning(f"Tool {tool.name} ({type(tool)}) is not supported")
+            logger.warning(
+                f"Tool {tool.name} ({type(tool)}) is not supported/available"
+            )
             continue
 
         tool_info.description = TOOL_DESCRIPTION.get(tool_info.path, tool.description)
@@ -236,19 +242,15 @@ def clarifier(
 
     # get the connected tools and format for the Deep Research flow
     kg_enabled = graph_config.behavior.kg_config_settings.KG_ENABLED
-    available_tools = _get_available_tools(graph_config, kg_enabled)
+    db_session = graph_config.persistence.db_session
+    active_source_types = fetch_unique_document_sources(db_session)
 
-    non_internal_search_tools = [
-        tool
-        for tool in available_tools.values()
-        if tool.path != DRPath.INTERNAL_SEARCH and tool.path != DRPath.KNOWLEDGE_GRAPH
-    ]
+    available_tools = _get_available_tools(
+        graph_config, kg_enabled, active_source_types
+    )
 
     all_entity_types = get_entity_types_str(active=True)
     all_relationship_types = get_relationship_types_str(active=True)
-
-    db_session = graph_config.persistence.db_session
-    active_source_types = fetch_unique_document_sources(db_session)
 
     # if not active_source_types:
     #    raise ValueError("No active source types found")
@@ -282,9 +284,8 @@ def clarifier(
         or "(No chat history yet available)"
     )
 
-    if len(available_tools) == 0 or (
-        len(non_internal_search_tools) == 0 and len(active_source_types) == 0
-    ):
+    if len(available_tools) == 1:
+        # Closer is always there, therefore 'len(available_tools) == 1' above
         answer_prompt = GENERAL_DR_ANSWER_PROMPT.build(
             question=original_question, chat_history_string=chat_history_string
         )
