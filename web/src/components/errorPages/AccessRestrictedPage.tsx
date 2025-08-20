@@ -6,7 +6,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/lib/user";
-import { loadStripe } from "@stripe/stripe-js";
 import { NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY } from "@/lib/constants";
 
 const fetchResubscriptionSession = async () => {
@@ -67,6 +66,9 @@ export default function AccessRestricted() {
     }
     try {
       const { sessionId } = await fetchResubscriptionSession();
+
+      // Dynamically import Stripe only when needed
+      const { loadStripe } = await import("@stripe/stripe-js");
       const stripe = await loadStripe(NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
       if (stripe) {
