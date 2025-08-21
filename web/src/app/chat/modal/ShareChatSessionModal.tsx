@@ -145,11 +145,15 @@ export function ShareChatSessionModal({
 
                 <Button
                   onClick={async () => {
+                    console.log("Delete button clicked, current shareLink:", shareLink);
                     const success = await deleteShareLink(chatSessionId);
+                    console.log("Delete API call success:", success);
                     if (success) {
+                      console.log("Setting shareLink to empty string");
                       setShareLink("");
-                      updateChatSessionSharedStatus(chatSessionId, ChatSessionSharedStatus.Private);
+                      // updateChatSessionSharedStatus(chatSessionId, ChatSessionSharedStatus.Private);
                       onShare && onShare(false);
+                      console.log("After setShareLink, shareLink should be empty");
                     } else {
                       alert("Failed to delete share link");
                     }
@@ -173,15 +177,19 @@ export function ShareChatSessionModal({
                       // NOTE: for "insecure" non-https setup, the `navigator.clipboard.writeText` may fail
                       // as the browser may not allow the clipboard to be accessed.
                       try {
+                        console.log("Generate button clicked, current shareLink:", shareLink);
                         const shareLink =
                           await generateShareLink(chatSessionId);
+                        console.log("Generate API call returned:", shareLink);
                         if (!shareLink) {
                           alert("Failed to generate share link");
                         } else {
+                          console.log("Setting shareLink to:", shareLink);
                           setShareLink(shareLink);
-                          updateChatSessionSharedStatus(chatSessionId, ChatSessionSharedStatus.Public);
+                          // updateChatSessionSharedStatus(chatSessionId, ChatSessionSharedStatus.Public);
                           onShare && onShare(true);
                           navigator.clipboard.writeText(shareLink);
+                          console.log("After setShareLink, shareLink should be:", shareLink);
                         }
                       } catch (e) {
                         console.error(e);
