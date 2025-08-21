@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
@@ -10,6 +10,7 @@ import { FiCopy } from "react-icons/fi";
 import { CopyButton } from "@/components/CopyButton";
 import { SEARCH_PARAM_NAMES } from "../searchParams";
 import { usePopup } from "@/components/admin/connectors/Popup";
+import { useChatContext } from "@/components/context/ChatContext";
 import { structureValue } from "@/lib/llm/utils";
 import { LlmDescriptor } from "@/lib/hooks";
 import { Separator } from "@/components/ui/separator";
@@ -77,18 +78,7 @@ async function deleteShareLink(chatSessionId: string) {
   return response.ok;
 }
 
-async function getCurrentShareStatus(chatSessionId: string): Promise<ChatSessionSharedStatus | null> {
-  try {
-    const response = await fetch(`/api/chat/chat-session/${chatSessionId}`);
-    if (response.ok) {
-      const chatSession = await response.json();
-      return chatSession.shared_status;
-    }
-  } catch (e) {
-    console.error("Failed to fetch current share status:", e);
-  }
-  return null;
-}
+
 
 export function ShareChatSessionModal({
   chatSessionId,
@@ -114,20 +104,7 @@ export function ShareChatSessionModal({
   );
   const { popup, setPopup } = usePopup();
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
-
-  // Fetch current share status when modal opens to ensure we have the latest state
-  useEffect(() => {
-    const fetchCurrentStatus = async () => {
-      const currentStatus = await getCurrentShareStatus(chatSessionId);
-      if (currentStatus === ChatSessionSharedStatus.Public) {
-        setShareLink(buildShareLink(chatSessionId));
-      } else {
-        setShareLink("");
-      }
-    };
-    
-    fetchCurrentStatus();
-  }, [chatSessionId]);
+  const { updateChatSessionSharedStatus } = useChatContext();
 
   return (
     <>
@@ -171,6 +148,7 @@ export function ShareChatSessionModal({
                     const success = await deleteShareLink(chatSessionId);
                     if (success) {
                       setShareLink("");
+                      updateChatSessionSharedStatus(chatSessionId, ChatSessionSharedStatus.Private);
                       onShare && onShare(false);
                     } else {
                       alert("Failed to delete share link");
@@ -201,6 +179,7 @@ export function ShareChatSessionModal({
                           alert("Failed to generate share link");
                         } else {
                           setShareLink(shareLink);
+                          updateChatSessionSharedStatus(chatSessionId, ChatSessionSharedStatus.Public);
                           onShare && onShare(true);
                           navigator.clipboard.writeText(shareLink);
                         }
