@@ -710,15 +710,15 @@ export const BooleanFormField = ({
       <label className="flex items-center text-sm cursor-pointer">
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
-              <CheckboxField
-                name={name}
-                size="sm"
-                className={`
-                  ${disabled ? "opacity-50" : ""}
-                  ${removeIndent ? "mr-2" : "mx-3"}`}
-                onCheckedChange={handleChange}
-              />
+            <TooltipTrigger asChild>
+              <div className={`${disabled ? "opacity-50" : ""} ${removeIndent ? "mr-2" : "mx-3"}`}>
+                <CheckboxField
+                  name={name}
+                  size="sm"
+                  onCheckedChange={handleChange}
+                  disabled={disabled}
+                />
+              </div>
             </TooltipTrigger>
             {disabled && disabledTooltip && (
               <TooltipContent side="top" align="center">
