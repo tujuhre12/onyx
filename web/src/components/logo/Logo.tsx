@@ -36,7 +36,7 @@ export function Logo({
       <div style={{ height, width }} className={className}>
         <OnyxIcon
           size={height}
-          className={`${className} dark:text-[#fff] text-[#000]`}
+          className={`${className} dark:text-white text-black`}
         />
       </div>
     );
@@ -65,7 +65,7 @@ export function LogoType({
   return (
     <OnyxLogoTypeIcon
       size={115}
-      className={`items-center w-full dark:text-[#fff]`}
+      className={`items-center w-full dark:text-white`}
     />
   );
 }

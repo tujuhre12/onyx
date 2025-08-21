@@ -1043,7 +1043,7 @@ export const GithubIcon = ({
   size = 16,
   className = defaultTailwindCSS,
 }: IconProps) => (
-  <FaGithub size={size} className={cn(className, "text-black")} />
+  <FaGithub size={size} className={cn(className, "text-black dark:text-white")} />
 );
 
 export const GlobeIcon = ({
@@ -1408,7 +1408,7 @@ export const ZendeskIcon = ({
   className = defaultTailwindCSS,
 }: IconProps) => (
   <div
-    className="rounded-full overflow-visible dark:overflow-hidden flex items-center justify-center dark:bg-[#fff]/90"
+    className="rounded-full overflow-visible dark:overflow-hidden flex items-center justify-center dark:bg-white/90"
     style={{ width: size, height: size }}
   >
     <LogoIcon
