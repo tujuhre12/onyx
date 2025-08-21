@@ -707,11 +707,11 @@ export const BooleanFormField = ({
 
   return (
     <div>
-      <label className="flex items-center text-sm cursor-pointer">
+      <label className="flex items-start text-sm cursor-pointer">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className={`${disabled ? "opacity-50" : ""} ${removeIndent ? "mr-2" : "mx-3"}`}>
+              <div className={`${disabled ? "opacity-50" : ""} ${removeIndent ? "mr-2" : "mr-3"} mt-0.5`}>
                 <CheckboxField
                   name={name}
                   size="sm"
@@ -730,7 +730,7 @@ export const BooleanFormField = ({
           </Tooltip>
         </TooltipProvider>
         {!noLabel && (
-          <div>
+          <div className="flex-1">
             <div className="flex items-center gap-x-2">
               <Label small={small}>{`${label}${
                 optional ? " (Optional)" : ""
