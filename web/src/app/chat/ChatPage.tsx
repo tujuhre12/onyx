@@ -2618,6 +2618,13 @@ export function ChatPage({
           chatSessionId={chatSessionIdRef.current}
           existingSharedStatus={chatSessionSharedStatus}
           onClose={() => setSharingModalVisible(false)}
+          onShare={(shared) =>
+            setChatSessionSharedStatus(
+              shared
+                ? ChatSessionSharedStatus.Public
+                : ChatSessionSharedStatus.Private
+            )
+          }
         />
       )}
 
