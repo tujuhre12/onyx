@@ -42,7 +42,7 @@ export function DocumentSelector({
               setPopupDisabled(true);
               handleSelect();
               // re-enable popup after 1 second so that we don't show the popup immediately upon the
-              // user de-selecting a document
+              // user de-selecting document
               setTimeout(() => {
                 setPopupDisabled(false);
               }, 1000);
