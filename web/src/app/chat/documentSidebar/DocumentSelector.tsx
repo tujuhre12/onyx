@@ -27,21 +27,19 @@ export function DocumentSelector({
 
   function Main() {
     return (
-      <div
+      <label
         className={
           "ml-auto flex select-none " + (!isDisabled ? " cursor-pointer" : "")
         }
-        onClick={onClick}
       >
         <input
           className="cursor-pointer my-auto"
           type="checkbox"
           checked={isSelected}
-          // dummy function to prevent warning
-          onChange={() => null}
+          onChange={onClick}
           disabled={isDisabled}
         />
-      </div>
+      </label>
     );
   }
 
