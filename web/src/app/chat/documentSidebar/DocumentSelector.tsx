@@ -36,7 +36,18 @@ export function DocumentSelector({
           className="cursor-pointer my-auto"
           type="checkbox"
           checked={isSelected}
-          onChange={onClick}
+          onChange={(e) => {
+            e.stopPropagation();
+            if (!isDisabled) {
+              setPopupDisabled(true);
+              handleSelect();
+              // re-enable popup after 1 second so that we don't show the popup immediately upon the
+              // user de-selecting a document
+              setTimeout(() => {
+                setPopupDisabled(false);
+              }, 1000);
+            }
+          }}
           disabled={isDisabled}
         />
       </label>
