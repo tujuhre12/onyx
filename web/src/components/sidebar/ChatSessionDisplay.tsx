@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChatSession, ChatSessionSharedStatus } from "@/app/chat/interfaces";
+import { ChatSession } from "@/app/chat/interfaces";
 import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import {
   deleteChatSession,
@@ -52,13 +52,7 @@ export function ChatSessionDisplay({
   const [chatName, setChatName] = useState(chatSession.name);
   const settings = useContext(SettingsContext);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [localSharedStatus, setLocalSharedStatus] = useState(chatSession.shared_status);
   const chatSessionRef = useRef<HTMLDivElement>(null);
-
-  // Sync local shared status with the chatSession prop
-  useEffect(() => {
-    setLocalSharedStatus(chatSession.shared_status);
-  }, [chatSession.shared_status]);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const renamingRef = useRef<HTMLDivElement>(null);
@@ -179,15 +173,8 @@ export function ChatSessionDisplay({
       {isShareModalVisible && (
         <ShareChatSessionModal
           chatSessionId={chatSession.id}
-          existingSharedStatus={localSharedStatus}
+          existingSharedStatus={chatSession.shared_status}
           onClose={() => setIsShareModalVisible(false)}
-          onShare={(shared) => {
-            setLocalSharedStatus(
-              shared
-                ? ChatSessionSharedStatus.Public
-                : ChatSessionSharedStatus.Private
-            );
-          }}
         />
       )}
 
@@ -349,7 +336,7 @@ export function ChatSessionDisplay({
                                         name="Share"
                                         icon={FiShare2}
                                         onSelect={() =>
-                                          setIsShareModalVisible(true)
+                                          showShareModal(chatSession)
                                         }
                                       />
                                     )}

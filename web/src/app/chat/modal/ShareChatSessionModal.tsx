@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
@@ -77,6 +77,19 @@ async function deleteShareLink(chatSessionId: string) {
   return response.ok;
 }
 
+async function getCurrentShareStatus(chatSessionId: string): Promise<ChatSessionSharedStatus | null> {
+  try {
+    const response = await fetch(`/api/chat/chat-session/${chatSessionId}`);
+    if (response.ok) {
+      const chatSession = await response.json();
+      return chatSession.shared_status;
+    }
+  } catch (e) {
+    console.error("Failed to fetch current share status:", e);
+  }
+  return null;
+}
+
 export function ShareChatSessionModal({
   chatSessionId,
   existingSharedStatus,
@@ -101,6 +114,20 @@ export function ShareChatSessionModal({
   );
   const { popup, setPopup } = usePopup();
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+
+  // Fetch current share status when modal opens to ensure we have the latest state
+  useEffect(() => {
+    const fetchCurrentStatus = async () => {
+      const currentStatus = await getCurrentShareStatus(chatSessionId);
+      if (currentStatus === ChatSessionSharedStatus.Public) {
+        setShareLink(buildShareLink(chatSessionId));
+      } else {
+        setShareLink("");
+      }
+    };
+    
+    fetchCurrentStatus();
+  }, [chatSessionId]);
 
   return (
     <>
