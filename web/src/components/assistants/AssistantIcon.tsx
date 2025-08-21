@@ -122,7 +122,7 @@ export function AssistantIcon({
         })();
 
   const wrapperClass = border
-    ? "ring text-black dark:text-white ring-[1px] ring-border-strong"
+    ? "ring text-[#000] dark:text-[#fff] ring-[1px] ring-border-strong"
     : "";
   const style = { width: dimension, height: dimension };
 
@@ -130,7 +130,7 @@ export function AssistantIcon({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={className + " text-black dark:text-white"}>
+          <div className={className + " text-[#000] dark:text-[#fff]"}>
             {assistant.id == -3 ? (
               <ArtAsistantIcon size={dimension} />
             ) : assistant.id == 0 ? (
