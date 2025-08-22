@@ -421,6 +421,13 @@ class DefaultMultiLLM(LLM):
             "gpt-5-nano",
         ]
 
+        final_model_kwargs = {**self._model_kwargs}
+        if (
+            "claude-sonnet-4" in self.config.model_name
+            or "claude-4-sonnet" in self.config.model_name
+        ):
+            final_model_kwargs["anthropic-beta"] = "context-1m-2025-08-07"
+
         try:
             return litellm.completion(
                 mock_response=MOCK_LLM_RESPONSE,
