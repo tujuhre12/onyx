@@ -170,11 +170,9 @@ export function AssistantEditor({
     () => llmProviders.length > 0,
     [llmProviders.length]
   );
+  console.log(existingPersona);
   const isUpdate = existingPersona !== undefined && existingPersona !== null;
   const existingPrompt = existingPersona?.prompts[0] ?? null;
-  const defaultProvider = llmProviders.find(
-    (llmProvider) => llmProvider.is_default_provider
-  );
   const providerDisplayNameToProviderName = new Map<string, string>();
   llmProviders.forEach((llmProvider) => {
     providerDisplayNameToProviderName.set(

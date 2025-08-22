@@ -427,8 +427,8 @@ def get_persona(
     persona_id: int,
     user: User | None = Depends(current_limited_user),
     db_session: Session = Depends(get_session),
-) -> PersonaSnapshot:
-    return PersonaSnapshot.from_model(
+) -> FullPersonaSnapshot:
+    return FullPersonaSnapshot.from_model(
         get_persona_by_id(
             persona_id=persona_id,
             user=user,
