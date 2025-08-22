@@ -22,7 +22,7 @@ import {
 import { Modal } from "@/components/Modal";
 import { useNightTime } from "@/lib/dateUtils";
 import { useFilters } from "@/lib/hooks";
-import { uploadFilesForChat } from "../lib";
+import { uploadFilesForChat, deleteChatFile } from "../lib";
 import { ChatFileType, FileDescriptor } from "../interfaces";
 import { useChatContext } from "@/components/context/ChatContext";
 import Dropzone from "react-dropzone";
@@ -121,11 +121,8 @@ export default function NRFPage({
       isUploading: true,
     }));
 
-    // only show loading spinner for reasonably large files
-    const totalSize = acceptedFiles.reduce((sum, file) => sum + file.size, 0);
-    if (totalSize > 50 * 1024) {
-      setCurrentMessageFiles((prev) => [...prev, ...tempFileDescriptors]);
-    }
+    // Immediately show files with uploading state for instant feedback
+    setCurrentMessageFiles((prev) => [...prev, ...tempFileDescriptors]);
 
     const removeTempFiles = (prev: FileDescriptor[]) => {
       return prev.filter(

@@ -739,6 +739,60 @@ export async function uploadFilesForChat(
   return [responseJson.files as FileDescriptor[], null];
 }
 
+export async function deleteChatFile(fileId: string): Promise<string | null> {
+  const response = await fetch(`/api/chat/file/${encodeURIComponent(fileId)}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    return errorData.detail || "Failed to delete file";
+  }
+  return null;
+}
+
+export async function uploadFilesImmediately(
+  files: File[],
+  onProgress?: (fileName: string, progress: number) => void
+): Promise<[FileDescriptor[], string | null]> {
+  const tempFiles: FileDescriptor[] = files.map((file) => ({
+    id: `temp-${Date.now()}-${Math.random()}`,
+    name: file.name,
+    type: file.type.startsWith("image/") ? "IMAGE" : "PLAIN_TEXT",
+    isUploading: true,
+  }));
+
+  // Simulate progress for immediate feedback
+  if (onProgress) {
+    files.forEach((file) => {
+      onProgress(file.name, 0);
+      // Simulate progress steps
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += 20;
+        if (progress <= 80) {
+          onProgress(file.name, progress);
+        } else {
+          clearInterval(progressInterval);
+        }
+      }, 100);
+    });
+  }
+
+  try {
+    const [uploadedFiles, error] = await uploadFilesForChat(files);
+    
+    if (onProgress) {
+      files.forEach((file) => {
+        onProgress(file.name, 100);
+      });
+    }
+
+    return [uploadedFiles, error];
+  } catch (error) {
+    return [[], error instanceof Error ? error.message : "Upload failed"];
+  }
+}
+
 export function useScrollonStream({
   chatState,
   scrollableDivRef,

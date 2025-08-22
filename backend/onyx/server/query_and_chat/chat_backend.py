@@ -60,6 +60,7 @@ from onyx.db.feedback import create_doc_retrieval_feedback
 from onyx.db.models import User
 from onyx.db.persona import get_persona_by_id
 from onyx.db.user_documents import create_user_files
+from onyx.db.user_documents import UserFile
 from onyx.file_processing.extract_file_text import docx_to_txt_filename
 from onyx.file_store.file_store import get_default_file_store
 from onyx.file_store.models import FileDescriptor
@@ -802,6 +803,41 @@ def fetch_chat_file(
     file_io = file_store.read_file(file_id, mode="b")
 
     return StreamingResponse(file_io, media_type=media_type)
+
+
+@router.delete("/file/{file_id:path}")
+def delete_chat_file(
+    file_id: str,
+    user: User | None = Depends(current_user),
+    db_session: Session = Depends(get_session),
+) -> dict[str, str]:
+    """Delete a chat file and associated user file record"""
+    user_id = user.id if user else None
+    
+    # Find the user file record that corresponds to this file_id
+    user_file = (
+        db_session.query(UserFile)
+        .filter(UserFile.file_id == file_id, UserFile.user_id == user_id)
+        .first()
+    )
+    
+    if not user_file:
+        raise HTTPException(status_code=404, detail="File not found or access denied")
+    
+    try:
+        # Delete from file store
+        file_store = get_default_file_store()
+        file_store.delete_file(file_id, db_session)
+        
+        # Delete user file record
+        db_session.delete(user_file)
+        db_session.commit()
+        
+        return {"message": "File deleted successfully"}
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Error deleting file {file_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete file")
 
 
 @router.get("/search")

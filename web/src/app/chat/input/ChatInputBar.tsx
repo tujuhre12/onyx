@@ -39,6 +39,7 @@ import { AgenticToggle } from "./AgenticToggle";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { getProviderIcon } from "@/app/admin/configuration/llm/utils";
 import { useDocumentsContext } from "../my-documents/DocumentsContext";
+import { deleteChatFile } from "../lib";
 
 const MAX_INPUT_HEIGHT = 200;
 export const SourceChip2 = ({
@@ -728,10 +729,20 @@ export function ChatInputBar({
                           )
                         }
                         title={file.name}
-                        onRemove={() => {
+                        onRemove={async () => {
                           if (file.source === "selected") {
                             removeSelectedFile(file.originalFile);
                           } else {
+                            // Delete file from backend before removing from UI
+                            try {
+                              const error = await deleteChatFile(file.id);
+                              if (error) {
+                                console.error("Failed to delete file:", error);
+                                // Still remove from UI even if backend deletion fails
+                              }
+                            } catch (error) {
+                              console.error("Error deleting file:", error);
+                            }
                             setCurrentMessageFiles(
                               currentMessageFiles.filter(
                                 (fileInFilter) => fileInFilter.id !== file.id
@@ -752,10 +763,20 @@ export function ChatInputBar({
                           />
                         }
                         title={file.name}
-                        onRemove={() => {
+                        onRemove={async () => {
                           if (file.source === "selected") {
                             removeSelectedFile(file.originalFile);
                           } else {
+                            // Delete file from backend before removing from UI
+                            try {
+                              const error = await deleteChatFile(file.id);
+                              if (error) {
+                                console.error("Failed to delete file:", error);
+                                // Still remove from UI even if backend deletion fails
+                              }
+                            } catch (error) {
+                              console.error("Error deleting file:", error);
+                            }
                             setCurrentMessageFiles(
                               currentMessageFiles.filter(
                                 (fileInFilter) => fileInFilter.id !== file.id

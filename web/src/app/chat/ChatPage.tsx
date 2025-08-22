@@ -2139,39 +2139,68 @@ export function ChatPage({
       return;
     }
 
+    // Immediately add files with uploading state for instant feedback
+    const tempFileDescriptors: FileDescriptor[] = acceptedFiles.map((file) => ({
+      id: `temp-${Date.now()}-${Math.random()}`,
+      name: file.name,
+      type: file.type.startsWith("image/") ? ChatFileType.IMAGE : ChatFileType.PLAIN_TEXT,
+      isUploading: true,
+    }));
+
+    setCurrentMessageFiles((prev) => [...prev, ...tempFileDescriptors]);
     updateChatState("uploading", currentSessionId());
 
-    for (let file of acceptedFiles) {
-      const formData = new FormData();
-      formData.append("files", file);
-      const response: FileResponse[] = await uploadFile(formData, null);
+    try {
+      const uploadedFileDescriptors: FileDescriptor[] = [];
+      
+      for (let file of acceptedFiles) {
+        const formData = new FormData();
+        formData.append("files", file);
+        const response: FileResponse[] = await uploadFile(formData, null);
 
-      if (response.length > 0 && response[0] !== undefined) {
-        const uploadedFile = response[0];
+        if (response.length > 0 && response[0] !== undefined) {
+          const uploadedFile = response[0];
 
-        const newFileDescriptor: FileDescriptor = {
-          // Use file_id (storage ID) if available, otherwise fallback to DB id
-          // Ensure it's a string as FileDescriptor expects
-          id: uploadedFile.file_id
-            ? String(uploadedFile.file_id)
-            : String(uploadedFile.id),
-          type: uploadedFile.chat_file_type
-            ? uploadedFile.chat_file_type
-            : ChatFileType.PLAIN_TEXT,
-          name: uploadedFile.name,
-          isUploading: false, // Mark as successfully uploaded
-        };
+          const newFileDescriptor: FileDescriptor = {
+            // Use file_id (storage ID) if available, otherwise fallback to DB id
+            // Ensure it's a string as FileDescriptor expects
+            id: uploadedFile.file_id
+              ? String(uploadedFile.file_id)
+              : String(uploadedFile.id),
+            type: uploadedFile.chat_file_type
+              ? uploadedFile.chat_file_type
+              : ChatFileType.PLAIN_TEXT,
+            name: uploadedFile.name,
+            isUploading: false, // Mark as successfully uploaded
+          };
 
-        setCurrentMessageFiles((prev) => [...prev, newFileDescriptor]);
-      } else {
-        setPopup({
-          type: "error",
-          message: "Failed to upload file",
-        });
+          uploadedFileDescriptors.push(newFileDescriptor);
+        } else {
+          setPopup({
+            type: "error",
+            message: `Failed to upload file: ${file.name}`,
+          });
+        }
       }
-    }
 
-    updateChatState("input", currentSessionId());
+      // Replace temp files with actual uploaded files
+      setCurrentMessageFiles((prev) => {
+        const filtered = prev.filter((f) => !f.id.startsWith("temp-"));
+        return [...filtered, ...uploadedFileDescriptors];
+      });
+
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      setPopup({
+        type: "error",
+        message: "Failed to upload files",
+      });
+      
+      // Remove temp files on error
+      setCurrentMessageFiles((prev) => prev.filter((f) => !f.id.startsWith("temp-")));
+    } finally {
+      updateChatState("input", currentSessionId());
+    }
   };
 
   // Used to maintain a "time out" for history sidebar so our existing refs can have time to process change

@@ -9,6 +9,7 @@ import {
 } from "../files/InputBarPreview";
 import { SendIcon } from "@/components/icons/icons";
 import { HorizontalSourceSelector } from "@/components/search/filtering/HorizontalSourceSelector";
+import { deleteChatFile } from "../lib";
 import { Tag } from "@/lib/types";
 
 const MAX_INPUT_HEIGHT = 200;
@@ -108,7 +109,17 @@ export function SimplifiedChatInputBar({
                   {file.type === ChatFileType.IMAGE ? (
                     <InputBarPreviewImageProvider
                       file={file}
-                      onDelete={() => {
+                      onDelete={async () => {
+                        // Delete file from backend before removing from UI
+                        try {
+                          const error = await deleteChatFile(file.id);
+                          if (error) {
+                            console.error("Failed to delete file:", error);
+                            // Still remove from UI even if backend deletion fails
+                          }
+                        } catch (error) {
+                          console.error("Error deleting file:", error);
+                        }
                         setFiles(
                           files.filter(
                             (fileInFilter) => fileInFilter.id !== file.id
@@ -120,7 +131,17 @@ export function SimplifiedChatInputBar({
                   ) : (
                     <InputBarPreview
                       file={file}
-                      onDelete={() => {
+                      onDelete={async () => {
+                        // Delete file from backend before removing from UI
+                        try {
+                          const error = await deleteChatFile(file.id);
+                          if (error) {
+                            console.error("Failed to delete file:", error);
+                            // Still remove from UI even if backend deletion fails
+                          }
+                        } catch (error) {
+                          console.error("Error deleting file:", error);
+                        }
                         setFiles(
                           files.filter(
                             (fileInFilter) => fileInFilter.id !== file.id
