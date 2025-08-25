@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 from pydantic import Field
+from sqlalchemy.engine.util import TransactionalContext
 
 from onyx.access.models import DocumentAccess
 from onyx.connectors.models import Document
@@ -15,11 +16,8 @@ from shared_configs.enums import EmbeddingProvider
 from shared_configs.model_server_models import Embedding
 
 if TYPE_CHECKING:
-    from onyx.indexing.indexing_pipeline import DocumentBatchPrepareContext
-from sqlalchemy.engine.util import TransactionalContext
-
-if TYPE_CHECKING:
     from onyx.db.models import SearchSettings
+    from onyx.indexing.indexing_pipeline import DocumentBatchPrepareContext
 
 
 logger = setup_logger()
@@ -246,6 +244,9 @@ class IndexingBatchAdapter(Protocol):
         context: "DocumentBatchPrepareContext",
     ) -> BuildMetadataAwareChunksResult: ...
 
+    """Build metadata-aware chunks for documents that are user files
+    NOTE: This method should be called only within the lock_context"""
+
     def post_index(
         self,
         context: "DocumentBatchPrepareContext",
@@ -253,3 +254,5 @@ class IndexingBatchAdapter(Protocol):
         filtered_documents: list[Document],
         result: BuildMetadataAwareChunksResult,
     ) -> None: ...
+
+    """NOTE: This method should be called only within the lock_context"""

@@ -239,7 +239,7 @@ def index_doc_batch_with_handler(
     information_content_classification_model: InformationContentClassificationModel,
     document_index: DocumentIndex,
     document_batch: list[Document],
-    index_attempt_metadata: IndexAttemptMetadata,
+    request_id: str | None,
     tenant_id: str,
     adapter: IndexingBatchAdapter,
     ignore_time_skip: bool = False,
@@ -253,7 +253,7 @@ def index_doc_batch_with_handler(
             information_content_classification_model=information_content_classification_model,
             document_index=document_index,
             document_batch=document_batch,
-            index_attempt_metadata=index_attempt_metadata,
+            request_id=request_id,
             tenant_id=tenant_id,
             adapter=adapter,
             ignore_time_skip=ignore_time_skip,
@@ -665,7 +665,7 @@ def index_doc_batch(
     embedder: IndexingEmbedder,
     information_content_classification_model: InformationContentClassificationModel,
     document_index: DocumentIndex,
-    index_attempt_metadata: IndexAttemptMetadata,
+    request_id: str | None,
     tenant_id: str,
     adapter: IndexingBatchAdapter,
     enable_contextual_rag: bool = False,
@@ -684,6 +684,7 @@ def index_doc_batch(
     filtered_documents = filter_fnc(document_batch)
     context = adapter.prepare(filtered_documents, ignore_time_skip)
     if not context:
+        # If the documents are not indexable, we return an empty result
         return IndexingPipelineResult(
             new_docs=0,
             total_docs=len(filtered_documents),
@@ -692,7 +693,7 @@ def index_doc_batch(
         )
 
     # Convert documents to IndexingDocument objects with processed section
-    # logger.debug("Processing image sections")
+    logger.debug("Processing image sections")
     context.indexable_docs = process_image_sections(context.updatable_docs)
 
     doc_descriptors = [
@@ -733,7 +734,7 @@ def index_doc_batch(
             chunks=chunks,
             embedder=embedder,
             tenant_id=tenant_id,
-            request_id=index_attempt_metadata.request_id,
+            request_id=request_id,
         )
         if chunks
         else ([], [])
@@ -825,11 +826,12 @@ def index_doc_batch(
     return IndexingPipelineResult(
         new_docs=len([r for r in insertion_records if not r.already_existed]),
         total_docs=len(filtered_documents),
-        total_chunks=len(chunks_with_embeddings),
+        total_chunks=len(result.chunks),
         failures=vector_db_write_failures + embedding_failures,
     )
 
 
+# TODO: Keep this for reference as of now, it will be removed after 1 or 2 weeks
 # @log_function_time(debug_only=True)
 # def index_doc_batch(
 #     *,
@@ -1182,7 +1184,7 @@ def index_doc_batch(
 def run_indexing_pipeline(
     *,
     document_batch: list[Document],
-    index_attempt_metadata: IndexAttemptMetadata,
+    request_id: str | None,
     embedder: IndexingEmbedder,
     information_content_classification_model: InformationContentClassificationModel,
     document_index: DocumentIndex,
@@ -1229,7 +1231,7 @@ def run_indexing_pipeline(
         information_content_classification_model=information_content_classification_model,
         document_index=document_index,
         document_batch=document_batch,
-        index_attempt_metadata=index_attempt_metadata,
+        request_id=request_id,
         tenant_id=tenant_id,
         adapter=adapter,
         enable_contextual_rag=enable_contextual_rag,

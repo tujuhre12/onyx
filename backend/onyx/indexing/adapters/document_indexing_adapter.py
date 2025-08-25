@@ -1,7 +1,9 @@
 import contextlib
+import time
 from collections.abc import Generator
 
 from sqlalchemy.engine.util import TransactionalContext
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from onyx.access.access import get_access_for_documents
@@ -10,9 +12,9 @@ from onyx.configs.constants import DEFAULT_BOOST
 from onyx.connectors.models import Document
 from onyx.connectors.models import IndexAttemptMetadata
 from onyx.db.chunk import update_chunk_boost_components__no_commit
+from onyx.db.document import acquire_document_locks
 from onyx.db.document import fetch_chunk_counts_for_documents
 from onyx.db.document import mark_document_as_indexed_for_cc_pair__no_commit
-from onyx.db.document import prepare_to_modify_documents
 from onyx.db.document import update_docs_chunk_count__no_commit
 from onyx.db.document import update_docs_last_modified__no_commit
 from onyx.db.document import update_docs_updated_at__no_commit
@@ -32,6 +34,8 @@ from onyx.natural_language_processing.utils import get_tokenizer
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
+_NUM_LOCK_ATTEMPTS = 10
+_LOCK_RETRY_DELAY = 10
 
 
 class DocumentIndexingBatchAdapter:
@@ -84,10 +88,41 @@ class DocumentIndexingBatchAdapter:
         self, documents: list[Document]
     ) -> Generator[TransactionalContext, None, None]:
         """Acquire transaction/row locks on docs for the critical section."""
-        with prepare_to_modify_documents(
-            db_session=self.db_session, document_ids=[doc.id for doc in documents]
-        ) as transaction:
-            yield transaction
+        """Try and acquire locks for the documents to prevent other jobs from
+        modifying them at the same time (e.g. avoid race conditions). This should be
+        called ahead of any modification to Vespa. Locks should be released by the
+        caller as soon as updates are complete by finishing the transaction.
+
+        NOTE: only one commit is allowed within the context manager returned by this function.
+        Multiple commits will result in a sqlalchemy.exc.InvalidRequestError.
+        NOTE: this function will commit any existing transaction.
+        """
+
+        self.db_session.commit()  # ensure that we're not in a transaction
+
+        lock_acquired = False
+        for i in range(_NUM_LOCK_ATTEMPTS):
+            try:
+                with self.db_session.begin() as transaction:
+                    lock_acquired = acquire_document_locks(
+                        db_session=self.db_session,
+                        document_ids=[doc.id for doc in documents],
+                    )
+                    if lock_acquired:
+                        yield transaction
+                        break
+            except OperationalError as e:
+                logger.warning(
+                    f"Failed to acquire locks for documents on attempt {i}, retrying. Error: {e}"
+                )
+
+            time.sleep(_LOCK_RETRY_DELAY)
+
+        if not lock_acquired:
+            raise RuntimeError(
+                f"Failed to acquire locks after {_NUM_LOCK_ATTEMPTS} attempts "
+                f"for documents: {[doc.id for doc in documents]}"
+            )
 
     def build_metadata_aware_chunks(
         self,
