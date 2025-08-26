@@ -12,13 +12,14 @@ from onyx.configs.app_configs import REDIS_PORT
 from onyx.configs.app_configs import REDIS_SSL
 from onyx.configs.app_configs import REDIS_SSL_CA_CERTS
 from onyx.configs.app_configs import REDIS_SSL_CERT_REQS
+from onyx.configs.app_configs import USE_REDIS_IAM_AUTH
 from onyx.configs.constants import OnyxCeleryPriority
 from onyx.configs.constants import REDIS_SOCKET_KEEPALIVE_OPTIONS
 
 CELERY_SEPARATOR = ":"
 
 CELERY_PASSWORD_PART = ""
-if REDIS_PASSWORD:
+if REDIS_PASSWORD and not USE_REDIS_IAM_AUTH:
     CELERY_PASSWORD_PART = ":" + urllib.parse.quote(REDIS_PASSWORD, safe="") + "@"
 
 REDIS_SCHEME = "redis"
