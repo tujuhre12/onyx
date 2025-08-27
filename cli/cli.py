@@ -761,7 +761,7 @@ def cmd_dev(base_dir: Path) -> int:
     backend_dir = repo / "backend"
     if backend_dir.exists():
         print("→ Running 'pre-commit install' in backend/")
-        run([py, "-m", "pre_commit", "install"], cwd=backend_dir, capture=False)
+        run([py, "-m", "pre-commit", "install"], cwd=backend_dir, capture=False)
     else:
         print("⚠ backend/ directory not found; skipping pre-commit install")
 
