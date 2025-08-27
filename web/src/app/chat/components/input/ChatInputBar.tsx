@@ -38,6 +38,7 @@ import { DeepResearchToggle } from "./DeepResearchToggle";
 import { ActionToggle } from "./ActionManagement";
 import { SelectedTool } from "./SelectedTool";
 import { getProviderIcon } from "@/app/admin/configuration/llm/utils";
+import FilePicker from "../files/FilePicker";
 
 const MAX_INPUT_HEIGHT = 200;
 
@@ -618,6 +619,10 @@ export const ChatInputBar = React.memo(function ChatInputBar({
                     toggleDocSelection();
                   }}
                   tooltipContent={"Upload files and attach user files"}
+                />
+                <FilePicker
+                  onPickRecent={() => {}}
+                  onOpenMyDocuments={() => {}}
                 />
 
                 {selectedAssistant.tools.length > 0 && (

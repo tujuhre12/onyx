@@ -1045,6 +1045,7 @@ export function ChatPage({
                     handleMessageSpecificFileUpload(acceptedFiles)
                   }
                   noClick
+                  noKeyboard
                 >
                   {({ getRootProps }) => (
                     <div className="flex h-full w-full">
