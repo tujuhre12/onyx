@@ -591,6 +591,11 @@ ingress:
   className: "nginx"
   api:
     host: onyx.local
+    path: /api(/|$)(.*)
+    pathType: ImplementationSpecific
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
+      nginx.ingress.kubernetes.io/use-regex: "true"
   webserver:
     host: onyx.local
 
