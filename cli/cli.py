@@ -234,6 +234,22 @@ def compose_file_from_repo(repo: Path) -> Path:
     return repo / DEFAULT_COMPOSE_REL
 
 
+def resolve_compose_file(repo: Path, compose_file: Optional[str]) -> Path:
+    """
+    Resolve compose file path.
+    - If compose_file is absolute, return it.
+    - If relative, assume it's inside repo/deployment/docker_compose.
+    - If None, return default dev compose.
+    """
+    if compose_file:
+        p = Path(compose_file).expanduser()
+        if not p.is_absolute():
+            return repo / "deployment" / "docker_compose" / p
+        return p
+    # default
+    return repo / "deployment" / "docker_compose" / "docker-compose.dev.yml"
+
+
 # ---------- Help ----------
 
 
@@ -487,7 +503,7 @@ def cmd_up(
     dc_cmd = docker_compose_cmd()
 
     if compose_file:
-        compose_path = Path(compose_file).expanduser().resolve()
+        compose_path = resolve_compose_file(repo, compose_file)
         if not compose_path.exists():
             print(f"✖ Compose file not found: {compose_path}", file=sys.stderr)
             return 1
@@ -544,7 +560,7 @@ def cmd_down(
 
     # Default compose path
     if compose_file:
-        compose_path = Path(compose_file).expanduser().resolve()
+        compose_path = resolve_compose_file(repo, compose_file)
     else:
         compose_path = compose_file_from_repo(repo)
 
@@ -684,7 +700,7 @@ def npm_cmd() -> str:
 def cmd_dev(base_dir: Path) -> int:
     print_header("Onyx Dev Setup")
 
-    # Check basic tooling
+    # Check basic tooling first
     errors = []
     if not which("docker"):
         errors.append("Docker is required.")
@@ -692,18 +708,28 @@ def cmd_dev(base_dir: Path) -> int:
         errors.append("Docker Compose is required.")
     if not check_python_version(3, 11):
         errors.append("Python 3.11+ is required for development.")
-
     if errors:
         for e in errors:
             print(f"✖ {e}", file=sys.stderr)
         return 1
 
     repo = repo_path(base_dir)
-    if not repo_has_entire_source(repo):
-        print("✖ Full repo not found. Run: onyx install --all", file=sys.stderr)
+
+    # If no repo (or only sparse deployment checkout), fetch/expand to FULL repo automatically
+    try:
+        needs_full = (not is_git_repo(repo)) or (not repo_has_entire_source(repo))
+        if needs_full:
+            if not has_git():
+                print("✖ git is required to fetch the Onyx repository for development.", file=sys.stderr)
+                return 1
+            print("ℹ Full repository required for dev. Fetching/upgrading repository (main)...")
+            # clone_or_update_full_repo should convert sparse → full if already present
+            clone_or_update_full_repo(repo, "main")
+    except Exception as e:
+        print(f"✖ Failed to prepare full repository: {e}", file=sys.stderr)
         return 1
 
-    # Create venv
+    # --- create venv and install dependencies ---
     venv_dir = base_dir / ".onyx-venv"
     if not venv_dir.exists():
         print(f"→ Creating virtual environment at {venv_dir}")
@@ -714,10 +740,8 @@ def cmd_dev(base_dir: Path) -> int:
     py = str(python_in_venv(venv_dir))
     pip = str(pip_in_venv(venv_dir))
 
-    # Upgrade pip/setuptools/wheel
     run([py, "-m", "pip", "install", "--upgrade", "pip", "setuptools", "wheel"])
 
-    # Install backend requirements
     reqs = [
         "backend/requirements/default.txt",
         "backend/requirements/dev.txt",
@@ -728,25 +752,23 @@ def cmd_dev(base_dir: Path) -> int:
         req_path = repo / req
         if req_path.exists():
             print(f"→ pip install -r {req}")
-            run([pip, "install", "-r", str(req_path)])
+            run([pip, "install", "-r", str(req_path)], capture=False)
         else:
             print(f"⚠ Skipping missing file: {req}")
 
-    # pre-commit
     print("→ Installing pre-commit")
-    run([pip, "install", "pre-commit"])
+    run([pip, "install", "pre-commit"], capture=False)
     backend_dir = repo / "backend"
     if backend_dir.exists():
         print("→ Running 'pre-commit install' in backend/")
-        run([py, "-m", "pre_commit", "install"], cwd=backend_dir)
+        run([py, "-m", "pre_commit", "install"], cwd=backend_dir, capture=False)
     else:
         print("⚠ backend/ directory not found; skipping pre-commit install")
 
-    # web npm install
     web_dir = repo / "web"
     if web_dir.exists():
         print("→ Running 'npm i' in web/")
-        run([npm_cmd(), "i"], cwd=web_dir)
+        run([npm_cmd(), "i"], cwd=web_dir, capture=False)
     else:
         print("⚠ web/ directory not found; skipping npm install")
 
