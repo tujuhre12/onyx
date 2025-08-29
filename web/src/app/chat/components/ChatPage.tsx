@@ -85,6 +85,8 @@ import { FederatedOAuthModal } from "@/components/chat/FederatedOAuthModal";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { StarterMessageDisplay } from "./starterMessages/StarterMessageDisplay";
 import { MessagesDisplay } from "./MessagesDisplay";
+import ProjectContextPanel from "./projects/ProjectContextPanel";
+import { useProjectsContext } from "@/app/chat/projects/ProjectsContext";
 
 export function ChatPage({
   toggle,
@@ -164,6 +166,7 @@ export function ChatPage({
 
   const { user, isAdmin } = useUser();
   const existingChatIdRaw = searchParams?.get("chatId");
+  const { setCurrentProjectId } = useProjectsContext();
 
   const [showHistorySidebar, setShowHistorySidebar] = useState(false);
 
@@ -251,6 +254,17 @@ export function ChatPage({
   }, [availableSources, federatedConnectorsData]);
 
   const { popup, setPopup } = usePopup();
+
+  useEffect(() => {
+    const projectId = searchParams?.get("projectid");
+    if (projectId) {
+      console.log("setting project id", projectId);
+      setCurrentProjectId(projectId);
+    } else {
+      console.log("clearing project id");
+      setCurrentProjectId(null);
+    }
+  }, [searchParams?.get("projectid"), setCurrentProjectId]);
 
   useEffect(() => {
     const userFolderId = searchParams?.get(SEARCH_PARAM_NAMES.USER_FOLDER_ID);
