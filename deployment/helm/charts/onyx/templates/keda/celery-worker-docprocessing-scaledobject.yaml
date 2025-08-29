@@ -1,4 +1,4 @@
-{{- if and (hasKey .Values "keda") .Values.keda.enabled (and .Values.keda.celeryWorkers .Values.keda.celeryWorkers.enabled) (and .Values.keda.celeryWorkers.docprocessing .Values.keda.celeryWorkers.docprocessing.enabled) }}
+{{- if and .Values.keda.enabled .Values.keda.celeryWorkers.enabled (and .Values.keda.celeryWorkers.docprocessing .Values.keda.celeryWorkers.docprocessing.enabled) }}
 # Note: This KEDA ScaledObject will conflict with HPA if celeryworkers.docprocessing.autoscaling.enabled is also true
 # Only one autoscaler should be active per deployment
 apiVersion: keda.sh/v1alpha1
@@ -14,8 +14,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ include "onyx-stack.fullname" . }}-celery-worker-docprocessing
-  pollingInterval: {{ .Values.keda.celeryWorkers.docprocessing.pollingInterval | default .Values.keda.global.pollingInterval }}
-  cooldownPeriod: {{ .Values.keda.celeryWorkers.docprocessing.cooldownPeriod | default .Values.keda.global.cooldownPeriod }}
+  pollingInterval: {{ .Values.keda.celeryWorkers.docprocessing.pollingInterval | default 30 }}
+  cooldownPeriod: {{ .Values.keda.celeryWorkers.docprocessing.cooldownPeriod | default 300 }}
   minReplicaCount: {{ .Values.keda.celeryWorkers.docprocessing.minReplicas | default 1 }}
   maxReplicaCount: {{ .Values.keda.celeryWorkers.docprocessing.maxReplicas | default 50 }}
   triggers:

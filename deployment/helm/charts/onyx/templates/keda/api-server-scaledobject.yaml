@@ -1,4 +1,4 @@
-{{- if and (hasKey .Values "keda") .Values.keda.enabled (and .Values.keda.apiServer .Values.keda.apiServer.enabled) }}
+{{- if and .Values.keda.enabled .Values.keda.apiServer .Values.keda.apiServer.enabled }}
 # Note: This KEDA ScaledObject will conflict with HPA if apiserver.autoscaling.enabled is also true
 # Only one autoscaler should be active per deployment
 apiVersion: keda.sh/v1alpha1
@@ -14,8 +14,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ include "onyx-stack.fullname" . }}-api-server
-  pollingInterval: {{ .Values.keda.apiServer.pollingInterval | default .Values.keda.global.pollingInterval }}
-  cooldownPeriod: {{ .Values.keda.apiServer.cooldownPeriod | default .Values.keda.global.cooldownPeriod }}
+  pollingInterval: {{ .Values.keda.apiServer.pollingInterval | default 30 }}
+  cooldownPeriod: {{ .Values.keda.apiServer.cooldownPeriod | default 300 }}
   minReplicaCount: {{ .Values.keda.apiServer.minReplicas | default 1 }}
   maxReplicaCount: {{ .Values.keda.apiServer.maxReplicas | default 10 }}
   triggers:

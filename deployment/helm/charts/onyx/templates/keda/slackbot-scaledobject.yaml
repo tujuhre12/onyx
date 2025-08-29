@@ -1,4 +1,4 @@
-{{- if and (hasKey .Values "keda") .Values.keda.enabled (and .Values.keda.slackbot .Values.keda.slackbot.enabled) }}
+{{- if and .Values.keda.enabled .Values.keda.slackbot .Values.keda.slackbot.enabled }}
 # Note: This KEDA ScaledObject will conflict with HPA if slackbot.autoscaling.enabled is also true
 # Only one autoscaler should be active per deployment
 apiVersion: keda.sh/v1alpha1
@@ -14,8 +14,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ include "onyx-stack.fullname" . }}-slackbot
-  pollingInterval: {{ .Values.keda.slackbot.pollingInterval | default .Values.keda.global.pollingInterval }}
-  cooldownPeriod: {{ .Values.keda.slackbot.cooldownPeriod | default .Values.keda.global.cooldownPeriod }}
+  pollingInterval: {{ .Values.keda.slackbot.pollingInterval | default 30 }}
+  cooldownPeriod: {{ .Values.keda.slackbot.cooldownPeriod | default 300 }}
   minReplicaCount: {{ .Values.keda.slackbot.minReplicas | default 1 }}
   maxReplicaCount: {{ .Values.keda.slackbot.maxReplicas | default 3 }}
   triggers:

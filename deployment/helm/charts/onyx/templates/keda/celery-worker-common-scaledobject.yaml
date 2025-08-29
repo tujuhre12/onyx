@@ -1,4 +1,4 @@
-{{- if and (hasKey .Values "keda") .Values.keda.enabled .Values.keda.celeryWorkers.enabled }}
+{{- if and .Values.keda.enabled .Values.keda.celeryWorkers.enabled }}
 {{- range $workerType, $workerConfig := .Values.keda.celeryWorkers }}
 {{- if and (ne $workerType "enabled") $workerConfig.enabled (ne $workerType "docprocessing") (ne $workerType "docfetching") }}
 ---
@@ -18,8 +18,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ include "onyx-stack.fullname" $ }}-celery-worker-{{ $workerType }}
-  pollingInterval: {{ $workerConfig.pollingInterval | default $.Values.keda.global.pollingInterval }}
-  cooldownPeriod: {{ $workerConfig.cooldownPeriod | default $.Values.keda.global.cooldownPeriod }}
+  pollingInterval: {{ $workerConfig.pollingInterval | default 30 }}
+  cooldownPeriod: {{ $workerConfig.cooldownPeriod | default 300 }}
   minReplicaCount: {{ $workerConfig.minReplicas | default 1 }}
   maxReplicaCount: {{ $workerConfig.maxReplicas | default 10 }}
   triggers:

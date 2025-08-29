@@ -1,4 +1,4 @@
-{{- if and (hasKey .Values "keda") .Values.keda.enabled .Values.keda.modelServers.enabled }}
+{{- if and .Values.keda.enabled .Values.keda.modelServers.enabled }}
 {{- range $serverType, $serverConfig := .Values.keda.modelServers }}
 {{- if and (ne $serverType "enabled") $serverConfig.enabled }}
 ---
@@ -17,8 +17,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ include "onyx-stack.fullname" $ }}-{{ $serverType }}-model-server
-  pollingInterval: {{ $serverConfig.pollingInterval | default $.Values.keda.global.pollingInterval }}
-  cooldownPeriod: {{ $serverConfig.cooldownPeriod | default $.Values.keda.global.cooldownPeriod }}
+  pollingInterval: {{ $serverConfig.pollingInterval | default 30 }}
+  cooldownPeriod: {{ $serverConfig.cooldownPeriod | default 300 }}
   minReplicaCount: {{ $serverConfig.minReplicas | default 1 }}
   maxReplicaCount: {{ $serverConfig.maxReplicas | default 5 }}
   triggers:
