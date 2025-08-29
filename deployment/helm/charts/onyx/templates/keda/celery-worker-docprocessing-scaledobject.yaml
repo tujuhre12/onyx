@@ -29,6 +29,10 @@ spec:
     {{- end }}
     {{- else }}
     # Default Prometheus-based trigger for Redis queue depth if none specified
+    # Scaling Logic:
+    # - When queue depth > 20: Scale up by factor of 4 (very aggressive scaling)
+    # - When queue depth <= 20: Scale down by factor of 0.25 (very conservative scaling)
+    # - Threshold of 1 ensures scaling triggers when metric value > 1
     - type: prometheus
       metadata:
         serverAddress: "http://prometheus-redis.monitoring.svc.cluster.local:9090"
@@ -36,6 +40,9 @@ spec:
         metricType: "Value"
         threshold: "1"
         query: |
+          # Simplified scaling logic for docprocessing workers
+          # Returns 4 when queue depth > 20, 0.25 when <= 20
+          # This creates a clear scaling decision boundary for high-volume processing
           (
             (sum(redis_key_size{key=~"connector_docprocessing.*"}) > 20)
               * 4
