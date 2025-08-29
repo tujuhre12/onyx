@@ -1,0 +1,25 @@
+{{- if and .Values.keda.enabled (and .Values.keda.slackbot .Values.keda.slackbot.enabled) }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "onyx-stack.fullname" . }}-slackbot-scaledobject
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "onyx-stack.labels" . | nindent 4 }}
+    app: slackbot
+spec:
+  scaleTargetRef:
+    name: {{ include "onyx-stack.fullname" . }}-slackbot
+  pollingInterval: {{ .Values.keda.slackbot.pollingInterval | default .Values.keda.global.pollingInterval }}
+  cooldownPeriod: {{ .Values.keda.slackbot.cooldownPeriod | default .Values.keda.global.cooldownPeriod }}
+  minReplicaCount: {{ .Values.keda.slackbot.minReplicas }}
+  maxReplicaCount: {{ .Values.keda.slackbot.maxReplicas }}
+  triggers:
+    {{- range .Values.keda.slackbot.triggers }}
+    - type: {{ .type }}
+      metadata:
+        {{- range $key, $value := .metadata }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+    {{- end }}
+{{- end }}

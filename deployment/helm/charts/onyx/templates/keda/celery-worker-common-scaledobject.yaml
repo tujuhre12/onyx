@@ -1,0 +1,30 @@
+{{- if and .Values.keda.enabled .Values.keda.celeryWorkers.enabled }}
+{{- range $workerType, $workerConfig := .Values.keda.celeryWorkers }}
+{{- if and (ne $workerType "enabled") $workerConfig.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "onyx-stack.fullname" $ }}-celery-worker-{{ $workerType }}-scaledobject
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "onyx-stack.labels" $ | nindent 4 }}
+    app: celery-worker-{{ $workerType }}
+spec:
+  scaleTargetRef:
+    name: {{ include "onyx-stack.fullname" $ }}-celery-worker-{{ $workerType }}
+  pollingInterval: {{ $workerConfig.pollingInterval | default $.Values.keda.global.pollingInterval }}
+  cooldownPeriod: {{ $workerConfig.cooldownPeriod | default $.Values.keda.global.cooldownPeriod }}
+  minReplicaCount: {{ $workerConfig.minReplicas }}
+  maxReplicaCount: {{ $workerConfig.maxReplicas }}
+  triggers:
+    {{- range $workerConfig.triggers }}
+    - type: {{ .type }}
+      metadata:
+        {{- range $key, $value := .metadata }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
