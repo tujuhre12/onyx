@@ -1,4 +1,6 @@
-{{- if and .Values.keda.enabled (and .Values.keda.celeryWorkers .Values.keda.celeryWorkers.enabled) (and .Values.keda.celeryWorkers.docfetching .Values.keda.celeryWorkers.docfetching.enabled) }}
+{{- if and (hasKey .Values "keda") .Values.keda.enabled (and .Values.keda.celeryWorkers .Values.keda.celeryWorkers.enabled) (and .Values.keda.celeryWorkers.docfetching .Values.keda.celeryWorkers.docfetching.enabled) }}
+# Note: This KEDA ScaledObject will conflict with HPA if celeryworkers.docfetching.autoscaling.enabled is also true
+# Only one autoscaler should be active per deployment
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
@@ -9,17 +11,39 @@ metadata:
     app: celery-worker-docfetching
 spec:
   scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
     name: {{ include "onyx-stack.fullname" . }}-celery-worker-docfetching
   pollingInterval: {{ .Values.keda.celeryWorkers.docfetching.pollingInterval | default .Values.keda.global.pollingInterval }}
   cooldownPeriod: {{ .Values.keda.celeryWorkers.docfetching.cooldownPeriod | default .Values.keda.global.cooldownPeriod }}
-  minReplicaCount: {{ .Values.keda.celeryWorkers.docfetching.minReplicas }}
-  maxReplicaCount: {{ .Values.keda.celeryWorkers.docfetching.maxReplicas }}
+  minReplicaCount: {{ .Values.keda.celeryWorkers.docfetching.minReplicas | default 1 }}
+  maxReplicaCount: {{ .Values.keda.celeryWorkers.docfetching.maxReplicas | default 10 }}
   triggers:
+    {{- if .Values.keda.celeryWorkers.docfetching.triggers }}
     {{- range .Values.keda.celeryWorkers.docfetching.triggers }}
     - type: {{ .type }}
       metadata:
         {{- range $key, $value := .metadata }}
         {{ $key }}: {{ $value | quote }}
         {{- end }}
+    {{- end }}
+    {{- else }}
+    # Default Prometheus-based trigger for Redis queue depth if none specified
+    - type: prometheus
+      metadata:
+        serverAddress: "http://prometheus-redis.monitoring.svc.cluster.local:9090"
+        metricName: "redis_key_size_sum"
+        metricType: "Value"
+        threshold: "1"
+        query: |
+          (
+            (sum(redis_key_size{key=~"connector_docfetching.*"}) > 5)
+              * 2
+          )
+          +
+          (
+            (sum(redis_key_size{key=~"connector_docfetching.*"}) <= 5)
+              * 0.5
+          )
     {{- end }}
 {{- end }}

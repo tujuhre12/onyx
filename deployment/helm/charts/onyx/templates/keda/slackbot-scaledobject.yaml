@@ -1,4 +1,6 @@
-{{- if and .Values.keda.enabled (and .Values.keda.slackbot .Values.keda.slackbot.enabled) }}
+{{- if and (hasKey .Values "keda") .Values.keda.enabled (and .Values.keda.slackbot .Values.keda.slackbot.enabled) }}
+# Note: This KEDA ScaledObject will conflict with HPA if slackbot.autoscaling.enabled is also true
+# Only one autoscaler should be active per deployment
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
@@ -9,17 +11,27 @@ metadata:
     app: slackbot
 spec:
   scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
     name: {{ include "onyx-stack.fullname" . }}-slackbot
   pollingInterval: {{ .Values.keda.slackbot.pollingInterval | default .Values.keda.global.pollingInterval }}
   cooldownPeriod: {{ .Values.keda.slackbot.cooldownPeriod | default .Values.keda.global.cooldownPeriod }}
-  minReplicaCount: {{ .Values.keda.slackbot.minReplicas }}
-  maxReplicaCount: {{ .Values.keda.slackbot.maxReplicas }}
+  minReplicaCount: {{ .Values.keda.slackbot.minReplicas | default 1 }}
+  maxReplicaCount: {{ .Values.keda.slackbot.maxReplicas | default 3 }}
   triggers:
+    {{- if .Values.keda.slackbot.triggers }}
     {{- range .Values.keda.slackbot.triggers }}
     - type: {{ .type }}
       metadata:
         {{- range $key, $value := .metadata }}
         {{ $key }}: {{ $value | quote }}
         {{- end }}
+    {{- end }}
+    {{- else }}
+    # Default CPU-based trigger if none specified
+    - type: cpu
+      metadata:
+        type: Utilization
+        value: "70"
     {{- end }}
 {{- end }}

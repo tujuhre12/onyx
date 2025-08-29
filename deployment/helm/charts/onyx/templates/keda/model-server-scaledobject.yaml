@@ -1,7 +1,9 @@
-{{- if and .Values.keda.enabled .Values.keda.modelServers.enabled }}
+{{- if and (hasKey .Values "keda") .Values.keda.enabled .Values.keda.modelServers.enabled }}
 {{- range $serverType, $serverConfig := .Values.keda.modelServers }}
 {{- if and (ne $serverType "enabled") $serverConfig.enabled }}
 ---
+# Note: This KEDA ScaledObject will conflict with HPA if modelservers.{{ $serverType }}.autoscaling.enabled is also true
+# Only one autoscaler should be active per deployment
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
@@ -12,18 +14,28 @@ metadata:
     app: {{ $serverType }}-model-server
 spec:
   scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
     name: {{ include "onyx-stack.fullname" $ }}-{{ $serverType }}-model-server
   pollingInterval: {{ $serverConfig.pollingInterval | default $.Values.keda.global.pollingInterval }}
   cooldownPeriod: {{ $serverConfig.cooldownPeriod | default $.Values.keda.global.cooldownPeriod }}
-  minReplicaCount: {{ $serverConfig.minReplicas }}
-  maxReplicaCount: {{ $serverConfig.maxReplicas }}
+  minReplicaCount: {{ $serverConfig.minReplicas | default 1 }}
+  maxReplicaCount: {{ $serverConfig.maxReplicas | default 5 }}
   triggers:
+    {{- if $serverConfig.triggers }}
     {{- range $serverConfig.triggers }}
     - type: {{ .type }}
       metadata:
         {{- range $key, $value := .metadata }}
         {{ $key }}: {{ $value | quote }}
         {{- end }}
+    {{- end }}
+    {{- else }}
+    # Default CPU-based trigger if none specified
+    - type: cpu
+      metadata:
+        type: Utilization
+        value: "70"
     {{- end }}
 {{- end }}
 {{- end }}
