@@ -84,7 +84,12 @@ def _perform_jql_search(
         f"Fetching Jira issues with JQL: {jql}, "
         f"starting at {start}, max results: {max_results}"
     )
-    issues = jira_client.search_issues(
+
+    # Use custom search method to handle Atlassian's API breaking change
+    # The old /rest/api/{version}/search endpoint has been deprecated
+    # New endpoint is /rest/api/{version}/search/jql
+    issues = _custom_search_issues(
+        jira_client,
         jql_str=jql,
         startAt=start,
         maxResults=max_results,
@@ -96,6 +101,67 @@ def _perform_jql_search(
             yield issue
         else:
             raise RuntimeError(f"Found Jira object not of type Issue: {issue}")
+
+
+def _custom_search_issues(
+    jira_client: JIRA,
+    jql_str: str,
+    startAt: int = 0,
+    maxResults: int = 50,
+    fields: str | None = None,
+) -> Iterable[Issue]:
+    """
+    Simple fix for Atlassian's API breaking change.
+
+    The old /rest/api/{version}/search endpoint has been deprecated and removed.
+    New endpoint is /rest/api/{version}/search/jql
+
+    This is a minimal fix to resolve the immediate issue. For performance improvements,
+    see the upgrade instructions in JIRA_API_FIX_SUMMARY.md
+    """
+    if isinstance(fields, str):
+        fields = fields.split(",")
+    elif fields is None:
+        fields = ["*all"]
+
+    # Build search parameters - keep the same interface for backwards compatibility
+    search_params = {
+        "jql": jql_str,
+        "startAt": startAt,
+        "maxResults": maxResults,
+        "fields": fields,
+        "validateQuery": True,
+    }
+
+    # Use the new JQL endpoint
+    url = f"{jira_client.server_url}/rest/api/{jira_client._options.get('rest_api_version', '3')}/search/jql"
+
+    # Make the request directly to the new endpoint
+    response = jira_client._session.post(url, json=search_params)
+
+    if response.status_code == 410:
+        # Fallback to old method if needed (though it should fail now)
+        logger.warning("JQL endpoint returned 410, falling back to old search method")
+        return jira_client.search_issues(
+            jql_str=jql_str,
+            startAt=startAt,
+            maxResults=maxResults,
+            fields=fields,
+        )
+
+    response.raise_for_status()
+    data = response.json()
+
+    # Convert the response to Issue objects
+    issues = []
+    for issue_data in data.get("issues", []):
+        issue = Issue(jira_client, issue_data)
+        # Ensure the issue has the necessary attributes
+        if not hasattr(issue, "key") and "key" in issue_data:
+            issue.key = issue_data["key"]
+        issues.append(issue)
+
+    return issues
 
 
 def process_jira_issue(
