@@ -20,8 +20,7 @@ spec:
   minReplicaCount: {{ $workerConfig.minReplicas | default 1 }}
   maxReplicaCount: {{ $workerConfig.maxReplicas | default 10 }}
   triggers:
-    {{- if $workerConfig.triggers }}
-    # Default Prometheus-based trigger for Redis queue depth if none specified
+    # Default Prometheus-based trigger for Redis queue depth
     # Scaling Logic:
     # - When queue depth > 5: Scale up by factor of 2 (moderate scaling)
     # - When queue depth <= 5: Scale down by factor of 0.5 (conservative scaling)
@@ -45,7 +44,6 @@ spec:
             (sum(redis_key_size{key=~"connector_{{ $workerType }}.*"}) <= 5)
               * 0.5
           )
-    {{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

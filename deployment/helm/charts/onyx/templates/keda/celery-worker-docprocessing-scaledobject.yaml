@@ -17,8 +17,7 @@ spec:
   minReplicaCount: {{ .Values.keda.celeryWorkers.docprocessing.minReplicas | default 1 }}
   maxReplicaCount: {{ .Values.keda.celeryWorkers.docprocessing.maxReplicas | default 50 }}
   triggers:
-    {{- if .Values.keda.celeryWorkers.docprocessing.triggers }}
-    # Default Prometheus-based trigger for Redis queue depth if none specified
+    # Default Prometheus-based trigger for Redis queue depth
     # Scaling Logic:
     # - When queue depth > 20: Scale up by factor of 4 (very aggressive scaling)
     # - When queue depth <= 20: Scale down by factor of 0.25 (very conservative scaling)
@@ -42,5 +41,4 @@ spec:
             (sum(redis_key_size{key=~"connector_docprocessing.*"}) <= 20)
               * 0.25
           )
-    {{- end }}
 {{- end }}
