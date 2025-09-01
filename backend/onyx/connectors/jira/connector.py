@@ -76,26 +76,60 @@ _FIELD_RESOLUTION_DATE_KEY = "resolution_date"
 def _perform_jql_search(
     jira_client: JIRA,
     jql: str,
-    start: int,
-    max_results: int,
+    start: int = 0,  # Kept for backwards compatibility but no longer used
+    max_results: int = 50,
     fields: str | None = None,
 ) -> Iterable[Issue]:
+    """
+    Perform JQL search using the client's built-in pagination.
+
+    This function leverages the Jira client's built-in pagination capabilities
+    while ensuring we use the new /search/jql endpoint instead of the deprecated /search endpoint.
+
+    The client will automatically handle pagination internally, fetching all results
+    that match the JQL query up to the specified max_results limit.
+    """
     logger.debug(
-        f"Fetching Jira issues with JQL: {jql}, "
-        f"starting at {start}, max results: {max_results}"
-    )
-    issues = jira_client.search_issues(
-        jql_str=jql,
-        startAt=start,
-        maxResults=max_results,
-        fields=fields,
+        f"Fetching Jira issues with JQL: {jql}, " f"max results: {max_results}"
     )
 
-    for issue in issues:
-        if isinstance(issue, Issue):
-            yield issue
-        else:
-            raise RuntimeError(f"Found Jira object not of type Issue: {issue}")
+    # Use the client's built-in pagination by setting a large maxResults
+    # The client will automatically handle pagination internally
+    # We don't need to manually increment startAt anymore
+
+    # Override the client's _get_json method temporarily to use the new endpoint
+    original_get_json = jira_client._get_json
+
+    def patched_get_json(path: str, **kwargs):
+        """Patch to redirect deprecated /search calls to /search/jql"""
+        if path == "search":
+            logger.debug("Redirecting deprecated /search endpoint to /search/jql")
+            path = "search/jql"
+        return original_get_json(path, **kwargs)
+
+    try:
+        # Apply the patch
+        jira_client._get_json = patched_get_json
+
+        # Let the client handle pagination automatically
+        # Set maxResults to the requested limit - the client will fetch all results
+        issues = jira_client.search_issues(
+            jql_str=jql,
+            startAt=0,  # Always start from beginning, let client handle pagination
+            maxResults=max_results,
+            fields=fields,
+        )
+
+        # Yield issues one by one
+        for issue in issues:
+            if isinstance(issue, Issue):
+                yield issue
+            else:
+                raise RuntimeError(f"Found Jira object not of type Issue: {issue}")
+
+    finally:
+        # Restore the original method
+        jira_client._get_json = original_get_json
 
 
 def process_jira_issue(
@@ -300,14 +334,23 @@ class JiraConnector(CheckpointedConnector[JiraConnectorCheckpoint], SlimConnecto
     ) -> CheckpointOutput[JiraConnectorCheckpoint]:
         # Get the current offset from checkpoint or start at 0
         starting_offset = checkpoint.offset or 0
-        current_offset = starting_offset
+
+        # Since we're now using the client's built-in pagination, we need to
+        # handle the offset manually by skipping issues until we reach the checkpoint
+        issues_processed = 0
+        issues_yielded = 0
 
         for issue in _perform_jql_search(
             jira_client=self.jira_client,
             jql=jql,
-            start=current_offset,
+            start=0,  # Always start from beginning, client handles pagination
             max_results=_JIRA_FULL_PAGE_SIZE,
         ):
+            # Skip issues until we reach our checkpoint offset
+            if issues_processed < starting_offset:
+                issues_processed += 1
+                continue
+
             issue_key = issue.key
             try:
                 if document := process_jira_issue(
@@ -317,6 +360,7 @@ class JiraConnector(CheckpointedConnector[JiraConnectorCheckpoint], SlimConnecto
                     labels_to_skip=self.labels_to_skip,
                 ):
                     yield document
+                    issues_yielded += 1
 
             except Exception as e:
                 yield ConnectorFailure(
@@ -328,13 +372,18 @@ class JiraConnector(CheckpointedConnector[JiraConnectorCheckpoint], SlimConnecto
                     exception=e,
                 )
 
-            current_offset += 1
+            issues_processed += 1
+
+            # Stop if we've processed enough issues for this batch
+            if issues_processed >= starting_offset + _JIRA_FULL_PAGE_SIZE:
+                break
 
         # Update checkpoint
+        new_offset = starting_offset + issues_processed
         checkpoint = JiraConnectorCheckpoint(
-            offset=current_offset,
+            offset=new_offset,
             # if we didn't retrieve a full batch, we're done
-            has_more=current_offset - starting_offset == _JIRA_FULL_PAGE_SIZE,
+            has_more=issues_processed == _JIRA_FULL_PAGE_SIZE,
         )
         return checkpoint
 
@@ -357,7 +406,7 @@ class JiraConnector(CheckpointedConnector[JiraConnectorCheckpoint], SlimConnecto
         for issue in _perform_jql_search(
             jira_client=self.jira_client,
             jql=jql,
-            start=int(start),
+            start=0,  # start parameter no longer used, client handles pagination
             max_results=_JIRA_SLIM_PAGE_SIZE,
         ):
             project_key = get_jira_project_key_from_issue(issue=issue)
@@ -395,7 +444,7 @@ class JiraConnector(CheckpointedConnector[JiraConnectorCheckpoint], SlimConnecto
                         _perform_jql_search(
                             jira_client=self.jira_client,
                             jql=self.jql_query,
-                            start=0,
+                            start=0,  # start parameter no longer used, client handles pagination
                             max_results=1,
                         )
                     ),
