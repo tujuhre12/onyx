@@ -122,7 +122,11 @@ RUN groupadd -g 1001 onyx && \
     chown -R onyx:onyx /app && \
     mkdir -p /var/log/onyx && \
     chmod 755 /var/log/onyx && \
-    chown onyx:onyx /var/log/onyx
+    chown onyx:onyx /var/log/onyx && \
+    # Ensure onyx user can access Playwright cache and browser files
+    # Make root Playwright installation accessible to onyx user
+    chmod -R 755 /root/.cache/ms-playwright && \
+    chmod -R 755 /root/.local/share/ms-playwright
 
 # Default command which does nothing
 # This container is used by api server and background which specify their own CMD
