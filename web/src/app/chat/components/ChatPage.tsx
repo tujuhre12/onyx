@@ -125,7 +125,6 @@ export function ChatPage({
     tags,
     documentSets,
     llmProviders,
-    folders,
     shouldShowWelcomeModal,
     refreshChatSessions,
   } = useChatContext();
@@ -137,9 +136,9 @@ export function ChatPage({
     clearSelectedItems,
     folders: userFolders,
     files: allUserFiles,
-    currentMessageFiles,
-    setCurrentMessageFiles,
   } = useDocumentsContext();
+
+  const { currentMessageFiles, setCurrentMessageFiles } = useProjectsContext();
 
   const { height: screenHeight } = useScreenSize();
 
@@ -195,8 +194,6 @@ export function ChatPage({
     if (message) {
       onSubmit({
         message,
-        selectedFiles,
-        selectedFolders,
         currentMessageFiles,
         useAgentSearch: deepResearchEnabled,
       });
@@ -688,8 +685,6 @@ export function ChatPage({
     // We call onSubmit, passing a `messageOverride`
     onSubmit({
       message: lastUserMsg.message,
-      selectedFiles: selectedFiles,
-      selectedFolders: selectedFolders,
       currentMessageFiles: currentMessageFiles,
       useAgentSearch: deepResearchEnabled,
       messageIdToResend: lastUserMsg.messageId,
@@ -740,19 +735,10 @@ export function ChatPage({
   const handleChatInputSubmit = useCallback(() => {
     onSubmit({
       message: message,
-      selectedFiles: selectedFiles,
-      selectedFolders: selectedFolders,
       currentMessageFiles: currentMessageFiles,
       useAgentSearch: deepResearchEnabled,
     });
-  }, [
-    message,
-    onSubmit,
-    selectedFiles,
-    selectedFolders,
-    currentMessageFiles,
-    deepResearchEnabled,
-  ]);
+  }, [message, onSubmit, currentMessageFiles, deepResearchEnabled]);
 
   // Memoized callbacks for Header
   const handleToggleUserSettings = useCallback(() => {
@@ -960,7 +946,6 @@ export function ChatPage({
                   toggled={sidebarVisible}
                   existingChats={chatSessions}
                   currentChatSession={selectedChatSession}
-                  folders={folders}
                   removeToggle={removeToggle}
                   showShareModal={setSharedChatSession}
                 />
@@ -1240,8 +1225,6 @@ export function ChatPage({
                                     onSelectStarterMessage={(message) => {
                                       onSubmit({
                                         message: message,
-                                        selectedFiles: selectedFiles,
-                                        selectedFolders: selectedFolders,
                                         currentMessageFiles:
                                           currentMessageFiles,
                                         useAgentSearch: deepResearchEnabled,
