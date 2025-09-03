@@ -161,8 +161,27 @@ class FreshdeskConnector(PollConnector, LoadConnector):
                 "All Freshdesk credentials must be strings"
             )
 
+        # TODO: Move the domain to the connector-specific configuration instead of part of the credential
+        # Then apply normalization and validation against the config
+        # Clean and normalize the domain URL
+        domain = str(domain).strip().lower()
+
+        # Remove any trailing slashes
+        domain = domain.rstrip("/")
+
+        # Remove protocol if present
+        if domain.startswith(("http://", "https://")):
+            domain = domain.replace("http://", "").replace("https://", "")
+
+        # Remove .freshdesk.com suffix and any API paths if present
+        if ".freshdesk.com" in domain:
+            domain = domain.split(".freshdesk.com")[0]
+
+        if not domain:
+            raise ConnectorMissingCredentialError("Freshdesk domain cannot be empty")
+
         self.api_key = str(api_key)
-        self.domain = str(domain)
+        self.domain = domain
         self.password = str(password)
 
     def _fetch_tickets(
