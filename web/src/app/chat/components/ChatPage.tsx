@@ -49,7 +49,6 @@ import { getSourceMetadata } from "@/lib/sources";
 import { UserSettingsModal } from "./modal/UserSettingsModal";
 import AssistantModal from "../../assistants/mine/AssistantModal";
 import { useSidebarShortcut } from "@/lib/browserUtilities";
-import { FilePickerModal } from "../my-documents/components/FilePicker";
 
 import { SourceMetadata } from "@/lib/search/interfaces";
 import { FederatedConnectorDetail, ValidSources } from "@/lib/types";
@@ -138,8 +137,6 @@ export function ChatPage({
   // available in server-side components
   const settings = useContext(SettingsContext);
   const enterpriseSettings = settings?.enterpriseSettings;
-
-  const [toggleDocSelection, setToggleDocSelection] = useState(false);
 
   const isInitialLoad = useRef(true);
   const [userSettingsToggled, setUserSettingsToggled] = useState(false);
@@ -675,11 +672,6 @@ export function ChatPage({
     );
   }, []);
 
-  // Memoized callbacks for ChatInputBar
-  const handleToggleDocSelection = useCallback(() => {
-    setToggleDocSelection(true);
-  }, []);
-
   const handleShowApiKeyModal = useCallback(() => {
     setShowApiKeyModal(true);
   }, []);
@@ -762,18 +754,6 @@ export function ChatPage({
           onClose={() => {
             setUserSettingsToggled(false);
             setSettingsToggled(false);
-          }}
-        />
-      )}
-
-      {toggleDocSelection && (
-        <FilePickerModal
-          setPresentingDocument={setPresentingDocument}
-          buttonContent="Set as Context"
-          isOpen={true}
-          onClose={() => setToggleDocSelection(false)}
-          onSave={() => {
-            setToggleDocSelection(false);
           }}
         />
       )}
@@ -1145,7 +1125,6 @@ export function ChatPage({
                                 llmManager={llmManager}
                                 removeDocs={() => setSelectedDocuments([])}
                                 retrievalEnabled={retrievalEnabled}
-                                toggleDocSelection={handleToggleDocSelection}
                                 showConfigureAPIKey={handleShowApiKeyModal}
                                 selectedDocuments={selectedDocuments}
                                 message={message}
