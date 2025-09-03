@@ -13,7 +13,7 @@ entries:
       licenses: MIT
     apiVersion: v2
     appVersion: latest
-    created: "2025-09-02T23:45:37.008971613Z"
+    created: "2025-09-03T23:13:08.385535278Z"
     dependencies:
     - condition: postgresql.enabled
       name: postgresql
@@ -36,7 +36,7 @@ entries:
       repository: oci://registry-1.docker.io/bitnamicharts
       version: 17.0.4
     description: A Helm chart for Kubernetes
-    digest: df339214ea678c6ddf5addf86cad2151ea796502ea9905dc956e8dd90d31c2a2
+    digest: 14c252a398b549383e8f2689862b6d794847f779834198e0548602138b28664f
     home: https://www.onyx.app/
     name: onyx-stack
     sources:
@@ -265,4 +265,4 @@ entries:
     urls:
     - https://github.com/onyx-dot-app/onyx/releases/download/onyx-stack-0.2.4/onyx-stack-0.2.4.tgz
     version: 0.2.4
-generated: "2025-09-02T23:45:36.988910243Z"
+generated: "2025-09-03T23:13:08.364683814Z"
