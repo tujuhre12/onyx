@@ -188,6 +188,24 @@ class FreshdeskConnector(PollConnector, LoadConnector):
     # Freshdesk API rate limits: https://developers.freshdesk.com/api/#ratelimit
     @retry_builder()
     @rate_limit_builder(max_calls=50, period=60)
+    def _fetch_tickets_page(self, base_url: str, params: dict[str, int | str]) -> tuple[List[dict], int]:
+        """Make a single API request to fetch a page of tickets."""
+        response = requests.get(
+            base_url,
+            auth=(self.api_key, "CanYouBelieveFreshdeskDoesThis"),
+            params=params,
+        )
+        response.raise_for_status()
+        
+        if response.status_code == 204:
+            return [], 204
+            
+        tickets = json.loads(response.content)
+        logger.info(
+            f"Fetched {len(tickets)} tickets from Freshdesk API (Page {params['page']})"
+        )
+        return tickets, response.status_code
+
     def _fetch_tickets(
         self, start: datetime | None = None, end: datetime | None = None
     ) -> Iterator[List[dict]]:
@@ -214,21 +232,10 @@ class FreshdeskConnector(PollConnector, LoadConnector):
             params["updated_since"] = start.isoformat()
 
         while True:
-            # Freshdesk API uses API key as the username and any value as the password.
-            response = requests.get(
-                base_url,
-                auth=(self.api_key, "CanYouBelieveFreshdeskDoesThis"),
-                params=params,
-            )
-            response.raise_for_status()
-
-            if response.status_code == 204:
+            tickets, status_code = self._fetch_tickets_page(base_url, params)
+            
+            if status_code == 204:
                 break
-
-            tickets = json.loads(response.content)
-            logger.info(
-                f"Fetched {len(tickets)} tickets from Freshdesk API (Page {params['page']})"
-            )
 
             yield tickets
 
