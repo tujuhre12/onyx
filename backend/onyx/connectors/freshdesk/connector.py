@@ -154,9 +154,7 @@ class FreshdeskConnector(PollConnector, LoadConnector):
     def load_credentials(self, credentials: dict[str, str | int]) -> None:
         api_key = credentials.get("freshdesk_api_key")
         domain = credentials.get("freshdesk_domain")
-        password = credentials.get("freshdesk_password")
-
-        if not all(isinstance(cred, str) for cred in [domain, api_key, password]):
+        if not all(isinstance(cred, str) for cred in [domain, api_key]):
             raise ConnectorMissingCredentialError(
                 "All Freshdesk credentials must be strings"
             )
@@ -182,7 +180,6 @@ class FreshdeskConnector(PollConnector, LoadConnector):
 
         self.api_key = str(api_key)
         self.domain = domain
-        self.password = str(password)
 
     def _fetch_tickets(
         self, start: datetime | None = None, end: datetime | None = None
@@ -196,7 +193,7 @@ class FreshdeskConnector(PollConnector, LoadConnector):
         'include' field available for this endpoint:
         https://developers.freshdesk.com/api/#filter_tickets
         """
-        if self.api_key is None or self.domain is None or self.password is None:
+        if self.api_key is None or self.domain is None:
             raise ConnectorMissingCredentialError("freshdesk")
 
         base_url = f"https://{self.domain}.freshdesk.com/api/v2/tickets"
@@ -210,8 +207,11 @@ class FreshdeskConnector(PollConnector, LoadConnector):
             params["updated_since"] = start.isoformat()
 
         while True:
+            # Freshdesk API uses API key as the username and any value as the password.
             response = requests.get(
-                base_url, auth=(self.api_key, self.password), params=params
+                base_url,
+                auth=(self.api_key, "CanYouBelieveFreshdeskDoesThis"),
+                params=params,
             )
             response.raise_for_status()
 
