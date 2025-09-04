@@ -25,6 +25,7 @@ from onyx.chat.models import DocumentPruningConfig
 from onyx.chat.models import ExtendedToolResponse
 from onyx.chat.models import FileChatDisplay
 from onyx.chat.models import FinalUsedContextDocsResponse
+from onyx.chat.models import HeartbeatPacket
 from onyx.chat.models import LLMRelevanceFilterResponse
 from onyx.chat.models import MessageResponseIDInfo
 from onyx.chat.models import MessageSpecificCitations
@@ -109,6 +110,9 @@ from onyx.tools.tool_implementations.custom.custom_tool import (
     CUSTOM_TOOL_RESPONSE_ID,
 )
 from onyx.tools.tool_implementations.custom.custom_tool import CustomToolCallSummary
+from onyx.tools.tool_implementations.images.image_generation_tool import (
+    IMAGE_GENERATION_HEARTBEAT_ID,
+)
 from onyx.tools.tool_implementations.images.image_generation_tool import (
     IMAGE_GENERATION_RESPONSE_ID,
 )
@@ -313,6 +317,7 @@ ChatPacket = (
     | AgenticMessageResponseIDInfo
     | StreamStopInfo
     | AgentSearchPacket
+    | HeartbeatPacket
 )
 ChatPacketStream = Iterator[ChatPacket]
 
@@ -856,6 +861,12 @@ def stream_chat_message_objects(
                 elif packet.id == FINAL_CONTEXT_DOCUMENTS_ID:
                     yield FinalUsedContextDocsResponse(
                         final_context_docs=packet.response
+                    )
+
+                elif packet.id == IMAGE_GENERATION_HEARTBEAT_ID:
+                    # Propagate heartbeat packets to prevent timeout during image generation
+                    yield HeartbeatPacket(
+                        heartbeat_type="image_generation",
                     )
 
                 elif packet.id == IMAGE_GENERATION_RESPONSE_ID:

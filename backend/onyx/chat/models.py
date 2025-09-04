@@ -234,6 +234,14 @@ class CustomToolResponse(BaseModel):
     tool_name: str
 
 
+class HeartbeatPacket(BaseModel):
+    """Empty packet sent to keep the streaming connection alive during long-running operations."""
+
+    heartbeat_type: str = (
+        "tool_heartbeat"  # Can be extended for different heartbeat types
+    )
+
+
 class ToolConfig(BaseModel):
     id: int
 
