@@ -28,8 +28,7 @@ interface PersonaUpsertRequest {
   is_default_persona: boolean;
   display_priority: number | null;
   label_ids: number[] | null;
-  user_file_ids: number[] | null;
-  user_folder_ids: number[] | null;
+  user_file_ids: string[] | null;
 }
 
 export interface PersonaUpsertParameters {
@@ -56,8 +55,7 @@ export interface PersonaUpsertParameters {
   uploaded_image: File | null;
   is_default_persona: boolean;
   label_ids: number[] | null;
-  user_file_ids: number[];
-  user_folder_ids: number[];
+  user_file_ids: string[];
 }
 
 export const createPersonaLabel = (name: string) => {
@@ -116,7 +114,6 @@ function buildPersonaUpsertRequest(
     remove_image,
     search_start_date,
     user_file_ids,
-    user_folder_ids,
   } = creationRequest;
 
   return {
@@ -149,7 +146,6 @@ function buildPersonaUpsertRequest(
     display_priority: null,
     label_ids: creationRequest.label_ids ?? null,
     user_file_ids: user_file_ids ?? null,
-    user_folder_ids: user_folder_ids ?? null,
   };
 }
 
