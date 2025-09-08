@@ -173,6 +173,10 @@ class ChatRenameRequest(BaseModel):
     name: str | None = None
 
 
+class StopChatRequest(BaseModel):
+    chat_session_id: str
+
+
 class ChatSessionUpdateRequest(BaseModel):
     sharing_status: ChatSessionSharedStatus
 
