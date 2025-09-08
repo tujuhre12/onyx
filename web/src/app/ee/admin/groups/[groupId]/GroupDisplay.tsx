@@ -470,7 +470,7 @@ export const GroupDisplay = ({
 
       <Separator />
 
-      <h2 className="text-xl font-bold mt-8 mb-2">Assistants</h2>
+      <h2 className="text-xl font-bold mt-8 mb-2">Agents</h2>
 
       <div>
         {userGroup.document_sets.length > 0 ? (
@@ -488,7 +488,7 @@ export const GroupDisplay = ({
           </div>
         ) : (
           <>
-            <Text>No Assistants in this group...</Text>
+            <Text>No Agents in this group...</Text>
           </>
         )}
       </div>

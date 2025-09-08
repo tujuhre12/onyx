@@ -232,7 +232,7 @@ export function AssistantModal({ hideModal }: AssistantModalProps) {
 
             <div className="flex-grow overflow-y-auto">
               <h2 className="text-2xl font-semibold text-text-800 mb-2 px-4 py-2">
-                Featured Assistants
+                Featured Agents
               </h2>
 
               <div className="w-full px-2 pb-10 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
@@ -258,7 +258,7 @@ export function AssistantModal({ hideModal }: AssistantModalProps) {
               {allAssistants && allAssistants.length > 0 && (
                 <>
                   <h2 className="text-2xl font-semibold text-text-800 mt-4 mb-2 px-4 py-2">
-                    All Assistants
+                    All Agents
                   </h2>
 
                   <div className="w-full mt-2 px-2 pb-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">

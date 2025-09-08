@@ -73,7 +73,7 @@ const custom_assistants_items = (
       name: (
         <div className="flex">
           <AssistantsIconSkeleton className="text-text-700" size={18} />
-          <div className="ml-1">Assistants</div>
+          <div className="ml-1">Agents</div>
         </div>
       ),
       link: "/admin/assistants",
@@ -130,7 +130,7 @@ const collections = (
     items: connectors_items(),
   },
   {
-    name: "Custom Assistants",
+    name: "Custom Agents",
     items: custom_assistants_items(isCurator, enableEnterprise),
   },
   ...(isCurator

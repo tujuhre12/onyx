@@ -342,7 +342,7 @@ export const HistorySidebar = React.memo(
             )}
             <div className="h-full  relative overflow-x-hidden overflow-y-auto">
               <div className="flex px-4 font-normal text-sm gap-x-2 leading-normal text-text-500/80 dark:text-[#D4D4D4] items-center font-normal leading-normal">
-                Assistants
+                Agents
               </div>
               <DndContext
                 sensors={sensors}
@@ -412,11 +412,11 @@ export const HistorySidebar = React.memo(
 
               <div className="w-full px-4">
                 <button
-                  aria-label="Explore Assistants"
+                  aria-label="Explore Agents"
                   onClick={() => setShowAssistantsModal(true)}
                   className="w-full cursor-pointer text-base text-black dark:text-[#D4D4D4] hover:bg-background-chat-hover flex items-center gap-x-2 py-1 px-2 rounded-md"
                 >
-                  Explore Assistants
+                  Explore Agents
                 </button>
               </div>
 

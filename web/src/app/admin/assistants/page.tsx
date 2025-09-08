@@ -23,8 +23,8 @@ function MainContent({
   return (
     <div>
       <Text className="mb-2">
-        Assistants are a way to build custom search/question-answering
-        experiences for different use cases.
+        Agents are a way to build custom search/question-answering experiences
+        for different use cases.
       </Text>
       <Text className="mt-2">They allow you to customize:</Text>
       <div className="text-sm">
@@ -39,17 +39,16 @@ function MainContent({
       <div>
         <Separator />
 
-        <Title>Create an Assistant</Title>
-        <CreateButton href="/assistants/new?admin=true" text="New Assistant" />
+        <Title>Create an Agent</Title>
+        <CreateButton href="/assistants/new?admin=true" text="New Agent" />
 
         <Separator />
 
-        <Title>Existing Assistants</Title>
+        <Title>Existing Agents</Title>
         <SubLabel>
-          Assistants will be displayed as options on the Chat / Search
-          interfaces in the order they are displayed below. Assistants marked as
-          hidden will not be displayed. Editable assistants are shown at the
-          top.
+          Agents will be displayed as options on the Chat / Search interfaces in
+          the order they are displayed below. Agents marked as hidden will not
+          be displayed. Editable agents are shown at the top.
         </SubLabel>
         <PersonasTable personas={personas} refreshPersonas={refreshPersonas} />
       </div>
@@ -62,13 +61,13 @@ export default function Page() {
 
   return (
     <div className="mx-auto container">
-      <AdminPageTitle icon={<AssistantsIcon size={32} />} title="Assistants" />
+      <AdminPageTitle icon={<AssistantsIcon size={32} />} title="Agents" />
 
       {isLoading && <ThreeDotsLoader />}
 
       {error && (
         <ErrorCallout
-          errorTitle="Failed to load assistants"
+          errorTitle="Failed to load agents"
           errorMsg={
             error?.info?.message ||
             error?.info?.detail ||
