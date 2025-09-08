@@ -223,7 +223,6 @@ export const constructMiniFiedPersona = (
     users: [],
     groups: [],
     user_file_ids: [],
-    user_folder_ids: [],
   };
 };
 
