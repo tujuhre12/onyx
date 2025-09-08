@@ -204,7 +204,7 @@ export function PersonasTable({
           "Name",
           "Description",
           "Type",
-          "Featured Assistant",
+          "Featured Agent",
           "Is Visible",
           "Delete",
         ]}

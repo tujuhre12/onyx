@@ -779,18 +779,16 @@ export function AssistantEditor({
                       Edit assistant <b>{existingPersona.name}</b>
                     </>
                   ) : (
-                    "Create an Assistant"
+                    "Create an Agent"
                   )}
                 </p>
                 <div className="max-w-4xl w-full">
                   <Separator />
                   <div className="flex gap-x-2 items-center">
-                    <div className="block font-medium text-sm">
-                      Assistant Icon
-                    </div>
+                    <div className="block font-medium text-sm">Agent Icon</div>
                   </div>
                   <SubLabel>
-                    The icon that will visually represent your Assistant
+                    The icon that will visually represent your Agent
                   </SubLabel>
                   <div className="flex gap-x-2 items-center">
                     <div
@@ -804,14 +802,14 @@ export function AssistantEditor({
                       {values.uploaded_image ? (
                         <img
                           src={URL.createObjectURL(values.uploaded_image)}
-                          alt="Uploaded assistant icon"
+                          alt="Uploaded agent icon"
                           className="w-12 h-12 rounded-full object-cover"
                         />
                       ) : existingPersona?.uploaded_image_id &&
                         !removePersonaImage ? (
                         <img
                           src={buildImgUrl(existingPersona?.uploaded_image_id)}
-                          alt="Uploaded assistant icon"
+                          alt="Uploaded agent icon"
                           className="w-12 h-12 rounded-full object-cover"
                         />
                       ) : (
@@ -935,7 +933,7 @@ export function AssistantEditor({
                   maxWidth="max-w-lg"
                   name="name"
                   label="Name"
-                  placeholder="Email Assistant"
+                  placeholder="Email Agent"
                   aria-label="assistant-name-input"
                   className="[&_input]:placeholder:text-text-muted/50"
                 />
@@ -944,7 +942,7 @@ export function AssistantEditor({
                   maxWidth="max-w-lg"
                   name="description"
                   label="Description"
-                  placeholder="Use this Assistant to help draft professional emails"
+                  placeholder="Use this Agent to help draft professional emails"
                   className="[&_input]:placeholder:text-text-muted/50"
                 />
 
@@ -1125,9 +1123,9 @@ export function AssistantEditor({
                                         ) : (
                                           "Team Document Sets"
                                         )}{" "}
-                                        this Assistant should use to inform its
+                                        this Agent should use to inform its
                                         responses. If none are specified, the
-                                        Assistant will reference all available
+                                        Agent will reference all available
                                         documents.
                                       </>
                                     </SubLabel>
@@ -1198,7 +1196,7 @@ export function AssistantEditor({
                               }
                               disabledTooltip={
                                 !currentLLMSupportsImageOutput
-                                  ? "To use Image Generation, select GPT-4 or another image compatible model as the default model for this Assistant."
+                                  ? "To use Image Generation, select GPT-4 or another image compatible model as the default model for this Agent."
                                   : "Image Generation requires an OpenAI or Azure Dall-E configuration."
                               }
                             />
@@ -1381,8 +1379,8 @@ export function AssistantEditor({
                             }
                           }}
                           name="is_default_persona"
-                          label="Featured Assistant"
-                          subtext="If set, this assistant will be pinned for all new users and appear in the Featured list in the assistant explorer. This also makes the assistant public."
+                          label="Featured Agent"
+                          subtext="If set, this agent will be pinned for all new users and appear in the Featured list in the agent explorer. This also makes the agent public."
                         />
                       )}
 
@@ -1392,7 +1390,7 @@ export function AssistantEditor({
                         <div className="block font-medium text-sm">Access</div>
                       </div>
                       <SubLabel>
-                        Control who can access and use this assistant
+                        Control who can access and use this agent
                       </SubLabel>
 
                       <div className="min-h-[100px]">
@@ -1609,7 +1607,7 @@ export function AssistantEditor({
                         className="text-sm text-subtle"
                         style={{ color: "rgb(113, 114, 121)" }}
                       >
-                        Select labels to categorize this assistant
+                        Select labels to categorize this agent
                       </p>
                       <div className="mt-3">
                         <SearchMultiSelectDropdown
@@ -1754,7 +1752,7 @@ export function AssistantEditor({
                       removeIndent
                       name="datetime_aware"
                       label="Date and Time Aware"
-                      subtext='Toggle this option to let the assistant know the current date and time (formatted like: "Thursday Jan 1, 1970 00:01"). To inject it in a specific place in the prompt, use the pattern [[CURRENT_DATETIME]]'
+                      subtext='Toggle this option to let the agent know the current date and time (formatted like: "Thursday Jan 1, 1970 00:01"). To inject it in a specific place in the prompt, use the pattern [[CURRENT_DATETIME]]'
                     />
 
                     <Separator />

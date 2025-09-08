@@ -126,7 +126,7 @@ export function AssistantSharingPopover({
           </h2>
         </div>
         <p className="text-text-600 text-sm mb-4">
-          Manage access to this assistant by sharing it with other users.
+          Manage access to this agent by sharing it with other users.
         </p>
 
         <div className="mb-4">
@@ -135,7 +135,7 @@ export function AssistantSharingPopover({
         </div>
 
         <div className="mb-4">
-          <h3 className="text-sm font-semibold mb-2">Share Assistant</h3>
+          <h3 className="text-sm font-semibold mb-2">Share Agent</h3>
           <SearchMultiSelectDropdown
             options={allUsers
               .filter(

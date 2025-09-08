@@ -327,7 +327,7 @@ const AssistantCard: React.FC<{
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Start a new chat with this assistant
+                  Start a new chat with this agent
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

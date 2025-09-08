@@ -143,7 +143,7 @@ export function AssistantModal({ hideModal }: AssistantModalProps) {
           transform: "translateX(-50%)",
           margin: 0,
         }}
-        aria-label="Assistant Modal"
+        aria-label="Agent Modal"
       >
         <div className="absolute top-2 right-2">
           <button

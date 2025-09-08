@@ -230,14 +230,14 @@ export function SlackChannelConfigFormFields({
             <RadioGroupItemField
               value="assistant"
               id="assistant"
-              label="Search Assistant"
+              label="Search Agent"
               sublabel="Control both the documents and the prompt to use for answering questions"
             />
             <RadioGroupItemField
               value="non_search_assistant"
               id="non_search_assistant"
-              label="Non-Search Assistant"
-              sublabel="Chat with an assistant that does not use documents"
+              label="Non-Search Agent"
+              sublabel="Chat with an agent that does not use documents"
             />
           </RadioGroup>
         </div>

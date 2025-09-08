@@ -16,18 +16,18 @@ export function MakePublicAssistantModal({
     <Modal onOutsideClick={onClose} width="max-w-3xl">
       <div className="space-y-6">
         <h2 className="text-2xl font-bold text-text-darker">
-          {isPublic ? "Public Assistant" : "Make Assistant Public"}
+          {isPublic ? "Public Agent" : "Make Agent Public"}
         </h2>
 
         <Text>
-          This assistant is currently{" "}
+          This agent is currently{" "}
           <span className="font-semibold">
             {isPublic ? "public" : "private"}
           </span>
           .
           {isPublic
-            ? " Anyone can currently access this assistant."
-            : " Only you can access this assistant."}
+            ? " Anyone can currently access this agent."
+            : " Only you can access this agent."}
         </Text>
 
         <Separator />
@@ -35,8 +35,7 @@ export function MakePublicAssistantModal({
         {isPublic ? (
           <div className="space-y-4">
             <Text>
-              To restrict access to this assistant, you can make it private
-              again.
+              To restrict access to this agent, you can make it private again.
             </Text>
             <Button
               onClick={async () => {
@@ -46,15 +45,15 @@ export function MakePublicAssistantModal({
               size="sm"
               variant="destructive"
             >
-              Make Assistant Private
+              Make Agent Private
             </Button>
           </div>
         ) : (
           <div className="space-y-4">
             <Text>
-              Making this assistant public will allow anyone with the link to
-              view and use it. Ensure that all content and capabilities of the
-              assistant are safe to share.
+              Making this agent public will allow anyone with the link to view
+              and use it. Ensure that all content and capabilities of the agent
+              are safe to share.
             </Text>
             <Button
               onClick={async () => {
@@ -64,7 +63,7 @@ export function MakePublicAssistantModal({
               size="sm"
               variant="submit"
             >
-              Make Assistant Public
+              Make Agent Public
             </Button>
           </div>
         )}

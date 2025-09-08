@@ -66,7 +66,7 @@ export function SlackChannelConfigsTable({
             <TableHeader>
               <TableRow>
                 <TableHead>Channel</TableHead>
-                <TableHead>Assistant</TableHead>
+                <TableHead>Agent</TableHead>
                 <TableHead>Document Sets</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>

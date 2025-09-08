@@ -161,7 +161,7 @@ export const Notifications = ({
                     )}
                     <div className="flex-grow">
                       <p className="font-semibold text-sm text-text-800">
-                        New Assistant Shared: {persona?.name}
+                        New Agent Shared: {persona?.name}
                       </p>
                       {persona?.description && (
                         <p className="text-xs text-text-600 mt-1">

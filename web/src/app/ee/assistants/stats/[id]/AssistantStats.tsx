@@ -125,7 +125,7 @@ export function AssistantStats({ assistantId }: { assistantId: number }) {
     content = (
       <div className="h-80 text-text-500 flex flex-col">
         <p className="m-auto">
-          No data found for this assistant in the selected date range
+          No data found for this agent in the selected date range
         </p>
       </div>
     );
@@ -145,7 +145,7 @@ export function AssistantStats({ assistantId }: { assistantId: number }) {
   return (
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <p className="text-base font-normal text-2xl">Assistant Analytics</p>
+        <p className="text-base font-normal text-2xl">Agent Analytics</p>
         <AdminDateRangeSelector
           value={dateRange}
           onValueChange={setDateRange}

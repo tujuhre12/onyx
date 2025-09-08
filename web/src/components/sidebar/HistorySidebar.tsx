@@ -160,8 +160,8 @@ const SortableAssistant: React.FC<SortableAssistantProps> = ({
             </TooltipTrigger>
             <TooltipContent>
               {pinned
-                ? "Unpin this assistant from the sidebar"
-                : "Pin this assistant to the sidebar"}
+                ? "Unpin this agent from the sidebar"
+                : "Pin this agent to the sidebar"}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

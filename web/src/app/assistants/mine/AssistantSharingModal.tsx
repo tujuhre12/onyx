@@ -139,7 +139,7 @@ export function AssistantSharingModal({
       >
         <div>
           <p className="text-text-600 text-lg mb-6">
-            Manage access to this assistant by sharing it with other users.
+            Manage access to this agent by sharing it with other users.
           </p>
 
           <div className="mb-8 flex flex-col gap-y-4">
@@ -148,7 +148,7 @@ export function AssistantSharingModal({
           </div>
 
           <div className="mb-8 flex flex-col gap-y-4">
-            <h3 className="text-lg font-semibold">Share Assistant</h3>
+            <h3 className="text-lg font-semibold">Share Agent</h3>
             <SearchMultiSelectDropdown
               options={allUsers
                 .filter(

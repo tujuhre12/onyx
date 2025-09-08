@@ -16,16 +16,16 @@ export function MakePublicAssistantPopover({
   return (
     <div className="p-4 space-y-4">
       <h2 className="text-lg font-semibold">
-        {isPublic ? "Public Assistant" : "Make Assistant Public"}
+        {isPublic ? "Public Agent" : "Make Agent Public"}
       </h2>
 
       <p className="text-sm">
-        This assistant is currently{" "}
+        This agent is currently{" "}
         <span className="font-semibold">{isPublic ? "public" : "private"}</span>
         .
         {isPublic
-          ? " Anyone can currently access this assistant."
-          : " Only you can access this assistant."}
+          ? " Anyone can currently access this agent."
+          : " Only you can access this agent."}
       </p>
 
       <Separator />
@@ -33,7 +33,7 @@ export function MakePublicAssistantPopover({
       {isPublic ? (
         <div className="space-y-4">
           <p className="text-sm">
-            To restrict access to this assistant, you can make it private again.
+            To restrict access to this agent, you can make it private again.
           </p>
           <Button
             onClick={async () => {
@@ -43,15 +43,15 @@ export function MakePublicAssistantPopover({
             size="sm"
             variant="destructive"
           >
-            Make Assistant Private
+            Make Agent Private
           </Button>
         </div>
       ) : (
         <div className="space-y-4">
           <p className="text-sm">
-            Making this assistant public will allow anyone with the link to view
-            and use it. Ensure that all content and capabilities of the
-            assistant are safe to share.
+            Making this agent public will allow anyone with the link to view and
+            use it. Ensure that all content and capabilities of the agent are
+            safe to share.
           </p>
           <Button
             onClick={async () => {
@@ -60,7 +60,7 @@ export function MakePublicAssistantPopover({
             }}
             size="sm"
           >
-            Make Assistant Public
+            Make Agent Public
           </Button>
         </div>
       )}
