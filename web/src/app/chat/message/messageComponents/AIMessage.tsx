@@ -272,11 +272,6 @@ export function AIMessage({
                                 )
                               : [];
 
-                          const lastDisplayGroup =
-                            displayGroups.length > 0
-                              ? displayGroups[displayGroups.length - 1]
-                              : null;
-
                           return (
                             <>
                               {/* Render tool groups in multi-tool renderer */}
@@ -296,25 +291,59 @@ export function AIMessage({
                               )}
 
                               {/* Render non-tool groups (messages + image generation) in main area */}
-                              {lastDisplayGroup && (
-                                <RendererComponent
-                                  key={lastDisplayGroup.ind}
-                                  packets={lastDisplayGroup.packets}
-                                  chatState={chatState}
-                                  onComplete={() => {
-                                    // if we've reverted to final answer not coming, don't set display complete
-                                    // this happens when using claude and a tool calling packet comes after
-                                    // some message packets
-                                    if (finalAnswerComingRef.current) {
-                                      setDisplayComplete(true);
+                              {displayGroups.map((displayGroup, index) => {
+                                // Skip rendering empty message packets
+                                const hasContent = displayGroup.packets.some(
+                                  (packet) => {
+                                    if (
+                                      packet.obj.type ===
+                                        PacketType.MESSAGE_START ||
+                                      packet.obj.type ===
+                                        PacketType.MESSAGE_DELTA
+                                    ) {
+                                      return (
+                                        (packet.obj as any).content &&
+                                        (packet.obj as any).content.trim() !==
+                                          ""
+                                      );
                                     }
-                                  }}
-                                  animate={false}
-                                  stopPacketSeen={stopPacketSeen}
-                                >
-                                  {({ content }) => <div>{content}</div>}
-                                </RendererComponent>
-                              )}
+                                    // Always render image generation packets
+                                    return (
+                                      packet.obj.type ===
+                                        PacketType.IMAGE_GENERATION_TOOL_START ||
+                                      packet.obj.type ===
+                                        PacketType.IMAGE_GENERATION_TOOL_DELTA
+                                    );
+                                  }
+                                );
+
+                                if (!hasContent) {
+                                  return null;
+                                }
+
+                                return (
+                                  <RendererComponent
+                                    key={displayGroup.ind}
+                                    packets={displayGroup.packets}
+                                    chatState={chatState}
+                                    onComplete={() => {
+                                      // if we've reverted to final answer not coming, don't set display complete
+                                      // this happens when using claude and a tool calling packet comes after
+                                      // some message packets
+                                      if (
+                                        finalAnswerComingRef.current &&
+                                        index === displayGroups.length - 1
+                                      ) {
+                                        setDisplayComplete(true);
+                                      }
+                                    }}
+                                    animate={false}
+                                    stopPacketSeen={stopPacketSeen}
+                                  >
+                                    {({ content }) => <div>{content}</div>}
+                                  </RendererComponent>
+                                );
+                              })}
                             </>
                           );
                         })()

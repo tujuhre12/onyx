@@ -113,9 +113,42 @@ function MultiToolRenderer({
   const [isStreamingExpanded, setIsStreamingExpanded] = useState(false);
 
   const toolGroups = useMemo(() => {
-    return packetGroups.filter(
-      (group) => group.packets[0] && isToolPacket(group.packets[0])
-    );
+    return packetGroups.filter((group) => {
+      if (!group.packets[0] || !isToolPacket(group.packets[0])) {
+        return false;
+      }
+
+      // Filter out groups that only contain empty reasoning or empty messages
+      const hasContent = group.packets.some((packet) => {
+        const type = packet.obj.type;
+        const obj = packet.obj as any;
+
+        // Check if reasoning has content
+        if (
+          type === "reasoning_delta" &&
+          obj.reasoning &&
+          obj.reasoning.trim() !== ""
+        ) {
+          return true;
+        }
+
+        // Check if it's a non-empty tool
+        if (
+          type === "search_tool_start" ||
+          type === "search_tool_delta" ||
+          type === "custom_tool_start" ||
+          type === "custom_tool_delta" ||
+          type === "image_generation_tool_start" ||
+          type === "image_generation_tool_delta"
+        ) {
+          return true;
+        }
+
+        return false;
+      });
+
+      return hasContent;
+    });
   }, [packetGroups]);
 
   // Use the custom hook to manage tool display timing

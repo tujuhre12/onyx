@@ -1,4 +1,3 @@
-import json
 from typing import Any
 from typing import Optional
 from typing import Type
@@ -21,12 +20,12 @@ class PydanticType(TypeDecorator):
         self, value: Optional[BaseModel], dialect: Any
     ) -> Optional[dict]:
         if value is not None:
-            return json.loads(value.json())
+            return value.model_dump()
         return None
 
     def process_result_value(
         self, value: Optional[dict], dialect: Any
     ) -> Optional[BaseModel]:
         if value is not None:
-            return self.pydantic_model.parse_obj(value)
+            return self.pydantic_model.model_validate(value)
         return None
