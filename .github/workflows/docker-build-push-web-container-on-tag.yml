@@ -152,9 +152,9 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 30
+          timeout_minutes: 20
           max_attempts: 3
-          retry_wait_seconds: 60
+          retry_wait_seconds: 10
           command: |
             docker run --rm \
               -v /var/run/docker.sock:/var/run/docker.sock \
