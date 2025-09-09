@@ -471,6 +471,7 @@ def get_bedrock_available_models(
             status_code=400, detail=f"Failed to connect to AWS Bedrock: {e}"
         )
     except Exception as e:
+        logger.exception("Unexpected error fetching Bedrock models")
         raise HTTPException(
-            status_code=500, detail=f"Unexpected error fetching Bedrock models: {e}"
+            status_code=500, detail="Internal server error occurred while fetching Bedrock models"
         )
