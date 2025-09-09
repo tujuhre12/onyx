@@ -52,6 +52,7 @@ from onyx.db.engine.connection_warmup import warm_up_connections
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.db.engine.sql_engine import SqlEngine
 from onyx.file_store.file_store import get_default_file_store
+from onyx.llm.braintrust_setup import setup_braintrust_tracing
 from onyx.server.api_key.api import router as api_key_router
 from onyx.server.auth_check import check_router_auth
 from onyx.server.documents.cc_pair import router as cc_pair_router
@@ -248,6 +249,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     if DISABLE_GENERATIVE_AI:
         logger.notice("Generative AI Q&A disabled")
+
+    # Set up Braintrust tracing for LangGraph applications
+    setup_braintrust_tracing()
 
     # fill up Postgres connection pools
     await warm_up_connections()
