@@ -402,14 +402,18 @@ def get_bedrock_available_models(
 ) -> list[str]:
     """Fetch available Bedrock models for a specific region and credentials"""
     try:
-        # Build a session with the simplest precedence: bearer, keys, IAM
+        # Precedence: bearer → keys → IAM
         if request.aws_bearer_token_bedrock:
             os.environ["AWS_BEARER_TOKEN_BEDROCK"] = request.aws_bearer_token_bedrock
+            session = boto3.Session(region_name=request.aws_region_name)
         elif request.aws_access_key_id and request.aws_secret_access_key:
-            os.environ["AWS_ACCESS_KEY_ID"] = request.aws_access_key_id
-            os.environ["AWS_SECRET_ACCESS_KEY"] = request.aws_secret_access_key
-
-        session = boto3.Session(region_name=request.aws_region_name)
+            session = boto3.Session(
+                aws_access_key_id=request.aws_access_key_id,
+                aws_secret_access_key=request.aws_secret_access_key,
+                region_name=request.aws_region_name,
+            )
+        else:
+            session = boto3.Session(region_name=request.aws_region_name)
 
         try:
             bedrock = session.client("bedrock")
@@ -456,6 +460,9 @@ def get_bedrock_available_models(
             [model for model in candidates if model in BEDROCK_MODEL_NAMES],
             reverse=True,
         )
+
+        # Unset the environment variable, even though it is set again in DefaultMultiLLM init
+        os.environ.pop("AWS_BEARER_TOKEN_BEDROCK", None)
 
         return filtered
 
