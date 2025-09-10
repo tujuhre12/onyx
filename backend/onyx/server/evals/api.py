@@ -1,3 +1,6 @@
+import os
+
+import braintrust
 from fastapi import APIRouter
 from fastapi import Depends
 from sqlalchemy.orm import Session
@@ -26,5 +29,8 @@ def eval_run(
     Run an evaluation with the given message and optional dataset.
     This endpoint requires a valid API key for authentication.
     """
-    eval(db_session, [])
+    dataset = braintrust.init_dataset(
+        project=os.environ["BRAINTRUST_PROJECT"], name="Thoughtful Mode Evals"
+    )
+    eval(dataset)
     return EvalRunResponse(success=True)

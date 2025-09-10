@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from typing import Any
 
 from braintrust import Eval
+from braintrust.framework import EvalResultWithSummary
 from braintrust.logger import Dataset
 from sqlalchemy import Engine
 from sqlalchemy import event
@@ -53,7 +54,7 @@ def session_factory_context_manager(engine: Engine):
 
 
 def _get_answer(
-    message: str,
+    message,
 ) -> str:
     engine = get_sqlalchemy_engine()
     with session_factory_context_manager(engine) as SessionLocal:
@@ -103,19 +104,19 @@ def _get_answer(
             return answer.answer
 
 
-def eval(data: list[Any] | Dataset) -> float:
+def eval(data: list[Any] | Dataset) -> EvalResultWithSummary:
     braintrust_project = os.environ.get("BRAINTRUST_PROJECT")
     if not braintrust_project:
         raise ValueError("BRAINTRUST_PROJECT is not set")
-    data = [
-        {"input": "What is the capital of France?"},
-        {"input": "What is the capital of Spain?"},
-    ]
+    if not data:
+        data = [
+            {"input": "What is the capital of France?"},
+            {"input": "What is the capital of Spain?"},
+        ]
 
-    Eval(
+    return Eval(
         name=braintrust_project,
         data=data,
         task=lambda input: _get_answer(input),
         scores=[],
     )
-    return 1.0

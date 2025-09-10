@@ -251,9 +251,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if DISABLE_GENERATIVE_AI:
         logger.notice("Generative AI Q&A disabled")
 
-    # Set up Braintrust tracing for LangGraph applications
-    setup_braintrust_tracing()
-
     # fill up Postgres connection pools
     await warm_up_connections()
 
@@ -484,6 +481,7 @@ def get_application(lifespan_override: Lifespan | None = None) -> FastAPI:
 
     # Initialize and instrument the app
     Instrumentator().instrument(application).expose(application)
+    setup_braintrust_tracing()
 
     use_route_function_names_as_operation_ids(application)
 
