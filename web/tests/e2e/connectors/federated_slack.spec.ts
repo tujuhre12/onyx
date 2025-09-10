@@ -122,22 +122,6 @@ async function deleteFederatedSlackConnector(page: Page) {
   // Wait for deletion to complete and redirect
   await page.waitForURL("**/admin/indexing/status*", { timeout: 15000 });
   await page.waitForLoadState("networkidle");
-
-  // Re-open Slack section and verify row is gone
-  if ((await slackSummaryRow.count()) > 0) {
-    await slackSummaryRow.first().click();
-    await page.waitForTimeout(300);
-  }
-  const postDeleteSlackRow = page
-    .locator("tr")
-    .filter({ has: page.locator("text=/slack/i") })
-    .filter({ hasText: /federated access/i });
-  const remaining = await postDeleteSlackRow.count();
-  if (remaining === 0) {
-    console.log("Federated Slack connector deleted successfully");
-  } else {
-    console.log("Federated Slack connector still present after delete attempt");
-  }
 }
 
 test("Federated Slack Connector - Create, OAuth Modal, and User Settings Flow", async ({
