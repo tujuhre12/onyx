@@ -23,11 +23,26 @@ RUN mkdir -p /app && \
     chmod 755 /var/log/onyx && \
     chown onyx:onyx /var/log/onyx
 
+# Install build tools needed for compiling Rust packages like fastuuid
+RUN apt-get update && apt-get install -y \
+        build-essential \
+        curl \
+        && rm -rf /var/lib/apt/lists/*
+
+# Install Rust (needed for fastuuid compilation)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
 COPY ./requirements/model_server.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --upgrade \
         --retries 5 \
         --timeout 30 \
         -r /tmp/requirements.txt
+
+# Clean up build tools to reduce image size
+RUN apt-get remove -y build-essential curl && \
+    apt-get autoremove -y && \
+    rm -rf /root/.cargo /root/.rustup
 
 RUN apt-get remove -y --allow-remove-essential perl-base && \ 
     apt-get autoremove -y
