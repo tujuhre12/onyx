@@ -142,11 +142,13 @@ def basic_search(
     callback_container: list[list[InferenceSection]] = []
 
     user_file_ids: list[UUID] | None = None
+    project_id: int | None = None
     if force_use_tool.override_kwargs and isinstance(
         force_use_tool.override_kwargs, SearchToolOverrideKwargs
     ):
         override_kwargs = force_use_tool.override_kwargs
         user_file_ids = override_kwargs.user_file_ids
+        project_id = override_kwargs.project_id
 
     # new db session to avoid concurrency issues
     with get_session_with_current_tenant() as search_db_session:
@@ -160,6 +162,7 @@ def basic_search(
                 retrieved_sections_callback=callback_container.append,
                 skip_query_analysis=True,
                 user_file_ids=user_file_ids,
+                project_id=project_id,
             ),
         ):
             # get retrieved docs to send to the rest of the graph

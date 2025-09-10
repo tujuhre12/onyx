@@ -575,9 +575,13 @@ def stream_chat_message_objects(
             )
 
         # Retrieve project-specific instructions if this chat session is associated with a project.
-        project_instructions: str | None = get_project_instructions(
-            db_session=db_session, project_id=chat_session.project_id
-        )
+        project_instructions: str | None = (
+            get_project_instructions(
+                db_session=db_session, project_id=chat_session.project_id
+            )
+            if persona.is_default_persona
+            else None
+        )  # if the persona is not default, we don't want to use the project instructions
 
         answer_style_config = AnswerStyleConfig(
             citation_config=CitationConfig(
