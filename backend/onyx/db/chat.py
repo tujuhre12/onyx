@@ -1794,6 +1794,27 @@ def update_db_session_with_messages(
     commit: bool = False,
 ) -> ChatMessage:
 
+    msgs = (
+        db_session.query(ChatMessage)
+        .filter(
+            ChatMessage.id == chat_message_id,
+        )
+        .all()
+    )
+    print(msgs)
+
+    msgs2 = (
+        db_session.query(ChatMessage)
+        .filter(
+            ChatMessage.chat_session_id == chat_session_id,
+        )
+        .all()
+    )
+    print(msgs2)
+    print([msg.id for msg in msgs2])
+    print(f"chat_message_id: {chat_message_id}")
+    print(f"chat_session_id: {chat_session_id}")
+
     chat_message = (
         db_session.query(ChatMessage)
         .filter(
