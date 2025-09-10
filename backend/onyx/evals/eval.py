@@ -119,4 +119,12 @@ def eval(data: list[Any] | Dataset) -> EvalResultWithSummary:
         data=data,
         task=lambda input: _get_answer(input),
         scores=[],
+        metadata={
+            "tools": ["SearchTool", "InternetSearchTool"],
+            "llm": {
+                "name": "Default",
+                "model_version": "gpt-4.1",
+                "temperature": 0.7,
+            },
+        },
     )
