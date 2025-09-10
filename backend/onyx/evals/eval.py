@@ -24,7 +24,6 @@ from onyx.tools.built_in_tools import get_builtin_tool
 from onyx.tools.tool_implementations.internet_search.internet_search_tool import (
     InternetSearchTool,
 )
-from onyx.tools.tool_implementations.search.search_tool import SearchTool
 
 
 @contextmanager
@@ -60,7 +59,6 @@ def _get_answer(
     with session_factory_context_manager(engine) as SessionLocal:
         with SessionLocal() as db_session:
             tools = [
-                get_builtin_tool(db_session, SearchTool),
                 get_builtin_tool(db_session, InternetSearchTool),
             ]
             request = prepare_chat_message_request(
@@ -91,7 +89,7 @@ def _get_answer(
                 llm_override=LLMOverride(
                     name="Default",
                     model_version="gpt-4.1",
-                    temperature=0.7,
+                    temperature=0.5,
                 ),
             )
             # can do tool / llm configuration here
@@ -124,7 +122,7 @@ def eval(data: list[Any] | Dataset) -> EvalResultWithSummary:
             "llm": {
                 "name": "Default",
                 "model_version": "gpt-4.1",
-                "temperature": 0.7,
+                "temperature": 0.5,
             },
         },
     )
