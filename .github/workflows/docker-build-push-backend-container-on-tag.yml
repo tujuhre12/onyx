@@ -147,11 +147,11 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 20
+          timeout_minutes: 25
           max_attempts: 3
           retry_wait_seconds: 10
           command: |
-            docker run --rm \
+            docker run --rm -v $HOME/.cache/trivy:/root/.cache/trivy \
               -v ${{ github.workspace }}/backend/.trivyignore:/tmp/.trivyignore:ro \
               -e TRIVY_DB_REPOSITORY="public.ecr.aws/aquasecurity/trivy-db:2" \
               -e TRIVY_JAVA_DB_REPOSITORY="public.ecr.aws/aquasecurity/trivy-java-db:1" \
@@ -160,7 +160,7 @@ jobs:
               aquasec/trivy@sha256:a22415a38938a56c379387a8163fcb0ce38b10ace73e593475d3658d578b2436 \
               image \
               --skip-version-check \
-              --timeout 25m \
+              --timeout 20m \
               --severity CRITICAL,HIGH \
               --ignorefile /tmp/.trivyignore \
               --exit-code 1 \
