@@ -10,24 +10,20 @@ from typing import Any
 
 from braintrust import init_dataset
 from braintrust.logger import Dataset
-from sqlalchemy.orm import sessionmaker
 
 from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_OVERFLOW
 from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_SIZE
 from onyx.configs.constants import POSTGRES_WEB_APP_NAME
-from onyx.db.engine.sql_engine import get_sqlalchemy_engine
 from onyx.db.engine.sql_engine import SqlEngine
 from onyx.evals.eval import eval
 
 
 def setup_session_factory():
-    """Set up local database configurations."""
     SqlEngine.set_app_name(POSTGRES_WEB_APP_NAME)
     SqlEngine.init_engine(
         pool_size=POSTGRES_API_SERVER_POOL_SIZE,
         max_overflow=POSTGRES_API_SERVER_POOL_OVERFLOW,
     )
-    return sessionmaker(bind=get_sqlalchemy_engine())
 
 
 def load_data(
@@ -78,14 +74,14 @@ def run_local(
     Returns:
         Evaluation score
     """
-    session_factory = setup_session_factory()
+    setup_session_factory()
 
     if not braintrust_project:
         braintrust_project = os.environ["BRAINTRUST_PROJECT"]
 
     # data = load_data(local_data_path, remote_dataset_name)
 
-    score = eval(session_factory, [])
+    score = eval([])
 
     return score
 
