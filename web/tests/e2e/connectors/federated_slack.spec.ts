@@ -65,7 +65,7 @@ async function openConnectorsTab(page: Page) {
 test("Federated Slack Connector - Create, OAuth Modal, and User Settings Flow", async ({
   page,
 }) => {
-  // Setup: Clear cookies and log in as a random user
+  // Setup: Clear cookies and log in as admin
   await page.context().clearCookies();
   await loginAs(page, "admin");
 
