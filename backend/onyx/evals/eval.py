@@ -11,11 +11,19 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import SessionTransaction
 
 from onyx.chat.chat_utils import prepare_chat_message_request
+from onyx.chat.models import PersonaOverrideConfig
+from onyx.chat.models import PromptOverrideConfig
+from onyx.chat.models import ToolConfig
 from onyx.chat.process_message import gather_stream
 from onyx.chat.process_message import stream_chat_message_objects
 from onyx.context.search.models import RetrievalDetails
 from onyx.db.engine.sql_engine import get_sqlalchemy_engine
 from onyx.llm.override_models import LLMOverride
+from onyx.tools.built_in_tools import get_builtin_tool
+from onyx.tools.tool_implementations.internet_search.internet_search_tool import (
+    InternetSearchTool,
+)
+from onyx.tools.tool_implementations.search.search_tool import SearchTool
 
 
 @contextmanager
@@ -50,11 +58,28 @@ def _get_answer(
     engine = get_sqlalchemy_engine()
     with session_factory_context_manager(engine) as SessionLocal:
         with SessionLocal() as db_session:
+            tools = [
+                get_builtin_tool(db_session, SearchTool),
+                get_builtin_tool(db_session, InternetSearchTool),
+            ]
             request = prepare_chat_message_request(
                 message_text=message,
                 user=None,
-                persona_id=None,  # TODO: Use an "Eval" persona which will be relevant for prod as well
-                persona_override_config=None,
+                persona_id=None,
+                persona_override_config=PersonaOverrideConfig(
+                    name="Eval",
+                    description="A persona for evaluation",
+                    tools=[ToolConfig(id=tool.id) for tool in tools],
+                    prompts=[
+                        PromptOverrideConfig(
+                            name="Default",
+                            description="Default prompt for evaluation",
+                            system_prompt="You are a helpful assistant.",
+                            task_prompt="",
+                            datetime_aware=True,
+                        )
+                    ],
+                ),
                 prompt=None,
                 message_ts_to_respond_to=None,
                 retrieval_details=RetrievalDetails(),

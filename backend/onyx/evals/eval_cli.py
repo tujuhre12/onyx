@@ -16,6 +16,7 @@ from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_SIZE
 from onyx.configs.constants import POSTGRES_WEB_APP_NAME
 from onyx.db.engine.sql_engine import SqlEngine
 from onyx.evals.eval import eval
+from onyx.llm.braintrust_setup import setup_braintrust_tracing
 
 
 def setup_session_factory():
@@ -74,6 +75,7 @@ def run_local(
     Returns:
         Evaluation score
     """
+    setup_braintrust_tracing()
     setup_session_factory()
 
     if not braintrust_project:

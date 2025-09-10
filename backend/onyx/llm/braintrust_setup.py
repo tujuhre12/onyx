@@ -36,12 +36,12 @@ def setup_braintrust_tracing() -> bool:
 
     try:
         # Initialize Braintrust logger
-        braintrust_logger = init_logger(
+        init_logger(
             project=BRAINTRUST_PROJECT,
             api_key=os.getenv("BRAINTRUST_API_KEY"),
         )
         # Create and set global callback handler
-        handler = BraintrustCallbackHandler({"logger": braintrust_logger})
+        handler = BraintrustCallbackHandler()
         set_global_handler(handler)
 
         logger.info(f"Braintrust tracing enabled for project: {BRAINTRUST_PROJECT}")
