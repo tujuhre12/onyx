@@ -62,47 +62,135 @@ async function openConnectorsTab(page: Page) {
   await expect(connectedServicesLocators.first()).toBeVisible();
 }
 
+/**
+ * Cleanup function to delete the federated Slack connector from the admin panel
+ * This ensures test isolation by removing any test data created during the test
+ */
+async function deleteFederatedSlackConnector(page: Page) {
+  // Navigate to admin indexing status page
+  await page.goto("http://localhost:3000/admin/indexing/status");
+  await page.waitForLoadState("networkidle");
+
+  // Expand the Slack section first (summary row toggles open on click)
+  const slackSummaryRow = page.locator("tr").filter({
+    has: page.locator("text=/^\s*Slack\s*$/i"),
+  });
+  if ((await slackSummaryRow.count()) > 0) {
+    await slackSummaryRow.first().click();
+    // Wait a moment for rows to render
+    await page.waitForTimeout(500);
+  }
+
+  // Look for the Slack federated connector row inside the expanded section
+  // The federated connectors have a "Federated Access" badge
+  const slackRow = page.locator("tr", { hasText: /federated access/i });
+
+  // Check if the connector exists
+  const rowCount = await slackRow.count();
+  if (rowCount === 0) {
+    // No federated Slack connector found, nothing to delete
+    console.log("No federated Slack connector found to delete");
+    return;
+  }
+
+  // Click on the row to navigate to the detail page
+  await slackRow.first().click();
+  await page.waitForLoadState("networkidle");
+
+  // Look for and click the delete button
+  // Open the Manage menu and click Delete
+  const manageButton = page.getByRole("button", { name: /manage/i });
+  await manageButton
+    .waitFor({ state: "visible", timeout: 5000 })
+    .catch(() => {});
+  if (!(await manageButton.isVisible().catch(() => false))) {
+    console.log("Manage button not visible; skipping delete");
+    return;
+  }
+  await manageButton.click();
+  // Wait for the dropdown menu to appear and settle (Radix animation)
+  await page
+    .getByRole("menu")
+    .waitFor({ state: "visible", timeout: 3000 })
+    .catch(() => {});
+  await page.waitForTimeout(150);
+
+  page.once("dialog", (dialog) => dialog.accept());
+  const deleteMenuItem = page.getByRole("menuitem", { name: /^Delete$/ });
+  await expect(deleteMenuItem).toBeVisible({ timeout: 5000 });
+  await deleteMenuItem.click({ force: true });
+  // Wait for deletion to complete and redirect
+  await page.waitForURL("**/admin/indexing/status*", { timeout: 15000 });
+  await page.waitForLoadState("networkidle");
+
+  // Re-open Slack section and verify row is gone
+  if ((await slackSummaryRow.count()) > 0) {
+    await slackSummaryRow.first().click();
+    await page.waitForTimeout(300);
+  }
+  const postDeleteSlackRow = page
+    .locator("tr")
+    .filter({ has: page.locator("text=/slack/i") })
+    .filter({ hasText: /federated access/i });
+  const remaining = await postDeleteSlackRow.count();
+  if (remaining === 0) {
+    console.log("Federated Slack connector deleted successfully");
+  } else {
+    console.log("Federated Slack connector still present after delete attempt");
+  }
+}
+
 test("Federated Slack Connector - Create, OAuth Modal, and User Settings Flow", async ({
   page,
 }) => {
-  // Setup: Clear cookies and log in as admin
-  await page.context().clearCookies();
-  await loginAs(page, "admin");
+  try {
+    // Setup: Clear cookies and log in as admin
+    await page.context().clearCookies();
+    await loginAs(page, "admin");
 
-  // Create a federated Slack connector in admin panel
-  await createFederatedSlackConnector(page);
+    // Create a federated Slack connector in admin panel
+    await createFederatedSlackConnector(page);
 
-  // Log in as a random user
-  await page.context().clearCookies();
-  await loginAsRandomUser(page);
+    // Log in as a random user
+    await page.context().clearCookies();
+    await loginAsRandomUser(page);
 
-  // Navigate back to main page and verify OAuth modal appears
-  await page.goto("http://localhost:3000/chat");
-  await page.waitForLoadState("networkidle");
+    // Navigate back to main page and verify OAuth modal appears
+    await page.goto("http://localhost:3000/chat");
+    await page.waitForLoadState("networkidle");
 
-  // Check if the OAuth modal appears
-  await expect(
-    page.getByText(/improve answer quality by letting/i)
-  ).toBeVisible({ timeout: 10000 });
-  await expect(page.getByText(/slack/i)).toBeVisible();
+    // Check if the OAuth modal appears
+    await expect(
+      page.getByText(/improve answer quality by letting/i)
+    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/slack/i)).toBeVisible();
 
-  // Decline the OAuth connection
-  await page.getByRole("button", { name: "Skip for now" }).click();
+    // Decline the OAuth connection
+    await page.getByRole("button", { name: "Skip for now" }).click();
 
-  // Wait for modal to disappear
-  await expect(
-    page.getByText(/improve answer quality by letting/i)
-  ).not.toBeVisible();
+    // Wait for modal to disappear
+    await expect(
+      page.getByText(/improve answer quality by letting/i)
+    ).not.toBeVisible();
 
-  // Go to user settings and verify the connector appears
-  await navigateToUserSettings(page);
-  await openConnectorsTab(page);
+    // Go to user settings and verify the connector appears
+    await navigateToUserSettings(page);
+    await openConnectorsTab(page);
 
-  // Verify Slack connector appears in the federated connectors section
-  await expect(page.getByText("Federated Connectors")).toBeVisible();
-  await expect(page.getByText("Slack")).toBeVisible();
-  await expect(page.getByText("Not connected")).toBeVisible();
+    // Verify Slack connector appears in the federated connectors section
+    await expect(page.getByText("Federated Connectors")).toBeVisible();
+    await expect(page.getByText("Slack")).toBeVisible();
+    await expect(page.getByText("Not connected")).toBeVisible();
 
-  // Verify there's a Connect button available
-  await expect(page.locator("button", { hasText: /^Connect$/ })).toBeVisible();
+    // Verify there's a Connect button available
+    await expect(
+      page.locator("button", { hasText: /^Connect$/ })
+    ).toBeVisible();
+  } finally {
+    // Cleanup: Delete the federated Slack connector
+    // Log back in as admin to delete the connector
+    await page.context().clearCookies();
+    await loginAs(page, "admin");
+    await deleteFederatedSlackConnector(page);
+  }
 });
