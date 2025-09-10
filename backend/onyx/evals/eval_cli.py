@@ -10,13 +10,13 @@ from typing import Any
 
 from braintrust import init_dataset
 from braintrust.logger import Dataset
-from evals.eval import eval
 
 from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_OVERFLOW
 from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_SIZE
 from onyx.configs.constants import POSTGRES_WEB_APP_NAME
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.db.engine.sql_engine import SqlEngine
+from onyx.evals.eval import eval
 
 
 def setup_local_configs():
@@ -81,10 +81,10 @@ def run_local(
     if not braintrust_project:
         braintrust_project = os.environ["BRAINTRUST_PROJECT"]
 
-    data = load_data(local_data_path, remote_dataset_name)
+    # data = load_data(local_data_path, remote_dataset_name)
 
     with get_session_with_current_tenant() as db_session:
-        score = eval(db_session, data)
+        score = eval(db_session, [])
 
     return score
 
