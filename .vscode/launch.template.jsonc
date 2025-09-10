@@ -463,7 +463,26 @@
         "request": "launch",
         "url": "http://localhost:3000",
         "webRoot": "${workspaceFolder}/web"
-      }
+      },
+      {
+        "name": "Eval CLI",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${workspaceFolder}/backend/onyx/evals/eval_cli.py",
+        "cwd": "${workspaceFolder}/backend",
+        "console": "integratedTerminal",
+        "justMyCode": false,
+        "envFile": "${workspaceFolder}/.vscode/.env",
+        "env": {
+          "LOG_LEVEL": "INFO",
+          "PYTHONUNBUFFERED": "1",
+          "PYTHONPATH": "."
+        },
+        "args": [
+            "--verbose"
+        ],
+        "consoleTitle": "Eval CLI Console"
+    }
     ]
   }
   
