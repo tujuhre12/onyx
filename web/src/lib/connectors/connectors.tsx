@@ -644,7 +644,7 @@ export const connectorConfigs: Record<
                 label: "Everything",
                 name: "everything",
                 description:
-                  "This connector will index all service management issues the provided credentials have access to!",
+                  "This connector will index all JSM tickets and requests from service desk projects the provided credentials have access to!",
               },
             ],
           },

@@ -420,7 +420,10 @@ class JiraServiceManagementConnector(
             ConnectorValidationError: For other HTTP errors with extracted error messages
         """
         status_code = getattr(e, "status_code", None)
-        logger.error(f"Jira Service Management API error during validation: {e}")
+        error_type = type(e).__name__
+        logger.error(
+            f"Jira Service Management API error during validation. Status code: {status_code}, Error type: {error_type}"
+        )
 
         # Handle specific status codes with appropriate exceptions
         if status_code == 401:
