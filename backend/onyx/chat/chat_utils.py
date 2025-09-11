@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from fastapi.datastructures import Headers
 from sqlalchemy.orm import Session
 
+from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.auth.users import is_user_admin
 from onyx.background.celery.tasks.kg_processing.kg_indexing import (
     try_creating_kg_processing_task,
@@ -68,6 +69,7 @@ def prepare_chat_message_request(
     use_agentic_search: bool = False,
     skip_gen_ai_answer_generation: bool = False,
     llm_override: LLMOverride | None = None,
+    research_type: ResearchType = ResearchType.THOUGHTFUL,
 ) -> CreateChatMessageRequest:
     # Typically used for one shot flows like SlackBot or non-chat API endpoint use cases
     new_chat_session = create_chat_session(
@@ -95,6 +97,7 @@ def prepare_chat_message_request(
         use_agentic_search=use_agentic_search,
         skip_gen_ai_answer_generation=skip_gen_ai_answer_generation,
         llm_override=llm_override,
+        research_type=research_type,
     )
 
 

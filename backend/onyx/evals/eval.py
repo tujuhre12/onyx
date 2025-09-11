@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import SessionTransaction
 
+from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.chat.chat_utils import prepare_chat_message_request
 from onyx.chat.process_message import gather_stream
 from onyx.chat.process_message import stream_chat_message_objects
@@ -45,7 +46,8 @@ def session_factory_context_manager(engine: Engine):
 
 
 def _get_answer(
-    message,
+    input: str,
+    metadata: dict[str, str],
     configuration: EvalConfigurationOptions,
 ) -> str:
     engine = get_sqlalchemy_engine()
@@ -58,7 +60,7 @@ def _get_answer(
                 else None
             )
             request = prepare_chat_message_request(
-                message_text=message,
+                message_text=input,
                 user=user,
                 persona_id=None,
                 persona_override_config=full_configuration.persona_override_config,
@@ -67,9 +69,9 @@ def _get_answer(
                 retrieval_details=RetrievalDetails(),
                 rerank_settings=None,
                 db_session=db_session,
-                use_agentic_search=False,
                 skip_gen_ai_answer_generation=False,
                 llm_override=full_configuration.llm,
+                research_type=metadata.get("research_type", ResearchType.THOUGHTFUL),
             )
             # can do tool / llm configuration here
             packets = stream_chat_message_objects(
@@ -84,5 +86,7 @@ def _get_answer(
 def eval(data: Data, configuration: EvalConfigurationOptions) -> EvaluationResult:
     provider = get_default_provider()
     return provider.eval(
-        configuration, lambda input: _get_answer(input, configuration), data
+        configuration,
+        lambda input, metadata: _get_answer(input, metadata, configuration),
+        data,
     )

@@ -8,7 +8,6 @@ import json
 import os
 from typing import Any
 
-import curlify
 import requests
 from braintrust import init_dataset
 from braintrust.logger import Dataset
@@ -129,7 +128,6 @@ def run_remote(
         "Content-Type": "application/json",
     }
     response = requests.post(url, headers=headers, json=payload)
-    print(curlify.to_curl(response.request))
     response.raise_for_status()
 
     return response.json()

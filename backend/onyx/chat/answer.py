@@ -117,9 +117,7 @@ class Answer:
             allow_agent_reranking=allow_agent_reranking,
             perform_initial_search_decomposition=INITIAL_SEARCH_DECOMPOSITION_ENABLED,
             kg_config_settings=get_kg_config_settings(),
-            research_type=(
-                ResearchType.DEEP if use_agentic_search else ResearchType.THOUGHTFUL
-            ),
+            research_type=research_type,
         )
         self.graph_config = GraphConfig(
             inputs=self.graph_inputs,
