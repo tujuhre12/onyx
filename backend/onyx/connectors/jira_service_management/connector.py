@@ -455,17 +455,36 @@ class JiraServiceManagementConnector(
                 # Try to execute the JQL query with a small limit to validate its syntax
                 # Use next(iter(...), None) to get just the first result without
                 # forcing evaluation of all results
-                next(
-                    iter(
-                        _perform_jql_search(
-                            jira_client=self.jira_client,
-                            jql=self.jql_query,
-                            start=0,
-                            max_results=1,
-                        )
-                    ),
-                    None,
-                )
+                if _is_cloud_client(self.jira_client):
+                    # For Jira Cloud, we need to provide all_issue_ids parameter
+                    dummy_checkpoint = self.build_dummy_checkpoint()
+                    next(
+                        iter(
+                            _perform_jql_search(
+                                jira_client=self.jira_client,
+                                jql=self.jql_query,
+                                start=0,
+                                max_results=1,
+                                all_issue_ids=dummy_checkpoint.all_issue_ids,
+                                nextPageToken=dummy_checkpoint.cursor,
+                                ids_done=dummy_checkpoint.ids_done,
+                            )
+                        ),
+                        None,
+                    )
+                else:
+                    # For Jira Server
+                    next(
+                        iter(
+                            _perform_jql_search(
+                                jira_client=self.jira_client,
+                                jql=self.jql_query,
+                                start=0,
+                                max_results=1,
+                            )
+                        ),
+                        None,
+                    )
             except Exception as e:
                 self._handle_jira_connector_settings_error(e)
 
