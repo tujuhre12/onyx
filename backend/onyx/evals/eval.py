@@ -19,6 +19,7 @@ from onyx.chat.process_message import gather_stream
 from onyx.chat.process_message import stream_chat_message_objects
 from onyx.context.search.models import RetrievalDetails
 from onyx.db.engine.sql_engine import get_sqlalchemy_engine
+from onyx.db.users import get_user_by_email
 from onyx.llm.override_models import LLMOverride
 from onyx.tools.built_in_tools import get_builtin_tool
 from onyx.tools.tool_implementations.internet_search.internet_search_tool import (
@@ -61,9 +62,10 @@ def _get_answer(
             tools = [
                 get_builtin_tool(db_session, InternetSearchTool),
             ]
+            user = get_user_by_email("richard@onyx.app", db_session)
             request = prepare_chat_message_request(
                 message_text=message,
-                user=None,
+                user=user,
                 persona_id=None,
                 persona_override_config=PersonaOverrideConfig(
                     name="Eval",
@@ -95,7 +97,7 @@ def _get_answer(
             # can do tool / llm configuration here
             packets = stream_chat_message_objects(
                 new_msg_req=request,
-                user=None,
+                user=user,
                 db_session=db_session,
             )
             answer = gather_stream(packets)
