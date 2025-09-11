@@ -230,7 +230,7 @@ export const SOURCE_METADATA_MAP: SourceMap = {
   },
   jira_service_management: {
     icon: JiraServiceManagementIcon,
-    displayName: "Jira Service Management",
+    displayName: "Jira SM",
     category: SourceCategory.TicketingAndTaskManagement,
     docs: "https://docs.onyx.app/admin/connectors/official/jira_service_management",
   },

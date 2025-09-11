@@ -76,7 +76,16 @@ def process_jira_service_management_issue(
     issue: Issue,
     comment_email_blacklist: tuple[str, ...] = (),
 ) -> Document | None:
-    """Process a Jira Service Management issue into a Document."""
+    """Process a Jira Service Management issue into a Document.
+
+    Args:
+        jira_client: The Jira client instance
+        issue: The Jira Service Management issue to process
+        comment_email_blacklist: Tuple of email addresses to exclude from comments
+
+    Returns:
+        A Document object containing the processed issue data, or None if processing fails
+    """
 
     if isinstance(issue.fields.description, str):
         description = issue.fields.description
@@ -212,7 +221,17 @@ class JiraServiceManagementConnector(
     def _get_jql_query(
         self, start: SecondsSinceUnixEpoch, end: SecondsSinceUnixEpoch
     ) -> str:
-        """Get the JQL query for Service Management issues based on configuration and time range"""
+        """Get the JQL query for Service Management issues based on configuration and time range.
+
+        Args:
+            start: Start timestamp (seconds since Unix epoch) for the query time range
+            end: End timestamp (seconds since Unix epoch) for the query time range
+
+        Returns:
+            JQL query string that filters for service management issues within the specified
+            time range. If a project key is configured, limits to that project; otherwise
+            queries all accessible service desk projects.
+        """
         start_date_str = datetime.fromtimestamp(start, tz=timezone.utc).strftime(
             "%Y-%m-%d %H:%M"
         )
@@ -222,14 +241,14 @@ class JiraServiceManagementConnector(
 
         time_jql = f"updated >= '{start_date_str}' AND updated <= '{end_date_str}'"
 
-        # Focus on Service Management issue types
-        service_desk_jql = "issuetype in ('Service Request', 'Incident', 'Problem', 'Change', 'IT Help')"
-
-        # Use project key if provided
+        # Use project key if provided - focus on that specific project
         if self.jira_project:
             base_jql = f"project = {self.quoted_jira_project}"
-            return f"{base_jql} AND {service_desk_jql} AND {time_jql}"
+            return f"{base_jql} AND {time_jql}"
 
+        # If no specific project, filter to only service desk projects
+        # This ensures we only pull JSM tickets, not regular Jira tickets
+        service_desk_jql = "project in projectsWhereUserHasPermission('Browse Projects') AND projectType = 'service_desk'"
         return f"{service_desk_jql} AND {time_jql}"
 
     def load_from_checkpoint(
