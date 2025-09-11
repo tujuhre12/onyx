@@ -41,6 +41,9 @@ from onyx.connectors.interfaces import EventConnector
 from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import PollConnector
 from onyx.connectors.jira.connector import JiraConnector
+from onyx.connectors.jira_service_management.connector import (
+    JiraServiceManagementConnector,
+)
 from onyx.connectors.linear.connector import LinearConnector
 from onyx.connectors.loopio.connector import LoopioConnector
 from onyx.connectors.mediawiki.wiki import MediaWikiConnector
@@ -91,6 +94,7 @@ def identify_connector_class(
         DocumentSource.OUTLINE: OutlineConnector,
         DocumentSource.CONFLUENCE: ConfluenceConnector,
         DocumentSource.JIRA: JiraConnector,
+        DocumentSource.JIRA_SERVICE_MANAGEMENT: JiraServiceManagementConnector,
         DocumentSource.PRODUCTBOARD: ProductboardConnector,
         DocumentSource.SLAB: SlabConnector,
         DocumentSource.NOTION: NotionConnector,
