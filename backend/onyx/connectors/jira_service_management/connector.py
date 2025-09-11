@@ -396,6 +396,9 @@ class JiraServiceManagementConnector(
                 jira_client=self.jira_client,
                 jql=jql,
                 start=current_offset,
+                # Use Jira-optimized page size for slim operations rather than self.batch_size
+                # Slim docs only need basic metadata, so larger batches (500) are efficient
+                # Full document processing uses smaller batches (50) due to content processing overhead
                 max_results=_JIRA_SLIM_PAGE_SIZE,
                 all_issue_ids=checkpoint.all_issue_ids,
                 checkpoint_callback=checkpoint_callback,
