@@ -332,12 +332,17 @@ class JiraServiceManagementConnector(
                     yield document
 
             except Exception as e:
+                # Log the full exception for debugging but use a generic message for the failure
+                logger.error(
+                    f"Failed to process Jira Service Management issue {issue_key}: "
+                    f"Error type: {type(e).__name__}, Status code: {getattr(e, 'status_code', 'N/A')}"
+                )
                 yield ConnectorFailure(
                     failed_document=DocumentFailure(
                         document_id=issue_key,
                         document_link=build_jira_url(self.jira_client, issue_key),
                     ),
-                    failure_message=f"Failed to process Jira Service Management issue: {str(e)}",
+                    failure_message="Failed to process Jira Service Management issue due to an unexpected error",
                     exception=e,
                 )
 
