@@ -678,7 +678,7 @@ LOG_POSTGRES_CONN_COUNTS = (
 DISABLE_TELEMETRY = os.environ.get("DISABLE_TELEMETRY", "").lower() == "true"
 
 #####
-# Braintrust Tracing Configuration
+# Braintrust Configuration
 #####
 # Enable Braintrust tracing for LangGraph/LangChain applications
 BRAINTRUST_ENABLED = os.environ.get("BRAINTRUST_ENABLED", "").lower() == "true"

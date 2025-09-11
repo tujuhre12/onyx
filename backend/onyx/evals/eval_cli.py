@@ -8,6 +8,8 @@ import json
 import os
 from typing import Any
 
+import curlify
+import requests
 from braintrust import init_dataset
 from braintrust.logger import Dataset
 
@@ -15,7 +17,9 @@ from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_OVERFLOW
 from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_SIZE
 from onyx.configs.constants import POSTGRES_WEB_APP_NAME
 from onyx.db.engine.sql_engine import SqlEngine
-from onyx.evals.eval import eval
+from onyx.evals.eval import eval as run_eval
+from onyx.evals.models import EvalConfigurationOptions
+from onyx.evals.models import EvaluationResult
 from onyx.llm.braintrust_setup import setup_braintrust_tracing
 
 
@@ -27,7 +31,7 @@ def setup_session_factory():
     )
 
 
-def load_data(
+def load_data_local(
     local_data_path: str | None, remote_dataset_name: str | None
 ) -> Dataset | list[Any]:
     """
@@ -62,7 +66,8 @@ def run_local(
     local_data_path: str | None,
     remote_dataset_name: str | None,
     braintrust_project: str | None = None,
-) -> float:
+    impersonation_email: str | None = None,
+) -> EvaluationResult:
     """
     Run evaluation with local configurations.
 
@@ -71,9 +76,10 @@ def run_local(
         remote_dataset_name: Name of remote Braintrust dataset
         braintrust_project: Optional Braintrust project name. If not provided,
                           will use BRAINTRUST_PROJECT environment variable.
+        impersonation_email: Optional email address to impersonate for the evaluation
 
     Returns:
-        Evaluation score
+        EvaluationResult: The evaluation result
     """
     setup_braintrust_tracing()
     setup_session_factory()
@@ -83,9 +89,50 @@ def run_local(
 
     # data = load_data(local_data_path, remote_dataset_name)
 
-    score = eval([])
+    configuration = EvalConfigurationOptions(impersonation_email=impersonation_email)
+
+    score = run_eval([], configuration)
 
     return score
+
+
+def run_remote(
+    base_url: str,
+    api_key: str,
+    payload: dict[str, Any] | None = None,
+    impersonation_email: str | None = None,
+) -> dict[str, Any]:
+    """
+    Trigger an eval pipeline execution on a remote server.
+
+    Args:
+        base_url: Base URL of the remote server (e.g., "https://test.onyx.app")
+        api_key: API key for authentication
+        payload: Optional payload to send with the request
+        impersonation_email: Optional email address to impersonate for the evaluation
+
+    Returns:
+        Response from the remote server
+
+    Raises:
+        requests.RequestException: If the request fails
+    """
+    if payload is None:
+        payload = {}
+
+    if impersonation_email:
+        payload["impersonation_email"] = impersonation_email
+
+    url = f"{base_url}/evals/eval_run"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    response = requests.post(url, headers=headers, json=payload)
+    print(curlify.to_curl(response.request))
+    response.raise_for_status()
+
+    return response.json()
 
 
 def main():
@@ -112,6 +159,32 @@ def main():
 
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
 
+    # Remote eval arguments
+    parser.add_argument(
+        "--base-url",
+        type=str,
+        default="https://test.onyx.app",
+        help="Base URL of the remote server (default: https://test.onyx.app)",
+    )
+
+    parser.add_argument(
+        "--api-key",
+        type=str,
+        help="API key for authentication with the remote server",
+    )
+
+    parser.add_argument(
+        "--remote",
+        action="store_true",
+        help="Run evaluation on remote server instead of locally",
+    )
+
+    parser.add_argument(
+        "--impersonation-email",
+        type=str,
+        help="Email address to impersonate for the evaluation",
+    )
+
     args = parser.parse_args()
 
     if args.local_data_path:
@@ -119,14 +192,44 @@ def main():
     elif args.remote_dataset_name:
         print(f"Loading data from remote dataset: {args.remote_dataset_name}")
 
-    if args.braintrust_project:
-        print(f"Using Braintrust project: {args.braintrust_project}")
-    else:
-        print(
-            f"Using Braintrust project from env: {os.environ.get('BRAINTRUST_PROJECT', 'Not set')}"
-        )
+    if args.remote:
+        if not args.api_key:
+            print("Error: --api-key is required when using --remote")
+            return
 
-    run_local(args.local_data_path, args.remote_dataset_name, args.braintrust_project)
+        print(f"Running evaluation on remote server: {args.base_url}")
+        print(f"Using API key: {args.api_key[:8]}...")
+
+        if args.impersonation_email:
+            print(f"Using impersonation email: {args.impersonation_email}")
+
+        try:
+            result = run_remote(
+                args.base_url,
+                args.api_key,
+                impersonation_email=args.impersonation_email,
+            )
+            print(f"Remote evaluation triggered successfully: {result}")
+        except requests.RequestException as e:
+            print(f"Error triggering remote evaluation: {e}")
+            return
+    else:
+        if args.braintrust_project:
+            print(f"Using Braintrust project: {args.braintrust_project}")
+        else:
+            print(
+                f"Using Braintrust project from env: {os.environ.get('BRAINTRUST_PROJECT', 'Not set')}"
+            )
+
+        if args.impersonation_email:
+            print(f"Using impersonation email: {args.impersonation_email}")
+
+        run_local(
+            args.local_data_path,
+            args.remote_dataset_name,
+            args.braintrust_project,
+            args.impersonation_email,
+        )
 
 
 if __name__ == "__main__":

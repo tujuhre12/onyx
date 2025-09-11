@@ -37,6 +37,11 @@ This will run the evaluation with the following default settings:
 
 #### Command Line Usage
 
+Kick off a remote job
+```bash
+onyx/backend$ PYTHONPATH=. python onyx/evals/eval_cli.py --remote --api-key <API_KEY> --base-url https://test.onyx.app
+```
+
 You can also run the CLI directly from the command line:
 
 ```bash

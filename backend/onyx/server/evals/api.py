@@ -7,7 +7,7 @@ from fastapi import Depends
 from ee.onyx.auth.users import current_cloud_superuser
 from onyx.db.models import User
 from onyx.evals.eval import eval
-from onyx.server.evals.models import EvalRunRequest
+from onyx.evals.models import EvalConfigurationOptions
 from onyx.server.evals.models import EvalRunResponse
 from onyx.utils.logger import setup_logger
 
@@ -20,8 +20,8 @@ router = APIRouter(prefix="/evals")
 
 @router.post("/eval_run", response_model=EvalRunResponse)
 def eval_run(
-    request: EvalRunRequest,
-    _: User = Depends(current_cloud_superuser),
+    request: EvalConfigurationOptions,
+    user: User = Depends(current_cloud_superuser),
 ) -> EvalRunResponse:
     """
     Run an evaluation with the given message and optional dataset.
@@ -30,5 +30,5 @@ def eval_run(
     dataset = braintrust.init_dataset(
         project=os.environ["BRAINTRUST_PROJECT"], name="Thoughtful Mode Evals"
     )
-    eval(dataset)
+    eval(dataset, request)
     return EvalRunResponse(success=True)
