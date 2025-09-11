@@ -46,8 +46,7 @@ def session_factory_context_manager(engine: Engine):
 
 
 def _get_answer(
-    input: str,
-    metadata: dict[str, str],
+    input: dict[str, str],
     configuration: EvalConfigurationOptions,
 ) -> str:
     engine = get_sqlalchemy_engine()
@@ -60,18 +59,17 @@ def _get_answer(
                 else None
             )
             request = prepare_chat_message_request(
-                message_text=input,
+                message_text=input["message"],
                 user=user,
                 persona_id=None,
                 persona_override_config=full_configuration.persona_override_config,
-                prompt=None,
                 message_ts_to_respond_to=None,
                 retrieval_details=RetrievalDetails(),
                 rerank_settings=None,
                 db_session=db_session,
                 skip_gen_ai_answer_generation=False,
                 llm_override=full_configuration.llm,
-                research_type=metadata.get("research_type", ResearchType.THOUGHTFUL),
+                research_type=ResearchType(input.get("research_type", "THOUGHTFUL")),
             )
             # can do tool / llm configuration here
             packets = stream_chat_message_objects(
@@ -87,6 +85,6 @@ def eval(data: Data, configuration: EvalConfigurationOptions) -> EvaluationResul
     provider = get_default_provider()
     return provider.eval(
         configuration,
-        lambda input, metadata: _get_answer(input, metadata, configuration),
+        lambda input, metadata: _get_answer(input, configuration),
         data,
     )

@@ -19,7 +19,6 @@ from onyx.db.engine.sql_engine import SqlEngine
 from onyx.evals.eval import eval as run_eval
 from onyx.evals.models import EvalConfigurationOptions
 from onyx.evals.models import EvaluationResult
-from onyx.llm.braintrust_setup import setup_braintrust_tracing
 
 
 def setup_session_factory():
@@ -80,17 +79,17 @@ def run_local(
     Returns:
         EvaluationResult: The evaluation result
     """
-    setup_braintrust_tracing()
+    # setup_braintrust_tracing()
     setup_session_factory()
 
     if not braintrust_project:
         braintrust_project = os.environ["BRAINTRUST_PROJECT"]
 
-    # data = load_data(local_data_path, remote_dataset_name)
+    data = load_data_local(local_data_path, remote_dataset_name)
 
     configuration = EvalConfigurationOptions(impersonation_email=impersonation_email)
 
-    score = run_eval([], configuration)
+    score = run_eval(data, configuration)
 
     return score
 

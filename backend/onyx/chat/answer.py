@@ -112,12 +112,13 @@ class Answer:
             message_id=current_agent_message_id,
         )
 
-        if use_agentic_search:
-            research_type = ResearchType.DEEP
-        elif TF_DR_DEFAULT_FAST:
-            research_type = ResearchType.FAST
-        else:
-            research_type = ResearchType.THOUGHTFUL
+        if not research_type:
+            if use_agentic_search:
+                research_type = ResearchType.DEEP
+            elif TF_DR_DEFAULT_FAST:
+                research_type = ResearchType.FAST
+            else:
+                research_type = ResearchType.THOUGHTFUL
 
         self.search_behavior_config = GraphSearchConfig(
             use_agentic_search=use_agentic_search,

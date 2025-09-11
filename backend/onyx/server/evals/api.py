@@ -28,7 +28,7 @@ def eval_run(
     This endpoint requires a valid API key for authentication.
     """
     dataset = braintrust.init_dataset(
-        project=os.environ["BRAINTRUST_PROJECT"], name="Thoughtful Mode Evals"
+        project=os.environ["BRAINTRUST_PROJECT"], name="Simple"
     )
     eval(dataset, request)
     return EvalRunResponse(success=True)
