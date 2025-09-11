@@ -431,10 +431,6 @@ class JiraServiceManagementConnector(
     def load_from_state(self) -> GenerateDocumentsOutput:
         """Load all documents from JSM without time constraints (for full reindex)"""
         # Use a very wide time range to get all documents
-        # Use a very wide time range to get all documents
-        start_time = 0  # Unix epoch
-        end_time = int(datetime.now().timestamp())
-
         start_time = 0  # Unix epoch
         end_time = int(datetime.now().timestamp())
 
