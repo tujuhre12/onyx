@@ -9,6 +9,8 @@ from jira.resources import Issue
 from typing_extensions import override
 
 from onyx.configs.app_configs import INDEX_BATCH_SIZE
+from onyx.configs.app_configs import JIRA_CONNECTOR_LABELS_TO_SKIP
+from onyx.configs.app_configs import JIRA_CONNECTOR_MAX_TICKET_SIZE
 from onyx.configs.constants import DocumentSource
 from onyx.connectors.cross_connector_utils.miscellaneous_utils import (
     is_atlassian_date_error,
@@ -20,7 +22,9 @@ from onyx.connectors.exceptions import InsufficientPermissionsError
 from onyx.connectors.exceptions import UnexpectedValidationError
 from onyx.connectors.interfaces import CheckpointedConnector
 from onyx.connectors.interfaces import CheckpointOutput
+from onyx.connectors.interfaces import GenerateDocumentsOutput
 from onyx.connectors.interfaces import GenerateSlimDocumentOutput
+from onyx.connectors.interfaces import LoadConnector
 from onyx.connectors.interfaces import SecondsSinceUnixEpoch
 from onyx.connectors.interfaces import SlimConnector
 from onyx.connectors.jira.access import get_project_permissions
@@ -75,6 +79,7 @@ def process_jira_service_management_issue(
     jira_client: JIRA,
     issue: Issue,
     comment_email_blacklist: tuple[str, ...] = (),
+    labels_to_skip: set[str] | None = None,
 ) -> Document | None:
     """Process a Jira Service Management issue into a Document.
 
@@ -86,6 +91,13 @@ def process_jira_service_management_issue(
     Returns:
         A Document object containing the processed issue data, or None if processing fails
     """
+    if labels_to_skip:
+        if any(label in issue.fields.labels for label in labels_to_skip):
+            logger.info(
+                f"Skipping {issue.key} because it has a label to skip. Found "
+                f"labels: {issue.fields.labels}. Labels to skip: {labels_to_skip}."
+            )
+            return None
 
     if isinstance(issue.fields.description, str):
         description = issue.fields.description
@@ -99,6 +111,14 @@ def process_jira_service_management_issue(
     ticket_content = f"{description}\n" + "\n".join(
         [f"Comment: {comment}" for comment in comments if comment]
     )
+
+    # Check ticket size
+    if len(ticket_content.encode("utf-8")) > JIRA_CONNECTOR_MAX_TICKET_SIZE:
+        logger.info(
+            f"Skipping {issue.key} because it exceeds the maximum size of "
+            f"{JIRA_CONNECTOR_MAX_TICKET_SIZE} bytes."
+        )
+        return None
 
     page_url = build_jira_url(jira_client, issue.key)
 
@@ -172,7 +192,7 @@ def process_jira_service_management_issue(
 
 
 class JiraServiceManagementConnector(
-    CheckpointedConnector[JiraConnectorCheckpoint], SlimConnector
+    CheckpointedConnector[JiraConnectorCheckpoint], LoadConnector, SlimConnector
 ):
     def __init__(
         self,
@@ -180,11 +200,19 @@ class JiraServiceManagementConnector(
         project_key: str | None = None,
         comment_email_blacklist: list[str] | None = None,
         batch_size: int = INDEX_BATCH_SIZE,
+        # if a ticket has one of the labels specified in this list, we will just
+        # skip it. This is generally used to avoid indexing extra sensitive
+        # tickets.
+        labels_to_skip: list[str] = JIRA_CONNECTOR_LABELS_TO_SKIP,
+        # Custom JQL query to filter Jira Service Management issues
+        jql_query: str | None = None,
     ) -> None:
         self.batch_size = batch_size
         self.jira_base = jira_service_management_base_url.rstrip("/")
         self.jira_project = project_key
         self._comment_email_blacklist = comment_email_blacklist or []
+        self.labels_to_skip = set(labels_to_skip)
+        self.jql_query = jql_query
 
         self._jira_client: JIRA | None = None
 
@@ -223,14 +251,17 @@ class JiraServiceManagementConnector(
     ) -> str:
         """Get the JQL query for Service Management issues based on configuration and time range.
 
+        If a custom JQL query is provided, it will be used and combined with time constraints.
+        Otherwise, the query will be constructed based on project key (if provided) or
+        will default to filtering service desk projects.
+
         Args:
             start: Start timestamp (seconds since Unix epoch) for the query time range
             end: End timestamp (seconds since Unix epoch) for the query time range
 
         Returns:
             JQL query string that filters for service management issues within the specified
-            time range. If a project key is configured, limits to that project; otherwise
-            queries all accessible service desk projects.
+            time range.
         """
         start_date_str = datetime.fromtimestamp(start, tz=timezone.utc).strftime(
             "%Y-%m-%d %H:%M"
@@ -240,6 +271,10 @@ class JiraServiceManagementConnector(
         )
 
         time_jql = f"updated >= '{start_date_str}' AND updated <= '{end_date_str}'"
+
+        # If custom JQL query is provided, use it and combine with time constraints
+        if self.jql_query:
+            return f"({self.jql_query}) AND {time_jql}"
 
         # Use project key if provided - focus on that specific project
         if self.jira_project:
@@ -292,6 +327,7 @@ class JiraServiceManagementConnector(
                     jira_client=self.jira_client,
                     issue=issue,
                     comment_email_blacklist=self.comment_email_blacklist,
+                    labels_to_skip=self.labels_to_skip,
                 ):
                     yield document
 
@@ -387,18 +423,55 @@ class JiraServiceManagementConnector(
         if slim_doc_batch:
             yield slim_doc_batch
 
+    def load_from_state(self) -> GenerateDocumentsOutput:
+        """Load all documents from JSM without time constraints (for full reindex)"""
+        # Use a very wide time range to get all documents
+        from datetime import datetime
+
+        start_time = 0  # Unix epoch
+        end_time = int(datetime.now().timestamp())
+
+        checkpoint = self.build_dummy_checkpoint()
+
+        for doc_or_failure in self.load_from_checkpoint(
+            start_time, end_time, checkpoint
+        ):
+            if isinstance(doc_or_failure, Document):
+                yield [doc_or_failure]
+            # Skip failures in load_from_state to avoid interrupting full reindex
+
     def validate_connector_settings(self) -> None:
         if self._jira_client is None:
             raise ConnectorMissingCredentialError("Jira Service Management")
 
+        # If a custom JQL query is set, validate it's valid
+        if self.jql_query:
+            try:
+                # Try to execute the JQL query with a small limit to validate its syntax
+                # Use next(iter(...), None) to get just the first result without
+                # forcing evaluation of all results
+                next(
+                    iter(
+                        _perform_jql_search(
+                            jira_client=self.jira_client,
+                            jql=self.jql_query,
+                            start=0,
+                            max_results=1,
+                        )
+                    ),
+                    None,
+                )
+            except Exception as e:
+                self._handle_jira_connector_settings_error(e)
+
         # If a specific project is set, validate it exists
-        if self.jira_project:
+        elif self.jira_project:
             try:
                 self.jira_client.project(self.jira_project)
             except Exception as e:
                 self._handle_jira_connector_settings_error(e)
         else:
-            # If no project specified, validate we can access the Jira API
+            # If neither JQL nor project specified, validate we can access the Jira API
             try:
                 # Try to list projects to validate access
                 self.jira_client.projects()

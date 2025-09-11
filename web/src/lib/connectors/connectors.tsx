@@ -662,6 +662,22 @@ export const connectorConfigs: Record<
               },
             ],
           },
+          {
+            value: "jql",
+            label: "JQL Query",
+            fields: [
+              {
+                type: "text",
+                query: "Enter the JQL query:",
+                label: "JQL Query",
+                name: "jql_query",
+                description:
+                  "A custom JQL query to filter Jira Service Management issues." +
+                  "\n\nIMPORTANT: Do not include any time-based filters in the JQL query as that will conflict with the connector's logic. Additionally, do not include ORDER BY clauses." +
+                  "\n\nSee Atlassian's [JQL documentation](https://support.atlassian.com/jira-software-cloud/docs/advanced-search-reference-jql-fields/) for more details on syntax.",
+              },
+            ],
+          },
         ],
         defaultTab: "everything",
       },
@@ -1677,6 +1693,7 @@ export interface JiraServiceManagementConfig {
   jira_service_management_base_url: string;
   project_key?: string;
   comment_email_blacklist?: string[];
+  jql_query?: string;
 }
 
 export interface SalesforceConfig {
