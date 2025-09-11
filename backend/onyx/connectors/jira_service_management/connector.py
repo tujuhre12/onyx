@@ -393,9 +393,7 @@ class JiraServiceManagementConnector(
         slim_doc_batch = []
         while checkpoint.has_more:
             if callback and callback.should_stop():
-                raise RuntimeError(
-                    "retrieve_all_slim_documents: Stop signal detected"
-                )
+                raise RuntimeError("retrieve_all_slim_documents: Stop signal detected")
 
             for issue in _perform_jql_search(
                 jira_client=self.jira_client,
@@ -427,7 +425,9 @@ class JiraServiceManagementConnector(
                 current_offset += 1
                 if len(slim_doc_batch) >= _JIRA_SLIM_PAGE_SIZE:
                     if callback:
-                        callback.progress("retrieve_all_slim_documents", len(slim_doc_batch))
+                        callback.progress(
+                            "retrieve_all_slim_documents", len(slim_doc_batch)
+                        )
                     yield slim_doc_batch
                     slim_doc_batch = []
             self.update_checkpoint_for_next_run(
