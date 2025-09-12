@@ -72,10 +72,6 @@ def parse_csv_file(csv_path: str) -> List[Dict[str, Any]]:
                     }
                 )
 
-                # Limit to 20 records as requested
-                if len(records) >= 20:
-                    break
-
     return records
 
 
@@ -104,7 +100,7 @@ def create_braintrust_dataset(records: List[Dict[str, Any]]) -> None:
 
     # Initialize the dataset
     dataset = init_dataset(
-        "My Project", "Evaluation", api_key=os.getenv("BRAINTRUST_API_KEY")
+        "My Project", "WebEval", api_key=os.getenv("BRAINTRUST_API_KEY")
     )
 
     print(f"Creating Braintrust dataset with {len(records)} records...")
@@ -126,7 +122,7 @@ def create_braintrust_dataset(records: List[Dict[str, Any]]) -> None:
 
 def main():
     """Main function to run the script."""
-    csv_path = "/Users/richardguan/onyx/backend/onyx/evals/DR Master Question & Metric Sheet - Sheet1.csv"
+    csv_path = "/Users/richardguan/onyx/backend/onyx/evals/data/DR Master Question & Metric Sheet - Sheet1.csv"
 
     if not os.path.exists(csv_path):
         print(f"Error: CSV file not found at {csv_path}")
