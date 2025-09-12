@@ -1753,6 +1753,7 @@ def update_db_session_with_messages(
     error: str | None = None,
     alternate_assistant_id: int | None = None,
     overridden_model: str | None = None,
+    research_type: str | None = None,
     research_plan: dict[str, str] | None = None,
     final_documents: list[SearchDoc] | None = None,
     update_parent_message: bool = True,
@@ -1787,6 +1788,8 @@ def update_db_session_with_messages(
         chat_message.alternate_assistant_id = alternate_assistant_id
     if overridden_model:
         chat_message.overridden_model = overridden_model
+    if research_type:
+        chat_message.research_type = ResearchType(research_type)
     if research_plan:
         chat_message.research_plan = research_plan
     if final_documents:

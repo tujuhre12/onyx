@@ -6,7 +6,6 @@ from uuid import UUID
 from pydantic import BaseModel
 from pydantic import model_validator
 
-from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.chat.models import PersonaOverrideConfig
 from onyx.chat.models import RetrievalDocs
 from onyx.configs.constants import DocumentSource
@@ -140,8 +139,6 @@ class CreateChatMessageRequest(ChunkContext):
     # TODO: decide how many of the above options we want to pass through to pro search
     # TODO: Deprecate this in favor of research_type
     use_agentic_search: bool = False
-
-    research_type: ResearchType = ResearchType.THOUGHTFUL
 
     skip_gen_ai_answer_generation: bool = False
 

@@ -8,7 +8,6 @@ import json
 import os
 from typing import Any
 
-import curlify
 import requests
 from braintrust import init_dataset
 from braintrust.logger import Dataset
@@ -31,7 +30,9 @@ def setup_session_factory():
 
 
 def load_data_local(
-    local_data_path: str | None, remote_dataset_name: str | None
+    braintrust_project: str,
+    local_data_path: str | None,
+    remote_dataset_name: str | None,
 ) -> Dataset | list[Any]:
     """
     Load data from either a local JSON file or remote Braintrust dataset.
@@ -50,9 +51,7 @@ def load_data_local(
         raise ValueError("Cannot specify both local_data_path and remote_dataset_name")
 
     if remote_dataset_name:
-        return init_dataset(
-            project=os.environ["BRAINTRUST_PROJECT"], name=remote_dataset_name
-        )
+        return init_dataset(project=braintrust_project, name=remote_dataset_name)
 
     if local_data_path is None:
         local_data_path = "evals/data/data.json"
@@ -64,9 +63,9 @@ def load_data_local(
 
 
 def run_local(
+    braintrust_project: str,
     local_data_path: str | None,
     remote_dataset_name: str | None,
-    braintrust_project: str | None = None,
     impersonation_email: str | None = None,
 ) -> EvaluationResult:
     """
@@ -82,14 +81,8 @@ def run_local(
     Returns:
         EvaluationResult: The evaluation result
     """
-    # setup_braintrust_tracing()
     setup_session_factory()
-
-    if not braintrust_project:
-        braintrust_project = os.environ["BRAINTRUST_PROJECT"]
-
-    data = load_data_local(None, "Simple")
-
+    data = load_data_local(braintrust_project, local_data_path, remote_dataset_name)
     configuration = EvalConfigurationOptions(
         impersonation_email=impersonation_email,
         dataset_name=remote_dataset_name or "blank",
@@ -134,9 +127,7 @@ def run_remote(
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    print(url)
     response = requests.post(url, headers=headers, json=payload)
-    print(curlify.to_curl(response.request))
     response.raise_for_status()
     return response.json()
 
@@ -160,7 +151,8 @@ def main():
     parser.add_argument(
         "--braintrust-project",
         type=str,
-        help="Braintrust project name (overrides BRAINTRUST_PROJECT env var)",
+        help="Braintrust project name",
+        default="Onyx",
     )
 
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
@@ -220,20 +212,15 @@ def main():
             print(f"Error triggering remote evaluation: {e}")
             return
     else:
-        if args.braintrust_project:
-            print(f"Using Braintrust project: {args.braintrust_project}")
-        else:
-            print(
-                f"Using Braintrust project from env: {os.environ.get('BRAINTRUST_PROJECT', 'Not set')}"
-            )
+        print(f"Using Braintrust project: {args.braintrust_project}")
 
         if args.impersonation_email:
             print(f"Using impersonation email: {args.impersonation_email}")
 
         run_local(
+            args.braintrust_project,
             args.local_data_path,
             args.remote_dataset_name,
-            args.braintrust_project,
             args.impersonation_email,
         )
 

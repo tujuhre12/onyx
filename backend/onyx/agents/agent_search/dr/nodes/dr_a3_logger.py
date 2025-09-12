@@ -7,6 +7,7 @@ from langgraph.types import StreamWriter
 from sqlalchemy.orm import Session
 
 from onyx.agents.agent_search.dr.enums import ResearchAnswerPurpose
+from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import AggregatedDRContext
 from onyx.agents.agent_search.dr.states import LoggerUpdate
 from onyx.agents.agent_search.dr.states import MainState
@@ -28,7 +29,6 @@ from onyx.db.models import ChatMessage__SearchDoc
 from onyx.db.models import ResearchAgentIteration
 from onyx.db.models import ResearchAgentIterationSubStep
 from onyx.db.models import SearchDoc as DbSearchDoc
-from onyx.evals.eval import ResearchType
 from onyx.natural_language_processing.utils import get_tokenizer
 from onyx.server.query_and_chat.streaming_models import OverallStop
 from onyx.utils.logger import setup_logger

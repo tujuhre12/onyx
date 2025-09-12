@@ -48,6 +48,7 @@ class Answer:
         chat_session_id: UUID,
         current_agent_message_id: int,
         db_session: Session,
+        research_type: ResearchType,
         # newly passed in files to include as part of this question
         # TODO THIS NEEDS TO BE HANDLED
         latest_query_files: list[InMemoryChatFile] | None = None,
@@ -58,7 +59,6 @@ class Answer:
         skip_explicit_tool_calling: bool = False,
         skip_gen_ai_answer_generation: bool = False,
         is_connected: Callable[[], bool] | None = None,
-        research_type: ResearchType | None = None,
         research_plan: dict[str, Any] | None = None,
     ) -> None:
         self.is_connected: Callable[[], bool] | None = is_connected

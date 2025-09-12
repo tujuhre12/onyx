@@ -8,6 +8,7 @@ from typing import Protocol
 
 from sqlalchemy.orm import Session
 
+from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.orchestration.nodes.call_tool import ToolCallException
 from onyx.chat.answer import Answer
 from onyx.chat.chat_utils import create_chat_chain
@@ -672,7 +673,11 @@ def stream_chat_message_objects(
             current_agent_message_id=reserved_message_id,
             tools=tools,
             db_session=db_session,
-            research_type=new_msg_req.research_type,
+            research_type=(
+                ResearchType.DEEP
+                if new_msg_req.use_agentic_search
+                else ResearchType.THOUGHTFUL
+            ),
             skip_gen_ai_answer_generation=new_msg_req.skip_gen_ai_answer_generation,
         )
 

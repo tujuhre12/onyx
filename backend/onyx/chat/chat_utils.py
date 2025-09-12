@@ -91,7 +91,7 @@ def prepare_chat_message_request(
         rerank_settings=rerank_settings,
         skip_gen_ai_answer_generation=skip_gen_ai_answer_generation,
         llm_override=llm_override,
-        research_type=research_type,
+        use_agentic_search=research_type == ResearchType.DEEP,
     )
 
 
