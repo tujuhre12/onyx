@@ -182,7 +182,9 @@ def get_application() -> FastAPI:
     include_router_with_global_prefix_prepended(application, enterprise_settings_router)
     include_router_with_global_prefix_prepended(application, usage_export_router)
 
-    include_router_with_global_prefix_prepended(application, tenants_router)
+    if MULTI_TENANT:
+        # Tenant management
+        include_router_with_global_prefix_prepended(application, tenants_router)
 
     # Ensure all routes have auth enabled or are explicitly marked as public
     check_ee_router_auth(application)
