@@ -531,7 +531,7 @@ def clarifier(
                     db_session=db_session,
                     chat_message_id=message_id,
                     chat_session_id=graph_config.persistence.chat_session_id,
-                    is_agentic=graph_config.behavior.use_agentic_search,
+                    is_agentic=graph_config.behavior.research_type == ResearchType.DEEP,
                     message=answer_str,
                     update_parent_message=True,
                     research_answer_purpose=ResearchAnswerPurpose.ANSWER,
@@ -588,7 +588,7 @@ def clarifier(
                     db_session=db_session,
                     chat_message_id=message_id,
                     chat_session_id=graph_config.persistence.chat_session_id,
-                    is_agentic=graph_config.behavior.use_agentic_search,
+                    is_agentic=graph_config.behavior.research_type == ResearchType.DEEP,
                     message=full_answer,
                     update_parent_message=True,
                     research_answer_purpose=ResearchAnswerPurpose.ANSWER,
@@ -709,10 +709,9 @@ def clarifier(
                     db_session=db_session,
                     chat_message_id=message_id,
                     chat_session_id=graph_config.persistence.chat_session_id,
-                    is_agentic=graph_config.behavior.use_agentic_search,
+                    is_agentic=graph_config.behavior.research_type == ResearchType.DEEP,
                     message=clarification_response.clarification_question,
                     update_parent_message=True,
-                    research_type=research_type,
                     research_answer_purpose=ResearchAnswerPurpose.CLARIFICATION_REQUEST,
                 )
 
@@ -737,10 +736,9 @@ def clarifier(
             db_session=db_session,
             chat_message_id=message_id,
             chat_session_id=graph_config.persistence.chat_session_id,
-            is_agentic=graph_config.behavior.use_agentic_search,
+            is_agentic=graph_config.behavior.research_type == ResearchType.DEEP,
             message=clarification.clarification_question,
             update_parent_message=True,
-            research_type=research_type,
             research_answer_purpose=ResearchAnswerPurpose.CLARIFICATION_REQUEST,
         )
 

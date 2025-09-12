@@ -7,6 +7,7 @@ from langchain_core.messages import ToolCall
 from langchain_core.runnables.config import RunnableConfig
 from langgraph.types import StreamWriter
 
+from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.process_llm_stream import process_llm_stream
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.orchestration.states import ToolChoice
@@ -136,7 +137,7 @@ def choose_tool(
     skip_gen_ai_answer_generation = agent_config.behavior.skip_gen_ai_answer_generation
 
     if (
-        not agent_config.behavior.use_agentic_search
+        not agent_config.behavior.research_type == ResearchType.DEEP
         and agent_config.tooling.search_tool is not None
         and (
             not force_use_tool.force_use or force_use_tool.tool_name == SearchTool._NAME

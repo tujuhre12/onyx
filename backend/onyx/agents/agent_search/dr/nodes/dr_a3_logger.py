@@ -28,6 +28,7 @@ from onyx.db.models import ChatMessage__SearchDoc
 from onyx.db.models import ResearchAgentIteration
 from onyx.db.models import ResearchAgentIterationSubStep
 from onyx.db.models import SearchDoc as DbSearchDoc
+from onyx.evals.eval import ResearchType
 from onyx.natural_language_processing.utils import get_tokenizer
 from onyx.server.query_and_chat.streaming_models import OverallStop
 from onyx.utils.logger import setup_logger
@@ -98,7 +99,7 @@ def save_iteration(
 ) -> None:
     db_session = graph_config.persistence.db_session
     message_id = graph_config.persistence.message_id
-    research_type = graph_config.behavior.research_type
+    graph_config.behavior.research_type
     db_session = graph_config.persistence.db_session
 
     # first, insert the search_docs
@@ -135,10 +136,9 @@ def save_iteration(
         db_session=db_session,
         chat_message_id=message_id,
         chat_session_id=graph_config.persistence.chat_session_id,
-        is_agentic=graph_config.behavior.use_agentic_search,
+        is_agentic=graph_config.behavior.research_type == ResearchType.DEEP,
         message=final_answer,
         citations=citation_dict,
-        research_type=research_type,
         research_plan=plan_of_record_dict,
         final_documents=search_docs,
         update_parent_message=True,

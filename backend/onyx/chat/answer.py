@@ -19,7 +19,6 @@ from onyx.chat.models import StreamStopReason
 from onyx.chat.prompt_builder.answer_prompt_builder import AnswerPromptBuilder
 from onyx.configs.agent_configs import AGENT_ALLOW_REFINEMENT
 from onyx.configs.agent_configs import INITIAL_SEARCH_DECOMPOSITION_ENABLED
-from onyx.configs.agent_configs import TF_DR_DEFAULT_FAST
 from onyx.context.search.models import RerankingDetails
 from onyx.db.kg_config import get_kg_config_settings
 from onyx.db.models import Persona
@@ -59,7 +58,6 @@ class Answer:
         skip_explicit_tool_calling: bool = False,
         skip_gen_ai_answer_generation: bool = False,
         is_connected: Callable[[], bool] | None = None,
-        use_agentic_search: bool = False,
         research_type: ResearchType | None = None,
         research_plan: dict[str, Any] | None = None,
     ) -> None:
@@ -112,16 +110,7 @@ class Answer:
             message_id=current_agent_message_id,
         )
 
-        if not research_type:
-            if use_agentic_search:
-                research_type = ResearchType.DEEP
-            elif TF_DR_DEFAULT_FAST:
-                research_type = ResearchType.FAST
-            else:
-                research_type = ResearchType.THOUGHTFUL
-
         self.search_behavior_config = GraphSearchConfig(
-            use_agentic_search=use_agentic_search,
             skip_gen_ai_answer_generation=skip_gen_ai_answer_generation,
             allow_refinement=AGENT_ALLOW_REFINEMENT,
             allow_agent_reranking=allow_agent_reranking,

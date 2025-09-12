@@ -672,7 +672,6 @@ def stream_chat_message_objects(
             current_agent_message_id=reserved_message_id,
             tools=tools,
             db_session=db_session,
-            use_agentic_search=new_msg_req.use_agentic_search,
             research_type=new_msg_req.research_type,
             skip_gen_ai_answer_generation=new_msg_req.skip_gen_ai_answer_generation,
         )
