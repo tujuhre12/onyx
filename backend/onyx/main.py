@@ -480,7 +480,6 @@ def get_application(lifespan_override: Lifespan | None = None) -> FastAPI:
 
     # Initialize and instrument the app
     Instrumentator().instrument(application).expose(application)
-    # setup_braintrust_tracing()
 
     use_route_function_names_as_operation_ids(application)
 

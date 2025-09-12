@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 import threading
@@ -55,9 +54,6 @@ ASYNC_DB_API = "asyncpg"
 
 # why isn't this in configs?
 USE_IAM_AUTH = os.getenv("USE_IAM_AUTH", "False").lower() == "true"
-
-logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
-logging.getLogger("sqlalchemy.pool").setLevel(logging.INFO)
 
 
 def build_connection_string(
@@ -200,9 +196,6 @@ class SqlEngine:
                 event.listen(engine, "do_connect", provide_iam_token)
 
             cls._engine = engine
-
-    # @classmethod
-    # def init_engin
 
     @classmethod
     def init_readonly_engine(

@@ -1042,9 +1042,7 @@ async def optional_user(
     if user is None:
         hashed_api_key = get_hashed_api_key_from_request(request)
         if hashed_api_key:
-            logger.info(f"Fetching user for API key: {hashed_api_key}")
             user = await fetch_user_for_api_key(hashed_api_key, async_db_session)
-            logger.info(f"User fetched for API key: {user}")
 
     return user
 
