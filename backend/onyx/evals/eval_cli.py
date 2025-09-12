@@ -49,7 +49,9 @@ def load_data_local(
         raise ValueError("Cannot specify both local_data_path and remote_dataset_name")
 
     if remote_dataset_name:
-        return init_dataset(remote_dataset_name)
+        return init_dataset(
+            project=os.environ["BRAINTRUST_PROJECT"], name=remote_dataset_name
+        )
 
     if local_data_path is None:
         local_data_path = "evals/data/data.json"
@@ -85,9 +87,12 @@ def run_local(
     if not braintrust_project:
         braintrust_project = os.environ["BRAINTRUST_PROJECT"]
 
-    data = load_data_local(local_data_path, remote_dataset_name)
+    data = load_data_local(None, "Simple")
 
-    configuration = EvalConfigurationOptions(impersonation_email=impersonation_email)
+    configuration = EvalConfigurationOptions(
+        impersonation_email=impersonation_email,
+        dataset_name=remote_dataset_name or "blank",
+    )
 
     score = run_eval(data, configuration)
 
@@ -120,6 +125,8 @@ def run_remote(
 
     if impersonation_email:
         payload["impersonation_email"] = impersonation_email
+
+    payload["dataset_name"] = "Simple"
 
     url = f"{base_url}/evals/eval_run"
     headers = {

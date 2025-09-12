@@ -1,10 +1,9 @@
 from typing import Any
 from typing import TypeAlias
 
-from braintrust import Dataset
 from pydantic import BaseModel
 
-Data: TypeAlias = list[Any] | Dataset
+Data: TypeAlias = Any
 
 
 class EvalRunRequest(BaseModel):

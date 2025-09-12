@@ -48,6 +48,7 @@ You can also run the CLI directly from the command line:
 cd backend
 python onyx/evals/eval_cli.py --verbose
 ```
+make sure your AUTH_TYPE=disabled when running evals locally
 
 #### CLI Options
 

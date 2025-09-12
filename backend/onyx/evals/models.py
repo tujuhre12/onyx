@@ -32,6 +32,7 @@ class EvalConfigurationOptions(BaseModel):
         temperature=0.5,
     )
     impersonation_email: str | None = None
+    dataset_name: str
 
     def get_configuration(self, db_session: Session) -> EvalConfiguration:
         persona_override_config = self.persona_override_config or PersonaOverrideConfig(

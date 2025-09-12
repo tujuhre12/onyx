@@ -17,11 +17,14 @@ from onyx.evals.models import EvalConfigurationOptions
 from onyx.evals.models import EvaluationResult
 from onyx.evals.provider import get_default_provider
 from onyx.server.evals.models import Data
+from shared_configs.contextvars import get_current_tenant_id
 
 
 @contextmanager
 def session_factory_context_manager(engine: Engine):
-    conn = engine.connect()
+    tenant_id = get_current_tenant_id()
+    schema_translate_map = {None: tenant_id}
+    conn = engine.connect().execution_options(schema_translate_map=schema_translate_map)
     outer_tx = conn.begin()
     Maker = sessionmaker(bind=conn, expire_on_commit=False, future=True)
 
