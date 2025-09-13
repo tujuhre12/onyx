@@ -6,7 +6,6 @@ from fastapi import HTTPException
 from fastapi.datastructures import Headers
 from sqlalchemy.orm import Session
 
-from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.auth.users import is_user_admin
 from onyx.background.celery.tasks.kg_processing.kg_indexing import (
     try_creating_kg_processing_task,
@@ -41,7 +40,6 @@ from onyx.kg.setup.kg_default_entity_definitions import (
     populate_missing_default_entity_types__commit,
 )
 from onyx.llm.models import PreviousMessage
-from onyx.llm.override_models import LLMOverride
 from onyx.natural_language_processing.utils import BaseTokenizer
 from onyx.server.query_and_chat.models import CreateChatMessageRequest
 from onyx.server.query_and_chat.streaming_models import CitationInfo
@@ -63,9 +61,8 @@ def prepare_chat_message_request(
     retrieval_details: RetrievalDetails | None,
     rerank_settings: RerankingDetails | None,
     db_session: Session,
+    use_agentic_search: bool = False,
     skip_gen_ai_answer_generation: bool = False,
-    llm_override: LLMOverride | None = None,
-    research_type: ResearchType = ResearchType.THOUGHTFUL,
 ) -> CreateChatMessageRequest:
     # Typically used for one shot flows like SlackBot or non-chat API endpoint use cases
     new_chat_session = create_chat_session(
@@ -89,9 +86,8 @@ def prepare_chat_message_request(
         search_doc_ids=None,
         retrieval_options=retrieval_details,
         rerank_settings=rerank_settings,
+        use_agentic_search=use_agentic_search,
         skip_gen_ai_answer_generation=skip_gen_ai_answer_generation,
-        llm_override=llm_override,
-        use_agentic_search=research_type == ResearchType.DEEP,
     )
 
 
