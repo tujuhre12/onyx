@@ -7,7 +7,6 @@ from langgraph.types import StreamWriter
 from sqlalchemy.orm import Session
 
 from onyx.agents.agent_search.dr.enums import ResearchAnswerPurpose
-from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import AggregatedDRContext
 from onyx.agents.agent_search.dr.states import LoggerUpdate
 from onyx.agents.agent_search.dr.states import MainState
@@ -99,7 +98,7 @@ def save_iteration(
 ) -> None:
     db_session = graph_config.persistence.db_session
     message_id = graph_config.persistence.message_id
-    graph_config.behavior.research_type
+    research_type = graph_config.behavior.research_type
     db_session = graph_config.persistence.db_session
 
     # first, insert the search_docs
@@ -136,9 +135,10 @@ def save_iteration(
         db_session=db_session,
         chat_message_id=message_id,
         chat_session_id=graph_config.persistence.chat_session_id,
-        is_agentic=graph_config.behavior.research_type == ResearchType.DEEP,
+        is_agentic=graph_config.behavior.use_agentic_search,
         message=final_answer,
         citations=citation_dict,
+        research_type=research_type,
         research_plan=plan_of_record_dict,
         final_documents=search_docs,
         update_parent_message=True,

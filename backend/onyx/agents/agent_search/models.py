@@ -64,6 +64,7 @@ class GraphPersistence(BaseModel):
 class GraphSearchConfig(BaseModel):
     """Configuration controlling search behavior"""
 
+    use_agentic_search: bool = False
     # Whether to perform initial search to inform decomposition
     perform_initial_search_decomposition: bool = True
 
@@ -88,10 +89,7 @@ class GraphConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_search_tool(self) -> "GraphConfig":
-        if (
-            self.behavior.research_type == ResearchType.DEEP
-            and self.tooling.search_tool is None
-        ):
+        if self.behavior.use_agentic_search and self.tooling.search_tool is None:
             raise ValueError("search_tool must be provided for agentic search")
         return self
 

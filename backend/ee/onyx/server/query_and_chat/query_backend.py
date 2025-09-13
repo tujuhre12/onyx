@@ -16,7 +16,6 @@ from ee.onyx.server.query_and_chat.models import OneShotQARequest
 from ee.onyx.server.query_and_chat.models import OneShotQAResponse
 from ee.onyx.server.query_and_chat.models import StandardAnswerRequest
 from ee.onyx.server.query_and_chat.models import StandardAnswerResponse
-from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.auth.users import current_user
 from onyx.chat.chat_utils import combine_message_thread
 from onyx.chat.chat_utils import prepare_chat_message_request
@@ -190,12 +189,8 @@ def get_answer_stream(
         retrieval_details=query_request.retrieval_options,
         rerank_settings=query_request.rerank_settings,
         db_session=db_session,
+        use_agentic_search=query_request.use_agentic_search,
         skip_gen_ai_answer_generation=query_request.skip_gen_ai_answer_generation,
-        research_type=(
-            ResearchType.DEEP
-            if query_request.use_agentic_search
-            else ResearchType.THOUGHTFUL
-        ),
     )
 
     packets = stream_chat_message_objects(

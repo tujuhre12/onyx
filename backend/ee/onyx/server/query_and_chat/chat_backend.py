@@ -7,7 +7,6 @@ from ee.onyx.server.query_and_chat.models import BasicCreateChatMessageRequest
 from ee.onyx.server.query_and_chat.models import (
     BasicCreateChatMessageWithHistoryRequest,
 )
-from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.auth.users import current_user
 from onyx.chat.chat_utils import combine_message_thread
 from onyx.chat.chat_utils import create_chat_chain
@@ -104,11 +103,7 @@ def handle_simplified_chat_message(
         chunks_below=0,
         full_doc=chat_message_req.full_doc,
         structured_response_format=chat_message_req.structured_response_format,
-        research_type=(
-            ResearchType.DEEP
-            if chat_message_req.use_agentic_search
-            else ResearchType.THOUGHTFUL
-        ),
+        use_agentic_search=chat_message_req.use_agentic_search,
     )
 
     packets = stream_chat_message_objects(
@@ -226,9 +221,7 @@ def handle_send_message_simple_with_history(
         chunks_below=0,
         full_doc=req.full_doc,
         structured_response_format=req.structured_response_format,
-        research_type=(
-            ResearchType.DEEP if req.use_agentic_search else ResearchType.THOUGHTFUL
-        ),
+        use_agentic_search=req.use_agentic_search,
     )
 
     packets = stream_chat_message_objects(
