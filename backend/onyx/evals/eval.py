@@ -1,5 +1,7 @@
 from contextlib import contextmanager
+from typing import Any
 
+from braintrust import Dataset
 from sqlalchemy import Engine
 from sqlalchemy import event
 from sqlalchemy.orm import Session
@@ -16,7 +18,6 @@ from onyx.db.users import get_user_by_email
 from onyx.evals.models import EvalConfigurationOptions
 from onyx.evals.models import EvaluationResult
 from onyx.evals.provider import get_default_provider
-from onyx.server.evals.models import Data
 from shared_configs.contextvars import get_current_tenant_id
 
 
@@ -84,7 +85,9 @@ def _get_answer(
             return answer.answer
 
 
-def eval(data: Data, configuration: EvalConfigurationOptions) -> EvaluationResult:
+def eval(
+    data: Dataset | list[Any], configuration: EvalConfigurationOptions
+) -> EvaluationResult:
     provider = get_default_provider()
     return provider.eval(
         configuration,
