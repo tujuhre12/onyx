@@ -12,12 +12,20 @@ The evaluation system uses [Braintrust](https://www.braintrust.dev/) to run auto
 
 ## Running Evaluations
 
-### Production Environment
+Kick off a remote job
+```bash
+onyx/backend$ python onyx/evals/eval_cli.py --remote --api-key <SUPER_CLOUD_USER_API_KEY> --impersonation-email <email account to reference>
+```
 
-To run evaluations in production, send a request to:
+You can also run the CLI directly from the command line:
+
+```bash
+onyx$ BRAINTRUST_API_KEY=<API KEY> python backend/onyx/evals/eval_cli.py
 ```
-https://test.onyx.app/evals/eval_run
-```
+make sure your AUTH_TYPE=disabled when running evals locally
+
+
+### Production Environment
 
 ### Local Development
 
@@ -35,21 +43,6 @@ This will run the evaluation with the following default settings:
 - Enables verbose output
 - Sets up proper environment variables and Python path
 
-#### Command Line Usage
-
-Kick off a remote job
-```bash
-onyx/backend$ PYTHONPATH=. python onyx/evals/eval_cli.py --remote --api-key <API_KEY> --base-url https://test.onyx.app
-```
-
-You can also run the CLI directly from the command line:
-
-```bash
-cd backend
-python onyx/evals/eval_cli.py --verbose
-```
-make sure your AUTH_TYPE=disabled when running evals locally
-
 #### CLI Options
 
 - `--local-data-path`: Path to local JSON file containing test data (defaults to `evals/data/data.json`)
@@ -61,58 +54,14 @@ make sure your AUTH_TYPE=disabled when running evals locally
 
 The evaluation system uses test data stored in `evals/data/data.json`. This file contains a list of test cases, each with:
 - `input`: The question or prompt to test
-- `expected`: The expected response (used for comparison and scoring)
+- `research_type`: DEEP or THOUGHTFUL
 
 Example test case:
 ```json
 {
-    "input": "What is the capital of France?",
-    "expected": "The capital of France is Paris."
+    "input": { 
+      "message": "What is the capital of France?",
+      "research_type": "THOUGHTFUL"
+    }
 }
 ```
-
-## Environment Variables
-
-The following environment variables are required:
-
-- `BRAINTRUST_PROJECT`: The name of your Braintrust project for logging results
-
-## Architecture
-
-The evaluation system consists of:
-
-- `eval.py`: Core evaluation logic that processes test data and generates responses
-- `eval_cli.py`: Command-line interface for running evaluations locally
-- `data/data.json`: Test dataset with input/expected output pairs
-
-The system uses Onyx's chat processing pipeline to generate responses and compares them against expected outputs using Braintrust's evaluation framework.
-
-### Error Handling
-
-The evaluation system includes comprehensive error handling:
-
-- **Error Capture**: All exceptions during message processing are caught and logged with full stack traces
-- **Braintrust Integration**: Errors are properly passed to Braintrust for tracking and analysis
-- **Scoring**: The system tracks two key metrics:
-  - `success`: Whether the evaluation completed without errors (1.0 for success, 0.0 for failure)
-  - `has_output`: Whether a valid response was generated (1.0 if output exists, 0.0 if not)
-- **Structured Output**: Each evaluation returns a structured result with both the output and any error information
-
-## Development
-
-When adding new test cases or modifying the evaluation logic:
-
-1. Update `evals/data/data.json` with new test cases
-2. Modify `eval.py` if you need to change the evaluation logic
-3. Test locally using the VS Code launch configuration
-4. Deploy to production for automated evaluation runs
-
-## Troubleshooting
-
-- **Model server not running**: Ensure the model server is started before running evaluations
-- **Environment variables**: Check that `BRAINTRUST_PROJECT` is set correctly
-- **Data file issues**: Verify that `evals/data/data.json` exists and contains valid JSON
-- **Database connection**: Ensure your database is accessible and properly configured
-- **IndexError in process_message.py**: This error typically occurs when there's a mismatch in persona configuration. The eval system now includes proper error handling to capture and report these issues to Braintrust
-- **Transaction warnings**: SQLAlchemy transaction warnings are normal during evaluation and don't affect functionality
-- **Error tracking**: Check the Braintrust dashboard to see detailed error information and success rates for your evaluations
