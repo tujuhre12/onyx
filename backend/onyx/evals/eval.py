@@ -61,6 +61,7 @@ def _get_answer(
                 if full_configuration.impersonation_email
                 else None
             )
+            research_type = ResearchType(input.get("research_type", "THOUGHTFUL"))
             request = prepare_chat_message_request(
                 message_text=input["message"],
                 user=user,
@@ -72,7 +73,8 @@ def _get_answer(
                 db_session=db_session,
                 skip_gen_ai_answer_generation=False,
                 llm_override=full_configuration.llm,
-                research_type=ResearchType(input.get("research_type", "THOUGHTFUL")),
+                research_type=research_type,
+                use_agentic_search=research_type == ResearchType.DEEP,
             )
             # can do tool / llm configuration here
             packets = stream_chat_message_objects(
