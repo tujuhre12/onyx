@@ -68,6 +68,15 @@ ACCEPTED_IMAGE_FILE_EXTENSIONS = [
     ".webp",
 ]
 
+EXCLUDED_IMAGE_FILE_EXTENSIONS = [
+    ".tiff",
+    ".tif",
+    ".bmp",
+    ".gif",
+    ".svg",
+    ".avif",
+]
+
 ALL_ACCEPTED_FILE_EXTENSIONS = (
     ACCEPTED_PLAIN_TEXT_FILE_EXTENSIONS
     + ACCEPTED_DOCUMENT_FILE_EXTENSIONS

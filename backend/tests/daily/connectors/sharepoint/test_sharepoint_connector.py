@@ -12,6 +12,9 @@ from onyx.configs.constants import DocumentSource
 from onyx.connectors.models import Document
 from onyx.connectors.models import ImageSection
 from onyx.connectors.sharepoint.connector import SharepointConnector
+from onyx.file_processing.extract_file_text import ACCEPTED_IMAGE_FILE_EXTENSIONS
+from onyx.file_processing.extract_file_text import EXCLUDED_IMAGE_FILE_EXTENSIONS
+from onyx.file_processing.extract_file_text import get_file_ext
 from tests.daily.connectors.utils import load_all_docs_from_checkpoint_connector
 
 # NOTE: Sharepoint site for tests is "sharepoint-tests"
@@ -366,3 +369,82 @@ def test_sharepoint_connector_pages(
         for expected in EXPECTED_PAGES:
             doc = find_document(found_documents, expected.semantic_identifier)
             verify_document_content(doc, expected)
+
+
+def test_sharepoint_connector_excluded_image_extensions(
+    mock_get_unstructured_api_key: MagicMock,
+    mock_store_image: MagicMock,
+    sharepoint_credentials: dict[str, str],
+) -> None:
+    """Test that SharePoint connector properly excludes image files with excluded extensions."""
+    with patch(
+        "onyx.connectors.sharepoint.connector.store_image_and_create_section",
+        mock_store_image,
+    ):
+        # Initialize connector with the base site URL
+        connector = SharepointConnector(
+            sites=[os.environ["SHAREPOINT_SITE"]],
+            include_site_pages=False,
+            include_site_documents=True,
+        )
+
+        # Load credentials
+        connector.load_credentials(sharepoint_credentials)
+
+        # Get all documents
+        found_documents: list[Document] = load_all_docs_from_checkpoint_connector(
+            connector=connector,
+            start=0,
+            end=time.time(),
+        )
+
+        # Verify that no documents with excluded image extensions are processed
+        excluded_extensions = EXCLUDED_IMAGE_FILE_EXTENSIONS
+        for doc in found_documents:
+            file_ext = get_file_ext(doc.semantic_identifier)
+            assert file_ext not in excluded_extensions, (
+                f"Document '{doc.semantic_identifier}' has excluded extension '{file_ext}' "
+                f"but was still processed. Excluded extensions: {excluded_extensions}"
+            )
+
+
+def test_sharepoint_connector_accepted_image_extensions(
+    mock_get_unstructured_api_key: MagicMock,
+    mock_store_image: MagicMock,
+    sharepoint_credentials: dict[str, str],
+) -> None:
+    """Test that SharePoint connector properly processes image files with accepted extensions."""
+    with patch(
+        "onyx.connectors.sharepoint.connector.store_image_and_create_section",
+        mock_store_image,
+    ):
+        # Initialize connector with the base site URL
+        connector = SharepointConnector(
+            sites=[os.environ["SHAREPOINT_SITE"]],
+            include_site_pages=False,
+            include_site_documents=True,
+        )
+
+        # Load credentials
+        connector.load_credentials(sharepoint_credentials)
+
+        # Get all documents
+        found_documents: list[Document] = load_all_docs_from_checkpoint_connector(
+            connector=connector,
+            start=0,
+            end=time.time(),
+        )
+
+        # Verify that documents with accepted image extensions are processed as ImageSection
+        accepted_extensions = ACCEPTED_IMAGE_FILE_EXTENSIONS
+        for doc in found_documents:
+            file_ext = get_file_ext(doc.semantic_identifier)
+            if file_ext in accepted_extensions:
+                # Should have ImageSection for accepted image files
+                assert (
+                    len(doc.sections) == 1
+                ), f"Document '{doc.semantic_identifier}' should have exactly one section"
+                assert isinstance(doc.sections[0], ImageSection), (
+                    f"Document '{doc.semantic_identifier}' with extension '{file_ext}' "
+                    f"should be processed as ImageSection"
+                )
