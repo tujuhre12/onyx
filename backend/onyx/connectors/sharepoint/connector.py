@@ -352,6 +352,7 @@ def _convert_driveitem_to_document_with_permissions(
         logger.info(
             f"Skipping excluded image type: '{driveitem.name}' (extension: .{file_ext})"
         )
+        return None
     elif "." + file_ext in ACCEPTED_IMAGE_FILE_EXTENSIONS:
         image_section, _ = store_image_and_create_section(
             image_data=content_bytes,
