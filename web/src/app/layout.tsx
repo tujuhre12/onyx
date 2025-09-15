@@ -128,7 +128,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="text-text min-h-screen bg-background">
+          <div className="text-text min-h-screen bg-background-tint-01">
             <TooltipProvider>
               <PHProvider>{content}</PHProvider>
             </TooltipProvider>

@@ -56,7 +56,6 @@ import { SourceMetadata } from "@/lib/search/interfaces";
 import { FederatedConnectorDetail, ValidSources } from "@/lib/types";
 import { useDocumentsContext } from "../my-documents/DocumentsContext";
 import { ChatSearchModal } from "../chat_search/ChatSearchModal";
-import { ErrorBanner } from "../message/Resubmit";
 import MinimalMarkdown from "@/components/chat/MinimalMarkdown";
 import { useScreenSize } from "@/hooks/useScreenSize";
 import { DocumentResults } from "./documentSidebar/DocumentResults";

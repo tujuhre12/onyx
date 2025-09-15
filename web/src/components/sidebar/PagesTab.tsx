@@ -1,3 +1,4 @@
+import React from "react";
 import { ChatSession } from "@/app/chat/interfaces";
 import {
   createFolder,
@@ -11,11 +12,10 @@ import { usePopup } from "@/components/admin/connectors/Popup";
 import { useRouter } from "next/navigation";
 import { FiPlus, FiCheck, FiX } from "react-icons/fi";
 import { FolderDropdown } from "@/app/chat/components/folders/FolderDropdown";
-import { ChatSessionDisplay } from "./ChatSessionDisplay";
+import { ChatSessionDisplay } from "@/components/sidebar/ChatSessionDisplay";
 import { useState, useCallback, useRef, useContext, useEffect } from "react";
 import { Caret } from "@/components/icons/icons";
 import { groupSessionsByDateRange } from "@/app/chat/services/lib";
-import React from "react";
 import {
   Tooltip,
   TooltipProvider,
@@ -43,6 +43,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useChatContext } from "@/components/context/ChatContext";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import Text from "@/components-2/Text";
 
 interface SortableFolderProps {
   folder: Folder;
@@ -57,7 +58,7 @@ interface SortableFolderProps {
   index: number;
 }
 
-const SortableFolder: React.FC<SortableFolderProps> = (props) => {
+function SortableFolder(props: SortableFolderProps) {
   const settings = useContext(SettingsContext);
   const mobile = settings?.isMobile;
   const [isDragging, setIsDragging] = useState(false);
@@ -96,7 +97,7 @@ const SortableFolder: React.FC<SortableFolderProps> = (props) => {
       <FolderDropdown {...listeners} ref={ref} {...props} />
     </div>
   );
-};
+}
 
 export function PagesTab({
   existingChats,
@@ -325,34 +326,31 @@ export function PagesTab({
   );
 
   return (
-    <div className="flex flex-col gap-y-2 flex-grow">
+    <div className="flex flex-col flex-grow">
       {popup}
-      <div className="px-4 mt-2 group mr-2 bg-background-sidebar dark:bg-transparent z-20">
-        <div className="flex  group justify-between text-sm gap-x-2 text-text-300/80 items-center font-normal leading-normal">
-          <p>Chats</p>
-
+      <div className="px-4 mt-2 group mr-2 z-20">
+        <div className="flex group justify-between text-sm gap-x-2 text-text-03/80 items-center font-normal leading-normal">
+          <Text secondary text02>
+            Recents
+          </Text>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  className="my-auto mr-auto  group-hover:opacity-100 opacity-0 transition duration-200 cursor-pointer gap-x-1 items-center text-black text-xs font-medium leading-normal mobile:hidden"
+                  className="my-auto mr-auto  group-hover:opacity-100 opacity-0 transition duration-200 cursor-pointer gap-x-1 items-center text-text-01 text-xs font-medium leading-normal mobile:hidden"
                   onClick={() => {
                     toggleChatSessionSearchModal?.();
                   }}
                 >
-                  <Search
-                    className="flex-none text-text-mobile-sidebar"
-                    size={12}
-                  />
+                  <Search className="flex-none text-text-03" size={12} />
                 </button>
               </TooltipTrigger>
               <TooltipContent>Search Chats</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-
           <button
             onClick={handleCreateFolder}
-            className="flex group-hover:opacity-100 opacity-0 transition duration-200 cursor-pointer gap-x-1 items-center text-black text-xs font-medium leading-normal"
+            className="flex group-hover:opacity-100 opacity-0 transition duration-200 cursor-pointer gap-x-1 items-center text-text-01 text-xs font-medium leading-normal"
           >
             <FiPlus size={12} className="flex-none" />
             Create Group
@@ -360,9 +358,9 @@ export function PagesTab({
         </div>
       </div>
 
-      {isCreatingFolder ? (
+      {isCreatingFolder && (
         <div className="px-4">
-          <div className="flex  overflow-visible items-center w-full text-text-500 rounded-md p-1 relative">
+          <div className="flex  overflow-visible items-center w-full text-text-05 rounded-md p-1 relative">
             <Caret size={16} className="flex-none mr-1" />
             <input
               onKeyDown={(e) => {
@@ -373,7 +371,7 @@ export function PagesTab({
               ref={newFolderInputRef}
               type="text"
               placeholder="Enter group name"
-              className="text-sm font-medium bg-transparent outline-none w-full pb-1 border-b border-background-500 transition-colors duration-200"
+              className="text-sm font-medium bg-transparent outline-none w-full pb-1 border-b border-border-01 transition-colors duration-200"
             />
             <div className="flex -my-1">
               <div
@@ -391,8 +389,6 @@ export function PagesTab({
             </div>
           </div>
         </div>
-      ) : (
-        <></>
       )}
 
       {folders && folders.length > 0 && (
@@ -441,35 +437,32 @@ export function PagesTab({
       )}
 
       <div className="pl-4 pr-3">
-        {!isHistoryEmpty && (
-          <>
-            {Object.entries(groupedChatSesssions)
-              .filter(([groupName, chats]) => chats.length > 0)
-              .map(([groupName, chats], index) => (
-                <FolderDropdown
-                  key={groupName}
-                  folder={{
-                    folder_name: groupName,
-                    chat_sessions: chats,
-                    display_priority: 0,
-                  }}
-                  currentChatId={currentChatId}
-                  showShareModal={showShareModal}
-                  closeSidebar={closeSidebar}
-                  onEdit={handleEditFolder}
-                  onDrop={handleDrop}
-                  index={folders ? folders.length + index : index}
-                >
-                  {chats.map((chat) =>
-                    renderChatSession(
-                      chat,
-                      folders != undefined && folders.length > 0
-                    )
-                  )}
-                </FolderDropdown>
-              ))}
-          </>
-        )}
+        {!isHistoryEmpty &&
+          Object.entries(groupedChatSesssions)
+            .filter(([_groupName, chats]) => chats.length > 0)
+            .map(([groupName, chats], index) => (
+              <FolderDropdown
+                key={groupName}
+                folder={{
+                  folder_name: groupName,
+                  chat_sessions: chats,
+                  display_priority: 0,
+                }}
+                currentChatId={currentChatId}
+                showShareModal={showShareModal}
+                closeSidebar={closeSidebar}
+                onEdit={handleEditFolder}
+                onDrop={handleDrop}
+                index={folders ? folders.length + index : index}
+              >
+                {chats.map((chat) =>
+                  renderChatSession(
+                    chat,
+                    folders != undefined && folders.length > 0
+                  )
+                )}
+              </FolderDropdown>
+            ))}
 
         {isHistoryEmpty && (!folders || folders.length === 0) && (
           <p className="text-sm max-w-full mt-2 w-[250px]">

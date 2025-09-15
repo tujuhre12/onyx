@@ -15,6 +15,7 @@ import { PencilIcon } from "lucide-react";
 import { Popover } from "@/components/popover/Popover";
 import { useChatContext } from "@/components/context/ChatContext";
 import { useSortable } from "@dnd-kit/sortable";
+import Text from "@/components-2/Text";
 
 interface FolderDropdownProps {
   folder: Folder;
@@ -170,9 +171,9 @@ export const FolderDropdown = forwardRef<HTMLDivElement, FolderDropdownProps>(
               {...(isEditing ? {} : listeners)}
             >
               {isOpen ? (
-                <Caret size={16} className="mr-1" />
+                <Caret size={16} className="text-text-02 mr-1" />
               ) : (
-                <Caret size={16} className="-rotate-90 mr-1" />
+                <Caret size={16} className="text-text-02 -rotate-90 mr-1" />
               )}
               {isEditing ? (
                 <div ref={editingRef} className="flex-grow z-[9999] relative">
@@ -193,9 +194,11 @@ export const FolderDropdown = forwardRef<HTMLDivElement, FolderDropdownProps>(
                 </div>
               ) : (
                 <div className="flex items-center">
-                  <span className="text-sm font-[500]">
+                  <Text text02 secondary>
                     {folder.folder_name}
-                  </span>
+                  </Text>
+                  {/* <span className="text-sm font-[500]">
+                  </span> */}
                 </div>
               )}
             </button>
