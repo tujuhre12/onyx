@@ -49,18 +49,22 @@ def load_data_local(
         ValueError: If neither argument is provided or if provided path doesn't exist
     """
     if local_data_path and remote_dataset_name:
-        raise ValueError("Cannot specify both local_data_path and remote_dataset_name")
+        print(
+            "local_data_path and remote_dataset_name both provided, using local_data_path"
+        )
 
-    if remote_dataset_name:
-        return init_dataset(project=braintrust_project, name=remote_dataset_name)
+    if local_data_path is None and remote_dataset_name is None:
+        raise ValueError(
+            "Either local_data_path or remote_dataset_name must be provided"
+        )
 
-    if local_data_path is None:
-        local_data_path = "evals/data/data.json"
+    if local_data_path:
+        if not os.path.isfile(local_data_path):
+            raise ValueError(f"Local data file does not exist: {local_data_path}")
+        with open(local_data_path, "r") as f:
+            return json.load(f)
 
-    if not os.path.isfile(local_data_path):
-        raise ValueError(f"Local data file does not exist: {local_data_path}")
-    with open(local_data_path, "r") as f:
-        return json.load(f)
+    return init_dataset(project=braintrust_project, name=remote_dataset_name)
 
 
 def run_local(
@@ -144,13 +148,14 @@ def main() -> None:
         "--local-data-path",
         type=str,
         help="Path to local JSON file containing test data",
+        default="backend/onyx/evals/data/eval.json",
     )
 
     parser.add_argument(
         "--remote-dataset-name",
         type=str,
         help="Name of remote Braintrust dataset",
-        default="Simple",
+        default="Web-Only Questions",
     )
 
     parser.add_argument(
