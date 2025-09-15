@@ -385,5 +385,6 @@ TF_DR_TIMEOUT_SHORT = int(os.environ.get("TF_DR_TIMEOUT_SHORT") or 60)
 
 
 TF_DR_DEFAULT_FAST = (os.environ.get("TF_DR_DEFAULT_FAST") or "False").lower() == "true"
+DR_MIN_ITERATIONS = int(os.environ.get("DR_MIN_ITERATIONS") or 1)
 
 GRAPH_VERSION_NAME: str = "a"

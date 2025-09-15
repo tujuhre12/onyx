@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 from typing import cast
 
@@ -31,6 +32,12 @@ def create_citation_format_list(
     return citation_list
 
 
+def _replace_orig_datetime_format_with_current_datetime(prompt: str) -> str:
+    return prompt.replace(
+        "[[CURRENT_DATETIME]]", datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
+
+
 def create_question_prompt(
     system_prompt: str | None,
     human_prompt: str,
@@ -39,16 +46,36 @@ def create_question_prompt(
 
     if uploaded_image_context:
         return [
-            SystemMessage(content=system_prompt or ""),
+            SystemMessage(
+                content=_replace_orig_datetime_format_with_current_datetime(
+                    system_prompt or ""
+                )
+            ),
             HumanMessage(
                 content=cast(
                     list[str | dict[str, Any]],
-                    [{"type": "text", "text": human_prompt}] + uploaded_image_context,
+                    [
+                        {
+                            "type": "text",
+                            "text": _replace_orig_datetime_format_with_current_datetime(
+                                human_prompt
+                            ),
+                        }
+                    ]
+                    + uploaded_image_context,
                 )
             ),
         ]
     else:
         return [
-            SystemMessage(content=system_prompt or ""),
-            HumanMessage(content=human_prompt),
+            SystemMessage(
+                content=_replace_orig_datetime_format_with_current_datetime(
+                    system_prompt or ""
+                )
+            ),
+            HumanMessage(
+                content=_replace_orig_datetime_format_with_current_datetime(
+                    human_prompt
+                )
+            ),
         ]

@@ -30,6 +30,7 @@ from onyx.agents.agent_search.shared_graph_utils.utils import (
 from onyx.agents.agent_search.shared_graph_utils.utils import run_with_timeout
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.agents.agent_search.utils import create_question_prompt
+from onyx.configs.agent_configs import DR_MIN_ITERATIONS
 from onyx.configs.agent_configs import TF_DR_TIMEOUT_LONG
 from onyx.configs.agent_configs import TF_DR_TIMEOUT_SHORT
 from onyx.kg.utils.extraction_utils import get_entity_types_str
@@ -98,8 +99,12 @@ def orchestrator(
     research_type = graph_config.behavior.research_type
     remaining_time_budget = state.remaining_time_budget
     chat_history_string = state.chat_history_string or "(No chat history yet available)"
-    answer_history_string = (
+    answer_history_string_w_documents = (
         aggregate_context(state.iteration_responses, include_documents=True).context
+        or "(No answer history yet available)"
+    )
+    answer_history_string_wo_documents = (
+        aggregate_context(state.iteration_responses, include_documents=False).context
         or "(No answer history yet available)"
     )
 
@@ -139,6 +144,7 @@ def orchestrator(
     # no early exit forced. Continue.
 
     available_tools = state.available_tools or {}
+    available_tools_for_decision = available_tools
 
     uploaded_context = state.uploaded_test_context or ""
     uploaded_image_context = state.uploaded_image_context or []
@@ -222,7 +228,7 @@ def orchestrator(
             reasoning_prompt = base_reasoning_prompt.build(
                 question=question,
                 chat_history_string=chat_history_string,
-                answer_history_string=answer_history_string,
+                answer_history_string=answer_history_string_w_documents,
                 iteration_nr=str(iteration_nr),
                 remaining_time_budget=str(remaining_time_budget),
                 uploaded_context=uploaded_context,
@@ -287,7 +293,6 @@ def orchestrator(
                 )
 
         # for Thoughtful mode, we force a tool if requested an available
-        available_tools_for_decision = available_tools
         force_use_tool = graph_config.tooling.force_use_tool
         if iteration_nr == 1 and force_use_tool and force_use_tool.force_use:
 
@@ -314,7 +319,7 @@ def orchestrator(
         decision_prompt = base_decision_prompt.build(
             question=question,
             chat_history_string=chat_history_string,
-            answer_history_string=answer_history_string,
+            answer_history_string=answer_history_string_w_documents,
             iteration_nr=str(iteration_nr),
             remaining_time_budget=str(remaining_time_budget),
             reasoning_result=reasoning_result,
@@ -433,15 +438,23 @@ def orchestrator(
                 "Plan information is required for iterative decision making"
             )
 
+        if iteration_nr <= DR_MIN_ITERATIONS:
+            # if we do not have completed at least DR_MIN_ITERATIONS iterations, remove closer from the available tools
+            available_tools_for_decision = {
+                available_tool_key: available_tool
+                for available_tool_key, available_tool in available_tools.items()
+                if available_tool.name != DRPath.CLOSER.value
+            }
+
         base_decision_prompt = get_dr_prompt_orchestration_templates(
             DRPromptPurpose.NEXT_STEP,
             ResearchType.DEEP,
             entity_types_string=all_entity_types,
             relationship_types_string=all_relationship_types,
-            available_tools=available_tools,
+            available_tools=available_tools_for_decision,
         )
         decision_prompt = base_decision_prompt.build(
-            answer_history_string=answer_history_string,
+            answer_history_string=answer_history_string_wo_documents,
             question_history_string=question_history_string,
             question=prompt_question,
             iteration_nr=str(iteration_nr),

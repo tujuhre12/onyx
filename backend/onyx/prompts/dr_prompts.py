@@ -105,6 +105,12 @@ previous tool calls to generate a comprehensive final answer. It should always b
 at the very end to consolidate the gathered information, run any comparisons if needed, and pick out \
 the most relevant information to answer the question. You can also skip straight to the {CLOSER} \
 if there is sufficient information in the provided history to answer the question. \
+   - if you think a) you can answer the question with the information you already have AND b) \
+the information from the high-level plan has been sufficiently answered in enough detail, then \
+you can use the "{CLOSER}" tool.
+   - please first consider whether you already can answer the question with the information you already have. \
+Also consider whether the plan suggests you are already done. If so, you can use the "{CLOSER}" tool.
+
 """
 
 
@@ -227,8 +233,6 @@ Most importantly, here is the question that you must devise a plan for answering
 {SEPARATOR_LINE}
 
 Finally, here are the past few chat messages for reference (if any). \
-Note that the chat history may already contain the answer to the user question, in which case you can \
-skip straight to the {CLOSER}, or the user question may be a follow-up to a previous question. \
 In any case, do not confuse the below with the user query. It is only there to provide context.
 {SEPARATOR_LINE}
 ---chat_history_string---
@@ -304,9 +308,7 @@ Most importantly, here is the question that you must devise a plan for answering
 {SEPARATOR_LINE}
 
 Finally, here are the past few chat messages for reference (if any). \
-Note that the chat history may already contain the answer to the user question, in which case you can \
-skip straight to the {CLOSER}, or the user question may be a follow-up to a previous question. \
-In any case, do not confuse the below with the user query. It is only there to provide context.
+It is only there to provide context.
 {SEPARATOR_LINE}
 ---chat_history_string---
 {SEPARATOR_LINE}
@@ -370,9 +372,7 @@ Most importantly, here is the question that you must devise a plan for answering
 
 
 Here are the past few chat messages for reference (if any). \
-Note that the chat history may already contain the answer to the user question, in which case you can \
-skip straight to the {CLOSER}, or the user question may be a follow-up to a previous question. \
-In any case, do not confuse the below with the user query. It is only there to provide context.
+It is only there to provide context.
 {SEPARATOR_LINE}
 ---chat_history_string---
 {SEPARATOR_LINE}
@@ -388,7 +388,9 @@ GUIDELINES:
 retrieved documents/information you already have to determine whether there is not only sufficient \
 information to answer the overall question, but also that the depth of the information likely matches \
 the user expectations.
-   - here is roughly how you should decide whether you are done or more research is needed:
+
+IF AND ONLY IF the {CLOSER} tool is avialble, here is roughly how you should decide whether no more \
+information is required and you can use it:
 {DONE_STANDARD[ResearchType.THOUGHTFUL]}
 
 
@@ -606,9 +608,7 @@ When coming up with new questions, please consider the list of questions - and a
 further above - to AVOID REPEATING THE SAME QUESTIONS (for the same tool)!
 
 Finally, here are the past few chat messages for reference (if any). \
-Note that the chat history may already contain the answer to the user question, in which case you can \
-skip straight to the {CLOSER}, or the user question may be a follow-up to a previous question. \
-In any case, do not confuse the below with the user query. It is only there to provide context.
+It is only there to provide context.
 {SEPARATOR_LINE}
 ---chat_history_string---
 {SEPARATOR_LINE}
@@ -631,11 +631,6 @@ MISCELLANEOUS HINTS:
 satisfactorily answered, or which areas need more research/information.
    - BE CURIOUS! Consider interesting questions that would help to deepen the understanding of \
 the information you need to answer the original question.
-   - if you think a) you can answer the question with the information you already have AND b) \
-the information from the high-level plan has been sufficiently answered in enough detail, then \
-you can use the "{CLOSER}" tool.
-   - please first consider whether you already can answer the question with the information you already have. \
-Also consider whether the plan suggests you are already done. If so, you can use the "{CLOSER}" tool.
    - if you think more information is needed because a sub-question was not sufficiently answered, \
 you can generate a modified version of the previous step, thus effectively modifying the plan.
    - you can only consider a tool that fits the remaining time budget! The tool cost must be below \
@@ -670,10 +665,9 @@ you need to construct the next question and the tool to send it to. To do so, pl
 the original question, the high-level plan, the tools you have available, and the answers you have so far \
 (either from previous iterations or from the chat history). Make sure that the answer is \
 specific to what is needed, and - if applicable - BUILDS ON TOP of the learnings so far in order to get \
-NEW targeted information that gets us to be able to answer the original question. (Note again, that sending \
-the request to the CLOSER tool is an option if you think the information is sufficient.)
+NEW targeted information that gets us to be able to answer the original question.
 
-Here is roughly how you should decide whether you are done to call the {CLOSER} tool:
+IF AND ONLY IF the {CLOSER} tool is avialble, here is roughly how you should decide whether you are done to call it:
 {DONE_STANDARD[ResearchType.DEEP]}
 
 Please format your answer as a json dictionary in the format below.
