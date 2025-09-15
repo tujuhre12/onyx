@@ -10,6 +10,9 @@ from typing import Any
 
 import requests
 from braintrust import init_dataset
+from braintrust import init_logger
+from braintrust import set_global_handler
+from braintrust.handlers import BraintrustCallbackHandler
 from braintrust.logger import Dataset
 
 from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_OVERFLOW
@@ -189,7 +192,11 @@ def main():
         print(f"Loading data from local file: {args.local_data_path}")
     elif args.remote_dataset_name:
         print(f"Loading data from remote dataset: {args.remote_dataset_name}")
-
+    init_logger(
+        project=args.braintrust_project, api_key=os.environ.get("BRAINTRUST_API_KEY")
+    )
+    handler = BraintrustCallbackHandler()
+    set_global_handler(handler)
     if args.remote:
         if not args.api_key:
             print("Error: --api-key is required when using --remote")
