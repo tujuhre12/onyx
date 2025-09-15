@@ -14,7 +14,6 @@ import {
 import { PagesTab } from "@/components/sidebar/PagesTab";
 import { AgentsTab } from "@/components/sidebar/AgentsTab";
 import { pageType } from "@/components/sidebar/types";
-import LogoWithText from "@/components/header/LogoWithText";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { useUser } from "@/components/user/UserProvider";
 import Text from "@/components-2/Text";
@@ -95,13 +94,13 @@ function _HistorySidebar(
             `}
     >
       <div className="px-4 pl-2">
-        <LogoWithText
+        {/* <LogoWithText
           showArrow={true}
           toggled={toggled}
           page={page}
           toggleSidebar={toggleSidebar}
           explicitlyUntoggle={explicitlyUntoggle}
-        />
+        /> */}
       </div>
       {page == "chat" && (
         <div className="px-4 px-1 -mx-2 gap-y-1 flex-col flex gap-x-1.5 items-center items-center">

@@ -32,6 +32,7 @@ import Error from "@/components/errorPages/ErrorPage";
 import AccessRestrictedPage from "@/components/errorPages/AccessRestrictedPage";
 import { fetchAssistantData } from "@/lib/chat/fetchAssistantdata";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { HistorySidebar } from "@/components-2/HistorySidebar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -159,7 +160,10 @@ export default async function RootLayout({
         <Suspense fallback={null}>
           <PostHogPageView />
         </Suspense>
-        {children}
+        <div className="flex flex-row">
+          <HistorySidebar />
+          {children}
+        </div>
         {process.env.NEXT_PUBLIC_POSTHOG_KEY && <WebVitals />}
       </DocumentsProvider>
     </AppProvider>
