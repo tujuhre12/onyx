@@ -339,7 +339,7 @@ function _ChatInputBar({
         >
           {showPrompts && user?.preferences?.shortcut_enabled && (
             <div className="text-sm absolute inset-x-0 top-0 w-full transform -translate-y-full">
-              <div className="rounded-lg overflow-y-auto max-h-[200px] py-1.5 bg-background-neutral-00 border shadow-lg mx-2 px-1.5 mt-2 rounded z-10">
+              <div className="rounded-lg overflow-y-auto max-h-[200px] py-1.5 bg-background-neutral-00 shadow-lg mx-2 px-1.5 mt-2 rounded z-10">
                 {filteredPrompts.map(
                   (currentPrompt: InputPrompt, index: number) => (
                     <button
@@ -386,7 +386,6 @@ function _ChatInputBar({
               h-fit
               flex
               flex-col
-              border
               shadow-lg
               bg-background-neutral-00
               rounded-xl

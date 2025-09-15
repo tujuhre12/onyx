@@ -86,7 +86,6 @@ function _HistorySidebar(
             gap-y-4
             bg-background-tint-02
             w-full
-            border-r
             flex
             flex-col
             relative
