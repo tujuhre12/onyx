@@ -107,6 +107,7 @@ pip install -r backend/requirements/default.txt
 pip install -r backend/requirements/dev.txt
 pip install -r backend/requirements/ee.txt
 pip install -r backend/requirements/model_server.txt
+pip install -e .
 ```
 
 Install Playwright for Python (headless browser required by the Web Connector)
