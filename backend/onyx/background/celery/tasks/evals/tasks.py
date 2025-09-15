@@ -28,15 +28,10 @@ def eval_run_task(
 ) -> None:
     """Background task to run an evaluation with the given configuration"""
     try:
-        # Convert the configuration dict back to EvalConfigurationOptions
         configuration = EvalConfigurationOptions.model_validate(configuration_dict)
-
-        # Initialize the Braintrust dataset
         dataset = braintrust.init_dataset(
             project=BRAINTRUST_PROJECT, name=configuration.dataset_name
         )
-
-        # Run the evaluation
         run_eval(dataset, configuration)
 
         logger.info("Successfully completed eval run task")

@@ -134,7 +134,7 @@ def run_remote(
     return response.json()
 
 
-def main():
+def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description="Run evaluations with local configurations"

@@ -1,7 +1,9 @@
+from collections.abc import Callable
+from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
 
-from braintrust import Dataset
+from braintrust.logger import Dataset
 from sqlalchemy import Engine
 from sqlalchemy import event
 from sqlalchemy.orm import Session
@@ -22,7 +24,13 @@ from shared_configs.contextvars import get_current_tenant_id
 
 
 @contextmanager
-def session_factory_context_manager(engine: Engine):
+def isolated_ephemeral_session_factory(
+    engine: Engine,
+) -> Generator[Callable[[], Session], None, None]:
+    """
+    Create a session factory that creates sessions that run in a transaction that gets rolled back.
+    This is useful for running evals without any lasting db side effects.
+    """
     tenant_id = get_current_tenant_id()
     schema_translate_map = {None: tenant_id}
     conn = engine.connect().execution_options(schema_translate_map=schema_translate_map)
@@ -34,7 +42,9 @@ def session_factory_context_manager(engine: Engine):
         s.begin_nested()
 
         @event.listens_for(s, "after_transaction_end")
-        def _restart_savepoint(session: Session, transaction: SessionTransaction):
+        def _restart_savepoint(
+            session: Session, transaction: SessionTransaction
+        ) -> None:
             if transaction.nested and not (
                 transaction._parent is not None and transaction._parent.nested
             ):
@@ -54,7 +64,7 @@ def _get_answer(
     configuration: EvalConfigurationOptions,
 ) -> str:
     engine = get_sqlalchemy_engine()
-    with session_factory_context_manager(engine) as SessionLocal:
+    with isolated_ephemeral_session_factory(engine) as SessionLocal:
         with SessionLocal() as db_session:
             full_configuration = configuration.get_configuration(db_session)
             user = (

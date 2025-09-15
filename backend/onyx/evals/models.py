@@ -26,7 +26,7 @@ class EvalConfigurationOptions(BaseModel):
     builtin_tool_types: list[str] = list(BUILT_IN_TOOL_MAP.keys())
     persona_override_config: PersonaOverrideConfig | None = None
     llm: LLMOverride = LLMOverride(
-        name="Default",
+        model_provider="Default",
         model_version="gpt-4.1",
         temperature=0.5,
     )
