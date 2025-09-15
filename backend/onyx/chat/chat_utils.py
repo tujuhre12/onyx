@@ -65,6 +65,7 @@ def prepare_chat_message_request(
     use_agentic_search: bool = False,
     skip_gen_ai_answer_generation: bool = False,
     llm_override: LLMOverride | None = None,
+    allowed_tool_ids: list[int] | None = None,
 ) -> CreateChatMessageRequest:
     # Typically used for one shot flows like SlackBot or non-chat API endpoint use cases
     new_chat_session = create_chat_session(
@@ -91,6 +92,7 @@ def prepare_chat_message_request(
         use_agentic_search=use_agentic_search,
         skip_gen_ai_answer_generation=skip_gen_ai_answer_generation,
         llm_override=llm_override,
+        allowed_tool_ids=allowed_tool_ids,
     )
 
 

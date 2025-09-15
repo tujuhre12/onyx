@@ -85,6 +85,7 @@ def _get_answer(
                 skip_gen_ai_answer_generation=False,
                 llm_override=full_configuration.llm,
                 use_agentic_search=research_type == ResearchType.DEEP,
+                allowed_tool_ids=full_configuration.allowed_tool_ids,
             )
             packets = stream_chat_message_objects(
                 new_msg_req=request,

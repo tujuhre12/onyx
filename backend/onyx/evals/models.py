@@ -20,10 +20,15 @@ class EvalConfiguration(BaseModel):
     persona_override_config: PersonaOverrideConfig | None = None
     llm: LLMOverride = Field(default_factory=LLMOverride)
     impersonation_email: str | None = None
+    allowed_tool_ids: list[int]
 
 
 class EvalConfigurationOptions(BaseModel):
-    builtin_tool_types: list[str] = list(BUILT_IN_TOOL_MAP.keys())
+    builtin_tool_types: list[str] = list(
+        tool_name
+        for tool_name in BUILT_IN_TOOL_MAP.keys()
+        if tool_name != "OktaProfileTool"
+    )
     persona_override_config: PersonaOverrideConfig | None = None
     llm: LLMOverride = LLMOverride(
         model_provider="Default",
@@ -55,6 +60,10 @@ class EvalConfigurationOptions(BaseModel):
             persona_override_config=persona_override_config,
             llm=self.llm,
             impersonation_email=self.impersonation_email,
+            allowed_tool_ids=[
+                get_builtin_tool(db_session, BUILT_IN_TOOL_MAP[tool]).id
+                for tool in self.builtin_tool_types
+            ],
         )
 
 

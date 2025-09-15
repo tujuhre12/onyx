@@ -50,7 +50,7 @@ def load_data_local(
     """
     if local_data_path and remote_dataset_name:
         print(
-            "local_data_path and remote_dataset_name both provided, using local_data_path"
+            "local_data_path and remote_dataset_name both provided, using remote_dataset_name"
         )
 
     if local_data_path is None and remote_dataset_name is None:
@@ -58,13 +58,13 @@ def load_data_local(
             "Either local_data_path or remote_dataset_name must be provided"
         )
 
-    if local_data_path:
-        if not os.path.isfile(local_data_path):
-            raise ValueError(f"Local data file does not exist: {local_data_path}")
-        with open(local_data_path, "r") as f:
-            return json.load(f)
+    if remote_dataset_name:
+        return init_dataset(project=braintrust_project, name=remote_dataset_name)
 
-    return init_dataset(project=braintrust_project, name=remote_dataset_name)
+    if not os.path.isfile(local_data_path):
+        raise ValueError(f"Local data file does not exist: {local_data_path}")
+    with open(local_data_path, "r") as f:
+        return json.load(f)
 
 
 def run_local(
