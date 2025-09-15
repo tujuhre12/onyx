@@ -432,7 +432,9 @@ function _ChatInputBar({
               aria-multiline
               placeholder={
                 placeholder ||
-                `How can ${selectedAssistant.name} help you today`
+                (selectedAssistant.id === 0
+                  ? `How can ${settings?.enterpriseSettings?.application_name || "Onyx"} help you today`
+                  : `How can ${selectedAssistant.name} help you today`)
               }
               value={message}
               onKeyDown={(event) => {
