@@ -6,14 +6,21 @@ This script:
 1. Parses the CSV file
 2. Filters records where "Should we use it" is TRUE and "web-only" is in categories
 3. Creates a Braintrust dataset with Question as input and research_type metadata
+
+Usage:
+    python create_braintrust_dataset.py --dataset-name "MyDataset"
+    python create_braintrust_dataset.py --dataset-name "MyDataset" --csv-path "/path/to/csv"
 """
 
+import argparse
 import csv
 import os
 import sys
 from typing import Any
 from typing import Dict
 from typing import List
+
+from onyx.configs.app_configs import BRAINTRUST_API_KEY
 
 try:
     from braintrust import init_dataset
@@ -53,33 +60,35 @@ def parse_csv_file(csv_path: str) -> List[Dict[str, Any]]:
             categories = row[12].strip() if len(row) > 12 else ""
 
             # Filter records: should_use = TRUE and categories contains "web-only"
-            if (
-                should_use == "TRUE" and "web-only" in categories.lower() and question
-            ):  # Ensure question is not empty
+            if should_use == "TRUE" and question:  # Ensure question is not empty
 
-                # Map expected depth to research_type
-                research_type = (
-                    "DEEP" if expected_depth.upper() == "DEEP" else "THOUGHTFUL"
-                )
-
-                records.append(
-                    {
-                        "question": question,
-                        "research_type": research_type,
-                        "categories": categories,
-                        "expected_depth": expected_depth,
-                        "row_number": row_num,
-                    }
+                records.extend(
+                    [
+                        {
+                            "question": question,
+                            "research_type": "DEEP",
+                            "categories": categories,
+                            "expected_depth": expected_depth,
+                            "row_number": row_num,
+                        },
+                        {
+                            "question": question,
+                            "research_type": "THOUGHTFUL",
+                            "categories": categories,
+                            "expected_depth": expected_depth,
+                            "row_number": row_num,
+                        },
+                    ]
                 )
 
     return records
 
 
-def create_braintrust_dataset(records: List[Dict[str, Any]]) -> None:
+def create_braintrust_dataset(records: List[Dict[str, Any]], dataset_name: str) -> None:
     """Create a Braintrust dataset with the filtered records."""
 
     # Check if BRAINTRUST_API_KEY is set
-    if not os.getenv("BRAINTRUST_API_KEY"):
+    if BRAINTRUST_API_KEY == "":
         print("WARNING: BRAINTRUST_API_KEY environment variable is not set.")
         print(
             "The script will show what would be inserted but won't actually create the dataset."
@@ -90,7 +99,9 @@ def create_braintrust_dataset(records: List[Dict[str, Any]]) -> None:
         print()
 
         # Show what would be inserted
-        print(f"Would create Braintrust dataset with {len(records)} records:")
+        print(
+            f"Would create Braintrust dataset '{dataset_name}' with {len(records)} records:"
+        )
         for i, record in enumerate(records, 1):
             print(f"Record {i}/{len(records)}:")
             print(f"  Question: {record['question'][:100]}...")
@@ -99,9 +110,7 @@ def create_braintrust_dataset(records: List[Dict[str, Any]]) -> None:
         return
 
     # Initialize the dataset
-    dataset = init_dataset(
-        "My Project", "WebEval", api_key=os.getenv("BRAINTRUST_API_KEY")
-    )
+    dataset = init_dataset("Onyx", dataset_name, api_key=BRAINTRUST_API_KEY)
 
     print(f"Creating Braintrust dataset with {len(records)} records...")
 
@@ -122,7 +131,22 @@ def create_braintrust_dataset(records: List[Dict[str, Any]]) -> None:
 
 def main():
     """Main function to run the script."""
-    csv_path = "/Users/richardguan/onyx/backend/onyx/evals/data/DR Master Question & Metric Sheet - Sheet1.csv"
+    parser = argparse.ArgumentParser(
+        description="Create a Braintrust dataset from the DR Master Question & Metric Sheet CSV"
+    )
+    parser.add_argument(
+        "--dataset-name", required=True, help="Name of the Braintrust dataset to create"
+    )
+    parser.add_argument(
+        "--csv-path",
+        default="/Users/richardguan/onyx/backend/onyx/evals/data/DR Master Question & Metric Sheet - Sheet1.csv",
+        help="Path to the CSV file (default: %(default)s)",
+    )
+
+    args = parser.parse_args()
+
+    csv_path = args.csv_path
+    dataset_name = args.dataset_name
 
     if not os.path.exists(csv_path):
         print(f"Error: CSV file not found at {csv_path}")
@@ -151,7 +175,7 @@ def main():
     print()
 
     # Create the Braintrust dataset
-    create_braintrust_dataset(records)
+    create_braintrust_dataset(records, dataset_name)
 
 
 if __name__ == "__main__":

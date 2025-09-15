@@ -684,6 +684,7 @@ DISABLE_TELEMETRY = os.environ.get("DISABLE_TELEMETRY", "").lower() == "true"
 BRAINTRUST_ENABLED = os.environ.get("BRAINTRUST_ENABLED", "").lower() == "true"
 # Braintrust project name
 BRAINTRUST_PROJECT = os.environ.get("BRAINTRUST_PROJECT", "Onyx")
+BRAINTRUST_API_KEY = os.environ.get("BRAINTRUST_API_KEY") or ""
 
 TOKEN_BUDGET_GLOBALLY_ENABLED = (
     os.environ.get("TOKEN_BUDGET_GLOBALLY_ENABLED", "").lower() == "true"

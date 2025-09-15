@@ -56,10 +56,9 @@ def _get_answer(
     engine = get_sqlalchemy_engine()
     with session_factory_context_manager(engine) as SessionLocal:
         with SessionLocal() as db_session:
-            full_configuration = configuration.get_configuration(db_session)
             user = (
-                get_user_by_email(full_configuration.impersonation_email, db_session)
-                if full_configuration.impersonation_email
+                get_user_by_email(configuration.impersonation_email, db_session)
+                if configuration.impersonation_email
                 else None
             )
             research_type = ResearchType(input.get("research_type", "THOUGHTFUL"))
@@ -67,13 +66,13 @@ def _get_answer(
                 message_text=input["message"],
                 user=user,
                 persona_id=None,
-                persona_override_config=full_configuration.persona_override_config,
+                persona_override_config=configuration.persona_override_config,
                 message_ts_to_respond_to=None,
                 retrieval_details=RetrievalDetails(),
                 rerank_settings=None,
                 db_session=db_session,
                 skip_gen_ai_answer_generation=False,
-                llm_override=full_configuration.llm,
+                llm_override=configuration.llm,
                 use_agentic_search=research_type == ResearchType.DEEP,
             )
             packets = stream_chat_message_objects(
