@@ -50,7 +50,7 @@ def session_factory_context_manager(engine: Engine):
 
 
 def _get_answer(
-    input: dict[str, str],
+    eval_input: dict[str, str],
     configuration: EvalConfigurationOptions,
 ) -> str:
     engine = get_sqlalchemy_engine()
@@ -62,9 +62,9 @@ def _get_answer(
                 if configuration.impersonation_email
                 else None
             )
-            research_type = ResearchType(input.get("research_type", "THOUGHTFUL"))
+            research_type = ResearchType(eval_input.get("research_type", "THOUGHTFUL"))
             request = prepare_chat_message_request(
-                message_text=input["message"],
+                message_text=eval_input["message"],
                 user=user,
                 persona_id=None,
                 persona_override_config=full_configuration.persona_override_config,
@@ -85,12 +85,12 @@ def _get_answer(
             return answer.answer
 
 
-def eval(
+def run_eval(
     data: Dataset | list[Any], configuration: EvalConfigurationOptions
 ) -> EvaluationResult:
     provider = get_default_provider()
     return provider.eval(
         configuration,
-        lambda input, metadata: _get_answer(input, configuration),
+        lambda eval_input, metadata: _get_answer(eval_input, configuration),
         data,
     )

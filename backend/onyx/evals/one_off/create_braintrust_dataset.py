@@ -129,7 +129,7 @@ def create_braintrust_dataset(records: List[Dict[str, Any]], dataset_name: str) 
     print(f"Successfully created dataset with {len(records)} records!")
 
 
-def main():
+def main() -> None:
     """Main function to run the script."""
     parser = argparse.ArgumentParser(
         description="Create a Braintrust dataset from the DR Master Question & Metric Sheet CSV"

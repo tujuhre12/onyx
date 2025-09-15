@@ -49,7 +49,7 @@ def get_llms_for_persona(
         logger.warning("No persona provided, using default LLMs")
         return get_default_llms()
 
-    name_override = llm_override.name if llm_override else None
+    name_override = llm_override.model_provider if llm_override else None
     model_version_override = llm_override.model_version if llm_override else None
     temperature_override = llm_override.temperature if llm_override else None
 

@@ -1,13 +1,13 @@
-import os
 from typing import Any
 
 import braintrust
 from celery import shared_task
 from celery import Task
 
+from onyx.configs.app_configs import BRAINTRUST_PROJECT
 from onyx.configs.app_configs import JOB_TIMEOUT
 from onyx.configs.constants import OnyxCeleryTask
-from onyx.evals.eval import eval
+from onyx.evals.eval import run_eval
 from onyx.evals.models import EvalConfigurationOptions
 from onyx.utils.logger import setup_logger
 
@@ -33,14 +33,14 @@ def eval_run_task(
 
         # Initialize the Braintrust dataset
         dataset = braintrust.init_dataset(
-            project=os.environ["BRAINTRUST_PROJECT"], name=configuration.dataset_name
+            project=BRAINTRUST_PROJECT, name=configuration.dataset_name
         )
 
         # Run the evaluation
-        eval(dataset, configuration)
+        run_eval(dataset, configuration)
 
         logger.info("Successfully completed eval run task")
 
-    except Exception as e:
-        logger.error(f"Failed to run eval task: {str(e)}")
+    except Exception:
+        logger.error("Failed to run eval task")
         raise

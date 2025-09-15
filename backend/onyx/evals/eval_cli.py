@@ -11,20 +11,18 @@ from typing import Any
 import requests
 from braintrust import init_dataset
 from braintrust import init_logger
-from braintrust import set_global_handler
-from braintrust.handlers import BraintrustCallbackHandler
 from braintrust.logger import Dataset
 
 from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_OVERFLOW
 from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_SIZE
 from onyx.configs.constants import POSTGRES_WEB_APP_NAME
 from onyx.db.engine.sql_engine import SqlEngine
-from onyx.evals.eval import eval as run_eval
+from onyx.evals.eval import run_eval
 from onyx.evals.models import EvalConfigurationOptions
 from onyx.evals.models import EvaluationResult
 
 
-def setup_session_factory():
+def setup_session_factory() -> None:
     SqlEngine.set_app_name(POSTGRES_WEB_APP_NAME)
     SqlEngine.init_engine(
         pool_size=POSTGRES_API_SERVER_POOL_SIZE,
@@ -99,6 +97,7 @@ def run_local(
 def run_remote(
     base_url: str,
     api_key: str,
+    remote_dataset_name: str,
     payload: dict[str, Any] | None = None,
     impersonation_email: str | None = None,
 ) -> dict[str, Any]:
@@ -123,7 +122,7 @@ def run_remote(
     if impersonation_email:
         payload["impersonation_email"] = impersonation_email
 
-    payload["dataset_name"] = "Simple"
+    payload["dataset_name"] = remote_dataset_name
 
     url = f"{base_url}/evals/eval_run"
     headers = {
@@ -148,7 +147,10 @@ def main():
     )
 
     parser.add_argument(
-        "--remote-dataset-name", type=str, help="Name of remote Braintrust dataset"
+        "--remote-dataset-name",
+        type=str,
+        help="Name of remote Braintrust dataset",
+        default="Simple",
     )
 
     parser.add_argument(
@@ -195,15 +197,12 @@ def main():
     init_logger(
         project=args.braintrust_project, api_key=os.environ.get("BRAINTRUST_API_KEY")
     )
-    handler = BraintrustCallbackHandler()
-    set_global_handler(handler)
     if args.remote:
         if not args.api_key:
             print("Error: --api-key is required when using --remote")
             return
 
         print(f"Running evaluation on remote server: {args.base_url}")
-        print(f"Using API key: {args.api_key[:8]}...")
 
         if args.impersonation_email:
             print(f"Using impersonation email: {args.impersonation_email}")
@@ -212,6 +211,7 @@ def main():
             result = run_remote(
                 args.base_url,
                 args.api_key,
+                args.remote_dataset_name,
                 impersonation_email=args.impersonation_email,
             )
             print(f"Remote evaluation triggered successfully: {result}")
