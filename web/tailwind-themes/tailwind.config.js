@@ -198,9 +198,12 @@ module.exports = {
           "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
       },
       borderRadius: {
-        "tremor-small": "0.375rem",
-        "tremor-default": "0.5rem",
-        "tremor-full": "9999px",
+        "02": "var(--border-radius-02)",
+        "04": "var(--border-radius-04)",
+        "08": "var(--border-radius-08)",
+        12: "var(--border-radius-12)",
+        16: "var(--border-radius-16)",
+        full: "var(--border-radius-full)",
       },
       fontSize: {
         "2xs": "0.625rem",
