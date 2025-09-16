@@ -779,4 +779,6 @@ def clarifier(
         assistant_task_prompt=assistant_task_prompt,
         uploaded_test_context=uploaded_text_context,
         uploaded_image_context=uploaded_image_context,
+        all_entity_types=all_entity_types,
+        all_relationship_types=all_relationship_types,
     )
