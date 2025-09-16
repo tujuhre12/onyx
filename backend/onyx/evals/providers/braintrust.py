@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from typing import Any
 
 from braintrust import Eval
 from braintrust import init_dataset
@@ -13,7 +12,7 @@ from onyx.evals.models import EvalProvider
 class BraintrustEvalProvider(EvalProvider):
     def eval(
         self,
-        task: Callable[[Any], str],
+        task: Callable[[dict[str, str]], str],
         configuration: EvalConfigurationOptions,
         data: list[dict[str, str]] | None = None,
         remote_dataset_name: str | None = None,

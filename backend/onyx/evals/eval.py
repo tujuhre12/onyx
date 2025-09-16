@@ -17,6 +17,7 @@ from onyx.db.engine.sql_engine import get_sqlalchemy_engine
 from onyx.db.users import get_user_by_email
 from onyx.evals.models import EvalationAck
 from onyx.evals.models import EvalConfigurationOptions
+from onyx.evals.models import EvalProvider
 from onyx.evals.provider import get_default_provider
 from shared_configs.contextvars import get_current_tenant_id
 
@@ -98,6 +99,7 @@ def run_eval(
     configuration: EvalConfigurationOptions,
     data: list[dict[str, str]] | None = None,
     remote_dataset_name: str | None = None,
+    provider: EvalProvider = get_default_provider(),
 ) -> EvalationAck:
     if data is not None and remote_dataset_name is not None:
         raise ValueError("Cannot specify both data and remote_dataset_name")
@@ -105,7 +107,6 @@ def run_eval(
     if data is None and remote_dataset_name is None:
         raise ValueError("Must specify either data or remote_dataset_name")
 
-    provider = get_default_provider()
     return provider.eval(
         task=lambda eval_input: _get_answer(eval_input, configuration),
         configuration=configuration,

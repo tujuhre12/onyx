@@ -1,7 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
 from collections.abc import Callable
-from typing import Any
 
 from pydantic import BaseModel
 from pydantic import Field
@@ -75,7 +74,7 @@ class EvalProvider(ABC):
     @abstractmethod
     def eval(
         self,
-        task: Callable[[Any], str],
+        task: Callable[[dict[str, str]], str],
         configuration: EvalConfigurationOptions,
         data: list[dict[str, str]] | None = None,
         remote_dataset_name: str | None = None,
