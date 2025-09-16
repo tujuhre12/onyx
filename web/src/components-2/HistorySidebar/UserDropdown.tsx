@@ -65,12 +65,14 @@ export interface UserDropdownProps {
   user: any;
   combinedSettings: any;
   page: pageType;
+  folded?: boolean;
 }
 
 export default function UserDropdown({
   user,
   combinedSettings,
   page,
+  folded = false,
 }: UserDropdownProps) {
   const { isCurator } = useUser();
   const [userInfoVisible, setUserInfoVisible] = useState(false);
@@ -132,8 +134,12 @@ export default function UserDropdown({
       <PopoverTrigger asChild>
         <SidebarButton
           icon={() => (
-            <Avatar className="h-[1.7rem] w-[1.7rem] flex items-center justify-center bg-background-neutral-inverted-00">
-              <Text inverted>{user?.email?.[0]?.toUpperCase() || "A"}</Text>
+            <Avatar
+              className={`${folded ? "h-[1.3rem] w-[1.3rem]" : "h-[1.7rem] w-[1.7rem]"} flex items-center justify-center bg-background-neutral-inverted-00`}
+            >
+              <Text inverted secondary={folded}>
+                {user?.email?.[0]?.toUpperCase() || "A"}
+              </Text>
             </Avatar>
           )}
           title={
@@ -142,6 +148,7 @@ export default function UserDropdown({
             </Truncated>
           }
           noKebabMenu
+          hideTitle={folded}
         />
       </PopoverTrigger>
       <PopoverContent className="w-[175px] p-2">

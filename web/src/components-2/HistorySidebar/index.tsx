@@ -5,11 +5,13 @@ import React, {
   forwardRef,
   useContext,
   useCallback,
+  useState,
+  useEffect,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChatSession } from "@/app/chat/interfaces";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
-import { OnyxLogoTypeIcon } from "@/components/icons/icons";
+import { OnyxLogoTypeIcon, OnyxIcon } from "@/components/icons/icons";
 import { pageType } from "@/components/sidebar/types";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { useUser } from "@/components/user/UserProvider";
@@ -159,15 +161,34 @@ function HistorySidebarInner(
     },
     [setPinnedAssistants, reorderPinnedAssistants]
   );
-
   const { user } = useUser();
+  const [folded, setFolded] = useState<boolean>(false);
+  const [insideHistorySidebarBoundingBox, setInsideHistorySidebarBoundingBox] =
+    useState<boolean>(false);
+
+  // Keyboard shortcut to toggle folded state
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      const isModifierPressed = isMac ? event.metaKey : event.ctrlKey;
+
+      if (isModifierPressed && event.key === "e") {
+        event.preventDefault();
+        setFolded((prev) => !prev);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   if (!combinedSettings) {
     return null;
   }
 
-  const currentChatId = currentChatSession?.id;
-  const handleNewChat = () => {
+  function handleNewChat() {
     reset();
     console.log("currentChatSession", currentChatSession);
 
@@ -177,94 +198,134 @@ function HistorySidebarInner(
         ? `?assistantId=${currentChatSession.persona_id}`
         : "");
     router.push(newChatUrl);
-  };
-
+  }
+  const currentChatId = currentChatSession?.id;
   const liveAgentIsNotPinned = pinnedAgents.every(
     (agent) => agent.id !== liveAssistant?.id
   );
-
-  // Get all chats and group by date range (ignoring folders)
   const groupedChatSessions = groupSessionsByDateRange(existingChats || []);
-
   const isHistoryEmpty = !existingChats || existingChats.length === 0;
 
   return (
-    <div className="h-screen overflow-hidden w-[15rem] flex flex-col bg-background-tint-02 px-padding-button py-padding-content">
+    <div
+      className={`h-screen overflow-hidden ${folded ? "w-[4rem]" : "w-[15rem]"} flex flex-col bg-background-tint-02 ${folded ? "px-spacing-interline" : "px-padding-button"} py-padding-content flex-shrink-0`}
+      onMouseOver={() => setInsideHistorySidebarBoundingBox(true)}
+      onMouseLeave={() => setInsideHistorySidebarBoundingBox(false)}
+    >
       <div className="flex flex-col gap-padding-content flex-1">
-        <div className="flex flex-row justify-between items-center px-spacing-interline">
-          <OnyxLogoTypeIcon size={100} />
-          <SvgSidebar className="cursor-pointer hover:stroke-text-04 stroke-text-03 w-[1.2rem]" />
-        </div>
-        <SidebarButton icon={SvgEditBig} title="New Session" noKebabMenu />
-        <SidebarSection title="Agents">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={pinnedAgents.map((agent) => agent.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {pinnedAgents.map((agent: MinimalPersonaSnapshot, index) => (
-                <SortableItem id={agent.id} key={index}>
-                  <SidebarButton icon={SvgLightbulbSimple} title={agent.name} />
-                </SortableItem>
-              ))}
-              {liveAssistant && liveAgentIsNotPinned && (
-                <SortableItem id={liveAssistant.id}>
-                  <SidebarButton
-                    icon={SvgLightbulbSimple}
-                    title={liveAssistant.name}
-                  />
-                </SortableItem>
+        <div
+          className={`flex flex-row items-center px-spacing-interline ${folded ? "justify-center" : "justify-between"}`}
+        >
+          {folded ? (
+            <div className="h-[1.6rem] flex flex-col items-center justify-center">
+              {insideHistorySidebarBoundingBox ? (
+                <SvgSidebar
+                  className="cursor-pointer hover:stroke-text-04 stroke-text-03 w-[1rem]"
+                  onClick={() => setFolded(false)}
+                />
+              ) : (
+                <OnyxIcon size={24} />
               )}
-            </SortableContext>
-          </DndContext>
-          <SidebarButton
-            icon={SvgMoreHorizontal}
-            title="More Agents"
-            noKebabMenu
-            grey
-          />
-        </SidebarSection>
-        <SidebarSection title="Recents">
-          {isHistoryEmpty ? (
-            <Text secondary text01 className="px-padding-button">
-              Try sending a message! Your chat history will appear here.
-            </Text>
+            </div>
           ) : (
-            Object.entries(groupedChatSessions)
-              .filter(([_groupName, chats]) => chats.length > 0)
-              .map(([groupName, chats]) => (
-                <div key={groupName} className="mb-4">
-                  <Text secondary text02 className="px-padding-button mb-2">
-                    {groupName}
-                  </Text>
-                  <div className="space-y-1">
-                    {chats.map((chat) => (
-                      <div key={chat.id} className="-ml-4 bg-transparent -mr-2">
-                        <ChatSessionDisplay
-                          chatSession={chat}
-                          isSelected={currentChatId === chat.id}
-                          showShareModal={showShareModal}
-                          showDeleteModal={showDeleteModal}
-                          closeSidebar={removeToggle}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
+            <>
+              <OnyxLogoTypeIcon size={88} />
+              <SvgSidebar
+                className="cursor-pointer hover:stroke-text-04 stroke-text-03 w-[1rem]"
+                onClick={() => {
+                  setFolded(true);
+                  setInsideHistorySidebarBoundingBox(false);
+                }}
+              />
+            </>
           )}
-        </SidebarSection>
+        </div>
+        <SidebarButton
+          icon={SvgEditBig}
+          title="New Session"
+          noKebabMenu
+          hideTitle={folded}
+        />
+        {!folded && (
+          <>
+            <SidebarSection title="Agents">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={pinnedAgents.map((agent) => agent.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {pinnedAgents.map((agent: MinimalPersonaSnapshot, index) => (
+                    <SortableItem id={agent.id} key={index}>
+                      <SidebarButton
+                        icon={SvgLightbulbSimple}
+                        title={agent.name}
+                      />
+                    </SortableItem>
+                  ))}
+                  {liveAssistant && liveAgentIsNotPinned && (
+                    <SortableItem id={liveAssistant.id}>
+                      <SidebarButton
+                        icon={SvgLightbulbSimple}
+                        title={liveAssistant.name}
+                      />
+                    </SortableItem>
+                  )}
+                </SortableContext>
+              </DndContext>
+              <SidebarButton
+                icon={SvgMoreHorizontal}
+                title="More Agents"
+                noKebabMenu
+                grey
+              />
+            </SidebarSection>
+            <SidebarSection title="Recents">
+              {isHistoryEmpty ? (
+                <Text secondary text01 className="px-padding-button">
+                  Try sending a message! Your chat history will appear here.
+                </Text>
+              ) : (
+                Object.entries(groupedChatSessions)
+                  .filter(([_groupName, chats]) => chats.length > 0)
+                  .map(([groupName, chats]) => (
+                    <div key={groupName} className="mb-4">
+                      <Text secondary text02 className="px-padding-button mb-2">
+                        {groupName}
+                      </Text>
+                      <div className="space-y-1">
+                        {chats.map((chat) => (
+                          <div
+                            key={chat.id}
+                            className="-ml-4 bg-transparent -mr-2"
+                          >
+                            <ChatSessionDisplay
+                              chatSession={chat}
+                              isSelected={currentChatId === chat.id}
+                              showShareModal={showShareModal}
+                              showDeleteModal={showDeleteModal}
+                              closeSidebar={removeToggle}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+              )}
+            </SidebarSection>
+          </>
+        )}
       </div>
       <div className="px-spacing-inline flex flex-col gap-spacing-paragraph">
-        <div className="mx-spacing-inline border-t" />
+        {!folded && <div className="mx-spacing-inline border-t" />}
         <UserDropdown
           user={user}
           combinedSettings={combinedSettings}
           page={page}
+          folded={folded}
         />
       </div>
     </div>

@@ -12,6 +12,7 @@ export interface SidebarButtonProps {
   active?: boolean;
   noKebabMenu?: boolean;
   grey?: boolean;
+  hideTitle?: boolean;
 }
 
 export function SidebarButton({
@@ -20,25 +21,27 @@ export function SidebarButton({
   active,
   noKebabMenu,
   grey,
+  hideTitle,
 }: SidebarButtonProps) {
   return (
     <button
-      className={`w-full flex flex-row gap-spacing-interline p-spacing-interline hover:bg-background-tint-01 ${active && "bg-background-tint-00"} rounded-08 items-center group`}
+      className={`w-full flex flex-row gap-spacing-interline p-spacing-interline hover:bg-background-tint-01 ${active && "bg-background-tint-00"} rounded-08 items-center group ${hideTitle && "justify-center"}`}
     >
       <Icon
         className={`w-[1.2rem] ${grey ? "stroke-text-02" : "stroke-text-03"}`}
       />
-      {typeof title === "string" ? (
-        <Truncated tooltipSide="top">
-          <Text text02={grey} text03={!grey}>
-            {title}
-          </Text>
-        </Truncated>
-      ) : (
-        title
-      )}
-      <div className="flex-1" />
-      {!noKebabMenu && (
+      {!hideTitle &&
+        (typeof title === "string" ? (
+          <Truncated tooltipSide="top">
+            <Text text02={grey} text03={!grey}>
+              {title}
+            </Text>
+          </Truncated>
+        ) : (
+          title
+        ))}
+      {!hideTitle && <div className="flex-1" />}
+      {!noKebabMenu && !hideTitle && (
         <SvgMoreHorizontal className="hidden group-hover:flex stroke-text-03 h-[1rem] min-w-[1rem]" />
       )}
     </button>
