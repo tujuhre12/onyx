@@ -128,12 +128,13 @@ def run_remote(
 
     payload["dataset_name"] = remote_dataset_name
 
-    url = f"{base_url}/evals/eval_run"
+    url = f"{base_url}/api/evals/eval_run"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     response = requests.post(url, headers=headers, json=payload)
+
     response.raise_for_status()
     return response.json()
 
