@@ -226,9 +226,6 @@ function HistorySidebarInner(
   const { toggleAssistantPinnedStatus } = useUser();
   const { refreshAssistants, pinnedAssistants, setPinnedAssistants } =
     useAssistantsContext();
-
-  const currentChatId = currentChatSession?.id;
-
   const combinedSettings = useContext(SettingsContext);
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -274,6 +271,7 @@ function HistorySidebarInner(
     return null;
   }
 
+  const currentChatId = currentChatSession?.id;
   const handleNewChat = () => {
     reset();
     console.log("currentChatSession", currentChatSession);

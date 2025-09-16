@@ -32,7 +32,7 @@ import Error from "@/components/errorPages/ErrorPage";
 import AccessRestrictedPage from "@/components/errorPages/AccessRestrictedPage";
 import { fetchAssistantData } from "@/lib/chat/fetchAssistantdata";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { HistorySidebar } from "@/components-2/HistorySidebar";
+// import { HistorySidebar } from "@/components-2/HistorySidebar";
 
 const inter = Inter({
   subsets: ["latin"],
