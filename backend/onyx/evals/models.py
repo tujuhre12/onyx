@@ -35,7 +35,7 @@ class EvalConfigurationOptions(BaseModel):
         model_version="gpt-4.1",
         temperature=0.5,
     )
-    impersonation_email: str | None = None
+    impersonation_email: str
     dataset_name: str
 
     def get_configuration(self, db_session: Session) -> EvalConfiguration:

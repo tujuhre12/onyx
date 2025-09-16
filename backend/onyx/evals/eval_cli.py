@@ -102,8 +102,8 @@ def run_remote(
     base_url: str,
     api_key: str,
     remote_dataset_name: str,
+    impersonation_email: str,
     payload: dict[str, Any] | None = None,
-    impersonation_email: str | None = None,
 ) -> dict[str, Any]:
     """
     Trigger an eval pipeline execution on a remote server.
@@ -123,9 +123,7 @@ def run_remote(
     if payload is None:
         payload = {}
 
-    if impersonation_email:
-        payload["impersonation_email"] = impersonation_email
-
+    payload["impersonation_email"] = impersonation_email
     payload["dataset_name"] = remote_dataset_name
 
     url = f"{base_url}/api/evals/eval_run"
@@ -156,7 +154,7 @@ def main() -> None:
         "--remote-dataset-name",
         type=str,
         help="Name of remote Braintrust dataset",
-        default="Web-Only Questions",
+        default="Simple",
     )
 
     parser.add_argument(
@@ -192,6 +190,7 @@ def main() -> None:
         "--impersonation-email",
         type=str,
         help="Email address to impersonate for the evaluation",
+        required=True,
     )
 
     args = parser.parse_args()
