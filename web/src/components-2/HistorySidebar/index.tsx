@@ -56,21 +56,15 @@ interface SortableItemProps {
 }
 
 function SortableItem({ id, children }: SortableItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useSortable({ id });
 
   return (
     <div
       ref={setNodeRef}
       style={{
         transform: CSS.Transform.toString(transform),
-        transition: transition || "transform 40ms ease-out",
+        zIndex: 100,
         ...(isDragging ? { zIndex: 1000, position: "relative" as const } : {}),
       }}
       {...attributes}
@@ -214,7 +208,7 @@ function HistorySidebarInner(
       )}
 
       <div
-        className={`h-screen overflow-hidden ${folded ? "w-[4rem]" : "w-[15rem]"} flex flex-col bg-background-tint-02 ${folded ? "px-spacing-interline" : "px-padding-button"} py-padding-content flex-shrink-0`}
+        className={`h-screen ${folded ? "w-[4rem]" : "w-[15rem]"} flex flex-col bg-background-tint-02 ${folded ? "px-spacing-interline" : "px-padding-button"} py-padding-content flex-shrink-0`}
         onMouseOver={() => setInsideHistorySidebarBoundingBox(true)}
         onMouseLeave={() => setInsideHistorySidebarBoundingBox(false)}
       >
