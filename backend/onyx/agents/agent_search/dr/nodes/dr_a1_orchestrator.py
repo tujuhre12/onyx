@@ -98,8 +98,12 @@ def orchestrator(
     research_type = graph_config.behavior.research_type
     remaining_time_budget = state.remaining_time_budget
     chat_history_string = state.chat_history_string or "(No chat history yet available)"
-    answer_history_string = (
+    answer_history_w_docs_string = (
         aggregate_context(state.iteration_responses, include_documents=True).context
+        or "(No answer history yet available)"
+    )
+    answer_history_wo_docs_string = (
+        aggregate_context(state.iteration_responses, include_documents=False).context
         or "(No answer history yet available)"
     )
 
@@ -222,7 +226,7 @@ def orchestrator(
             reasoning_prompt = base_reasoning_prompt.build(
                 question=question,
                 chat_history_string=chat_history_string,
-                answer_history_string=answer_history_string,
+                answer_history_string=answer_history_w_docs_string,
                 iteration_nr=str(iteration_nr),
                 remaining_time_budget=str(remaining_time_budget),
                 uploaded_context=uploaded_context,
@@ -314,7 +318,7 @@ def orchestrator(
         decision_prompt = base_decision_prompt.build(
             question=question,
             chat_history_string=chat_history_string,
-            answer_history_string=answer_history_string,
+            answer_history_string=answer_history_w_docs_string,
             iteration_nr=str(iteration_nr),
             remaining_time_budget=str(remaining_time_budget),
             reasoning_result=reasoning_result,
@@ -441,7 +445,7 @@ def orchestrator(
             available_tools=available_tools,
         )
         decision_prompt = base_decision_prompt.build(
-            answer_history_string=answer_history_string,
+            answer_history_string=answer_history_wo_docs_string,
             question_history_string=question_history_string,
             question=prompt_question,
             iteration_nr=str(iteration_nr),
