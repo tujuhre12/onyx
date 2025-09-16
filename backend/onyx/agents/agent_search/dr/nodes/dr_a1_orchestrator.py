@@ -32,8 +32,6 @@ from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
 from onyx.agents.agent_search.utils import create_question_prompt
 from onyx.configs.agent_configs import TF_DR_TIMEOUT_LONG
 from onyx.configs.agent_configs import TF_DR_TIMEOUT_SHORT
-from onyx.kg.utils.extraction_utils import get_entity_types_str
-from onyx.kg.utils.extraction_utils import get_relationship_types_str
 from onyx.prompts.dr_prompts import DEFAULLT_DECISION_PROMPT
 from onyx.prompts.dr_prompts import REPEAT_PROMPT
 from onyx.prompts.dr_prompts import SUFFICIENT_INFORMATION_STRING
@@ -167,8 +165,8 @@ def orchestrator(
         else "(No explicit gaps were pointed out so far)"
     )
 
-    all_entity_types = get_entity_types_str(active=True)
-    all_relationship_types = get_relationship_types_str(active=True)
+    all_entity_types = state.all_entity_types
+    all_relationship_types = state.all_relationship_types
 
     # default to closer
     query_list = ["Answer the question with the information you have."]
@@ -313,6 +311,7 @@ def orchestrator(
             ResearchType.THOUGHTFUL,
             entity_types_string=all_entity_types,
             relationship_types_string=all_relationship_types,
+            reasoning_result=reasoning_result,
             available_tools=available_tools_for_decision,
         )
         decision_prompt = base_decision_prompt.build(
