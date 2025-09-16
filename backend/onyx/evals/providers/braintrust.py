@@ -19,6 +19,6 @@ class BraintrustEvalProvider(EvalProvider):
             task=task,
             scores=[],
             metadata={**configuration.model_dump()},
-            max_concurrency=1,
+            max_concurrency=5,
         )
         return EvaluationResult(success=True)

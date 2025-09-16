@@ -61,6 +61,11 @@ def load_data_local(
     if remote_dataset_name:
         return init_dataset(project=braintrust_project, name=remote_dataset_name)
 
+    if local_data_path is None:
+        raise ValueError(
+            "local_data_path is required when remote_dataset_name is not provided"
+        )
+
     if not os.path.isfile(local_data_path):
         raise ValueError(f"Local data file does not exist: {local_data_path}")
     with open(local_data_path, "r") as f:
@@ -88,6 +93,10 @@ def run_local(
     """
     setup_session_factory()
     data = load_data_local(braintrust_project, local_data_path, remote_dataset_name)
+
+    if impersonation_email is None:
+        raise ValueError("impersonation_email is required for local evaluation")
+
     configuration = EvalConfigurationOptions(
         impersonation_email=impersonation_email,
         dataset_name=remote_dataset_name or "blank",
