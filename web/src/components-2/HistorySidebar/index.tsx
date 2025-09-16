@@ -9,12 +9,11 @@ import React, {
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChatSession } from "@/app/chat/interfaces";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
-import { IconProps, OnyxLogoTypeIcon } from "@/components/icons/icons";
+import { OnyxLogoTypeIcon } from "@/components/icons/icons";
 import { pageType } from "@/components/sidebar/types";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { useUser } from "@/components/user/UserProvider";
 import Text from "@/components-2/Text";
-import { UserDropdown } from "@/components/UserDropdown";
 import { DragEndEvent } from "@dnd-kit/core";
 import { useAssistantsContext } from "@/components/context/AssistantsContext";
 import { reorderPinnedAssistants } from "@/lib/assistants/updateAssistantPreferences";
@@ -40,39 +39,11 @@ import SvgMoreHorizontal from "@/icons/more-horizontal";
 import SvgLightbulbSimple from "@/icons/lightbulb-simple";
 import { groupSessionsByDateRange } from "@/app/chat/services/lib";
 import { ChatSessionDisplay } from "@/components/sidebar/ChatSessionDisplay";
-
-interface SidebarButtonProps {
-  icon: React.FunctionComponent<IconProps>;
-  title: string;
-  active?: boolean;
-  noKebabMenu?: boolean;
-  grey?: boolean;
-}
-
-function SidebarButton({
-  icon: Icon,
-  title,
-  active,
-  noKebabMenu,
-  grey,
-}: SidebarButtonProps) {
-  return (
-    <button
-      className={`w-full flex flex-row gap-spacing-interline p-spacing-interline hover:bg-background-tint-01 ${active && "bg-background-tint-00"} rounded-08 items-center group`}
-    >
-      <Icon
-        className={`w-[1.2rem] ${grey ? "stroke-text-02" : "stroke-text-03"}`}
-      />
-      <Text text02={grey} text03={!grey}>
-        {title}
-      </Text>
-      <div className="flex-1" />
-      {!noKebabMenu && (
-        <SvgMoreHorizontal className="hidden group-hover:block stroke-text-03 w-[1rem]" />
-      )}
-    </button>
-  );
-}
+import UserDropdown from "@/components-2/HistorySidebar/UserDropdown";
+import {
+  SidebarButton,
+  SidebarSection,
+} from "@/components-2/HistorySidebar/components";
 
 interface SortableItemProps {
   id: number;
@@ -102,22 +73,6 @@ function SortableItem({ id, children }: SortableItemProps) {
       className="flex items-center group"
     >
       {children}
-    </div>
-  );
-}
-
-interface SidebarSectionProps {
-  title: string;
-  children?: React.ReactNode;
-}
-
-function SidebarSection({ title, children }: SidebarSectionProps) {
-  return (
-    <div className="flex flex-col gap-spacing-interline">
-      <Text secondary text02 className="px-padding-button">
-        {title}
-      </Text>
-      <div className="">{children}</div>
     </div>
   );
 }
@@ -205,6 +160,8 @@ function HistorySidebarInner(
     [setPinnedAssistants, reorderPinnedAssistants]
   );
 
+  const { user } = useUser();
+
   if (!combinedSettings) {
     return null;
   }
@@ -232,7 +189,7 @@ function HistorySidebarInner(
   const isHistoryEmpty = !existingChats || existingChats.length === 0;
 
   return (
-    <div className="h-screen w-[15rem] flex flex-col bg-background-tint-02 px-padding-button py-padding-content">
+    <div className="h-screen overflow-hidden w-[15rem] flex flex-col bg-background-tint-02 px-padding-button py-padding-content">
       <div className="flex flex-col gap-padding-content flex-1">
         <div className="flex flex-row justify-between items-center px-spacing-interline">
           <OnyxLogoTypeIcon size={100} />
@@ -302,8 +259,13 @@ function HistorySidebarInner(
           )}
         </SidebarSection>
       </div>
-      <div className="px-spacing-interline flex flex-row">
-        <UserDropdown />
+      <div className="px-spacing-inline flex flex-col gap-spacing-paragraph">
+        <div className="mx-spacing-inline border-t" />
+        <UserDropdown
+          user={user}
+          combinedSettings={combinedSettings}
+          page={page}
+        />
       </div>
     </div>
   );
