@@ -166,7 +166,6 @@ function HistorySidebarInner(
   }
 
   function handleNewChat() {
-    reset();
     console.log("currentChatSession", currentChatSession);
 
     const newChatUrl =
@@ -292,9 +291,9 @@ function HistorySidebarInner(
                               <ChatSessionDisplay
                                 chatSession={chat}
                                 isSelected={currentChatId === chat.id}
-                                showShareModal={showShareModal}
-                                showDeleteModal={showDeleteModal}
-                                closeSidebar={removeToggle}
+                                showShareModal={() => {}}
+                                showDeleteModal={() => {}}
+                                closeSidebar={() => {}}
                               />
                             </div>
                           ))}
