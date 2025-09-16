@@ -4,7 +4,6 @@ import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { ChatSession, ChatSessionSharedStatus, Message } from "../interfaces";
 
 import Cookies from "js-cookie";
-import { HistorySidebar } from "@/components/sidebar/HistorySidebar";
 import { HealthCheckBanner } from "@/components/health/healthcheck";
 import { personaIncludesRetrieval, useScrollonStream } from "../services/lib";
 import {

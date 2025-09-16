@@ -81,32 +81,14 @@ interface HistorySidebarProps {
   page: pageType;
   existingChats?: ChatSession[];
   currentChatSession?: ChatSession | null | undefined;
-  toggleSidebar?: () => void;
-  toggled?: boolean;
-  removeToggle?: () => void;
-  reset?: () => void;
-  showShareModal?: (chatSession: ChatSession) => void;
-  showDeleteModal?: (chatSession: ChatSession) => void;
-  explicitlyUntoggle: () => void;
-  setShowAssistantsModal: (show: boolean) => void;
-  toggleChatSessionSearchModal?: () => void;
 }
 
 function HistorySidebarInner(
   {
     liveAssistant,
-    reset = () => null,
-    setShowAssistantsModal = () => null,
-    toggled,
     page,
     existingChats,
     currentChatSession,
-    explicitlyUntoggle,
-    toggleSidebar,
-    removeToggle,
-    showShareModal,
-    toggleChatSessionSearchModal,
-    showDeleteModal,
   }: HistorySidebarProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
