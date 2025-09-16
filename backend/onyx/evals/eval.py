@@ -68,8 +68,8 @@ def _get_answer(
         with SessionLocal() as db_session:
             full_configuration = configuration.get_configuration(db_session)
             user = (
-                get_user_by_email(configuration.impersonation_email, db_session)
-                if configuration.impersonation_email
+                get_user_by_email(configuration.search_permissions_email, db_session)
+                if configuration.search_permissions_email
                 else None
             )
             research_type = ResearchType(eval_input.get("research_type", "THOUGHTFUL"))

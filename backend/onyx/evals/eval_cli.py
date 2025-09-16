@@ -76,7 +76,7 @@ def run_local(
     braintrust_project: str,
     local_data_path: str | None,
     remote_dataset_name: str | None,
-    impersonation_email: str | None = None,
+    search_permissions_email: str | None = None,
 ) -> EvaluationResult:
     """
     Run evaluation with local configurations.
@@ -86,7 +86,7 @@ def run_local(
         remote_dataset_name: Name of remote Braintrust dataset
         braintrust_project: Optional Braintrust project name. If not provided,
                           will use BRAINTRUST_PROJECT environment variable.
-        impersonation_email: Optional email address to impersonate for the evaluation
+        search_permissions_email: Optional email address to impersonate for the evaluation
 
     Returns:
         EvaluationResult: The evaluation result
@@ -94,11 +94,11 @@ def run_local(
     setup_session_factory()
     data = load_data_local(braintrust_project, local_data_path, remote_dataset_name)
 
-    if impersonation_email is None:
-        raise ValueError("impersonation_email is required for local evaluation")
+    if search_permissions_email is None:
+        raise ValueError("search_permissions_email is required for local evaluation")
 
     configuration = EvalConfigurationOptions(
-        impersonation_email=impersonation_email,
+        search_permissions_email=search_permissions_email,
         dataset_name=remote_dataset_name or "blank",
     )
 
@@ -111,7 +111,7 @@ def run_remote(
     base_url: str,
     api_key: str,
     remote_dataset_name: str,
-    impersonation_email: str,
+    search_permissions_email: str,
     payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
@@ -121,7 +121,7 @@ def run_remote(
         base_url: Base URL of the remote server (e.g., "https://test.onyx.app")
         api_key: API key for authentication
         payload: Optional payload to send with the request
-        impersonation_email: Optional email address to impersonate for the evaluation
+        search_permissions_email: Email address to use for the evaluation. Search will have the permissions of this user.
 
     Returns:
         Response from the remote server
@@ -132,7 +132,7 @@ def run_remote(
     if payload is None:
         payload = {}
 
-    payload["impersonation_email"] = impersonation_email
+    payload["search_permissions_email"] = search_permissions_email
     payload["dataset_name"] = remote_dataset_name
 
     url = f"{base_url}/api/evals/eval_run"
@@ -196,7 +196,7 @@ def main() -> None:
     )
 
     parser.add_argument(
-        "--impersonation-email",
+        "--search-permissions-email",
         type=str,
         help="Email address to impersonate for the evaluation",
         required=True,
@@ -218,15 +218,15 @@ def main() -> None:
 
         print(f"Running evaluation on remote server: {args.base_url}")
 
-        if args.impersonation_email:
-            print(f"Using impersonation email: {args.impersonation_email}")
+        if args.search_permissions_email:
+            print(f"Using search permissions email: {args.search_permissions_email}")
 
         try:
             result = run_remote(
                 args.base_url,
                 args.api_key,
                 args.remote_dataset_name,
-                impersonation_email=args.impersonation_email,
+                search_permissions_email=args.search_permissions_email,
             )
             print(f"Remote evaluation triggered successfully: {result}")
         except requests.RequestException as e:
@@ -235,14 +235,14 @@ def main() -> None:
     else:
         print(f"Using Braintrust project: {args.braintrust_project}")
 
-        if args.impersonation_email:
-            print(f"Using impersonation email: {args.impersonation_email}")
+        if args.search_permissions_email:
+            print(f"Using search permissions email: {args.search_permissions_email}")
 
         run_local(
             args.braintrust_project,
             args.local_data_path,
             args.remote_dataset_name,
-            args.impersonation_email,
+            args.search_permissions_email,
         )
 
 
