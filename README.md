@@ -26,7 +26,7 @@
 
 <strong>[Onyx](https://www.onyx.app/)</strong> (formerly Danswer) is the AI platform connected to your company's docs, apps, and people.
 Onyx provides a feature rich Chat interface and plugs into any LLM of your choice.
-Keep knowledge and access controls sync-ed across over 40 connectors like Google Drive, Slack, Confluence, Salesforce, etc.
+Keep knowledge and access controls sync-ed across over 40 connectors like Google Drive, Slack, Confluence, and Salesforce.
 Create custom AI agents with unique prompts, knowledge, and actions that the agents can take.
 Onyx can be deployed securely anywhere and for any scale - on a laptop, on-premise, or to cloud.
 
