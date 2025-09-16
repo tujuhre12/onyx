@@ -1,31 +1,45 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { IconProps } from "@/components/icons/icons";
 import Text from "@/components-2/Text";
 import Truncated from "@/components-2/Truncated";
 import SvgMoreHorizontal from "@/icons/more-horizontal";
+import Link from "next/link";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export interface SidebarButtonProps {
   icon?: React.FunctionComponent<IconProps>;
   active?: boolean;
-  noKebabMenu?: boolean;
+  kebabMenu?: React.ReactNode;
   grey?: boolean;
   hideTitle?: boolean;
+  href?: string;
+  onClick?: () => void;
   children?: React.ReactNode;
 }
 
 export function SidebarButton({
   icon: Icon,
   active,
-  noKebabMenu,
+  kebabMenu,
   grey,
   hideTitle,
+  href,
+  onClick,
   children,
 }: SidebarButtonProps) {
-  return (
+  const [open, setOpen] = useState<boolean>(false);
+
+  const content = (
     <button
       className={`w-full flex flex-row gap-spacing-interline p-spacing-interline hover:bg-background-tint-01 ${active && "bg-background-tint-00"} rounded-08 items-center group ${hideTitle && "justify-center"}`}
+      onClick={onClick}
+      onMouseLeave={() => setOpen(false)}
     >
       {Icon && (
         <Icon
@@ -43,11 +57,20 @@ export function SidebarButton({
           children
         ))}
       {!hideTitle && <div className="flex-1" />}
-      {!noKebabMenu && !hideTitle && (
-        <SvgMoreHorizontal className="hidden group-hover:flex stroke-text-03 h-[1rem] min-w-[1rem]" />
+      {kebabMenu && !hideTitle && (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <SvgMoreHorizontal className="invisible group-hover:visible stroke-text-03 h-[1rem] min-w-[1rem] cursor-pointer" />
+          </PopoverTrigger>
+          <PopoverContent align="end">{kebabMenu}</PopoverContent>
+        </Popover>
       )}
     </button>
   );
+
+  if (!href) return content;
+
+  return <Link href={href}>{content}</Link>;
 }
 
 export interface SidebarSectionProps {
@@ -61,7 +84,37 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
       <Text secondary text02 className="px-padding-button">
         {title}
       </Text>
-      {children}
+      <div>{children}</div>
+    </div>
+  );
+}
+
+export interface AgentsMenuProps {
+  onNewSession?: () => void;
+  isPinned?: boolean;
+  onTogglePin?: () => void;
+}
+
+export function AgentsMenu({
+  isPinned = false,
+  onNewSession,
+  onTogglePin,
+}: AgentsMenuProps) {
+  function Button(child: string, onClick?: () => void) {
+    return (
+      <button
+        className="flex p-padding-button gap-spacing-interline rounded hover:bg-background-tint-03 w-full"
+        onClick={onClick}
+      >
+        <Text>{child}</Text>
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col">
+      {Button("New Session", onNewSession)}
+      {Button(isPinned ? "Unpin chat" : "Pin chat", onTogglePin)}
     </div>
   );
 }

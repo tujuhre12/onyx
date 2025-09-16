@@ -61,7 +61,7 @@ function DropdownOption({
   );
 }
 
-function UserDropdownContent() {
+function DropdownContent() {
   const { user, isCurator } = useUser();
   const combinedSettings = useContext(SettingsContext);
   const dropdownItems: NavigationItem[] = useMemo(
@@ -164,11 +164,11 @@ function UserDropdownContent() {
   );
 }
 
-export interface UserDropdownProps {
-  folded?: boolean;
+export interface SettingsProps {
+  folded: boolean;
 }
 
-export default function UserDropdown({ folded = false }: UserDropdownProps) {
+export default function Settings({ folded }: SettingsProps) {
   const { user } = useUser();
 
   return (
@@ -185,7 +185,7 @@ export default function UserDropdown({ folded = false }: UserDropdownProps) {
                 </Text>
               </Avatar>
             )}
-            noKebabMenu
+            kebabMenu
             hideTitle={folded}
           >
             <Truncated disableTooltip>
@@ -195,7 +195,7 @@ export default function UserDropdown({ folded = false }: UserDropdownProps) {
         </div>
       </HoverCardTrigger>
       <HoverCardContent>
-        <UserDropdownContent />
+        <DropdownContent />
       </HoverCardContent>
     </HoverCard>
   );
