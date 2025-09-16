@@ -20,7 +20,7 @@ onyx/backend$ python onyx/evals/eval_cli.py --remote --api-key <SUPER_CLOUD_USER
 You can also run the CLI directly from the command line:
 
 ```bash
-onyx$ BRAINTRUST_API_KEY=<API KEY> python backend/onyx/evals/eval_cli.py
+onyx$ python -m dotenv -f .vscode/.env run -- python backend/onyx/evals/eval_cli.py --remote-dataset-name Simple --search-permissions-email richard@onyx.app
 ```
 make sure your AUTH_TYPE=disabled when running evals locally
 

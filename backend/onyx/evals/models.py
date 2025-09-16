@@ -67,13 +67,17 @@ class EvalConfigurationOptions(BaseModel):
         )
 
 
-class EvaluationResult(BaseModel):
+class EvalationAck(BaseModel):
     success: bool
 
 
 class EvalProvider(ABC):
     @abstractmethod
     def eval(
-        self, configuration: EvalConfigurationOptions, task: Callable, data: Any
-    ) -> EvaluationResult:
+        self,
+        task: Callable[[Any], str],
+        configuration: EvalConfigurationOptions,
+        data: list[dict[str, str]] | None = None,
+        remote_dataset_name: str | None = None,
+    ) -> EvalationAck:
         pass

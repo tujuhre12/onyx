@@ -9,17 +9,15 @@ import os
 from typing import Any
 
 import requests
-from braintrust import init_dataset
 from braintrust import init_logger
-from braintrust.logger import Dataset
 
 from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_OVERFLOW
 from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_SIZE
 from onyx.configs.constants import POSTGRES_WEB_APP_NAME
 from onyx.db.engine.sql_engine import SqlEngine
 from onyx.evals.eval import run_eval
+from onyx.evals.models import EvalationAck
 from onyx.evals.models import EvalConfigurationOptions
-from onyx.evals.models import EvaluationResult
 
 
 def setup_session_factory() -> None:
@@ -31,41 +29,8 @@ def setup_session_factory() -> None:
 
 
 def load_data_local(
-    braintrust_project: str,
-    local_data_path: str | None,
-    remote_dataset_name: str | None,
-) -> Dataset | list[Any]:
-    """
-    Load data from either a local JSON file or remote Braintrust dataset.
-
-    Args:
-        local_data_path: Path to local JSON file
-        remote_dataset_name: Name of remote Braintrust dataset
-
-    Returns:
-        List of test data for evaluation
-
-    Raises:
-        ValueError: If neither argument is provided or if provided path doesn't exist
-    """
-    if local_data_path and remote_dataset_name:
-        print(
-            "local_data_path and remote_dataset_name both provided, using remote_dataset_name"
-        )
-
-    if local_data_path is None and remote_dataset_name is None:
-        raise ValueError(
-            "Either local_data_path or remote_dataset_name must be provided"
-        )
-
-    if remote_dataset_name:
-        return init_dataset(project=braintrust_project, name=remote_dataset_name)
-
-    if local_data_path is None:
-        raise ValueError(
-            "local_data_path is required when remote_dataset_name is not provided"
-        )
-
+    local_data_path: str,
+) -> list[dict[str, str]]:
     if not os.path.isfile(local_data_path):
         raise ValueError(f"Local data file does not exist: {local_data_path}")
     with open(local_data_path, "r") as f:
@@ -73,26 +38,22 @@ def load_data_local(
 
 
 def run_local(
-    braintrust_project: str,
     local_data_path: str | None,
     remote_dataset_name: str | None,
     search_permissions_email: str | None = None,
-) -> EvaluationResult:
+) -> EvalationAck:
     """
     Run evaluation with local configurations.
 
     Args:
         local_data_path: Path to local JSON file
         remote_dataset_name: Name of remote Braintrust dataset
-        braintrust_project: Optional Braintrust project name. If not provided,
-                          will use BRAINTRUST_PROJECT environment variable.
         search_permissions_email: Optional email address to impersonate for the evaluation
 
     Returns:
-        EvaluationResult: The evaluation result
+        EvalationAck: The evaluation result
     """
     setup_session_factory()
-    data = load_data_local(braintrust_project, local_data_path, remote_dataset_name)
 
     if search_permissions_email is None:
         raise ValueError("search_permissions_email is required for local evaluation")
@@ -102,7 +63,17 @@ def run_local(
         dataset_name=remote_dataset_name or "blank",
     )
 
-    score = run_eval(data, configuration)
+    if remote_dataset_name:
+        score = run_eval(
+            configuration=configuration, remote_dataset_name=remote_dataset_name
+        )
+    else:
+        if local_data_path is None:
+            raise ValueError(
+                "local_data_path or remote_dataset_name is required for local evaluation"
+            )
+        data = load_data_local(local_data_path)
+        score = run_eval(configuration=configuration, data=data)
 
     return score
 
@@ -156,14 +127,12 @@ def main() -> None:
         "--local-data-path",
         type=str,
         help="Path to local JSON file containing test data",
-        default="backend/onyx/evals/data/eval.json",
     )
 
     parser.add_argument(
         "--remote-dataset-name",
         type=str,
         help="Name of remote Braintrust dataset",
-        default="Simple",
     )
 
     parser.add_argument(
@@ -239,10 +208,9 @@ def main() -> None:
             print(f"Using search permissions email: {args.search_permissions_email}")
 
         run_local(
-            args.braintrust_project,
-            args.local_data_path,
-            args.remote_dataset_name,
-            args.search_permissions_email,
+            local_data_path=args.local_data_path,
+            remote_dataset_name=args.remote_dataset_name,
+            search_permissions_email=args.search_permissions_email,
         )
 
 

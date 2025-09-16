@@ -1,9 +1,7 @@
 from collections.abc import Callable
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any
 
-from braintrust.logger import Dataset
 from sqlalchemy import Engine
 from sqlalchemy import event
 from sqlalchemy.orm import Session
@@ -17,8 +15,8 @@ from onyx.chat.process_message import stream_chat_message_objects
 from onyx.context.search.models import RetrievalDetails
 from onyx.db.engine.sql_engine import get_sqlalchemy_engine
 from onyx.db.users import get_user_by_email
+from onyx.evals.models import EvalationAck
 from onyx.evals.models import EvalConfigurationOptions
-from onyx.evals.models import EvaluationResult
 from onyx.evals.provider import get_default_provider
 from shared_configs.contextvars import get_current_tenant_id
 
@@ -97,11 +95,20 @@ def _get_answer(
 
 
 def run_eval(
-    data: Dataset | list[Any], configuration: EvalConfigurationOptions
-) -> EvaluationResult:
+    configuration: EvalConfigurationOptions,
+    data: list[dict[str, str]] | None = None,
+    remote_dataset_name: str | None = None,
+) -> EvalationAck:
+    if data is not None and remote_dataset_name is not None:
+        raise ValueError("Cannot specify both data and remote_dataset_name")
+
+    if data is None and remote_dataset_name is None:
+        raise ValueError("Must specify either data or remote_dataset_name")
+
     provider = get_default_provider()
     return provider.eval(
-        configuration,
-        lambda eval_input, metadata: _get_answer(eval_input, configuration),
-        data,
+        task=lambda eval_input: _get_answer(eval_input, configuration),
+        configuration=configuration,
+        data=data,
+        remote_dataset_name=remote_dataset_name,
     )

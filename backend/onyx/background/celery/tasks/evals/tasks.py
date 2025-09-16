@@ -1,10 +1,8 @@
 from typing import Any
 
-import braintrust
 from celery import shared_task
 from celery import Task
 
-from onyx.configs.app_configs import BRAINTRUST_PROJECT
 from onyx.configs.app_configs import JOB_TIMEOUT
 from onyx.configs.constants import OnyxCeleryTask
 from onyx.evals.eval import run_eval
@@ -29,11 +27,7 @@ def eval_run_task(
     """Background task to run an evaluation with the given configuration"""
     try:
         configuration = EvalConfigurationOptions.model_validate(configuration_dict)
-        dataset = braintrust.init_dataset(
-            project=BRAINTRUST_PROJECT, name=configuration.dataset_name
-        )
-        run_eval(dataset, configuration)
-
+        run_eval(configuration, remote_dataset_name=configuration.dataset_name)
         logger.info("Successfully completed eval run task")
 
     except Exception:
