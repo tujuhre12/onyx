@@ -24,22 +24,25 @@ class BraintrustEvalProvider(EvalProvider):
         if data is None and remote_dataset_name is None:
             raise ValueError("Must specify either data or remote_dataset_name")
 
-        # Handle remote dataset
         if remote_dataset_name is not None:
             eval_data = init_dataset(
                 project=BRAINTRUST_PROJECT, name=remote_dataset_name
             )
+            Eval(
+                name=BRAINTRUST_PROJECT,
+                data=eval_data,
+                task=task,
+                scores=[],
+                metadata={**configuration.model_dump()},
+                max_concurrency=1,
+            )
         else:
-            # Handle local data
-            def eval_data():
-                return data
-
-        Eval(
-            name=BRAINTRUST_PROJECT,
-            data=eval_data,
-            task=task,
-            scores=[],
-            metadata={**configuration.model_dump()},
-            max_concurrency=1,
-        )
+            Eval(
+                name=BRAINTRUST_PROJECT,
+                data=lambda: data,
+                task=task,
+                scores=[],
+                metadata={**configuration.model_dump()},
+                max_concurrency=1,
+            )
         return EvalationAck(success=True)
