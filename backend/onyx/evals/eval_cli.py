@@ -8,8 +8,8 @@ import json
 import os
 from typing import Any
 
+import braintrust
 import requests
-from braintrust import init_logger
 
 from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_OVERFLOW
 from onyx.configs.app_configs import POSTGRES_API_SERVER_POOL_SIZE
@@ -177,14 +177,17 @@ def main() -> None:
         print(f"Loading data from local file: {args.local_data_path}")
     elif args.remote_dataset_name:
         print(f"Loading data from remote dataset: {args.remote_dataset_name}")
-    init_logger(
-        project=args.braintrust_project, api_key=os.environ.get("BRAINTRUST_API_KEY")
-    )
+        dataset = braintrust.init_dataset(
+            project=args.braintrust_project, name=args.remote_dataset_name
+        )
+        dataset_size = len(list(dataset.fetch()))
+        print(f"Dataset size: {dataset_size}")
     if args.remote:
         if not args.api_key:
-            print("Error: --api-key is required when using --remote")
-            return
-
+            print("Using API Key from ONYX_EVAL_API_KEY")
+        api_key: str = (
+            args.api_key if args.api_key else os.environ.get("ONYX_EVAL_API_KEY", "")
+        )
         print(f"Running evaluation on remote server: {args.base_url}")
 
         if args.search_permissions_email:
@@ -193,7 +196,7 @@ def main() -> None:
         try:
             result = run_remote(
                 args.base_url,
-                args.api_key,
+                api_key,
                 args.remote_dataset_name,
                 search_permissions_email=args.search_permissions_email,
             )
