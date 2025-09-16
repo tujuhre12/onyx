@@ -49,7 +49,9 @@ You generally should not need to ask clarification questions about the topics be
 by the {INTERNAL_SEARCH} tool, as the retrieved documents will likely provide you with more context.
 Each request to the {INTERNAL_SEARCH} tool should largely be written as a SEARCH QUERY, and NOT as a question \
 or an instruction! Also, \
-The {INTERNAL_SEARCH} tool DOES support parallel calls of up to {MAX_DR_PARALLEL_SEARCH} queries.
+The {INTERNAL_SEARCH} tool DOES support parallel calls of up to {MAX_DR_PARALLEL_SEARCH} queries. \
+You should take advantage of that and ask MULTIPLE DISTINCT questions, each that explores a different \
+aspect of the question.
 """
 
 TOOL_DESCRIPTION[
