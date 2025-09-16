@@ -161,7 +161,7 @@ export default async function RootLayout({
           <PostHogPageView />
         </Suspense>
         <div className="flex flex-row">
-          <HistorySidebar />
+          {/* <HistorySidebar /> */}
           {children}
         </div>
         {process.env.NEXT_PUBLIC_POSTHOG_KEY && <WebVitals />}

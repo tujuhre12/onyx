@@ -230,22 +230,6 @@ function HistorySidebarInner(
   const currentChatId = currentChatSession?.id;
 
   const combinedSettings = useContext(SettingsContext);
-  if (!combinedSettings) {
-    return null;
-  }
-
-  const handleNewChat = () => {
-    reset();
-    console.log("currentChatSession", currentChatSession);
-
-    const newChatUrl =
-      `/${page}` +
-      (currentChatSession
-        ? `?assistantId=${currentChatSession.persona_id}`
-        : "");
-    router.push(newChatUrl);
-  };
-
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -256,7 +240,6 @@ function HistorySidebarInner(
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
@@ -286,6 +269,22 @@ function HistorySidebarInner(
     },
     [setPinnedAssistants, reorderPinnedAssistants]
   );
+
+  if (!combinedSettings) {
+    return null;
+  }
+
+  const handleNewChat = () => {
+    reset();
+    console.log("currentChatSession", currentChatSession);
+
+    const newChatUrl =
+      `/${page}` +
+      (currentChatSession
+        ? `?assistantId=${currentChatSession.persona_id}`
+        : "");
+    router.push(newChatUrl);
+  };
 
   return (
     <div className="h-screen w-[240px] flex flex-col bg-background-tint-02 px-padding-button py-spacing-paragraph">
