@@ -7,38 +7,40 @@ import Truncated from "@/components-2/Truncated";
 import SvgMoreHorizontal from "@/icons/more-horizontal";
 
 export interface SidebarButtonProps {
-  icon: React.FunctionComponent<IconProps>;
-  title: React.ReactNode;
+  icon?: React.FunctionComponent<IconProps>;
   active?: boolean;
   noKebabMenu?: boolean;
   grey?: boolean;
   hideTitle?: boolean;
+  children?: React.ReactNode;
 }
 
 export function SidebarButton({
   icon: Icon,
-  title,
   active,
   noKebabMenu,
   grey,
   hideTitle,
+  children,
 }: SidebarButtonProps) {
   return (
     <button
       className={`w-full flex flex-row gap-spacing-interline p-spacing-interline hover:bg-background-tint-01 ${active && "bg-background-tint-00"} rounded-08 items-center group ${hideTitle && "justify-center"}`}
     >
-      <Icon
-        className={`w-[1.2rem] ${grey ? "stroke-text-02" : "stroke-text-03"}`}
-      />
+      {Icon && (
+        <Icon
+          className={`w-[1.2rem] ${grey ? "stroke-text-02" : "stroke-text-03"}`}
+        />
+      )}
       {!hideTitle &&
-        (typeof title === "string" ? (
+        (typeof children === "string" ? (
           <Truncated tooltipSide="top">
             <Text text02={grey} text03={!grey}>
-              {title}
+              {children}
             </Text>
           </Truncated>
         ) : (
-          title
+          children
         ))}
       {!hideTitle && <div className="flex-1" />}
       {!noKebabMenu && !hideTitle && (
@@ -59,7 +61,7 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
       <Text secondary text02 className="px-padding-button">
         {title}
       </Text>
-      <div className="">{children}</div>
+      {children}
     </div>
   );
 }

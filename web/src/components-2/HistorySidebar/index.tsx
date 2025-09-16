@@ -161,7 +161,6 @@ function HistorySidebarInner(
     },
     [setPinnedAssistants, reorderPinnedAssistants]
   );
-  const { user } = useUser();
   const [folded, setFolded] = useState<boolean>(false);
   const [insideHistorySidebarBoundingBox, setInsideHistorySidebarBoundingBox] =
     useState<boolean>(false);
@@ -240,12 +239,9 @@ function HistorySidebarInner(
             </>
           )}
         </div>
-        <SidebarButton
-          icon={SvgEditBig}
-          title="New Session"
-          noKebabMenu
-          hideTitle={folded}
-        />
+        <SidebarButton icon={SvgEditBig} noKebabMenu hideTitle={folded}>
+          New Session
+        </SidebarButton>
         {!folded && (
           <>
             <SidebarSection title="Agents">
@@ -260,28 +256,23 @@ function HistorySidebarInner(
                 >
                   {pinnedAgents.map((agent: MinimalPersonaSnapshot, index) => (
                     <SortableItem id={agent.id} key={index}>
-                      <SidebarButton
-                        icon={SvgLightbulbSimple}
-                        title={agent.name}
-                      />
+                      <SidebarButton icon={SvgLightbulbSimple}>
+                        {agent.name}
+                      </SidebarButton>
                     </SortableItem>
                   ))}
                   {liveAssistant && liveAgentIsNotPinned && (
                     <SortableItem id={liveAssistant.id}>
-                      <SidebarButton
-                        icon={SvgLightbulbSimple}
-                        title={liveAssistant.name}
-                      />
+                      <SidebarButton icon={SvgLightbulbSimple}>
+                        {liveAssistant.name}
+                      </SidebarButton>
                     </SortableItem>
                   )}
                 </SortableContext>
               </DndContext>
-              <SidebarButton
-                icon={SvgMoreHorizontal}
-                title="More Agents"
-                noKebabMenu
-                grey
-              />
+              <SidebarButton icon={SvgMoreHorizontal} noKebabMenu grey>
+                More Agents
+              </SidebarButton>
             </SidebarSection>
             <SidebarSection title="Recents">
               {isHistoryEmpty ? (
@@ -321,12 +312,7 @@ function HistorySidebarInner(
       </div>
       <div className="px-spacing-inline flex flex-col gap-spacing-paragraph">
         {!folded && <div className="mx-spacing-inline border-t" />}
-        <UserDropdown
-          user={user}
-          combinedSettings={combinedSettings}
-          page={page}
-          folded={folded}
-        />
+        <UserDropdown folded={folded} />
       </div>
     </div>
   );
