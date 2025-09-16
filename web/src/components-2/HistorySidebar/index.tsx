@@ -77,7 +77,7 @@ function SidebarButton({
     <button
       className={`w-full flex flex-row gap-spacing-interline px-padding-button py-spacing-interline hover:bg-background-tint-01 ${active && "bg-background-tint-00"} rounded-08 items-center`}
     >
-      <Icon size={12} />
+      <Icon className="dbg-red" />
       <Text text03>{title}</Text>
     </button>
   );
@@ -358,7 +358,9 @@ function _HistorySidebar(
               </div>
             )}
 
-          <div className="w-full px-4">
+          {/* <SidebarButton icon={MoreHorizontalIcon} title="More Assistants" /> */}
+
+          {/* <div className="w-full px-4">
             <button
               aria-label="Explore Assistants"
               onClick={() => setShowAssistantsModal(true)}
@@ -367,7 +369,7 @@ function _HistorySidebar(
               <Ellipsis size={16} className="stroke-text-02" />
               <Text text02>More Agents</Text>
             </button>
-          </div>
+          </div> */}
         </SidebarSection>
         <SidebarSection title="Recents" />
       </div>

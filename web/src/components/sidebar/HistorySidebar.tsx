@@ -35,7 +35,7 @@ interface HistorySidebarProps {
   toggleChatSessionSearchModal?: () => void;
 }
 
-function _HistorySidebar(
+function HistorySidebarInner(
   {
     liveAssistant,
     reset = () => null,
@@ -164,5 +164,5 @@ function _HistorySidebar(
   );
 }
 
-export const HistorySidebar = React.memo(forwardRef(_HistorySidebar));
+export const HistorySidebar = React.memo(forwardRef(HistorySidebarInner));
 HistorySidebar.displayName = "HistorySidebar";

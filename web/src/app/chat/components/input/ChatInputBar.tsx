@@ -114,7 +114,7 @@ export interface ChatInputBarProps {
   placeholder?: string;
 }
 
-function _ChatInputBar({
+function ChatInputBarInner({
   toggleDocSelection,
   retrievalEnabled,
   removeDocs,
@@ -710,4 +710,4 @@ function _ChatInputBar({
   );
 }
 
-export const ChatInputBar = React.memo(_ChatInputBar);
+export const ChatInputBar = React.memo(ChatInputBarInner);
