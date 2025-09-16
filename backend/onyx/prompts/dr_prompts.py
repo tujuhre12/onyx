@@ -445,7 +445,7 @@ the context.
 ---chat_history_string---
 {SEPARATOR_LINE}
 
-Here are the previous sub-questions/sub-tasks and corresponding retrieved documents/information so far (if any). \
+Here are the previous sub-questions/sub-tasks so far (if any). \
 {SEPARATOR_LINE}
 ---answer_history_string---
 {SEPARATOR_LINE}
@@ -456,7 +456,7 @@ Here is uploaded user context (if any):
 {SEPARATOR_LINE}
 
 
-And finally, here is the reasoning from the previous iteration on why more research (i.e., tool calls) \
+CRITICALLY - here is the reasoning from the previous iteration on why more research (i.e., tool calls) \
 is needed:
 {SEPARATOR_LINE}
 ---reasoning_result---
