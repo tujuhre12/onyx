@@ -87,8 +87,8 @@ def _format_tool_name(tool_name: str) -> str:
     return name.upper()
 
 
-def _get_kg_tool_used(available_tools: dict[str, OrchestratorTool]) -> bool:
-    """Get the KG tool used."""
+def _is_kg_tool_available(available_tools: dict[str, OrchestratorTool]) -> bool:
+    """Check if the Knowledge Graph tool is available in the provided tools."""
     return DRPath.KNOWLEDGE_GRAPH.value in available_tools
 
 
@@ -388,7 +388,7 @@ def clarifier(
     )
 
     kg_config = get_kg_config_settings()
-    kg_tool_used = _get_kg_tool_used(available_tools)
+    kg_tool_used = _is_kg_tool_available(available_tools)
     if kg_config.KG_ENABLED and kg_config.KG_EXPOSED and kg_tool_used:
         all_entity_types = get_entity_types_str(active=True)
         all_relationship_types = get_relationship_types_str(active=True)
