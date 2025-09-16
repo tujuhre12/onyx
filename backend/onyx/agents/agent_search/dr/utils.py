@@ -50,7 +50,9 @@ def extract_document_citations(
 
 
 def aggregate_context(
-    iteration_responses: list[IterationAnswer], include_documents: bool = True
+    iteration_responses: list[IterationAnswer],
+    include_documents: bool = True,
+    most_recent: bool = False,
 ) -> AggregatedDRContext:
     """
     Converts the iteration response into a single string with unified citations.
@@ -63,6 +65,12 @@ def aggregate_context(
         [1]: doc_xyz
         [2]: doc_abc
         [3]: doc_pqr
+
+    Args:
+        iteration_responses: List of iteration responses to aggregate
+        include_documents: Whether to include document contents in the output
+        most_recent: If True, only include iterations with the highest iteration_nr in output
+                     (but still use all iterations for global citation numbering)
     """
     # dedupe and merge inference section contents
     unrolled_inference_sections: list[InferenceSection] = []
@@ -93,8 +101,22 @@ def aggregate_context(
     output_strings: list[str] = []
     global_iteration_responses: list[IterationAnswer] = []
 
+    # Filter to only include most recent iteration if flag is set
+    # (but keep all iterations for global citation numbering above)
+    output_iteration_responses = iteration_responses
+    if most_recent and iteration_responses:
+        max_iteration_nr = max(
+            iteration_response.iteration_nr
+            for iteration_response in iteration_responses
+        )
+        output_iteration_responses = [
+            iteration_response
+            for iteration_response in iteration_responses
+            if iteration_response.iteration_nr == max_iteration_nr
+        ]
+
     for iteration_response in sorted(
-        iteration_responses,
+        output_iteration_responses,
         key=lambda x: (x.iteration_nr, x.parallelization_nr),
     ):
         # add basic iteration info

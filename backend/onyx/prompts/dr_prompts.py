@@ -406,13 +406,158 @@ ANSWER:
 
 ORCHESTRATOR_FAST_ITERATIVE_DECISION_PROMPT = PromptTemplate(
     f"""
-Overall, you need to answer a user query. To do so, you may have to do various searches.
+Overall, you need to answer to user query. To do so, you may have to do various searches or tool calls.
 
-You may already have some answers to earlier searches you generated in previous iterations.
+You may already have some answers to earlier searches or tool calls you generated in previous iterations.
 
 It has been determined that more research is needed to answer the overall question.
 
-YOUR TASK is to decide which tool to call next, and what specific question/task you want to pose to the tool, \
+YOUR TASK is now to decide which tool to call next, and what specific question/task you want to pose to the tool, \
+considering the answers you already got, and guided by the initial plan.
+
+Note:
+ - you are planning for iteration ---iteration_nr--- now.
+ - the current time is ---current_time---.
+
+For this step, you have these ---num_available_tools--- tools available: \
+---available_tools---. You can only select from these tools.
+
+
+CRITICALLY - here is the reasoning from the previous iteration on why more research (i.e., tool calls) \
+is needed:
+{SEPARATOR_LINE}
+---reasoning_result---
+{SEPARATOR_LINE}
+
+
+GUIDELINES:
+   - consider the reasoning for why more research is needed, the question, the available tools \
+(and their differentiations), the previous sub-questions/sub-tasks and corresponding retrieved documents/information \
+so far, and the past few chat messages for reference if applicable to decide which tool to call next\
+and what questions/tasks to send to that tool.
+   - you can only consider a tool that fits the remaining time budget! The tool cost must be below \
+the remaining time budget.
+   - be careful NOT TO REPEAT NEARLY THE SAME SUB-QUESTION ALREADY ASKED IN THE SAME TOOL AGAIN! \
+If you did not get a \
+good answer from one tool you may want to query another tool for the same purpose, but only of the \
+other tool seems suitable too!
+   - Again, focus is on generating NEW INFORMATION! Try to generate questions that
+         - address gaps in the information relative to the original question
+         - or are interesting follow-ups to questions answered so far, if you think \
+the user would be interested in it.
+   - the generated questions should not be too similar to each other, unless small variations \
+may really matter.
+
+YOUR TASK: you need to construct the next question and the tool to send it to. To do so, please consider \
+the original question, the tools you have available,  the answers you have so far \
+(either from previous iterations or from the chat history), and the provided reasoning why more \
+research is required. Make sure that the answer is specific to what is needed, and - if applicable - \
+BUILDS ON TOP of the learnings so far in order to get new targeted information that gets us to be able \
+to answer the original question.
+
+Please format your answer as a json dictionary in the format below.
+Note:
+ - in the "next_step" field below, please return a dictionary as described below. In \
+particular, make sure the keys are "tool" and "questions", and DO NOT refer to \
+<parameter name="tool"> tool_name" or something like that. Keys are "tool" and "questions".
+
+{{
+   "reasoning": "<keep empty, as it is already available>",
+   "next_step": {{"tool": "<Select directly and exclusively from the following options: ---tool_choice_options---.>",
+                  "questions": "<the question you want to pose to the tool. Note that the \
+question should be appropriate for the tool. For example:
+---tool_question_hints---]>
+Also, if the ultimate question asks about a comparison between various options or entities, you SHOULD \
+ASK questions about the INDIVIDUAL options or entities, as in later steps you can both ask more \
+questions to get more information, or compare and contrast the information that you would find now! \
+(Example: 'why did Puma do X differently than Adidas...' should result in questions like \
+'how did Puma do X..' and 'how did Adidas do X..', vs trying to ask 'how did Puma and Adidas do X..')"}}
+}}
+"""
+)
+
+ORCHESTRATOR_FAST_ITERATIVE_DECISION_PROMPT_ORIG = PromptTemplate(
+    f"""
+Overall, you need to answer to user query. To do so, you may have to do various searches or tool calls.
+
+You may already have some answers to earlier searches or tool calls you generated in previous iterations.
+
+It has been determined that more research is needed to answer the overall question.
+
+YOUR TASK is now to decide which tool to call next, and what specific question/task you want to pose to the tool, \
+considering the answers you already got, and guided by the initial plan.
+
+Note:
+ - you are planning for iteration ---iteration_nr--- now.
+ - the current time is ---current_time---.
+
+For this step, you have these ---num_available_tools--- tools available: \
+---available_tools---. You can only select from these tools.
+
+
+CRITICALLY - here is the reasoning from the previous iteration on why more research (i.e., tool calls) \
+is needed:
+{SEPARATOR_LINE}
+---reasoning_result---
+{SEPARATOR_LINE}
+
+
+GUIDELINES:
+   - consider the reasoning for why more research is needed, the question, the available tools \
+(and their differentiations), the previous sub-questions/sub-tasks and corresponding retrieved documents/information \
+so far, and the past few chat messages for reference if applicable to decide which tool to call next\
+and what questions/tasks to send to that tool.
+   - you can only consider a tool that fits the remaining time budget! The tool cost must be below \
+the remaining time budget.
+   - be careful NOT TO REPEAT NEARLY THE SAME SUB-QUESTION ALREADY ASKED IN THE SAME TOOL AGAIN! \
+If you did not get a \
+good answer from one tool you may want to query another tool for the same purpose, but only of the \
+other tool seems suitable too!
+   - Again, focus is on generating NEW INFORMATION! Try to generate questions that
+         - address gaps in the information relative to the original question
+         - or are interesting follow-ups to questions answered so far, if you think \
+the user would be interested in it.
+   - the generated questions should not be too similar to each other, unless small variations \
+may really matter.
+
+YOUR TASK: you need to construct the next question and the tool to send it to. To do so, please consider \
+the original question, the tools you have available,  the answers you have so far \
+(either from previous iterations or from the chat history), and the provided reasoning why more \
+research is required. Make sure that the answer is specific to what is needed, and - if applicable - \
+BUILDS ON TOP of the learnings so far in order to get new targeted information that gets us to be able \
+to answer the original question.
+
+Please format your answer as a json dictionary in the format below.
+Note:
+ - in the "next_step" field below, please return a dictionary as described below. In \
+particular, make sure the keys are "tool" and "questions", and DO NOT refer to \
+<parameter name="tool"> tool_name" or something like that. Keys are "tool" and "questions".
+
+{{
+   "reasoning": "<keep empty, as it is already available>",
+   "next_step": {{"tool": "<Select directly and exclusively from the following options: ---tool_choice_options---.>",
+                  "questions": "<the question you want to pose to the tool. Note that the \
+question should be appropriate for the tool. For example:
+---tool_question_hints---]>
+Also, if the ultimate question asks about a comparison between various options or entities, you SHOULD \
+ASK questions about the INDIVIDUAL options or entities, as in later steps you can both ask more \
+questions to get more information, or compare and contrast the information that you would find now! \
+(Example: 'why did Puma do X differently than Adidas...' should result in questions like \
+'how did Puma do X..' and 'how did Adidas do X..', vs trying to ask 'how did Puma and Adidas do X..')"}}
+}}
+"""
+)
+
+
+ORCHESTRATOR_FAST_ITERATIVE_DECISION_PROMPT_ORIG = PromptTemplate(
+    f"""
+Overall, you need to answer to user query. To do so, you may have to do various searches or tool calls.
+
+You may already have some answers to earlier searches or tool calls you generated in previous iterations.
+
+It has been determined that more research is needed to answer the overall question.
+
+YOUR TASK is now to decide which tool to call next, and what specific question/task you want to pose to the tool, \
 considering the answers you already got, and guided by the initial plan.
 
 Note:
@@ -510,6 +655,31 @@ questions to get more information, or compare and contrast the information that 
 )
 
 ORCHESTRATOR_NEXT_STEP_PURPOSE_PROMPT = PromptTemplate(
+    f"""
+Overall, you need to answer a user query. To do so, you may have to do various searches.
+
+You may already have some answers to earlier searches you generated in previous iterations.
+
+It has been determined that more research is needed to answer the overall question, and \
+the appropriate tools and tool calls have been determined.
+
+YOUR TASK is to articulate the purpose of these tool calls in 2-3 sentences, meaning, \
+articulating what you least learned is the next tool and the questions.
+
+Please articulate the purpose of these tool calls in 1-2 sentences concisely. An \
+example could be "I am now trying to find more information about Nike and Puma using \
+Web Search" (assuming that Web Search is the chosen tool, the proper tool must \
+be named here.)
+
+Note that there is ONE EXCEPTION: if the tool call/calls is the {CLOSER} tool, then you should \
+say something like "I am now trying to generate the final answer as I have sufficient information", \
+but do not mention the {CLOSER} tool explicitly.
+
+ANSWER:
+"""
+)
+
+ORCHESTRATOR_NEXT_STEP_PURPOSE_PROMPT_ORIG = PromptTemplate(
     f"""
 Overall, you need to answer a user query. To do so, you may have to do various searches.
 
@@ -1060,6 +1230,39 @@ ANSWER:
 
 FINAL_ANSWER_PROMPT_WITHOUT_SUB_ANSWERS = PromptTemplate(
     f"""
+You are now ready to answer the original user question based on the previous \
+exchanges that also retrieved. Base your answer on these documents.
+
+As a reminder, here is the original user question:
+{SEPARATOR_LINE}
+---base_question---
+{SEPARATOR_LINE}
+
+
+GUIDANCE:
+- if the documents/sub-answers (if available) do not explicitly mention the topic of interest with \
+specificity(!) (example: 'yellow curry' vs 'curry'), you MUST state at the outset that \
+the provided context is based on the less specific concept. (Example: 'I was not able to \
+find information about yellow curry specifically, but here is what I found about curry..'
+- make sure that the text from a document that you use is NOT TAKEN OUT OF CONTEXT!
+- do not make anything up! Only use the information provided in the documents, or, \
+if no documents are provided for a sub-answer, in the actual sub-answer.
+- Provide a thoughtful answer that is concise and to the point, but that is detailed.
+- Please cite your sources inline in format [[2]][[4]], etc! The numbers of the documents \
+are provided above. So the appropriate citation number should be close to the corresponding /
+information it supports!
+- If you are not that certain that the information does relate to the question topic, \
+point out the ambiguity in your answer. But DO NOT say something like 'I was not able to find \
+information on <X> specifically, but here is what I found about <X> generally....'. Rather say, \
+'Here is what I found about <X> and I hope this is the <X> you were looking for...', or similar.
+- Again... CITE YOUR SOURCES INLINE IN FORMAT [[2]][[4]], etc! This is CRITICAL!
+
+ANSWER:
+"""
+)
+
+FINAL_ANSWER_PROMPT_WITHOUT_SUB_ANSWERS_ORIG = PromptTemplate(
+    f"""
 You are great at answering a user question based \
 a list of documents that were retrieved in response to sub-questions, and possibly also \
 corresponding sub-answers  (note, a given subquestion may or may not have a corresponding sub-answer).
@@ -1115,6 +1318,51 @@ ANSWER:
 )
 
 FINAL_ANSWER_PROMPT_W_SUB_ANSWERS = PromptTemplate(
+    f"""
+You are now ready to provide the final answer based on the previous exchanges () \
+that incuded sub-questions and their answers and claims, and then the retrieved documents.
+
+As a reminder, here is the original user question:
+{SEPARATOR_LINE}
+---base_question---
+{SEPARATOR_LINE}
+
+
+GUIDANCE:
+ - note that the sub-answers to the sub-questions are designed to be high-level, mostly \
+focussing on providing the citations and providing some answer facts. But the \
+main content should be in the cited documents for each sub-question.
+ - Pay close attention to whether the sub-answers mention whether the topic of interest \
+was explicitly mentioned! If you cannot reliably use that information to construct your answer, \
+you MUST qualify your answer with something like 'xyz was not explicitly \
+mentioned, however the similar concept abc was, and I learned...'
+- if the documents/sub-answers do not explicitly mention the topic of interest with \
+specificity(!) (example: 'yellow curry' vs 'curry'), you MUST state at the outset that \
+the provided context is based on the less specific concept. (Example: 'I was not able to \
+find information about yellow curry specifically, but here is what I found about curry..'
+- make sure that the text from a document that you use is NOT TAKEN OUT OF CONTEXT!
+- do not make anything up! Only use the information provided in the documents, or, \
+if no documents are provided for a sub-answer, in the actual sub-answer.
+- Provide a thoughtful answer that is concise and to the point, but that is detailed.
+- THIS IS VERY IMPORTANT: Please cite your sources inline in format [[2]][[4]], etc! The numbers of the documents \
+are provided above. Also, if you refer to sub-answers, the provided reference numbers \
+in the sub-answers are the same as the ones provided for the documents!
+
+ANSWER:
+"""
+)
+
+FINAL_ANSWER_DEEP_CITATION_PROMPT = PromptTemplate(
+    f"""
+Here are the sub-questions and sub-answers and facts/claims and the \
+corresponding cited documents:
+{SEPARATOR_LINE}
+---iteration_responses_string---
+{SEPARATOR_LINE}
+"""
+)
+
+FINAL_ANSWER_PROMPT_W_SUB_ANSWERS_ORIG = PromptTemplate(
     f"""
 You are great at answering a user question based on sub-answers generated earlier \
 and a list of documents that were used to generate the sub-answers. The list of documents is \
@@ -1509,3 +1757,71 @@ WEB_SEARCH_URL_SELECTION_PROMPT = PromptTemplate(
     - Ensure source diversity: try to include 1–2 official docs, 1 explainer, 1 news/report, 1 code/sample, etc.
     """
 )
+
+BASE_SYSTEM_MESSAGE_TEMPLATE = PromptTemplate(
+    f"""
+Here is your overall system prompt, the broad instructions you follow, the role you take etc:
+#ASSISTANT SYSTEM PROMPT
+{SEPARATOR_LINE}
+---assistant_system_prompt---
+{SEPARATOR_LINE}
+
+Here are the tools you have access to:
+#TOOLS
+{SEPARATOR_LINE}
+---available_tool_descriptions_str---
+{SEPARATOR_LINE}
+
+You have access to the following internal sources of information:
+#SOURCES
+{SEPARATOR_LINE}
+---active_source_type_descriptions_str---
+{SEPARATOR_LINE}
+
+In case the Knowledge Graph is available, here are the entity types and relationship types that are available \
+for Knowledge Graph queries:
+#KG TYPES
+{SEPARATOR_LINE}
+
+Entity Types:
+---entity_types_string---
+
+--
+
+Relationship Types:
+---relationship_types_string---
+{SEPARATOR_LINE}
+
+
+"""
+)
+
+TOOL_CHOICE_WRAPPER_PROMPT = PromptTemplate(
+    f"""
+Here are the tools/sub-agents and tool calls that were determined to be needed next to answer the user's question:
+
+#TOOL CALLS
+{SEPARATOR_LINE}
+---tool_calls---
+{SEPARATOR_LINE}
+
+#QUESTIONS
+{SEPARATOR_LINE}
+---questions---
+{SEPARATOR_LINE}
+
+
+And here is the reasoning for why more research (i.e., tool calls or sub-agent calls) as needed
+#REASONING
+{SEPARATOR_LINE}
+---reasoning_result---
+{SEPARATOR_LINE}
+
+
+"""
+)
+
+NEXT_TOOL_PURPOSE_PROMPT = """
+Please look at the purpose of the next tool call and briefly \
+restate it in 1 to 2 sentences.
+"""

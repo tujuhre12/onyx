@@ -1,7 +1,10 @@
 from datetime import datetime
 from typing import cast
 
+from langchain_core.messages import AIMessage
+from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
+from langchain_core.messages import SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 
@@ -33,8 +36,10 @@ from onyx.agents.agent_search.utils import create_question_prompt
 from onyx.configs.agent_configs import TF_DR_TIMEOUT_LONG
 from onyx.configs.agent_configs import TF_DR_TIMEOUT_SHORT
 from onyx.prompts.dr_prompts import DEFAULLT_DECISION_PROMPT
+from onyx.prompts.dr_prompts import NEXT_TOOL_PURPOSE_PROMPT
 from onyx.prompts.dr_prompts import REPEAT_PROMPT
 from onyx.prompts.dr_prompts import SUFFICIENT_INFORMATION_STRING
+from onyx.prompts.dr_prompts import TOOL_CHOICE_WRAPPER_PROMPT
 from onyx.server.query_and_chat.streaming_models import ReasoningStart
 from onyx.server.query_and_chat.streaming_models import SectionEnd
 from onyx.server.query_and_chat.streaming_models import StreamingType
@@ -81,6 +86,9 @@ def orchestrator(
     clarification = state.clarification
     assistant_system_prompt = state.assistant_system_prompt
 
+    message_history_for_continuation = state.orchestration_llm_messages
+    new_messages: list[SystemMessage | HumanMessage | AIMessage] = []
+
     if assistant_system_prompt:
         decision_system_prompt: str = (
             DEFAULLT_DECISION_PROMPT
@@ -104,6 +112,38 @@ def orchestrator(
         aggregate_context(state.iteration_responses, include_documents=False).context
         or "(No answer history yet available)"
     )
+
+    most_recent_answer_history_w_docs_string = (
+        aggregate_context(
+            state.iteration_responses, include_documents=True, most_recent=True
+        ).context
+        or "(No answer history yet available)"
+    )
+    most_recent_answer_history_wo_docs_string = (
+        aggregate_context(
+            state.iteration_responses, include_documents=False, most_recent=True
+        ).context
+        or "(No answer history yet available)"
+    )
+
+    if (
+        research_type == ResearchType.DEEP
+        and most_recent_answer_history_wo_docs_string
+        != "(No answer history yet available)"
+    ):
+        message_history_for_continuation.append(
+            AIMessage(content=most_recent_answer_history_wo_docs_string)
+        )
+        new_messages.append(
+            AIMessage(content=most_recent_answer_history_wo_docs_string)
+        )
+    elif (
+        most_recent_answer_history_w_docs_string != "(No answer history yet available)"
+    ):
+        message_history_for_continuation.append(
+            AIMessage(content=most_recent_answer_history_w_docs_string)
+        )
+        new_messages.append(AIMessage(content=most_recent_answer_history_w_docs_string))
 
     next_tool_name = None
 
@@ -317,22 +357,20 @@ def orchestrator(
         decision_prompt = base_decision_prompt.build(
             question=question,
             chat_history_string=chat_history_string,
-            answer_history_string=answer_history_w_docs_string,
+            answer_history_string=answer_history_wo_docs_string,
             iteration_nr=str(iteration_nr),
             remaining_time_budget=str(remaining_time_budget),
             reasoning_result=reasoning_result,
             uploaded_context=uploaded_context,
         )
 
+        message_history_for_continuation.append(SystemMessage(content=decision_prompt))
+
         if remaining_time_budget > 0:
             try:
                 orchestrator_action = invoke_llm_json(
                     llm=graph_config.tooling.primary_llm,
-                    prompt=create_question_prompt(
-                        decision_system_prompt,
-                        decision_prompt,
-                        uploaded_image_context=uploaded_image_context,
-                    ),
+                    prompt=message_history_for_continuation,
                     schema=OrchestratorDecisonsNoPlan,
                     timeout_override=TF_DR_TIMEOUT_SHORT,
                     # max_tokens=2500,
@@ -526,18 +564,21 @@ def orchestrator(
     else:
         raise NotImplementedError(f"Research type {research_type} is not implemented.")
 
-    base_next_step_purpose_prompt = get_dr_prompt_orchestration_templates(
-        DRPromptPurpose.NEXT_STEP_PURPOSE,
-        ResearchType.DEEP,
-        entity_types_string=all_entity_types,
-        relationship_types_string=all_relationship_types,
-        available_tools=available_tools,
-    )
-    orchestration_next_step_purpose_prompt = base_next_step_purpose_prompt.build(
-        question=prompt_question,
+    tool_choice_wrapper_prompt = TOOL_CHOICE_WRAPPER_PROMPT.build(
         reasoning_result=reasoning_result,
         tool_calls=tool_calls_string,
+        questions="\n - " + "\n - ".join(query_list or []),
     )
+
+    message_history_for_continuation.append(
+        AIMessage(content=tool_choice_wrapper_prompt)
+    )
+    new_messages.append(AIMessage(content=tool_choice_wrapper_prompt))
+
+    message_history_for_continuation.append(
+        HumanMessage(content=NEXT_TOOL_PURPOSE_PROMPT)
+    )
+    new_messages.append(HumanMessage(content=NEXT_TOOL_PURPOSE_PROMPT))
 
     purpose_tokens: list[str] = [""]
     purpose = ""
@@ -556,11 +597,7 @@ def orchestrator(
                 TF_DR_TIMEOUT_LONG,
                 lambda: stream_llm_answer(
                     llm=graph_config.tooling.primary_llm,
-                    prompt=create_question_prompt(
-                        decision_system_prompt,
-                        orchestration_next_step_purpose_prompt,
-                        uploaded_image_context=uploaded_image_context,
-                    ),
+                    prompt=message_history_for_continuation,
                     event_name="basic_response",
                     writer=writer,
                     agent_answer_level=0,
@@ -615,4 +652,5 @@ def orchestrator(
                 purpose=purpose,
             )
         ],
+        orchestration_llm_messages=new_messages,
     )

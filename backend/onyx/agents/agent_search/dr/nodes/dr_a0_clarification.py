@@ -3,8 +3,10 @@ from datetime import datetime
 from typing import Any
 from typing import cast
 
+from langchain_core.messages import AIMessage
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import merge_content
+from langchain_core.messages import SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import StreamWriter
 from sqlalchemy.orm import Session
@@ -53,6 +55,7 @@ from onyx.llm.utils import check_number_of_tokens
 from onyx.llm.utils import get_max_input_tokens
 from onyx.natural_language_processing.utils import get_tokenizer
 from onyx.prompts.dr_prompts import ANSWER_PROMPT_WO_TOOL_CALLING
+from onyx.prompts.dr_prompts import BASE_SYSTEM_MESSAGE_TEMPLATE
 from onyx.prompts.dr_prompts import DECISION_PROMPT_W_TOOL_CALLING
 from onyx.prompts.dr_prompts import DECISION_PROMPT_WO_TOOL_CALLING
 from onyx.prompts.dr_prompts import DEFAULT_DR_SYSTEM_PROMPT
@@ -764,6 +767,29 @@ def clarifier(
     else:
         next_tool = DRPath.ORCHESTRATOR.value
 
+    message_history_for_continuation: list[SystemMessage | HumanMessage | AIMessage] = (
+        []
+    )
+
+    base_system_message = BASE_SYSTEM_MESSAGE_TEMPLATE.build(
+        assistant_system_prompt=assistant_system_prompt,
+        active_source_type_descriptions_str=active_source_type_descriptions_str,
+        entity_types_string=all_entity_types,
+        relationship_types_string=all_relationship_types,
+        available_tool_descriptions_str=available_tool_descriptions_str,
+    )
+
+    message_history_for_continuation.append(SystemMessage(content=base_system_message))
+    message_history_for_continuation.append(HumanMessage(content=original_question))
+    if research_type == ResearchType.DEEP and clarification:
+        message_history_for_continuation.append(
+            AIMessage(content=clarification.clarification_question)
+        )
+        if clarification.clarification_response:
+            message_history_for_continuation.append(
+                HumanMessage(content=clarification.clarification_response)
+            )
+
     return OrchestrationSetup(
         original_question=original_question,
         chat_history_string=chat_history_string,
@@ -788,4 +814,5 @@ def clarifier(
         uploaded_image_context=uploaded_image_context,
         all_entity_types=all_entity_types,
         all_relationship_types=all_relationship_types,
+        orchestration_llm_messages=message_history_for_continuation,
     )
