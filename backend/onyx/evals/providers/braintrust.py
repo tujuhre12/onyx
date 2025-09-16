@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from braintrust import Eval
+from braintrust import EvalCase
 from braintrust import init_dataset
 
 from onyx.configs.app_configs import BRAINTRUST_PROJECT
@@ -14,7 +15,7 @@ class BraintrustEvalProvider(EvalProvider):
         self,
         task: Callable[[dict[str, str]], str],
         configuration: EvalConfigurationOptions,
-        data: list[dict[str, str]] | None = None,
+        data: list[dict[str, dict[str, str]]] | None = None,
         remote_dataset_name: str | None = None,
     ) -> EvalationAck:
         if data is not None and remote_dataset_name is not None:
@@ -36,9 +37,16 @@ class BraintrustEvalProvider(EvalProvider):
                 max_concurrency=1,
             )
         else:
+            if data is None:
+                raise ValueError(
+                    "Must specify data when remote_dataset_name is not specified"
+                )
+            eval_cases: list[EvalCase[dict[str, str], str]] = [
+                EvalCase(input=item["input"]) for item in data
+            ]
             Eval(
                 name=BRAINTRUST_PROJECT,
-                data=lambda: data,
+                data=eval_cases,
                 task=task,
                 scores=[],
                 metadata={**configuration.model_dump()},

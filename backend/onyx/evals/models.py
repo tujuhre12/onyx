@@ -76,7 +76,7 @@ class EvalProvider(ABC):
         self,
         task: Callable[[dict[str, str]], str],
         configuration: EvalConfigurationOptions,
-        data: list[dict[str, str]] | None = None,
+        data: list[dict[str, dict[str, str]]] | None = None,
         remote_dataset_name: str | None = None,
     ) -> EvalationAck:
         pass
