@@ -84,7 +84,7 @@ export interface SidebarSectionProps {
 
 export function SidebarSection({ title, children }: SidebarSectionProps) {
   return (
-    <div className="flex flex-col gap-spacing-interline">
+    <div className="flex flex-col gap-spacing-inline">
       <Text
         secondary
         text02
