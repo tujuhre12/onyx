@@ -54,7 +54,7 @@ def parse_csv_file(csv_path: str) -> List[Dict[str, Any]]:
                 continue
 
             # Extract relevant fields based on CSV structure
-            should_use = row[1].strip().upper() if len(row) > 1 else ""
+            should_use = row[2].strip().upper() if len(row) > 2 else ""
             question = row[7].strip() if len(row) > 7 else ""
             expected_depth = row[9].strip() if len(row) > 9 else ""
             categories = row[12].strip() if len(row) > 12 else ""
