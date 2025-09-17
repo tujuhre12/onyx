@@ -133,10 +133,24 @@ function HistorySidebarInner(
     },
     [setPinnedAssistants, reorderPinnedAssistants]
   );
-  const [folded, setFolded] = useState<boolean>(false);
+  const [folded, setFolded] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("history-sidebar-folded");
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
   const [insideHistorySidebarBoundingBox, setInsideHistorySidebarBoundingBox] =
     useState<boolean>(false);
   const [agentsModalOpen, setAgentsModalOpen] = useState<boolean>(false);
+
+  // Save folded state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("history-sidebar-folded", JSON.stringify(folded));
+    }
+  }, [folded]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
