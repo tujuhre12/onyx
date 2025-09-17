@@ -59,7 +59,7 @@ export default function Truncated({
         {/* Hide offscreen to measure full text width */}
         <div
           ref={hiddenRef}
-          className="absolute left-[-9999px] whitespace-nowrap pointer-events-none"
+          className="fixed left-[-9999px] top-[0rem] whitespace-nowrap pointer-events-none opacity-0"
           aria-hidden="true"
         >
           {children}

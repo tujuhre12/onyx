@@ -42,7 +42,7 @@ const ChatContext = createContext<ChatContextProps | undefined>(undefined);
 
 // We use Omit to exclude 'refreshChatSessions' from the value prop type
 // because we're defining it within the component
-export const ChatProvider: React.FC<{
+interface ChatProviderProps {
   value: Omit<
     ChatContextProps,
     | "refreshChatSessions"
@@ -52,7 +52,9 @@ export const ChatProvider: React.FC<{
     | "refreshInputPrompts"
   >;
   children: React.ReactNode;
-}> = ({ value, children }) => {
+}
+
+export function ChatProvider({ value, children }: ChatProviderProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [inputPrompts, setInputPrompts] = useState(value?.inputPrompts || []);
@@ -122,12 +124,12 @@ export const ChatProvider: React.FC<{
       {children}
     </ChatContext.Provider>
   );
-};
+}
 
-export const useChatContext = (): ChatContextProps => {
+export function useChatContext(): ChatContextProps {
   const context = useContext(ChatContext);
   if (!context) {
     throw new Error("useChatContext must be used within a ChatProvider");
   }
   return context;
-};
+}

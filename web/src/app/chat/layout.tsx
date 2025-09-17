@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
 import { fetchChatData } from "@/lib/chat/fetchChatData";
 import { ChatProvider } from "@/components/context/ChatContext";
+import { HistorySidebar } from "@/components-2/HistorySidebar";
 
 export default async function Layout({
   children,
@@ -62,7 +63,10 @@ export default async function Layout({
           defaultAssistantId,
         }}
       >
-        {children}
+        <div className="flex flex-row">
+          <HistorySidebar />
+          {children}
+        </div>
       </ChatProvider>
     </>
   );

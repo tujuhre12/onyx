@@ -39,16 +39,15 @@ import SvgSidebar from "@/icons/sidebar";
 import SvgEditBig from "@/icons/edit-big";
 import SvgMoreHorizontal from "@/icons/more-horizontal";
 import SvgLightbulbSimple from "@/icons/lightbulb-simple";
-import { groupSessionsByDateRange } from "@/app/chat/services/lib";
-import { ChatSessionDisplay } from "@/components/sidebar/ChatSessionDisplay";
 import Settings from "@/components-2/HistorySidebar/Settings";
 import {
   AgentsMenu,
   SidebarButton,
   SidebarSection,
 } from "@/components-2/HistorySidebar/components";
-import { AssistantsTab } from "@/app/chat/components/modal/configuration/AssistantsTab";
 import AssistantModal from "@/app/assistants/mine/AssistantModal";
+import { useChatContext } from "@/components/context/ChatContext";
+import SvgBubbleText from "@/icons/bubble-text";
 
 interface SortableItemProps {
   id: number;
@@ -79,17 +78,11 @@ function SortableItem({ id, children }: SortableItemProps) {
 interface HistorySidebarProps {
   liveAssistant?: MinimalPersonaSnapshot | null;
   page: pageType;
-  existingChats?: ChatSession[];
   currentChatSession?: ChatSession | null | undefined;
 }
 
 function HistorySidebarInner(
-  {
-    liveAssistant,
-    page,
-    existingChats,
-    currentChatSession,
-  }: HistorySidebarProps,
+  { liveAssistant, page, currentChatSession }: HistorySidebarProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
   const router = useRouter();
@@ -160,6 +153,7 @@ function HistorySidebarInner(
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+  const { chatSessions } = useChatContext();
 
   if (!combinedSettings) {
     return null;
@@ -179,8 +173,8 @@ function HistorySidebarInner(
   const liveAgentIsNotPinned = pinnedAgents.every(
     (agent) => agent.id !== liveAssistant?.id
   );
-  const groupedChatSessions = groupSessionsByDateRange(existingChats || []);
-  const isHistoryEmpty = !existingChats || existingChats.length === 0;
+  // const groupedChatSessions = groupSessionsByDateRange(existingChats || []);
+  const isHistoryEmpty = !chatSessions || chatSessions.length === 0;
 
   return (
     <>
@@ -189,43 +183,48 @@ function HistorySidebarInner(
       )}
 
       <div
-        className={`h-screen ${folded ? "w-[4rem]" : "w-[15rem]"} flex flex-col bg-background-tint-02 ${folded ? "px-spacing-interline" : "px-padding-button"} py-padding-content flex-shrink-0`}
+        className={`h-screen ${folded ? "w-[4rem]" : "w-[15rem]"} flex flex-col bg-background-tint-02 ${folded ? "px-spacing-interline" : "px-padding-button"} py-padding-content flex-shrink-0 gap-padding-content`}
         onMouseOver={() => setInsideHistorySidebarBoundingBox(true)}
         onMouseLeave={() => setInsideHistorySidebarBoundingBox(false)}
       >
-        <div className="flex flex-col gap-padding-content flex-1">
-          <div
-            className={`flex flex-row items-center px-spacing-interline ${folded ? "justify-center" : "justify-between"}`}
-          >
-            {folded ? (
-              <div className="h-[1.6rem] flex flex-col items-center justify-center">
-                {insideHistorySidebarBoundingBox ? (
-                  <SvgSidebar
-                    className="cursor-pointer hover:stroke-text-04 stroke-text-03 w-[1rem]"
-                    onClick={() => setFolded(false)}
-                  />
-                ) : (
-                  <OnyxIcon size={24} />
-                )}
-              </div>
-            ) : (
-              <>
-                <OnyxLogoTypeIcon size={88} />
+        {/* Header - fixed height */}
+        <div
+          className={`flex flex-row items-center px-spacing-interline ${folded ? "justify-center" : "justify-between"} flex-shrink-0`}
+        >
+          {folded ? (
+            <div className="h-[1.6rem] flex flex-col items-center justify-center">
+              {insideHistorySidebarBoundingBox ? (
                 <SvgSidebar
                   className="cursor-pointer hover:stroke-text-04 stroke-text-03 w-[1rem]"
-                  onClick={() => {
-                    setFolded(true);
-                    setInsideHistorySidebarBoundingBox(false);
-                  }}
+                  onClick={() => setFolded(false)}
                 />
-              </>
-            )}
-          </div>
-          <SidebarButton icon={SvgEditBig} hideTitle={folded}>
-            New Session
-          </SidebarButton>
+              ) : (
+                <OnyxIcon size={24} />
+              )}
+            </div>
+          ) : (
+            <>
+              <OnyxLogoTypeIcon size={88} />
+              <SvgSidebar
+                className="cursor-pointer hover:stroke-text-04 stroke-text-03 w-[1rem]"
+                onClick={() => {
+                  setFolded(true);
+                  setInsideHistorySidebarBoundingBox(false);
+                }}
+              />
+            </>
+          )}
+        </div>
+
+        <SidebarButton icon={SvgEditBig} hideTitle={folded}>
+          New Session
+        </SidebarButton>
+
+        {/* Scrollable content area - takes remaining space */}
+        <div className="flex flex-col gap-padding-content flex-1 overflow-y-scroll">
           {!folded && (
             <>
+              {/* Agents */}
               <SidebarSection title="Agents">
                 <DndContext
                   sensors={sensors}
@@ -265,48 +264,31 @@ function HistorySidebarInner(
                   More Agents
                 </SidebarButton>
               </SidebarSection>
+
+              {/* Recents */}
               <SidebarSection title="Recents">
                 {isHistoryEmpty ? (
                   <Text secondary text01 className="px-padding-button">
                     Try sending a message! Your chat history will appear here.
                   </Text>
                 ) : (
-                  Object.entries(groupedChatSessions)
-                    .filter(([_groupName, chats]) => chats.length > 0)
-                    .map(([groupName, chats]) => (
-                      <div key={groupName} className="mb-4">
-                        <Text
-                          secondary
-                          text02
-                          className="px-padding-button mb-2"
-                        >
-                          {groupName}
-                        </Text>
-                        <div className="space-y-1">
-                          {chats.map((chat) => (
-                            <div
-                              key={chat.id}
-                              className="-ml-4 bg-transparent -mr-2"
-                            >
-                              <ChatSessionDisplay
-                                chatSession={chat}
-                                isSelected={currentChatId === chat.id}
-                                showShareModal={() => {}}
-                                showDeleteModal={() => {}}
-                                closeSidebar={() => {}}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))
+                  chatSessions.map((chatSession) => (
+                    <SidebarButton icon={SvgBubbleText}>
+                      {chatSession.name ? (
+                        chatSession.name
+                      ) : (
+                        <Text text01>Unnamed Chat</Text>
+                      )}
+                    </SidebarButton>
+                  ))
                 )}
               </SidebarSection>
             </>
           )}
         </div>
-        <div className="px-spacing-inline flex flex-col gap-spacing-paragraph">
-          {!folded && <div className="mx-spacing-inline border-t" />}
+
+        {/* Footer - fixed height */}
+        <div className="px-spacing-inline flex flex-col flex-shrink-0">
           <Settings folded={folded} />
         </div>
       </div>

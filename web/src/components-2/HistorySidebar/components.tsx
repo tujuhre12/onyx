@@ -37,13 +37,13 @@ export function SidebarButton({
 
   const content = (
     <button
-      className={`w-full flex flex-row gap-spacing-interline p-spacing-interline hover:bg-background-tint-01 ${active && "bg-background-tint-00"} rounded-08 items-center group ${hideTitle && "justify-center"}`}
+      className={`w-full h-min flex flex-row gap-spacing-interline p-spacing-interline p-spacing-interline hover:bg-background-tint-01 ${active && "bg-background-tint-00"} rounded-08 items-center group ${hideTitle && "justify-center"}`}
       onClick={onClick}
       onMouseLeave={() => setOpen(false)}
     >
       {Icon && (
         <Icon
-          className={`w-[1.2rem] ${grey ? "stroke-text-02" : "stroke-text-03"}`}
+          className={`h-[1.2rem] min-w-[1.2rem] ${grey ? "stroke-text-02" : "stroke-text-03"}`}
         />
       )}
       {!hideTitle &&
