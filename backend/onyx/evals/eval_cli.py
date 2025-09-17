@@ -30,7 +30,7 @@ def setup_session_factory() -> None:
 
 def load_data_local(
     local_data_path: str,
-) -> list[dict[str, str]]:
+) -> list[dict[str, dict[str, str]]]:
     if not os.path.isfile(local_data_path):
         raise ValueError(f"Local data file does not exist: {local_data_path}")
     with open(local_data_path, "r") as f:
