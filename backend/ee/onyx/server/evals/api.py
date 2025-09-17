@@ -6,7 +6,7 @@ from onyx.background.celery.apps.client import celery_app as client_app
 from onyx.configs.constants import OnyxCeleryTask
 from onyx.db.models import User
 from onyx.evals.models import EvalConfigurationOptions
-from onyx.server.evals.models import EvalRunResponse
+from onyx.server.evals.models import EvalRunAck
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -14,11 +14,11 @@ logger = setup_logger()
 router = APIRouter(prefix="/evals")
 
 
-@router.post("/eval_run", response_model=EvalRunResponse)
+@router.post("/eval_run", response_model=EvalRunAck)
 def eval_run(
     request: EvalConfigurationOptions,
     user: User = Depends(current_cloud_superuser),
-) -> EvalRunResponse:
+) -> EvalRunAck:
     """
     Run an evaluation with the given message and optional dataset.
     This endpoint requires a valid API key for authentication.
@@ -29,4 +29,4 @@ def eval_run(
             "configuration_dict": request.model_dump(),
         },
     )
-    return EvalRunResponse(success=True)
+    return EvalRunAck(success=True)
