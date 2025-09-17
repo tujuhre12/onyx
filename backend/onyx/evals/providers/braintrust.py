@@ -34,7 +34,7 @@ class BraintrustEvalProvider(EvalProvider):
                 task=task,
                 scores=[],
                 metadata={**configuration.model_dump()},
-                max_concurrency=5,
+                max_concurrency=1,
             )
         else:
             if data is None:
@@ -50,6 +50,6 @@ class BraintrustEvalProvider(EvalProvider):
                 task=task,
                 scores=[],
                 metadata={**configuration.model_dump()},
-                max_concurrency=5,
+                max_concurrency=1,
             )
         return EvalationAck(success=True)
