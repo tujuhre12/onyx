@@ -42,12 +42,14 @@ import SvgLightbulbSimple from "@/icons/lightbulb-simple";
 import Settings from "@/components-2/HistorySidebar/Settings";
 import {
   AgentsMenu,
+  RecentChatMenu,
   SidebarButton,
   SidebarSection,
 } from "@/components-2/HistorySidebar/components";
 import AssistantModal from "@/app/assistants/mine/AssistantModal";
 import { useChatContext } from "@/components/context/ChatContext";
 import SvgBubbleText from "@/icons/bubble-text";
+import { buildChatUrl } from "@/app/chat/services/lib";
 
 interface SortableItemProps {
   id: number;
@@ -78,11 +80,10 @@ function SortableItem({ id, children }: SortableItemProps) {
 interface HistorySidebarProps {
   liveAssistant?: MinimalPersonaSnapshot | null;
   page: pageType;
-  currentChatSession?: ChatSession | null | undefined;
 }
 
 function HistorySidebarInner(
-  { liveAssistant, page, currentChatSession }: HistorySidebarProps,
+  { liveAssistant, page }: HistorySidebarProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
   const router = useRouter();
@@ -173,17 +174,24 @@ function HistorySidebarInner(
     return null;
   }
 
-  function handleNewChat() {
+  // Get current chat session ID from URL parameters
+  const currentChatId = searchParams?.get("chatId");
+
+  // Find the current chat session object from the chatSessions array
+  const currentChatSession = currentChatId
+    ? chatSessions.find((session) => session.id === currentChatId)
+    : null;
+
+  function handleNewChat(chatSessionId: string | null) {
     console.log("currentChatSession", currentChatSession);
 
-    const newChatUrl =
-      `/${page}` +
-      (currentChatSession
-        ? `?assistantId=${currentChatSession.persona_id}`
-        : "");
+    const newChatUrl = buildChatUrl(
+      searchParams,
+      chatSessionId || null,
+      currentChatSession?.persona_id || null
+    );
     router.push(newChatUrl);
   }
-  const currentChatId = currentChatSession?.id;
   const liveAgentIsNotPinned = pinnedAgents.every(
     (agent) => agent.id !== liveAssistant?.id
   );
@@ -233,7 +241,7 @@ function HistorySidebarInner(
         <SidebarButton
           icon={SvgEditBig}
           hideTitle={folded}
-          onClick={handleNewChat}
+          onClick={() => handleNewChat(null)}
         >
           New Session
         </SidebarButton>
@@ -291,7 +299,13 @@ function HistorySidebarInner(
                   </Text>
                 ) : (
                   chatSessions.map((chatSession) => (
-                    <SidebarButton icon={SvgBubbleText}>
+                    <SidebarButton
+                      key={chatSession.id}
+                      icon={SvgBubbleText}
+                      active={currentChatId === chatSession.id}
+                      onClick={() => handleNewChat(chatSession.id)}
+                      kebabMenu={<RecentChatMenu />}
+                    >
                       {chatSession.name ? (
                         chatSession.name
                       ) : (

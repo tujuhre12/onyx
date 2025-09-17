@@ -42,13 +42,9 @@ export function SidebarButton({
       onMouseLeave={() => setOpen(false)}
     >
       {Icon && (
-        <div
-          className={`min-w-[1.6rem] flex ${hideTitle ? "justify-center" : "justify-start"} items-center`}
-        >
-          <Icon
-            className={`h-[1.2rem] min-w-[1.2rem] ${grey ? "stroke-text-02" : "stroke-text-03"}`}
-          />
-        </div>
+        <Icon
+          className={`h-[1.2rem] mr-[0.4rem] min-w-[1.2rem] ${grey ? "stroke-text-02" : "stroke-text-03"}`}
+        />
       )}
       {!hideTitle &&
         (typeof children === "string" ? (
@@ -64,9 +60,20 @@ export function SidebarButton({
       {kebabMenu && !hideTitle && (
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <SvgMoreHorizontal className="invisible group-hover:visible stroke-text-03 h-[1rem] min-w-[1rem] cursor-pointer" />
+            <div
+              className="relative group-hover:w-[1rem]"
+              onClick={(event) => {
+                event.stopPropagation();
+                setOpen(!open);
+              }}
+            >
+              <div className="hidden group-hover:flex w-[1rem]" />
+              <SvgMoreHorizontal className="absolute right-[0rem] transform -translate-y-1/2 top-[0rem] invisible group-hover:visible stroke-text-03 h-[1rem] min-w-[1rem] cursor-pointer" />
+            </div>
           </PopoverTrigger>
-          <PopoverContent align="end">{kebabMenu}</PopoverContent>
+          <PopoverContent align="end" side="top">
+            {kebabMenu}
+          </PopoverContent>
         </Popover>
       )}
     </button>
@@ -97,6 +104,17 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
   );
 }
 
+function Button(child: string, onClick?: () => void) {
+  return (
+    <button
+      className="flex p-padding-button gap-spacing-interline rounded hover:bg-background-tint-03 w-full"
+      onClick={onClick}
+    >
+      <Text>{child}</Text>
+    </button>
+  );
+}
+
 export interface AgentsMenuProps {
   onNewSession?: () => void;
   isPinned?: boolean;
@@ -108,21 +126,30 @@ export function AgentsMenu({
   onNewSession,
   onTogglePin,
 }: AgentsMenuProps) {
-  function Button(child: string, onClick?: () => void) {
-    return (
-      <button
-        className="flex p-padding-button gap-spacing-interline rounded hover:bg-background-tint-03 w-full"
-        onClick={onClick}
-      >
-        <Text>{child}</Text>
-      </button>
-    );
-  }
-
   return (
     <div className="flex flex-col">
       {Button("New Session", onNewSession)}
       {Button(isPinned ? "Unpin chat" : "Pin chat", onTogglePin)}
+    </div>
+  );
+}
+
+export interface RecentChatMenuProps {
+  onShare?: () => void;
+  onRename?: () => void;
+  onDelete?: () => void;
+}
+
+export function RecentChatMenu({
+  onShare,
+  onRename,
+  onDelete,
+}: RecentChatMenuProps) {
+  return (
+    <div className="flex flex-col">
+      {Button("Share", onShare)}
+      {Button("Rename", onRename)}
+      {Button("Delete", onDelete)}
     </div>
   );
 }
