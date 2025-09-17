@@ -14,13 +14,13 @@ The evaluation system uses [Braintrust](https://www.braintrust.dev/) to run auto
 
 Kick off a remote job
 ```bash
-onyx/backend$ python onyx/evals/eval_cli.py --remote --api-key <SUPER_CLOUD_USER_API_KEY> --search-permissions-email <email account to reference>
+onyx/backend$ python onyx/evals/eval_cli.py --remote --api-key <SUPER_CLOUD_USER_API_KEY> --search-permissions-email <email account to reference> --remote --remote-dataset-name Simple
 ```
 
 You can also run the CLI directly from the command line:
 
 ```bash
-onyx$ python -m dotenv -f .vscode/.env run -- python backend/onyx/evals/eval_cli.py --remote-dataset-name Simple --search-permissions-email richard@onyx.app
+onyx$ python -m dotenv -f .vscode/.env run -- python backend/onyx/evals/eval_cli.py --local-dataset-path backend/onyx/evals/data/eval.json --search-permissions-email richard@onyx.app
 ```
 make sure your AUTH_TYPE=disabled when running evals locally. Save the env var ONYX_EVAL_API_KEY in your .env file so you don't 
 have to specify it every time for triggering remote runs. 

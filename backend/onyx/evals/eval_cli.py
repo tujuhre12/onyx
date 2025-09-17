@@ -168,7 +168,6 @@ def main() -> None:
         "--search-permissions-email",
         type=str,
         help="Email address to impersonate for the evaluation",
-        required=True,
     )
 
     args = parser.parse_args()

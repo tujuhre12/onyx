@@ -4,6 +4,7 @@ from braintrust import Eval
 from braintrust import EvalCase
 from braintrust import init_dataset
 
+from onyx.configs.app_configs import BRAINTRUST_MAX_CONCURRENCY
 from onyx.configs.app_configs import BRAINTRUST_PROJECT
 from onyx.evals.models import EvalationAck
 from onyx.evals.models import EvalConfigurationOptions
@@ -20,7 +21,6 @@ class BraintrustEvalProvider(EvalProvider):
     ) -> EvalationAck:
         if data is not None and remote_dataset_name is not None:
             raise ValueError("Cannot specify both data and remote_dataset_name")
-
         if data is None and remote_dataset_name is None:
             raise ValueError("Must specify either data or remote_dataset_name")
 
@@ -34,7 +34,7 @@ class BraintrustEvalProvider(EvalProvider):
                 task=task,
                 scores=[],
                 metadata={**configuration.model_dump()},
-                max_concurrency=1,
+                max_concurrency=BRAINTRUST_MAX_CONCURRENCY,
             )
         else:
             if data is None:
@@ -50,6 +50,6 @@ class BraintrustEvalProvider(EvalProvider):
                 task=task,
                 scores=[],
                 metadata={**configuration.model_dump()},
-                max_concurrency=1,
+                max_concurrency=BRAINTRUST_MAX_CONCURRENCY,
             )
         return EvalationAck(success=True)
