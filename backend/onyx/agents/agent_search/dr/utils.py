@@ -1,8 +1,10 @@
 import copy
 import re
 
+from langchain.schema.messages import AIMessage
 from langchain.schema.messages import BaseMessage
 from langchain.schema.messages import HumanMessage
+from langchain.schema.messages import SystemMessage
 
 from onyx.agents.agent_search.dr.models import AggregatedDRContext
 from onyx.agents.agent_search.dr.models import IterationAnswer
@@ -237,6 +239,41 @@ def get_chat_history_string(chat_history: list[BaseMessage], max_messages: int) 
         + f": {str(msg.content).strip()}"
         for msg in filtered_past_messages
     )
+
+
+def get_chat_history_messages(
+    chat_history: list[BaseMessage], max_messages: int
+) -> list[SystemMessage | HumanMessage | AIMessage]:
+    """
+    Get the chat history (up to max_messages) as a list of messages.
+    """
+    past_messages = chat_history[-max_messages * 2 :]
+    filtered_past_messages = copy.deepcopy(past_messages)  # type: ignore
+    for past_message_number, past_message in enumerate(past_messages):
+
+        if isinstance(past_message.content, list):
+            removal_indices = []
+            for content_piece_number, content_piece in enumerate(past_message.content):
+                if (
+                    isinstance(content_piece, dict)
+                    and content_piece.get("type") != "text"
+                ):
+                    removal_indices.append(content_piece_number)
+
+            # Only rebuild the content list if there are items to remove
+            if removal_indices:
+                filtered_past_messages[past_message_number].content = [
+                    content_piece
+                    for content_piece_number, content_piece in enumerate(
+                        past_message.content
+                    )
+                    if content_piece_number not in removal_indices
+                ]
+
+        else:
+            continue
+
+    return filtered_past_messages  # type: ignore
 
 
 def get_prompt_question(

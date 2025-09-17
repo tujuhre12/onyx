@@ -27,6 +27,7 @@ from onyx.agents.agent_search.dr.models import OrchestratorTool
 from onyx.agents.agent_search.dr.process_llm_stream import process_llm_stream
 from onyx.agents.agent_search.dr.states import MainState
 from onyx.agents.agent_search.dr.states import OrchestrationSetup
+from onyx.agents.agent_search.dr.utils import get_chat_history_messages
 from onyx.agents.agent_search.dr.utils import get_chat_history_string
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.agents.agent_search.shared_graph_utils.llm import invoke_llm_json
@@ -438,11 +439,31 @@ def clarifier(
         or "(No chat history yet available)"
     )
 
+    chat_history_messages = get_chat_history_messages(
+        graph_config.inputs.prompt_builder.message_history, MAX_CHAT_HISTORY_MESSAGES
+    )
+
+    if len(chat_history_messages) > 0:
+        chat_history_messages = [
+            SystemMessage(content="Here are the previous messages in the chat history:")
+        ] + chat_history_messages
+    else:
+        chat_history_messages = []
+
     uploaded_text_context = (
         _construct_uploaded_text_context(graph_config.inputs.files)
         if graph_config.inputs.files
         else ""
     )
+
+    if len(uploaded_text_context) > 0:
+        uploaded_file_messages = [
+            HumanMessage(
+                content=f"Here are is uploaded file information:\n\n{uploaded_text_context}"
+            )
+        ]
+    else:
+        uploaded_file_messages = []
 
     uploaded_context_tokens = check_number_of_tokens(
         uploaded_text_context, llm_tokenizer.encode
@@ -780,6 +801,8 @@ def clarifier(
     )
 
     message_history_for_continuation.append(SystemMessage(content=base_system_message))
+    message_history_for_continuation.extend(chat_history_messages)
+    message_history_for_continuation.extend(uploaded_file_messages)
     message_history_for_continuation.append(HumanMessage(content=original_question))
     if research_type == ResearchType.DEEP and clarification:
         message_history_for_continuation.append(
