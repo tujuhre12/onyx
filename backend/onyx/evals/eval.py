@@ -98,7 +98,7 @@ def _get_answer(
 
 def run_eval(
     configuration: EvalConfigurationOptions,
-    data: list[dict[str, str]] | None = None,
+    data: list[dict[str, dict[str, str]]] | None = None,
     remote_dataset_name: str | None = None,
     provider: EvalProvider = get_default_provider(),
 ) -> EvalationAck:
