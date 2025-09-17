@@ -37,24 +37,26 @@ export function SidebarButton({
 
   const content = (
     <button
-      className={`w-full h-min flex flex-row gap-spacing-interline p-spacing-interline p-spacing-interline hover:bg-background-tint-01 ${active && "bg-background-tint-00"} rounded-08 items-center group ${hideTitle && "justify-center"}`}
+      className={`w-full h-min flex flex-row gap-spacing-interline py-spacing-interline px-padding-button hover:bg-background-tint-01 ${active && "bg-background-tint-00"} rounded-08 items-center group ${hideTitle && "justify-center"}`}
       onClick={onClick}
       onMouseLeave={() => setOpen(false)}
     >
       {Icon && (
-        <Icon
-          className={`h-[1.2rem] min-w-[1.2rem] ${grey ? "stroke-text-02" : "stroke-text-03"}`}
-        />
+        <div className="min-w-[1.6rem] flex justify-start items-center">
+          <Icon
+            className={`h-[1.2rem] min-w-[1.2rem] ${grey ? "stroke-text-02" : "stroke-text-03"}`}
+          />
+        </div>
       )}
       {!hideTitle &&
         (typeof children === "string" ? (
-          <Truncated tooltipSide="top">
+          <Truncated>
             <Text text02={grey} text03={!grey}>
               {children}
             </Text>
           </Truncated>
         ) : (
-          children
+          <Truncated>{children}</Truncated>
         ))}
       {!hideTitle && <div className="flex-1" />}
       {kebabMenu && !hideTitle && (

@@ -48,6 +48,7 @@ import {
 import AssistantModal from "@/app/assistants/mine/AssistantModal";
 import { useChatContext } from "@/components/context/ChatContext";
 import SvgBubbleText from "@/icons/bubble-text";
+import Truncated from "../Truncated";
 
 interface SortableItemProps {
   id: number;
@@ -63,8 +64,8 @@ function SortableItem({ id, children }: SortableItemProps) {
       ref={setNodeRef}
       style={{
         transform: CSS.Transform.toString(transform),
-        zIndex: 100,
-        ...(isDragging ? { zIndex: 1000, position: "relative" as const } : {}),
+        zIndex: 0,
+        ...(isDragging && { zIndex: 1000, position: "relative" as const }),
       }}
       {...attributes}
       {...listeners}
@@ -189,7 +190,7 @@ function HistorySidebarInner(
       >
         {/* Header - fixed height */}
         <div
-          className={`flex flex-row items-center px-spacing-interline ${folded ? "justify-center" : "justify-between"} flex-shrink-0`}
+          className={`flex flex-row items-center px-spacing-interline py-spacing-inline ${folded ? "justify-center" : "justify-between"} flex-shrink-0`}
         >
           {folded ? (
             <div className="h-[1.6rem] flex flex-col items-center justify-center">
@@ -288,7 +289,7 @@ function HistorySidebarInner(
         </div>
 
         {/* Footer - fixed height */}
-        <div className="px-spacing-inline flex flex-col flex-shrink-0">
+        <div className="flex flex-col flex-shrink-0">
           <Settings folded={folded} />
         </div>
       </div>
