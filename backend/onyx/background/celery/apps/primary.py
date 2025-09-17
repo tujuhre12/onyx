@@ -315,13 +315,14 @@ for bootstep in base_bootsteps:
 celery_app.autodiscover_tasks(
     [
         "onyx.background.celery.tasks.connector_deletion",
-        "onyx.background.celery.tasks.docprocessing",
         "onyx.background.celery.tasks.periodic",
         "onyx.background.celery.tasks.pruning",
-        "onyx.background.celery.tasks.shared",
         "onyx.background.celery.tasks.vespa",
         "onyx.background.celery.tasks.llm_model_update",
         "onyx.background.celery.tasks.user_file_folder_sync",
-        "onyx.background.celery.tasks.kg_processing",
+        # Removed heavy ML modules that should run on specialized workers:
+        # - "onyx.background.celery.tasks.docprocessing" (runs on docprocessing worker)
+        # - "onyx.background.celery.tasks.kg_processing" (runs on kg_processing worker)
+        # - "onyx.background.celery.tasks.shared" (contains heavy ML imports)
     ]
 )
