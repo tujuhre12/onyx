@@ -230,7 +230,11 @@ function HistorySidebarInner(
           )}
         </div>
 
-        <SidebarButton icon={SvgEditBig} hideTitle={folded}>
+        <SidebarButton
+          icon={SvgEditBig}
+          hideTitle={folded}
+          onClick={handleNewChat}
+        >
           New Session
         </SidebarButton>
 
