@@ -176,6 +176,7 @@ def orchestrator(
                     purpose="",
                 )
             ],
+            orchestration_llm_messages=new_messages,
         )
 
     # no early exit forced. Continue.
@@ -304,10 +305,11 @@ def orchestrator(
             reasoning_result = cast(str, merge_content(*reasoning_tokens))
 
             if SUFFICIENT_INFORMATION_STRING in reasoning_result:
+
                 return OrchestrationUpdate(
                     tools_used=[DRPath.CLOSER.value],
                     current_step_nr=current_step_nr,
-                    query_list=[],
+                    query_list=query_list,
                     iteration_nr=iteration_nr,
                     log_messages=[
                         get_langgraph_node_log_string(
@@ -326,6 +328,7 @@ def orchestrator(
                             purpose="",
                         )
                     ],
+                    orchestration_llm_messages=new_messages,
                 )
 
         # for Thoughtful mode, we force a tool if requested an available

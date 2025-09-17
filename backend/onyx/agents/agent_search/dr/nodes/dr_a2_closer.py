@@ -315,13 +315,24 @@ def closer(
         writer,
     )
 
+    if state.query_list:
+        final_questions = "\n - " + "\n - ".join(state.query_list)
+    else:
+        final_questions = "(No final question specifications)"
+
     if research_type in [ResearchType.THOUGHTFUL, ResearchType.FAST]:
         final_answer_base_prompt = FINAL_ANSWER_PROMPT_WITHOUT_SUB_ANSWERS.build(
-            base_question=prompt_question
+            base_question=prompt_question,
+            final_questions=final_questions or "(No final question specifications)",
+            final_user_instructions=assistant_task_prompt
+            or "(No final user instructions)",
         )
     elif research_type == ResearchType.DEEP:
         final_answer_base_prompt = FINAL_ANSWER_PROMPT_W_SUB_ANSWERS.build(
-            base_question=prompt_question
+            base_question=prompt_question,
+            final_questions=final_questions or "(No final question specifications)",
+            final_user_instructions=assistant_task_prompt
+            or "(No final user instructions)",
         )
         message_history_for_final_answer.append(
             AIMessage(

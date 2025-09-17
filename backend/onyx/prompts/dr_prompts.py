@@ -1231,13 +1231,23 @@ ANSWER:
 FINAL_ANSWER_PROMPT_WITHOUT_SUB_ANSWERS = PromptTemplate(
     f"""
 You are now ready to answer the original user question based on the previous \
-exchanges that also retrieved. Base your answer on these documents.
+exchanges that also retrieved. Base your answer on these documents, and sub-answers \
+where available. Consider the entire conversation history and each of the iterations.
 
 As a reminder, here is the original user question:
 {SEPARATOR_LINE}
 ---base_question---
 {SEPARATOR_LINE}
 
+And here were the last instructions given to you:
+{SEPARATOR_LINE}
+---final_questions---
+{SEPARATOR_LINE}
+
+If applicable, here are the final user instructions:
+{SEPARATOR_LINE}
+---final_user_instructions---
+{SEPARATOR_LINE}
 
 GUIDANCE:
 - if the documents/sub-answers (if available) do not explicitly mention the topic of interest with \
@@ -1321,10 +1331,21 @@ FINAL_ANSWER_PROMPT_W_SUB_ANSWERS = PromptTemplate(
     f"""
 You are now ready to provide the final answer based on the previous exchanges () \
 that incuded sub-questions and their answers and claims, and then the retrieved documents.
+Base your response on the entire history and consider each of the iterations.
 
 As a reminder, here is the original user question:
 {SEPARATOR_LINE}
 ---base_question---
+{SEPARATOR_LINE}
+
+And here were the last instructions given to you:
+{SEPARATOR_LINE}
+---final_questions---
+{SEPARATOR_LINE}
+
+If applicable, here are the final user instructions:
+{SEPARATOR_LINE}
+---final_user_instructions---
 {SEPARATOR_LINE}
 
 
@@ -1631,7 +1652,21 @@ Here is the chat history (if any):
 """
 )
 
-DECISION_PROMPT_WO_TOOL_CALLING = PromptTemplate(
+DECISION_PROMPT_WO_TOOL_CALLING = """
+
+You need to decide whether a tool call would be needed to answer the question.
+
+Please answer as a json dictionary in the following format:
+{{
+"reasoning": "<one sentence why you think a tool call would or would not be needed to answer the question>",
+"decision": "<respond with with 'LLM' IF NO TOOL CALL IS NEEDED and you could/should answer the question \
+directly, or with 'TOOL' IF A TOOL CALL IS NEEDED>"
+}}
+
+"""
+
+
+DECISION_PROMPT_WO_TOOL_CALLING_ORIG = PromptTemplate(
     f"""
 Here is the chat history (if any):
 {SEPARATOR_LINE}
@@ -1670,6 +1705,15 @@ directly, or with 'TOOL' IF A TOOL CALL IS NEEDED>"
 )
 
 ANSWER_PROMPT_WO_TOOL_CALLING = PromptTemplate(
+    """
+Please answer my question/address my request.
+
+---reminder---
+"""
+)
+
+
+ANSWER_PROMPT_WO_TOOL_CALLING_ORIG = PromptTemplate(
     f"""
 Here is the chat history (if any):
 {SEPARATOR_LINE}
@@ -1690,7 +1734,18 @@ If you respond to the user message, please do so with good detail and structure.
 """
 )
 
+
 DECISION_PROMPT_W_TOOL_CALLING = PromptTemplate(
+    """
+If you respond to my question/address my request directly, please do so with good detail \
+and structure. Use markdown if it adds clarity.
+
+---reminder---
+"""
+)
+
+
+DECISION_PROMPT_W_TOOL_CALLING_ORIG = PromptTemplate(
     f"""
 Here is the chat history (if any):
 {SEPARATOR_LINE}
@@ -1823,5 +1878,6 @@ And here is the reasoning for why more research (i.e., tool calls or sub-agent c
 
 NEXT_TOOL_PURPOSE_PROMPT = """
 Please look at the purpose of the next tool call and briefly \
-restate it in 1 to 2 sentences.
+restate it in 1 to 2 sentences. Mention the tool chosen and what \
+it should achieve.
 """

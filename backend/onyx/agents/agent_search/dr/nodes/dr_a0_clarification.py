@@ -479,25 +479,39 @@ def clarifier(
         graph_config.inputs.files
     )
 
+    message_history_for_continuation: list[SystemMessage | HumanMessage | AIMessage] = (
+        []
+    )
+
+    base_system_message = BASE_SYSTEM_MESSAGE_TEMPLATE.build(
+        assistant_system_prompt=assistant_system_prompt,
+        active_source_type_descriptions_str=active_source_type_descriptions_str,
+        entity_types_string=all_entity_types,
+        relationship_types_string=all_relationship_types,
+        available_tool_descriptions_str=available_tool_descriptions_str,
+    )
+
+    message_history_for_continuation.append(SystemMessage(content=base_system_message))
+    message_history_for_continuation.extend(chat_history_messages)
+    message_history_for_continuation.extend(uploaded_file_messages)
+    message_history_for_continuation.append(HumanMessage(content=original_question))
+
     if not (force_use_tool and force_use_tool.force_use):
+
+        if assistant_task_prompt:
+            reminder = """REMINDER:\n\n""" + assistant_task_prompt
+        else:
+            reminder = ""
 
         if not use_tool_calling_llm or len(available_tools) == 1:
             if len(available_tools) > 1:
-                decision_prompt = DECISION_PROMPT_WO_TOOL_CALLING.build(
-                    question=original_question,
-                    chat_history_string=chat_history_string,
-                    uploaded_context=uploaded_text_context or "",
-                    active_source_type_descriptions_str=active_source_type_descriptions_str,
-                    available_tool_descriptions_str=available_tool_descriptions_str,
+                message_history_for_continuation.append(
+                    SystemMessage(content=DECISION_PROMPT_WO_TOOL_CALLING)
                 )
 
                 llm_decision = invoke_llm_json(
                     llm=graph_config.tooling.primary_llm,
-                    prompt=create_question_prompt(
-                        assistant_system_prompt,
-                        decision_prompt,
-                        uploaded_image_context=uploaded_image_context,
-                    ),
+                    prompt=message_history_for_continuation,
                     schema=DecisionResponse,
                 )
             else:
@@ -516,22 +530,18 @@ def clarifier(
                 )
 
                 answer_prompt = ANSWER_PROMPT_WO_TOOL_CALLING.build(
-                    question=original_question,
-                    chat_history_string=chat_history_string,
-                    uploaded_context=uploaded_text_context or "",
-                    active_source_type_descriptions_str=active_source_type_descriptions_str,
-                    available_tool_descriptions_str=available_tool_descriptions_str,
+                    reminder=reminder,
+                )
+
+                message_history_for_continuation.append(
+                    HumanMessage(content=answer_prompt)
                 )
 
                 answer_tokens, _, _ = run_with_timeout(
                     TF_DR_TIMEOUT_LONG,
                     lambda: stream_llm_answer(
                         llm=graph_config.tooling.primary_llm,
-                        prompt=create_question_prompt(
-                            assistant_system_prompt,
-                            answer_prompt + assistant_task_prompt,
-                            uploaded_image_context=uploaded_image_context,
-                        ),
+                        prompt=message_history_for_continuation,
                         event_name="basic_response",
                         writer=writer,
                         answer_piece=StreamingType.MESSAGE_DELTA.value,
@@ -586,19 +596,14 @@ def clarifier(
 
         else:
 
-            decision_prompt = DECISION_PROMPT_W_TOOL_CALLING.build(
-                question=original_question,
-                chat_history_string=chat_history_string,
-                uploaded_context=uploaded_text_context or "",
-                active_source_type_descriptions_str=active_source_type_descriptions_str,
+            decision_prompt = DECISION_PROMPT_W_TOOL_CALLING.build(reminder=reminder)
+
+            message_history_for_continuation.append(
+                HumanMessage(content=decision_prompt)
             )
 
             stream = graph_config.tooling.primary_llm.stream(
-                prompt=create_question_prompt(
-                    assistant_system_prompt,
-                    decision_prompt + assistant_task_prompt,
-                    uploaded_image_context=uploaded_image_context,
-                ),
+                prompt=message_history_for_continuation,
                 tools=([_ARTIFICIAL_ALL_ENCOMPASSING_TOOL]),
                 tool_choice=(None),
                 structured_response_format=graph_config.inputs.structured_response_format,
@@ -788,22 +793,6 @@ def clarifier(
     else:
         next_tool = DRPath.ORCHESTRATOR.value
 
-    message_history_for_continuation: list[SystemMessage | HumanMessage | AIMessage] = (
-        []
-    )
-
-    base_system_message = BASE_SYSTEM_MESSAGE_TEMPLATE.build(
-        assistant_system_prompt=assistant_system_prompt,
-        active_source_type_descriptions_str=active_source_type_descriptions_str,
-        entity_types_string=all_entity_types,
-        relationship_types_string=all_relationship_types,
-        available_tool_descriptions_str=available_tool_descriptions_str,
-    )
-
-    message_history_for_continuation.append(SystemMessage(content=base_system_message))
-    message_history_for_continuation.extend(chat_history_messages)
-    message_history_for_continuation.extend(uploaded_file_messages)
-    message_history_for_continuation.append(HumanMessage(content=original_question))
     if research_type == ResearchType.DEEP and clarification:
         message_history_for_continuation.append(
             AIMessage(content=clarification.clarification_question)
