@@ -1,18 +1,9 @@
 "use client";
 
-import React, {
-  ForwardedRef,
-  forwardRef,
-  useContext,
-  useCallback,
-  useState,
-  useEffect,
-} from "react";
+import React, { useContext, useCallback, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChatSession } from "@/app/chat/interfaces";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { OnyxLogoTypeIcon, OnyxIcon } from "@/components/icons/icons";
-import { pageType } from "@/components/sidebar/types";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { useUser } from "@/components/user/UserProvider";
 import Text from "@/components-2/Text";
@@ -50,6 +41,7 @@ import AssistantModal from "@/app/assistants/mine/AssistantModal";
 import { useChatContext } from "@/components/context/ChatContext";
 import SvgBubbleText from "@/icons/bubble-text";
 import { buildChatUrl } from "@/app/chat/services/lib";
+import { useAssistantController } from "@/app/chat/hooks/useAssistantController";
 
 interface SortableItemProps {
   id: number;
@@ -77,15 +69,7 @@ function SortableItem({ id, children }: SortableItemProps) {
   );
 }
 
-interface HistorySidebarProps {
-  liveAssistant?: MinimalPersonaSnapshot | null;
-  page: pageType;
-}
-
-function HistorySidebarInner(
-  { liveAssistant, page }: HistorySidebarProps,
-  ref: ForwardedRef<HTMLDivElement>
-) {
+export default function HistorySidebar() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toggleAssistantPinnedStatus } = useUser();
@@ -144,14 +128,11 @@ function HistorySidebarInner(
   const [insideHistorySidebarBoundingBox, setInsideHistorySidebarBoundingBox] =
     useState<boolean>(false);
   const [agentsModalOpen, setAgentsModalOpen] = useState<boolean>(false);
-
-  // Save folded state to localStorage whenever it changes
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("history-sidebar-folded", JSON.stringify(folded));
     }
   }, [folded]);
-
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
@@ -169,18 +150,17 @@ function HistorySidebarInner(
     };
   }, []);
   const { chatSessions } = useChatContext();
+  const currentChatId = searchParams?.get("chatId");
+  const currentChatSession = currentChatId
+    ? chatSessions.find((session) => session.id === currentChatId)
+    : null;
+  const { liveAssistant } = useAssistantController({
+    selectedChatSession: currentChatSession,
+  });
 
   if (!combinedSettings) {
     return null;
   }
-
-  // Get current chat session ID from URL parameters
-  const currentChatId = searchParams?.get("chatId");
-
-  // Find the current chat session object from the chatSessions array
-  const currentChatSession = currentChatId
-    ? chatSessions.find((session) => session.id === currentChatId)
-    : null;
 
   function handleNewChat(chatSessionId: string | null) {
     console.log("currentChatSession", currentChatSession);
@@ -327,6 +307,3 @@ function HistorySidebarInner(
     </>
   );
 }
-
-export const HistorySidebar = React.memo(forwardRef(HistorySidebarInner));
-HistorySidebar.displayName = "HistorySidebar";
