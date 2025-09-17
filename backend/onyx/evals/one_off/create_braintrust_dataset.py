@@ -65,7 +65,8 @@ def parse_csv_file(csv_path: str) -> List[Dict[str, Any]]:
                 records.extend(
                     [
                         {
-                            "question": question,
+                            "question": question
+                            + "All info is contained in the quesiton. DO NOT ask any clarifying questions.",
                             "research_type": "DEEP",
                             "categories": categories,
                             "expected_depth": expected_depth,
