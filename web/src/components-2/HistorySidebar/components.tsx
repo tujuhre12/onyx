@@ -42,7 +42,9 @@ export function SidebarButton({
       onMouseLeave={() => setOpen(false)}
     >
       {Icon && (
-        <div className="min-w-[1.6rem] flex justify-start items-center">
+        <div
+          className={`min-w-[1.6rem] flex ${hideTitle ? "justify-center" : "justify-start"} items-center`}
+        >
           <Icon
             className={`h-[1.2rem] min-w-[1.2rem] ${grey ? "stroke-text-02" : "stroke-text-03"}`}
           />
