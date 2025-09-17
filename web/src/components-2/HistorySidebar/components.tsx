@@ -83,7 +83,11 @@ export interface SidebarSectionProps {
 export function SidebarSection({ title, children }: SidebarSectionProps) {
   return (
     <div className="flex flex-col gap-spacing-interline">
-      <Text secondary text02 className="px-padding-button">
+      <Text
+        secondary
+        text02
+        className="px-padding-button sticky top-[0rem] bg-background-tint-02 z-10 py-spacing-interline"
+      >
         {title}
       </Text>
       <div>{children}</div>

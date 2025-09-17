@@ -48,7 +48,6 @@ import {
 import AssistantModal from "@/app/assistants/mine/AssistantModal";
 import { useChatContext } from "@/components/context/ChatContext";
 import SvgBubbleText from "@/icons/bubble-text";
-import Truncated from "../Truncated";
 
 interface SortableItemProps {
   id: number;
