@@ -52,9 +52,11 @@ function getPinnedAgents(
   pinnedAgentIds?: number[]
 ): MinimalPersonaSnapshot[] {
   return pinnedAgentIds
-    ? agents.filter((agent) =>
-        pinnedAgentIds.find((pinnedAgentId) => pinnedAgentId === agent.id)
-      )
+    ? pinnedAgentIds
+        .map((pinnedAgentId) =>
+          agents.find((agent) => agent.id === pinnedAgentId)
+        )
+        .filter((agent) => !!agent)
     : agents.filter((agent) => agent.is_default_persona && agent.id !== 0);
 }
 
