@@ -9,35 +9,19 @@ import { SettingsContext } from "../settings/SettingsProvider";
 import { useTokenRefresh } from "@/hooks/useTokenRefresh";
 import { AuthTypeMetadata } from "@/lib/userSS";
 
-interface UserContextType {
+interface UserProviderProps {
+  authTypeMetadata: AuthTypeMetadata;
+  children: React.ReactNode;
   user: User | null;
-  isAdmin: boolean;
-  isCurator: boolean;
-  refreshUser: () => Promise<void>;
-  isCloudSuperuser: boolean;
-  updateUserAutoScroll: (autoScroll: boolean) => Promise<void>;
-  updateUserShortcuts: (enabled: boolean) => Promise<void>;
-  toggleAssistantPinnedStatus: (
-    currentPinnedAssistantIDs: number[],
-    assistantId: number,
-    isPinned: boolean
-  ) => Promise<boolean>;
-  updateUserTemperatureOverrideEnabled: (enabled: boolean) => Promise<void>;
+  settings: CombinedSettings;
 }
-
-const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({
   authTypeMetadata,
   children,
   user,
   settings,
-}: {
-  authTypeMetadata: AuthTypeMetadata;
-  children: React.ReactNode;
-  user: User | null;
-  settings: CombinedSettings;
-}) {
+}: UserProviderProps) {
   const updatedSettings = useContext(SettingsContext);
   const posthog = usePostHog();
 
@@ -277,6 +261,24 @@ export function UserProvider({
     </UserContext.Provider>
   );
 }
+
+interface UserContextType {
+  user: User | null;
+  isAdmin: boolean;
+  isCurator: boolean;
+  refreshUser: () => Promise<void>;
+  isCloudSuperuser: boolean;
+  updateUserAutoScroll: (autoScroll: boolean) => Promise<void>;
+  updateUserShortcuts: (enabled: boolean) => Promise<void>;
+  toggleAssistantPinnedStatus: (
+    currentPinnedAssistantIDs: number[],
+    assistantId: number,
+    isPinned: boolean
+  ) => Promise<boolean>;
+  updateUserTemperatureOverrideEnabled: (enabled: boolean) => Promise<void>;
+}
+
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function useUser() {
   const context = useContext(UserContext);

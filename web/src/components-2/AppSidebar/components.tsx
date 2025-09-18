@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/popover";
 
 export interface SidebarButtonProps {
+  className?: string;
   icon?: React.FunctionComponent<IconProps>;
   active?: boolean;
   kebabMenu?: React.ReactNode;
@@ -24,6 +25,7 @@ export interface SidebarButtonProps {
 }
 
 export function SidebarButton({
+  className,
   icon: Icon,
   active,
   kebabMenu,
@@ -37,13 +39,13 @@ export function SidebarButton({
 
   const content = (
     <button
-      className={`w-full h-min flex flex-row gap-spacing-interline py-spacing-interline px-padding-button hover:bg-background-tint-01 ${active && "bg-background-tint-00"} rounded-08 items-center group ${hideTitle && "justify-center"}`}
+      className={`w-full h-min flex flex-row gap-spacing-interline py-spacing-interline px-padding-button hover:bg-background-tint-01 ${active && "bg-background-tint-00"} rounded-08 items-center group ${hideTitle && "justify-center"} ${className}`}
       onClick={onClick}
       onMouseLeave={() => setOpen(false)}
     >
       {Icon && (
         <Icon
-          className={`h-[1.2rem] mr-[0.4rem] min-w-[1.2rem] ${grey ? "stroke-text-02" : "stroke-text-03"}`}
+          className={`h-[1.2rem] min-w-[1.2rem] ${!hideTitle && "mr-[0.4rem]"} ${grey ? "stroke-text-02" : "stroke-text-03"}`}
         />
       )}
       {!hideTitle &&

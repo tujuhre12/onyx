@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 
 interface ModalProps {
   icon?: ({ size, className }: IconProps) => JSX.Element;
-  children: JSX.Element | string;
-  title?: JSX.Element | string;
+  children?: React.ReactNode;
+  title?: React.ReactNode;
   onOutsideClick?: () => void;
   className?: string;
   width?: string;

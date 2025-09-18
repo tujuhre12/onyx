@@ -2,7 +2,10 @@ import { redirect } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
 import { fetchChatData } from "@/lib/chat/fetchChatData";
 import { ChatProvider } from "@/components/context/ChatContext";
-import HistorySidebar from "@/components-2/HistorySidebar";
+import AppSidebar from "@/components-2/AppSidebar";
+import { fetchAppSidebarMetadata } from "@/lib/appSidebarSS";
+import { getCurrentUserSS } from "@/lib/userSS";
+import { AppSidebarProvider } from "@/components-2/context/AppSidebarContext";
 
 export default async function Layout({
   children,
@@ -14,9 +17,12 @@ export default async function Layout({
   // Ensure searchParams is an object, even if it's empty
   const safeSearchParams = {};
 
-  const data = await fetchChatData(
-    safeSearchParams as { [key: string]: string }
-  );
+  const [user, data] = await Promise.all([
+    getCurrentUserSS(),
+    fetchChatData(safeSearchParams),
+  ]);
+
+  const { folded } = await fetchAppSidebarMetadata(user);
 
   if ("redirect" in data) {
     console.log("redirect", data.redirect);
@@ -62,10 +68,12 @@ export default async function Layout({
           defaultAssistantId,
         }}
       >
-        <div className="flex flex-row">
-          <HistorySidebar />
-          {children}
-        </div>
+        <AppSidebarProvider folded={folded}>
+          <div className="flex flex-row">
+            <AppSidebar />
+            {children}
+          </div>
+        </AppSidebarProvider>
       </ChatProvider>
     </>
   );

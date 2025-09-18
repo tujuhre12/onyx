@@ -14,32 +14,6 @@ import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { ToolSnapshot } from "@/lib/tools/interfaces";
 
-interface ChatContextProps {
-  chatSessions: ChatSession[];
-  sidebarInitiallyVisible: boolean;
-  availableSources: ValidSources[];
-  ccPairs: CCPairBasicInfo[];
-  tags: Tag[];
-  documentSets: DocumentSetSummary[];
-  availableDocumentSets: DocumentSetSummary[];
-  availableTags: Tag[];
-  availableTools: ToolSnapshot[];
-  llmProviders: LLMProviderDescriptor[];
-  folders: Folder[];
-  openedFolders: Record<string, boolean>;
-  shouldShowWelcomeModal?: boolean;
-  shouldDisplaySourcesIncompleteModal?: boolean;
-  defaultAssistantId?: number;
-  refreshChatSessions: () => Promise<void>;
-  reorderFolders: (displayPriorityMap: Record<number, number>) => void;
-  refreshFolders: () => Promise<void>;
-  refreshInputPrompts: () => Promise<void>;
-  inputPrompts: InputPrompt[];
-  proSearchToggled: boolean;
-}
-
-const ChatContext = createContext<ChatContextProps | undefined>(undefined);
-
 // We use Omit to exclude 'refreshChatSessions' from the value prop type
 // because we're defining it within the component
 interface ChatProviderProps {
@@ -126,10 +100,35 @@ export function ChatProvider({ value, children }: ChatProviderProps) {
   );
 }
 
+interface ChatContextProps {
+  chatSessions: ChatSession[];
+  sidebarInitiallyVisible: boolean;
+  availableSources: ValidSources[];
+  ccPairs: CCPairBasicInfo[];
+  tags: Tag[];
+  documentSets: DocumentSetSummary[];
+  availableDocumentSets: DocumentSetSummary[];
+  availableTags: Tag[];
+  availableTools: ToolSnapshot[];
+  llmProviders: LLMProviderDescriptor[];
+  folders: Folder[];
+  openedFolders: Record<string, boolean>;
+  shouldShowWelcomeModal?: boolean;
+  shouldDisplaySourcesIncompleteModal?: boolean;
+  defaultAssistantId?: number;
+  refreshChatSessions: () => Promise<void>;
+  reorderFolders: (displayPriorityMap: Record<number, number>) => void;
+  refreshFolders: () => Promise<void>;
+  refreshInputPrompts: () => Promise<void>;
+  inputPrompts: InputPrompt[];
+  proSearchToggled: boolean;
+}
+
+const ChatContext = createContext<ChatContextProps | undefined>(undefined);
+
 export function useChatContext(): ChatContextProps {
   const context = useContext(ChatContext);
-  if (!context) {
+  if (!context)
     throw new Error("useChatContext must be used within a ChatProvider");
-  }
   return context;
 }

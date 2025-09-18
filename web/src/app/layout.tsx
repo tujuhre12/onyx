@@ -1,5 +1,4 @@
 import "./globals.css";
-
 import {
   fetchEnterpriseSettingsSS,
   fetchSettingsSS,
@@ -17,7 +16,7 @@ import {
   EnterpriseSettings,
   ApplicationStatus,
 } from "./admin/settings/interfaces";
-import { AppProvider } from "@/components/context/AppProvider";
+import { AppProvider } from "@/components-2/context/AppContext";
 import { PHProvider } from "./providers";
 import { getAuthTypeMetadataSS, getCurrentUserSS } from "@/lib/userSS";
 import { Suspense } from "react";
@@ -30,7 +29,7 @@ import { DocumentsProvider } from "./chat/my-documents/DocumentsContext";
 import CloudError from "@/components/errorPages/CloudErrorPage";
 import Error from "@/components/errorPages/ErrorPage";
 import AccessRestrictedPage from "@/components/errorPages/AccessRestrictedPage";
-import { fetchAssistantData } from "@/lib/chat/fetchAssistantdata";
+import { fetchAssistantData as fetchAgentsData } from "@/lib/chat/fetchAssistantdata";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const inter = Inter({
@@ -72,13 +71,12 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [combinedSettings, assistants, user, authTypeMetadata] =
-    await Promise.all([
-      fetchSettingsSS(),
-      fetchAssistantData(),
-      getCurrentUserSS(),
-      getAuthTypeMetadataSS(),
-    ]);
+  const [combinedSettings, agents, user, authTypeMetadata] = await Promise.all([
+    fetchSettingsSS(),
+    fetchAgentsData(),
+    getCurrentUserSS(),
+    getAuthTypeMetadataSS(),
+  ]);
 
   const productGating =
     combinedSettings?.settings.application_status ?? ApplicationStatus.ACTIVE;
@@ -153,7 +151,7 @@ export default async function RootLayout({
       authTypeMetadata={authTypeMetadata}
       user={user}
       settings={combinedSettings}
-      assistants={assistants}
+      agents={agents}
     >
       <DocumentsProvider>
         <Suspense fallback={null}>

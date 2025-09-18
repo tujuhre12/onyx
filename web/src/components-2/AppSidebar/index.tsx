@@ -1,15 +1,12 @@
 "use client";
 
-import React, { useContext, useCallback, useState, useEffect } from "react";
+import React, { useContext, useCallback, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { OnyxLogoTypeIcon, OnyxIcon } from "@/components/icons/icons";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
-import { useUser } from "@/components/user/UserProvider";
 import Text from "@/components-2/Text";
 import { DragEndEvent } from "@dnd-kit/core";
-import { useAssistantsContext } from "@/components/context/AssistantsContext";
-import { reorderPinnedAssistants } from "@/lib/assistants/updateAssistantPreferences";
 import {
   DndContext,
   closestCenter,
@@ -30,18 +27,33 @@ import SvgSidebar from "@/icons/sidebar";
 import SvgEditBig from "@/icons/edit-big";
 import SvgMoreHorizontal from "@/icons/more-horizontal";
 import SvgLightbulbSimple from "@/icons/lightbulb-simple";
-import Settings from "@/components-2/HistorySidebar/Settings";
+import Settings from "@/components-2/AppSidebar/Settings";
 import {
   AgentsMenu,
   RecentChatMenu,
   SidebarButton,
   SidebarSection,
-} from "@/components-2/HistorySidebar/components";
-import AssistantModal from "@/app/assistants/mine/AssistantModal";
+} from "@/components-2/AppSidebar/components";
+import AgentsModal from "@/components-2/AgentsModal";
 import { useChatContext } from "@/components/context/ChatContext";
 import SvgBubbleText from "@/icons/bubble-text";
 import { buildChatUrl } from "@/app/chat/services/lib";
-import { useAssistantController } from "@/app/chat/hooks/useAssistantController";
+import { useAgentsContext } from "@/components-2/context/AgentsContext";
+import { useAppSidebarContext } from "../context/AppSidebarContext";
+
+// Visible-agents = pinned-agents + current-agent (if current-agent not in pinned-agents)
+// OR Visible-agents = pinned-agents (if current-agent in pinned-agents)
+function buildVisibleAgents(
+  pinnedAgents: MinimalPersonaSnapshot[],
+  currentAgent: MinimalPersonaSnapshot | null
+): [MinimalPersonaSnapshot[], boolean] {
+  if (!currentAgent) return [pinnedAgents, false];
+  const currentAgentIsPinned = pinnedAgents.some(
+    (pinnedAgent) => pinnedAgent.id === currentAgent.id
+  );
+  if (!currentAgentIsPinned) return [pinnedAgents, false];
+  return [[...pinnedAgents, currentAgent], true];
+}
 
 interface SortableItemProps {
   id: number;
@@ -57,7 +69,7 @@ function SortableItem({ id, children }: SortableItemProps) {
       ref={setNodeRef}
       style={{
         transform: CSS.Transform.toString(transform),
-        zIndex: 0,
+        zIndex: 1000,
         ...(isDragging && { zIndex: 1000, position: "relative" as const }),
       }}
       {...attributes}
@@ -69,15 +81,22 @@ function SortableItem({ id, children }: SortableItemProps) {
   );
 }
 
-export default function HistorySidebar() {
+export default function AppSidebar() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { toggleAssistantPinnedStatus } = useUser();
-  const {
-    refreshAssistants,
-    pinnedAssistants: pinnedAgents,
-    setPinnedAssistants,
-  } = useAssistantsContext();
+  const { pinnedAgents, setPinnedAgents, currentAgent } = useAgentsContext();
+  const { folded, setFolded, foldedAndHovered, setHovered } =
+    useAppSidebarContext();
+  const [agentsModalOpen, setAgentsModalOpen] = useState(false);
+  const { chatSessions } = useChatContext();
+  const currentChatId = searchParams?.get("chatId");
+
+  const [visibleAgents, currentAgentIsPinned] = buildVisibleAgents(
+    pinnedAgents,
+    currentAgent
+  );
+  const visibleAgentIds = visibleAgents.map((agent) => agent.id);
+
   const combinedSettings = useContext(SettingsContext);
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -92,102 +111,54 @@ export default function HistorySidebar() {
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
+      if (!over) return;
+      if (active.id === over.id) return;
 
-      if (active.id !== over?.id) {
-        setPinnedAssistants((prevAssistants: MinimalPersonaSnapshot[]) => {
-          const oldIndex = prevAssistants.findIndex(
-            (a: MinimalPersonaSnapshot) =>
-              (a.id === 0 ? "assistant-0" : a.id) === active.id
-          );
-          const newIndex = prevAssistants.findIndex(
-            (a: MinimalPersonaSnapshot) =>
-              (a.id === 0 ? "assistant-0" : a.id) === over?.id
-          );
+      setPinnedAgents((prev) => {
+        const activeIndex = visibleAgentIds.findIndex(
+          (agentId) => agentId === active.id
+        );
+        const overIndex = visibleAgentIds.findIndex(
+          (agentId) => agentId === over.id
+        );
 
-          const newOrder = arrayMove(prevAssistants, oldIndex, newIndex);
+        if (!currentAgentIsPinned) {
+          // This is the case in which the user is dragging the UNPINNED agent and moving it to somewhere else in the list.
+          // This is an indication that we WANT to pin this agent!
+          if (activeIndex === visibleAgentIds.length - 1) {
+            const prevWithVisible = [...prev, currentAgent!];
+            return arrayMove(prevWithVisible, activeIndex, overIndex);
+          }
+        }
 
-          // Ensure we're sending the correct IDs to the API
-          const reorderedIds = newOrder.map(
-            (a: MinimalPersonaSnapshot) => a.id
-          );
-          reorderPinnedAssistants(reorderedIds);
-
-          return newOrder;
-        });
-      }
+        return arrayMove(prev, activeIndex, overIndex);
+      });
     },
-    [setPinnedAssistants, reorderPinnedAssistants]
+    [visibleAgentIds, setPinnedAgents]
   );
-  const [folded, setFolded] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("history-sidebar-folded");
-      return saved ? JSON.parse(saved) : false;
-    }
-    return false;
-  });
-  const [insideHistorySidebarBoundingBox, setInsideHistorySidebarBoundingBox] =
-    useState<boolean>(false);
-  const [agentsModalOpen, setAgentsModalOpen] = useState<boolean>(false);
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("history-sidebar-folded", JSON.stringify(folded));
-    }
-  }, [folded]);
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-      const isModifierPressed = isMac ? event.metaKey : event.ctrlKey;
-
-      if (isModifierPressed && event.key === "e") {
-        event.preventDefault();
-        setFolded((prev) => !prev);
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
-  const { chatSessions } = useChatContext();
-  const currentChatId = searchParams?.get("chatId");
-  const currentChatSession = currentChatId
-    ? chatSessions.find((session) => session.id === currentChatId)
-    : null;
-  const { liveAssistant } = useAssistantController({
-    selectedChatSession: currentChatSession,
-  });
 
   if (!combinedSettings) {
     return null;
   }
 
-  function handleNewChat(chatSessionId: string | null) {
-    console.log("currentChatSession", currentChatSession);
-
-    const newChatUrl = buildChatUrl(
-      searchParams,
-      chatSessionId || null,
-      currentChatSession?.persona_id || null
-    );
-    router.push(newChatUrl);
+  function handleChatSessionClick(chatSessionId: string | null) {
+    router.push(buildChatUrl(searchParams, chatSessionId || null, null));
   }
-  const liveAgentIsNotPinned = pinnedAgents.every(
-    (agent) => agent.id !== liveAssistant?.id
-  );
-  // const groupedChatSessions = groupSessionsByDateRange(existingChats || []);
+  function handleAgentClick(agentId: number) {
+    router.push(buildChatUrl(searchParams, null, agentId));
+  }
   const isHistoryEmpty = !chatSessions || chatSessions.length === 0;
 
   return (
     <>
       {agentsModalOpen && (
-        <AssistantModal hideModal={() => setAgentsModalOpen(false)} />
+        <AgentsModal hideModal={() => setAgentsModalOpen(false)} />
       )}
 
       <div
         className={`h-screen ${folded ? "w-[4rem]" : "w-[15rem]"} flex flex-col bg-background-tint-02 ${folded ? "px-spacing-interline" : "px-padding-button"} py-padding-content flex-shrink-0 gap-padding-content`}
-        onMouseOver={() => setInsideHistorySidebarBoundingBox(true)}
-        onMouseLeave={() => setInsideHistorySidebarBoundingBox(false)}
+        onMouseOver={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
         {/* Header - fixed height */}
         <div
@@ -195,7 +166,7 @@ export default function HistorySidebar() {
         >
           {folded ? (
             <div className="h-[1.6rem] flex flex-col items-center justify-center">
-              {insideHistorySidebarBoundingBox ? (
+              {foldedAndHovered ? (
                 <SvgSidebar
                   className="cursor-pointer hover:stroke-text-04 stroke-text-03 w-[1rem]"
                   onClick={() => setFolded(false)}
@@ -211,7 +182,7 @@ export default function HistorySidebar() {
                 className="cursor-pointer hover:stroke-text-04 stroke-text-03 w-[1rem]"
                 onClick={() => {
                   setFolded(true);
-                  setInsideHistorySidebarBoundingBox(false);
+                  setHovered(false);
                 }}
               />
             </>
@@ -221,7 +192,8 @@ export default function HistorySidebar() {
         <SidebarButton
           icon={SvgEditBig}
           hideTitle={folded}
-          onClick={() => handleNewChat(null)}
+          onClick={() => handleChatSessionClick(null)}
+          active={!searchParams.size}
         >
           New Session
         </SidebarButton>
@@ -238,7 +210,7 @@ export default function HistorySidebar() {
                   onDragEnd={handleDragEnd}
                 >
                   <SortableContext
-                    items={pinnedAgents.map((agent) => agent.id)}
+                    items={visibleAgentIds}
                     strategy={verticalListSortingStrategy}
                   >
                     {pinnedAgents.map(
@@ -247,16 +219,22 @@ export default function HistorySidebar() {
                           <SidebarButton
                             icon={SvgLightbulbSimple}
                             kebabMenu={<AgentsMenu />}
+                            active={currentAgent?.id === agent.id}
+                            onClick={() => handleAgentClick(agent.id)}
                           >
                             {agent.name}
                           </SidebarButton>
                         </SortableItem>
                       )
                     )}
-                    {liveAssistant && liveAgentIsNotPinned && (
-                      <SortableItem id={liveAssistant.id}>
-                        <SidebarButton icon={SvgLightbulbSimple}>
-                          {liveAssistant.name}
+                    {!!currentAgent && !currentAgentIsPinned && (
+                      <SortableItem id={currentAgent.id}>
+                        <SidebarButton
+                          icon={SvgLightbulbSimple}
+                          onClick={() => handleAgentClick(currentAgent.id)}
+                          active
+                        >
+                          {currentAgent.name}
                         </SidebarButton>
                       </SortableItem>
                     )}
@@ -283,7 +261,7 @@ export default function HistorySidebar() {
                       key={chatSession.id}
                       icon={SvgBubbleText}
                       active={currentChatId === chatSession.id}
-                      onClick={() => handleNewChat(chatSession.id)}
+                      onClick={() => handleChatSessionClick(chatSession.id)}
                       kebabMenu={<RecentChatMenu />}
                     >
                       {chatSession.name ? (

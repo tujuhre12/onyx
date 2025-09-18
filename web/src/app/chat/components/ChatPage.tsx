@@ -47,7 +47,6 @@ import { SUBMIT_MESSAGE_TYPES } from "@/lib/extension/constants";
 
 import { getSourceMetadata } from "@/lib/sources";
 import { UserSettingsModal } from "./modal/UserSettingsModal";
-import AssistantModal from "../../assistants/mine/AssistantModal";
 import { useSidebarShortcut } from "@/lib/browserUtilities";
 import { FilePickerModal } from "../my-documents/components/FilePicker";
 
@@ -896,10 +895,6 @@ export function ChatPage({
           existingSharedStatus={chatSessionSharedStatus}
           onClose={() => setSharingModalVisible(false)}
         />
-      )}
-
-      {showAssistantsModal && (
-        <AssistantModal hideModal={() => setShowAssistantsModal(false)} />
       )}
 
       {isReady && <FederatedOAuthModal />}

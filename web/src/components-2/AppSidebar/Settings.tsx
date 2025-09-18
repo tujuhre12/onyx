@@ -5,7 +5,7 @@ import { FiLogOut } from "react-icons/fi";
 import Link from "next/link";
 import { UserRole } from "@/lib/types";
 import { checkUserIsNoAuthUser, logout } from "@/lib/user";
-import { LOGOUT_DISABLED } from "@/lib/constants";
+import { ANONYMOUS_USER_NAME, LOGOUT_DISABLED } from "@/lib/constants";
 import { BellIcon, LightSettingsIcon } from "@/components/icons/icons";
 import { NavigationItem, Notification } from "@/app/admin/settings/interfaces";
 import DynamicFaIcon, { preloadIcons } from "@/components/icons/DynamicFaIcon";
@@ -15,7 +15,7 @@ import { useUser } from "@/components/user/UserProvider";
 import { Avatar } from "@/components/ui/avatar";
 import Text from "@/components-2/Text";
 import Truncated from "@/components-2/Truncated";
-import { SidebarButton } from "@/components-2/HistorySidebar/components";
+import { SidebarButton } from "@/components-2/AppSidebar/components";
 import {
   HoverCard,
   HoverCardContent,
@@ -168,6 +168,14 @@ export interface SettingsProps {
   folded: boolean;
 }
 
+function getUsernameFromEmail(email?: string): string {
+  if (!email) return ANONYMOUS_USER_NAME;
+  const atIndex = email.indexOf("@");
+  if (atIndex <= 0) return ANONYMOUS_USER_NAME;
+
+  return email.substring(0, atIndex);
+}
+
 export default function Settings({ folded }: SettingsProps) {
   const { user } = useUser();
 
@@ -176,20 +184,21 @@ export default function Settings({ folded }: SettingsProps) {
       <HoverCardTrigger asChild>
         <div>
           <SidebarButton
-            icon={() => (
+            icon={({ className }) => (
               <Avatar
-                className={`${folded ? "h-[1.3rem] w-[1.3rem]" : "h-[1.7rem] w-[1.7rem]"} flex items-center justify-center bg-background-neutral-inverted-00`}
+                className={`h-[1.2rem] w-[1.2rem] flex items-center justify-center bg-background-neutral-inverted-00 ${className}`}
               >
                 <Text inverted secondary={folded}>
                   {user?.email?.[0]?.toUpperCase() || "A"}
                 </Text>
               </Avatar>
             )}
-            kebabMenu
             hideTitle={folded}
           >
             <Truncated disableTooltip>
-              <Text text04>{user?.email}</Text>
+              <Text text04 className="text-left">
+                {getUsernameFromEmail(user?.email)}
+              </Text>
             </Truncated>
           </SidebarButton>
         </div>
