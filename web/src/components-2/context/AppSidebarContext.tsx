@@ -41,19 +41,18 @@ export function AppSidebarProvider({
   }, [folded]);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    function handleKeyDown(event: KeyboardEvent) {
       const isMac = navigator.userAgent.toLowerCase().includes("mac");
       const isModifierPressed = isMac ? event.metaKey : event.ctrlKey;
+      if (!isModifierPressed || event.key !== "e") return;
 
-      if (isModifierPressed && event.key === "e") {
-        event.preventDefault();
-        setFolded((prev) => {
-          const newState = !prev;
-          setFoldedState(newState);
-          return newState;
-        });
-      }
-    };
+      event.preventDefault();
+      setFolded((prev) => {
+        const newState = !prev;
+        setFoldedState(newState);
+        return newState;
+      });
+    }
 
     document.addEventListener("keydown", handleKeyDown);
     return () => {

@@ -15,7 +15,7 @@ import { useUser } from "@/components/user/UserProvider";
 import { Avatar } from "@/components/ui/avatar";
 import Text from "@/components-2/Text";
 import Truncated from "@/components-2/Truncated";
-import { SidebarButton } from "@/components-2/AppSidebar/components";
+import { SidebarButton } from "@/sections/AppSidebar/components";
 import {
   HoverCard,
   HoverCardContent,

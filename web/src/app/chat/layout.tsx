@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
 import { fetchChatData } from "@/lib/chat/fetchChatData";
 import { ChatProvider } from "@/components/context/ChatContext";
-import AppSidebar from "@/components-2/AppSidebar";
+import AppSidebar from "@/sections/AppSidebar";
 import { fetchAppSidebarMetadata } from "@/lib/appSidebarSS";
 import { getCurrentUserSS } from "@/lib/userSS";
 import { AppSidebarProvider } from "@/components-2/context/AppSidebarContext";

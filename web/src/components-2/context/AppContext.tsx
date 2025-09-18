@@ -7,6 +7,7 @@ import { AssistantsProvider } from "@/components/context/AssistantsContext";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { User } from "@/lib/types";
 import { ModalProvider } from "@/components/context/ModalContext";
+import { ModalProvider as NewModalProvider } from "@/components-2/context/ModalContext";
 import { AuthTypeMetadata } from "@/lib/userSS";
 import { AgentsProvider } from "@/components-2/context/AgentsContext";
 
@@ -39,7 +40,7 @@ export function AppProvider({
                 agents={agents}
                 pinnedAgentIds={user?.preferences.pinned_assistants || []}
               >
-                {children}
+                <NewModalProvider>{children}</NewModalProvider>
               </AgentsProvider>
             </ModalProvider>
           </AssistantsProvider>

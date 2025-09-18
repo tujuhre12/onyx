@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useContext, useCallback, useState } from "react";
+import React, { useContext, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { OnyxLogoTypeIcon, OnyxIcon } from "@/components/icons/icons";
@@ -27,19 +27,20 @@ import SvgSidebar from "@/icons/sidebar";
 import SvgEditBig from "@/icons/edit-big";
 import SvgMoreHorizontal from "@/icons/more-horizontal";
 import SvgLightbulbSimple from "@/icons/lightbulb-simple";
-import Settings from "@/components-2/AppSidebar/Settings";
+import Settings from "@/sections/AppSidebar/Settings";
 import {
   AgentsMenu,
   RecentChatMenu,
   SidebarButton,
   SidebarSection,
-} from "@/components-2/AppSidebar/components";
-import AgentsModal from "@/components-2/AgentsModal";
+} from "@/sections/AppSidebar/components";
+import AgentsModal from "@/sections/AgentsModal";
 import { useChatContext } from "@/components/context/ChatContext";
 import SvgBubbleText from "@/icons/bubble-text";
 import { buildChatUrl } from "@/app/chat/services/lib";
 import { useAgentsContext } from "@/components-2/context/AgentsContext";
-import { useAppSidebarContext } from "../context/AppSidebarContext";
+import { useAppSidebarContext } from "@/components-2/context/AppSidebarContext";
+import { ModalIds, useModal } from "@/components-2/context/ModalContext";
 
 // Visible-agents = pinned-agents + current-agent (if current-agent not in pinned-agents)
 // OR Visible-agents = pinned-agents (if current-agent in pinned-agents)
@@ -87,7 +88,7 @@ export default function AppSidebar() {
   const { pinnedAgents, setPinnedAgents, currentAgent } = useAgentsContext();
   const { folded, setFolded, foldedAndHovered, setHovered } =
     useAppSidebarContext();
-  const [agentsModalOpen, setAgentsModalOpen] = useState(false);
+  const { toggleModal } = useModal();
   const { chatSessions } = useChatContext();
   const currentChatId = searchParams?.get("chatId");
 
@@ -151,9 +152,7 @@ export default function AppSidebar() {
 
   return (
     <>
-      {agentsModalOpen && (
-        <AgentsModal hideModal={() => setAgentsModalOpen(false)} />
-      )}
+      <AgentsModal />
 
       <div
         className={`h-screen ${folded ? "w-[4rem]" : "w-[15rem]"} flex flex-col bg-background-tint-02 ${folded ? "px-spacing-interline" : "px-padding-button"} py-padding-content flex-shrink-0 gap-padding-content`}
@@ -227,7 +226,7 @@ export default function AppSidebar() {
                         </SortableItem>
                       )
                     )}
-                    {!!currentAgent && !currentAgentIsPinned && (
+                    {/* {!!currentAgent && !currentAgentIsPinned && (
                       <SortableItem id={currentAgent.id}>
                         <SidebarButton
                           icon={SvgLightbulbSimple}
@@ -237,13 +236,13 @@ export default function AppSidebar() {
                           {currentAgent.name}
                         </SidebarButton>
                       </SortableItem>
-                    )}
+                    )} */}
                   </SortableContext>
                 </DndContext>
                 <SidebarButton
                   icon={SvgMoreHorizontal}
                   grey
-                  onClick={() => setAgentsModalOpen(true)}
+                  onClick={() => toggleModal(ModalIds.AgentsModal, true)}
                 >
                   More Agents
                 </SidebarButton>

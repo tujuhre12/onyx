@@ -32,6 +32,7 @@ async function fetchAllAgents(): Promise<MinimalPersonaSnapshot[]> {
 }
 
 async function pinAgents(pinnedAgentIds: number[]) {
+  console.log(pinnedAgentIds);
   const response = await fetch(`/api/user/pinned-assistants`, {
     method: "PATCH",
     headers: {

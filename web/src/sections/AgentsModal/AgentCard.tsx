@@ -1,13 +1,6 @@
-import React, { useState, useRef, useLayoutEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  FiMoreHorizontal,
-  FiTrash,
-  FiEdit,
-  FiBarChart,
-  FiLock,
-  FiUnlock,
-} from "react-icons/fi";
+import { FiMoreHorizontal, FiTrash, FiEdit, FiBarChart } from "react-icons/fi";
 
 import {
   Popover,
@@ -28,7 +21,6 @@ import { IconProps, PinnedIcon } from "@/components/icons/icons";
 import { deletePersona } from "@/app/admin/assistants/lib";
 import { PencilIcon } from "lucide-react";
 import { usePaidEnterpriseFeaturesEnabled } from "@/components/settings/usePaidEnterpriseFeaturesEnabled";
-import { truncateString } from "@/lib/utils";
 import { usePopup } from "@/components/admin/connectors/Popup";
 import { Button } from "@/components/ui/button";
 import { useAgentsContext } from "@/components-2/context/AgentsContext";
@@ -85,28 +77,12 @@ export default function AssistantCard({
   const { popup, setPopup } = usePopup();
   const isPaidEnterpriseFeaturesEnabled = usePaidEnterpriseFeaturesEnabled();
   const [isDeleteConfirmation, setIsDeleteConfirmation] = useState(false);
-  const nameRef = useRef<HTMLHeadingElement>(null);
-  const hiddenNameRef = useRef<HTMLSpanElement>(null);
-  const [isNameTruncated, setIsNameTruncated] = useState(false);
-  useLayoutEffect(() => {
-    const checkTruncation = () => {
-      if (nameRef.current && hiddenNameRef.current) {
-        const visibleWidth = nameRef.current.offsetWidth;
-        const fullTextWidth = hiddenNameRef.current.offsetWidth;
-        setIsNameTruncated(fullTextWidth > visibleWidth);
-      }
-    };
-
-    checkTruncation();
-    window.addEventListener("resize", checkTruncation);
-    return () => window.removeEventListener("resize", checkTruncation);
-  }, [agent.name]);
-
   const isOwnedByUser = checkUserOwnsAgent(user, agent);
-  const handleDelete = () => {
+
+  function handleDelete() {
     setIsDeleteConfirmation(true);
-  };
-  const confirmDelete = async () => {
+  }
+  async function confirmDelete() {
     const response = await deletePersona(agent.id);
     if (response.ok) {
       await refreshAgents();
@@ -121,13 +97,13 @@ export default function AssistantCard({
         type: "error",
       });
     }
-  };
-  const cancelDelete = () => {
+  }
+  function cancelDelete() {
     setIsDeleteConfirmation(false);
-  };
-  const handleEdit = () => {
+  }
+  function handleEdit() {
     router.push(`/assistants/edit/${agent.id}`);
-  };
+  }
 
   return (
     <div className="w-full h-full p-padding-content bg-background-tint-02 rounded-08">
