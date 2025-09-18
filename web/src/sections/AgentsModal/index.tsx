@@ -105,7 +105,6 @@ export default function AgentsModal() {
   const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const { toggleModal } = useModal();
 
   const memoizedCurrentlyVisibleAgents = useMemo(() => {
     return agents.filter((agent) => {
@@ -148,7 +147,7 @@ export default function AgentsModal() {
   );
 
   return (
-    <Modal title="Agents">
+    <Modal id={ModalIds.AgentsModal} title="Agents">
       <div className="flex flex-col sticky top-0 z-10">
         <div className="flex px-2 justify-between items-center gap-x-2 mb-0">
           <div className="h-12 w-full rounded-lg flex-col justify-center items-start gap-2.5 inline-flex">

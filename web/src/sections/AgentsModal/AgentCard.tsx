@@ -73,7 +73,7 @@ export default function AssistantCard({
 }: AgentCardProps) {
   const router = useRouter();
   const { user } = useUser();
-  const { setPinnedAgents, refreshAgents } = useAgentsContext();
+  const { togglePinnedAgent, refreshAgents } = useAgentsContext();
   const { popup, setPopup } = usePopup();
   const isPaidEnterpriseFeaturesEnabled = usePaidEnterpriseFeaturesEnabled();
   const [isDeleteConfirmation, setIsDeleteConfirmation] = useState(false);
@@ -252,13 +252,7 @@ export default function AssistantCard({
             <AgentActionButton
               title={pinned ? "Unpin" : "Pin"}
               icon={PinnedIcon}
-              onClick={() =>
-                setPinnedAgents((prev) =>
-                  pinned
-                    ? prev.filter((prevAgent) => prevAgent.id !== agent.id)
-                    : [...prev, agent]
-                )
-              }
+              onClick={() => togglePinnedAgent(agent, !pinned)}
               tooltip={`${pinned ? "Remove from" : "Add to"} your pinned list`}
             />
           </div>

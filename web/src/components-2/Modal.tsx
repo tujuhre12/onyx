@@ -4,6 +4,7 @@ import SvgX from "@/icons/x";
 import { ModalIds, useModal } from "@/components-2/context/ModalContext";
 
 interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
+  id: ModalIds;
   title?: string;
   clickOutsideToClose?: boolean;
 }
@@ -12,13 +13,14 @@ export default function Modal({
   children,
   className,
 
+  id,
   title,
   clickOutsideToClose = true,
 }: ModalProps) {
   const { isOpen, toggleModal } = useModal();
   const outsideModal = useRef(false);
 
-  if (!isOpen(ModalIds.AgentsModal)) return null;
+  if (!isOpen(id)) return null;
 
   return (
     <div
@@ -27,7 +29,7 @@ export default function Modal({
         clickOutsideToClose
           ? () => {
               if (outsideModal.current) {
-                toggleModal(ModalIds.AgentsModal, false);
+                toggleModal(id, false);
               }
             }
           : undefined
@@ -43,7 +45,7 @@ export default function Modal({
           <Text heading>{title}</Text>
           <SvgX
             className="stroke-text-03 w-[1.5rem] h-[1.5rem]"
-            onClick={() => toggleModal(ModalIds.AgentsModal, false)}
+            onClick={() => toggleModal(id, false)}
           />
         </div>
 

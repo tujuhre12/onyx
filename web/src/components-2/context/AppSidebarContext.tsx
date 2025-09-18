@@ -12,17 +12,17 @@ import React, {
 import Cookies from "js-cookie";
 import { SIDEBAR_TOGGLED_COOKIE_NAME } from "@/components/resizable/constants";
 
-interface AppSidebarProviderProps {
-  folded: boolean;
-  children: ReactNode;
-}
-
 function setFoldedState(folded: boolean) {
   const foldedAsString = folded.toString();
   Cookies.set(SIDEBAR_TOGGLED_COOKIE_NAME, foldedAsString, { expires: 365 });
   if (typeof window !== "undefined") {
     localStorage.setItem(SIDEBAR_TOGGLED_COOKIE_NAME, foldedAsString);
   }
+}
+
+export interface AppSidebarProviderProps {
+  folded: boolean;
+  children: ReactNode;
 }
 
 export function AppSidebarProvider({
@@ -74,7 +74,7 @@ export function AppSidebarProvider({
   );
 }
 
-interface AppSidebarContextType {
+export interface AppSidebarContextType {
   folded: boolean;
   setFolded: Dispatch<SetStateAction<boolean>>;
   foldedAndHovered: boolean;

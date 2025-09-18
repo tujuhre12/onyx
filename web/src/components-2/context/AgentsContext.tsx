@@ -92,6 +92,17 @@ export function AgentsProvider({
     setAgents(await fetchAllAgents());
   }
 
+  function togglePinnedAgent(
+    agent: MinimalPersonaSnapshot,
+    shouldPin: boolean
+  ) {
+    setPinnedAgents((prev) =>
+      shouldPin
+        ? [...prev, agent]
+        : prev.filter((prevAgent) => prevAgent.id !== agent.id)
+    );
+  }
+
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -108,6 +119,7 @@ export function AgentsProvider({
         refreshAgents,
         pinnedAgents,
         setPinnedAgents,
+        togglePinnedAgent,
         currentAgent,
       }}
     >
@@ -124,6 +136,7 @@ interface AgentsContextProps {
   // Pinned agents (from user preferences)
   pinnedAgents: MinimalPersonaSnapshot[];
   setPinnedAgents: Dispatch<SetStateAction<MinimalPersonaSnapshot[]>>;
+  togglePinnedAgent: (agent: MinimalPersonaSnapshot, request: boolean) => void;
 
   // Currently live/active agent (from searchParams)
   currentAgent: MinimalPersonaSnapshot | null;

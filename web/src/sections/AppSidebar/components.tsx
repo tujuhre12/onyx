@@ -110,7 +110,10 @@ function Button(child: string, onClick?: () => void) {
   return (
     <button
       className="flex p-padding-button gap-spacing-interline rounded hover:bg-background-tint-03 w-full"
-      onClick={onClick}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick?.();
+      }}
     >
       <Text>{child}</Text>
     </button>
@@ -118,20 +121,14 @@ function Button(child: string, onClick?: () => void) {
 }
 
 export interface AgentsMenuProps {
-  onNewSession?: () => void;
-  isPinned?: boolean;
-  onTogglePin?: () => void;
+  pinned?: boolean;
+  onTogglePin: () => void;
 }
 
-export function AgentsMenu({
-  isPinned = false,
-  onNewSession,
-  onTogglePin,
-}: AgentsMenuProps) {
+export function AgentsMenu({ pinned, onTogglePin }: AgentsMenuProps) {
   return (
     <div className="flex flex-col">
-      {Button("New Session", onNewSession)}
-      {Button(isPinned ? "Unpin chat" : "Pin chat", onTogglePin)}
+      {Button(pinned ? "Unpin chat" : "Pin chat", onTogglePin)}
     </div>
   );
 }

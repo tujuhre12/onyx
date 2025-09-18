@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useContext, useCallback } from "react";
+import React, { useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { SettingsContext } from "@/components/settings/SettingsProvider";
+import { useSettingsContext } from "@/components/settings/SettingsProvider";
 import { OnyxLogoTypeIcon, OnyxIcon } from "@/components/icons/icons";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import Text from "@/components-2/Text";
@@ -52,8 +52,10 @@ function buildVisibleAgents(
   const currentAgentIsPinned = pinnedAgents.some(
     (pinnedAgent) => pinnedAgent.id === currentAgent.id
   );
-  if (!currentAgentIsPinned) return [pinnedAgents, false];
-  return [[...pinnedAgents, currentAgent], true];
+  const visibleAgents = currentAgentIsPinned
+    ? pinnedAgents
+    : [...pinnedAgents, currentAgent];
+  return [visibleAgents, currentAgentIsPinned];
 }
 
 interface SortableItemProps {
@@ -85,11 +87,14 @@ function SortableItem({ id, children }: SortableItemProps) {
 export default function AppSidebar() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { pinnedAgents, setPinnedAgents, currentAgent } = useAgentsContext();
+  const { pinnedAgents, setPinnedAgents, togglePinnedAgent, currentAgent } =
+    useAgentsContext();
   const { folded, setFolded, foldedAndHovered, setHovered } =
     useAppSidebarContext();
   const { toggleModal } = useModal();
   const { chatSessions } = useChatContext();
+  const combinedSettings = useSettingsContext();
+
   const currentChatId = searchParams?.get("chatId");
 
   const [visibleAgents, currentAgentIsPinned] = buildVisibleAgents(
@@ -98,7 +103,6 @@ export default function AppSidebar() {
   );
   const visibleAgentIds = visibleAgents.map((agent) => agent.id);
 
-  const combinedSettings = useContext(SettingsContext);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -123,11 +127,11 @@ export default function AppSidebar() {
           (agentId) => agentId === over.id
         );
 
-        if (!currentAgentIsPinned) {
+        if (currentAgent && !currentAgentIsPinned) {
           // This is the case in which the user is dragging the UNPINNED agent and moving it to somewhere else in the list.
           // This is an indication that we WANT to pin this agent!
           if (activeIndex === visibleAgentIds.length - 1) {
-            const prevWithVisible = [...prev, currentAgent!];
+            const prevWithVisible = [...prev, currentAgent];
             return arrayMove(prevWithVisible, activeIndex, overIndex);
           }
         }
@@ -212,31 +216,30 @@ export default function AppSidebar() {
                     items={visibleAgentIds}
                     strategy={verticalListSortingStrategy}
                   >
-                    {pinnedAgents.map(
-                      (agent: MinimalPersonaSnapshot, index) => (
-                        <SortableItem id={agent.id} key={index}>
+                    {visibleAgents.map((visibleAgent, index) => {
+                      const pinned = pinnedAgents.some(
+                        (pinnedAgent) => pinnedAgent.id === visibleAgent.id
+                      );
+                      return (
+                        <SortableItem id={visibleAgent.id} key={index}>
                           <SidebarButton
                             icon={SvgLightbulbSimple}
-                            kebabMenu={<AgentsMenu />}
-                            active={currentAgent?.id === agent.id}
-                            onClick={() => handleAgentClick(agent.id)}
+                            kebabMenu={
+                              <AgentsMenu
+                                pinned={pinned}
+                                onTogglePin={() =>
+                                  togglePinnedAgent(visibleAgent, !pinned)
+                                }
+                              />
+                            }
+                            active={currentAgent?.id === visibleAgent.id}
+                            onClick={() => handleAgentClick(visibleAgent.id)}
                           >
-                            {agent.name}
+                            {visibleAgent.name}
                           </SidebarButton>
                         </SortableItem>
-                      )
-                    )}
-                    {/* {!!currentAgent && !currentAgentIsPinned && (
-                      <SortableItem id={currentAgent.id}>
-                        <SidebarButton
-                          icon={SvgLightbulbSimple}
-                          onClick={() => handleAgentClick(currentAgent.id)}
-                          active
-                        >
-                          {currentAgent.name}
-                        </SidebarButton>
-                      </SortableItem>
-                    )} */}
+                      );
+                    })}
                   </SortableContext>
                 </DndContext>
                 <SidebarButton
