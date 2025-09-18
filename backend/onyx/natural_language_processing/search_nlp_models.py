@@ -15,14 +15,18 @@ import aioboto3  # type: ignore
 import httpx
 import openai
 import requests
+import vertexai  # type: ignore
 import voyageai  # type: ignore
 from cohere import AsyncClient as CohereAsyncClient
+from google.oauth2 import service_account  # type: ignore
 from httpx import HTTPError
 from litellm import aembedding
 from requests import JSONDecodeError
 from requests import RequestException
 from requests import Response
 from retry import retry
+from vertexai.language_models import TextEmbeddingInput  # type: ignore
+from vertexai.language_models import TextEmbeddingModel  # type: ignore
 
 from onyx.configs.app_configs import INDEXING_EMBEDDING_MODEL_NUM_THREADS
 from onyx.configs.app_configs import LARGE_CHUNK_RATIO
@@ -45,9 +49,6 @@ from onyx.natural_language_processing.exceptions import (
 )
 from onyx.natural_language_processing.utils import get_tokenizer
 from onyx.natural_language_processing.utils import tokenizer_trim_content
-from onyx.utils.lazy_imports import google_oauth2_service_account
-from onyx.utils.lazy_imports import vertexai
-from onyx.utils.lazy_imports import vertexai_language_models
 from onyx.utils.logger import setup_logger
 from onyx.utils.search_nlp_models_utils import pass_aws_key
 from shared_configs.configs import API_BASED_EMBEDDING_TIMEOUT
@@ -269,19 +270,14 @@ class CloudEmbedding:
             model = DEFAULT_VERTEX_MODEL
 
         service_account_info = json.loads(self.api_key)
-        credentials = (
-            google_oauth2_service_account.Credentials.from_service_account_info(
-                service_account_info
-            )
+        credentials = service_account.Credentials.from_service_account_info(
+            service_account_info
         )
         project_id = service_account_info["project_id"]
         vertexai.init(project=project_id, credentials=credentials)
-        client = vertexai_language_models.TextEmbeddingModel.from_pretrained(model)
+        client = TextEmbeddingModel.from_pretrained(model)
 
-        inputs = [
-            vertexai_language_models.TextEmbeddingInput(text, embedding_type)
-            for text in texts
-        ]
+        inputs = [TextEmbeddingInput(text, embedding_type) for text in texts]
 
         # Split into batches of 25 texts
         max_texts_per_batch = VERTEXAI_EMBEDDING_LOCAL_BATCH_SIZE
