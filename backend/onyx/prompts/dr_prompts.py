@@ -177,6 +177,10 @@ written as a list of one question.
 }
 
 
+QUESTION_CONFIRMATION = (
+    "I have received your question/request and will proceed to answer/address it."
+)
+
 KG_TYPES_DESCRIPTIONS = PromptTemplate(
     f"""\
 Here are the entity types that are available in the knowledge graph:

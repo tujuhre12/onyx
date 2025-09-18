@@ -60,6 +60,7 @@ from onyx.prompts.dr_prompts import BASE_SYSTEM_MESSAGE_TEMPLATE
 from onyx.prompts.dr_prompts import DECISION_PROMPT_W_TOOL_CALLING
 from onyx.prompts.dr_prompts import DECISION_PROMPT_WO_TOOL_CALLING
 from onyx.prompts.dr_prompts import DEFAULT_DR_SYSTEM_PROMPT
+from onyx.prompts.dr_prompts import QUESTION_CONFIRMATION
 from onyx.prompts.dr_prompts import REPEAT_PROMPT
 from onyx.prompts.dr_prompts import TOOL_DESCRIPTION
 from onyx.prompts.prompt_template import PromptTemplate
@@ -495,6 +496,7 @@ def clarifier(
     message_history_for_continuation.extend(chat_history_messages)
     message_history_for_continuation.extend(uploaded_file_messages)
     message_history_for_continuation.append(HumanMessage(content=original_question))
+    message_history_for_continuation.append(AIMessage(content=QUESTION_CONFIRMATION))
 
     if not (force_use_tool and force_use_tool.force_use):
 

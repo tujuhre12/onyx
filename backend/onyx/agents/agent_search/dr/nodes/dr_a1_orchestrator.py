@@ -367,7 +367,7 @@ def orchestrator(
             uploaded_context=uploaded_context,
         )
 
-        message_history_for_continuation.append(SystemMessage(content=decision_prompt))
+        message_history_for_continuation.append(HumanMessage(content=decision_prompt))
 
         if remaining_time_budget > 0:
             try:
