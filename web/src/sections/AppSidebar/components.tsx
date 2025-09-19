@@ -66,16 +66,18 @@ export function SidebarButton({
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <div
-              className={`relative h-[1.5rem] ${open && "w-[1.5rem]"}`}
+              className={`relative h-[1.75rem]`}
               onClick={(event) => {
                 event.stopPropagation();
                 setOpen(!open);
               }}
             >
               <div
-                className={`${open ? "flex" : "hidden group-hover:flex"} w-[1.5rem]`}
+                className={`h-[1.75rem] w-[1.75rem] ${open ? "flex" : "hidden group-hover:flex"} w-[1rem]`}
               />
-              <div className="absolute inset-0 w-full h-full flex flex-col justify-center items-center rounded-08 hover:bg-background-tint-00">
+              <div
+                className={`absolute inset-0 w-full h-full flex flex-col justify-center items-center rounded-08 hover:bg-background-tint-00 ${open && "bg-background-tint-00"}`}
+              >
                 <SvgMoreHorizontal
                   className={`h-[1rem] min-w-[1rem] ${open ? "visible" : "invisible group-hover:visible"} stroke-text-03`}
                 />

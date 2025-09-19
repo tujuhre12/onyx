@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState, memo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSettingsContext } from "@/components/settings/SettingsProvider";
 import { OnyxLogoTypeIcon, OnyxIcon } from "@/components/icons/icons";
@@ -57,6 +57,38 @@ function buildVisibleAgents(
     : [...pinnedAgents, currentAgent];
   return [visibleAgents, currentAgentIsPinned];
 }
+
+interface ChatSessionNameProps {
+  chatSession: any;
+  onChatSessionClick: (chatSessionId: string | null) => void;
+}
+
+function ChatSessionNameInner({
+  chatSession,
+  onChatSessionClick,
+}: ChatSessionNameProps) {
+  const [renaming, setRenaming] = useState(false);
+
+  return (
+    <SidebarButton
+      key={chatSession.id}
+      icon={SvgBubbleText}
+      // active={currentChatId === chatSession.id}
+      onClick={() => onChatSessionClick(chatSession.id)}
+      kebabMenu={<RecentChatMenu />}
+    >
+      {renaming ? (
+        <></>
+      ) : chatSession.name ? (
+        chatSession.name
+      ) : (
+        <Text text01>Unnamed Chat</Text>
+      )}
+    </SidebarButton>
+  );
+}
+
+const ChatSessionName = memo(ChatSessionNameInner);
 
 interface SortableItemProps {
   id: number;
@@ -139,19 +171,27 @@ export default function AppSidebar() {
         return arrayMove(prev, activeIndex, overIndex);
       });
     },
-    [visibleAgentIds, setPinnedAgents]
+    [visibleAgentIds, setPinnedAgents, currentAgent, currentAgentIsPinned]
+  );
+
+  const handleChatSessionClick = useCallback(
+    (chatSessionId: string | null) => {
+      router.push(buildChatUrl(searchParams, chatSessionId || null, null));
+    },
+    [router, searchParams]
+  );
+
+  const handleAgentClick = useCallback(
+    (agentId: number) => {
+      router.push(buildChatUrl(searchParams, null, agentId));
+    },
+    [router, searchParams]
   );
 
   if (!combinedSettings) {
     return null;
   }
 
-  function handleChatSessionClick(chatSessionId: string | null) {
-    router.push(buildChatUrl(searchParams, chatSessionId || null, null));
-  }
-  function handleAgentClick(agentId: number) {
-    router.push(buildChatUrl(searchParams, null, agentId));
-  }
   const isHistoryEmpty = !chatSessions || chatSessions.length === 0;
 
   return (
@@ -259,19 +299,11 @@ export default function AppSidebar() {
                   </Text>
                 ) : (
                   chatSessions.map((chatSession) => (
-                    <SidebarButton
+                    <ChatSessionName
                       key={chatSession.id}
-                      icon={SvgBubbleText}
-                      active={currentChatId === chatSession.id}
-                      onClick={() => handleChatSessionClick(chatSession.id)}
-                      kebabMenu={<RecentChatMenu />}
-                    >
-                      {chatSession.name ? (
-                        chatSession.name
-                      ) : (
-                        <Text text01>Unnamed Chat</Text>
-                      )}
-                    </SidebarButton>
+                      chatSession={chatSession}
+                      onChatSessionClick={handleChatSessionClick}
+                    />
                   ))
                 )}
               </SidebarSection>
