@@ -71,6 +71,10 @@ def find_direct_imports(file_path: Path, protected_modules: Set[str]) -> List[tu
         for line_num, line in enumerate(lines, 1):
             stripped = line.strip()
 
+            # Skip comments and empty lines first
+            if not stripped or stripped.startswith("#"):
+                continue
+
             # Track TYPE_CHECKING blocks to allow imports there
             if "TYPE_CHECKING" in stripped and "if" in stripped:
                 in_type_checking = True
@@ -79,14 +83,13 @@ def find_direct_imports(file_path: Path, protected_modules: Set[str]) -> List[tu
                 continue
 
             # Exit TYPE_CHECKING block when we see code at same or less indentation
-            if in_type_checking and stripped and not stripped.startswith("#"):
+            if in_type_checking and stripped:
                 current_indent = len(line) - len(line.lstrip())
-                if current_indent <= type_checking_indent:
+                if (
+                    type_checking_indent is not None
+                    and current_indent <= type_checking_indent
+                ):
                     in_type_checking = False
-
-            # Skip comments and empty lines
-            if not stripped or stripped.startswith("#"):
-                continue
 
             # Allow imports in TYPE_CHECKING blocks
             if in_type_checking:

@@ -15,7 +15,7 @@ import pytest
 from onyx.lazy_handling.lazy_module import LazyModule
 
 
-def test_successful_module_import():
+def test_successful_module_import() -> None:
     """Test that a real module can be imported and accessed lazily."""
     lazy_json = LazyModule("json")
 
@@ -30,7 +30,7 @@ def test_successful_module_import():
     assert result == '{"test": "data"}'
 
 
-def test_lazy_loading_behavior():
+def test_lazy_loading_behavior() -> None:
     """Test that import only happens on first access."""
     with patch("onyx.lazy_handling.lazy_module.importlib.import_module") as mock_import:
         mock_module = Mock()
@@ -56,7 +56,7 @@ def test_lazy_loading_behavior():
         assert result2 == "test_value"
 
 
-def test_module_caching():
+def test_module_caching() -> None:
     """Test that modules are properly cached after import."""
     lazy_os = LazyModule("os")
 
@@ -69,7 +69,7 @@ def test_module_caching():
     assert not lazy_os._import_failed
 
 
-def test_multiple_attributes_access():
+def test_multiple_attributes_access() -> None:
     """Test accessing different attributes from the same lazy module."""
     lazy_json = LazyModule("json")
 
@@ -86,7 +86,7 @@ def test_multiple_attributes_access():
 
 
 # Error handling tests
-def test_import_error_handling():
+def test_import_error_handling() -> None:
     """Test handling of ImportError when module doesn't exist."""
     lazy_nonexistent = LazyModule("nonexistent_module_12345")
 
@@ -102,7 +102,7 @@ def test_import_error_handling():
     assert lazy_nonexistent._import_failed
 
 
-def test_import_failure_caching():
+def test_import_failure_caching() -> None:
     """Test that import failures are cached to avoid repeated attempts."""
     lazy_nonexistent = LazyModule("nonexistent_module_12345")
 
@@ -124,7 +124,7 @@ def test_import_failure_caching():
         )
 
 
-def test_attribute_error_handling():
+def test_attribute_error_handling() -> None:
     """Test handling when accessing non-existent attributes."""
     lazy_json = LazyModule("json")
 
@@ -136,7 +136,7 @@ def test_attribute_error_handling():
     assert "Module 'json' has no attribute 'nonexistent_attribute'" in error_msg
 
 
-def test_import_error_propagation():
+def test_import_error_propagation() -> None:
     """Test that original ImportError is preserved in exception chain."""
     with patch("onyx.lazy_handling.lazy_module.importlib.import_module") as mock_import:
         original_error = ImportError("Original import error")
@@ -152,14 +152,14 @@ def test_import_error_propagation():
 
 
 # Thread safety tests
-def test_concurrent_access_thread_safety():
+def test_concurrent_access_thread_safety() -> None:
     """Test that concurrent access from multiple threads is safe."""
     lazy_json = LazyModule("json")
     results = []
     errors = []
     lock = threading.Lock()
 
-    def access_module(thread_id):
+    def access_module(thread_id: int) -> None:
         try:
             # Each thread tries to access the module
             result = lazy_json.dumps({"thread": thread_id})
@@ -192,14 +192,14 @@ def test_concurrent_access_thread_safety():
     assert not lazy_json._import_failed
 
 
-def test_lock_prevents_race_conditions():
+def test_lock_prevents_race_conditions() -> None:
     """Test that the lock prevents race conditions during import."""
     import_call_count = 0
 
     # Use a different module to avoid conflicts
     with patch("onyx.lazy_handling.lazy_module.importlib.import_module") as mock_import:
 
-        def slow_import(module_name):
+        def slow_import(module_name: str) -> Mock:
             nonlocal import_call_count
             import_call_count += 1
             time.sleep(0.1)  # Simulate slow import
@@ -216,7 +216,7 @@ def test_lock_prevents_race_conditions():
         errors = []
         lock = threading.Lock()
 
-        def access_module():
+        def access_module() -> None:
             try:
                 result = lazy_test.dumps({"test": "data"})
                 with lock:
@@ -253,7 +253,7 @@ def test_lock_prevents_race_conditions():
 
 
 # Edge cases and special scenarios
-def test_module_with_complex_attributes():
+def test_module_with_complex_attributes() -> None:
     """Test accessing complex attributes like nested modules."""
     lazy_os = LazyModule("os")
 
@@ -267,7 +267,7 @@ def test_module_with_complex_attributes():
     assert "c" in result
 
 
-def test_callable_attributes():
+def test_callable_attributes() -> None:
     """Test that callable attributes work correctly."""
     lazy_json = LazyModule("json")
 
@@ -282,7 +282,7 @@ def test_callable_attributes():
     assert result == '{"test": true}'
 
 
-def test_module_replacement_in_sys_modules():
+def test_module_replacement_in_sys_modules() -> None:
     """Test behavior when module is replaced in sys.modules."""
     # This tests robustness against unusual sys.modules manipulations
     lazy_json = LazyModule("json")
@@ -301,7 +301,7 @@ def test_module_replacement_in_sys_modules():
     assert lazy_json._module is cached_module
 
 
-def test_empty_module_name():
+def test_empty_module_name() -> None:
     """Test behavior with empty module name."""
     lazy_empty = LazyModule("")
 
@@ -318,7 +318,7 @@ def test_empty_module_name():
     assert lazy_empty._import_failed
 
 
-def test_module_name_with_dots():
+def test_module_name_with_dots() -> None:
     """Test importing modules with dots in name (submodules)."""
     lazy_os_path = LazyModule("os.path")
 
@@ -328,7 +328,7 @@ def test_module_name_with_dots():
     assert "b" in result
 
 
-def test_attribute_access_after_import_failure():
+def test_attribute_access_after_import_failure() -> None:
     """Test that all attribute access fails after an import failure."""
     lazy_nonexistent = LazyModule("nonexistent_module_xyz")
 
@@ -348,7 +348,7 @@ def test_attribute_access_after_import_failure():
     assert "Previous import of 'nonexistent_module_xyz' failed" in error_msg
 
 
-def test_import_hook_compatibility():
+def test_import_hook_compatibility() -> None:
     """Test compatibility with Python's import hook system."""
     # This ensures LazyModule works well with Python's import machinery
     lazy_sys = LazyModule("sys")

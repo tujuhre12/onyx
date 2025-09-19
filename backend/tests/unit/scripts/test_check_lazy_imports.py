@@ -2,14 +2,12 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from scripts.check_lazy_imports import find_direct_imports
 from scripts.check_lazy_imports import get_lazy_modules
 from scripts.check_lazy_imports import main
 
 
-def test_get_lazy_modules_valid_registry():
+def test_get_lazy_modules_valid_registry() -> None:
     """Test parsing a valid registry file."""
     registry_content = """
 from typing import TYPE_CHECKING
@@ -34,7 +32,7 @@ lazy_vertexai: "vertexai" = LazyModule("vertexai")
         registry_path.unlink()
 
 
-def test_get_lazy_modules_empty_registry():
+def test_get_lazy_modules_empty_registry() -> None:
     """Test parsing an empty registry file."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write("# Empty registry file\n")
@@ -47,14 +45,14 @@ def test_get_lazy_modules_empty_registry():
         registry_path.unlink()
 
 
-def test_get_lazy_modules_nonexistent_file():
+def test_get_lazy_modules_nonexistent_file() -> None:
     """Test handling of nonexistent registry file."""
     nonexistent_path = Path("/nonexistent/path/registry.py")
     result = get_lazy_modules(nonexistent_path)
     assert result == {}
 
 
-def test_find_direct_imports_basic_violations():
+def test_find_direct_imports_basic_violations() -> None:
     """Test detection of basic import violations."""
     test_content = """
 import vertexai
@@ -91,7 +89,7 @@ from typing import Dict
         test_path.unlink()
 
 
-def test_find_direct_imports_type_checking_allowed():
+def test_find_direct_imports_type_checking_allowed() -> None:
     """Test that imports in TYPE_CHECKING blocks are allowed."""
     test_content = """from typing import TYPE_CHECKING
 
@@ -129,7 +127,7 @@ from transformers import BertModel
         test_path.unlink()
 
 
-def test_find_direct_imports_complex_patterns():
+def test_find_direct_imports_complex_patterns() -> None:
     """Test detection of various import patterns."""
     test_content = """
 import vertexai.generative_models  # Should be flagged
@@ -163,7 +161,7 @@ import myvertexai  # Should not be flagged
         test_path.unlink()
 
 
-def test_find_direct_imports_comments_ignored():
+def test_find_direct_imports_comments_ignored() -> None:
     """Test that commented imports are ignored."""
     test_content = """
 # import vertexai  # This should be ignored
@@ -186,7 +184,7 @@ import os
         test_path.unlink()
 
 
-def test_find_direct_imports_no_violations():
+def test_find_direct_imports_no_violations() -> None:
     """Test file with no violations."""
     test_content = """
 import os
@@ -213,7 +211,7 @@ def some_function():
         test_path.unlink()
 
 
-def test_find_direct_imports_file_read_error():
+def test_find_direct_imports_file_read_error() -> None:
     """Test handling of file read errors."""
     # Create a file path that will cause read errors
     nonexistent_path = Path("/nonexistent/path/test.py")
@@ -225,7 +223,7 @@ def test_find_direct_imports_file_read_error():
     assert violations == []
 
 
-def test_main_function_no_violations(tmp_path):
+def test_main_function_no_violations(tmp_path: Path) -> None:
     """Test main function with no violations."""
     # Create a temporary backend directory structure
     backend_dir = tmp_path / "backend"
@@ -262,7 +260,7 @@ from onyx.lazy_handling.lazy_import_registry import lazy_vertexai
     assert result == 0  # Success
 
 
-def test_main_function_with_violations(tmp_path):
+def test_main_function_with_violations(tmp_path: Path) -> None:
     """Test main function with violations."""
     # Create a temporary backend directory structure
     backend_dir = tmp_path / "backend"
@@ -299,7 +297,7 @@ from vertexai import generative_models
     assert result == 1  # Failure due to violations
 
 
-def test_type_checking_detection_variations():
+def test_type_checking_detection_variations() -> None:
     """Test various TYPE_CHECKING block formats."""
     test_cases = [
         # Standard format
@@ -340,7 +338,7 @@ if TYPE_CHECKING:
             test_path.unlink()
 
 
-def test_mixed_type_checking_and_regular_imports():
+def test_mixed_type_checking_and_regular_imports() -> None:
     """Test files with both TYPE_CHECKING and regular imports."""
     test_content = """from typing import TYPE_CHECKING
 
@@ -377,7 +375,3 @@ def some_function():
 
     finally:
         test_path.unlink()
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])
