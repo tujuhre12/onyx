@@ -17,6 +17,8 @@ from onyx.context.search.models import InferenceSection
 from onyx.context.search.models import SavedSearchDoc
 from onyx.context.search.utils import chunks_or_sections_to_search_docs
 from onyx.llm.models import PreviousMessage
+from onyx.llm.utils import check_message_tokens
+from onyx.prompts.prompt_utils import drop_messages_history_overflow
 from onyx.tools.tool_implementations.web_search.web_search_tool import (
     WebSearchTool,
 )
@@ -243,13 +245,16 @@ def get_chat_history_string(chat_history: list[BaseMessage], max_messages: int) 
 
 
 def get_chat_history_messages(
-    chat_history: list[PreviousMessage], max_messages: int
+    chat_history: list[PreviousMessage],
+    max_messages: int,
+    max_tokens: int | None = None,
 ) -> list[HumanMessage | AIMessage]:
     """
     Get the chat history (up to max_messages) as a list of messages.
+    If max_tokens is specified, drop messages from the beginning if total size exceeds the limit.
     """
     past_raw_messages = chat_history[-max_messages * 2 :]
-    filtered_past_raw_messages = []
+    filtered_past_raw_messages: list[HumanMessage | AIMessage] = []
     for past_raw_message_number, past_raw_message in enumerate(past_raw_messages):
         if past_raw_message.message_type == MessageType.USER:
             filtered_past_raw_messages.append(
@@ -259,6 +264,24 @@ def get_chat_history_messages(
             filtered_past_raw_messages.append(
                 AIMessage(content=past_raw_message.message)
             )
+
+    # If max_tokens is specified, drop messages from beginning if needed
+    if max_tokens is not None and filtered_past_raw_messages:
+        # Calculate token counts for each message
+        messages_with_token_counts: list[tuple[BaseMessage, int]] = [
+            (msg, check_message_tokens(msg)) for msg in filtered_past_raw_messages
+        ]
+
+        # Use the drop_messages_history_overflow function to trim if needed
+        trimmed_messages = drop_messages_history_overflow(
+            messages_with_token_counts, max_tokens
+        )
+        # Filter to only HumanMessage and AIMessage (drop any SystemMessage)
+        filtered_past_raw_messages = [
+            msg
+            for msg in trimmed_messages
+            if isinstance(msg, (HumanMessage, AIMessage))
+        ]
 
     return filtered_past_raw_messages  # type: ignore
 

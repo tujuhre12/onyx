@@ -462,6 +462,9 @@ def clarifier(
     chat_history_messages = get_chat_history_messages(
         graph_config.inputs.prompt_builder.raw_message_history,
         MAX_CHAT_HISTORY_MESSAGES,
+        max_tokens=int(
+            0.7 * max_input_tokens
+        ),  # limit chat history to 70% of max input tokens
     )
 
     uploaded_text_context = (
