@@ -22,11 +22,11 @@ from datetime import timedelta
 from datetime import timezone
 from typing import Any
 from typing import cast
-from typing import TYPE_CHECKING
 from typing import TypeVar
 from urllib.parse import quote
 
 import bs4
+from atlassian import Confluence
 from redis import Redis
 from requests import HTTPError
 
@@ -47,8 +47,8 @@ from onyx.redis.redis_pool import get_redis_client
 from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_with_timeout
 
-if TYPE_CHECKING:
-    from atlassian import Confluence
+# if TYPE_CHECKING:
+#     from atlassian import Confluence  # type:ignore[import-untyped]
 
 logger = setup_logger()
 
@@ -96,6 +96,7 @@ class OnyxConfluence:
             CONFLUENCE_CONNECTOR_USER_PROFILES_OVERRIDE
         ),
     ) -> None:
+        # from atlassian import Confluence  # type:ignore[import-untyped]
 
         self._is_cloud = is_cloud
         self._url = url.rstrip("/")
@@ -131,11 +132,6 @@ class OnyxConfluence:
             if confluence_user_profiles_override
             else None
         )
-
-    def _get_confluence(self) -> "Confluence":
-        from atlassian import Confluence
-
-        return Confluence
 
     def _renew_credentials(self) -> tuple[dict[str, Any], bool]:
         """credential_json - the current json credentials
@@ -221,6 +217,8 @@ class OnyxConfluence:
         self,
         **kwargs: Any,
     ) -> None:
+        # from atlassian import Confluence  # type:ignore[import-untyped]
+
         merged_kwargs = {**self.shared_base_kwargs, **kwargs}
         # add special timeout to make sure that we don't hang indefinitely
         merged_kwargs["timeout"] = self.PROBE_TIMEOUT
@@ -299,6 +297,8 @@ class OnyxConfluence:
         credentials: dict[str, Any],
         **kwargs: Any,
     ) -> Confluence:
+        # from atlassian import Confluence  # type:ignore[import-untyped]
+
         """Called internally to init the connection. Distributed locking
         to prevent multiple threads from modifying the credentials
         must be handled around this function."""
