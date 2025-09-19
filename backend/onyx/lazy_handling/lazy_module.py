@@ -4,8 +4,6 @@ from typing import Any
 
 
 class LazyModule:
-    """Clean, production-only lazy module loader."""
-
     def __init__(self, module_name: str):
         self.module_name = module_name
         self._module: Any = None
@@ -21,7 +19,7 @@ class LazyModule:
                 if self._module is None and not self._import_failed:
                     try:
                         self._module = importlib.import_module(self.module_name)
-                    except ImportError as e:
+                    except (ImportError, ValueError) as e:
                         self._import_failed = True
                         raise ImportError(
                             f"Failed to import '{self.module_name}': {e}. "
