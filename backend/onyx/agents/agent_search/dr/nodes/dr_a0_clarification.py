@@ -1,4 +1,3 @@
-import re
 from datetime import datetime
 from typing import Any
 from typing import cast
@@ -87,14 +86,6 @@ logger = setup_logger()
 _ANSWER_COMMENT_PROMPT = "I will now answer your question directly."
 
 _CONSIDER_TOOLS_PROMPT = "I will now concier the tools and sub-agents that are available to answer your question."
-
-
-def _format_tool_name(tool_name: str) -> str:
-    """Convert tool name to LLM-friendly format."""
-    name = tool_name.replace(" ", "_")
-    # take care of camel case like GetAPIKey -> GET_API_KEY for LLM readability
-    name = re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", "_", name)
-    return name.upper()
 
 
 def _is_kg_tool_available(available_tools: dict[str, OrchestratorTool]) -> bool:
@@ -207,18 +198,42 @@ def _get_available_tools(
     return available_tools
 
 
-def _construct_uploaded_text_context(files: list[InMemoryChatFile]) -> str:
-    """Construct the uploaded context from the files."""
-    file_contents = []
-    for file in files:
+def _construct_uploaded_text_context(
+    files: list[InMemoryChatFile], max_chars_per_file: int = 8000
+) -> str:
+    """Construct the uploaded context from the files with better formatting."""
+    if not files:
+        return ""
+
+    file_sections = []
+    for i, file in enumerate(files, 1):
         if file.file_type in (
             ChatFileType.DOC,
             ChatFileType.PLAIN_TEXT,
             ChatFileType.CSV,
         ):
-            file_contents.append(file.content.decode("utf-8"))
-    if len(file_contents) > 0:
-        return "Uploaded context:\n\n\n" + "\n\n".join(file_contents)
+            file_type_name = {
+                ChatFileType.DOC: "Document",
+                ChatFileType.PLAIN_TEXT: "Text File",
+                ChatFileType.CSV: "CSV File",
+            }.get(file.file_type, "File")
+
+            file_name = getattr(file, "file_name", f"file_{i}")
+            content = file.content.decode("utf-8").strip()
+
+            # Truncate if too long
+            if len(content) > max_chars_per_file:
+                content = (
+                    content[:max_chars_per_file]
+                    + f"\n\n[Content truncated - showing first {max_chars_per_file} characters of {len(content)} total]"
+                )
+
+            # Add file header with metadata
+            file_section = f"=== {file_type_name}: {file_name} ===\n\n{content}"
+            file_sections.append(file_section)
+
+    if file_sections:
+        return "Uploaded Files:\n\n" + "\n\n---\n\n".join(file_sections)
     return ""
 
 
@@ -455,14 +470,7 @@ def clarifier(
         else ""
     )
 
-    if len(uploaded_text_context) > 0:
-        uploaded_file_messages = [
-            HumanMessage(
-                content=f"Here are is uploaded file information:\n\n{uploaded_text_context}"
-            )
-        ]
-    else:
-        uploaded_file_messages = []
+    # File content will be integrated into the user message instead of separate messages
 
     uploaded_context_tokens = check_number_of_tokens(
         uploaded_text_context, llm_tokenizer.encode
@@ -492,17 +500,31 @@ def clarifier(
 
     message_history_for_continuation.append(SystemMessage(content=base_system_message))
     message_history_for_continuation.extend(chat_history_messages)
-    message_history_for_continuation.extend(uploaded_file_messages)
 
-    # Create message content that includes text and any available images
+    # Create message content that includes text, files, and any available images
+    user_message_text = original_question
+    if uploaded_text_context:
+        # Count the number of files for better messaging
+        files: list[InMemoryChatFile] = graph_config.inputs.files or []
+        file_count = len(
+            [
+                f
+                for f in files
+                if f.file_type
+                in (ChatFileType.DOC, ChatFileType.PLAIN_TEXT, ChatFileType.CSV)
+            ]
+        )
+        file_word = "file" if file_count == 1 else "files"
+        user_message_text += f"\n\n[I have uploaded {file_count} {file_word} for reference]\n\n{uploaded_text_context}"
+
     message_content: list[dict[str, Any]] = [
-        {"type": "text", "text": original_question}
+        {"type": "text", "text": user_message_text}
     ]
     if uploaded_image_context:
         message_content.extend(uploaded_image_context)
 
     # If we only have text, use string content for backwards compatibility
-    if len(message_content) == 1:
+    if len(message_content) == 1 and not uploaded_text_context:
         message_history_for_continuation.append(HumanMessage(content=original_question))
     else:
         message_history_for_continuation.append(
