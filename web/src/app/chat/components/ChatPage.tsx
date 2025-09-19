@@ -24,7 +24,7 @@ import { FeedbackModal } from "./modal/FeedbackModal";
 import { ShareChatSessionModal } from "./modal/ShareChatSessionModal";
 import { FiArrowDown } from "react-icons/fi";
 import { OnyxDocument, MinimalOnyxDocument } from "@/lib/search/interfaces";
-import { SettingsContext } from "@/components/settings/SettingsProvider";
+import { useSettingsContext } from "@/components/settings/SettingsProvider";
 import Dropzone from "react-dropzone";
 import { ChatInputBar } from "./input/ChatInputBar";
 import { useChatContext } from "@/components/context/ChatContext";
@@ -144,7 +144,7 @@ export function ChatPage({
   // NOTE: this must be done here, in a client component since
   // settings are passed in via Context and therefore aren't
   // available in server-side components
-  const settings = useContext(SettingsContext);
+  const settings = useSettingsContext();
   const enterpriseSettings = settings?.enterpriseSettings;
 
   const [toggleDocSelection, setToggleDocSelection] = useState(false);

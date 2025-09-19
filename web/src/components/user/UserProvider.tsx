@@ -5,7 +5,7 @@ import { User, UserRole } from "@/lib/types";
 import { getCurrentUser } from "@/lib/user";
 import { usePostHog } from "posthog-js/react";
 import { CombinedSettings } from "@/app/admin/settings/interfaces";
-import { SettingsContext } from "../settings/SettingsProvider";
+import { useSettingsContext } from "@/components/settings/SettingsProvider";
 import { useTokenRefresh } from "@/hooks/useTokenRefresh";
 import { AuthTypeMetadata } from "@/lib/userSS";
 
@@ -22,7 +22,7 @@ export function UserProvider({
   user,
   settings,
 }: UserProviderProps) {
-  const updatedSettings = useContext(SettingsContext);
+  const updatedSettings = useSettingsContext();
   const posthog = usePostHog();
 
   // For auto_scroll and temperature_override_enabled:

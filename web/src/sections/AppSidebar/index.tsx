@@ -196,7 +196,7 @@ export default function AppSidebar() {
           icon={SvgEditBig}
           hideTitle={folded}
           onClick={() => handleChatSessionClick(null)}
-          active={!searchParams.size}
+          active={!currentChatId && !currentAgent}
         >
           New Session
         </SidebarButton>
