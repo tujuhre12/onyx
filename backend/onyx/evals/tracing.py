@@ -21,7 +21,7 @@ def _should_mask(data: Any) -> bool:
 
 
 def _mask(data: Any) -> Any:
-    """Mask data based on span type. Only mask generic and function spans, not root, task, score, or LLM spans."""
+    """Mask data if it exceeds the maximum length threshold."""
     if not _should_mask(data):
         return data
     return _truncate_str(str(data))
