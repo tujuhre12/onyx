@@ -41,7 +41,7 @@ repos:
     hooks:
       - id: check-lazy-imports
         name: Check lazy imports are not directly imported
-        entry: python backend/scripts/check_lazy_imports.py
+        entry: python3 backend/scripts/check_lazy_imports.py
         language: system
         files: ^backend/.*\.py$
         pass_filenames: false
