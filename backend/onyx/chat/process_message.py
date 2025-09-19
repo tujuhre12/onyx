@@ -3,17 +3,19 @@ import time
 import traceback
 from collections.abc import Callable
 from collections.abc import Iterator
+from typing import Any
 from typing import cast
+from typing import Dict
 from typing import Protocol
 
 from sqlalchemy.orm import Session
 
 from onyx.agents.agent_search.orchestration.nodes.call_tool import ToolCallException
 from onyx.chat.answer import Answer
+from onyx.chat.answer_scratchpad import stream_chat_sync
 from onyx.chat.chat_utils import create_chat_chain
 from onyx.chat.chat_utils import create_temporary_persona
 from onyx.chat.chat_utils import process_kg_commands
-from onyx.chat.models import AnswerStream
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import ChatBasicResponse
 from onyx.chat.models import CitationConfig
@@ -24,9 +26,6 @@ from onyx.chat.models import PromptConfig
 from onyx.chat.models import QADocsResponse
 from onyx.chat.models import StreamingError
 from onyx.chat.models import UserKnowledgeFilePacket
-from onyx.chat.packet_proccessing.process_streamed_packets import (
-    process_streamed_packets,
-)
 from onyx.chat.prompt_builder.answer_prompt_builder import AnswerPromptBuilder
 from onyx.chat.prompt_builder.answer_prompt_builder import default_build_system_message
 from onyx.chat.prompt_builder.answer_prompt_builder import default_build_user_message
@@ -41,7 +40,6 @@ from onyx.configs.constants import NO_AUTH_USER_ID
 from onyx.context.search.enums import OptionalSearchSetting
 from onyx.context.search.models import InferenceSection
 from onyx.context.search.models import RetrievalDetails
-from onyx.context.search.models import SavedSearchDoc
 from onyx.context.search.retrieval.search_runner import (
     inference_sections_from_ids,
 )
@@ -76,11 +74,7 @@ from onyx.llm.models import PreviousMessage
 from onyx.llm.utils import litellm_exception_to_error_msg
 from onyx.natural_language_processing.utils import get_tokenizer
 from onyx.server.query_and_chat.models import CreateChatMessageRequest
-from onyx.server.query_and_chat.streaming_models import CitationDelta
 from onyx.server.query_and_chat.streaming_models import CitationInfo
-from onyx.server.query_and_chat.streaming_models import MessageDelta
-from onyx.server.query_and_chat.streaming_models import MessageStart
-from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.server.utils import get_json_line
 from onyx.tools.force import ForceUseTool
 from onyx.tools.models import SearchToolOverrideKwargs
@@ -255,7 +249,7 @@ def stream_chat_message_objects(
     # messages.
     # NOTE: is not stored in the database at all.
     single_message_history: str | None = None,
-) -> AnswerStream:
+) -> Iterator[Dict[str, Any]]:
     """Streams in order:
     1. [conditional] Retrieved documents if a search needs to be run
     2. [conditional] LLM selected chunk indices if LLM chunk filtering is turned on
@@ -671,11 +665,54 @@ def stream_chat_message_objects(
             use_agentic_search=new_msg_req.use_agentic_search,
             skip_gen_ai_answer_generation=new_msg_req.skip_gen_ai_answer_generation,
         )
+        type_to_role = {
+            "human": "user",
+            "assistant": "assistant",
+            "system": "system",
+            "function": "function",
+        }
+        SYSTEM_PROMPT = """
+        You are a highly capable, thoughtful, and precise assistant. Your goal is to deeply understand the \
+        user's intent, ask clarifying questions when needed, think step-by-step through complex problems, \
+        provide clear and accurate answers, and proactively anticipate helpful follow-up information. Always \
+        prioritize being truthful, nuanced, insightful, and efficient.
+        The current date is September 18, 2025.
 
-        # Process streamed packets using the new packet processing module
-        yield from process_streamed_packets(
-            answer_processed_output=answer.processed_streamed_output,
+        You use different text styles, bolding, emojis (sparingly), block quotes, and other formatting to make \
+        your responses more readable and engaging.
+        You use proper Markdown and LaTeX to format your responses for math, scientific, and chemical formulas, \
+        symbols, etc.: '$$\\n[expression]\\n$$' for standalone cases and '\\( [expression] \\)' when inline.
+        For code you prefer to use Markdown and specify the language.
+        You can use Markdown horizontal rules (---) to separate sections of your responses.
+        You can use Markdown tables to format your responses for data, lists, and other structured information.
+
+        You must cite inline using tags from tool results.
+
+        Rules:
+        - Only cite sources provided by the tools (use each item’s "tag" field).
+        - Place the citation immediately after the claim it supports, like this: "... result [S1](https://linkforS1)" or
+         "... results [S1](https://linkforS1)[S3](https://linkforS3)".
+        - If multiple sentences in a row are supported by the same source, cite the first sentence;
+        then omit repeats until the source changes.
+        - Never invent tags. If no source supports a claim, say so.
+        - Do not add a separate “Sources” section unless asked.
+        """
+        system_message = [{"role": "system", "content": SYSTEM_PROMPT}]
+        other_messages = [
+            {"role": type_to_role[message.type], "content": message.content}
+            for message in answer.graph_inputs.prompt_builder.build()
+            if message.type != "system"
+        ]
+        yield from stream_chat_sync(
+            messages=system_message + other_messages,
+            cfg=answer.graph_config,
+            llm=answer.graph_tooling.primary_llm,
         )
+        # yield from streamed
+        # Process streamed packets using the new packet processing module
+        # yield from process_streamed_packets(
+        #     answer_processed_output=answer.processed_streamed_output,
+        # )
 
     except ValueError as e:
         logger.exception("Failed to process chat message.")
@@ -747,46 +784,18 @@ def remove_answer_citations(answer: str) -> str:
 
 @log_function_time()
 def gather_stream(
-    packets: AnswerStream,
+    packets: Iterator[Dict[str, Any]],
 ) -> ChatBasicResponse:
     answer = ""
-    citations: list[CitationInfo] = []
-    error_msg: str | None = None
-    message_id: int | None = None
-    top_documents: list[SavedSearchDoc] = []
-
     for packet in packets:
-        if isinstance(packet, Packet):
-            # Handle the different packet object types
-            if isinstance(packet.obj, MessageStart):
-                # MessageStart contains the initial content and final documents
-                if packet.obj.content:
-                    answer += packet.obj.content
-                if packet.obj.final_documents:
-                    top_documents = packet.obj.final_documents
-            elif isinstance(packet.obj, MessageDelta):
-                # MessageDelta contains incremental content updates
-                if packet.obj.content:
-                    answer += packet.obj.content
-            elif isinstance(packet.obj, CitationDelta):
-                # CitationDelta contains citation information
-                if packet.obj.citations:
-                    citations.extend(packet.obj.citations)
-        elif isinstance(packet, StreamingError):
-            error_msg = packet.error
-        elif isinstance(packet, MessageResponseIDInfo):
-            message_id = packet.reserved_assistant_message_id
-
-    if message_id is None:
-        raise ValueError("Message ID is required")
+        if "text" in packet:
+            answer += packet["text"]
 
     return ChatBasicResponse(
         answer=answer,
         answer_citationless=remove_answer_citations(answer),
-        cited_documents={
-            citation.citation_num: citation.document_id for citation in citations
-        },
-        message_id=message_id,
-        error_msg=error_msg,
-        top_documents=top_documents,
+        cited_documents={},
+        message_id=0,
+        error_msg=None,
+        top_documents=[],
     )
