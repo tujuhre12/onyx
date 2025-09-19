@@ -42,7 +42,7 @@ export default function Modal({
       >
         {/* Header with title */}
         <div className="flex items-center justify-between p-padding-block-end">
-          <Text heading>{title}</Text>
+          <Text headingH2>{title}</Text>
           <SvgX
             className="stroke-text-03 w-[1.5rem] h-[1.5rem]"
             onClick={() => toggleModal(id, false)}

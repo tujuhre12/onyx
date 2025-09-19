@@ -18,19 +18,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { IconProps, PinnedIcon } from "@/components/icons/icons";
 import { deletePersona } from "@/app/admin/assistants/lib";
-import { PencilIcon } from "lucide-react";
 import { usePaidEnterpriseFeaturesEnabled } from "@/components/settings/usePaidEnterpriseFeaturesEnabled";
 import { usePopup } from "@/components/admin/connectors/Popup";
 import { Button } from "@/components/ui/button";
 import { useAgentsContext } from "@/components-2/context/AgentsContext";
 import Text from "@/components-2/Text";
 import Truncated from "@/components-2/Truncated";
+import SvgBubbleText from "@/icons/bubble-text";
+import SvgPin from "@/icons/pin";
+import { SvgProps } from "@/icons";
 
 interface AgentActionButtonProps {
   title: string;
-  icon: React.FunctionComponent<IconProps>;
+  icon: React.FunctionComponent<SvgProps>;
   onClick: () => void;
   tooltip: string;
 }
@@ -47,12 +48,10 @@ function AgentActionButton({
         <TooltipTrigger asChild>
           <button
             onClick={onClick}
-            className={
-              "hover:bg-background-tint-03 p-spacing-interline gap-spacing-interline rounded-04 border flex items-center"
-            }
+            className="hover:bg-background-tint-03 p-spacing-interline gap-spacing-interline rounded-08 border flex items-center"
           >
-            <Icon size={12} />
-            <Text secondary>{title}</Text>
+            <Icon className="w-[1rem] h-[1rem] stroke-text-05" />
+            <Text secondaryBody>{title}</Text>
           </button>
         </TooltipTrigger>
         <TooltipContent>{tooltip}</TooltipContent>
@@ -115,7 +114,7 @@ export default function AssistantCard({
         <div className="flex-1 flex flex-col gap-padding-button">
           <div className="flex flex-row justify-between">
             <Truncated>
-              <Text subheading text04>
+              <Text headingH3 text04>
                 {agent.name}
               </Text>
             </Truncated>
@@ -219,23 +218,23 @@ export default function AssistantCard({
           <div className="flex flex-row items-center gap-spacing-interline">
             <div className="max-w-[33%]">
               <Truncated>
-                <Text secondary text02>
+                <Text secondaryBody text02>
                   By {agent.owner?.email || "Onyx"} asdf
                 </Text>
               </Truncated>
             </div>
-            <Text secondary text01>
+            <Text secondaryBody text01>
               •
             </Text>
-            <Text secondary text02>
+            <Text secondaryBody text02>
               {agent.tools.length > 0
                 ? `${agent.tools.length} Action${agent.tools.length > 1 ? "s" : ""}`
                 : "No Actions"}
             </Text>
-            <Text secondary text01>
+            <Text secondaryBody text01>
               •
             </Text>
-            <Text secondary text02>
+            <Text secondaryBody text02>
               {agent.is_public ? "Public" : "Private"}
             </Text>
           </div>
@@ -243,7 +242,7 @@ export default function AssistantCard({
           <div className="flex gap-2">
             <AgentActionButton
               title="Start Chat"
-              icon={PencilIcon as React.FunctionComponent<IconProps>}
+              icon={SvgBubbleText}
               onClick={() => {
                 router.push(
                   `/chat?${SEARCH_PARAM_NAMES.PERSONA_ID}=${agent.id}`
@@ -254,7 +253,7 @@ export default function AssistantCard({
             />
             <AgentActionButton
               title={pinned ? "Unpin" : "Pin"}
-              icon={PinnedIcon}
+              icon={SvgPin}
               onClick={() => togglePinnedAgent(agent, !pinned)}
               tooltip={`${pinned ? "Remove from" : "Add to"} your pinned list`}
             />

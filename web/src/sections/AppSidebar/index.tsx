@@ -376,14 +376,14 @@ function AppSidebarInner() {
     [router, searchParams]
   );
 
-  if (!combinedSettings) {
-    return null;
-  }
-
   const isHistoryEmpty = useMemo(
     () => !chatSessions || chatSessions.length === 0,
     [chatSessions]
   );
+
+  if (!combinedSettings) {
+    return null;
+  }
 
   return (
     <>

@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import AssistantCard from "./AgentCard";
+import AgentCard from "@/sections/AgentsModal/AgentCard";
 import { useUser } from "@/components/user/UserProvider";
 import { FilterIcon } from "lucide-react";
 import { checkUserOwnsAssistant as checkUserOwnsAgent } from "@/lib/assistants/checkOwnership";
@@ -11,6 +11,7 @@ import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import Text from "@/components-2/Text";
 import Modal from "@/components-2/modals/Modal";
 import { ModalIds, useModal } from "@/components-2/context/ModalContext";
+import SvgFilter from "@/icons/filter";
 
 interface AgentsSectionProps {
   title: string;
@@ -26,14 +27,13 @@ function AgentsSection({ title, agents, pinnedAgents }: AgentsSectionProps) {
   }
 
   return (
-    <div className="p-padding-content flex flex-col gap-spacing-paragraph">
-      <Text subheading>{title}</Text>
-
+    <div className="py-padding-content flex flex-col gap-spacing-paragraph">
+      <Text headingH2>{title}</Text>
       <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-spacing-paragraph">
         {agents
           .sort((a, b) => b.id - a.id)
           .map((agent, index) => (
-            <AssistantCard
+            <AgentCard
               key={index}
               pinned={pinnedAgents.map((a) => a.id).includes(agent.id)}
               agent={agent}
@@ -58,15 +58,10 @@ function AgentBadgeSelector({
 }: AgentBadgeSelectorProps) {
   return (
     <div
-      className={`
-        select-none ${
-          selected
-            ? "bg-background-900 text-white"
-            : "bg-transparent text-text-900"
-        } w-12 h-5 text-center px-1 py-0.5 rounded-lg cursor-pointer text-[12px] font-normal leading-[10px] border border-black justify-center items-center gap-1 inline-flex`}
+      className={`bg-background-tint-03 hover:bg-background-tint-02 ${selected && "bg-action-link-05 hover:bg-action-link-04"} border p-spacing-interline rounded-08`}
       onClick={toggleFilter}
     >
-      {text}
+      <Text secondaryBody>{text}</Text>
     </div>
   );
 }
@@ -147,48 +142,25 @@ export default function AgentsModal() {
   );
 
   return (
-    <Modal id={ModalIds.AgentsModal} title="Agents">
-      <div className="flex flex-col sticky top-0 z-10">
-        <div className="flex px-2 justify-between items-center gap-x-2 mb-0">
-          <div className="h-12 w-full rounded-lg flex-col justify-center items-start gap-2.5 inline-flex">
-            <div className="h-12 rounded-md w-full shadow-[0px_0px_2px_0px_rgba(0,0,0,0.25)] border border-background-300 flex items-center px-3">
-              {!isSearchFocused && (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-text-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              )}
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setIsSearchFocused(false)}
-                type="text"
-                className="w-full h-full bg-transparent outline-none text-black"
-              />
-            </div>
-          </div>
+    <Modal id={ModalIds.AgentsModal} title="Agents" className="max-w-[60rem]">
+      <div className="flex flex-col sticky top-0 z-10 bg-background-tint-01">
+        <div className="flex flex-row items-center gap-spacing-interline">
+          <input
+            className="w-full h-[3rem] border bg-transparent rounded-08 p-padding-button"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
           <button
             onClick={() => router.push("/assistants/new")}
-            className="h-10 cursor-pointer px-6 py-3 bg-background-800 hover:bg-black rounded-md border border-black justify-center items-center gap-2.5 inline-flex"
+            className="p-padding-button bg-background-tint-03 rounded-08 hover:bg-background-tint-02"
           >
-            <div className="text-text-50 text-lg font-normal leading-normal">
-              Create
-            </div>
+            <Text>Create</Text>
           </button>
         </div>
-        <div className="px-2 flex py-4 items-center gap-x-2 flex-wrap">
-          <FilterIcon className="text-text-800" size={16} />
+
+        <div className="py-padding-content flex items-center gap-spacing-interline flex-wrap">
+          <SvgFilter className="w-[1.2rem] h-[1.2rem] stroke-text-05" />
           <AgentBadgeSelector
             text="Pinned"
             selected={agentFilters[AgentFilter.Pinned]}
@@ -211,13 +183,12 @@ export default function AgentsModal() {
             toggleFilter={() => toggleAgentFilter(AgentFilter.Public)}
           />
         </div>
-        <div className="w-full border-t border-background-200" />
       </div>
 
       <div className="h-full w-full">
         {featuredAgents.length === 0 && allAgents.length === 0 ? (
           <Text
-            callout
+            mainBody
             className="w-full h-full flex flex-col items-center justify-center"
           >
             No Agents configured yet...

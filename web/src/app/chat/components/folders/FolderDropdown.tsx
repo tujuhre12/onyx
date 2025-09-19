@@ -191,7 +191,7 @@ export const FolderDropdown = forwardRef<HTMLDivElement, FolderDropdownProps>(
                 </div>
               ) : (
                 <div className="flex items-center">
-                  <Text text02 secondary>
+                  <Text text02 secondaryBody>
                     {folder.folder_name}
                   </Text>
                 </div>
@@ -269,5 +269,4 @@ export const FolderDropdown = forwardRef<HTMLDivElement, FolderDropdownProps>(
     );
   }
 );
-
 FolderDropdown.displayName = "FolderDropdown";

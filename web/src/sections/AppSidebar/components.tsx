@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Dispatch, SetStateAction, useState } from "react";
+import React, { Dispatch, SetStateAction } from "react";
 import { IconProps } from "@/components/icons/icons";
 import Text from "@/components-2/Text";
 import Truncated from "@/components-2/Truncated";
