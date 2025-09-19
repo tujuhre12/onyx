@@ -36,7 +36,6 @@ from onyx.configs.model_configs import DOC_EMBEDDING_CONTEXT_SIZE
 from onyx.connectors.models import ConnectorStopSignal
 from onyx.db.models import SearchSettings
 from onyx.indexing.indexing_heartbeat import IndexingHeartbeatInterface
-from onyx.lazy_handling.lazy_import_registry import lazy_vertexai
 from onyx.natural_language_processing.constants import DEFAULT_COHERE_MODEL
 from onyx.natural_language_processing.constants import DEFAULT_OPENAI_MODEL
 from onyx.natural_language_processing.constants import DEFAULT_VERTEX_MODEL
@@ -264,6 +263,9 @@ class CloudEmbedding:
     async def _embed_vertex(
         self, texts: list[str], model: str | None, embedding_type: str
     ) -> list[Embedding]:
+        import vertexai  # type: ignore[import-untyped]
+        from vertexai.language_models import TextEmbeddingModel, TextEmbeddingInput  # type: ignore[import-untyped]
+
         if not model:
             model = DEFAULT_VERTEX_MODEL
 
@@ -272,12 +274,10 @@ class CloudEmbedding:
             service_account_info
         )
         project_id = service_account_info["project_id"]
-        lazy_vertexai.init(project=project_id, credentials=credentials)
-        client = lazy_vertexai.TextEmbeddingModel.from_pretrained(model)
+        vertexai.init(project=project_id, credentials=credentials)
+        client = TextEmbeddingModel.from_pretrained(model)
 
-        inputs = [
-            lazy_vertexai.TextEmbeddingInput(text, embedding_type) for text in texts
-        ]
+        inputs = [TextEmbeddingInput(text, embedding_type) for text in texts]
 
         # Split into batches of 25 texts
         max_texts_per_batch = VERTEXAI_EMBEDDING_LOCAL_BATCH_SIZE
@@ -551,8 +551,7 @@ class EmbeddingModel:
         if embed_request.manual_query_prefix or embed_request.manual_passage_prefix:
             logger.warning("Prefix provided for cloud model, which is not supported")
             raise ValueError(
-                "Prefix string is not valid for cloud models. "
-                "Cloud models take an explicit text type instead."
+                "Prefix string is not valid for cloud models. Cloud models take an explicit text type instead."
             )
 
         if not all(embed_request.texts):

@@ -2,58 +2,16 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.check_lazy_imports import find_direct_imports
-from scripts.check_lazy_imports import get_lazy_modules
+import pytest
+
+from scripts.check_lazy_imports import EagerImportResult
+from scripts.check_lazy_imports import find_eager_imports
+from scripts.check_lazy_imports import find_python_files
 from scripts.check_lazy_imports import main
 
 
-def test_get_lazy_modules_valid_registry() -> None:
-    """Test parsing a valid registry file."""
-    registry_content = """
-from typing import TYPE_CHECKING
-
-from onyx.lazy_handling.lazy_module import LazyModule
-
-if TYPE_CHECKING:
-    import vertexai
-
-lazy_vertexai: "vertexai" = LazyModule("vertexai")
-"""
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-        f.write(registry_content)
-        registry_path = Path(f.name)
-
-    try:
-        result = get_lazy_modules(registry_path)
-        expected = {"lazy_vertexai": "vertexai"}
-        assert result == expected
-    finally:
-        registry_path.unlink()
-
-
-def test_get_lazy_modules_empty_registry() -> None:
-    """Test parsing an empty registry file."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-        f.write("# Empty registry file\n")
-        registry_path = Path(f.name)
-
-    try:
-        result = get_lazy_modules(registry_path)
-        assert result == {}
-    finally:
-        registry_path.unlink()
-
-
-def test_get_lazy_modules_nonexistent_file() -> None:
-    """Test handling of nonexistent registry file."""
-    nonexistent_path = Path("/nonexistent/path/registry.py")
-    result = get_lazy_modules(nonexistent_path)
-    assert result == {}
-
-
-def test_find_direct_imports_basic_violations() -> None:
-    """Test detection of basic import violations."""
+def test_find_eager_imports_basic_violations() -> None:
+    """Test detection of basic eager import violations."""
     test_content = """
 import vertexai
 from vertexai import generative_models
@@ -69,35 +27,42 @@ from typing import Dict
 
     try:
         protected_modules = {"vertexai", "transformers"}
-        violations = find_direct_imports(test_path, protected_modules)
+        result = find_eager_imports(test_path, protected_modules)
 
         # Should find 4 violations (lines 2, 3, 4, 5)
-        assert len(violations) == 4
+        assert len(result.violation_lines) == 4
+        assert result.violated_modules == {"vertexai", "transformers"}
 
         # Check specific violations
-        violation_lines = [line_num for line_num, _ in violations]
-        assert 2 in violation_lines  # import vertexai
-        assert 3 in violation_lines  # from vertexai import generative_models
-        assert 4 in violation_lines  # import transformers
-        assert 5 in violation_lines  # from transformers import AutoTokenizer
+        violation_line_numbers = [line_num for line_num, _ in result.violation_lines]
+        assert 2 in violation_line_numbers  # import vertexai
+        assert 3 in violation_line_numbers  # from vertexai import generative_models
+        assert 4 in violation_line_numbers  # import transformers
+        assert 5 in violation_line_numbers  # from transformers import AutoTokenizer
 
         # Lines 6 and 7 should not be flagged
-        assert 6 not in violation_lines  # import os
-        assert 7 not in violation_lines  # from typing import Dict
+        assert 6 not in violation_line_numbers  # import os
+        assert 7 not in violation_line_numbers  # from typing import Dict
 
     finally:
         test_path.unlink()
 
 
-def test_find_direct_imports_type_checking_allowed() -> None:
-    """Test that imports in TYPE_CHECKING blocks are allowed."""
-    test_content = """from typing import TYPE_CHECKING
+def test_find_eager_imports_function_level_allowed() -> None:
+    """Test that imports inside functions are allowed (lazy imports)."""
+    test_content = """import os
 
-if TYPE_CHECKING:
+def some_function():
     import vertexai
     from transformers import AutoTokenizer
+    return vertexai.some_method()
 
-# Regular imports should be flagged
+class MyClass:
+    def method(self):
+        import vertexai
+        return vertexai.other_method()
+
+# Top-level imports should be flagged
 import vertexai
 from transformers import BertModel
 """
@@ -108,26 +73,30 @@ from transformers import BertModel
 
     try:
         protected_modules = {"vertexai", "transformers"}
-        violations = find_direct_imports(test_path, protected_modules)
+        result = find_eager_imports(test_path, protected_modules)
 
-        # Should only find violations outside TYPE_CHECKING block (lines 8, 9)
-        assert len(violations) == 2
+        # Should only find violations for top-level imports (lines 14, 15)
+        assert len(result.violation_lines) == 2
+        assert result.violated_modules == {"vertexai", "transformers"}
 
-        violation_lines = [line_num for line_num, _ in violations]
-        assert 8 in violation_lines  # import vertexai (outside TYPE_CHECKING)
+        violation_line_numbers = [line_num for line_num, _ in result.violation_lines]
+        assert 14 in violation_line_numbers  # import vertexai (top-level)
         assert (
-            9 in violation_lines
-        )  # from transformers import BertModel (outside TYPE_CHECKING)
+            15 in violation_line_numbers
+        )  # from transformers import BertModel (top-level)
 
-        # Lines 4 and 5 should not be flagged (inside TYPE_CHECKING)
-        assert 4 not in violation_lines
-        assert 5 not in violation_lines
+        # Function-level imports should not be flagged
+        assert 4 not in violation_line_numbers  # import vertexai (in function)
+        assert (
+            5 not in violation_line_numbers
+        )  # from transformers import AutoTokenizer (in function)
+        assert 9 not in violation_line_numbers  # import vertexai (in method)
 
     finally:
         test_path.unlink()
 
 
-def test_find_direct_imports_complex_patterns() -> None:
+def test_find_eager_imports_complex_patterns() -> None:
     """Test detection of various import patterns."""
     test_content = """
 import vertexai.generative_models  # Should be flagged
@@ -143,25 +112,26 @@ import myvertexai  # Should not be flagged
 
     try:
         protected_modules = {"vertexai"}
-        violations = find_direct_imports(test_path, protected_modules)
+        result = find_eager_imports(test_path, protected_modules)
 
         # Should find 2 violations (lines 2, 3)
-        assert len(violations) == 2
+        assert len(result.violation_lines) == 2
+        assert result.violated_modules == {"vertexai"}
 
-        violation_lines = [line_num for line_num, _ in violations]
-        assert 2 in violation_lines  # import vertexai.generative_models
-        assert 3 in violation_lines  # from some_package import vertexai
+        violation_line_numbers = [line_num for line_num, _ in result.violation_lines]
+        assert 2 in violation_line_numbers  # import vertexai.generative_models
+        assert 3 in violation_line_numbers  # from some_package import vertexai
 
         # Lines 4, 5, 6 should not be flagged
-        assert 4 not in violation_lines
-        assert 5 not in violation_lines
-        assert 6 not in violation_lines
+        assert 4 not in violation_line_numbers
+        assert 5 not in violation_line_numbers
+        assert 6 not in violation_line_numbers
 
     finally:
         test_path.unlink()
 
 
-def test_find_direct_imports_comments_ignored() -> None:
+def test_find_eager_imports_comments_ignored() -> None:
     """Test that commented imports are ignored."""
     test_content = """
 # import vertexai  # This should be ignored
@@ -175,25 +145,26 @@ import os
 
     try:
         protected_modules = {"vertexai"}
-        violations = find_direct_imports(test_path, protected_modules)
+        result = find_eager_imports(test_path, protected_modules)
 
         # Should find no violations
-        assert len(violations) == 0
+        assert len(result.violation_lines) == 0
+        assert result.violated_modules == set()
 
     finally:
         test_path.unlink()
 
 
-def test_find_direct_imports_no_violations() -> None:
+def test_find_eager_imports_no_violations() -> None:
     """Test file with no violations."""
     test_content = """
 import os
 from typing import Dict, List
 from pathlib import Path
-from onyx.lazy_handling.lazy_import_registry import lazy_vertexai
 
 def some_function():
-    return lazy_vertexai.some_method()
+    import vertexai
+    return vertexai.some_method()
 """
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
@@ -202,25 +173,52 @@ def some_function():
 
     try:
         protected_modules = {"vertexai", "transformers"}
-        violations = find_direct_imports(test_path, protected_modules)
+        result = find_eager_imports(test_path, protected_modules)
 
         # Should find no violations
-        assert len(violations) == 0
+        assert len(result.violation_lines) == 0
+        assert result.violated_modules == set()
 
     finally:
         test_path.unlink()
 
 
-def test_find_direct_imports_file_read_error() -> None:
+def test_find_eager_imports_file_read_error() -> None:
     """Test handling of file read errors."""
     # Create a file path that will cause read errors
     nonexistent_path = Path("/nonexistent/path/test.py")
 
     protected_modules = {"vertexai"}
-    violations = find_direct_imports(nonexistent_path, protected_modules)
+    result = find_eager_imports(nonexistent_path, protected_modules)
 
-    # Should return empty list on error
-    assert violations == []
+    # Should return empty result on error
+    assert len(result.violation_lines) == 0
+    assert result.violated_modules == set()
+
+
+def test_find_eager_imports_return_type() -> None:
+    """Test that function returns correct EagerImportResult type."""
+    test_content = """
+import vertexai
+"""
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write(test_content)
+        test_path = Path(f.name)
+
+    try:
+        protected_modules = {"vertexai"}
+        result = find_eager_imports(test_path, protected_modules)
+
+        # Check return type
+        assert isinstance(result, EagerImportResult)
+        assert hasattr(result, "violation_lines")
+        assert hasattr(result, "violated_modules")
+        assert len(result.violation_lines) == 1
+        assert result.violated_modules == {"vertexai"}
+
+    finally:
+        test_path.unlink()
 
 
 def test_main_function_no_violations(tmp_path: Path) -> None:
@@ -229,24 +227,16 @@ def test_main_function_no_violations(tmp_path: Path) -> None:
     backend_dir = tmp_path / "backend"
     backend_dir.mkdir()
 
-    # Create lazy_handling directory
-    lazy_handling_dir = backend_dir / "onyx" / "lazy_handling"
-    lazy_handling_dir.mkdir(parents=True)
-
-    # Create registry file
-    registry_file = lazy_handling_dir / "lazy_import_registry.py"
-    registry_file.write_text(
-        """
-lazy_vertexai: "vertexai" = LazyModule("vertexai")
-"""
-    )
-
     # Create a Python file with no violations (avoid "test" in name)
-    test_file = backend_dir / "clean_module.py"
-    test_file.write_text(
+    clean_file = backend_dir / "clean_module.py"
+    clean_file.write_text(
         """
 import os
-from onyx.lazy_handling.lazy_import_registry import lazy_vertexai
+from pathlib import Path
+
+def use_vertexai():
+    import vertexai
+    return vertexai.some_method()
 """
     )
 
@@ -255,9 +245,8 @@ from onyx.lazy_handling.lazy_import_registry import lazy_vertexai
     script_path.parent.mkdir(parents=True)
 
     with patch("scripts.check_lazy_imports.__file__", str(script_path)):
-        result = main()
-
-    assert result == 0  # Success
+        # Should not raise an exception
+        main()
 
 
 def test_main_function_with_violations(tmp_path: Path) -> None:
@@ -266,24 +255,12 @@ def test_main_function_with_violations(tmp_path: Path) -> None:
     backend_dir = tmp_path / "backend"
     backend_dir.mkdir()
 
-    # Create lazy_handling directory
-    lazy_handling_dir = backend_dir / "onyx" / "lazy_handling"
-    lazy_handling_dir.mkdir(parents=True)
-
-    # Create registry file
-    registry_file = lazy_handling_dir / "lazy_import_registry.py"
-    registry_file.write_text(
-        """
-lazy_vertexai: "vertexai" = LazyModule("vertexai")
-"""
-    )
-
     # Create a Python file with violations (avoid "test" in name)
-    test_file = backend_dir / "violation_module.py"
-    test_file.write_text(
+    violation_file = backend_dir / "violation_module.py"
+    violation_file.write_text(
         """
 import vertexai
-from vertexai import generative_models
+from transformers import AutoTokenizer
 """
     )
 
@@ -292,68 +269,21 @@ from vertexai import generative_models
     script_path.parent.mkdir(parents=True)
 
     with patch("scripts.check_lazy_imports.__file__", str(script_path)):
-        result = main()
-
-    assert result == 1  # Failure due to violations
-
-
-def test_type_checking_detection_variations() -> None:
-    """Test various TYPE_CHECKING block formats."""
-    test_cases = [
-        # Standard format
-        """
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    import vertexai
-""",
-        # Alternative format
-        """
-import typing
-
-if typing.TYPE_CHECKING:
-    import vertexai
-""",
-        # With from import
-        """
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from vertexai import generative_models
-""",
-    ]
-
-    protected_modules = {"vertexai"}
-
-    for test_content in test_cases:
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-            f.write(test_content)
-            test_path = Path(f.name)
-
-        try:
-            violations = find_direct_imports(test_path, protected_modules)
-            # All TYPE_CHECKING imports should be allowed
-            assert len(violations) == 0
-        finally:
-            test_path.unlink()
+        # Should raise RuntimeError due to violations
+        with pytest.raises(
+            RuntimeError,
+            match="Found eager imports of .+\\. You must import them only when needed",
+        ):
+            main()
 
 
-def test_mixed_type_checking_and_regular_imports() -> None:
-    """Test files with both TYPE_CHECKING and regular imports."""
-    test_content = """from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    import vertexai  # Should be allowed
-    from transformers import AutoTokenizer  # Should be allowed
-
-import os  # Regular import, should be ignored
-
-# Exit TYPE_CHECKING block
+def test_main_function_specific_modules_only() -> None:
+    """Test that only specific modules in protected list are flagged."""
+    test_content = """
+import requests  # Should not be flagged
 import vertexai  # Should be flagged
-from transformers import BertModel  # Should be flagged
-
-def some_function():
-    pass
+import transformers  # Should be flagged
+import numpy  # Should not be flagged
 """
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
@@ -362,16 +292,156 @@ def some_function():
 
     try:
         protected_modules = {"vertexai", "transformers"}
-        violations = find_direct_imports(test_path, protected_modules)
+        result = find_eager_imports(test_path, protected_modules)
 
-        # Should find 2 violations (lines 10, 11)
-        assert len(violations) == 2
+        # Should only flag vertexai and transformers
+        assert len(result.violation_lines) == 2
+        assert result.violated_modules == {"vertexai", "transformers"}
 
-        violation_lines = [line_num for line_num, _ in violations]
-        assert 10 in violation_lines  # import vertexai (outside TYPE_CHECKING)
-        assert (
-            11 in violation_lines
-        )  # from transformers import BertModel (outside TYPE_CHECKING)
+        violation_line_numbers = [line_num for line_num, _ in result.violation_lines]
+        assert 3 in violation_line_numbers  # import vertexai
+        assert 4 in violation_line_numbers  # import transformers
+        assert 2 not in violation_line_numbers  # import requests (not protected)
+        assert 5 not in violation_line_numbers  # import numpy (not protected)
 
     finally:
         test_path.unlink()
+
+
+def test_mixed_violations_and_clean_imports() -> None:
+    """Test files with both violations and allowed function-level imports."""
+    test_content = """
+# Top-level violation
+import vertexai
+
+import os  # This is fine, not protected
+
+def process_data():
+    # Function-level import is allowed
+    import vertexai
+    from transformers import AutoTokenizer
+    return "processed"
+
+class DataProcessor:
+    def __init__(self):
+        # Method-level import is allowed
+        import transformers
+        self.model = transformers.AutoModel()
+
+# Another top-level violation
+from transformers import pipeline
+"""
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write(test_content)
+        test_path = Path(f.name)
+
+    try:
+        protected_modules = {"vertexai", "transformers"}
+        result = find_eager_imports(test_path, protected_modules)
+
+        # Should find 2 top-level violations
+        assert len(result.violation_lines) == 2
+        assert result.violated_modules == {"vertexai", "transformers"}
+
+        violation_line_numbers = [line_num for line_num, _ in result.violation_lines]
+        assert 3 in violation_line_numbers  # import vertexai (top-level)
+        assert (
+            20 in violation_line_numbers
+        )  # from transformers import pipeline (top-level)
+
+        # Function and method level imports should not be flagged
+        assert 9 not in violation_line_numbers  # import vertexai (in function)
+        assert (
+            10 not in violation_line_numbers
+        )  # from transformers import AutoTokenizer (in function)
+        assert 16 not in violation_line_numbers  # import transformers (in method)
+
+    finally:
+        test_path.unlink()
+
+
+def test_find_python_files_basic() -> None:
+    """Test finding Python files with basic filtering."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        backend_dir = Path(tmp_dir)
+
+        # Create various files
+        (backend_dir / "normal.py").write_text("import os")
+        (backend_dir / "test_file.py").write_text("import os")  # Should be excluded
+        (backend_dir / "file_test.py").write_text("import os")  # Should be excluded
+
+        # Create subdirectories
+        (backend_dir / "subdir").mkdir()
+        (backend_dir / "subdir" / "normal.py").write_text("import os")
+
+        tests_dir = backend_dir / "tests"
+        tests_dir.mkdir()
+        (tests_dir / "test_something.py").write_text("import os")  # Should be excluded
+
+        # Test with no ignore directories
+        files = find_python_files(backend_dir, set())
+        file_names = [f.name for f in files]
+
+        assert "normal.py" in file_names
+        assert "test_file.py" not in file_names
+        assert "file_test.py" not in file_names
+        assert "test_something.py" not in file_names
+        assert (
+            len([f for f in files if f.name == "normal.py"]) == 2
+        )  # One in root, one in subdir
+
+
+def test_find_python_files_ignore_directories() -> None:
+    """Test finding Python files with ignored directories."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        backend_dir = Path(tmp_dir)
+
+        # Create files in various directories
+        (backend_dir / "normal.py").write_text("import os")
+
+        model_server_dir = backend_dir / "model_server"
+        model_server_dir.mkdir()
+        (model_server_dir / "model.py").write_text(
+            "import transformers"
+        )  # Should be excluded
+
+        ignored_dir = backend_dir / "ignored"
+        ignored_dir.mkdir()
+        (ignored_dir / "should_be_ignored.py").write_text(
+            "import vertexai"
+        )  # Should be excluded
+
+        # Create a file with ignored directory name in filename (should be included)
+        (backend_dir / "model_server_utils.py").write_text("import os")
+
+        # Test with ignore directories
+        files = find_python_files(backend_dir, {"model_server", "ignored"})
+        file_names = [f.name for f in files]
+
+        assert "normal.py" in file_names
+        assert (
+            "model.py" not in file_names
+        )  # Excluded because in model_server directory
+        assert (
+            "should_be_ignored.py" not in file_names
+        )  # Excluded because in ignored directory
+        assert (
+            "model_server_utils.py" in file_names
+        )  # Included because not in directory, just filename
+
+
+def test_find_python_files_nested_ignore() -> None:
+    """Test that ignored directories work with nested paths."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        backend_dir = Path(tmp_dir)
+
+        # Create nested structure
+        nested_path = backend_dir / "some" / "path" / "model_server" / "nested"
+        nested_path.mkdir(parents=True)
+        (nested_path / "deep_model.py").write_text("import transformers")
+
+        files = find_python_files(backend_dir, {"model_server"})
+
+        # Should exclude the deeply nested file
+        assert len(files) == 0
