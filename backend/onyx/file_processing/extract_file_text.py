@@ -17,9 +17,6 @@ from typing import NamedTuple
 from zipfile import BadZipFile
 
 import chardet
-from markitdown import FileConversionException
-from markitdown import MarkItDown
-from markitdown import UnsupportedFormatException
 from PIL import Image
 from pypdf import PdfReader
 from pypdf.errors import PdfStreamError
@@ -330,6 +327,10 @@ def docx_to_text_and_images(
     file_name: str = "",
     image_callback: Callable[[bytes, str], None] | None = None,
 ) -> tuple[str, Sequence[tuple[bytes, str]]]:
+    from markitdown import FileConversionException
+    from markitdown import MarkItDown
+    from markitdown import UnsupportedFormatException
+
     """
     Extract text from a docx.
     Return (text_content, list_of_images).
@@ -372,6 +373,10 @@ def docx_to_text_and_images(
 
 
 def pptx_to_text(file: IO[Any], file_name: str = "") -> str:
+    from markitdown import FileConversionException
+    from markitdown import MarkItDown
+    from markitdown import UnsupportedFormatException
+
     md = MarkItDown(enable_plugins=False)
     try:
         presentation = md.convert(to_bytesio(file))
@@ -388,6 +393,10 @@ def pptx_to_text(file: IO[Any], file_name: str = "") -> str:
 
 
 def xlsx_to_text(file: IO[Any], file_name: str = "") -> str:
+    from markitdown import FileConversionException
+    from markitdown import MarkItDown
+    from markitdown import UnsupportedFormatException
+
     md = MarkItDown(enable_plugins=False)
     try:
         workbook = md.convert(to_bytesio(file))
