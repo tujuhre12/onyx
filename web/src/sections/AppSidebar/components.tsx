@@ -66,14 +66,14 @@ export function SidebarButton({
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <div
-              className={`relative h-[1.75rem]`}
+              className={`relative h-[1.5rem]`}
               onClick={(event) => {
                 event.stopPropagation();
                 setOpen(!open);
               }}
             >
               <div
-                className={`h-[1.75rem] w-[1.75rem] ${open ? "flex" : "hidden group-hover:flex"} w-[1rem]`}
+                className={`h-[1.5rem] w-[1.5rem] ${open ? "flex" : "hidden group-hover:flex"} w-[1rem]`}
               />
               <div
                 className={`absolute inset-0 w-full h-full flex flex-col justify-center items-center rounded-08 hover:bg-background-tint-00 ${open && "bg-background-tint-00"}`}
