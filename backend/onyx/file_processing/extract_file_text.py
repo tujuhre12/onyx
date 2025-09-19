@@ -327,9 +327,11 @@ def docx_to_text_and_images(
     file_name: str = "",
     image_callback: Callable[[bytes, str], None] | None = None,
 ) -> tuple[str, Sequence[tuple[bytes, str]]]:
-    from markitdown import FileConversionException
-    from markitdown import MarkItDown
-    from markitdown import UnsupportedFormatException
+    from markitdown import (
+        FileConversionException,
+        UnsupportedFormatException,
+        MarkItDown,
+    )
 
     """
     Extract text from a docx.
@@ -373,9 +375,11 @@ def docx_to_text_and_images(
 
 
 def pptx_to_text(file: IO[Any], file_name: str = "") -> str:
-    from markitdown import FileConversionException
-    from markitdown import MarkItDown
-    from markitdown import UnsupportedFormatException
+    from markitdown import (
+        FileConversionException,
+        UnsupportedFormatException,
+        MarkItDown,
+    )
 
     md = MarkItDown(enable_plugins=False)
     try:
@@ -393,9 +397,11 @@ def pptx_to_text(file: IO[Any], file_name: str = "") -> str:
 
 
 def xlsx_to_text(file: IO[Any], file_name: str = "") -> str:
-    from markitdown import FileConversionException
-    from markitdown import MarkItDown
-    from markitdown import UnsupportedFormatException
+    from markitdown import (
+        FileConversionException,
+        UnsupportedFormatException,
+        MarkItDown,
+    )
 
     md = MarkItDown(enable_plugins=False)
     try:
