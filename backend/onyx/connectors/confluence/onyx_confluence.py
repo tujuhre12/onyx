@@ -47,9 +47,6 @@ from onyx.redis.redis_pool import get_redis_client
 from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_with_timeout
 
-# if TYPE_CHECKING:
-#     from atlassian import Confluence  # type:ignore[import-untyped]
-
 logger = setup_logger()
 
 
@@ -96,8 +93,6 @@ class OnyxConfluence:
             CONFLUENCE_CONNECTOR_USER_PROFILES_OVERRIDE
         ),
     ) -> None:
-        # from atlassian import Confluence  # type:ignore[import-untyped]
-
         self._is_cloud = is_cloud
         self._url = url.rstrip("/")
         self._credentials_provider = credentials_provider
@@ -217,7 +212,7 @@ class OnyxConfluence:
         self,
         **kwargs: Any,
     ) -> None:
-        # from atlassian import Confluence  # type:ignore[import-untyped]
+        from atlassian import Confluence  # type:ignore[import-untyped]
 
         merged_kwargs = {**self.shared_base_kwargs, **kwargs}
         # add special timeout to make sure that we don't hang indefinitely
@@ -297,8 +292,6 @@ class OnyxConfluence:
         credentials: dict[str, Any],
         **kwargs: Any,
     ) -> Confluence:
-        # from atlassian import Confluence  # type:ignore[import-untyped]
-
         """Called internally to init the connection. Distributed locking
         to prevent multiple threads from modifying the credentials
         must be handled around this function."""
