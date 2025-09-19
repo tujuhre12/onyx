@@ -1,11 +1,10 @@
 import logging
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 from typing import Set
-
-from pydantic import BaseModel
 
 # Configure the logger
 logging.basicConfig(
@@ -17,7 +16,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class EagerImportResult(BaseModel):
+@dataclass
+class EagerImportResult:
     """Result of checking a file for eager imports."""
 
     violation_lines: List[tuple[int, str]]  # (line_number, line_content) tuples
