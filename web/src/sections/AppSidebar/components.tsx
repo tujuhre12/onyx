@@ -11,6 +11,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import SvgEditBig from "@/icons/edit-big";
+import SvgEdit from "@/icons/edit";
+import SvgShare from "@/icons/share";
+import SvgTrash from "@/icons/trash";
 
 export interface SidebarButtonProps {
   className?: string;
@@ -39,7 +43,7 @@ export function SidebarButton({
 
   const content = (
     <button
-      className={`w-full h-min flex flex-row gap-spacing-interline py-spacing-interline px-padding-button hover:bg-background-tint-01 ${active && "bg-background-tint-00"} rounded-08 items-center group ${hideTitle && "justify-center"} ${className}`}
+      className={`w-full flex flex-row gap-spacing-interline py-spacing-interline px-padding-button hover:bg-background-tint-01 ${active && "bg-background-tint-00"} ${open && "bg-background-tint-01"} rounded-08 items-center group ${hideTitle && "justify-center"} ${className}`}
       onClick={onClick}
       onMouseLeave={() => setOpen(false)}
     >
@@ -63,17 +67,23 @@ export function SidebarButton({
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <div
-              className="relative group-hover:w-[1rem]"
+              className={`relative h-[1.5rem] ${open && "w-[1.5rem]"}`}
               onClick={(event) => {
                 event.stopPropagation();
                 setOpen(!open);
               }}
             >
-              <div className="hidden group-hover:flex w-[1rem]" />
-              <SvgMoreHorizontal className="absolute right-[0rem] transform -translate-y-1/2 top-[0rem] invisible group-hover:visible stroke-text-03 h-[1rem] min-w-[1rem] cursor-pointer" />
+              <div
+                className={`${open ? "flex" : "hidden group-hover:flex"} w-[1.5rem]`}
+              />
+              <div className="absolute inset-0 w-full h-full flex flex-col justify-center items-center rounded-08 hover:bg-background-tint-00">
+                <SvgMoreHorizontal
+                  className={`h-[1rem] min-w-[1rem] ${open ? "visible" : "invisible group-hover:visible"} stroke-text-03`}
+                />
+              </div>
             </div>
           </PopoverTrigger>
-          <PopoverContent align="end" side="top">
+          <PopoverContent align="start" side="right">
             {kebabMenu}
           </PopoverContent>
         </Popover>
@@ -106,16 +116,37 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
   );
 }
 
-function Button(child: string, onClick?: () => void) {
+interface ButtonProps {
+  children: string;
+  onClick?: () => void;
+  icon?: React.FunctionComponent<IconProps>;
+  textClassName?: string;
+  iconClassName?: string;
+}
+
+function Button({
+  children,
+  onClick,
+  icon: Icon,
+  textClassName,
+  iconClassName,
+}: ButtonProps) {
   return (
     <button
-      className="flex p-padding-button gap-spacing-interline rounded hover:bg-background-tint-03 w-full"
+      className="flex p-spacing-interline gap-spacing-interline rounded-08 hover:bg-background-tint-02 w-full"
       onClick={(event) => {
         event.stopPropagation();
         onClick?.();
       }}
     >
-      <Text>{child}</Text>
+      {Icon && (
+        <Icon
+          className={`h-[1.2rem] min-w-[1.2rem] stroke-text-04 ${iconClassName}`}
+        />
+      )}
+      <Text text04 className={textClassName}>
+        {children}
+      </Text>
     </button>
   );
 }
@@ -127,8 +158,10 @@ export interface AgentsMenuProps {
 
 export function AgentsMenu({ pinned, onTogglePin }: AgentsMenuProps) {
   return (
-    <div className="flex flex-col">
-      {Button(pinned ? "Unpin chat" : "Pin chat", onTogglePin)}
+    <div className="flex flex-col gap-spacing-inline">
+      <Button onClick={onTogglePin}>
+        {pinned ? "Unpin chat" : "Pin chat"}
+      </Button>
     </div>
   );
 }
@@ -145,10 +178,22 @@ export function RecentChatMenu({
   onDelete,
 }: RecentChatMenuProps) {
   return (
-    <div className="flex flex-col">
-      {Button("Share", onShare)}
-      {Button("Rename", onRename)}
-      {Button("Delete", onDelete)}
+    <div className="flex flex-col gap-spacing-inline">
+      <Button onClick={onShare} icon={SvgShare}>
+        Share
+      </Button>
+      <Button onClick={onRename} icon={SvgEdit}>
+        Rename
+      </Button>
+      <div className="border-b mx-spacing-interline" />
+      <Button
+        onClick={onDelete}
+        icon={SvgTrash}
+        iconClassName="!stroke-action-danger-05"
+        textClassName="!text-action-danger-05"
+      >
+        Delete
+      </Button>
     </div>
   );
 }
