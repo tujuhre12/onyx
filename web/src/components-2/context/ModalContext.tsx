@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscape } from "@/hooks/useEscape";
 import {
   createContext,
   useContext,
@@ -32,19 +33,7 @@ export function ModalProvider({ children }: ModalProviderProps) {
     return openModal === id;
   }
 
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-
-      event.preventDefault();
-      setOpenModal(undefined);
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
+  useEscape(() => setOpenModal(undefined));
 
   return (
     <ModalContext.Provider value={{ isOpen, toggleModal }}>

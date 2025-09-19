@@ -1,11 +1,25 @@
 const fonts = {
-  hero: "font-hero",
-  heading: "font-heading",
-  subheading: "font-subheading",
-  callout: "font-callout",
-  button: "font-button",
-  main: "font-main",
-  secondary: "font-secondary",
+  // Heading
+  headingH1: "font-heading-h1",
+  headingH2: "font-heading-h2",
+  headingH3: "font-heading-h3",
+  headingH3Muted: "font-heading-h3-muted",
+
+  // Main
+  mainBody: "font-main-body",
+  mainMuted: "font-main-muted",
+  mainAction: "font-main-action",
+  mainMono: "font-main-mono",
+
+  // Secondary
+  secondaryBody: "font-secondary-body",
+  secondaryAction: "font-secondary-action",
+  secondaryMono: "font-secondary-mono",
+
+  // Figure
+  figureSmallLabel: "font-figure-small-label",
+  figureSmallValue: "font-figure-small-value",
+  figureSmallKeystroke: "font-figure-small-keystroke",
 };
 
 const colors = {
@@ -27,16 +41,23 @@ const colors = {
 export interface TextProps extends React.HTMLAttributes<HTMLElement> {
   nowrap?: boolean;
 
-  // size
-  hero?: boolean;
-  heading?: boolean;
-  subheading?: boolean;
-  callout?: boolean;
-  button?: boolean;
-  main?: boolean;
-  secondary?: boolean;
+  // Fonts
+  headingH1?: boolean;
+  headingH2?: boolean;
+  headingH3?: boolean;
+  headingH3Muted?: boolean;
+  mainBody?: boolean;
+  mainMuted?: boolean;
+  mainAction?: boolean;
+  mainMono?: boolean;
+  secondaryBody?: boolean;
+  secondaryAction?: boolean;
+  secondaryMono?: boolean;
+  figureSmallLabel?: boolean;
+  figureSmallValue?: boolean;
+  figureSmallKeystroke?: boolean;
 
-  // color
+  // Colors
   text05?: boolean;
   text04?: boolean;
   text03?: boolean;
@@ -47,13 +68,20 @@ export interface TextProps extends React.HTMLAttributes<HTMLElement> {
 
 export default function Text({
   nowrap,
-  hero,
-  heading,
-  subheading,
-  callout,
-  button,
-  main,
-  secondary,
+  headingH1,
+  headingH2,
+  headingH3,
+  headingH3Muted,
+  mainBody,
+  mainMuted,
+  mainAction,
+  mainMono,
+  secondaryBody,
+  secondaryAction,
+  secondaryMono,
+  figureSmallLabel,
+  figureSmallValue,
+  figureSmallKeystroke,
   text05,
   text04,
   text03,
@@ -63,21 +91,35 @@ export default function Text({
   children,
   className,
 }: TextProps) {
-  const font = hero
-    ? "hero"
-    : heading
-      ? "heading"
-      : subheading
-        ? "subheading"
-        : callout
-          ? "callout"
-          : button
-            ? "button"
-            : main
-              ? "main"
-              : secondary
-                ? "secondary"
-                : "main";
+  const font = headingH1
+    ? "headingH1"
+    : headingH2
+      ? "headingH2"
+      : headingH3
+        ? "headingH3"
+        : headingH3Muted
+          ? "headingH3Muted"
+          : mainBody
+            ? "mainBody"
+            : mainMuted
+              ? "mainMuted"
+              : mainAction
+                ? "mainAction"
+                : mainMono
+                  ? "mainMono"
+                  : secondaryBody
+                    ? "secondaryBody"
+                    : secondaryAction
+                      ? "secondaryAction"
+                      : secondaryMono
+                        ? "secondaryMono"
+                        : figureSmallLabel
+                          ? "figureSmallLabel"
+                          : figureSmallValue
+                            ? "figureSmallValue"
+                            : figureSmallKeystroke
+                              ? "figureSmallKeystroke"
+                              : "mainBody";
 
   const color = text01
     ? "text01"

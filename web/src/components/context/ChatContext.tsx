@@ -69,12 +69,14 @@ export function ChatProvider({ value, children }: ChatProviderProps) {
       console.error("Error refreshing chat sessions:", error);
     }
   };
+
   const refreshFolders = async () => {
     const response = await fetch("/api/folder");
     if (!response.ok) throw new Error("Failed to fetch folders");
     const { folders } = await response.json();
     setFolders(folders);
   };
+
   const refreshInputPrompts = async () => {
     const response = await fetch("/api/input_prompt");
     if (!response.ok) throw new Error("Failed to fetch input prompts");

@@ -118,3 +118,5 @@ export const CREDENTIAL_TYPE_DEFINITION_KEY = "type_definition_key";
 export const CREDENTIAL_JSON = "credential_json";
 
 export const ANONYMOUS_USER_NAME = "Anonymous User";
+
+export const MODAL_ROOT_ID = "modal-root";

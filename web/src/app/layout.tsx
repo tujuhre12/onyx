@@ -8,6 +8,7 @@ import {
   GTM_ENABLED,
   SERVER_SIDE_ONLY__PAID_ENTERPRISE_FEATURES_ENABLED,
   NEXT_PUBLIC_CLOUD_ENABLED,
+  MODAL_ROOT_ID,
 } from "@/lib/constants";
 import { Metadata } from "next";
 import { buildClientUrl } from "@/lib/utilsSS";
@@ -66,11 +67,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const dynamic = "force-dynamic";
 
-export default async function RootLayout({
-  children,
-}: {
+interface LayoutProps {
   children: React.ReactNode;
-}) {
+}
+
+export default async function Layout({ children }: LayoutProps) {
   const [combinedSettings, agents, user, authTypeMetadata] = await Promise.all([
     fetchSettingsSS(),
     fetchAgentsData(),
@@ -157,7 +158,7 @@ export default async function RootLayout({
         <Suspense fallback={null}>
           <PostHogPageView />
         </Suspense>
-        {children}
+        <div id={MODAL_ROOT_ID}>{children}</div>
         {process.env.NEXT_PUBLIC_POSTHOG_KEY && <WebVitals />}
       </DocumentsProvider>
     </AppProvider>

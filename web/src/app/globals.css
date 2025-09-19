@@ -303,25 +303,6 @@
     /* --------------------------------- */
 
     /* --------------------------------- */
-    /* FONT SIZES */
-
-    --hero-font-size: calc(3.25rem * var(--text-scale-factor, 1));
-    --heading-font-size: calc(2rem * var(--text-scale-factor, 1));
-    --subheading-font-size: calc(1.5rem * var(--text-scale-factor, 1));
-    --callout-font-size: calc(1.25rem * var(--text-scale-factor, 1));
-    --main-font-size: calc(1rem * var(--text-scale-factor, 1));
-    --secondary-font-size: calc(0.78rem * var(--text-scale-factor, 1));
-
-    --hero-line-height: calc(3.5rem * var(--text-scale-factor, 1));
-    --heading-line-height: calc(2.25rem * var(--text-scale-factor, 1));
-    --subheading-line-height: calc(1.75rem * var(--text-scale-factor, 1));
-    --callout-line-height: calc(1.5rem * var(--text-scale-factor, 1));
-    --main-line-height: calc(1.25rem * var(--text-scale-factor, 1));
-    --secondary-line-height: calc(1rem * var(--text-scale-factor, 1));
-
-    /* --------------------------------- */
-
-    /* --------------------------------- */
     /* BORDER RADII */
 
     --border-radius-02: 0.125rem;
@@ -499,61 +480,118 @@
   }
 }
 
-/* FONT RELATED STUFF */
+/* NEW FONT RELATED STUFF */
 
-.font-base-regular {
-  font-style: normal;
-  font-weight: 500;
-}
-
-.font-base-medium {
-  font-style: normal;
+.font-heading-h1 {
+  font-family: var(--font-hanken-grotesk);
+  line-height: 133%;
+  letter-spacing: -1%;
   font-weight: 600;
+  font-size: 48px;
 }
 
-.font-hero {
-  @apply font-base-medium;
-  font-size: var(--hero-font-size);
-  line-height: var(--hero-line-height);
-  letter-spacing: var(--headings-letter-spacing);
+.font-heading-h2 {
+  font-family: var(--font-hanken-grotesk);
+  line-height: 133%;
+  letter-spacing: -1%;
+  font-weight: 600;
+  font-size: 24px;
 }
 
-.font-heading {
-  @apply font-base-medium;
-  font-size: var(--heading-font-size);
-  line-height: var(--heading-line-height);
-  letter-spacing: var(--headings-letter-spacing);
+.font-heading-h3 {
+  font-family: var(--font-hanken-grotesk);
+  line-height: 133%;
+  letter-spacing: -1%;
+  font-weight: 700;
+  font-size: 18px;
 }
 
-.font-subheading {
-  @apply font-base-medium;
-  font-size: var(--subheading-font-size);
-  line-height: var(--subheading-line-height);
-  letter-spacing: var(--headings-letter-spacing);
+.font-heading-h3-muted {
+  font-family: var(--font-hanken-grotesk);
+  line-height: 133%;
+  letter-spacing: -1%;
+  font-weight: 500;
+  font-size: 18px;
 }
 
-.font-callout {
-  @apply font-base-regular;
-  font-size: var(--callout-font-size);
-  line-height: var(--callout-line-height);
+.font-main-body {
+  font-family: var(--font-hanken-grotesk);
+  line-height: 140%;
+  letter-spacing: 0%;
+  font-weight: 500;
+  font-size: 14px;
 }
 
-.font-button {
-  @apply font-base-medium;
-  font-size: var(--main-font-size);
-  line-height: var(--main-line-height);
+.font-main-muted {
+  font-family: var(--font-hanken-grotesk);
+  line-height: 140%;
+  letter-spacing: 0%;
+  font-weight: 400;
+  font-size: 14px;
 }
 
-.font-main {
-  @apply font-base-regular;
-  font-size: var(--main-font-size);
-  line-height: var(--main-line-height);
+.font-main-action {
+  font-family: var(--font-hanken-grotesk);
+  line-height: 140%;
+  letter-spacing: 0%;
+  font-weight: 600;
+  font-size: 14px;
 }
 
-.font-secondary {
-  @apply font-base-regular;
-  font-size: var(--secondary-font-size);
-  line-height: var(--secondary-line-height);
+.font-main-mono {
+  font-family: var(--font-dm-mono);
+  line-height: 140%;
+  letter-spacing: 0%;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.font-secondary-body {
+  font-family: var(--font-hanken-grotesk);
+  line-height: 133%;
+  letter-spacing: 0%;
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.font-secondary-action {
+  font-family: var(--font-hanken-grotesk);
+  line-height: 133%;
+  letter-spacing: 0%;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.font-secondary-mono {
+  font-family: var(--font-dm-mono);
+  line-height: 133%;
+  letter-spacing: 0%;
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.font-figure-small-label {
+  font-family: var(--font-hanken-grotesk);
+  line-height: 120%;
+  letter-spacing: 0%;
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.font-figure-small-value {
+  font-family: var(--font-hanken-grotesk);
+  line-height: 120%;
+  letter-spacing: 0%;
+  font-weight: 400;
+  font-size: 10px;
+}
+
+.font-figure-small-keystroke {
+  font-family: var(--font-sf-pro);
+  line-height: 133%;
+  letter-spacing: -5%;
+  font-weight: 400;
+  font-size: 12px;
 }
 
 /* SCROLL BAR */

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useCallback, useState, memo } from "react";
+import React, { useCallback, useState, memo, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSettingsContext } from "@/components/settings/SettingsProvider";
+import { SEARCH_PARAM_NAMES } from "@/app/chat/services/searchParams";
 import { OnyxLogoTypeIcon, OnyxIcon } from "@/components/icons/icons";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import Text from "@/components-2/Text";
@@ -30,7 +31,7 @@ import SvgLightbulbSimple from "@/icons/lightbulb-simple";
 import Settings from "@/sections/AppSidebar/Settings";
 import {
   AgentsMenu,
-  RecentChatMenu,
+  MenuButton,
   SidebarButton,
   SidebarSection,
 } from "@/sections/AppSidebar/components";
@@ -41,6 +42,12 @@ import { buildChatUrl } from "@/app/chat/services/lib";
 import { useAgentsContext } from "@/components-2/context/AgentsContext";
 import { useAppSidebarContext } from "@/components-2/context/AppSidebarContext";
 import { ModalIds, useModal } from "@/components-2/context/ModalContext";
+import { ChatSession } from "@/app/chat/interfaces";
+import ConfirmationModal from "@/components-2/modals/ConfirmationModal";
+import SvgTrash from "@/icons/trash";
+import SvgShare from "@/icons/share";
+import SvgEdit from "@/icons/edit";
+import Truncated from "@/components-2/Truncated";
 
 // Visible-agents = pinned-agents + current-agent (if current-agent not in pinned-agents)
 // OR Visible-agents = pinned-agents (if current-agent in pinned-agents)
@@ -58,37 +65,140 @@ function buildVisibleAgents(
   return [visibleAgents, currentAgentIsPinned];
 }
 
-interface ChatSessionNameProps {
-  chatSession: any;
+interface ChatButtonProps {
+  chatSession: ChatSession;
   onChatSessionClick: (chatSessionId: string | null) => void;
 }
 
-function ChatSessionNameInner({
-  chatSession,
-  onChatSessionClick,
-}: ChatSessionNameProps) {
-  const [renaming, setRenaming] = useState(false);
+function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
+  const searchParams = useSearchParams();
+  const [kebabMenuOpen, setKebabMenuOpen] = useState(false);
+  const [renamingChat, setRenamingChat] = useState(false);
+  const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] =
+    useState(false);
+  const currentChatId = searchParams.get(SEARCH_PARAM_NAMES.CHAT_ID);
 
   return (
-    <SidebarButton
-      key={chatSession.id}
-      icon={SvgBubbleText}
-      // active={currentChatId === chatSession.id}
-      onClick={() => onChatSessionClick(chatSession.id)}
-      kebabMenu={<RecentChatMenu />}
-    >
-      {renaming ? (
-        <></>
-      ) : chatSession.name ? (
-        chatSession.name
-      ) : (
-        <Text text01>Unnamed Chat</Text>
+    <>
+      {deleteConfirmationModalOpen && (
+        <ConfirmationModal
+          title="Delete"
+          icon={SvgTrash}
+          description="Are you sure you want to delete this chat? This action cannot be undone."
+          onClose={() => setDeleteConfirmationModalOpen(false)}
+        >
+          <div className="flex flex-row justify-end items-center gap-spacing-interline">
+            <button className="p-spacing-interline rounded-08 border bg-background-tint-01 hover:bg-background-tint-02">
+              <Text>Cancel</Text>
+            </button>
+            <button className="p-spacing-interline rounded-08 border bg-action-danger-05 hover:bg-action-danger-04">
+              <Text>Delete</Text>
+            </button>
+          </div>
+        </ConfirmationModal>
       )}
-    </SidebarButton>
+
+      <SidebarButton
+        key={chatSession.id}
+        icon={SvgBubbleText}
+        active={currentChatId === chatSession.id}
+        onClick={() => onChatSessionClick(chatSession.id)}
+        kebabMenu={
+          <div className="flex flex-col gap-spacing-inline">
+            <MenuButton icon={SvgShare}>Share</MenuButton>
+            <MenuButton
+              icon={SvgEdit}
+              onClick={() => {
+                setKebabMenuOpen(false);
+                setRenamingChat(true);
+              }}
+            >
+              Rename
+            </MenuButton>
+            <div className="border-b mx-padding-button" />
+            <MenuButton
+              icon={SvgTrash}
+              textClassName="!text-action-danger-05"
+              iconClassName="!stroke-action-danger-05"
+              onClick={() => {
+                setKebabMenuOpen(false);
+                setDeleteConfirmationModalOpen(true);
+              }}
+            >
+              Delete
+            </MenuButton>
+          </div>
+        }
+        kebabMenuOpen={kebabMenuOpen}
+        setKebabMenuOpen={setKebabMenuOpen}
+        disableKebabHover={renamingChat}
+        className={
+          renamingChat ? "border-[0.125rem] border-text-04" : undefined
+        }
+      >
+        {renamingChat ? (
+          <textarea
+            className="bg-transparent outline-none resize-none h-auto overflow-x-auto overflow-y-hidden whitespace-nowrap no-scrollbar"
+            rows={1}
+          >
+            {chatSession.name}
+          </textarea>
+        ) : chatSession.name ? (
+          chatSession.name
+        ) : (
+          <Truncated>
+            <Text text01>Unnamed Chat</Text>
+          </Truncated>
+        )}
+      </SidebarButton>
+    </>
   );
 }
 
-const ChatSessionName = memo(ChatSessionNameInner);
+const ChatButton = memo(ChatButtonInner);
+
+interface AgentsButtonProps {
+  visibleAgent: MinimalPersonaSnapshot;
+  currentAgent: MinimalPersonaSnapshot | null;
+  onAgentClick: (agentId: number) => void;
+  onTogglePin: (agent: MinimalPersonaSnapshot, pinned: boolean) => void;
+}
+
+function AgentsButtonInner({
+  visibleAgent,
+  currentAgent,
+  onAgentClick,
+  onTogglePin,
+}: AgentsButtonProps) {
+  const { pinnedAgents } = useAgentsContext();
+  const pinned = pinnedAgents.some(
+    (pinnedAgent) => pinnedAgent.id === visibleAgent.id
+  );
+
+  const [kebabMenuOpen, setKebabMenuOpen] = useState(false);
+
+  return (
+    <SortableItem id={visibleAgent.id}>
+      <SidebarButton
+        icon={SvgLightbulbSimple}
+        kebabMenu={
+          <AgentsMenu
+            pinned={pinned}
+            onTogglePin={() => onTogglePin(visibleAgent, !pinned)}
+          />
+        }
+        kebabMenuOpen={kebabMenuOpen}
+        setKebabMenuOpen={setKebabMenuOpen}
+        active={currentAgent?.id === visibleAgent.id}
+        onClick={() => onAgentClick(visibleAgent.id)}
+      >
+        {visibleAgent.name}
+      </SidebarButton>
+    </SortableItem>
+  );
+}
+
+const AgentsButton = memo(AgentsButtonInner);
 
 interface SortableItemProps {
   id: number;
@@ -116,7 +226,7 @@ function SortableItem({ id, children }: SortableItemProps) {
   );
 }
 
-export default function AppSidebar() {
+function AppSidebarInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { pinnedAgents, setPinnedAgents, togglePinnedAgent, currentAgent } =
@@ -127,13 +237,16 @@ export default function AppSidebar() {
   const { chatSessions } = useChatContext();
   const combinedSettings = useSettingsContext();
 
-  const currentChatId = searchParams?.get("chatId");
+  const currentChatId = searchParams?.get(SEARCH_PARAM_NAMES.CHAT_ID);
 
-  const [visibleAgents, currentAgentIsPinned] = buildVisibleAgents(
-    pinnedAgents,
-    currentAgent
+  const [visibleAgents, currentAgentIsPinned] = useMemo(
+    () => buildVisibleAgents(pinnedAgents, currentAgent),
+    [pinnedAgents, currentAgent]
   );
-  const visibleAgentIds = visibleAgents.map((agent) => agent.id);
+  const visibleAgentIds = useMemo(
+    () => visibleAgents.map((agent) => agent.id),
+    [visibleAgents]
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -145,6 +258,7 @@ export default function AppSidebar() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
@@ -192,7 +306,10 @@ export default function AppSidebar() {
     return null;
   }
 
-  const isHistoryEmpty = !chatSessions || chatSessions.length === 0;
+  const isHistoryEmpty = useMemo(
+    () => !chatSessions || chatSessions.length === 0,
+    [chatSessions]
+  );
 
   return (
     <>
@@ -256,30 +373,15 @@ export default function AppSidebar() {
                     items={visibleAgentIds}
                     strategy={verticalListSortingStrategy}
                   >
-                    {visibleAgents.map((visibleAgent, index) => {
-                      const pinned = pinnedAgents.some(
-                        (pinnedAgent) => pinnedAgent.id === visibleAgent.id
-                      );
-                      return (
-                        <SortableItem id={visibleAgent.id} key={index}>
-                          <SidebarButton
-                            icon={SvgLightbulbSimple}
-                            kebabMenu={
-                              <AgentsMenu
-                                pinned={pinned}
-                                onTogglePin={() =>
-                                  togglePinnedAgent(visibleAgent, !pinned)
-                                }
-                              />
-                            }
-                            active={currentAgent?.id === visibleAgent.id}
-                            onClick={() => handleAgentClick(visibleAgent.id)}
-                          >
-                            {visibleAgent.name}
-                          </SidebarButton>
-                        </SortableItem>
-                      );
-                    })}
+                    {visibleAgents.map((visibleAgent) => (
+                      <AgentsButton
+                        key={visibleAgent.id}
+                        visibleAgent={visibleAgent}
+                        currentAgent={currentAgent}
+                        onAgentClick={handleAgentClick}
+                        onTogglePin={togglePinnedAgent}
+                      />
+                    ))}
                   </SortableContext>
                 </DndContext>
                 <SidebarButton
@@ -294,12 +396,12 @@ export default function AppSidebar() {
               {/* Recents */}
               <SidebarSection title="Recents">
                 {isHistoryEmpty ? (
-                  <Text secondary text01 className="px-padding-button">
+                  <Text text01 className="px-padding-button">
                     Try sending a message! Your chat history will appear here.
                   </Text>
                 ) : (
                   chatSessions.map((chatSession) => (
-                    <ChatSessionName
+                    <ChatButton
                       key={chatSession.id}
                       chatSession={chatSession}
                       onChatSessionClick={handleChatSessionClick}
@@ -319,3 +421,8 @@ export default function AppSidebar() {
     </>
   );
 }
+
+const AppSidebar = memo(AppSidebarInner);
+AppSidebar.displayName = "AppSidebar";
+
+export default AppSidebar;

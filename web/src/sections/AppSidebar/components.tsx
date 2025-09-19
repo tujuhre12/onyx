@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Dispatch, SetStateAction, useState } from "react";
 import { IconProps } from "@/components/icons/icons";
 import Text from "@/components-2/Text";
 import Truncated from "@/components-2/Truncated";
@@ -11,9 +11,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import SvgEdit from "@/icons/edit";
-import SvgShare from "@/icons/share";
-import SvgTrash from "@/icons/trash";
 import { SvgProps } from "@/icons";
 
 export interface SidebarButtonProps {
@@ -21,6 +18,9 @@ export interface SidebarButtonProps {
   icon?: React.FunctionComponent<IconProps>;
   active?: boolean;
   kebabMenu?: React.ReactNode;
+  kebabMenuOpen?: boolean;
+  setKebabMenuOpen?: Dispatch<SetStateAction<boolean>>;
+  disableKebabHover?: boolean;
   grey?: boolean;
   hideTitle?: boolean;
   href?: string;
@@ -33,17 +33,18 @@ export function SidebarButton({
   icon: Icon,
   active,
   kebabMenu,
+  kebabMenuOpen,
+  setKebabMenuOpen,
+  disableKebabHover,
   grey,
   hideTitle,
   href,
   onClick,
   children,
 }: SidebarButtonProps) {
-  const [open, setOpen] = useState<boolean>(false);
-
   const content = (
     <button
-      className={`w-full flex flex-row gap-spacing-interline py-spacing-interline px-padding-button hover:bg-background-tint-01 ${active && "bg-background-tint-00"} ${open && "bg-background-tint-01"} rounded-08 items-center group ${hideTitle && "justify-center"} ${className}`}
+      className={`w-full flex flex-row gap-spacing-interline py-spacing-interline px-padding-button hover:bg-background-tint-01 ${active && "bg-background-tint-00"} ${kebabMenuOpen && "bg-background-tint-01"} rounded-08 items-center group ${hideTitle && "justify-center"} ${className}`}
       onClick={onClick}
     >
       {Icon && (
@@ -59,36 +60,41 @@ export function SidebarButton({
             </Text>
           </Truncated>
         ) : (
-          <Truncated>{children}</Truncated>
+          children
         ))}
       {!hideTitle && <div className="flex-1" />}
-      {kebabMenu && !hideTitle && (
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <div
-              className={`relative h-[1.5rem]`}
-              onClick={(event) => {
-                event.stopPropagation();
-                setOpen(!open);
-              }}
-            >
-              <div
-                className={`h-[1.5rem] w-[1.5rem] ${open ? "flex" : "hidden group-hover:flex"} w-[1rem]`}
-              />
-              <div
-                className={`absolute inset-0 w-full h-full flex flex-col justify-center items-center rounded-08 hover:bg-background-tint-00 ${open && "bg-background-tint-00"}`}
-              >
-                <SvgMoreHorizontal
-                  className={`h-[1rem] min-w-[1rem] ${open ? "visible" : "invisible group-hover:visible"} stroke-text-03`}
-                />
-              </div>
-            </div>
-          </PopoverTrigger>
-          <PopoverContent align="start" side="right">
-            {kebabMenu}
-          </PopoverContent>
-        </Popover>
-      )}
+      {kebabMenu &&
+        kebabMenuOpen !== undefined &&
+        setKebabMenuOpen &&
+        !hideTitle && (
+          <Popover open={kebabMenuOpen} onOpenChange={setKebabMenuOpen}>
+            <PopoverTrigger asChild>
+              {!disableKebabHover && (
+                <div
+                  className={`relative h-[1.5rem]`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setKebabMenuOpen((prev) => !prev);
+                  }}
+                >
+                  <div
+                    className={`h-[1.5rem] w-[1.5rem] ${kebabMenuOpen ? "flex" : "hidden group-hover:flex"} w-[1rem]`}
+                  />
+                  <div
+                    className={`absolute inset-0 w-full h-full flex flex-col justify-center items-center rounded-08 hover:bg-background-tint-00 ${kebabMenuOpen && "bg-background-tint-00"}`}
+                  >
+                    <SvgMoreHorizontal
+                      className={`h-[1rem] min-w-[1rem] ${kebabMenuOpen ? "visible" : "invisible group-hover:visible"} stroke-text-03`}
+                    />
+                  </div>
+                </div>
+              )}
+            </PopoverTrigger>
+            <PopoverContent align="start" side="right">
+              {kebabMenu}
+            </PopoverContent>
+          </Popover>
+        )}
     </button>
   );
 
@@ -106,7 +112,7 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
   return (
     <div className="flex flex-col gap-spacing-inline">
       <Text
-        secondary
+        secondaryBody
         text02
         className="px-padding-button sticky top-[0rem] bg-background-tint-02 z-10 py-spacing-interline"
       >
@@ -117,7 +123,7 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
   );
 }
 
-export interface ButtonProps {
+export interface MenuButtonProps {
   children?: string;
   onClick?: () => void;
   href?: string;
@@ -126,14 +132,14 @@ export interface ButtonProps {
   iconClassName?: string;
 }
 
-export function Button({
+export function MenuButton({
   children,
   onClick,
   href,
   icon: Icon,
   textClassName,
   iconClassName,
-}: ButtonProps) {
+}: MenuButtonProps) {
   const content = (
     <button
       className="flex p-padding-button gap-spacing-interline rounded-08 hover:bg-background-tint-02 w-full"
@@ -166,41 +172,9 @@ export interface AgentsMenuProps {
 export function AgentsMenu({ pinned, onTogglePin }: AgentsMenuProps) {
   return (
     <div className="flex flex-col gap-spacing-inline">
-      <Button onClick={onTogglePin}>
+      <MenuButton onClick={onTogglePin}>
         {pinned ? "Unpin chat" : "Pin chat"}
-      </Button>
-    </div>
-  );
-}
-
-export interface RecentChatMenuProps {
-  onShare?: () => void;
-  onRename?: () => void;
-  onDelete?: () => void;
-}
-
-export function RecentChatMenu({
-  onShare,
-  onRename,
-  onDelete,
-}: RecentChatMenuProps) {
-  return (
-    <div className="flex flex-col gap-spacing-inline">
-      <Button onClick={onShare} icon={SvgShare}>
-        Share
-      </Button>
-      <Button onClick={onRename} icon={SvgEdit}>
-        Rename
-      </Button>
-      <div className="border-b mx-spacing-interline" />
-      <Button
-        onClick={onDelete}
-        icon={SvgTrash}
-        iconClassName="!stroke-action-danger-05"
-        textClassName="!text-action-danger-05"
-      >
-        Delete
-      </Button>
+      </MenuButton>
     </div>
   );
 }

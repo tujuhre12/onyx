@@ -11,7 +11,7 @@ import { useUser } from "@/components/user/UserProvider";
 import { Avatar } from "@/components/ui/avatar";
 import Text from "@/components-2/Text";
 import Truncated from "@/components-2/Truncated";
-import { Button, SidebarButton } from "@/sections/AppSidebar/components";
+import { MenuButton, SidebarButton } from "@/sections/AppSidebar/components";
 import {
   Popover,
   PopoverContent,
@@ -62,9 +62,7 @@ export default function Settings({ folded }: SettingsProps) {
               <Avatar
                 className={`h-[1.2rem] w-[1.2rem] flex items-center justify-center bg-background-neutral-inverted-00 ${className}`}
               >
-                <Text inverted secondary={folded}>
-                  {user?.email?.[0]?.toUpperCase() || "A"}
-                </Text>
+                <Text inverted>{user?.email?.[0]?.toUpperCase() || "A"}</Text>
               </Avatar>
             )}
             hideTitle={folded}
@@ -81,26 +79,26 @@ export default function Settings({ folded }: SettingsProps) {
       <PopoverContent align="end" side="right">
         <div className="flex flex-col gap-spacing-inline overscroll-contain">
           {dropdownItems.map((item, index) => (
-            <Button key={index} href={item.link}>
+            <MenuButton key={index} href={item.link}>
               {item.title}
-            </Button>
+            </MenuButton>
           ))}
 
           {showAdminPanel ? (
-            <Button href="/admin/indexing/status" icon={SvgSettings}>
+            <MenuButton href="/admin/indexing/status" icon={SvgSettings}>
               Admin Panel
-            </Button>
+            </MenuButton>
           ) : (
             showCuratorPanel && (
-              <Button href="/admin/indexing/status" icon={SvgSettings}>
+              <MenuButton href="/admin/indexing/status" icon={SvgSettings}>
                 Curator Panel
-              </Button>
+              </MenuButton>
             )
           )}
 
-          <Button icon={SvgBell}>
+          <MenuButton icon={SvgBell}>
             {`Notifications ${(notifications && notifications.length) || 0 > 0 ? `(${notifications!.length})` : ""}`}
-          </Button>
+          </MenuButton>
 
           {showLogout && (
             <>
@@ -109,7 +107,7 @@ export default function Settings({ folded }: SettingsProps) {
                 dropdownItems.length > 0) && (
                 <div className="border-b mx-padding-button" />
               )}
-              <Button icon={SvgLogOut}>Log out</Button>
+              <MenuButton icon={SvgLogOut}>Log out</MenuButton>
             </>
           )}
         </div>

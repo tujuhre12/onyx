@@ -9,7 +9,7 @@ import { checkUserOwnsAssistant as checkUserOwnsAgent } from "@/lib/assistants/c
 import { useAgentsContext } from "@/components-2/context/AgentsContext";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import Text from "@/components-2/Text";
-import Modal from "@/components-2/Modal";
+import Modal from "@/components-2/modals/Modal";
 import { ModalIds, useModal } from "@/components-2/context/ModalContext";
 
 interface AgentsSectionProps {

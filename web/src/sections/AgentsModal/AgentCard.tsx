@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiMoreHorizontal, FiTrash, FiEdit, FiBarChart } from "react-icons/fi";
+import { SEARCH_PARAM_NAMES } from "@/app/chat/services/searchParams";
 
 import {
   Popover,
@@ -244,7 +245,9 @@ export default function AssistantCard({
               title="Start Chat"
               icon={PencilIcon as React.FunctionComponent<IconProps>}
               onClick={() => {
-                router.push(`/chat?assistantId=${agent.id}`);
+                router.push(
+                  `/chat?${SEARCH_PARAM_NAMES.PERSONA_ID}=${agent.id}`
+                );
                 closeModal();
               }}
               tooltip="Start a new chat with this agent"
