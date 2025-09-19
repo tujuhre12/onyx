@@ -707,6 +707,7 @@ def stream_chat_message_objects(
             messages=system_message + other_messages,
             cfg=answer.graph_config,
             llm=answer.graph_tooling.primary_llm,
+            search_tool=answer.graph_tooling.search_tool,
         )
         # yield from streamed
         # Process streamed packets using the new packet processing module

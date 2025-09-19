@@ -3,8 +3,11 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from collections.abc import AsyncGenerator
 from collections.abc import Generator
+from dataclasses import dataclass
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import List
 
@@ -12,6 +15,7 @@ import litellm
 from agents import Agent
 from agents import function_tool
 from agents import ModelSettings
+from agents import RunContextWrapper
 from agents import Runner
 from agents.extensions.models.litellm_model import LitellmModel
 from braintrust import traced
@@ -20,9 +24,23 @@ from onyx.agents.agent_search.dr.sub_agents.web_search.clients.exa_client import
     ExaClient,
 )
 from onyx.agents.agent_search.models import GraphConfig
+from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.llm.interfaces import (
     LLM,
-)  # sync call that supports stream=True with an iterator
+)
+from onyx.tools.models import SearchToolOverrideKwargs
+from onyx.tools.tool_implementations.search.search_tool import (
+    SEARCH_RESPONSE_SUMMARY_ID,
+)
+from onyx.tools.tool_implementations.search.search_tool import SearchResponseSummary
+from onyx.tools.tool_implementations.search.search_tool import SearchTool
+
+
+@dataclass
+class MyContext:
+    """Context class to hold search tool and other dependencies"""
+
+    search_tool: SearchTool | None = None
 
 
 def short_tag(link: str, i: int) -> str:
@@ -95,7 +113,7 @@ def llm_completion(
     messages: List[Dict[str, Any]],
     tools: List[Dict[str, Any]],
     stream: bool = False,
-) -> Dict[str, Any]:
+) -> Any:
     return litellm.completion(
         model=model_name,
         temperature=temperature,
@@ -105,9 +123,46 @@ def llm_completion(
     )
 
 
+@function_tool
+@traced(name="internal_search")
+def internal_search(context_wrapper: RunContextWrapper[MyContext], query: str) -> str:
+    """Search internal company vector database for information. Sources
+    include:
+    - Fireflies (internal company call transcripts)
+    - Google Drive (internal company documents)
+    - Gmail (internal company emails)
+    - Linear (internal company issues)
+    - Slack (internal company messages)
+    """
+    search_tool = context_wrapper.context.search_tool
+    if search_tool is None:
+        raise RuntimeError("Search tool not available in context")
+
+    with get_session_with_current_tenant() as search_db_session:
+        for tool_response in search_tool.run(
+            query=query,
+            override_kwargs=SearchToolOverrideKwargs(
+                force_no_rerank=True,
+                alternate_db_session=search_db_session,
+                skip_query_analysis=True,
+                original_query=query,
+            ),
+        ):
+            # get retrieved docs to send to the rest of the graph
+            if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
+                response = cast(SearchResponseSummary, tool_response.response)
+                retrieved_docs = response.top_sections
+
+                break
+    return retrieved_docs
+
+
 async def stream_chat_async(
-    messages: List[Dict[str, Any]], cfg: GraphConfig, llm: LLM
-) -> Generator[Dict[str, Any], None, None]:
+    messages: List[Dict[str, Any]],
+    cfg: GraphConfig,
+    llm: LLM,
+    search_tool: SearchTool,
+) -> AsyncGenerator[Dict[str, Any], None]:
     """
     Yields events suitable for SSE/WebSocket using OpenAI Agents framework:
       {"type":"delta","text": "..."}         -> stream to user
@@ -122,12 +177,21 @@ async def stream_chat_async(
         api_key=llm.config.api_key,
     )
 
+    # Get the search tool from config
+    search_tool = cfg.tooling.search_tool
+
+    # Create context with search tool
+    context = MyContext(search_tool=search_tool)
+
     # Create agent with tools
     agent = Agent(
         name="Assistant",
-        instructions="You are a helpful assistant that can search the web and fetch content from URLs.",
+        instructions="""
+        You are a helpful assistant that can search the web, fetch content from URLs,
+        and search internal databases.
+        """,
         model=litellm_model,
-        tools=[web_search, web_fetch, reasoning],
+        tools=[web_search, web_fetch, reasoning, internal_search],
         model_settings=ModelSettings(
             temperature=llm.config.temperature,
             include_usage=True,  # Track usage metrics
@@ -143,8 +207,10 @@ async def stream_chat_async(
             user_message += f"\nAssistant: {msg.get('content', '')}"
 
     try:
-        # Run the agent with timeout
-        result = await asyncio.wait_for(Runner.run(agent, user_message), timeout=200)
+        # Run the agent with timeout and context
+        result = await asyncio.wait_for(
+            Runner.run(agent, user_message, context=context), timeout=200
+        )
 
         # Stream the final output
         if result.final_output:
@@ -159,7 +225,10 @@ async def stream_chat_async(
 
 
 def stream_chat_sync(
-    messages: List[Dict[str, Any]], cfg: GraphConfig, llm: LLM
+    messages: List[Dict[str, Any]],
+    cfg: GraphConfig,
+    llm: LLM,
+    search_tool: SearchTool,
 ) -> Generator[Dict[str, Any], None, None]:
     """
     Synchronous wrapper for the async streaming function.
@@ -173,16 +242,16 @@ def stream_chat_sync(
     asyncio.set_event_loop(loop)
 
     try:
-        # Run the async generator
-        async_gen = stream_chat_async(messages, cfg, llm)
+        # Run the async generator and collect all items
+        async def collect_all_items():
+            items = []
+            async for item in stream_chat_async(messages, cfg, llm, search_tool):
+                items.append(item)
+            return items
 
-        # Convert async generator to sync generator
-        while True:
-            try:
-                # Get the next item from the async generator
-                item = loop.run_until_complete(async_gen.__anext__())
-                yield item
-            except StopAsyncIteration:
-                break
+        # Get all items from async generator
+        items = loop.run_until_complete(collect_all_items())
+        for item in items:
+            yield item
     finally:
         loop.close()
