@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useCallback, useState, memo, useMemo } from "react";
+import React, {
+  useCallback,
+  useState,
+  memo,
+  useMemo,
+  useRef,
+  useEffect,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSettingsContext } from "@/components/settings/SettingsProvider";
 import { SEARCH_PARAM_NAMES } from "@/app/chat/services/searchParams";
@@ -38,10 +45,11 @@ import {
 import AgentsModal from "@/sections/AgentsModal";
 import { useChatContext } from "@/components/context/ChatContext";
 import SvgBubbleText from "@/icons/bubble-text";
-import { buildChatUrl } from "@/app/chat/services/lib";
+import { buildChatUrl, renameChatSession } from "@/app/chat/services/lib";
 import { useAgentsContext } from "@/components-2/context/AgentsContext";
 import { useAppSidebarContext } from "@/components-2/context/AppSidebarContext";
 import { ModalIds, useModal } from "@/components-2/context/ModalContext";
+import { useClickOutside } from "@/hooks/useClickOutside";
 import { ChatSession } from "@/app/chat/interfaces";
 import ConfirmationModal from "@/components-2/modals/ConfirmationModal";
 import SvgTrash from "@/icons/trash";
@@ -76,7 +84,43 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
   const [renamingChat, setRenamingChat] = useState(false);
   const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] =
     useState(false);
+  const [chatName, setChatName] = useState(chatSession.name);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const currentChatId = searchParams.get(SEARCH_PARAM_NAMES.CHAT_ID);
+  const { refreshChatSessions } = useChatContext();
+
+  useEffect(() => {
+    if (renamingChat && textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.select();
+    }
+  }, [renamingChat]);
+
+  // Handle click outside to abort rename
+  useClickOutside(
+    textareaRef,
+    () => {
+      // Reset to original name and exit rename mode
+      setChatName(chatSession.name);
+      setRenamingChat(false);
+    },
+    {
+      enabled: renamingChat,
+    }
+  );
+
+  const handleSaveRename = useCallback(async () => {
+    if (chatName.trim() && chatName !== chatSession.name) {
+      try {
+        await renameChatSession(chatSession.id, chatName.trim());
+        await refreshChatSessions();
+      } catch (error) {
+        console.error("Failed to rename chat:", error);
+        setChatName(chatSession.name);
+      }
+    }
+    setRenamingChat(false);
+  }, [chatName, chatSession.id, chatSession.name, refreshChatSessions]);
 
   return (
     <>
@@ -138,11 +182,22 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
       >
         {renamingChat ? (
           <textarea
-            className="bg-transparent outline-none resize-none h-auto overflow-x-auto overflow-y-hidden whitespace-nowrap no-scrollbar"
+            ref={textareaRef}
+            value={chatName}
+            onChange={(event) => setChatName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleSaveRename();
+              } else if (event.key === "Escape") {
+                event.preventDefault();
+                setChatName(chatSession.name);
+                setRenamingChat(false);
+              }
+            }}
+            className="bg-transparent outline-none resize-none h-auto overflow-x-auto overflow-y-hidden whitespace-nowrap no-scrollbar font-main-body"
             rows={1}
-          >
-            {chatSession.name}
-          </textarea>
+          />
         ) : chatSession.name ? (
           chatSession.name
         ) : (
