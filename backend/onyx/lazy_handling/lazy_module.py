@@ -22,8 +22,7 @@ class LazyModule:
                     except (ImportError, ValueError) as e:
                         self._import_failed = True
                         raise ImportError(
-                            f"Failed to import '{self.module_name}': {e}. "
-                            f"Ensure the package is installed."
+                            f"Failed to import '{self.module_name}': {e}. Ensure the package is installed."
                         ) from e
 
         try:
