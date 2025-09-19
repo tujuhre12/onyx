@@ -76,7 +76,9 @@ def web_search(query: str, outer_ctx: Dict[str, Any]) -> Dict[str, Any]:
 register_tool(
     ToolSpec(
         name="web_search",
-        description="Search the web for information.",
+        description="""
+        Search the web for information. This tool provides urls and short snippets,
+        but does not fetch the full content of the urls.""",
         parameters={
             "type": "object",
             "properties": {"query": {"type": "string"}},
@@ -110,7 +112,7 @@ def web_fetch(urls: List[str], outer_ctx: Dict[str, Any]) -> Dict[str, Any]:
 register_tool(
     ToolSpec(
         name="web_fetch",
-        description="Fetch the contents of a list of URLs.",
+        description="Fetch the fullcontents of a list of URLs.",
         parameters={
             "type": "object",
             "properties": {"urls": {"type": "array", "items": {"type": "string"}}},
@@ -134,10 +136,12 @@ def reasoning(outer_ctx: Dict[str, Any]) -> Dict[str, Any]:
     revised_messages = [
         {"role": "system", "content": PRIVATE_SCRATCHPAD_SYS},
     ] + messages[1:]
-    results = litellm.completion(
-        model=llm.config.model_name,
+    results = llm_completion(
+        model_name=llm.config.model_name,
         temperature=llm.config.temperature,
         messages=revised_messages,
+        tools=[],
+        stream=False,
     )
     return {"results": results["choices"][0]["message"]["content"]}
 
@@ -145,11 +149,30 @@ def reasoning(outer_ctx: Dict[str, Any]) -> Dict[str, Any]:
 register_tool(
     ToolSpec(
         name="reasoning",
-        description="Reason about the message history and the goal.",
+        description="""
+        Use this tool for reasoning. Powerful for complex questions and
+        tasks, or questions that require multiple steps to answer.""",
         parameters={"type": "object", "properties": {}, "required": []},
         func=reasoning,
     )
 )
+
+
+@traced(name="llm_completion", type="llm")
+def llm_completion(
+    model_name: str,
+    temperature: float,
+    messages: List[Dict[str, Any]],
+    tools: List[Dict[str, Any]],
+    stream: bool = False,
+) -> Dict[str, Any]:
+    return litellm.completion(
+        model=model_name,
+        temperature=temperature,
+        messages=messages,
+        tools=tools,
+        stream=stream,
+    )
 
 
 def tool_specs_for_openai() -> List[Dict[str, Any]]:
@@ -197,12 +220,12 @@ def stream_chat_sync(
             yield {"type": "delta", "text": "\n[Timed out while composing reply]"}
             break
         # Start a streaming completion (sync iterator of deltas)
-        stream_iter = litellm.completion(
-            model=llm.config.model_name,
+        stream_iter = llm_completion(
+            model_name=llm.config.model_name,
             temperature=llm.config.temperature,
             messages=messages,
             tools=tools_decl,
-            stream=True,  # iterator of chunks
+            stream=True,
         )
 
         # Accumulate assistant text & tool call chunks

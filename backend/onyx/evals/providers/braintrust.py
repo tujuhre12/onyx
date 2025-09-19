@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from autoevals import Factuality
+from autoevals.llm import LLMClassifier
 from braintrust import Eval
 from braintrust import EvalCase
 from braintrust import init_dataset
@@ -10,6 +10,33 @@ from onyx.configs.app_configs import BRAINTRUST_PROJECT
 from onyx.evals.models import EvalationAck
 from onyx.evals.models import EvalConfigurationOptions
 from onyx.evals.models import EvalProvider
+
+
+quality_classifier = LLMClassifier(
+    name="quality",
+    prompt_template="""
+    You are a customer doing a trial of the product Onyx. Onyx provides a UI for users to chat with an LLM
+     and search for information, similar to ChatGPT. You think ChatGPT's answer quality is great, and
+     you want to rate Onyx's response relativeto ChatGPT's response.\n
+    [Question]: {{input}}\n
+    [ChatGPT Answer]: {{expected}}\n
+    [Onyx Answer]: {{output}}\n
+
+    Please rate the quality of the Onyx answer relative to the ChatGPT answer on a scale of A to E:
+    A: The Onyx answer is great and is as good or better than the ChatGPT answer.
+    B: The Onyx answer is good and and comparable to the ChatGPT answer.
+    C: The Onyx answer is fair.
+    D: The Onyx answer is poor and is worse than the ChatGPT answer.
+    E: The Onyx answer is terrible and is much worse than the ChatGPT answer.
+    """,
+    choice_scores={
+        "A": 1,
+        "B": 0.75,
+        "C": 0.5,
+        "D": 0.25,
+        "E": 0,
+    },
+)
 
 
 class BraintrustEvalProvider(EvalProvider):
@@ -34,7 +61,7 @@ class BraintrustEvalProvider(EvalProvider):
                 name=BRAINTRUST_PROJECT,
                 data=eval_data,
                 task=task,
-                scores=[Factuality()],
+                scores=[quality_classifier],
                 metadata={**configuration.model_dump()},
                 max_concurrency=BRAINTRUST_MAX_CONCURRENCY,
                 no_send_logs=no_send_logs,
@@ -51,7 +78,7 @@ class BraintrustEvalProvider(EvalProvider):
                 name=BRAINTRUST_PROJECT,
                 data=eval_cases,
                 task=task,
-                scores=[Factuality()],
+                scores=[quality_classifier],
                 metadata={**configuration.model_dump()},
                 max_concurrency=BRAINTRUST_MAX_CONCURRENCY,
                 no_send_logs=no_send_logs,
