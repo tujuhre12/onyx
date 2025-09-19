@@ -89,6 +89,7 @@ test("Assistant Drag and Drop", async ({ page }, testInfo) => {
   expect(orderAfterDragUp[1]).toBe(initialOrder[0]);
 
   // Drag last assistant to second position
+  console.log("Dragging last assistant to second position");
   const assistants = page.locator('[data-testid^="assistant-["]');
   const lastIndex = (await assistants.count()) - 1;
   const lastAssistant = assistants.nth(lastIndex);
