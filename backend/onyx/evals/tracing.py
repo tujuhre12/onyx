@@ -7,18 +7,24 @@ from braintrust_langchain.callbacks import BraintrustCallbackHandler
 from onyx.configs.app_configs import BRAINTRUST_API_KEY
 from onyx.configs.app_configs import BRAINTRUST_PROJECT
 
+MASKING_LENGTH = 20000
 
-def _truncate_str(s: str, head: int = 800, tail: int = 200) -> str:
-    if len(s) <= head + tail:
-        return s
-    return f"{s[:head]}…{s[-tail:]}[TRUNCATED {len(s)} chars to 10,000]"
+
+def _truncate_str(s: str) -> str:
+    tail = MASKING_LENGTH // 5
+    head = MASKING_LENGTH - tail
+    return f"{s[:head]}…{s[-tail:]}[TRUNCATED {len(s)} chars to {MASKING_LENGTH}]"
+
+
+def _should_mask(data: Any) -> bool:
+    return len(str(data)) > MASKING_LENGTH
 
 
 def _mask(data: Any) -> Any:
-    data_str = str(data)
-    if len(data_str) > 10_000:
-        return _truncate_str(data_str)
-    return data
+    """Mask data based on span type. Only mask generic and function spans, not root, task, score, or LLM spans."""
+    if not _should_mask(data):
+        return data
+    return _truncate_str(str(data))
 
 
 def setup_braintrust() -> None:
