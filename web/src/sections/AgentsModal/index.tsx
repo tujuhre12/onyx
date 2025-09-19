@@ -58,7 +58,7 @@ function AgentBadgeSelector({
 }: AgentBadgeSelectorProps) {
   return (
     <div
-      className={`bg-background-tint-03 hover:bg-background-tint-02 ${selected && "bg-action-link-05 hover:bg-action-link-04"} border p-spacing-interline rounded-08`}
+      className={`bg-background-tint-03 hover:bg-background-tint-02 ${selected && "!bg-action-link-05 hover:!bg-action-link-04"} border p-spacing-interline rounded-08`}
       onClick={toggleFilter}
     >
       <Text secondaryBody>{text}</Text>
