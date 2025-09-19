@@ -11,10 +11,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import SvgEditBig from "@/icons/edit-big";
 import SvgEdit from "@/icons/edit";
 import SvgShare from "@/icons/share";
 import SvgTrash from "@/icons/trash";
+import { SvgProps } from "@/icons";
 
 export interface SidebarButtonProps {
   className?: string;
@@ -45,7 +45,6 @@ export function SidebarButton({
     <button
       className={`w-full flex flex-row gap-spacing-interline py-spacing-interline px-padding-button hover:bg-background-tint-01 ${active && "bg-background-tint-00"} ${open && "bg-background-tint-01"} rounded-08 items-center group ${hideTitle && "justify-center"} ${className}`}
       onClick={onClick}
-      onMouseLeave={() => setOpen(false)}
     >
       {Icon && (
         <Icon
@@ -116,24 +115,26 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
   );
 }
 
-interface ButtonProps {
-  children: string;
+export interface ButtonProps {
+  children?: string;
   onClick?: () => void;
-  icon?: React.FunctionComponent<IconProps>;
+  href?: string;
+  icon?: React.FunctionComponent<SvgProps>;
   textClassName?: string;
   iconClassName?: string;
 }
 
-function Button({
+export function Button({
   children,
   onClick,
+  href,
   icon: Icon,
   textClassName,
   iconClassName,
 }: ButtonProps) {
-  return (
+  const content = (
     <button
-      className="flex p-spacing-interline gap-spacing-interline rounded-08 hover:bg-background-tint-02 w-full"
+      className="flex p-padding-button gap-spacing-interline rounded-08 hover:bg-background-tint-02 w-full"
       onClick={(event) => {
         event.stopPropagation();
         onClick?.();
@@ -149,6 +150,10 @@ function Button({
       </Text>
     </button>
   );
+
+  if (!href) return content;
+
+  return <Link href={href}>{content}</Link>;
 }
 
 export interface AgentsMenuProps {
