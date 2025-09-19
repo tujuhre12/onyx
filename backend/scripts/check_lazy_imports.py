@@ -126,7 +126,7 @@ def main() -> None:
     backend_dir = Path(__file__).parent.parent  # Go up from scripts/ to backend/
 
     # Modules that should be imported lazily
-    modules_to_lazy_import = {"vertexai"}
+    modules_to_lazy_import = {"vertexai", "nltk"}
 
     ignore_directories = {"model_server"}
 

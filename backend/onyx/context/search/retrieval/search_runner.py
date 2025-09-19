@@ -2,7 +2,6 @@ import string
 from collections.abc import Callable
 from uuid import UUID
 
-import nltk  # type:ignore
 from sqlalchemy.orm import Session
 
 from onyx.agents.agent_search.shared_graph_utils.models import QueryExpansionType
@@ -60,6 +59,8 @@ def _dedupe_chunks(
 
 
 def download_nltk_data() -> None:
+    import nltk
+
     resources = {
         "stopwords": "corpora/stopwords",
         # "wordnet": "corpora/wordnet",  # Not in use
@@ -166,7 +167,6 @@ def doc_index_retrieval(
         and query.expanded_queries.keywords_expansions
         and query.expanded_queries.semantic_expansions
     ):
-
         keyword_embeddings_thread = run_in_background(
             get_query_embeddings,
             query.expanded_queries.keywords_expansions,
@@ -233,13 +233,11 @@ def doc_index_retrieval(
         # use all three retrieval methods to retrieve top chunks
 
         if query.search_type == SearchType.SEMANTIC and top_semantic_chunks is not None:
-
             all_top_chunks += top_semantic_chunks
 
         top_chunks = _dedupe_chunks(all_top_chunks)
 
     else:
-
         top_base_chunks_standard_ranking = wait_on_background(
             top_base_chunks_standard_ranking_thread
         )
@@ -395,8 +393,7 @@ def retrieve_chunks(
 
     if not top_chunks:
         logger.warning(
-            f"Hybrid ({query.search_type.value.capitalize()}) search returned no results "
-            f"with filters: {query.filters}"
+            f"Hybrid ({query.search_type.value.capitalize()}) search returned no results with filters: {query.filters}"
         )
         return []
 
