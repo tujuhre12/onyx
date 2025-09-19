@@ -22,11 +22,11 @@ from datetime import timedelta
 from datetime import timezone
 from typing import Any
 from typing import cast
+from typing import TYPE_CHECKING
 from typing import TypeVar
 from urllib.parse import quote
 
 import bs4
-from atlassian import Confluence  # type:ignore
 from redis import Redis
 from requests import HTTPError
 
@@ -46,6 +46,9 @@ from onyx.file_processing.html_utils import format_document_soup
 from onyx.redis.redis_pool import get_redis_client
 from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_with_timeout
+
+if TYPE_CHECKING:
+    from atlassian import Confluence
 
 logger = setup_logger()
 
@@ -93,6 +96,7 @@ class OnyxConfluence:
             CONFLUENCE_CONNECTOR_USER_PROFILES_OVERRIDE
         ),
     ) -> None:
+
         self._is_cloud = is_cloud
         self._url = url.rstrip("/")
         self._credentials_provider = credentials_provider
@@ -127,6 +131,11 @@ class OnyxConfluence:
             if confluence_user_profiles_override
             else None
         )
+
+    def _get_confluence(self) -> "Confluence":
+        from atlassian import Confluence
+
+        return Confluence
 
     def _renew_credentials(self) -> tuple[dict[str, Any], bool]:
         """credential_json - the current json credentials
