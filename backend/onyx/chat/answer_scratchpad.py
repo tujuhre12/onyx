@@ -9,6 +9,7 @@ from typing import Dict
 from typing import List
 
 import litellm
+from braintrust import traced
 
 from onyx.agents.agent_search.dr.sub_agents.web_search.clients.exa_client import (
     ExaClient,
@@ -51,7 +52,7 @@ def register_tool(spec: ToolSpec) -> None:
     TOOL_REGISTRY[spec.name] = spec
 
 
-# Example tool
+@traced(name="web_search")
 def web_search(query: str, outer_ctx: Dict[str, Any]) -> Dict[str, Any]:
     exa_client = ExaClient()
     hits = exa_client.search(query)
@@ -86,6 +87,7 @@ register_tool(
 )
 
 
+@traced(name="web_fetch")
 def web_fetch(urls: List[str], outer_ctx: Dict[str, Any]) -> Dict[str, Any]:
     exa_client = ExaClient()
     docs = exa_client.contents(urls)
@@ -119,6 +121,7 @@ register_tool(
 )
 
 
+@traced(name="reasoning")
 def reasoning(outer_ctx: Dict[str, Any]) -> Dict[str, Any]:
     PRIVATE_SCRATCHPAD_SYS = (
         "You are writing PRIVATE scratch notes for yourself. "
