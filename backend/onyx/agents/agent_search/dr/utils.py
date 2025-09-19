@@ -4,7 +4,6 @@ import re
 from langchain.schema.messages import AIMessage
 from langchain.schema.messages import BaseMessage
 from langchain.schema.messages import HumanMessage
-from langchain.schema.messages import SystemMessage
 
 from onyx.agents.agent_search.dr.models import AggregatedDRContext
 from onyx.agents.agent_search.dr.models import IterationAnswer
@@ -13,9 +12,11 @@ from onyx.agents.agent_search.kb_search.graph_utils import build_document_contex
 from onyx.agents.agent_search.shared_graph_utils.operators import (
     dedup_inference_section_list,
 )
+from onyx.configs.constants import MessageType
 from onyx.context.search.models import InferenceSection
 from onyx.context.search.models import SavedSearchDoc
 from onyx.context.search.utils import chunks_or_sections_to_search_docs
+from onyx.llm.models import PreviousMessage
 from onyx.tools.tool_implementations.web_search.web_search_tool import (
     WebSearchTool,
 )
@@ -242,38 +243,24 @@ def get_chat_history_string(chat_history: list[BaseMessage], max_messages: int) 
 
 
 def get_chat_history_messages(
-    chat_history: list[BaseMessage], max_messages: int
-) -> list[SystemMessage | HumanMessage | AIMessage]:
+    chat_history: list[PreviousMessage], max_messages: int
+) -> list[HumanMessage | AIMessage]:
     """
     Get the chat history (up to max_messages) as a list of messages.
     """
-    past_messages = chat_history[-max_messages * 2 :]
-    filtered_past_messages = copy.deepcopy(past_messages)  # type: ignore
-    for past_message_number, past_message in enumerate(past_messages):
-
-        if isinstance(past_message.content, list):
-            removal_indices = []
-            for content_piece_number, content_piece in enumerate(past_message.content):
-                if (
-                    isinstance(content_piece, dict)
-                    and content_piece.get("type") != "text"
-                ):
-                    removal_indices.append(content_piece_number)
-
-            # Only rebuild the content list if there are items to remove
-            if removal_indices:
-                filtered_past_messages[past_message_number].content = [
-                    content_piece
-                    for content_piece_number, content_piece in enumerate(
-                        past_message.content
-                    )
-                    if content_piece_number not in removal_indices
-                ]
-
+    past_raw_messages = chat_history[-max_messages * 2 :]
+    filtered_past_raw_messages = []
+    for past_raw_message_number, past_raw_message in enumerate(past_raw_messages):
+        if past_raw_message.message_type == MessageType.USER:
+            filtered_past_raw_messages.append(
+                HumanMessage(content=past_raw_message.message)
+            )
         else:
-            continue
+            filtered_past_raw_messages.append(
+                AIMessage(content=past_raw_message.message)
+            )
 
-    return filtered_past_messages  # type: ignore
+    return filtered_past_raw_messages  # type: ignore
 
 
 def get_prompt_question(

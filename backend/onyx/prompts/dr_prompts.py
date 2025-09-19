@@ -1857,7 +1857,7 @@ Relationship Types:
 
 TOOL_CHOICE_WRAPPER_PROMPT = PromptTemplate(
     f"""
-Here are the tools/sub-agents and tool calls that were determined to be needed next to answer the user's question:
+Here are the tools/sub-agent calls that were determined to be needed next to answer the user's question:
 
 #TOOL CALLS
 {SEPARATOR_LINE}

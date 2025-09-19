@@ -55,7 +55,10 @@ from onyx.server.query_and_chat.streaming_models import StreamingType
 from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_with_timeout
 
+
 logger = setup_logger()
+
+_SOURCE_MATERIAL_PROMPT = "Can yut please put together all of the supporting material?"
 
 
 def extract_citation_numbers(text: str) -> list[int]:
@@ -333,6 +336,10 @@ def closer(
             final_questions=final_questions or "(No final question specifications)",
             final_user_instructions=assistant_task_prompt
             or "(No final user instructions)",
+        )
+
+        message_history_for_final_answer.append(
+            HumanMessage(content=_SOURCE_MATERIAL_PROMPT)
         )
         message_history_for_final_answer.append(
             AIMessage(

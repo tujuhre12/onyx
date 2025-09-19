@@ -84,6 +84,10 @@ from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
 
+_ANSWER_COMMENT_PROMPT = "I will now answer your question directly."
+
+_CONSIDER_TOOLS_PROMPT = "I will now concier the tools and sub-agents that are available to answer your question."
+
 
 def _format_tool_name(tool_name: str) -> str:
     """Convert tool name to LLM-friendly format."""
@@ -432,24 +436,18 @@ def clarifier(
         assistant_system_prompt = PromptTemplate(DEFAULT_DR_SYSTEM_PROMPT).build()
         assistant_task_prompt = ""
 
-    chat_history_string = (
-        get_chat_history_string(
-            graph_config.inputs.prompt_builder.message_history,
-            MAX_CHAT_HISTORY_MESSAGES,
-        )
-        or "(No chat history yet available)"
-    )
+    # chat_history_string = (
+    #     get_chat_history_string(
+    #         graph_config.inputs.prompt_builder.message_history,
+    #         MAX_CHAT_HISTORY_MESSAGES,
+    #     )
+    #     or "(No chat history yet available)"
+    # )
 
     chat_history_messages = get_chat_history_messages(
-        graph_config.inputs.prompt_builder.message_history, MAX_CHAT_HISTORY_MESSAGES
+        graph_config.inputs.prompt_builder.raw_message_history,
+        MAX_CHAT_HISTORY_MESSAGES,
     )
-
-    if len(chat_history_messages) > 0:
-        chat_history_messages = [
-            SystemMessage(content="Here are the previous messages in the chat history:")
-        ] + chat_history_messages
-    else:
-        chat_history_messages = []
 
     uploaded_text_context = (
         _construct_uploaded_text_context(graph_config.inputs.files)
@@ -495,7 +493,21 @@ def clarifier(
     message_history_for_continuation.append(SystemMessage(content=base_system_message))
     message_history_for_continuation.extend(chat_history_messages)
     message_history_for_continuation.extend(uploaded_file_messages)
-    message_history_for_continuation.append(HumanMessage(content=original_question))
+
+    # Create message content that includes text and any available images
+    message_content: list[dict[str, Any]] = [
+        {"type": "text", "text": original_question}
+    ]
+    if uploaded_image_context:
+        message_content.extend(uploaded_image_context)
+
+    # If we only have text, use string content for backwards compatibility
+    if len(message_content) == 1:
+        message_history_for_continuation.append(HumanMessage(content=original_question))
+    else:
+        message_history_for_continuation.append(
+            HumanMessage(content=cast(list[str | dict[Any, Any]], message_content))
+        )
     message_history_for_continuation.append(AIMessage(content=QUESTION_CONFIRMATION))
 
     if not (force_use_tool and force_use_tool.force_use):
@@ -508,7 +520,7 @@ def clarifier(
         if not use_tool_calling_llm or len(available_tools) == 1:
             if len(available_tools) > 1:
                 message_history_for_continuation.append(
-                    SystemMessage(content=DECISION_PROMPT_WO_TOOL_CALLING)
+                    HumanMessage(content=DECISION_PROMPT_WO_TOOL_CALLING)
                 )
 
                 llm_decision = invoke_llm_json(
@@ -533,6 +545,10 @@ def clarifier(
 
                 answer_prompt = ANSWER_PROMPT_WO_TOOL_CALLING.build(
                     reminder=reminder,
+                )
+
+                message_history_for_continuation.append(
+                    AIMessage(content=_ANSWER_COMMENT_PROMPT)
                 )
 
                 message_history_for_continuation.append(
@@ -795,14 +811,7 @@ def clarifier(
     else:
         next_tool = DRPath.ORCHESTRATOR.value
 
-    if research_type == ResearchType.DEEP and clarification:
-        message_history_for_continuation.append(
-            AIMessage(content=clarification.clarification_question)
-        )
-        if clarification.clarification_response:
-            message_history_for_continuation.append(
-                HumanMessage(content=clarification.clarification_response)
-            )
+    message_history_for_continuation.append(AIMessage(content=_CONSIDER_TOOLS_PROMPT))
 
     return OrchestrationSetup(
         original_question=original_question,

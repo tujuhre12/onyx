@@ -36,7 +36,6 @@ from onyx.agents.agent_search.utils import create_question_prompt
 from onyx.configs.agent_configs import TF_DR_TIMEOUT_LONG
 from onyx.configs.agent_configs import TF_DR_TIMEOUT_SHORT
 from onyx.prompts.dr_prompts import DEFAULLT_DECISION_PROMPT
-from onyx.prompts.dr_prompts import NEXT_TOOL_PURPOSE_PROMPT
 from onyx.prompts.dr_prompts import REPEAT_PROMPT
 from onyx.prompts.dr_prompts import SUFFICIENT_INFORMATION_STRING
 from onyx.prompts.dr_prompts import TOOL_CHOICE_WRAPPER_PROMPT
@@ -49,6 +48,10 @@ logger = setup_logger()
 
 _DECISION_SYSTEM_PROMPT_PREFIX = "Here are general instructions by the user, which \
 may or may not influence the decision what to do next:\n\n"
+
+_PLAN_OF_RECORD_PROMPT = "Can you create a plan of record?"
+
+_NEXT_ACTION_PROMPT = "What should be the next action?"
 
 
 def _get_implied_next_tool_based_on_tool_call_history(
@@ -86,7 +89,7 @@ def orchestrator(
     clarification = state.clarification
     assistant_system_prompt = state.assistant_system_prompt
 
-    message_history_for_continuation = state.orchestration_llm_messages
+    message_history_for_continuation = list(state.orchestration_llm_messages)
     new_messages: list[SystemMessage | HumanMessage | AIMessage] = []
 
     if assistant_system_prompt:
@@ -126,24 +129,19 @@ def orchestrator(
         or "(No answer history yet available)"
     )
 
-    if (
-        research_type == ResearchType.DEEP
-        and most_recent_answer_history_wo_docs_string
-        != "(No answer history yet available)"
-    ):
-        message_history_for_continuation.append(
-            AIMessage(content=most_recent_answer_history_wo_docs_string)
-        )
-        new_messages.append(
-            AIMessage(content=most_recent_answer_history_wo_docs_string)
-        )
-    elif (
-        most_recent_answer_history_w_docs_string != "(No answer history yet available)"
-    ):
-        message_history_for_continuation.append(
-            AIMessage(content=most_recent_answer_history_w_docs_string)
-        )
-        new_messages.append(AIMessage(content=most_recent_answer_history_w_docs_string))
+    human_text = ai_text = ""
+    if most_recent_answer_history_wo_docs_string != "(No answer history yet available)":
+        human_text = f"Results from Iteration {iteration_nr - 1}?"
+        if research_type == ResearchType.DEEP:
+            ai_text = most_recent_answer_history_wo_docs_string
+        else:
+            ai_text = most_recent_answer_history_w_docs_string
+
+        message_history_for_continuation.append(HumanMessage(content=human_text))
+        new_messages.append(HumanMessage(content=human_text))
+
+        message_history_for_continuation.append(AIMessage(content=ai_text))
+        new_messages.append(AIMessage(content=ai_text))
 
     next_tool_name = None
 
@@ -367,8 +365,6 @@ def orchestrator(
             uploaded_context=uploaded_context,
         )
 
-        message_history_for_continuation.append(HumanMessage(content=decision_prompt))
-
         if remaining_time_budget > 0:
             try:
                 orchestrator_action = invoke_llm_json(
@@ -438,6 +434,18 @@ def orchestrator(
                 current_step_nr,
                 ReasoningStart(),
                 writer,
+            )
+
+            message_history_for_continuation.append(
+                HumanMessage(content=_PLAN_OF_RECORD_PROMPT)
+            )
+            new_messages.append(HumanMessage(content=_PLAN_OF_RECORD_PROMPT))
+
+            message_history_for_continuation.append(
+                AIMessage(content=f"{HIGH_LEVEL_PLAN_PREFIX}\n\n {plan_of_record.plan}")
+            )
+            new_messages.append(
+                AIMessage(content=f"{HIGH_LEVEL_PLAN_PREFIX}\n\n {plan_of_record.plan}")
             )
 
             start_time = datetime.now()
@@ -573,15 +581,13 @@ def orchestrator(
         questions="\n - " + "\n - ".join(query_list or []),
     )
 
+    message_history_for_continuation.append(HumanMessage(content=_NEXT_ACTION_PROMPT))
+    new_messages.append(HumanMessage(content=_NEXT_ACTION_PROMPT))
+
     message_history_for_continuation.append(
         AIMessage(content=tool_choice_wrapper_prompt)
     )
     new_messages.append(AIMessage(content=tool_choice_wrapper_prompt))
-
-    message_history_for_continuation.append(
-        HumanMessage(content=NEXT_TOOL_PURPOSE_PROMPT)
-    )
-    new_messages.append(HumanMessage(content=NEXT_TOOL_PURPOSE_PROMPT))
 
     purpose_tokens: list[str] = [""]
     purpose = ""
