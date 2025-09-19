@@ -1,5 +1,6 @@
 from collections.abc import Callable
 
+from autoevals import Factuality
 from braintrust import Eval
 from braintrust import EvalCase
 from braintrust import init_dataset
@@ -33,7 +34,7 @@ class BraintrustEvalProvider(EvalProvider):
                 name=BRAINTRUST_PROJECT,
                 data=eval_data,
                 task=task,
-                scores=[],
+                scores=[Factuality()],
                 metadata={**configuration.model_dump()},
                 max_concurrency=BRAINTRUST_MAX_CONCURRENCY,
                 no_send_logs=no_send_logs,
@@ -50,7 +51,7 @@ class BraintrustEvalProvider(EvalProvider):
                 name=BRAINTRUST_PROJECT,
                 data=eval_cases,
                 task=task,
-                scores=[],
+                scores=[Factuality()],
                 metadata={**configuration.model_dump()},
                 max_concurrency=BRAINTRUST_MAX_CONCURRENCY,
                 no_send_logs=no_send_logs,
