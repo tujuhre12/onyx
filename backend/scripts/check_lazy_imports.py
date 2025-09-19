@@ -1,10 +1,3 @@
-"""
-Pre-commit hook to ensure modules in lazy_import_registry.py are only imported lazily.
-
-This script prevents direct imports of modules that should be lazily loaded,
-helping maintain memory optimization and preventing import-time dependencies.
-"""
-
 import logging
 import re
 import sys

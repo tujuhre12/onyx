@@ -1,26 +1,12 @@
-"""
-Tests for the check_lazy_imports.py script.
-
-Tests cover registry parsing, violation detection, TYPE_CHECKING handling,
-and edge cases for the lazy import enforcement system.
-"""
-
-import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-# Import the functions we want to test
-
-sys.path.append(str(Path(__file__).parent.parent.parent.parent / "scripts"))
-
-from backend.scripts.check_lazy_imports import (
-    get_lazy_modules,
-    find_direct_imports,
-    main,
-)
+from scripts.check_lazy_imports import find_direct_imports
+from scripts.check_lazy_imports import get_lazy_modules
+from scripts.check_lazy_imports import main
 
 
 def test_get_lazy_modules_valid_registry():
@@ -42,7 +28,7 @@ lazy_vertexai: "vertexai" = LazyModule("vertexai")
 
     try:
         result = get_lazy_modules(registry_path)
-        expected = {"lazy_vertexai": "vertexai", "lazy_transformers": "transformers"}
+        expected = {"lazy_vertexai": "vertexai"}
         assert result == expected
     finally:
         registry_path.unlink()
@@ -270,7 +256,7 @@ from onyx.lazy_handling.lazy_import_registry import lazy_vertexai
     script_path = backend_dir / "scripts" / "check_lazy_imports.py"
     script_path.parent.mkdir(parents=True)
 
-    with patch("check_lazy_imports.__file__", str(script_path)):
+    with patch("scripts.check_lazy_imports.__file__", str(script_path)):
         result = main()
 
     assert result == 0  # Success
@@ -307,7 +293,7 @@ from vertexai import generative_models
     script_path = backend_dir / "scripts" / "check_lazy_imports.py"
     script_path.parent.mkdir(parents=True)
 
-    with patch("check_lazy_imports.__file__", str(script_path)):
+    with patch("scripts.check_lazy_imports.__file__", str(script_path)):
         result = main()
 
     assert result == 1  # Failure due to violations
