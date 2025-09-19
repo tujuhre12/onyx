@@ -87,7 +87,6 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
   const [chatName, setChatName] = useState(chatSession.name);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const currentChatId = searchParams.get(SEARCH_PARAM_NAMES.CHAT_ID);
-  const { refreshChatSessions } = useChatContext();
 
   useEffect(() => {
     if (renamingChat && textareaRef.current) {
@@ -101,26 +100,24 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
     textareaRef,
     () => {
       // Reset to original name and exit rename mode
-      setChatName(chatSession.name);
       setRenamingChat(false);
     },
-    {
-      enabled: renamingChat,
-    }
+    renamingChat
   );
 
   const handleSaveRename = useCallback(async () => {
-    if (chatName.trim() && chatName !== chatSession.name) {
+    const newChatName = chatName.trim();
+
+    if (newChatName && newChatName !== chatSession.name) {
       try {
-        await renameChatSession(chatSession.id, chatName.trim());
-        await refreshChatSessions();
+        await renameChatSession(chatSession.id, newChatName);
+        chatSession.name = newChatName;
       } catch (error) {
         console.error("Failed to rename chat:", error);
-        setChatName(chatSession.name);
       }
     }
     setRenamingChat(false);
-  }, [chatName, chatSession.id, chatSession.name, refreshChatSessions]);
+  }, [chatName, chatSession.id, chatSession.name]);
 
   return (
     <>
@@ -132,7 +129,10 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
           onClose={() => setDeleteConfirmationModalOpen(false)}
         >
           <div className="flex flex-row justify-end items-center gap-spacing-interline">
-            <button className="p-spacing-interline rounded-08 border bg-background-tint-01 hover:bg-background-tint-02">
+            <button
+              className="p-spacing-interline rounded-08 border bg-background-tint-01 hover:bg-background-tint-02"
+              onClick={() => setDeleteConfirmationModalOpen(false)}
+            >
               <Text>Cancel</Text>
             </button>
             <button className="p-spacing-interline rounded-08 border bg-action-danger-05 hover:bg-action-danger-04">
@@ -191,7 +191,6 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
                 handleSaveRename();
               } else if (event.key === "Escape") {
                 event.preventDefault();
-                setChatName(chatSession.name);
                 setRenamingChat(false);
               }
             }}

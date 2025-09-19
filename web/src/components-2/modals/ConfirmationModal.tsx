@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { SvgProps } from "@/icons";
 import Text from "@/components-2/Text";
 import SvgX from "@/icons/x";
@@ -10,7 +10,7 @@ interface ConfirmationModalProps {
   title: string;
   escapeToClose?: boolean;
   clickOutsideToClose?: boolean;
-  onClose?: () => void;
+  onClose: () => void;
   description?: React.ReactNode;
   children?: React.ReactNode;
 }
@@ -25,7 +25,7 @@ export default function ConfirmationModal({
 
   children,
 }: ConfirmationModalProps) {
-  useEscape(onClose || (() => {}), escapeToClose);
+  useEscape(onClose, escapeToClose);
 
   return (
     <CoreModal

@@ -1,23 +1,11 @@
 import { useEffect, RefObject } from "react";
 
-export interface UseClickOutsideOptions {
-  /**
-   * The event type to listen for. Defaults to 'mousedown'.
-   */
-  eventType?: keyof DocumentEventMap;
-
-  /**
-   * Whether the hook is enabled. Defaults to true.
-   */
-  enabled?: boolean;
-}
-
 /**
  * A generic hook that detects clicks outside of a referenced element.
  *
  * @param ref - A ref to the element to monitor for outside clicks
  * @param callback - Function to call when a click outside is detected
- * @param options - Configuration options for the hook
+ * @param enabled - Whether the hook is enabled. Defaults to true.
  *
  * @example
  * ```tsx
@@ -25,10 +13,7 @@ export interface UseClickOutsideOptions {
  *   const ref = useRef<HTMLDivElement>(null);
  *   const [isOpen, setIsOpen] = useState(false);
  *
- *   useClickOutside(ref, () => setIsOpen(false), {
- *     enabled: isOpen,
- *     eventType: 'mousedown'
- *   });
+ *   useClickOutside(ref, () => setIsOpen(false), isOpen);
  *
  *   return (
  *     <div ref={ref}>
@@ -44,9 +29,7 @@ export interface UseClickOutsideOptions {
  *   const dropdownRef = useRef<HTMLDivElement>(null);
  *   const [isOpen, setIsOpen] = useState(false);
  *
- *   useClickOutside(dropdownRef, () => setIsOpen(false), {
- *     enabled: isOpen
- *   });
+ *   useClickOutside(dropdownRef, () => setIsOpen(false), isOpen);
  *
  *   return (
  *     <div>
@@ -59,10 +42,8 @@ export interface UseClickOutsideOptions {
 export function useClickOutside<T extends HTMLElement>(
   ref: RefObject<T>,
   callback: () => void,
-  options: UseClickOutsideOptions = {}
+  enabled: boolean
 ): void {
-  const { eventType = "mousedown", enabled = true } = options;
-
   useEffect(() => {
     if (!enabled) {
       return;
@@ -77,12 +58,12 @@ export function useClickOutside<T extends HTMLElement>(
       }
     };
 
-    document.addEventListener(eventType, handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      document.removeEventListener(eventType, handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [ref, callback, eventType, enabled]);
+  }, [ref, callback, enabled]);
 }
 
 /**
@@ -90,12 +71,12 @@ export function useClickOutside<T extends HTMLElement>(
  *
  * @param ref - A ref to the element to monitor for outside clicks
  * @param callback - Function to call when a click outside is detected
- * @param isOpen - Whether the element is currently open/visible
+ * @param enabled - Whether the element is currently open/visible
  */
 export function useClickOutsideWhenOpen<T extends HTMLElement>(
   ref: RefObject<T>,
   callback: () => void,
-  isOpen: boolean
+  enabled: boolean
 ): void {
-  useClickOutside(ref, callback, { enabled: isOpen });
+  useClickOutside(ref, callback, enabled);
 }
