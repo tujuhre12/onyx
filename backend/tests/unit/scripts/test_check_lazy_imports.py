@@ -26,15 +26,14 @@ from backend.scripts.check_lazy_imports import (
 def test_get_lazy_modules_valid_registry():
     """Test parsing a valid registry file."""
     registry_content = """
-from backend.onyx.lazy_handling.lazy_module import LazyModule
-from backend.onyx.lazy_handling.lazy_module import TYPE_CHECKING
+from typing import TYPE_CHECKING
+
+from onyx.lazy_handling.lazy_module import LazyModule
 
 if TYPE_CHECKING:
     import vertexai
-    import transformers
 
 lazy_vertexai: "vertexai" = LazyModule("vertexai")
-lazy_transformers: "transformers" = LazyModule("transformers")
 """
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
