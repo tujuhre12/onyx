@@ -26,7 +26,7 @@ from typing import TypeVar
 from urllib.parse import quote
 
 import bs4
-from atlassian import Confluence
+from atlassian import Confluence  # type:ignore
 from redis import Redis
 from requests import HTTPError
 
@@ -212,8 +212,6 @@ class OnyxConfluence:
         self,
         **kwargs: Any,
     ) -> None:
-        from atlassian import Confluence  # type:ignore[import-untyped]
-
         merged_kwargs = {**self.shared_base_kwargs, **kwargs}
         # add special timeout to make sure that we don't hang indefinitely
         merged_kwargs["timeout"] = self.PROBE_TIMEOUT
