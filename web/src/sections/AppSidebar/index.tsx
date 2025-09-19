@@ -45,7 +45,11 @@ import {
 import AgentsModal from "@/sections/AgentsModal";
 import { useChatContext } from "@/components/context/ChatContext";
 import SvgBubbleText from "@/icons/bubble-text";
-import { buildChatUrl, renameChatSession } from "@/app/chat/services/lib";
+import {
+  buildChatUrl,
+  deleteChatSession,
+  renameChatSession,
+} from "@/app/chat/services/lib";
 import { useAgentsContext } from "@/components-2/context/AgentsContext";
 import { useAppSidebarContext } from "@/components-2/context/AppSidebarContext";
 import { ModalIds, useModal } from "@/components-2/context/ModalContext";
@@ -87,6 +91,7 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
   const [chatName, setChatName] = useState(chatSession.name);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const currentChatId = searchParams.get(SEARCH_PARAM_NAMES.CHAT_ID);
+  const { refreshChatSessions } = useChatContext();
 
   useEffect(() => {
     if (renamingChat && textareaRef.current) {
@@ -111,13 +116,22 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
     if (newChatName && newChatName !== chatSession.name) {
       try {
         await renameChatSession(chatSession.id, newChatName);
-        chatSession.name = newChatName;
+        await refreshChatSessions();
       } catch (error) {
         console.error("Failed to rename chat:", error);
       }
     }
     setRenamingChat(false);
   }, [chatName, chatSession.id, chatSession.name]);
+
+  const handleChatDelete = useCallback(async () => {
+    try {
+      await deleteChatSession(chatSession.id);
+      await refreshChatSessions();
+    } catch (error) {
+      console.error("Failed to delete chat:", error);
+    }
+  }, [chatSession, deleteChatSession, refreshChatSessions]);
 
   return (
     <>
@@ -135,7 +149,13 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
             >
               <Text>Cancel</Text>
             </button>
-            <button className="p-spacing-interline rounded-08 border bg-action-danger-05 hover:bg-action-danger-04">
+            <button
+              className="p-spacing-interline rounded-08 border bg-action-danger-05 hover:bg-action-danger-04"
+              onClick={() => {
+                setDeleteConfirmationModalOpen(false);
+                handleChatDelete();
+              }}
+            >
               <Text>Delete</Text>
             </button>
           </div>
