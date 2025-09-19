@@ -99,7 +99,6 @@ export default function AgentsModal() {
   const router = useRouter();
   const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const memoizedCurrentlyVisibleAgents = useMemo(() => {
     return agents.filter((agent) => {
