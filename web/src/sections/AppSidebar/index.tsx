@@ -183,12 +183,11 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
             <div className="border-b mx-padding-button" />
             <MenuButton
               icon={SvgTrash}
-              textClassName="!text-action-danger-05"
-              iconClassName="!stroke-action-danger-05"
               onClick={() => {
                 setKebabMenuOpen(false);
                 setDeleteConfirmationModalOpen(true);
               }}
+              danger
             >
               Delete
             </MenuButton>

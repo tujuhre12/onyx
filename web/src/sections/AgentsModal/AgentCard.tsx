@@ -166,12 +166,11 @@ export default function AgentCard({
                       )}
                       <MenuButton
                         icon={SvgTrash}
-                        iconClassName="!stroke-action-danger-05"
-                        textClassName="!text-action-danger-05"
                         onClick={() => {
                           setKebabMenuOpen(false);
                           setDeleteConfirmationModalOpen(true);
                         }}
+                        danger
                       >
                         Delete
                       </MenuButton>

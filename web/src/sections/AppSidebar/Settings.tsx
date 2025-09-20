@@ -21,6 +21,7 @@ import { SettingsContext } from "@/components/settings/SettingsProvider";
 import SvgSettings from "@/icons/settings";
 import SvgLogOut from "@/icons/log-out";
 import SvgBell from "@/icons/bell";
+import SvgX from "@/icons/x";
 
 function getUsernameFromEmail(email?: string): string {
   if (!email) return ANONYMOUS_USER_NAME;
@@ -35,7 +36,8 @@ export interface SettingsProps {
 }
 
 export default function Settings({ folded }: SettingsProps) {
-  const [open, setOpen] = useState(false);
+  const [settingsPopupOpen, setSettingsPopupOpen] = useState(false);
+  const [notificationsPopupOpen, setNotificationsPopupOpen] = useState(false);
   const { user, isCurator } = useUser();
   const combinedSettings = useContext(SettingsContext);
   const dropdownItems: NavigationItem[] = useMemo(
@@ -54,64 +56,98 @@ export default function Settings({ folded }: SettingsProps) {
     user && !checkUserIsNoAuthUser(user.id) && !LOGOUT_DISABLED;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <div>
-          <SidebarButton
-            icon={({ className }) => (
-              <Avatar
-                className={`h-[1.2rem] w-[1.2rem] flex items-center justify-center bg-background-neutral-inverted-00 ${className}`}
-              >
-                <Text inverted>{user?.email?.[0]?.toUpperCase() || "A"}</Text>
-              </Avatar>
-            )}
-            hideTitle={folded}
-            active={open}
-          >
-            <Truncated disableTooltip>
-              <Text text04 className="text-left">
-                {getUsernameFromEmail(user?.email)}
-              </Text>
-            </Truncated>
-          </SidebarButton>
-        </div>
-      </PopoverTrigger>
-      <PopoverContent align="end" side="right">
-        <div className="flex flex-col gap-spacing-inline overscroll-contain">
-          {dropdownItems.map((item, index) => (
-            <MenuButton key={index} href={item.link}>
-              {item.title}
-            </MenuButton>
-          ))}
-
-          {showAdminPanel ? (
-            <MenuButton href="/admin/indexing/status" icon={SvgSettings}>
-              Admin Panel
-            </MenuButton>
-          ) : (
-            showCuratorPanel && (
-              <MenuButton href="/admin/indexing/status" icon={SvgSettings}>
-                Curator Panel
-              </MenuButton>
-            )
-          )}
-
-          <MenuButton icon={SvgBell}>
-            {`Notifications ${(notifications && notifications.length) || 0 > 0 ? `(${notifications!.length})` : ""}`}
-          </MenuButton>
-
-          {showLogout && (
-            <>
-              {(showCuratorPanel ||
-                showAdminPanel ||
-                dropdownItems.length > 0) && (
-                <div className="border-b mx-padding-button" />
+    <>
+      <Popover open={settingsPopupOpen} onOpenChange={setSettingsPopupOpen}>
+        <PopoverTrigger asChild>
+          <div>
+            <SidebarButton
+              icon={({ className }) => (
+                <Avatar
+                  className={`h-[1.2rem] w-[1.2rem] flex items-center justify-center bg-background-neutral-inverted-00 ${className}`}
+                >
+                  <Text inverted>{user?.email?.[0]?.toUpperCase() || "A"}</Text>
+                </Avatar>
               )}
-              <MenuButton icon={SvgLogOut}>Log out</MenuButton>
-            </>
+              hideTitle={folded}
+              active={settingsPopupOpen}
+            >
+              <Truncated disableTooltip>
+                <Text text04 className="text-left">
+                  {getUsernameFromEmail(user?.email)}
+                </Text>
+              </Truncated>
+            </SidebarButton>
+          </div>
+        </PopoverTrigger>
+
+        <PopoverContent align="end" side="right">
+          {notificationsPopupOpen ? (
+            <div className="w-[20rem] h-[30rem] flex flex-col">
+              <div className="flex flex-row justify-between items-center p-spacing-paragraph">
+                <Text headingH2>Notifications</Text>
+                <SvgX
+                  className="stroke-text-05 w-[1.2rem] h-[1.2rem] hover:stroke-text-04 cursor-pointer"
+                  onClick={() => setNotificationsPopupOpen(false)}
+                />
+              </div>
+
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-spacing-paragraph flex flex-col gap-spacing-interline items-center">
+                {!notifications || notifications.length === 0 ? (
+                  <div className="w-full h-full flex flex-col justify-center items-center">
+                    <Text>No notifications</Text>
+                  </div>
+                ) : (
+                  <div className="w-full flex flex-col gap-spacing-interline">
+                    {notifications?.map((notification, index) => (
+                      <Text key={index}>{notification.notif_type}</Text>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-spacing-inline overscroll-contain">
+              {dropdownItems.map((item, index) => (
+                <MenuButton key={index} href={item.link}>
+                  {item.title}
+                </MenuButton>
+              ))}
+
+              {showAdminPanel ? (
+                <MenuButton href="/admin/indexing/status" icon={SvgSettings}>
+                  Admin Panel
+                </MenuButton>
+              ) : (
+                showCuratorPanel && (
+                  <MenuButton href="/admin/indexing/status" icon={SvgSettings}>
+                    Curator Panel
+                  </MenuButton>
+                )
+              )}
+
+              <MenuButton
+                icon={SvgBell}
+                onClick={() => setNotificationsPopupOpen(true)}
+              >
+                {`Notifications ${(notifications && notifications.length) || 0 > 0 ? `(${notifications!.length})` : ""}`}
+              </MenuButton>
+
+              {showLogout && (
+                <>
+                  {(showCuratorPanel ||
+                    showAdminPanel ||
+                    dropdownItems.length > 0) && (
+                    <div className="border-b mx-padding-button" />
+                  )}
+                  <MenuButton icon={SvgLogOut} danger>
+                    Log out
+                  </MenuButton>
+                </>
+              )}
+            </div>
           )}
-        </div>
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+    </>
   );
 }

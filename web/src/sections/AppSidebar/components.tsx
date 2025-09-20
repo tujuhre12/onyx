@@ -128,8 +128,7 @@ export interface MenuButtonProps {
   onClick?: () => void;
   href?: string;
   icon?: React.FunctionComponent<SvgProps>;
-  textClassName?: string;
-  iconClassName?: string;
+  danger?: boolean;
 }
 
 export function MenuButton({
@@ -137,8 +136,7 @@ export function MenuButton({
   onClick,
   href,
   icon: Icon,
-  textClassName,
-  iconClassName,
+  danger,
 }: MenuButtonProps) {
   const content = (
     <button
@@ -150,10 +148,10 @@ export function MenuButton({
     >
       {Icon && (
         <Icon
-          className={`h-[1.2rem] min-w-[1.2rem] stroke-text-04 ${iconClassName}`}
+          className={`h-[1.2rem] min-w-[1.2rem] stroke-text-04 ${danger && "!stroke-action-danger-05"}`}
         />
       )}
-      <Text text04 className={textClassName}>
+      <Text text04 className={danger ? "!text-action-danger-05" : undefined}>
         {children}
       </Text>
     </button>
