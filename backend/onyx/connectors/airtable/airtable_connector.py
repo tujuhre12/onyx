@@ -190,23 +190,11 @@ class AirtableConnector(LoadConnector):
                         return attachment_response.content
                     except requests.exceptions.HTTPError as e:
                         if e.response.status_code == 410:
-                            logger.info(
-                                f"Attachment URL expired for {filename}, refetching record {record_id}"
-                            )
-
-                            # Re-fetch the record to get a fresh URL with retry logic
-                            @retry_builder(
-                                tries=5, delay=0.5, backoff=2, exceptions=(Exception,)
-                            )
-                            def refetch_record():
-                                return self.airtable_client.table(
-                                    base_id, table_id
-                                ).get(record_id)
-
-                            refreshed_record = refetch_record()
-                            logger.debug(
-                                f"Successfully refetched record {record_id} for fresh attachment URL"
-                            )
+                            logger.info(f"Refreshing attachment for {filename}")
+                            # Re-fetch the record to get a fresh URL
+                            refreshed_record = self.airtable_client.table(
+                                base_id, table_id
+                            ).get(record_id)
                             for refreshed_attachment in refreshed_record["fields"][
                                 field_name
                             ]:
