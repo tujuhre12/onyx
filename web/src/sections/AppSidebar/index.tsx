@@ -60,6 +60,7 @@ import SvgTrash from "@/icons/trash";
 import SvgShare from "@/icons/share";
 import SvgEdit from "@/icons/edit";
 import Truncated from "@/components-2/Truncated";
+import Button from "@/components-2/Button";
 
 // Visible-agents = pinned-agents + current-agent (if current-agent not in pinned-agents)
 // OR Visible-agents = pinned-agents (if current-agent in pinned-agents)
@@ -137,27 +138,27 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
     <>
       {deleteConfirmationModalOpen && (
         <ConfirmationModal
-          title="Delete"
+          title="Delete Chat"
           icon={SvgTrash}
           description="Are you sure you want to delete this chat? This action cannot be undone."
           onClose={() => setDeleteConfirmationModalOpen(false)}
         >
           <div className="flex flex-row justify-end items-center gap-spacing-interline">
-            <button
-              className="p-spacing-interline rounded-08 border bg-background-tint-01 hover:bg-background-tint-02"
+            <Button
               onClick={() => setDeleteConfirmationModalOpen(false)}
+              secondary
             >
-              <Text>Cancel</Text>
-            </button>
-            <button
-              className="p-spacing-interline rounded-08 border bg-action-danger-05 hover:bg-action-danger-04"
+              Cancel
+            </Button>
+            <Button
+              danger
               onClick={() => {
                 setDeleteConfirmationModalOpen(false);
                 handleChatDelete();
               }}
             >
-              <Text>Delete</Text>
-            </button>
+              Delete
+            </Button>
           </div>
         </ConfirmationModal>
       )}

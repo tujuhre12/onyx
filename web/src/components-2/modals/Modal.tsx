@@ -52,7 +52,7 @@ export default function Modal({
         <div className="border-b" />
 
         {/* Content area */}
-        <div className="flex-1 p-padding-block-end overflow-scroll">
+        <div className="flex-1 m-padding-block-end overflow-scroll">
           {children}
         </div>
       </div>

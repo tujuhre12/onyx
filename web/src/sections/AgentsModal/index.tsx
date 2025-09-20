@@ -99,6 +99,7 @@ export default function AgentsModal() {
   const router = useRouter();
   const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
+  const { toggleModal } = useModal();
 
   const memoizedCurrentlyVisibleAgents = useMemo(() => {
     return agents.filter((agent) => {
@@ -142,7 +143,7 @@ export default function AgentsModal() {
 
   return (
     <Modal id={ModalIds.AgentsModal} title="Agents" className="max-w-[60rem]">
-      <div className="flex flex-col sticky top-0 z-10 bg-background-tint-01">
+      <div className="flex flex-col sticky top-[0rem] z-10 bg-background-tint-01">
         <div className="flex flex-row items-center gap-spacing-interline">
           <input
             className="w-full h-[3rem] border bg-transparent rounded-08 p-padding-button"
@@ -151,7 +152,10 @@ export default function AgentsModal() {
             onChange={(event) => setSearchQuery(event.target.value)}
           />
           <button
-            onClick={() => router.push("/assistants/new")}
+            onClick={() => {
+              toggleModal(ModalIds.AgentsModal, false);
+              router.push("/assistants/new");
+            }}
             className="p-padding-button bg-background-tint-03 rounded-08 hover:bg-background-tint-02"
           >
             <Text>Create</Text>

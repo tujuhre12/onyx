@@ -9,7 +9,6 @@ const SvgBarChart = (props: SVGProps<SVGSVGElement>) => (
   >
     <path
       d="M12 13.3333V6.66666M8 13.3333V2.66666M4 13.3333V9.33332"
-      strokeOpacity={0.8}
       strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
