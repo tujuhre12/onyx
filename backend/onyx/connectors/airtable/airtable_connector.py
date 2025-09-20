@@ -1,4 +1,5 @@
 import contextvars
+import time
 from concurrent.futures import as_completed
 from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
@@ -11,6 +12,7 @@ from pyairtable import Api as AirtableApi
 from pyairtable.api.types import RecordDict
 from pyairtable.models.schema import TableSchema
 from retry import retry
+from urllib3.util.retry import Retry
 
 from onyx.configs.app_configs import INDEX_BATCH_SIZE
 from onyx.configs.constants import DocumentSource
@@ -93,7 +95,18 @@ class AirtableConnector(LoadConnector):
         )
 
     def load_credentials(self, credentials: dict[str, Any]) -> dict[str, Any] | None:
-        self._airtable_client = AirtableApi(credentials["airtable_access_token"])
+        # Create a custom retry strategy that handles rate limiting (429) responses
+        retry_strategy = Retry(
+            total=10,  # Maximum number of retries
+            backoff_factor=2,  # Exponential backoff multiplier
+            status_forcelist=[429, 500, 502, 503, 504],  # HTTP statuses to retry
+            respect_retry_after_header=True,  # Respect Retry-After header from server
+            raise_on_status=False,  # Don't raise exceptions for retry-able statuses
+        )
+
+        self._airtable_client = AirtableApi(
+            credentials["airtable_access_token"], retry_strategy=retry_strategy
+        )
         return None
 
     @property
@@ -187,6 +200,8 @@ class AirtableConnector(LoadConnector):
                     except requests.exceptions.HTTPError as e:
                         if e.response.status_code == 410:
                             logger.info(f"Refreshing attachment for {filename}")
+                            # Add a small delay before refetching to avoid rate limits
+                            time.sleep(0.1)
                             # Re-fetch the record to get a fresh URL
                             refreshed_record = self.airtable_client.table(
                                 base_id, table_id
@@ -403,6 +418,9 @@ class AirtableConnector(LoadConnector):
             raise AirtableClientNotSetUpError()
 
         table = self.airtable_client.table(self.base_id, self.table_name_or_id)
+
+        # Add a small delay before fetching all records to be respectful of rate limits
+        time.sleep(0.1)
         records = table.all()
 
         table_schema = table.schema()
@@ -417,7 +435,8 @@ class AirtableConnector(LoadConnector):
         logger.info(f"Starting to process Airtable records for {table.name}.")
 
         # Process records in parallel batches using ThreadPoolExecutor
-        PARALLEL_BATCH_SIZE = 8
+        # Reduce batch size and parallelism to be more respectful of rate limits
+        PARALLEL_BATCH_SIZE = 4
         max_workers = min(PARALLEL_BATCH_SIZE, len(records))
         record_documents: list[Document] = []
 
@@ -455,6 +474,10 @@ class AirtableConnector(LoadConnector):
 
             yield record_documents
             record_documents = []
+
+            # Add a small delay between batches to be respectful of rate limits
+            if i + PARALLEL_BATCH_SIZE < len(records):
+                time.sleep(0.2)
 
         # Yield any remaining records
         if record_documents:
