@@ -131,7 +131,7 @@ export default function AgentCard({
           <AssistantIcon assistant={agent} size="large" />
 
           <div className="flex-1 flex flex-col gap-padding-button">
-            <div className="flex flex-row justify-between">
+            <div className="flex flex-row justify-between items-center">
               <Truncated>
                 <Text headingH3 text04>
                   {agent.name}
@@ -141,7 +141,9 @@ export default function AgentCard({
               {isOwnedByUser && (
                 <Popover open={kebabMenuOpen} onOpenChange={setKebabMenuOpen}>
                   <PopoverTrigger>
-                    <SvgMoreHorizontal className="w-[1.5rem] min-h-[1.5rem] stroke-text-04 hover:bg-background-tint-01 rounded-08 p-spacing-inline" />
+                    <div className="w-[2rem] min-h-[2rem] hover:bg-background-tint-01 rounded-08 p-spacing-inline flex flex-col justify-center items-center">
+                      <SvgMoreHorizontal className="w-[1rem] min-h-[1rem] stroke-text-04" />
+                    </div>
                   </PopoverTrigger>
 
                   <PopoverContent>

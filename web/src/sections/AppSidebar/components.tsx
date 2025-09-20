@@ -78,7 +78,7 @@ export function SidebarButton({
                   }}
                 >
                   <div
-                    className={`h-[1.5rem] w-[1.5rem] ${kebabMenuOpen ? "flex" : "hidden group-hover:flex"} w-[1rem]`}
+                    className={`h-[1.5rem] w-[1.5rem] ${kebabMenuOpen ? "flex" : "hidden group-hover:flex"}`}
                   />
                   <div
                     className={`absolute inset-0 w-full h-full flex flex-col justify-center items-center rounded-08 hover:bg-background-tint-00 ${kebabMenuOpen && "bg-background-tint-00"}`}
