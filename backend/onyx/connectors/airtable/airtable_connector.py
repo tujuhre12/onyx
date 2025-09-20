@@ -191,10 +191,17 @@ class AirtableConnector(LoadConnector):
                     except requests.exceptions.HTTPError as e:
                         if e.response.status_code == 410:
                             logger.info(f"Refreshing attachment for {filename}")
-                            # Re-fetch the record to get a fresh URL
-                            refreshed_record = self.airtable_client.table(
-                                base_id, table_id
-                            ).get(record_id)
+
+                            # Re-fetch the record to get a fresh URL with retry logic
+                            @retry_builder(
+                                tries=2, delay=30, backoff=1, exceptions=(Exception,)
+                            )
+                            def refetch_record():
+                                return self.airtable_client.table(
+                                    base_id, table_id
+                                ).get(record_id)
+
+                            refreshed_record = refetch_record()
                             for refreshed_attachment in refreshed_record["fields"][
                                 field_name
                             ]:
@@ -409,11 +416,12 @@ class AirtableConnector(LoadConnector):
         table = self.airtable_client.table(self.base_id, self.table_name_or_id)
 
         # Wrap critical API calls with retry logic for rate limiting
-        @retry_builder(tries=10, delay=1, backoff=2, exceptions=(Exception,))
+        # Airtable requires 30 second wait after 429, so use 30s delay with 2 retries max
+        @retry_builder(tries=2, delay=30, backoff=1, exceptions=(Exception,))
         def fetch_all_records():
             return table.all()
 
-        @retry_builder(tries=5, delay=0.5, backoff=2, exceptions=(Exception,))
+        @retry_builder(tries=2, delay=30, backoff=1, exceptions=(Exception,))
         def fetch_table_schema():
             return table.schema()
 
