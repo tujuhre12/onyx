@@ -1142,18 +1142,7 @@ export function ChatPage({
             </Dropzone>
           ) : (
             <div className="mx-auto h-full flex">
-              <div
-                style={{ transition: "width 0.30s ease-out" }}
-                className={`flex-none bg-transparent transition-all bg-opacity-80 duration-300 ease-in-out h-full
-                    ${
-                      sidebarVisible && !settings?.isMobile
-                        ? "w-[250px] "
-                        : "w-[0px]"
-                    }`}
-              />
-              <div className="my-auto">
-                <OnyxInitializingLoader />
-              </div>
+              <OnyxInitializingLoader />
             </div>
           )}
         </div>

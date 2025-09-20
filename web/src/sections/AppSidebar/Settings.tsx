@@ -147,7 +147,7 @@ export default function Settings({ folded }: SettingsProps) {
                 {`Notifications ${(notifications && notifications.length) || 0 > 0 ? `(${notifications!.length})` : ""}`}
               </MenuButton>
 
-              {!showLogout && (
+              {showLogout && (
                 <>
                   {(showCuratorPanel ||
                     showAdminPanel ||
