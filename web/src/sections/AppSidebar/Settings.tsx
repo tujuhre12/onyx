@@ -37,8 +37,9 @@ export interface SettingsProps {
 }
 
 export default function Settings({ folded }: SettingsProps) {
-  const [settingsPopupOpen, setSettingsPopupOpen] = useState(false);
-  const [notificationsPopupOpen, setNotificationsPopupOpen] = useState(false);
+  const [popupState, setPopupState] = useState<
+    "Settings" | "Notifications" | undefined
+  >(undefined);
   const { user, isCurator } = useUser();
   const combinedSettings = useContext(SettingsContext);
   const dropdownItems: NavigationItem[] = useMemo(
@@ -72,7 +73,12 @@ export default function Settings({ folded }: SettingsProps) {
 
   return (
     <>
-      <Popover open={settingsPopupOpen} onOpenChange={setSettingsPopupOpen}>
+      <Popover
+        open={!!popupState}
+        onOpenChange={(state) =>
+          state ? setPopupState("Settings") : setPopupState(undefined)
+        }
+      >
         <PopoverTrigger asChild>
           <div>
             <SidebarButton
@@ -84,7 +90,7 @@ export default function Settings({ folded }: SettingsProps) {
                 </Avatar>
               )}
               hideTitle={folded}
-              active={settingsPopupOpen}
+              active={!!popupState}
             >
               <Truncated disableTooltip>
                 <Text text04 className="text-left">
@@ -96,13 +102,13 @@ export default function Settings({ folded }: SettingsProps) {
         </PopoverTrigger>
 
         <PopoverContent align="end" side="right">
-          {notificationsPopupOpen ? (
+          {popupState === "Notifications" && (
             <div className="w-[20rem] h-[30rem] flex flex-col">
               <div className="flex flex-row justify-between items-center p-spacing-paragraph">
                 <Text headingH2>Notifications</Text>
                 <SvgX
                   className="stroke-text-05 w-[1.2rem] h-[1.2rem] hover:stroke-text-04 cursor-pointer"
-                  onClick={() => setNotificationsPopupOpen(false)}
+                  onClick={() => setPopupState("Settings")}
                 />
               </div>
 
@@ -120,7 +126,8 @@ export default function Settings({ folded }: SettingsProps) {
                 )}
               </div>
             </div>
-          ) : (
+          )}
+          {popupState === "Settings" && (
             <div className="flex flex-col gap-spacing-inline overscroll-contain">
               {dropdownItems.map((item, index) => (
                 <MenuButton key={index} href={item.link}>
@@ -142,7 +149,7 @@ export default function Settings({ folded }: SettingsProps) {
 
               <MenuButton
                 icon={SvgBell}
-                onClick={() => setNotificationsPopupOpen(true)}
+                onClick={() => setPopupState("Notifications")}
               >
                 {`Notifications ${(notifications && notifications.length) || 0 > 0 ? `(${notifications!.length})` : ""}`}
               </MenuButton>
