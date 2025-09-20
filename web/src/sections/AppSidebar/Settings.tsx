@@ -22,6 +22,7 @@ import SvgSettings from "@/icons/settings";
 import SvgLogOut from "@/icons/log-out";
 import SvgBell from "@/icons/bell";
 import SvgX from "@/icons/x";
+import { useRouter } from "next/navigation";
 
 function getUsernameFromEmail(email?: string): string {
   if (!email) return ANONYMOUS_USER_NAME;
@@ -49,11 +50,25 @@ export default function Settings({ folded }: SettingsProps) {
     error,
     mutate: refreshNotifications,
   } = useSWR<Notification[]>("/api/notifications", errorHandlingFetcher);
+  const router = useRouter();
 
   const showAdminPanel = !user || user.role === UserRole.ADMIN;
   const showCuratorPanel = user && isCurator;
   const showLogout =
     user && !checkUserIsNoAuthUser(user.id) && !LOGOUT_DISABLED;
+
+  async function handleLogout() {
+    const isSuccess = await logout();
+
+    if (!isSuccess) {
+      alert("Failed to logout");
+      return;
+    }
+
+    router.push(
+      `/auth/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`
+    );
+  }
 
   return (
     <>
@@ -132,14 +147,14 @@ export default function Settings({ folded }: SettingsProps) {
                 {`Notifications ${(notifications && notifications.length) || 0 > 0 ? `(${notifications!.length})` : ""}`}
               </MenuButton>
 
-              {showLogout && (
+              {!showLogout && (
                 <>
                   {(showCuratorPanel ||
                     showAdminPanel ||
                     dropdownItems.length > 0) && (
                     <div className="border-b mx-padding-button" />
                   )}
-                  <MenuButton icon={SvgLogOut} danger>
+                  <MenuButton icon={SvgLogOut} danger onClick={handleLogout}>
                     Log out
                   </MenuButton>
                 </>
