@@ -1,4 +1,5 @@
 import contextvars
+import time
 from concurrent.futures import as_completed
 from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
@@ -415,21 +416,13 @@ class AirtableConnector(LoadConnector):
 
         table = self.airtable_client.table(self.base_id, self.table_name_or_id)
 
-        # Wrap critical API calls with retry logic for rate limiting
-        # Airtable requires 30 second wait after 429, so use 30s delay with 2 retries max
-        @retry_builder(tries=2, delay=30, backoff=1, exceptions=(Exception,))
-        def fetch_all_records():
-            return table.all()
+        logger.info("Fetching all records from Airtable table, waiting 30 seconds")
+        time.sleep(30)
 
-        @retry_builder(tries=2, delay=30, backoff=1, exceptions=(Exception,))
-        def fetch_table_schema():
-            return table.schema()
-
-        logger.info("Fetching all records from Airtable table")
-        records = fetch_all_records()
+        records = table.all()
         logger.info(f"Successfully fetched {len(records)} records from Airtable")
 
-        table_schema = fetch_table_schema()
+        table_schema = table.schema()
         primary_field_name = None
 
         # Find a primary field from the schema
