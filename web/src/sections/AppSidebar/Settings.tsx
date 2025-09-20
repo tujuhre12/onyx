@@ -23,6 +23,10 @@ import SvgLogOut from "@/icons/log-out";
 import SvgBell from "@/icons/bell";
 import SvgX from "@/icons/x";
 import { useRouter } from "next/navigation";
+import Modal from "@/components-2/modals/Modal";
+import { ModalIds, useModal } from "@/components-2/context/ModalContext";
+import SvgUser from "@/icons/user";
+import { UserSettings } from "@/app/chat/components/modal/UserSettingsModal";
 
 function getUsernameFromEmail(email?: string): string {
   if (!email) return ANONYMOUS_USER_NAME;
@@ -37,6 +41,7 @@ export interface SettingsProps {
 }
 
 export default function Settings({ folded }: SettingsProps) {
+  const { toggleModal } = useModal();
   const [popupState, setPopupState] = useState<
     "Settings" | "Notifications" | undefined
   >(undefined);
@@ -73,6 +78,18 @@ export default function Settings({ folded }: SettingsProps) {
 
   return (
     <>
+      <Modal id={ModalIds.UserSettingsModal} title="User Settings" mini>
+        <UserSettings
+          setPopup={() => {}}
+          llmProviders={[]}
+          onClose={() => {}}
+          defaultModel={null}
+          ccPairs={[]}
+          federatedConnectors={[]}
+          refetchFederatedConnectors={() => {}}
+        />
+      </Modal>
+
       <Popover
         open={!!popupState}
         onOpenChange={(state) =>
@@ -146,6 +163,16 @@ export default function Settings({ folded }: SettingsProps) {
                   </MenuButton>
                 )
               )}
+
+              <MenuButton
+                icon={SvgUser}
+                onClick={() => {
+                  setPopupState(undefined);
+                  toggleModal(ModalIds.UserSettingsModal, true);
+                }}
+              >
+                User Settings
+              </MenuButton>
 
               <MenuButton
                 icon={SvgBell}

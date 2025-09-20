@@ -3,19 +3,22 @@ import Text from "@/components-2/Text";
 import SvgX from "@/icons/x";
 import { ModalIds, useModal } from "@/components-2/context/ModalContext";
 
-interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ModalProps {
   id: ModalIds;
-  title?: string;
+  title: string;
   clickOutsideToClose?: boolean;
+  mini?: boolean;
+  className?: string;
+  children?: React.ReactNode;
 }
 
 export default function Modal({
-  children,
-  className,
-
   id,
   title,
   clickOutsideToClose = true,
+  mini,
+  children,
+  className,
 }: ModalProps) {
   const { isOpen, toggleModal } = useModal();
   const outsideModal = useRef(false);
@@ -36,7 +39,7 @@ export default function Modal({
       }
     >
       <div
-        className={`z-10 w-[80dvw] h-[80dvh] rounded-16 border flex flex-col bg-background-tint-01 ${className}`}
+        className={`z-10 w-[80dvw] h-[80dvh] rounded-16 border flex flex-col bg-background-tint-01 ${mini && "max-w-[60rem]"} ${className}`}
         onMouseOver={() => (outsideModal.current = false)}
         onMouseLeave={() => (outsideModal.current = true)}
       >

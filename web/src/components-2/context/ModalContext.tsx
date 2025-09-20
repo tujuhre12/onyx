@@ -1,16 +1,11 @@
 "use client";
 
 import { useEscape } from "@/hooks/useEscape";
-import {
-  createContext,
-  useContext,
-  useState,
-  ReactNode,
-  useEffect,
-} from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 
 export enum ModalIds {
   AgentsModal = "AgentsModal",
+  UserSettingsModal = "UserSettingsModal",
 }
 
 interface ModalProviderProps {

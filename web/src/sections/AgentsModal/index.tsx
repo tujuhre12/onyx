@@ -4,7 +4,6 @@ import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AgentCard from "@/sections/AgentsModal/AgentCard";
 import { useUser } from "@/components/user/UserProvider";
-import { FilterIcon } from "lucide-react";
 import { checkUserOwnsAssistant as checkUserOwnsAgent } from "@/lib/assistants/checkOwnership";
 import { useAgentsContext } from "@/components-2/context/AgentsContext";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
@@ -142,7 +141,7 @@ export default function AgentsModal() {
   );
 
   return (
-    <Modal id={ModalIds.AgentsModal} title="Agents" className="max-w-[60rem]">
+    <Modal id={ModalIds.AgentsModal} title="Agents" mini>
       <div className="flex flex-col sticky top-[0rem] z-10 bg-background-tint-01">
         <div className="flex flex-row items-center gap-spacing-interline">
           <input
