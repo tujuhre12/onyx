@@ -789,6 +789,8 @@ def gather_stream(
 ) -> ChatBasicResponse:
     answer = ""
     for packet in packets:
+        if packet != {"type": "event"}:
+            print(packet)
         if "text" in packet:
             answer += packet["text"]
 

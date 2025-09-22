@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import json
-import time
-from collections.abc import AsyncGenerator
+import threading
 from collections.abc import Generator
 from dataclasses import dataclass
+from queue import Queue
 from typing import Any
 from typing import cast
 from typing import Dict
@@ -18,6 +18,8 @@ from agents import ModelSettings
 from agents import RunContextWrapper
 from agents import Runner
 from agents.extensions.models.litellm_model import LitellmModel
+from agents.stream_events import RawResponsesStreamEvent
+from agents.stream_events import RunItemStreamEvent
 from braintrust import traced
 
 from onyx.agents.agent_search.dr.sub_agents.web_search.clients.exa_client import (
@@ -37,10 +39,16 @@ from onyx.tools.tool_implementations.search.search_tool import SearchTool
 
 
 @dataclass
+class RunDependencies:
+    emitter: Emitter
+    search_tool: SearchTool | None = None
+
+
+@dataclass
 class MyContext:
     """Context class to hold search tool and other dependencies"""
 
-    search_tool: SearchTool | None = None
+    run_dependencies: RunDependencies | None = None
 
 
 def short_tag(link: str, i: int) -> str:
@@ -134,7 +142,10 @@ def internal_search(context_wrapper: RunContextWrapper[MyContext], query: str) -
     - Linear (internal company issues)
     - Slack (internal company messages)
     """
-    search_tool = context_wrapper.context.search_tool
+    context_wrapper.context.run_dependencies.emitter.emit(
+        kind="tool-progress", data={"progress": "Searching internal database"}
+    )
+    search_tool = context_wrapper.context.run_dependencies.search_tool
     if search_tool is None:
         raise RuntimeError("Search tool not available in context")
 
@@ -157,33 +168,72 @@ def internal_search(context_wrapper: RunContextWrapper[MyContext], query: str) -
     return retrieved_docs
 
 
-async def stream_chat_async(
+# stream_bus.py
+@dataclass
+class StreamPacket:
+    kind: str  # "agent" | "tool-progress" | "done"
+    payload: Dict[str, Any] = None
+
+
+class Emitter:
+    """Use this inside tools to emit arbitrary UI progress."""
+
+    def __init__(self, bus: Queue):
+        self.bus = bus
+
+    def emit(self, kind: str, data: Dict[str, Any]) -> None:
+        self.bus.put(StreamPacket(kind=kind, payload=data))
+
+
+# If we want durable execution in the future, we can replace this with a temporal call
+def start_run_in_thread(
+    agent: Agent,
     messages: List[Dict[str, Any]],
     cfg: GraphConfig,
     llm: LLM,
     search_tool: SearchTool,
-) -> AsyncGenerator[Dict[str, Any], None]:
-    """
-    Yields events suitable for SSE/WebSocket using OpenAI Agents framework:
-      {"type":"delta","text": "..."}         -> stream to user
-      {"type":"tool","name":..., "args":..., "private": bool}
-      {"type":"final"}
-    """
-    time.time()
+    emitter: Emitter,
+) -> threading.Thread:
+    def worker():
+        async def amain():
+            ctx = MyContext(
+                run_dependencies=RunDependencies(
+                    search_tool=search_tool,
+                    emitter=emitter,
+                )
+            )
+            # 1) start the streamed run (async)
+            streamed = Runner.run_streamed(agent, messages, context=ctx)
 
-    # Create LiteLLM model for OpenAI Agents
+            # 2) forward the agent’s async event stream
+            async for ev in streamed.stream_events():
+                if isinstance(ev, RunItemStreamEvent):
+                    pass
+                elif isinstance(ev, RawResponsesStreamEvent):
+                    emitter.emit(kind="agent", data=ev.data.model_dump())
+
+            emitter.emit(kind="done", data={"ok": True})
+
+        # run the async main inside this thread
+        asyncio.run(amain())
+
+    t = threading.Thread(target=worker, daemon=True)
+    t.start()
+    return t
+
+
+def stream_chat_sync(
+    messages: List[Dict[str, Any]],
+    cfg: GraphConfig,
+    llm: LLM,
+    search_tool: SearchTool,
+) -> Generator[Dict[str, Any], None, None]:
+    bus: Queue = Queue()
+    emitter = Emitter(bus)
     litellm_model = LitellmModel(
         model=llm.config.model_name,
         api_key=llm.config.api_key,
     )
-
-    # Get the search tool from config
-    search_tool = cfg.tooling.search_tool
-
-    # Create context with search tool
-    context = MyContext(search_tool=search_tool)
-
-    # Create agent with tools
     agent = Agent(
         name="Assistant",
         instructions="""
@@ -198,60 +248,11 @@ async def stream_chat_async(
         ),
     )
 
-    # Convert messages to a single user message for the agent
-    user_message = ""
-    for msg in messages:
-        if msg.get("role") == "user":
-            user_message += msg.get("content", "")
-        elif msg.get("role") == "assistant":
-            user_message += f"\nAssistant: {msg.get('content', '')}"
-
-    try:
-        # Run the agent with timeout and context
-        result = await asyncio.wait_for(
-            Runner.run(agent, user_message, context=context), timeout=200
-        )
-
-        # Stream the final output
-        if result.final_output:
-            yield {"type": "delta", "text": result.final_output}
-
-    except asyncio.TimeoutError:
-        yield {"type": "delta", "text": "\n[Timed out while composing reply]"}
-    except Exception as e:
-        yield {"type": "delta", "text": f"\n[Error: {str(e)}]"}
-
-    yield {"type": "final"}
-
-
-def stream_chat_sync(
-    messages: List[Dict[str, Any]],
-    cfg: GraphConfig,
-    llm: LLM,
-    search_tool: SearchTool,
-) -> Generator[Dict[str, Any], None, None]:
-    """
-    Synchronous wrapper for the async streaming function.
-    Yields events suitable for SSE/WebSocket:
-      {"type":"delta","text": "..."}         -> stream to user
-      {"type":"tool","name":..., "args":..., "private": bool}
-      {"type":"final"}
-    """
-    # Create a new event loop for this thread
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    try:
-        # Run the async generator and collect all items
-        async def collect_all_items():
-            items = []
-            async for item in stream_chat_async(messages, cfg, llm, search_tool):
-                items.append(item)
-            return items
-
-        # Get all items from async generator
-        items = loop.run_until_complete(collect_all_items())
-        for item in items:
-            yield item
-    finally:
-        loop.close()
+    start_run_in_thread(agent, messages, cfg, llm, search_tool, emitter)
+    done = False
+    while not done:
+        pkt: Queue[StreamPacket] = bus.get()
+        if pkt.kind == "done":
+            done = True
+        else:
+            yield pkt.payload
