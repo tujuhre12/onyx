@@ -32,13 +32,11 @@ export function AdminSidebar({ collections }: AdminSidebarProps) {
     return null;
   }
 
-  const enterpriseSettings = combinedSettings.enterpriseSettings;
-
   return (
-    <div className="flex flex-col justify-between h-full w-[15rem] py-padding-content px-padding-button bg-background-tint-02 gap-padding-content">
+    <div className="flex flex-col justify-between h-full !min-w-[15rem] py-padding-content px-padding-button bg-background-tint-02 gap-padding-content">
       <LogoComponent
         show={true}
-        enterpriseSettings={enterpriseSettings!}
+        enterpriseSettings={combinedSettings.enterpriseSettings!}
         backgroundToggled={false}
         isAdmin={true}
       />

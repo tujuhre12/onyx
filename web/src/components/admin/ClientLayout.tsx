@@ -333,10 +333,10 @@ export function ClientLayout({
           customAnalyticsEnabled
         )}
       />
+
       <div className="overflow-y-scroll w-full flex pt-10 pb-4 px-4 md:px-12">
         {children}
       </div>
     </div>
   );
-  // Is there a clean way to add this to some piece of text where we need to enbale for copy-paste in a react app?
 }
