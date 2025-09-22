@@ -222,6 +222,27 @@ def start_run_in_thread(
     return t
 
 
+def unified_event_stream(
+    agent: Agent,
+    messages: List[Dict[str, Any]],
+    cfg: GraphConfig,
+    llm: LLM,
+    search_tool: SearchTool,
+    emitter: Emitter,
+) -> Generator[Dict[str, Any], None, None]:
+    bus: Queue = Queue()
+    emitter = Emitter(bus)
+    start_run_in_thread(agent, messages, cfg, llm, search_tool, emitter)
+    done = False
+    while not done:
+        pkt: Queue[StreamPacket] = emitter.bus.get()
+        if pkt.kind == "done":
+            done = True
+        else:
+            yield pkt.payload
+
+
+# This should be close to the API
 def stream_chat_sync(
     messages: List[Dict[str, Any]],
     cfg: GraphConfig,
@@ -247,12 +268,4 @@ def stream_chat_sync(
             include_usage=True,  # Track usage metrics
         ),
     )
-
-    start_run_in_thread(agent, messages, cfg, llm, search_tool, emitter)
-    done = False
-    while not done:
-        pkt: Queue[StreamPacket] = bus.get()
-        if pkt.kind == "done":
-            done = True
-        else:
-            yield pkt.payload
+    return unified_event_stream(agent, messages, cfg, llm, search_tool, emitter)
