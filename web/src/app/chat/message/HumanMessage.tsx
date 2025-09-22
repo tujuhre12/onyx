@@ -194,11 +194,7 @@ export function HumanMessage({
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(content);
-  useEffect(() => {
-    if (!isEditing) {
-      setEditedContent(content);
-    }
-  }, [content, isEditing]);
+  useEffect(() => setEditedContent(content), [content]);
   useEffect(() => {
     if (textareaRef.current) {
       // Focus the textarea
@@ -304,7 +300,7 @@ export function HumanMessage({
                         ) && "ml-auto"
                       } relative flex-none max-w-[70%] mb-auto whitespace-break-spaces rounded-bl-3xl rounded-t-3xl bg-background-neutral-02 px-5 py-2.5`}
                     >
-                      {content}
+                      {editedContent}
                     </div>
                   </>
                 ) : (
@@ -325,7 +321,9 @@ export function HumanMessage({
                     ) : (
                       <div className="h-[27px]" />
                     )}
-                    <div className="ml-auto rounded-lg p-1">{content}</div>
+                    <div className="ml-auto rounded-lg p-1">
+                      {editedContent}
+                    </div>
                   </>
                 )}
               </div>
