@@ -69,7 +69,7 @@ export function AdminSidebar({ collections }: AdminSidebarProps) {
         ))}
       </div>
       <div className="flex flex-col gap-spacing-interline">
-        <Settings />
+        <Settings removeAdminPanelLink />
         {combinedSettings.webVersion && (
           <Text text02 className="px-padding-button">
             Onyx version: {combinedSettings.webVersion}

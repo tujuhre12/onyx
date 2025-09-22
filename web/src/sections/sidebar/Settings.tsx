@@ -39,9 +39,13 @@ function getUsernameFromEmail(email?: string): string {
 
 export interface SettingsProps {
   folded?: boolean;
+  removeAdminPanelLink?: boolean;
 }
 
-export default function Settings({ folded }: SettingsProps) {
+export default function Settings({
+  folded,
+  removeAdminPanelLink,
+}: SettingsProps) {
   const { toggleModal } = useModal();
   const [popupState, setPopupState] = useState<
     "Settings" | "Notifications" | undefined
@@ -58,7 +62,8 @@ export default function Settings({ folded }: SettingsProps) {
   );
   const router = useRouter();
 
-  const showAdminPanel = !user || user.role === UserRole.ADMIN;
+  const showAdminPanel =
+    (!user || user.role === UserRole.ADMIN) && !removeAdminPanelLink;
   const showCuratorPanel = user && isCurator;
   const showLogout =
     user && !checkUserIsNoAuthUser(user.id) && !LOGOUT_DISABLED;
