@@ -19,6 +19,7 @@ import ToolResult from "@/components/tools/ToolResult";
 import CsvContent from "@/components/tools/CSVContent";
 import "katex/dist/katex.min.css";
 import { MessageSwitcher } from "@/app/chat/message/MessageSwitcher";
+import Button from "@/components-2/buttons/Button";
 
 interface FileDisplayProps {
   files: FileDescriptor[];
@@ -118,6 +119,65 @@ interface HumanMessageProps {
   setPresentingDocument: (document: MinimalOnyxDocument) => void;
 }
 
+interface EditingAreaProps {
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  editedContent: string;
+  setEditedContent: (value: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  originalContent: string;
+}
+
+function EditingArea({
+  textareaRef,
+  editedContent,
+  setEditedContent,
+  onSubmit,
+  onCancel,
+  originalContent,
+}: EditingAreaProps) {
+  return (
+    <div className="w-full flex flex-col border rounded-08 p-spacing-interline bg-background-tint-02">
+      <textarea
+        ref={textareaRef}
+        className="w-full h-full overflow-y-hidden whitespace-normal break-word overscroll-contain resize-none overflow-y-auto bg-background-tint-02 outline-none p-padding-button"
+        aria-multiline
+        role="textarea"
+        value={editedContent}
+        style={{ scrollbarWidth: "thin" }}
+        onChange={(event) => {
+          setEditedContent(event.target.value);
+          textareaRef.current!.style.height = "auto";
+          event.target.style.height = `${event.target.scrollHeight}px`;
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setEditedContent(originalContent);
+            onCancel();
+          }
+          // Submit edit if "Command Enter" is pressed, like in ChatGPT
+          else if (event.key === "Enter" && event.metaKey) {
+            onSubmit();
+          }
+        }}
+      />
+      <div className="flex flex-row justify-end gap-spacing-inline">
+        <Button onClick={onSubmit}>Submit</Button>
+        <Button
+          secondary
+          onClick={() => {
+            setEditedContent(originalContent);
+            onCancel();
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function HumanMessage({
   content,
   files,
@@ -131,17 +191,14 @@ export function HumanMessage({
   setPresentingDocument,
 }: HumanMessageProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(content);
-
   useEffect(() => {
     if (!isEditing) {
       setEditedContent(content);
     }
   }, [content, isEditing]);
-
   useEffect(() => {
     if (textareaRef.current) {
       // Focus the textarea
@@ -203,105 +260,14 @@ export function HumanMessage({
             <div className="flex justify-end">
               <div className="w-full ml-8 flex w-full w-[800px] break-words">
                 {isEditing ? (
-                  <div
-                    className={`
-                      opacity-100
-                      w-full
-                      flex
-                      flex-col
-                      border 
-                      rounded-lg 
-                      pb-2
-                      [&:has(textarea:focus)]::ring-1
-                      [&:has(textarea:focus)]::ring-black
-                    `}
-                  >
-                    <textarea
-                      ref={textareaRef}
-                      className={`
-                        m-0
-                        w-full
-                        h-auto
-                        shrink
-                        rounded-lg
-                        overflow-y-hidden
-                        whitespace-normal
-                        break-word
-                        overscroll-contain
-                        outline-none
-                        resize-none
-                        pl-4
-                        overflow-y-auto
-                        pr-12
-                        py-4`}
-                      aria-multiline
-                      role="textarea"
-                      value={editedContent}
-                      style={{ scrollbarWidth: "thin" }}
-                      onChange={(e) => {
-                        setEditedContent(e.target.value);
-                        textareaRef.current!.style.height = "auto";
-                        e.target.style.height = `${e.target.scrollHeight}px`;
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") {
-                          e.preventDefault();
-                          setEditedContent(content);
-                          setIsEditing(false);
-                        }
-                        // Submit edit if "Command Enter" is pressed, like in ChatGPT
-                        if (e.key === "Enter" && e.metaKey) {
-                          handleEditSubmit();
-                        }
-                      }}
-                    />
-                    <div className="flex justify-end mt-2 gap-2 pr-4">
-                      <button
-                        className={`
-                          w-fit
-                          bg-theme-primary-05
-                          text-text-inverted-01
-                          text-sm
-                          rounded-lg
-                          inline-flex
-                          items-center
-                          justify-center
-                          flex-shrink-0
-                          font-medium
-                          min-h-[38px]
-                          py-2
-                          px-3
-                          hover:bg-theme-primary-04
-                        `}
-                        onClick={handleEditSubmit}
-                      >
-                        Submit
-                      </button>
-                      <button
-                        className={`
-                          inline-flex 
-                          items-center 
-                          justify-center 
-                          flex-shrink-0 
-                          font-medium 
-                          min-h-[38px] 
-                          py-2 
-                          px-3 
-                          w-fit 
-                          bg-background-neutral-02 
-                          text-sm
-                          rounded-lg
-                          hover:bg-background-neutral-03
-                        `}
-                        onClick={() => {
-                          setEditedContent(content);
-                          setIsEditing(false);
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
+                  <EditingArea
+                    textareaRef={textareaRef}
+                    editedContent={editedContent}
+                    setEditedContent={setEditedContent}
+                    onSubmit={handleEditSubmit}
+                    onCancel={() => setIsEditing(false)}
+                    originalContent={content}
+                  />
                 ) : typeof content === "string" ? (
                   <>
                     <div className="ml-auto flex items-center mr-1 mt-2 h-fit mb-auto">
