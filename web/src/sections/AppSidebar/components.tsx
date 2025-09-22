@@ -42,11 +42,10 @@ export function SidebarButton({
   onClick,
   children,
 }: SidebarButtonProps) {
+  const finalClassName = `w-full flex flex-row gap-spacing-interline py-spacing-interline px-padding-button hover:bg-background-tint-01 ${active && "bg-background-tint-00"} ${kebabMenuOpen && "bg-background-tint-01"} rounded-08 items-center group ${hideTitle && "justify-center"} ${className}`;
+
   const content = (
-    <button
-      className={`w-full flex flex-row gap-spacing-interline py-spacing-interline px-padding-button hover:bg-background-tint-01 ${active && "bg-background-tint-00"} ${kebabMenuOpen && "bg-background-tint-01"} rounded-08 items-center group ${hideTitle && "justify-center"} ${className}`}
-      onClick={onClick}
-    >
+    <>
       {Icon && (
         <Icon
           className={`h-[1.2rem] min-w-[1.2rem] ${!hideTitle && "mr-[0.4rem]"} ${grey ? "stroke-text-02" : "stroke-text-03"}`}
@@ -95,12 +94,24 @@ export function SidebarButton({
             </PopoverContent>
           </Popover>
         )}
-    </button>
+    </>
   );
 
-  if (!href) return content;
+  if (href)
+    return (
+      <Link className={finalClassName} href={href}>
+        {content}
+      </Link>
+    );
 
-  return <Link href={href}>{content}</Link>;
+  if (onClick)
+    return (
+      <button className={finalClassName} onClick={onClick}>
+        {content}
+      </button>
+    );
+
+  return <div className={finalClassName}>{content}</div>;
 }
 
 export interface SidebarSectionProps {

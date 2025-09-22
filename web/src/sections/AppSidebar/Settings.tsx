@@ -37,7 +37,7 @@ function getUsernameFromEmail(email?: string): string {
 }
 
 export interface SettingsProps {
-  folded: boolean;
+  folded?: boolean;
 }
 
 export default function Settings({ folded }: SettingsProps) {
@@ -51,11 +51,10 @@ export default function Settings({ folded }: SettingsProps) {
     () => combinedSettings?.enterpriseSettings?.custom_nav_items || [],
     [combinedSettings]
   );
-  const {
-    data: notifications,
-    error,
-    mutate: refreshNotifications,
-  } = useSWR<Notification[]>("/api/notifications", errorHandlingFetcher);
+  const { data: notifications } = useSWR<Notification[]>(
+    "/api/notifications",
+    errorHandlingFetcher
+  );
   const router = useRouter();
 
   const showAdminPanel = !user || user.role === UserRole.ADMIN;
@@ -80,7 +79,7 @@ export default function Settings({ folded }: SettingsProps) {
     <>
       <Modal id={ModalIds.UserSettingsModal} title="User Settings" mini>
         <UserSettings
-          setPopup={() => {}}
+          setPopup={() => toggleModal(ModalIds.UserSettingsModal, false)}
           llmProviders={[]}
           onClose={() => {}}
           defaultModel={null}
