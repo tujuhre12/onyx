@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from sqlalchemy import delete
 from sqlalchemy import desc
 from sqlalchemy import func
+from sqlalchemy import not_
 from sqlalchemy import nullsfirst
 from sqlalchemy import or_
 from sqlalchemy import Row
@@ -191,6 +192,49 @@ def get_chat_sessions_by_user(
     chat_sessions = result.scalars().all()
 
     return list(chat_sessions)
+
+
+def get_past_user_messages(
+    db_session: Session,
+    current_chat_session_id: UUID,
+    limit: int = 10,
+) -> list[ChatMessage]:
+    """
+    Get the last N user messages from any chat session before the current session.
+
+    Args:
+        db_session: Database session
+        current_chat_session_id: ID of the current chat session
+        limit: Maximum number of user messages to return (default: 10)
+
+    Returns:
+        List of user messages, ordered by most recent first
+    """
+    current_session = db_session.execute(
+        select(ChatSession).where(ChatSession.id == current_chat_session_id)
+    ).scalar_one_or_none()
+
+    if not current_session:
+        logger.warning(f"Current chat session {current_chat_session_id} not found")
+        return []
+    # TODO: Fix this query, currently if there is a chat session with an edited
+    # message, both the original and edited messages will be returned need to
+    # only return the newest path in the conversation tree.
+    stmt = (
+        select(ChatMessage)
+        .join(ChatSession, ChatMessage.chat_session_id == ChatSession.id)
+        .where(
+            ChatMessage.message_type == MessageType.USER,
+            ChatSession.user_id == current_session.user_id,
+            ChatSession.id != current_chat_session_id,
+            not_(ChatSession.deleted),
+        )
+        .order_by(desc(ChatMessage.time_sent))
+        .limit(limit)
+    )
+
+    result = db_session.execute(stmt).scalars().all()
+    return list(result)
 
 
 def delete_search_doc_message_relationship(

@@ -387,3 +387,9 @@ TF_DR_TIMEOUT_SHORT = int(os.environ.get("TF_DR_TIMEOUT_SHORT") or 60)
 TF_DR_DEFAULT_FAST = (os.environ.get("TF_DR_DEFAULT_FAST") or "False").lower() == "true"
 
 GRAPH_VERSION_NAME: str = "a"
+
+
+# Default to false, temporary will make a user preference to enable this
+AGENT_USE_SHORT_TERM_MEMORY = (
+    os.environ.get("AGENT_USE_SHORT_TERM_MEMORY") or "False"
+).lower() == "true"
