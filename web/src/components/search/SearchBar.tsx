@@ -34,7 +34,7 @@ export function SearchBar({ query, setQuery, onSearch }: SearchBarProps) {
       <SvgSearch className="h-[1.2rem] w-[1.2rem] stroke-text-04" />
       <textarea
         autoFocus
-        className={`flex items-center flex-grow px-padding-button outline-none overflow-hidden whitespace-normal resize-none bg-transparent leading-[2rem] h-[2rem]`}
+        className={`flex items-center flex-grow px-padding-button outline-none overflow-hidden whitespace-normal resize-none bg-transparent leading-[1.5rem] h-[1.5rem]`}
         role="textarea"
         aria-multiline
         placeholder="Search..."
