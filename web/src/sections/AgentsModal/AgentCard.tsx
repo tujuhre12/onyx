@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FiMoreHorizontal, FiTrash, FiEdit, FiBarChart } from "react-icons/fi";
 import { SEARCH_PARAM_NAMES } from "@/app/chat/services/searchParams";
-
 import {
   Popover,
   PopoverTrigger,
@@ -27,13 +25,13 @@ import Truncated from "@/components-2/Truncated";
 import SvgBubbleText from "@/icons/bubble-text";
 import SvgPin from "@/icons/pin";
 import { SvgProps } from "@/icons";
-import { MenuButton } from "../AppSidebar/components";
+import { MenuButton } from "@/components-2/buttons/MenuButton";
 import SvgEditBig from "@/icons/edit-big";
 import SvgTrash from "@/icons/trash";
 import SvgMoreHorizontal from "@/icons/more-horizontal";
 import SvgBarChart from "@/icons/bar-chart";
 import ConfirmationModal from "@/components-2/modals/ConfirmationModal";
-import Button from "@/components-2/Button";
+import Button from "@/components-2/buttons/Button";
 
 interface AgentActionButtonProps {
   title: string;

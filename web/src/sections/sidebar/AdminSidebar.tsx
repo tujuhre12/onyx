@@ -6,11 +6,8 @@ import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { CgArrowsExpandUpLeft } from "react-icons/cg";
 import { LogoComponent } from "@/components/logo/FixedLogo";
 import Text from "@/components-2/Text";
-import {
-  SidebarButton,
-  SidebarSection,
-} from "@/sections/AppSidebar/components";
-import Settings from "@/sections/AppSidebar/Settings";
+import { SidebarButton, SidebarSection } from "@/sections/sidebar/components";
+import Settings from "@/sections/sidebar/Settings";
 
 interface Item {
   name: string;

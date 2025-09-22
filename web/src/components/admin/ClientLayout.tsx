@@ -1,6 +1,6 @@
 "use client";
 
-import { AdminSidebar } from "@/components/admin/connectors/AdminSidebar";
+import { AdminSidebar } from "@/sections/sidebar/AdminSidebar";
 import {
   ClipboardIcon,
   NotebookIconSkeleton,

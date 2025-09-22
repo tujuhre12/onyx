@@ -11,7 +11,8 @@ import { useUser } from "@/components/user/UserProvider";
 import { Avatar } from "@/components/ui/avatar";
 import Text from "@/components-2/Text";
 import Truncated from "@/components-2/Truncated";
-import { MenuButton, SidebarButton } from "@/sections/AppSidebar/components";
+import { SidebarButton } from "@/sections/sidebar/components";
+import { MenuButton } from "@/components-2/buttons/MenuButton";
 import {
   Popover,
   PopoverContent,

@@ -35,13 +35,9 @@ import SvgSidebar from "@/icons/sidebar";
 import SvgEditBig from "@/icons/edit-big";
 import SvgMoreHorizontal from "@/icons/more-horizontal";
 import SvgLightbulbSimple from "@/icons/lightbulb-simple";
-import Settings from "@/sections/AppSidebar/Settings";
-import {
-  AgentsMenu,
-  MenuButton,
-  SidebarButton,
-  SidebarSection,
-} from "@/sections/AppSidebar/components";
+import Settings from "@/sections/sidebar/Settings";
+import { SidebarButton, SidebarSection } from "@/sections/sidebar/components";
+import { MenuButton } from "@/components-2/buttons/MenuButton";
 import AgentsModal from "@/sections/AgentsModal";
 import { useChatContext } from "@/components/context/ChatContext";
 import SvgBubbleText from "@/icons/bubble-text";
@@ -60,7 +56,7 @@ import SvgTrash from "@/icons/trash";
 import SvgShare from "@/icons/share";
 import SvgEdit from "@/icons/edit";
 import Truncated from "@/components-2/Truncated";
-import Button from "@/components-2/Button";
+import Button from "@/components-2/buttons/Button";
 
 // Visible-agents = pinned-agents + current-agent (if current-agent not in pinned-agents)
 // OR Visible-agents = pinned-agents (if current-agent in pinned-agents)
@@ -256,10 +252,11 @@ function AgentsButtonInner({
       <SidebarButton
         icon={SvgLightbulbSimple}
         kebabMenu={
-          <AgentsMenu
-            pinned={pinned}
-            onTogglePin={() => onTogglePin(visibleAgent, !pinned)}
-          />
+          <div className="flex flex-col gap-spacing-inline">
+            <MenuButton onClick={() => onTogglePin(visibleAgent, !pinned)}>
+              {pinned ? "Unpin chat" : "Pin chat"}
+            </MenuButton>
+          </div>
         }
         kebabMenuOpen={kebabMenuOpen}
         setKebabMenuOpen={setKebabMenuOpen}
