@@ -36,4 +36,4 @@ def setup_braintrust() -> None:
     braintrust.set_masking_function(_mask)
     handler = BraintrustCallbackHandler()
     set_global_handler(handler)
-    set_trace_processors([BraintrustTracingProcessor(init_logger("openai-agent"))])
+    set_trace_processors([BraintrustTracingProcessor(init_logger(BRAINTRUST_PROJECT))])

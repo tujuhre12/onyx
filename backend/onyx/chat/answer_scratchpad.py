@@ -283,6 +283,7 @@ scratchpad = ResearchScratchpad()
 
 
 @function_tool
+@traced(name="add_note")
 def add_note(note: str, source_url: str | None = None):
     """Store a factual note you want to cite later."""
     scratchpad.notes.append({"note": note, "source_url": source_url})
@@ -290,6 +291,7 @@ def add_note(note: str, source_url: str | None = None):
 
 
 @function_tool
+@traced(name="finalize_report")
 def finalize_report():
     """Signal you're done researching. Return a structured, citation-rich report."""
     # The model should *compose* the report as the tool *result*, using notes in scratchpad.
