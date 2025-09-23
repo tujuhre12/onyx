@@ -9,7 +9,6 @@ const SvgLineChartUp = (props: SVGProps<SVGSVGElement>) => (
   >
     <path
       d="M13 6.5L13 3M13 3H9.5M13 3L7.99999 8L6.49999 6.5L3 10M3 13H13"
-      strokeOpacity={0.8}
       strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"

@@ -9,7 +9,6 @@ const SvgActivity = (props: SVGProps<SVGSVGElement>) => (
   >
     <path
       d="M14.6667 8H12L9.99999 14L5.99999 2L3.99999 8H1.33333"
-      strokeOpacity={0.8}
       strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
