@@ -7,12 +7,12 @@ from onyx.configs.model_configs import DEFAULT_DOCUMENT_ENCODER_MODEL
 from onyx.configs.model_configs import DOCUMENT_ENCODER_MODEL
 from onyx.context.search.models import SavedSearchSettings
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
-from onyx.db.llm import fetch_embedding_provider
+# from onyx.db.llm import fetch_embedding_provider
 from onyx.db.models import CloudEmbeddingProvider
 from onyx.db.models import IndexAttempt
 from onyx.db.models import IndexModelStatus
 from onyx.db.models import SearchSettings
-# from onyx.natural_language_processing.search_nlp_models import warm_up_cross_encoder
+from onyx.natural_language_processing.search_nlp_models import warm_up_cross_encoder
 from onyx.server.manage.embedding.models import (
     CloudEmbeddingProvider as ServerCloudEmbeddingProvider,
 )
