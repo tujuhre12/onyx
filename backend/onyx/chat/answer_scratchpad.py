@@ -17,14 +17,23 @@ from agents import function_tool
 from agents import ModelSettings
 from agents import RunContextWrapper
 from agents import Runner
+from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
 from agents.extensions.models.litellm_model import LitellmModel
 from agents.stream_events import RawResponsesStreamEvent
 from agents.stream_events import RunItemStreamEvent
 from braintrust import traced
+from pydantic import BaseModel
 
+from onyx.agents.agent_search.dr.constants import MAX_CHAT_HISTORY_MESSAGES
+from onyx.agents.agent_search.dr.dr_prompt_builder import (
+    get_dr_prompt_orchestration_templates,
+)
+from onyx.agents.agent_search.dr.enums import ResearchType
+from onyx.agents.agent_search.dr.models import DRPromptPurpose
 from onyx.agents.agent_search.dr.sub_agents.web_search.clients.exa_client import (
     ExaClient,
 )
+from onyx.agents.agent_search.dr.utils import get_chat_history_string
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.llm.interfaces import (
@@ -122,14 +131,13 @@ def llm_completion(
     model_name: str,
     temperature: float,
     messages: List[Dict[str, Any]],
-    tools: List[Dict[str, Any]],
     stream: bool = False,
-) -> Any:
+) -> litellm.ModelResponse:
     return litellm.completion(
         model=model_name,
         temperature=temperature,
         messages=messages,
-        tools=tools,
+        tools=None,
         stream=stream,
     )
 
@@ -267,6 +275,74 @@ def start_run_in_thread(
     return t
 
 
+class ResearchScratchpad(BaseModel):
+    notes: List[dict] = []
+
+
+scratchpad = ResearchScratchpad()
+
+
+@function_tool
+def add_note(note: str, source_url: str | None = None):
+    """Store a factual note you want to cite later."""
+    scratchpad.notes.append({"note": note, "source_url": source_url})
+    return {"ok": True, "count": len(scratchpad.notes)}
+
+
+@function_tool
+def finalize_report():
+    """Signal you're done researching. Return a structured, citation-rich report."""
+    # The model should *compose* the report as the tool *result*, using notes in scratchpad.
+    # Some teams have the model return the full report as this tool's return value
+    # so the UI can detect completion cleanly.
+    return {
+        "status": "ready_to_render",
+        "notes_index": scratchpad.notes,  # the model can read these to assemble citations
+    }
+
+
+def construct_deep_research_agent(llm: LLM) -> Agent:
+    litellm_model = LitellmModel(
+        # If you have access, prefer OpenAI’s deep research-capable models:
+        # "o3-deep-research" or "o4-mini-deep-research"
+        # otherwise keep your current model and lean on the prompt + tools
+        model=getattr(llm.config, "model_name", "o4-mini-deep-research"),
+        api_key=llm.config.api_key,
+    )
+
+    DR_INSTRUCTIONS = """
+You are a deep-research agent. Work in explicit iterations:
+1) PLAN: Decompose the user’s query into sub-questions and a step-by-step plan.
+2) SEARCH: Use web_search (or web_search_many for fanout) to explore multiple angles.
+3) FETCH: Use web_fetch for any promising URLs to extract specifics and quotes.
+4) NOTE: After each useful find, call add_note(note, source_url) to save key facts.
+5) REVISE: If evidence contradicts earlier assumptions, update your plan and continue.
+6) FINALIZE: When confident, call finalize_report(). Your final answer must include:
+   - Clear, structured conclusions
+   - A short “How I searched” summary
+   - Inline citations to sources (with URLs)
+   - A bullet list of limitations/open questions
+Guidelines:
+- Prefer breadth-first exploration before deep dives.
+- Compare sources and dates; prioritize recency for time-sensitive topics.
+- Minimize redundancy by skimming before fetching.
+- Think out loud in a compact way, but keep reasoning crisp.
+"""
+
+    return Agent(
+        name="Researcher",
+        instructions=DR_INSTRUCTIONS,
+        model=litellm_model,
+        tools=[web_search, web_fetch, add_note, finalize_report, internal_search],
+        model_settings=ModelSettings(
+            temperature=llm.config.temperature,
+            include_usage=True,
+            # optional: let model choose tools freely
+            # tool_choice="auto",  # if supported by your LitellmModel wrapper
+        ),
+    )
+
+
 def unified_event_stream(
     agent: Agent,
     messages: List[Dict[str, Any]],
@@ -277,14 +353,21 @@ def unified_event_stream(
 ) -> Generator[Dict[str, Any], None, None]:
     bus: Queue = Queue()
     emitter = Emitter(bus)
-    start_run_in_thread(
-        agent=agent,
-        messages=messages,
-        cfg=cfg,
-        llm=llm,
-        search_tool=search_tool,
-        emitter=emitter,
+    # start_run_in_thread(
+    #     agent=agent,
+    #     messages=messages,
+    #     cfg=cfg,
+    #     llm=llm,
+    #     search_tool=search_tool,
+    #     emitter=emitter,
+    # )
+
+    t = threading.Thread(
+        target=thread_worker_dr_turn,
+        args=(messages, cfg, llm, emitter, search_tool),
+        daemon=True,
     )
+    t.start()
     done = False
     while not done:
         pkt: StreamPacket = emitter.bus.get()
@@ -310,11 +393,25 @@ def stream_chat_sync(
 ) -> Generator[Dict[str, Any], None, None]:
     bus: Queue = Queue()
     emitter = Emitter(bus)
+    agent = construct_deep_research_agent(llm)
+    return unified_event_stream(
+        agent=agent,
+        messages=messages,
+        cfg=cfg,
+        llm=llm,
+        emitter=emitter,
+        search_tool=search_tool,
+    )
+
+
+def construct_simple_agent(
+    llm: LLM,
+) -> Agent:
     litellm_model = LitellmModel(
         model=llm.config.model_name,
         api_key=llm.config.api_key,
     )
-    agent = Agent(
+    return Agent(
         name="Assistant",
         instructions="""
         You are a helpful assistant that can search the web, fetch content from URLs,
@@ -327,11 +424,86 @@ def stream_chat_sync(
             include_usage=True,  # Track usage metrics
         ),
     )
-    return unified_event_stream(
-        agent=agent,
-        messages=messages,
-        cfg=cfg,
-        llm=llm,
-        emitter=emitter,
-        search_tool=search_tool,
+
+
+def thread_worker_dr_turn(messages, cfg, llm, emitter, search_tool):
+    try:
+        asyncio.run(dr_turn(messages, cfg, llm, emitter, search_tool))
+    except Exception as e:
+        logger.error(f"Error in dr_turn: {e}", exc_info=e, stack_info=True)
+        emitter.emit(kind="done", data={"ok": False})
+
+
+async def dr_turn(
+    messages: List[Dict[str, Any]],
+    cfg: GraphConfig,
+    llm: LLM,
+    emitter: Emitter,
+    search_tool: SearchTool | None = None,
+) -> None:
+    clarification = get_clarification(messages, cfg, llm, emitter, search_tool)
+    output = json.loads(clarification.choices[0].message.content)
+    clarification_output = ClarificationOutput(**output)
+    if clarification_output.clarification_needed:
+        emitter.emit(kind="agent", data=clarification_output.clarification_question)
+        emitter.emit(kind="done", data={"ok": True})
+        return
+
+    agent = construct_deep_research_agent(llm)
+    ctx = MyContext(
+        run_dependencies=RunDependencies(
+            search_tool=search_tool,
+            emitter=emitter,
+        )
     )
+    # 1) start the streamed run (async)
+    streamed = Runner.run_streamed(agent, messages, context=ctx, max_turns=100)
+
+    # 2) forward the agent’s async event stream
+    async for ev in streamed.stream_events():
+        if isinstance(ev, RunItemStreamEvent):
+            pass
+        elif isinstance(ev, RawResponsesStreamEvent):
+            emitter.emit(kind="agent", data=ev.data.model_dump())
+
+    emitter.emit(kind="done", data={"ok": True})
+
+
+class ClarificationOutput(BaseModel):
+    clarification_question: str
+    clarification_needed: bool
+
+
+def get_clarification(
+    messages: List[Dict[str, Any]],
+    cfg: GraphConfig,
+    llm: LLM,
+    emitter: Emitter,
+    search_tool: SearchTool | None = None,
+) -> litellm.ModelResponse:
+    chat_history_string = (
+        get_chat_history_string(
+            cfg.inputs.prompt_builder.message_history,
+            MAX_CHAT_HISTORY_MESSAGES,
+        )
+        or "(No chat history yet available)"
+    )
+    base_clarification_prompt = get_dr_prompt_orchestration_templates(
+        DRPromptPurpose.CLARIFICATION,
+        research_type=ResearchType.DEEP,
+        entity_types_string=None,
+        relationship_types_string=None,
+        available_tools={},
+    )
+    clarification_prompt = base_clarification_prompt.build(
+        question=messages[-1]["content"],
+        chat_history_string=chat_history_string,
+    )
+    clarifier_prompt = prompt_with_handoff_instructions(clarification_prompt)
+    llm_response = llm_completion(
+        model_name=llm.config.model_name,
+        temperature=llm.config.temperature,
+        messages=[{"role": "user", "content": clarifier_prompt}],
+        stream=False,
+    )
+    return llm_response
