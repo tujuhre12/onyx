@@ -13,6 +13,8 @@ import { Folder } from "@/app/chat/components/folders/interfaces";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { ToolSnapshot } from "@/lib/tools/interfaces";
+import { SEARCH_PARAMS } from "@/lib/extension/constants";
+import { SEARCH_PARAM_NAMES } from "@/app/chat/services/searchParams";
 
 // We use Omit to exclude 'refreshChatSessions' from the value prop type
 // because we're defining it within the component
@@ -31,9 +33,14 @@ interface ChatProviderProps {
 export function ChatProvider({ value, children }: ChatProviderProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const currentChatId = searchParams.get(SEARCH_PARAM_NAMES.CHAT_ID);
   const [inputPrompts, setInputPrompts] = useState(value?.inputPrompts || []);
   const [chatSessions, setChatSessions] = useState(value?.chatSessions || []);
   const [folders, setFolders] = useState(value?.folders || []);
+  const currentChat =
+    value.chatSessions.find(
+      (chatSession) => chatSession.id === currentChatId
+    ) || null;
 
   const reorderFolders = (displayPriorityMap: Record<number, number>) => {
     setFolders(
@@ -56,12 +63,9 @@ export function ChatProvider({ value, children }: ChatProviderProps) {
       const { sessions } = await response.json();
       setChatSessions(sessions);
 
-      const currentSessionId = searchParams?.get("chatId");
       if (
-        currentSessionId &&
-        !sessions.some(
-          (session: ChatSession) => session.id === currentSessionId
-        )
+        currentChatId &&
+        !sessions.some((session: ChatSession) => session.id === currentChatId)
       ) {
         router.replace("/chat");
       }
@@ -91,6 +95,8 @@ export function ChatProvider({ value, children }: ChatProviderProps) {
         inputPrompts,
         refreshInputPrompts,
         chatSessions,
+        currentChatId,
+        currentChat,
         folders,
         reorderFolders,
         refreshChatSessions,
@@ -104,6 +110,8 @@ export function ChatProvider({ value, children }: ChatProviderProps) {
 
 interface ChatContextProps {
   chatSessions: ChatSession[];
+  currentChatId: string | null;
+  currentChat: ChatSession | null;
   sidebarInitiallyVisible: boolean;
   availableSources: ValidSources[];
   ccPairs: CCPairBasicInfo[];

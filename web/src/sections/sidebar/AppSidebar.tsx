@@ -387,7 +387,7 @@ function AppSidebarInner() {
       <AgentsModal />
 
       <div
-        className={`h-screen ${folded ? "w-[4rem]" : "w-[15rem]"} flex flex-col bg-background-tint-02 ${folded ? "px-spacing-interline" : "px-padding-button"} py-padding-content flex-shrink-0 gap-padding-content`}
+        className={`h-full ${folded ? "w-[4rem]" : "w-[15rem]"} flex flex-col bg-background-tint-02 ${folded ? "px-spacing-interline" : "px-padding-button"} py-padding-content flex-shrink-0 gap-padding-content`}
         onMouseOver={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >

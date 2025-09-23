@@ -1,4 +1,4 @@
-import "./globals.css";
+import "@/app/globals.css";
 import {
   fetchEnterpriseSettingsSS,
   fetchSettingsSS,
@@ -16,17 +16,17 @@ import { Inter } from "next/font/google";
 import {
   EnterpriseSettings,
   ApplicationStatus,
-} from "./admin/settings/interfaces";
+} from "@/app/admin/settings/interfaces";
 import { AppProvider } from "@/components-2/context/AppContext";
-import { PHProvider } from "./providers";
+import { PHProvider } from "@/app/providers";
 import { getAuthTypeMetadataSS, getCurrentUserSS } from "@/lib/userSS";
 import { Suspense } from "react";
-import PostHogPageView from "./PostHogPageView";
+import PostHogPageView from "@/app/PostHogPageView";
 import Script from "next/script";
 import { Hanken_Grotesk } from "next/font/google";
-import { WebVitals } from "./web-vitals";
+import { WebVitals } from "@/app/web-vitals";
 import { ThemeProvider } from "next-themes";
-import { DocumentsProvider } from "./chat/my-documents/DocumentsContext";
+import { DocumentsProvider } from "@/app/chat/my-documents/DocumentsContext";
 import CloudError from "@/components/errorPages/CloudErrorPage";
 import Error from "@/components/errorPages/ErrorPage";
 import AccessRestrictedPage from "@/components/errorPages/AccessRestrictedPage";
@@ -158,7 +158,9 @@ export default async function Layout({ children }: LayoutProps) {
         <Suspense fallback={null}>
           <PostHogPageView />
         </Suspense>
-        <div id={MODAL_ROOT_ID}>{children}</div>
+        <div id={MODAL_ROOT_ID} className="h-screen w-screen">
+          {children}
+        </div>
         {process.env.NEXT_PUBLIC_POSTHOG_KEY && <WebVitals />}
       </DocumentsProvider>
     </AppProvider>

@@ -69,9 +69,18 @@ export default async function Layout({
         }}
       >
         <AppSidebarProvider folded={folded}>
-          <div className="flex flex-row">
+          <div className="flex flex-row h-full w-full">
             <AppSidebar />
-            {children}
+            <div className="flex flex-row h-full w-full">
+              {/* Mode Selection Section */}
+              <div className="flex-1" />
+
+              {/* Main Section */}
+              <div className="h-full w-[60%]">{children}</div>
+
+              {/* Side Section */}
+              <div className="flex-1" />
+            </div>
           </div>
         </AppSidebarProvider>
       </ChatProvider>

@@ -87,6 +87,7 @@ export function AgentsProvider({
         : null,
     [agents, currentAgentId]
   );
+  const unifiedAgent = agents.find((agent) => agent.id === 0) || null;
 
   async function refreshAgents() {
     setAgents(await fetchAllAgents());
@@ -121,6 +122,7 @@ export function AgentsProvider({
         setPinnedAgents,
         togglePinnedAgent,
         currentAgent,
+        unifiedAgent,
       }}
     >
       {children}
@@ -138,8 +140,9 @@ interface AgentsContextProps {
   setPinnedAgents: Dispatch<SetStateAction<MinimalPersonaSnapshot[]>>;
   togglePinnedAgent: (agent: MinimalPersonaSnapshot, request: boolean) => void;
 
-  // Currently live/active agent (from searchParams)
+  // Specific agents
   currentAgent: MinimalPersonaSnapshot | null;
+  unifiedAgent: MinimalPersonaSnapshot | null;
 }
 
 const AgentsContext = createContext<AgentsContextProps | undefined>(undefined);
