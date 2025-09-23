@@ -11,7 +11,6 @@ import json
 from pathlib import Path
 
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer  # type: ignore
 
 
 class SeedPresaveDocument(BaseModel):
@@ -23,35 +22,42 @@ class SeedPresaveDocument(BaseModel):
     chunk_ind: int = 0
 
 
-# Initialize embedding model (keep default used by the app)
-model = SentenceTransformer("nomic-ai/nomic-embed-text-v1", trust_remote_code=True)
-_ = model.tokenizer  # kept for parity; unused but ensures tokenizer loads
+def main() -> None:
+    from sentence_transformers import SentenceTransformer  # type: ignore
 
-base_path = Path("./backend/onyx/seeding")
-input_path = base_path / "initial_docs_cohere.json"
-output_path = base_path / "initial_docs.json"
+    # Initialize embedding model (keep default used by the app)
+    model = SentenceTransformer("nomic-ai/nomic-embed-text-v1", trust_remote_code=True)
+    _ = model.tokenizer  # kept for parity; unused but ensures tokenizer loads
 
-raw_docs: list[dict] = json.loads(input_path.read_text())
+    base_path = Path("./backend/onyx/seeding")
+    input_path = base_path / "initial_docs_cohere.json"
+    output_path = base_path / "initial_docs.json"
 
-documents: list[SeedPresaveDocument] = []
-for d in raw_docs:
-    title = (d.get("title") or "").strip()
-    content = d.get("content") or ""
-    url = d.get("url") or ""
-    chunk_ind = int(d.get("chunk_ind", 0))
+    raw_docs: list[dict] = json.loads(input_path.read_text())
 
-    title_emb = list(model.encode(f"search_document: {title}"))
-    content_emb = list(model.encode(f"search_document: {title}\n{content}"))
+    documents: list[SeedPresaveDocument] = []
+    for d in raw_docs:
+        title = (d.get("title") or "").strip()
+        content = d.get("content") or ""
+        url = d.get("url") or ""
+        chunk_ind = int(d.get("chunk_ind", 0))
 
-    documents.append(
-        SeedPresaveDocument(
-            url=url,
-            title=title,
-            content=content,
-            title_embedding=title_emb,
-            content_embedding=content_emb,
-            chunk_ind=chunk_ind,
+        title_emb = list(model.encode(f"search_document: {title}"))
+        content_emb = list(model.encode(f"search_document: {title}\n{content}"))
+
+        documents.append(
+            SeedPresaveDocument(
+                url=url,
+                title=title,
+                content=content,
+                title_embedding=title_emb,
+                content_embedding=content_emb,
+                chunk_ind=chunk_ind,
+            )
         )
-    )
 
-output_path.write_text(json.dumps([d.model_dump() for d in documents], indent=4))
+    output_path.write_text(json.dumps([d.model_dump() for d in documents], indent=4))
+
+
+if __name__ == "__main__":
+    main()
