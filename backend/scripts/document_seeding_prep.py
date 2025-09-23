@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 
 from pydantic import BaseModel
+from sentence_transformers import SentenceTransformer
 
 
 class SeedPresaveDocument(BaseModel):
@@ -23,8 +24,6 @@ class SeedPresaveDocument(BaseModel):
 
 
 def main() -> None:
-    from sentence_transformers import SentenceTransformer  # type: ignore
-
     # Initialize embedding model (keep default used by the app)
     model = SentenceTransformer("nomic-ai/nomic-embed-text-v1", trust_remote_code=True)
     _ = model.tokenizer  # kept for parity; unused but ensures tokenizer loads

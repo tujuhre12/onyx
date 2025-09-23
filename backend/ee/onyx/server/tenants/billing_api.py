@@ -1,4 +1,3 @@
-import stripe
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
@@ -23,7 +22,6 @@ from onyx.utils.logger import setup_logger
 from shared_configs.contextvars import CURRENT_TENANT_ID_CONTEXTVAR
 from shared_configs.contextvars import get_current_tenant_id
 
-stripe.api_key = STRIPE_SECRET_KEY
 logger = setup_logger()
 
 router = APIRouter(prefix="/tenants")
@@ -82,6 +80,9 @@ async def billing_information(
 async def create_customer_portal_session(
     _: User = Depends(current_admin_user),
 ) -> dict:
+    import stripe
+
+    stripe.api_key = STRIPE_SECRET_KEY
     tenant_id = get_current_tenant_id()
 
     try:

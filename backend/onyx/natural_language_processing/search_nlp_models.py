@@ -15,7 +15,6 @@ import aioboto3  # type: ignore
 import httpx
 import openai
 import requests
-import voyageai  # type: ignore
 from cohere import AsyncClient as CohereAsyncClient
 from google.oauth2 import service_account  # type: ignore
 from httpx import HTTPError
@@ -231,6 +230,8 @@ class CloudEmbedding:
     async def _embed_voyage(
         self, texts: list[str], model: str | None, embedding_type: str
     ) -> list[Embedding]:
+        import voyageai
+
         if not model:
             model = DEFAULT_VOYAGE_MODEL
 
