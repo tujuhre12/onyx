@@ -1,11 +1,11 @@
 from typing import cast
+from typing import TYPE_CHECKING
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from fastapi import APIRouter
 from huggingface_hub import snapshot_download  # type: ignore
-from setfit import SetFitModel  # type: ignore[import]
 from transformers import AutoTokenizer  # type: ignore
 from transformers import BatchEncoding  # type: ignore
 from transformers import PreTrainedTokenizer  # type: ignore
@@ -37,6 +37,9 @@ from shared_configs.model_server_models import ContentClassificationPrediction
 from shared_configs.model_server_models import IntentRequest
 from shared_configs.model_server_models import IntentResponse
 
+if TYPE_CHECKING:
+    from setfit import SetFitModel  # type: ignore[import-untyped]
+
 logger = setup_logger()
 
 router = APIRouter(prefix="/custom")
@@ -46,6 +49,7 @@ _CONNECTOR_CLASSIFIER_MODEL: ConnectorClassifier | None = None
 
 _INTENT_TOKENIZER: PreTrainedTokenizer | None = None
 _INTENT_MODEL: HybridClassifier | None = None
+
 
 _INFORMATION_CONTENT_MODEL: SetFitModel | None = None
 
@@ -141,8 +145,10 @@ def get_local_intent_model(
 def get_local_information_content_model(
     model_name_or_path: str = INFORMATION_CONTENT_MODEL_VERSION,
     tag: str | None = INFORMATION_CONTENT_MODEL_TAG,
-) -> SetFitModel:
+) -> "SetFitModel":
     global _INFORMATION_CONTENT_MODEL
+    from setfit import SetFitModel  # type: ignore
+
     if _INFORMATION_CONTENT_MODEL is None:
         try:
             # Calculate where the cache should be, then load from local if available
