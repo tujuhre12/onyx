@@ -531,7 +531,7 @@ def stream_chat_message_objects(
         yield MessageResponseIDInfo(
             user_message_id=user_message.id if user_message else None,
             reserved_assistant_message_id=reserved_message_id,
-        )
+        ).model_dump()
 
         prompt_override = new_msg_req.prompt_override or chat_session.prompt_override
         if new_msg_req.persona_override_config:
@@ -619,7 +619,7 @@ def stream_chat_message_objects(
                     )
                     for file in in_memory_user_files
                 ]
-            )
+            ).model_dump()
 
         prompt_builder = AnswerPromptBuilder(
             user_message=default_build_user_message(
@@ -709,17 +709,12 @@ def stream_chat_message_objects(
             llm=answer.graph_tooling.primary_llm,
             search_tool=answer.graph_tooling.search_tool,
         )
-        # yield from streamed
-        # Process streamed packets using the new packet processing module
-        # yield from process_streamed_packets(
-        #     answer_processed_output=answer.processed_streamed_output,
-        # )
 
     except ValueError as e:
         logger.exception("Failed to process chat message.")
 
         error_msg = str(e)
-        yield StreamingError(error=error_msg)
+        yield StreamingError(error=error_msg).model_dump()
         db_session.rollback()
         return
 
@@ -733,7 +728,7 @@ def stream_chat_message_objects(
         stack_trace = traceback.format_exc()
 
         if isinstance(e, ToolCallException):
-            yield StreamingError(error=error_msg, stack_trace=stack_trace)
+            yield StreamingError(error=error_msg, stack_trace=stack_trace).model_dump()
         elif llm:
             client_error_msg = litellm_exception_to_error_msg(e, llm)
             if llm.config.api_key and len(llm.config.api_key) > 2:
@@ -744,7 +739,9 @@ def stream_chat_message_objects(
                     llm.config.api_key, "[REDACTED_API_KEY]"
                 )
 
-            yield StreamingError(error=client_error_msg, stack_trace=stack_trace)
+            yield StreamingError(
+                error=client_error_msg, stack_trace=stack_trace
+            ).model_dump()
 
         db_session.rollback()
         return
@@ -774,13 +771,81 @@ def stream_chat_message(
                 document_retrieval_latency = time.time() - start_time
                 logger.debug(f"First doc time: {document_retrieval_latency}")
 
-            yield get_json_line(obj.model_dump())
+            yield get_json_line(obj)
 
 
 def remove_answer_citations(answer: str) -> str:
     pattern = r"\s*\[\[\d+\]\]\(http[s]?://[^\s]+\)"
 
     return re.sub(pattern, "", answer)
+
+
+def _convert_to_packet_obj(packet: Dict[str, Any]) -> Any | None:
+    """Convert a packet dictionary to PacketObj when possible.
+
+    Args:
+        packet: Dictionary containing packet data
+
+    Returns:
+        PacketObj instance if conversion is possible, None otherwise
+    """
+    if not isinstance(packet, dict) or "type" not in packet:
+        return None
+
+    packet_type = packet.get("type")
+    if not packet_type:
+        return None
+
+    try:
+        # Import here to avoid circular imports
+        from onyx.server.query_and_chat.streaming_models import (
+            MessageStart,
+            MessageDelta,
+            OverallStop,
+            SectionEnd,
+            SearchToolStart,
+            SearchToolDelta,
+            ImageGenerationToolStart,
+            ImageGenerationToolDelta,
+            ImageGenerationToolHeartbeat,
+            CustomToolStart,
+            CustomToolDelta,
+            ReasoningStart,
+            ReasoningDelta,
+            CitationStart,
+            CitationDelta,
+        )
+
+        # Map packet types to their corresponding classes
+        type_mapping = {
+            "message_start": MessageStart,
+            "message_delta": MessageDelta,
+            "stop": OverallStop,
+            "section_end": SectionEnd,
+            "internal_search_tool_start": SearchToolStart,
+            "internal_search_tool_delta": SearchToolDelta,
+            "image_generation_tool_start": ImageGenerationToolStart,
+            "image_generation_tool_delta": ImageGenerationToolDelta,
+            "image_generation_tool_heartbeat": ImageGenerationToolHeartbeat,
+            "custom_tool_start": CustomToolStart,
+            "custom_tool_delta": CustomToolDelta,
+            "reasoning_start": ReasoningStart,
+            "reasoning_delta": ReasoningDelta,
+            "citation_start": CitationStart,
+            "citation_delta": CitationDelta,
+        }
+
+        packet_class = type_mapping.get(packet_type)
+        if packet_class:
+            # Create instance using the packet data, filtering out None values
+            filtered_data = {k: v for k, v in packet.items() if v is not None}
+            return packet_class(**filtered_data)
+
+    except Exception as e:
+        # Log the error but don't fail the entire process
+        logger.debug(f"Failed to convert packet to PacketObj: {e}")
+
+    return None
 
 
 @log_function_time()
@@ -791,7 +856,15 @@ def gather_stream(
     for packet in packets:
         if packet != {"type": "event"}:
             print(packet)
-        if "text" in packet:
+
+        # Convert packet to PacketObj when possible
+        packet_obj = _convert_to_packet_obj(packet)
+        if packet_obj:
+            # Handle PacketObj types that contain text content
+            if hasattr(packet_obj, "content") and packet_obj.content:
+                answer += packet_obj.content
+        elif "text" in packet:
+            # Fallback for legacy packet format
             answer += packet["text"]
 
     return ChatBasicResponse(

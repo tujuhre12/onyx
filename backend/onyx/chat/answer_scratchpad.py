@@ -36,6 +36,9 @@ from onyx.tools.tool_implementations.search.search_tool import (
 )
 from onyx.tools.tool_implementations.search.search_tool import SearchResponseSummary
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
+from onyx.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
 @dataclass
@@ -168,6 +171,48 @@ def internal_search(context_wrapper: RunContextWrapper[MyContext], query: str) -
     return retrieved_docs
 
 
+def _convert_to_packet_obj(packet: Dict[str, Any]) -> Any | None:
+    """Convert a packet dictionary to PacketObj when possible.
+
+    Args:
+        packet: Dictionary containing packet data
+
+    Returns:
+        PacketObj instance if conversion is possible, None otherwise
+    """
+    if not isinstance(packet, dict) or "type" not in packet:
+        return None
+
+    packet_type = packet.get("type")
+    if not packet_type:
+        return None
+
+    try:
+        # Import here to avoid circular imports
+        from onyx.server.query_and_chat.streaming_models import (
+            MessageStart,
+            MessageDelta,
+            OverallStop,
+        )
+
+        if packet_type == "response.output_item.added":
+            return MessageStart(
+                type="message_start",
+                content="",
+                final_documents=None,
+            )
+        elif packet_type == "response.output_text.delta":
+            return MessageDelta(type="message_delta", content=packet["delta"])
+        elif packet_type == "response.completed":
+            return OverallStop(type="stop")
+
+    except Exception as e:
+        # Log the error but don't fail the entire process
+        logger.debug(f"Failed to convert packet to PacketObj: {e}")
+
+    return None
+
+
 # stream_bus.py
 @dataclass
 class StreamPacket:
@@ -191,8 +236,8 @@ def start_run_in_thread(
     messages: List[Dict[str, Any]],
     cfg: GraphConfig,
     llm: LLM,
-    search_tool: SearchTool,
     emitter: Emitter,
+    search_tool: SearchTool | None = None,
 ) -> threading.Thread:
     def worker():
         async def amain():
@@ -227,19 +272,33 @@ def unified_event_stream(
     messages: List[Dict[str, Any]],
     cfg: GraphConfig,
     llm: LLM,
-    search_tool: SearchTool,
     emitter: Emitter,
+    search_tool: SearchTool | None = None,
 ) -> Generator[Dict[str, Any], None, None]:
     bus: Queue = Queue()
     emitter = Emitter(bus)
-    start_run_in_thread(agent, messages, cfg, llm, search_tool, emitter)
+    start_run_in_thread(
+        agent=agent,
+        messages=messages,
+        cfg=cfg,
+        llm=llm,
+        search_tool=search_tool,
+        emitter=emitter,
+    )
     done = False
     while not done:
-        pkt: Queue[StreamPacket] = emitter.bus.get()
+        pkt: StreamPacket = emitter.bus.get()
         if pkt.kind == "done":
             done = True
         else:
-            yield pkt.payload
+            # Convert packet to PacketObj when possible
+            packet_obj = _convert_to_packet_obj(pkt.payload)
+            if packet_obj:
+                # Convert PacketObj back to dict for compatibility
+                yield packet_obj.model_dump()
+            else:
+                # Fallback to original payload
+                yield pkt.payload
 
 
 # This should be close to the API
@@ -247,7 +306,7 @@ def stream_chat_sync(
     messages: List[Dict[str, Any]],
     cfg: GraphConfig,
     llm: LLM,
-    search_tool: SearchTool,
+    search_tool: SearchTool | None = None,
 ) -> Generator[Dict[str, Any], None, None]:
     bus: Queue = Queue()
     emitter = Emitter(bus)
@@ -268,4 +327,11 @@ def stream_chat_sync(
             include_usage=True,  # Track usage metrics
         ),
     )
-    return unified_event_stream(agent, messages, cfg, llm, search_tool, emitter)
+    return unified_event_stream(
+        agent=agent,
+        messages=messages,
+        cfg=cfg,
+        llm=llm,
+        emitter=emitter,
+        search_tool=search_tool,
+    )
