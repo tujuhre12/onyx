@@ -1,7 +1,7 @@
 from typing import cast
-from typing import TYPE_CHECKING
 
 import requests
+import stripe
 
 from ee.onyx.configs.app_configs import STRIPE_PRICE_ID
 from ee.onyx.configs.app_configs import STRIPE_SECRET_KEY
@@ -11,9 +11,7 @@ from ee.onyx.server.tenants.models import SubscriptionStatusResponse
 from onyx.configs.app_configs import CONTROL_PLANE_API_BASE_URL
 from onyx.utils.logger import setup_logger
 
-if TYPE_CHECKING:
-    import stripe
-
+stripe.api_key = STRIPE_SECRET_KEY
 
 logger = setup_logger()
 
@@ -72,15 +70,10 @@ def fetch_billing_information(
     return BillingInformation(**response_data)
 
 
-def register_tenant_users(
-    tenant_id: str, number_of_users: int
-) -> "stripe.Subscription":
+def register_tenant_users(tenant_id: str, number_of_users: int) -> stripe.Subscription:
     """
     Send a request to the control service to register the number of users for a tenant.
     """
-    import stripe
-
-    stripe.api_key = STRIPE_SECRET_KEY
 
     if not STRIPE_PRICE_ID:
         raise Exception("STRIPE_PRICE_ID is not set")
