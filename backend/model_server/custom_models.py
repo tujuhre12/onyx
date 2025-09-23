@@ -1,4 +1,5 @@
 from typing import cast
+from typing import Optional
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -51,7 +52,7 @@ _INTENT_TOKENIZER: PreTrainedTokenizer | None = None
 _INTENT_MODEL: HybridClassifier | None = None
 
 
-_INFORMATION_CONTENT_MODEL: "SetFitModel" | None = None
+_INFORMATION_CONTENT_MODEL: Optional["SetFitModel"] = None
 
 _INFORMATION_CONTENT_MODEL_PROMPT_PREFIX: str = ""  # spec to model version!
 
