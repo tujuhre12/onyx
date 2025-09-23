@@ -3,6 +3,7 @@ import os
 import time
 import traceback
 from time import sleep
+from typing import Any
 
 import sentry_sdk
 from celery import Celery
@@ -21,7 +22,7 @@ from onyx.background.celery.tasks.models import SimpleJobResult
 from onyx.background.indexing.job_client import SimpleJob
 from onyx.background.indexing.job_client import SimpleJobClient
 from onyx.background.indexing.job_client import SimpleJobException
-# from onyx.background.indexing.run_docfetching import run_docfetching_entrypoint
+from onyx.background.indexing.run_docfetching import run_docfetching_entrypoint
 from onyx.configs.constants import CELERY_INDEXING_WATCHDOG_CONNECTOR_TIMEOUT
 from onyx.configs.constants import OnyxCeleryTask
 from onyx.connectors.exceptions import ConnectorValidationError
@@ -32,7 +33,7 @@ from onyx.db.index_attempt import get_index_attempt
 from onyx.db.index_attempt import mark_attempt_canceled
 from onyx.db.index_attempt import mark_attempt_failed
 from onyx.db.indexing_coordination import IndexingCoordination
-# from onyx.redis.redis_connector import RedisConnector
+from onyx.redis.redis_connector import RedisConnector
 from onyx.utils.logger import setup_logger
 from onyx.utils.variable_functionality import global_version
 from shared_configs.configs import SENTRY_DSN
@@ -211,14 +212,14 @@ def _docfetching_task(
         )
 
         # This is where the heavy/real work happens
-        # run_docfetching_entrypoint(
-        #     app,
-        #     index_attempt_id,
-        #     tenant_id,
-        #     cc_pair_id,
-        #     is_ee,
-        #     callback=callback,
-        # )
+        run_docfetching_entrypoint(
+            app,
+            index_attempt_id,
+            tenant_id,
+            cc_pair_id,
+            is_ee,
+            callback=callback,
+        )
 
     except ConnectorValidationError:
         raise SimpleJobException(
@@ -259,7 +260,7 @@ def process_job_result(
     job: SimpleJob,
     connector_source: str | None,
     index_attempt_id: int,
-    log_builder: ConnectorIndexingLogBuilder,
+    log_builder: Any,
 ) -> SimpleJobResult:
     result = SimpleJobResult()
     result.connector_source = connector_source

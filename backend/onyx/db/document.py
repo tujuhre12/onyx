@@ -22,7 +22,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import null
 
-# from onyx.agents.agent_search.kb_search.models import KGEntityDocInfo
+from onyx.agents.agent_search.kb_search.models import KGEntityDocInfo
 from onyx.configs.constants import DEFAULT_BOOST
 from onyx.configs.constants import DocumentSource
 from onyx.configs.kg_configs import KG_SIMPLE_ANSWER_MAX_DISPLAYED_SOURCES
@@ -33,7 +33,7 @@ from onyx.db.entities import delete_from_kg_entities__no_commit
 from onyx.db.entities import delete_from_kg_entities_extraction_staging__no_commit
 from onyx.db.enums import AccessType
 from onyx.db.enums import ConnectorCredentialPairStatus
-# from onyx.db.feedback import delete_document_feedback_for_documents__no_commit
+from onyx.db.feedback import delete_document_feedback_for_documents__no_commit
 from onyx.db.models import Connector
 from onyx.db.models import ConnectorCredentialPair
 from onyx.db.models import Credential
@@ -747,9 +747,9 @@ def delete_documents_complete__no_commit(
     )
 
     delete_documents_by_connector_credential_pair__no_commit(db_session, document_ids)
-    # delete_document_feedback_for_documents__no_commit(
-        # document_ids=document_ids, db_session=db_session
-    # )
+    delete_document_feedback_for_documents__no_commit(
+        document_ids=document_ids, db_session=db_session
+    )
     delete_document_tags_for_documents__no_commit(
         document_ids=document_ids, db_session=db_session
     )
@@ -1199,35 +1199,35 @@ def get_skipped_kg_documents(db_session: Session) -> list[str]:
     return list(db_session.scalars(stmt).all())
 
 
-# def get_kg_doc_info_for_entity_name(
-#     db_session: Session, document_id: str, entity_type: str
-# ) -> KGEntityDocInfo:
-#     """
-#     Get the semantic ID and the link for an entity name.
-#     """
+def get_kg_doc_info_for_entity_name(
+    db_session: Session, document_id: str, entity_type: str
+) -> KGEntityDocInfo:
+    """
+    Get the semantic ID and the link for an entity name.
+    """
 
-#     result = (
-#         db_session.query(Document.semantic_id, Document.link)
-#         .filter(Document.id == document_id)
-#         .first()
-#     )
+    result = (
+        db_session.query(Document.semantic_id, Document.link)
+        .filter(Document.id == document_id)
+        .first()
+    )
 
-#     if result is None:
-#         return KGEntityDocInfo(
-#             doc_id=None,
-#             doc_semantic_id=None,
-#             doc_link=None,
-#             semantic_entity_name=f"{entity_type}:{document_id}",
-#             semantic_linked_entity_name=f"{entity_type}:{document_id}",
-#         )
+    if result is None:
+        return KGEntityDocInfo(
+            doc_id=None,
+            doc_semantic_id=None,
+            doc_link=None,
+            semantic_entity_name=f"{entity_type}:{document_id}",
+            semantic_linked_entity_name=f"{entity_type}:{document_id}",
+        )
 
-#     return KGEntityDocInfo(
-#         doc_id=document_id,
-#         doc_semantic_id=result[0],
-#         doc_link=result[1],
-#         semantic_entity_name=f"{entity_type.upper()}:{result[0]}",
-#         semantic_linked_entity_name=f"[{entity_type.upper()}:{result[0]}]({result[1]})",
-#     )
+    return KGEntityDocInfo(
+        doc_id=document_id,
+        doc_semantic_id=result[0],
+        doc_link=result[1],
+        semantic_entity_name=f"{entity_type.upper()}:{result[0]}",
+        semantic_linked_entity_name=f"[{entity_type.upper()}:{result[0]}]({result[1]})",
+    )
 
 
 def check_for_documents_needing_kg_processing(

@@ -56,7 +56,7 @@ from onyx.llm.override_models import PromptOverride
 from onyx.server.query_and_chat.models import ChatMessageDetail
 from onyx.server.query_and_chat.models import SubQueryDetail
 from onyx.server.query_and_chat.models import SubQuestionDetail
-from onyx.tools.tool_runner import ToolCallFinalResult
+from onyx.tools.models import ToolCallFinalResult
 from onyx.utils.logger import setup_logger
 from onyx.utils.special_types import JSON_ro
 
