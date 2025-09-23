@@ -2,8 +2,6 @@ import string
 from collections.abc import Sequence
 from typing import TypeVar
 
-from nltk.corpus import stopwords  # type:ignore
-from nltk.tokenize import word_tokenize  # type:ignore
 from sqlalchemy.orm import Session
 
 from onyx.chat.models import SectionRelevancePiece
@@ -153,6 +151,9 @@ def chunks_or_sections_to_search_docs(
 
 
 def remove_stop_words_and_punctuation(keywords: list[str]) -> list[str]:
+    from nltk.corpus import stopwords  # type: ignore[import-untyped]
+    from nltk.tokenize import word_tokenize  # type: ignore[import-untyped]
+
     try:
         # Re-tokenize using the NLTK tokenizer for better matching
         query = " ".join(keywords)
