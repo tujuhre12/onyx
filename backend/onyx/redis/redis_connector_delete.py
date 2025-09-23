@@ -16,7 +16,7 @@ from onyx.configs.constants import OnyxCeleryQueues
 from onyx.configs.constants import OnyxCeleryTask
 from onyx.configs.constants import OnyxRedisConstants
 from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
-# from onyx.db.document import construct_document_id_select_for_connector_credential_pair
+from onyx.db.document import construct_document_id_select_for_connector_credential_pair
 
 
 class RedisConnectorDeletePayload(BaseModel):
@@ -118,40 +118,40 @@ class RedisConnectorDelete:
 
         num_tasks_sent = 0
 
-        # stmt = construct_document_id_select_for_connector_credential_pair(
-        #     cc_pair.connector_id, cc_pair.credential_id
-        # )
-        # for doc_id in db_session.scalars(stmt).yield_per(DB_YIELD_PER_DEFAULT):
-        #     doc_id = cast(str, doc_id)
-        #     current_time = time.monotonic()
-        #     if current_time - last_lock_time >= (
-        #         CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT / 4
-        #     ):
-        #         lock.reacquire()
-        #         last_lock_time = current_time
+        stmt = construct_document_id_select_for_connector_credential_pair(
+            cc_pair.connector_id, cc_pair.credential_id
+        )
+        for doc_id in db_session.scalars(stmt).yield_per(DB_YIELD_PER_DEFAULT):
+            doc_id = cast(str, doc_id)
+            current_time = time.monotonic()
+            if current_time - last_lock_time >= (
+                CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT / 4
+            ):
+                lock.reacquire()
+                last_lock_time = current_time
 
-        #     custom_task_id = self._generate_task_id()
+            custom_task_id = self._generate_task_id()
 
-        #     # add to the tracking taskset in redis BEFORE creating the celery task.
-        #     # note that for the moment we are using a single taskset key, not differentiated by cc_pair id
-        #     self.redis.sadd(self.taskset_key, custom_task_id)
+            # add to the tracking taskset in redis BEFORE creating the celery task.
+            # note that for the moment we are using a single taskset key, not differentiated by cc_pair id
+            self.redis.sadd(self.taskset_key, custom_task_id)
 
-        #     # Priority on sync's triggered by new indexing should be medium
-        #     celery_app.send_task(
-        #         OnyxCeleryTask.DOCUMENT_BY_CC_PAIR_CLEANUP_TASK,
-        #         kwargs=dict(
-        #             document_id=doc_id,
-        #             connector_id=cc_pair.connector_id,
-        #             credential_id=cc_pair.credential_id,
-        #             tenant_id=self.tenant_id,
-        #         ),
-        #         queue=OnyxCeleryQueues.CONNECTOR_DELETION,
-        #         task_id=custom_task_id,
-        #         priority=OnyxCeleryPriority.MEDIUM,
-        #         ignore_result=True,
-        #     )
+            # Priority on sync's triggered by new indexing should be medium
+            celery_app.send_task(
+                OnyxCeleryTask.DOCUMENT_BY_CC_PAIR_CLEANUP_TASK,
+                kwargs=dict(
+                    document_id=doc_id,
+                    connector_id=cc_pair.connector_id,
+                    credential_id=cc_pair.credential_id,
+                    tenant_id=self.tenant_id,
+                ),
+                queue=OnyxCeleryQueues.CONNECTOR_DELETION,
+                task_id=custom_task_id,
+                priority=OnyxCeleryPriority.MEDIUM,
+                ignore_result=True,
+            )
 
-        #     num_tasks_sent += 1
+            num_tasks_sent += 1
 
         return num_tasks_sent
 
