@@ -184,10 +184,10 @@ class CloudEmbedding:
     async def _embed_openai(
         self, texts: list[str], model: str | None, reduced_dimension: int | None
     ) -> list[Embedding]:
-        import openai
-
         if not model:
             model = DEFAULT_OPENAI_MODEL
+
+        import openai
 
         # Use the OpenAI specific timeout for this one
         client = openai.AsyncOpenAI(
