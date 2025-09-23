@@ -7,8 +7,8 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Request
 from litellm.exceptions import RateLimitError
-from sentence_transformers import CrossEncoder
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import CrossEncoder  # type: ignore
+from sentence_transformers import SentenceTransformer  # type: ignore
 
 from model_server.utils import simple_log_function_time
 from onyx.utils.logger import setup_logger
@@ -25,8 +25,8 @@ logger = setup_logger()
 router = APIRouter(prefix="/encoder")
 
 
-_GLOBAL_MODELS_DICT: dict[str, SentenceTransformer] = {}
-_RERANK_MODEL: Optional[CrossEncoder] = None
+_GLOBAL_MODELS_DICT: dict[str, "SentenceTransformer"] = {}
+_RERANK_MODEL: Optional["CrossEncoder"] = None
 
 # If we are not only indexing, dont want retry very long
 _RETRY_DELAY = 10 if INDEXING_ONLY else 0.1
@@ -36,13 +36,14 @@ _RETRY_TRIES = 10 if INDEXING_ONLY else 2
 def get_embedding_model(
     model_name: str,
     max_context_length: int,
-) -> SentenceTransformer:
+) -> "SentenceTransformer":
     """
     Loads or returns a cached SentenceTransformer, sets max_seq_length, pins device,
     pre-warms rotary caches once, and wraps encode() with a lock to avoid cache races.
     """
+    from sentence_transformers import SentenceTransformer  # type: ignore
 
-    def _prewarm_rope(st_model: SentenceTransformer, target_len: int) -> None:
+    def _prewarm_rope(st_model: "SentenceTransformer", target_len: int) -> None:
         """
         Build RoPE cos/sin caches once on the final device/dtype so later forwards only read.
         Works by calling the underlying HF model directly with dummy IDs/attention.
@@ -101,7 +102,7 @@ ENCODING_RETRY_DELAY = 0.1
 
 
 def _concurrent_embedding(
-    texts: list[str], model: SentenceTransformer, normalize_embeddings: bool
+    texts: list[str], model: "SentenceTransformer", normalize_embeddings: bool
 ) -> Any:
     """Synchronous wrapper for concurrent_embedding to use with run_in_executor."""
     for _ in range(ENCODING_RETRIES):
