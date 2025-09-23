@@ -1,4 +1,4 @@
-from langchain_core.messages import BaseMessage
+from langchain.schema.messages import BaseMessage
 from pydantic import BaseModel
 
 from onyx.llm.models import PreviousMessage
