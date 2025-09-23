@@ -42,7 +42,6 @@ from shared_configs.configs import POSTGRES_DEFAULT_SCHEMA
 from shared_configs.configs import SENTRY_DSN
 from shared_configs.configs import TENANT_ID_PREFIX
 from shared_configs.contextvars import CURRENT_TENANT_ID_CONTEXTVAR
-
 # from onyx.background.celery.tasks.vespa.document_sync import DOCUMENT_SYNC_PREFIX
 # from onyx.background.celery.tasks.vespa.document_sync import DOCUMENT_SYNC_TASKSET_KEY
 # from onyx.redis.redis_connector import RedisConnector

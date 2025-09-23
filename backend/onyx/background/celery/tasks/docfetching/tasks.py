@@ -1,8 +1,41 @@
-from onyx.utils.logger import setup_logger
+import multiprocessing
+import os
+import time
+import traceback
+from time import sleep
 
+import sentry_sdk
+from celery import Celery
+from celery import shared_task
+from celery import Task
+
+from onyx.background.celery.apps.app_base import task_logger
+from onyx.background.celery.memory_monitoring import emit_process_memory
+from onyx.background.celery.tasks.docprocessing.heartbeat import start_heartbeat
+from onyx.background.celery.tasks.docprocessing.heartbeat import stop_heartbeat
 # from onyx.background.celery.tasks.docprocessing.tasks import ConnectorIndexingLogBuilder
-# from onyx.background.celery.tasks.docprocessing.utils import IndexingCallback
+from onyx.background.celery.tasks.docprocessing.utils import IndexingCallback
+from onyx.background.celery.tasks.models import DocProcessingContext
+from onyx.background.celery.tasks.models import IndexingWatchdogTerminalStatus
+from onyx.background.celery.tasks.models import SimpleJobResult
+from onyx.background.indexing.job_client import SimpleJob
+from onyx.background.indexing.job_client import SimpleJobClient
+from onyx.background.indexing.job_client import SimpleJobException
 # from onyx.background.indexing.run_docfetching import run_docfetching_entrypoint
+from onyx.configs.constants import CELERY_INDEXING_WATCHDOG_CONNECTOR_TIMEOUT
+from onyx.configs.constants import OnyxCeleryTask
+from onyx.connectors.exceptions import ConnectorValidationError
+from onyx.db.connector_credential_pair import get_connector_credential_pair_from_id
+from onyx.db.engine.sql_engine import get_session_with_current_tenant
+from onyx.db.enums import IndexingStatus
+from onyx.db.index_attempt import get_index_attempt
+from onyx.db.index_attempt import mark_attempt_canceled
+from onyx.db.index_attempt import mark_attempt_failed
+from onyx.db.indexing_coordination import IndexingCoordination
+from onyx.redis.redis_connector import RedisConnector
+from onyx.utils.logger import setup_logger
+from onyx.utils.variable_functionality import global_version
+from shared_configs.configs import SENTRY_DSN
 
 logger = setup_logger()
 

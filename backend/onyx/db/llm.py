@@ -1,34 +1,49 @@
+from sqlalchemy import delete
+from sqlalchemy import or_
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import Session
 
+from onyx.configs.app_configs import AUTH_TYPE
+from onyx.configs.constants import AuthType
 from onyx.db.models import CloudEmbeddingProvider as CloudEmbeddingProviderModel
+from onyx.db.models import DocumentSet
+from onyx.db.models import LLMProvider as LLMProviderModel
+from onyx.db.models import LLMProvider__UserGroup
+from onyx.db.models import ModelConfiguration
+from onyx.db.models import SearchSettings
+from onyx.db.models import Tool as ToolModel
+from onyx.db.models import User
+from onyx.db.models import User__UserGroup
+from onyx.llm.utils import model_supports_image_input
+from onyx.server.manage.embedding.models import CloudEmbeddingProvider
+from onyx.server.manage.embedding.models import CloudEmbeddingProviderCreationRequest
+from onyx.server.manage.llm.models import LLMProviderUpsertRequest
+from onyx.server.manage.llm.models import LLMProviderView
 from shared_configs.enums import EmbeddingProvider
 
-# from onyx.llm.utils import model_supports_image_input
-# from onyx.server.manage.llm.models import LLMProviderUpsertRequest
-# from onyx.server.manage.llm.models import LLMProviderView
 
+def update_group_llm_provider_relationships__no_commit(
+    llm_provider_id: int,
+    group_ids: list[int] | None,
+    db_session: Session,
+) -> None:
+    # Delete existing relationships
+    db_session.query(LLMProvider__UserGroup).filter(
+        LLMProvider__UserGroup.llm_provider_id == llm_provider_id
+    ).delete(synchronize_session="fetch")
 
-# def update_group_llm_provider_relationships__no_commit(
-#     llm_provider_id: int,
-#     group_ids: list[int] | None,
-#     db_session: Session,
-# ) -> None:
-#     # Delete existing relationships
-#     db_session.query(LLMProvider__UserGroup).filter(
-#         LLMProvider__UserGroup.llm_provider_id == llm_provider_id
-#     ).delete(synchronize_session="fetch")
-
-#     # Add new relationships from given group_ids
-#     if group_ids:
-#         new_relationships = [
-#             LLMProvider__UserGroup(
-#                 llm_provider_id=llm_provider_id,
-#                 user_group_id=group_id,
-#             )
-#             for group_id in group_ids
-#         ]
-#         db_session.add_all(new_relationships)
+    # Add new relationships from given group_ids
+    if group_ids:
+        new_relationships = [
+            LLMProvider__UserGroup(
+                llm_provider_id=llm_provider_id,
+                user_group_id=group_id,
+            )
+            for group_id in group_ids
+        ]
+        db_session.add_all(new_relationships)
 
 
 # def upsert_cloud_embedding_provider(
@@ -114,80 +129,80 @@ from shared_configs.enums import EmbeddingProvider
 #     return full_llm_provider
 
 
-# def fetch_existing_embedding_providers(
-#     db_session: Session,
-# ) -> list[CloudEmbeddingProviderModel]:
-#     return list(db_session.scalars(select(CloudEmbeddingProviderModel)).all())
+def fetch_existing_embedding_providers(
+    db_session: Session,
+) -> list[CloudEmbeddingProviderModel]:
+    return list(db_session.scalars(select(CloudEmbeddingProviderModel)).all())
 
 
-# def fetch_existing_doc_sets(
-#     db_session: Session, doc_ids: list[int]
-# ) -> list[DocumentSet]:
-#     return list(
-#         db_session.scalars(select(DocumentSet).where(DocumentSet.id.in_(doc_ids))).all()
-#     )
+def fetch_existing_doc_sets(
+    db_session: Session, doc_ids: list[int]
+) -> list[DocumentSet]:
+    return list(
+        db_session.scalars(select(DocumentSet).where(DocumentSet.id.in_(doc_ids))).all()
+    )
 
 
-# def fetch_existing_tools(db_session: Session, tool_ids: list[int]) -> list[ToolModel]:
-#     return list(
-#         db_session.scalars(select(ToolModel).where(ToolModel.id.in_(tool_ids))).all()
-#     )
+def fetch_existing_tools(db_session: Session, tool_ids: list[int]) -> list[ToolModel]:
+    return list(
+        db_session.scalars(select(ToolModel).where(ToolModel.id.in_(tool_ids))).all()
+    )
 
 
-# def fetch_existing_llm_providers(
-#     db_session: Session,
-#     only_public: bool = False,
-# ) -> list[LLMProviderModel]:
-#     stmt = select(LLMProviderModel).options(
-#         selectinload(LLMProviderModel.model_configurations)
-#     )
-#     if only_public:
-#         stmt = stmt.where(LLMProviderModel.is_public == True)  # noqa: E712
-#     return list(db_session.scalars(stmt).all())
+def fetch_existing_llm_providers(
+    db_session: Session,
+    only_public: bool = False,
+) -> list[LLMProviderModel]:
+    stmt = select(LLMProviderModel).options(
+        selectinload(LLMProviderModel.model_configurations)
+    )
+    if only_public:
+        stmt = stmt.where(LLMProviderModel.is_public == True)  # noqa: E712
+    return list(db_session.scalars(stmt).all())
 
 
-# def fetch_existing_llm_provider(
-#     name: str, db_session: Session
-# ) -> LLMProviderModel | None:
-#     provider_model = db_session.scalar(
-#         select(LLMProviderModel)
-#         .where(LLMProviderModel.name == name)
-#         .options(selectinload(LLMProviderModel.model_configurations))
-#     )
+def fetch_existing_llm_provider(
+    name: str, db_session: Session
+) -> LLMProviderModel | None:
+    provider_model = db_session.scalar(
+        select(LLMProviderModel)
+        .where(LLMProviderModel.name == name)
+        .options(selectinload(LLMProviderModel.model_configurations))
+    )
 
-#     return provider_model
+    return provider_model
 
 
-# def fetch_existing_llm_providers_for_user(
-#     db_session: Session,
-#     user: User | None = None,
-# ) -> list[LLMProviderModel]:
-#     # if user is anonymous
-#     if not user:
-#         # Only fetch public providers if auth is turned on
-#         return fetch_existing_llm_providers(
-#             db_session, only_public=AUTH_TYPE != AuthType.DISABLED
-#         )
+def fetch_existing_llm_providers_for_user(
+    db_session: Session,
+    user: User | None = None,
+) -> list[LLMProviderModel]:
+    # if user is anonymous
+    if not user:
+        # Only fetch public providers if auth is turned on
+        return fetch_existing_llm_providers(
+            db_session, only_public=AUTH_TYPE != AuthType.DISABLED
+        )
 
-#     stmt = (
-#         select(LLMProviderModel)
-#         .options(selectinload(LLMProviderModel.model_configurations))
-#         .distinct()
-#     )
-#     user_groups_select = select(User__UserGroup.user_group_id).where(
-#         User__UserGroup.user_id == user.id
-#     )
-#     access_conditions = or_(
-#         LLMProviderModel.is_public,
-#         LLMProviderModel.id.in_(  # User is part of a group that has access
-#             select(LLMProvider__UserGroup.llm_provider_id).where(
-#                 LLMProvider__UserGroup.user_group_id.in_(user_groups_select)  # type: ignore
-#             )
-#         ),
-#     )
-#     stmt = stmt.where(access_conditions)
+    stmt = (
+        select(LLMProviderModel)
+        .options(selectinload(LLMProviderModel.model_configurations))
+        .distinct()
+    )
+    user_groups_select = select(User__UserGroup.user_group_id).where(
+        User__UserGroup.user_id == user.id
+    )
+    access_conditions = or_(
+        LLMProviderModel.is_public,
+        LLMProviderModel.id.in_(  # User is part of a group that has access
+            select(LLMProvider__UserGroup.llm_provider_id).where(
+                LLMProvider__UserGroup.user_group_id.in_(user_groups_select)  # type: ignore
+            )
+        ),
+    )
+    stmt = stmt.where(access_conditions)
 
-#     return list(db_session.scalars(stmt).all())
+    return list(db_session.scalars(stmt).all())
 
 
 def fetch_embedding_provider(
@@ -250,72 +265,72 @@ def fetch_embedding_provider(
 #     db_session.commit()
 
 
-# def remove_llm_provider(db_session: Session, provider_id: int) -> None:
-#     # Remove LLMProvider's dependent relationships
-#     db_session.execute(
-#         delete(LLMProvider__UserGroup).where(
-#             LLMProvider__UserGroup.llm_provider_id == provider_id
-#         )
-#     )
-#     # Remove LLMProvider
-#     db_session.execute(
-#         delete(LLMProviderModel).where(LLMProviderModel.id == provider_id)
-#     )
-#     db_session.commit()
+def remove_llm_provider(db_session: Session, provider_id: int) -> None:
+    # Remove LLMProvider's dependent relationships
+    db_session.execute(
+        delete(LLMProvider__UserGroup).where(
+            LLMProvider__UserGroup.llm_provider_id == provider_id
+        )
+    )
+    # Remove LLMProvider
+    db_session.execute(
+        delete(LLMProviderModel).where(LLMProviderModel.id == provider_id)
+    )
+    db_session.commit()
 
 
-# def update_default_provider(provider_id: int, db_session: Session) -> None:
-#     new_default = db_session.scalar(
-#         select(LLMProviderModel).where(LLMProviderModel.id == provider_id)
-#     )
-#     if not new_default:
-#         raise ValueError(f"LLM Provider with id {provider_id} does not exist")
+def update_default_provider(provider_id: int, db_session: Session) -> None:
+    new_default = db_session.scalar(
+        select(LLMProviderModel).where(LLMProviderModel.id == provider_id)
+    )
+    if not new_default:
+        raise ValueError(f"LLM Provider with id {provider_id} does not exist")
 
-#     existing_default = db_session.scalar(
-#         select(LLMProviderModel).where(
-#             LLMProviderModel.is_default_provider == True  # noqa: E712
-#         )
-#     )
-#     if existing_default:
-#         existing_default.is_default_provider = None
-#         # required to ensure that the below does not cause a unique constraint violation
-#         db_session.flush()
+    existing_default = db_session.scalar(
+        select(LLMProviderModel).where(
+            LLMProviderModel.is_default_provider == True  # noqa: E712
+        )
+    )
+    if existing_default:
+        existing_default.is_default_provider = None
+        # required to ensure that the below does not cause a unique constraint violation
+        db_session.flush()
 
-#     new_default.is_default_provider = True
-#     db_session.commit()
+    new_default.is_default_provider = True
+    db_session.commit()
 
 
-# def update_default_vision_provider(
-#     provider_id: int, vision_model: str | None, db_session: Session
-# ) -> None:
-#     new_default = db_session.scalar(
-#         select(LLMProviderModel).where(LLMProviderModel.id == provider_id)
-#     )
-#     if not new_default:
-#         raise ValueError(f"LLM Provider with id {provider_id} does not exist")
+def update_default_vision_provider(
+    provider_id: int, vision_model: str | None, db_session: Session
+) -> None:
+    new_default = db_session.scalar(
+        select(LLMProviderModel).where(LLMProviderModel.id == provider_id)
+    )
+    if not new_default:
+        raise ValueError(f"LLM Provider with id {provider_id} does not exist")
 
-#     # Validate that the specified vision model supports image input
-#     model_to_validate = vision_model or new_default.default_model_name
-#     if model_to_validate:
-#         if not model_supports_image_input(model_to_validate, new_default.provider):
-#             raise ValueError(
-#                 f"Model '{model_to_validate}' for provider '{new_default.provider}' does not support image input"
-#             )
-#     else:
-#         raise ValueError(
-#             f"Model '{vision_model}' is not a valid model for provider '{new_default.provider}'"
-#         )
+    # Validate that the specified vision model supports image input
+    model_to_validate = vision_model or new_default.default_model_name
+    if model_to_validate:
+        if not True:
+            raise ValueError(
+                f"Model '{model_to_validate}' for provider '{new_default.provider}' does not support image input"
+            )
+    else:
+        raise ValueError(
+            f"Model '{vision_model}' is not a valid model for provider '{new_default.provider}'"
+        )
 
-#     existing_default = db_session.scalar(
-#         select(LLMProviderModel).where(
-#             LLMProviderModel.is_default_vision_provider == True  # noqa: E712
-#         )
-#     )
-#     if existing_default:
-#         existing_default.is_default_vision_provider = None
-#         # required to ensure that the below does not cause a unique constraint violation
-#         db_session.flush()
+    existing_default = db_session.scalar(
+        select(LLMProviderModel).where(
+            LLMProviderModel.is_default_vision_provider == True  # noqa: E712
+        )
+    )
+    if existing_default:
+        existing_default.is_default_vision_provider = None
+        # required to ensure that the below does not cause a unique constraint violation
+        db_session.flush()
 
-#     new_default.is_default_vision_provider = True
-#     new_default.default_vision_model = vision_model
-#     db_session.commit()
+    new_default.is_default_vision_provider = True
+    new_default.default_vision_model = vision_model
+    db_session.commit()

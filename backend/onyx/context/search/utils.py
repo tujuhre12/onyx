@@ -2,14 +2,22 @@ import string
 from collections.abc import Sequence
 from typing import TypeVar
 
+from sqlalchemy.orm import Session
+
+from onyx.chat.models import SectionRelevancePiece
 from onyx.context.search.models import InferenceChunk
 from onyx.context.search.models import InferenceSection
 from onyx.context.search.models import SavedSearchDoc
 from onyx.context.search.models import SavedSearchDocWithContent
 from onyx.context.search.models import SearchDoc
-from onyx.utils.logger import setup_logger
-
+from onyx.db.models import SearchDoc as DBSearchDoc
+from onyx.db.search_settings import get_current_search_settings
 # from onyx.natural_language_processing.search_nlp_models import EmbeddingModel
+from onyx.utils.logger import setup_logger
+from shared_configs.configs import MODEL_SERVER_HOST
+from shared_configs.configs import MODEL_SERVER_PORT
+from shared_configs.enums import EmbedTextType
+from shared_configs.model_server_models import Embedding
 
 logger = setup_logger()
 
@@ -145,7 +153,6 @@ def chunks_or_sections_to_search_docs(
 def remove_stop_words_and_punctuation(keywords: list[str]) -> list[str]:
     from nltk.corpus import stopwords  # type:ignore
     from nltk.tokenize import word_tokenize  # type:ignore
-
     try:
         # Re-tokenize using the NLTK tokenizer for better matching
         query = " ".join(keywords)
