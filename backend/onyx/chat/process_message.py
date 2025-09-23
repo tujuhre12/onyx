@@ -16,6 +16,7 @@ from onyx.chat.answer_scratchpad import stream_chat_sync
 from onyx.chat.chat_utils import create_chat_chain
 from onyx.chat.chat_utils import create_temporary_persona
 from onyx.chat.chat_utils import process_kg_commands
+from onyx.chat.models import AnswerStream
 from onyx.chat.models import AnswerStyleConfig
 from onyx.chat.models import ChatBasicResponse
 from onyx.chat.models import CitationConfig
@@ -249,7 +250,7 @@ def stream_chat_message_objects(
     # messages.
     # NOTE: is not stored in the database at all.
     single_message_history: str | None = None,
-) -> Iterator[Dict[str, Any]]:
+) -> AnswerStream:
     """Streams in order:
     1. [conditional] Retrieved documents if a search needs to be run
     2. [conditional] LLM selected chunk indices if LLM chunk filtering is turned on
@@ -531,7 +532,7 @@ def stream_chat_message_objects(
         yield MessageResponseIDInfo(
             user_message_id=user_message.id if user_message else None,
             reserved_assistant_message_id=reserved_message_id,
-        ).model_dump()
+        )
 
         prompt_override = new_msg_req.prompt_override or chat_session.prompt_override
         if new_msg_req.persona_override_config:
@@ -619,7 +620,7 @@ def stream_chat_message_objects(
                     )
                     for file in in_memory_user_files
                 ]
-            ).model_dump()
+            )
 
         prompt_builder = AnswerPromptBuilder(
             user_message=default_build_user_message(
@@ -714,7 +715,7 @@ def stream_chat_message_objects(
         logger.exception("Failed to process chat message.")
 
         error_msg = str(e)
-        yield StreamingError(error=error_msg).model_dump()
+        yield StreamingError(error=error_msg)
         db_session.rollback()
         return
 
@@ -728,7 +729,7 @@ def stream_chat_message_objects(
         stack_trace = traceback.format_exc()
 
         if isinstance(e, ToolCallException):
-            yield StreamingError(error=error_msg, stack_trace=stack_trace).model_dump()
+            yield StreamingError(error=error_msg, stack_trace=stack_trace)
         elif llm:
             client_error_msg = litellm_exception_to_error_msg(e, llm)
             if llm.config.api_key and len(llm.config.api_key) > 2:
@@ -739,9 +740,7 @@ def stream_chat_message_objects(
                     llm.config.api_key, "[REDACTED_API_KEY]"
                 )
 
-            yield StreamingError(
-                error=client_error_msg, stack_trace=stack_trace
-            ).model_dump()
+            yield StreamingError(error=client_error_msg, stack_trace=stack_trace)
 
         db_session.rollback()
         return
@@ -771,7 +770,15 @@ def stream_chat_message(
                 document_retrieval_latency = time.time() - start_time
                 logger.debug(f"First doc time: {document_retrieval_latency}")
 
-            yield get_json_line(obj)
+            # Convert Pydantic models to dictionaries for JSON serialization
+            if hasattr(obj, "model_dump"):
+                obj_dict = obj.model_dump()
+            elif hasattr(obj, "dict"):
+                obj_dict = obj.dict()
+            else:
+                obj_dict = obj
+
+            yield get_json_line(obj_dict)
 
 
 def remove_answer_citations(answer: str) -> str:
