@@ -15,7 +15,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-_MODULES_TO_LAZY_IMPORT = {"vertexai", "nltk", "markitdown"}
+_MODULES_TO_LAZY_IMPORT = {"vertexai", "markitdown"}
 
 
 @dataclass

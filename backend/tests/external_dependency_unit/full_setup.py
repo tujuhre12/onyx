@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 from typing import Optional
 
+import nltk  # type: ignore
+
 from onyx.configs import app_configs as app_configs_module
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.db.engine.sql_engine import SqlEngine
@@ -24,8 +26,6 @@ _SETUP_COMPLETE: bool = False
 def ensure_full_deployment_setup(
     tenant_id: Optional[str] = None,
 ) -> None:
-    import nltk
-
     """Initialize test environment to mirror a real deployment, on demand.
 
     - Initializes DB engine and sets tenant context
