@@ -3,7 +3,6 @@ import os
 import time
 import traceback
 from time import sleep
-from typing import Any
 
 import sentry_sdk
 from celery import Celery
@@ -260,7 +259,7 @@ def process_job_result(
     job: SimpleJob,
     connector_source: str | None,
     index_attempt_id: int,
-    log_builder: Any,
+    log_builder: ConnectorIndexingLogBuilder,
 ) -> SimpleJobResult:
     result = SimpleJobResult()
     result.connector_source = connector_source

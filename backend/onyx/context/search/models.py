@@ -394,59 +394,6 @@ class SearchDoc(BaseModel):
 
         return search_docs
 
-    @classmethod
-    def from_inference_section(
-        cls, inference_section: "InferenceSection"
-    ) -> "SearchDoc":
-        """Convert an InferenceSection to a SearchDoc using the center chunk's data."""
-        chunk = inference_section.center_chunk
-        return cls(
-            document_id=chunk.document_id,
-            chunk_ind=chunk.chunk_id,
-            semantic_identifier=chunk.semantic_identifier or "Unknown",
-            link=chunk.source_links[0] if chunk.source_links else None,
-            blurb=chunk.blurb,
-            source_type=chunk.source_type,
-            boost=chunk.boost,
-            hidden=chunk.hidden,
-            metadata=chunk.metadata,
-            score=chunk.score,
-            is_relevant=chunk.is_relevant,
-            relevance_explanation=chunk.relevance_explanation,
-            match_highlights=chunk.match_highlights,
-            updated_at=chunk.updated_at,
-            primary_owners=chunk.primary_owners,
-            secondary_owners=chunk.secondary_owners,
-            is_internet=False,
-        )
-
-    @classmethod
-    def from_inference_chunk(cls, inference_chunk: "InferenceChunk") -> "SearchDoc":
-        """Convert an InferenceChunk to a SearchDoc."""
-        return cls(
-            document_id=inference_chunk.document_id,
-            chunk_ind=inference_chunk.chunk_id,
-            semantic_identifier=inference_chunk.semantic_identifier or "Unknown",
-            link=(
-                inference_chunk.source_links[0]
-                if inference_chunk.source_links
-                else None
-            ),
-            blurb=inference_chunk.blurb,
-            source_type=inference_chunk.source_type,
-            boost=inference_chunk.boost,
-            hidden=inference_chunk.hidden,
-            metadata=inference_chunk.metadata,
-            score=inference_chunk.score,
-            is_relevant=inference_chunk.is_relevant,
-            relevance_explanation=inference_chunk.relevance_explanation,
-            match_highlights=inference_chunk.match_highlights,
-            updated_at=inference_chunk.updated_at,
-            primary_owners=inference_chunk.primary_owners,
-            secondary_owners=inference_chunk.secondary_owners,
-            is_internet=False,
-        )
-
     def model_dump(self, *args: list, **kwargs: dict[str, Any]) -> dict[str, Any]:  # type: ignore
         initial_dict = super().model_dump(*args, **kwargs)  # type: ignore
         initial_dict["updated_at"] = (
