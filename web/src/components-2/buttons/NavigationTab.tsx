@@ -130,7 +130,7 @@ export function NavigationTab({
             )}
           />
         </div>
-        {!folded && (
+        {!folded && typeof children === "string" ? (
           <Truncated
             side="right"
             offset={40}
@@ -138,6 +138,8 @@ export function NavigationTab({
           >
             {children}
           </Truncated>
+        ) : (
+          children
         )}
       </div>
       {!folded && popover && (active || hovered || kebabMenuOpen) && (

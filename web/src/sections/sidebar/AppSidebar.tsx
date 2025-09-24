@@ -88,7 +88,7 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
     useState(false);
   const [renamingChat, setRenamingChat] = useState(false);
   const [renamingChatName, setRenamingChatName] = useState(chatSession.name);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = useRef<HTMLInputElement>(null);
   const currentChatId = searchParams.get(SEARCH_PARAM_NAMES.CHAT_ID);
   const { refreshChatSessions } = useChatContext();
 
@@ -202,22 +202,23 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
         }
       >
         {renamingChat ? (
-          <textarea
-            ref={textareaRef}
-            value={renamingChatName}
-            onChange={(event) => setRenamingChatName(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                handleSaveRename();
-              } else if (event.key === "Escape") {
-                event.preventDefault();
-                setRenamingChat(false);
-              }
-            }}
-            className="bg-transparent outline-none resize-none h-auto overflow-x-auto overflow-y-hidden whitespace-nowrap no-scrollbar font-main-body"
-            rows={1}
-          />
+          <div className="flex flex-col justify-center items-start">
+            <input
+              ref={textareaRef}
+              value={renamingChatName}
+              onChange={(event) => setRenamingChatName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  handleSaveRename();
+                } else if (event.key === "Escape") {
+                  event.preventDefault();
+                  setRenamingChat(false);
+                }
+              }}
+              className="bg-transparent outline-none resize-none overflow-x-hidden overflow-y-hidden whitespace-nowrap no-scrollbar font-main-body w-full"
+            />
+          </div>
         ) : (
           chatSession.name
         )}
