@@ -34,7 +34,7 @@ export default function ConfirmationModal({
     >
       <div className="flex flex-col items-center justify-center p-spacing-paragraph gap-spacing-inline">
         <div className="h-[1.5rem] flex flex-row justify-between items-center w-full">
-          <Icon className="w-[1.2rem] h-[1.2rem] stroke-text-04" />
+          <Icon className="w-[1.5rem] h-[1.5rem] stroke-text-04" />
           <SvgX
             className="stroke-text-03 w-[1.2rem] h-[1.2rem] hover:stroke-text-02"
             onClick={onClose}
