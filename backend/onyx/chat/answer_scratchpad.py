@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import json
 import queue
 import threading
@@ -350,9 +351,20 @@ def unified_event_stream(
     #     emitter=emitter,
     # )
 
+    # Capture current context for propagation to worker thread
+    current_context = contextvars.copy_context()
+
     t = threading.Thread(
-        target=thread_worker_dr_turn,
-        args=(messages, cfg, llm, emitter, search_tool),
+        target=current_context.run,
+        args=(
+            thread_worker_dr_turn,
+            messages,
+            cfg,
+            llm,
+            emitter,
+            search_tool,
+            None,
+        ),  # eval_context=None for now
         daemon=True,
     )
     t.start()
@@ -414,9 +426,20 @@ def construct_simple_agent(
     )
 
 
-def thread_worker_dr_turn(messages, cfg, llm, emitter, search_tool):
+def thread_worker_dr_turn(messages, cfg, llm, emitter, search_tool, eval_context=None):
+    """
+    Worker function for deep research turn that runs in a separate thread.
+
+    Args:
+        messages: List of messages for the conversation
+        cfg: Graph configuration
+        llm: Language model instance
+        emitter: Event emitter for streaming responses
+        search_tool: Search tool instance (optional)
+        eval_context: Evaluation context to be propagated to the worker thread
+    """
     try:
-        dr_turn(messages, cfg, llm, emitter, search_tool)
+        dr_turn(messages, cfg, llm, emitter, search_tool, eval_context)
     except Exception as e:
         logger.error(f"Error in dr_turn: {e}", exc_info=e, stack_info=True)
         emitter.emit(kind="done", data={"ok": False})
@@ -496,7 +519,19 @@ def dr_turn(
     llm: LLM,
     turn_event_stream_emitter: Emitter,  # TurnEventStream is the primary output of the turn
     search_tool: SearchTool | None = None,
+    eval_context=None,
 ) -> None:
+    """
+    Execute a deep research turn with evaluation context support.
+
+    Args:
+        messages: List of messages for the conversation
+        cfg: Graph configuration
+        llm: Language model instance
+        turn_event_stream_emitter: Event emitter for streaming responses
+        search_tool: Search tool instance (optional)
+        eval_context: Evaluation context for the turn (optional)
+    """
     clarification = get_clarification(
         messages, cfg, llm, turn_event_stream_emitter, search_tool
     )
