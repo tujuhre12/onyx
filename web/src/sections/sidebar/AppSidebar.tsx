@@ -59,6 +59,7 @@ import Button from "@/components-2/buttons/Button";
 import SvgPin from "@/icons/pin";
 import { cn, noProp } from "@/lib/utils";
 import { PopoverMenu } from "@/components/ui/popover";
+import { IconButton } from "@/components-2/buttons/IconButton";
 
 // Visible-agents = pinned-agents + current-agent (if current-agent not in pinned-agents)
 // OR Visible-agents = pinned-agents (if current-agent in pinned-agents)
@@ -410,19 +411,23 @@ function AppSidebarInner() {
           )}
         >
           {folded ? (
-            foldedAndHovered ? (
-              <SvgSidebar
-                className="cursor-pointer hover:stroke-text-03 stroke-text-02 w-[1rem] h-[1.5rem]"
-                onClick={() => setFolded(false)}
-              />
-            ) : (
-              <OnyxIcon size={24} />
-            )
+            <div className="h-[2rem] flex flex-col justify-center items-center">
+              {foldedAndHovered ? (
+                <IconButton
+                  icon={SvgSidebar}
+                  tertiary
+                  onClick={() => setFolded(false)}
+                />
+              ) : (
+                <OnyxIcon size={24} />
+              )}
+            </div>
           ) : (
             <>
               <OnyxLogoTypeIcon size={88} />
-              <SvgSidebar
-                className="cursor-pointer hover:stroke-text-03 stroke-text-02 w-[1rem]"
+              <IconButton
+                icon={SvgSidebar}
+                tertiary
                 onClick={() => {
                   setFolded(true);
                   setHovered(false);

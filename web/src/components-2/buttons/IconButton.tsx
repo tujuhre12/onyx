@@ -48,7 +48,10 @@ const iconClasses = (active: boolean | undefined) =>
       disabled: ["stroke-text-01"],
     },
     tertiary: {
-      main: [active ? "stroke-text-05" : "stroke-text-03"],
+      main: [
+        active ? "!stroke-text-05" : "stroke-text-03",
+        "group-hover/IconButton:stroke-text-04",
+      ],
       disabled: ["stroke-text-01"],
     },
     internal: {
@@ -73,7 +76,7 @@ export interface IconButtonProps
   internal?: boolean;
 
   // Button properties:
-  onClick?: () => void;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
   icon: React.FunctionComponent<SvgProps>;
 }
 
@@ -88,6 +91,7 @@ export function IconButton({
 
   onClick,
   icon: Icon,
+  className,
 
   ...props
 }: IconButtonProps) {
@@ -108,7 +112,8 @@ export function IconButton({
         "flex items-center justify-center rounded-08 group/IconButton",
         internal ? "p-spacing-inline" : "p-spacing-interline",
         disabled && "cursor-not-allowed",
-        buttonClasses(active)[variant][state]
+        buttonClasses(active)[variant][state],
+        className
       )}
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
