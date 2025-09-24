@@ -49,3 +49,17 @@ export function trinaryLogic<T>(
   const condition = a !== undefined ? a : b;
   return condition ? ifTrue : ifFalse;
 }
+
+// A convenience function to prevent propagation of click events to items higher up in the DOM tree.
+//
+// # Note:
+// This is a desired behaviour in MANY locations, since we have buttons nested within buttons.
+// When the nested button is pressed, the click event that triggered it should (in most scenarios) NOT trigger its parent button!
+export function noProp(
+  f?: () => void
+): React.MouseEventHandler<HTMLDivElement> {
+  return (event) => {
+    event.stopPropagation();
+    f?.();
+  };
+}

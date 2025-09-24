@@ -64,7 +64,7 @@ export interface NavigationTabProps {
   lowlight?: boolean;
 
   // Button properties:
-  onClick?: () => void;
+  onClick?: React.MouseEventHandler<HTMLDivElement>;
   href?: string;
   tooltip?: boolean;
   popover?: React.ReactNode;

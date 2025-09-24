@@ -55,10 +55,9 @@ import ConfirmationModal from "@/components-2/modals/ConfirmationModal";
 import SvgTrash from "@/icons/trash";
 import SvgShare from "@/icons/share";
 import SvgEdit from "@/icons/edit";
-import Truncated from "@/components-2/Truncated";
 import Button from "@/components-2/buttons/Button";
 import SvgPin from "@/icons/pin";
-import { cn } from "@/lib/utils";
+import { cn, noProp } from "@/lib/utils";
 import { PopoverMenu } from "@/components/ui/popover";
 
 // Visible-agents = pinned-agents + current-agent (if current-agent not in pinned-agents)
@@ -182,17 +181,19 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
         popover={
           <PopoverMenu>
             {[
-              <NavigationTab icon={SvgShare}>Share</NavigationTab>,
+              <NavigationTab icon={SvgShare} onClick={noProp()}>
+                Share
+              </NavigationTab>,
               <NavigationTab
                 icon={SvgEdit}
-                onClick={() => setRenamingChat(true)}
+                onClick={noProp(() => setRenamingChat(true))}
               >
                 Rename
               </NavigationTab>,
               null,
               <NavigationTab
                 icon={SvgTrash}
-                onClick={() => setDeleteConfirmationModalOpen(true)}
+                onClick={noProp(() => setDeleteConfirmationModalOpen(true))}
                 danger
               >
                 Delete
@@ -261,7 +262,7 @@ function AgentsButtonInner({
               {[
                 <NavigationTab
                   icon={SvgPin}
-                  onClick={() => onTogglePin(visibleAgent, !pinned)}
+                  onClick={noProp(() => onTogglePin(visibleAgent, !pinned))}
                 >
                   {pinned ? "Unpin chat" : "Pin chat"}
                 </NavigationTab>,
