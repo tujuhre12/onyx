@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import asyncio
 import json
+import queue
 import threading
 from collections.abc import Generator
+from collections.abc import Iterator
 from dataclasses import dataclass
 from queue import Queue
 from typing import Any
 from typing import cast
 from typing import Dict
 from typing import List
+from typing import Optional
 
 import litellm
 from agents import Agent
@@ -69,7 +72,6 @@ def short_tag(link: str, i: int) -> str:
 
 
 @function_tool
-@traced(name="web_search")
 def web_search(query: str) -> str:
     """Search the web for information. This tool provides urls and short snippets,
     but does not fetch the full content of the urls."""
@@ -93,7 +95,6 @@ def web_search(query: str) -> str:
 
 
 @function_tool
-@traced(name="web_fetch")
 def web_fetch(urls: List[str]) -> str:
     """Fetch the full contents of a list of URLs."""
     exa_client = ExaClient()
@@ -114,18 +115,6 @@ def web_fetch(urls: List[str]) -> str:
     return json.dumps({"results": out})
 
 
-@function_tool
-@traced(name="reasoning")
-def reasoning() -> str:
-    """Use this tool for reasoning. Powerful for complex questions and
-    tasks, or questions that require multiple steps to answer."""
-    # Note: This is a simplified version. In the full implementation,
-    # we would need to pass the context through the agent's context system
-    return (
-        "Reasoning tool - this would need to be implemented with proper context access"
-    )
-
-
 @traced(name="llm_completion", type="llm")
 def llm_completion(
     model_name: str,
@@ -143,7 +132,6 @@ def llm_completion(
 
 
 @function_tool
-@traced(name="internal_search")
 def internal_search(context_wrapper: RunContextWrapper[MyContext], query: str) -> str:
     """Search internal company vector database for information. Sources
     include:
@@ -283,7 +271,6 @@ scratchpad = ResearchScratchpad()
 
 
 @function_tool
-@traced(name="add_note")
 def add_note(note: str, source_url: str | None = None):
     """Store a factual note you want to cite later."""
     scratchpad.notes.append({"note": note, "source_url": source_url})
@@ -291,7 +278,6 @@ def add_note(note: str, source_url: str | None = None):
 
 
 @function_tool
-@traced(name="finalize_report")
 def finalize_report():
     """Signal you're done researching. Return a structured, citation-rich report."""
     # The model should *compose* the report as the tool *result*, using notes in scratchpad.
@@ -330,7 +316,6 @@ Guidelines:
 - Minimize redundancy by skimming before fetching.
 - Think out loud in a compact way, but keep reasoning crisp.
 """
-
     return Agent(
         name="Researcher",
         instructions=DR_INSTRUCTIONS,
@@ -420,7 +405,7 @@ def construct_simple_agent(
         and search internal databases.
         """,
         model=litellm_model,
-        tools=[web_search, web_fetch, reasoning, internal_search],
+        tools=[web_search, web_fetch, internal_search],
         model_settings=ModelSettings(
             temperature=llm.config.temperature,
             include_usage=True,  # Track usage metrics
@@ -430,45 +415,114 @@ def construct_simple_agent(
 
 def thread_worker_dr_turn(messages, cfg, llm, emitter, search_tool):
     try:
-        asyncio.run(dr_turn(messages, cfg, llm, emitter, search_tool))
+        dr_turn(messages, cfg, llm, emitter, search_tool)
     except Exception as e:
         logger.error(f"Error in dr_turn: {e}", exc_info=e, stack_info=True)
         emitter.emit(kind="done", data={"ok": False})
 
 
-async def dr_turn(
+SENTINEL = object()
+
+
+class StreamBridge:
+    """
+    Spins up an asyncio loop in a background thread, starts Runner.run_streamed there,
+    consumes its async event stream, and exposes a blocking .events() iterator.
+    """
+
+    def __init__(self, agent, messages, ctx, max_turns: int = 100):
+        self.agent = agent
+        self.messages = messages
+        self.ctx = ctx
+        self.max_turns = max_turns
+
+        self._q: "queue.Queue[object]" = queue.Queue()
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._thread: Optional[threading.Thread] = None
+        self._streamed = None
+
+    def start(self):
+        def worker():
+            async def run_and_consume():
+                # Create the streamed run *inside* the loop thread
+                self._streamed = Runner.run_streamed(
+                    self.agent,
+                    self.messages,
+                    context=self.ctx,
+                    max_turns=self.max_turns,
+                )
+                try:
+                    async for ev in self._streamed.stream_events():
+                        self._q.put(ev)
+                finally:
+                    self._q.put(SENTINEL)
+
+            # Each thread needs its own loop
+            self._loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._loop)
+            try:
+                self._loop.run_until_complete(run_and_consume())
+            finally:
+                self._loop.close()
+
+        self._thread = threading.Thread(target=worker, daemon=True)
+        self._thread.start()
+        return self
+
+    def events(self) -> Iterator[object]:
+        while True:
+            ev = self._q.get()
+            if ev is SENTINEL:
+                break
+            yield ev
+
+    def cancel(self):
+        # Post a cancellation to the loop thread safely
+        if self._loop and self._streamed:
+
+            def _do_cancel():
+                try:
+                    self._streamed.cancel()
+                except Exception:
+                    pass
+
+            self._loop.call_soon_threadsafe(_do_cancel)
+
+
+def dr_turn(
     messages: List[Dict[str, Any]],
     cfg: GraphConfig,
     llm: LLM,
-    emitter: Emitter,
+    turn_event_stream_emitter: Emitter,  # TurnEventStream is the primary output of the turn
     search_tool: SearchTool | None = None,
 ) -> None:
-    clarification = get_clarification(messages, cfg, llm, emitter, search_tool)
+    clarification = get_clarification(
+        messages, cfg, llm, turn_event_stream_emitter, search_tool
+    )
     output = json.loads(clarification.choices[0].message.content)
     clarification_output = ClarificationOutput(**output)
     if clarification_output.clarification_needed:
-        emitter.emit(kind="agent", data=clarification_output.clarification_question)
-        emitter.emit(kind="done", data={"ok": True})
+        turn_event_stream_emitter.emit(
+            kind="agent", data=clarification_output.clarification_question
+        )
+        turn_event_stream_emitter.emit(kind="done", data={"ok": True})
         return
 
     agent = construct_deep_research_agent(llm)
     ctx = MyContext(
         run_dependencies=RunDependencies(
             search_tool=search_tool,
-            emitter=emitter,
+            emitter=turn_event_stream_emitter,
         )
     )
-    # 1) start the streamed run (async)
-    streamed = Runner.run_streamed(agent, messages, context=ctx, max_turns=100)
-
-    # 2) forward the agent’s async event stream
-    async for ev in streamed.stream_events():
+    bridge = StreamBridge(agent, messages, ctx, max_turns=100).start()
+    for ev in bridge.events():
         if isinstance(ev, RunItemStreamEvent):
             pass
         elif isinstance(ev, RawResponsesStreamEvent):
-            emitter.emit(kind="agent", data=ev.data.model_dump())
+            turn_event_stream_emitter.emit(kind="agent", data=ev.data.model_dump())
 
-    emitter.emit(kind="done", data={"ok": True})
+    turn_event_stream_emitter.emit(kind="done", data={"ok": True})
 
 
 class ClarificationOutput(BaseModel):
