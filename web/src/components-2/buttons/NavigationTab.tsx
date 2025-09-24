@@ -130,17 +130,18 @@ export function NavigationTab({
             )}
           />
         </div>
-        {!folded && typeof children === "string" ? (
-          <Truncated
-            side="right"
-            offset={40}
-            className={cn("text-left", textClasses(active)[variant])}
-          >
-            {children}
-          </Truncated>
-        ) : (
-          children
-        )}
+        {!folded &&
+          (typeof children === "string" ? (
+            <Truncated
+              side="right"
+              offset={40}
+              className={cn("text-left", textClasses(active)[variant])}
+            >
+              {children}
+            </Truncated>
+          ) : (
+            children
+          ))}
       </div>
       {!folded && popover && (active || hovered || kebabMenuOpen) && (
         <Popover onOpenChange={setKebabMenuOpen}>
