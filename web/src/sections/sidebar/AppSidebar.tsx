@@ -36,8 +36,8 @@ import SvgEditBig from "@/icons/edit-big";
 import SvgMoreHorizontal from "@/icons/more-horizontal";
 import SvgLightbulbSimple from "@/icons/lightbulb-simple";
 import Settings from "@/sections/sidebar/Settings";
-import { SidebarButton, SidebarSection } from "@/sections/sidebar/components";
-import { MenuButton } from "@/components-2/buttons/MenuButton";
+import { SidebarSection } from "@/sections/sidebar/components";
+import { NavigationTab } from "@/components-2/buttons/NavigationTab";
 import AgentsModal from "@/sections/AgentsModal";
 import { useChatContext } from "@/components/context/ChatContext";
 import SvgBubbleText from "@/icons/bubble-text";
@@ -57,6 +57,9 @@ import SvgShare from "@/icons/share";
 import SvgEdit from "@/icons/edit";
 import Truncated from "@/components-2/Truncated";
 import Button from "@/components-2/buttons/Button";
+import SvgPin from "@/icons/pin";
+import { cn } from "@/lib/utils";
+import { PopoverMenu } from "@/components/ui/popover";
 
 // Visible-agents = pinned-agents + current-agent (if current-agent not in pinned-agents)
 // OR Visible-agents = pinned-agents (if current-agent in pinned-agents)
@@ -81,45 +84,54 @@ interface ChatButtonProps {
 
 function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
   const searchParams = useSearchParams();
-  const [kebabMenuOpen, setKebabMenuOpen] = useState(false);
-  const [renamingChat, setRenamingChat] = useState(false);
   const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] =
     useState(false);
-  const [chatName, setChatName] = useState(chatSession.name);
+  const [renamingChat, setRenamingChat] = useState(false);
+  const [renamingChatName, setRenamingChatName] = useState(chatSession.name);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const currentChatId = searchParams.get(SEARCH_PARAM_NAMES.CHAT_ID);
   const { refreshChatSessions } = useChatContext();
 
   useEffect(() => {
-    if (renamingChat && textareaRef.current) {
-      textareaRef.current.focus();
-      textareaRef.current.select();
-    }
-  }, [renamingChat]);
+    if (!textareaRef.current) return;
+    if (!renamingChat) return;
+
+    textareaRef.current.focus();
+    textareaRef.current.select();
+  }, [renamingChat, textareaRef]);
 
   // Handle click outside to abort rename
   useClickOutside(
     textareaRef,
     () => {
-      // Reset to original name and exit rename mode
+      setRenamingChatName(chatSession.name);
       setRenamingChat(false);
     },
     renamingChat
   );
 
   const handleSaveRename = useCallback(async () => {
-    const newChatName = chatName.trim();
+    const newChatName = renamingChatName.trim();
 
     if (newChatName && newChatName !== chatSession.name) {
       try {
         await renameChatSession(chatSession.id, newChatName);
+        chatSession.name = newChatName;
         await refreshChatSessions();
       } catch (error) {
         console.error("Failed to rename chat:", error);
       }
     }
+
     setRenamingChat(false);
-  }, [chatName, chatSession.id, chatSession.name]);
+  }, [
+    renamingChatName,
+    chatSession.id,
+    chatSession.name,
+    renameChatSession,
+    refreshChatSessions,
+    setRenamingChat,
+  ]);
 
   const handleChatDelete = useCallback(async () => {
     try {
@@ -159,48 +171,42 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
         </ConfirmationModal>
       )}
 
-      <SidebarButton
-        key={chatSession.id}
+      <NavigationTab
         icon={SvgBubbleText}
-        active={currentChatId === chatSession.id}
         onClick={() => onChatSessionClick(chatSession.id)}
-        kebabMenu={
-          <div className="flex flex-col gap-spacing-inline">
-            <MenuButton icon={SvgShare}>Share</MenuButton>
-            <MenuButton
-              icon={SvgEdit}
-              onClick={() => {
-                setKebabMenuOpen(false);
-                setRenamingChat(true);
-              }}
-            >
-              Rename
-            </MenuButton>
-            <div className="border-b mx-padding-button" />
-            <MenuButton
-              icon={SvgTrash}
-              onClick={() => {
-                setKebabMenuOpen(false);
-                setDeleteConfirmationModalOpen(true);
-              }}
-              danger
-            >
-              Delete
-            </MenuButton>
-          </div>
-        }
-        kebabMenuOpen={kebabMenuOpen}
-        setKebabMenuOpen={setKebabMenuOpen}
-        disableKebabHover={renamingChat}
-        className={
-          renamingChat ? "border-[0.125rem] border-text-04" : undefined
+        active={currentChatId === chatSession.id}
+        className={cn(
+          "!w-full",
+          renamingChat && "border-[0.125rem] border-text-04"
+        )}
+        tooltip={chatSession.name}
+        popover={
+          <PopoverMenu>
+            {[
+              <NavigationTab icon={SvgShare}>Share</NavigationTab>,
+              <NavigationTab
+                icon={SvgEdit}
+                onClick={() => setRenamingChat(true)}
+              >
+                Rename
+              </NavigationTab>,
+              null,
+              <NavigationTab
+                icon={SvgTrash}
+                onClick={() => setDeleteConfirmationModalOpen(true)}
+                danger
+              >
+                Delete
+              </NavigationTab>,
+            ]}
+          </PopoverMenu>
         }
       >
         {renamingChat ? (
           <textarea
             ref={textareaRef}
-            value={chatName}
-            onChange={(event) => setChatName(event.target.value)}
+            value={renamingChatName}
+            onChange={(event) => setRenamingChatName(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
@@ -213,14 +219,10 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
             className="bg-transparent outline-none resize-none h-auto overflow-x-auto overflow-y-hidden whitespace-nowrap no-scrollbar font-main-body"
             rows={1}
           />
-        ) : chatSession.name ? (
-          chatSession.name
         ) : (
-          <Truncated>
-            <Text text01>Unnamed Chat</Text>
-          </Truncated>
+          chatSession.name
         )}
-      </SidebarButton>
+      </NavigationTab>
     </>
   );
 }
@@ -245,26 +247,32 @@ function AgentsButtonInner({
     (pinnedAgent) => pinnedAgent.id === visibleAgent.id
   );
 
-  const [kebabMenuOpen, setKebabMenuOpen] = useState(false);
-
   return (
     <SortableItem id={visibleAgent.id}>
-      <SidebarButton
-        icon={SvgLightbulbSimple}
-        kebabMenu={
-          <div className="flex flex-col gap-spacing-inline">
-            <MenuButton onClick={() => onTogglePin(visibleAgent, !pinned)}>
-              {pinned ? "Unpin chat" : "Pin chat"}
-            </MenuButton>
-          </div>
-        }
-        kebabMenuOpen={kebabMenuOpen}
-        setKebabMenuOpen={setKebabMenuOpen}
-        active={currentAgent?.id === visibleAgent.id}
-        onClick={() => onAgentClick(visibleAgent.id)}
-      >
-        {visibleAgent.name}
-      </SidebarButton>
+      <div className="flex flex-col w-full h-full">
+        <NavigationTab
+          key={visibleAgent.id}
+          icon={SvgLightbulbSimple}
+          className="!w-full"
+          onClick={() => onAgentClick(visibleAgent.id)}
+          active={currentAgent?.id === visibleAgent.id}
+          popover={
+            <PopoverMenu>
+              {[
+                <NavigationTab
+                  icon={SvgPin}
+                  onClick={() => onTogglePin(visibleAgent, !pinned)}
+                >
+                  {pinned ? "Unpin chat" : "Pin chat"}
+                </NavigationTab>,
+              ]}
+            </PopoverMenu>
+          }
+          highlight
+        >
+          {visibleAgent.name}
+        </NavigationTab>
+      </div>
     </SortableItem>
   );
 }
@@ -285,7 +293,6 @@ function SortableItem({ id, children }: SortableItemProps) {
       ref={setNodeRef}
       style={{
         transform: CSS.Transform.toString(transform),
-        zIndex: 1000,
         ...(isDragging && { zIndex: 1000, position: "relative" as const }),
       }}
       {...attributes}
@@ -420,14 +427,15 @@ function AppSidebarInner() {
           )}
         </div>
 
-        <SidebarButton
+        <NavigationTab
           icon={SvgEditBig}
-          hideTitle={folded}
+          className="!w-full"
+          folded={folded}
           onClick={() => handleChatSessionClick(null)}
           active={!currentChatId && !currentAgent}
         >
           New Session
-        </SidebarButton>
+        </NavigationTab>
 
         {/* Scrollable content area - takes remaining space */}
         <div className="flex flex-col gap-padding-content flex-1 overflow-y-scroll">
@@ -455,13 +463,13 @@ function AppSidebarInner() {
                     ))}
                   </SortableContext>
                 </DndContext>
-                <SidebarButton
+                <NavigationTab
                   icon={SvgMoreHorizontal}
-                  grey
                   onClick={() => toggleModal(ModalIds.AgentsModal, true)}
+                  lowlight
                 >
                   More Agents
-                </SidebarButton>
+                </NavigationTab>
               </SidebarSection>
 
               {/* Recents */}

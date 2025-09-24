@@ -6,11 +6,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Text, { TextProps } from "./Text";
+import { cn } from "@/lib/utils";
 
 interface TruncatedProps extends TextProps {
-  tooltipSide?: "top" | "right" | "bottom" | "left";
-  tooltipSideOffset?: number;
-  disableTooltip?: boolean;
+  side?: "top" | "right" | "bottom" | "left";
+  offset?: number;
+  disable?: boolean;
 }
 
 /**
@@ -18,9 +19,11 @@ interface TruncatedProps extends TextProps {
  * shows a tooltip on hover with the full text.
  */
 export default function Truncated({
-  tooltipSide = "top",
-  tooltipSideOffset = 5,
-  disableTooltip,
+  side = "top",
+  offset = 5,
+  disable,
+
+  className,
   children,
   ...rest
 }: TruncatedProps) {
@@ -62,11 +65,14 @@ export default function Truncated({
           >
             {isLoading ? (
               <div
-                className={`h-[1.2rem] w-full bg-background-tint-03 rounded animate-pulse ${rest.className}`}
+                className={cn(
+                  "h-[1.2rem] w-full bg-background-tint-03 rounded animate-pulse",
+                  className
+                )}
               />
             ) : (
               <Text
-                className={`line-clamp-1 break-all text-left ${rest.className}`}
+                className={cn("line-clamp-1 break-all text-left", className)}
                 {...rest}
               >
                 {children}
@@ -84,9 +90,9 @@ export default function Truncated({
           {children}
         </div>
 
-        {!disableTooltip && isTruncated && !isLoading && (
-          <TooltipContent side={tooltipSide} sideOffset={tooltipSideOffset}>
-            <Text>{children}</Text>
+        {!disable && isTruncated && !isLoading && (
+          <TooltipContent side={side} sideOffset={offset}>
+            <Text inverted>{children}</Text>
           </TooltipContent>
         )}
       </Tooltip>

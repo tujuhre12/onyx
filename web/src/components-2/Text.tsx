@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 const fonts = {
   // Heading
   headingH1: "font-heading-h1",
@@ -135,7 +137,12 @@ export default function Text({
 
   return (
     <p
-      className={`${fonts[font]} ${inverted ? colors.inverted[color] : colors[color]} ${nowrap && "whitespace-nowrap"} ${className}`}
+      className={cn(
+        fonts[font],
+        inverted ? colors.inverted[color] : colors[color],
+        nowrap && "whitespace-nowrap",
+        className
+      )}
     >
       {children}
     </p>

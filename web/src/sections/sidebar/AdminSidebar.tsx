@@ -6,8 +6,10 @@ import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { CgArrowsExpandUpLeft } from "react-icons/cg";
 import { LogoComponent } from "@/components/logo/FixedLogo";
 import Text from "@/components-2/Text";
-import { SidebarButton, SidebarSection } from "@/sections/sidebar/components";
+import { SidebarSection } from "@/sections/sidebar/components";
 import Settings from "@/sections/sidebar/Settings";
+import { NavigationTab } from "@/components-2/buttons/NavigationTab";
+import { cn } from "@/lib/utils";
 
 interface Item {
   name: string;
@@ -41,26 +43,30 @@ export function AdminSidebar({ collections }: AdminSidebarProps) {
         isAdmin={true}
       />
 
-      <SidebarButton
-        icon={() => <CgArrowsExpandUpLeft className="text-text-03" size={28} />}
+      <NavigationTab
+        icon={({ className }) => (
+          <CgArrowsExpandUpLeft className={className} size={16} />
+        )}
         href="/chat"
       >
         Exit Admin
-      </SidebarButton>
+      </NavigationTab>
 
       <div className="relative flex flex-col flex-1 overflow-y-auto gap-padding-content">
         {collections.map((collection, index) => (
           <SidebarSection key={index} title={collection.name}>
             <div className="flex flex-col w-full">
               {collection.items.map(({ link, icon: Icon, name }, index) => (
-                <SidebarButton
+                <NavigationTab
                   key={index}
                   href={link}
                   active={pathname.startsWith(link)}
-                  icon={() => <Icon className="text-text-03" size={28} />}
+                  icon={({ className }) => (
+                    <Icon className={className} size={16} />
+                  )}
                 >
                   {name}
-                </SidebarButton>
+                </NavigationTab>
               ))}
             </div>
           </SidebarSection>

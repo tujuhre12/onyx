@@ -39,3 +39,13 @@ export function isSubset(parent: string[], child: string[]): boolean {
   const parentSet = new Set(parent);
   return Array.from(new Set(child)).every((item) => parentSet.has(item));
 }
+
+export function trinaryLogic<T>(
+  a: boolean | undefined,
+  b: boolean,
+  ifTrue: T,
+  ifFalse: T
+): T {
+  const condition = a !== undefined ? a : b;
+  return condition ? ifTrue : ifFalse;
+}

@@ -25,7 +25,7 @@ import Truncated from "@/components-2/Truncated";
 import SvgBubbleText from "@/icons/bubble-text";
 import SvgPin from "@/icons/pin";
 import { SvgProps } from "@/icons";
-import { MenuButton } from "@/components-2/buttons/MenuButton";
+import { NavigationTab } from "@/components-2/buttons/NavigationTab";
 import SvgEditBig from "@/icons/edit-big";
 import SvgTrash from "@/icons/trash";
 import SvgMoreHorizontal from "@/icons/more-horizontal";
@@ -146,25 +146,25 @@ export default function AgentCard({
 
                   <PopoverContent>
                     <div className="flex flex-col gap-spacing-inline">
-                      <MenuButton
+                      <NavigationTab
                         icon={SvgEditBig}
                         onClick={() =>
                           router.push(`/assistants/edit/${agent.id}`)
                         }
                       >
                         Edit
-                      </MenuButton>
+                      </NavigationTab>
                       {isPaidEnterpriseFeaturesEnabled && (
-                        <MenuButton
+                        <NavigationTab
                           icon={SvgBarChart}
                           onClick={() =>
                             router.push(`/assistants/stats/${agent.id}`)
                           }
                         >
                           Stats
-                        </MenuButton>
+                        </NavigationTab>
                       )}
-                      <MenuButton
+                      <NavigationTab
                         icon={SvgTrash}
                         onClick={() => {
                           setKebabMenuOpen(false);
@@ -173,7 +173,7 @@ export default function AgentCard({
                         danger
                       >
                         Delete
-                      </MenuButton>
+                      </NavigationTab>
                     </div>
                   </PopoverContent>
                 </Popover>
