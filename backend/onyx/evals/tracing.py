@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 import braintrust
@@ -10,7 +11,7 @@ from braintrust_langchain.callbacks import BraintrustCallbackHandler
 from onyx.configs.app_configs import BRAINTRUST_API_KEY
 from onyx.configs.app_configs import BRAINTRUST_PROJECT
 
-MASKING_LENGTH = 20000
+MASKING_LENGTH = int(os.environ.get("BRAINTRUST_MASKING_LENGTH", "20000"))
 
 
 def _truncate_str(s: str) -> str:

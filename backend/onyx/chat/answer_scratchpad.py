@@ -17,6 +17,7 @@ from typing import Optional
 
 import litellm
 from agents import Agent
+from agents import AgentHooks
 from agents import function_tool
 from agents import ModelSettings
 from agents import RunContextWrapper
@@ -290,12 +291,25 @@ def finalize_report():
     }
 
 
+class VerboseHooks(AgentHooks[Any]):
+    async def on_llm_start(
+        self,
+        context: RunContextWrapper[Any],
+        agent: Agent[Any],
+        system_prompt: Optional[str],
+        input_items: List[dict],  # alias: TResponseInputItem
+    ) -> None:
+        print(f"[{agent.name}] LLM start")
+        print("system_prompt:", system_prompt)
+        print("usage so far:", context.usage.total_tokens)
+
+
 def construct_deep_research_agent(llm: LLM) -> Agent:
     litellm_model = LitellmModel(
         # If you have access, prefer OpenAI’s deep research-capable models:
         # "o3-deep-research" or "o4-mini-deep-research"
         # otherwise keep your current model and lean on the prompt + tools
-        model=getattr(llm.config, "model_name", "o4-mini-deep-research"),
+        model=llm.config.model_name,
         api_key=llm.config.api_key,
     )
 
@@ -329,6 +343,7 @@ Guidelines:
             # optional: let model choose tools freely
             # tool_choice="auto",  # if supported by your LitellmModel wrapper
         ),
+        hooks=VerboseHooks(),
     )
 
 
