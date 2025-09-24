@@ -301,7 +301,7 @@ def construct_deep_research_agent(llm: LLM) -> Agent:
     DR_INSTRUCTIONS = """
 You are a deep-research agent. Work in explicit iterations:
 1) PLAN: Decompose the user’s query into sub-questions and a step-by-step plan.
-2) SEARCH: Use web_search (or web_search_many for fanout) to explore multiple angles.
+2) SEARCH: Use web_search to explore multiple angles, fanning out and searching in parallel.
 3) FETCH: Use web_fetch for any promising URLs to extract specifics and quotes.
 4) NOTE: After each useful find, call add_note(note, source_url) to save key facts.
 5) REVISE: If evidence contradicts earlier assumptions, update your plan and continue.
@@ -324,6 +324,7 @@ Guidelines:
         model_settings=ModelSettings(
             temperature=llm.config.temperature,
             include_usage=True,
+            parallel_tool_calls=True,
             # optional: let model choose tools freely
             # tool_choice="auto",  # if supported by your LitellmModel wrapper
         ),
