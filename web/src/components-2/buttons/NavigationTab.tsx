@@ -19,19 +19,39 @@ import { cn } from "@/lib/utils";
 import { IconButton } from "@/components-2/buttons/IconButton";
 import Truncated from "@/components-2/Truncated";
 
-const textClasses = {
-  base: ["text-text-03"],
-  danger: ["text-action-danger-05"],
-  highlight: ["text-text-04"],
-  lowlight: ["text-text-02"],
-} as const;
+const textClasses = (active: boolean | undefined) =>
+  ({
+    base: [
+      active ? "text-text-04" : "text-text-03",
+      "group-hover:text-text-04",
+    ],
+    danger: ["text-action-danger-05"],
+    highlight: [
+      active ? "text-text-05" : "text-text-04",
+      "group-hover:text-text-05",
+    ],
+    lowlight: [
+      active ? "text-text-03" : "text-text-02",
+      "group-hover:text-text-03",
+    ],
+  }) as const;
 
-const iconClasses = {
-  base: ["stroke-text-03"],
-  danger: ["stroke-action-danger-05"],
-  highlight: ["stroke-text-03"],
-  lowlight: ["stroke-text-02"],
-} as const;
+const iconClasses = (active: boolean | undefined) =>
+  ({
+    base: [
+      active ? "stroke-text-04" : "stroke-text-03",
+      "group-hover:stroke-text-04",
+    ],
+    danger: ["stroke-action-danger-05"],
+    highlight: [
+      active ? "stroke-text-04" : "stroke-text-03",
+      "group-hover:stroke-text-04",
+    ],
+    lowlight: [
+      active ? "stroke-text-03" : "stroke-text-02",
+      "group-hover:stroke-text-03",
+    ],
+  }) as const;
 
 export interface NavigationTabProps {
   // Button states:
@@ -46,7 +66,7 @@ export interface NavigationTabProps {
   // Button properties:
   onClick?: () => void;
   href?: string;
-  tooltip?: string;
+  tooltip?: boolean;
   popover?: React.ReactNode;
 
   className?: string;
@@ -86,7 +106,7 @@ export function NavigationTab({
   const innerContent = (
     <div
       className={cn(
-        "flex flex-row justify-center items-center p-spacing-inline gap-spacing-inline rounded-08 cursor-pointer hover:bg-background-tint-03",
+        "flex flex-row justify-center items-center p-spacing-inline gap-spacing-inline rounded-08 cursor-pointer hover:bg-background-tint-03 group",
         folded ? "w-min" : "w-full",
         active ? "bg-background-tint-00" : "bg-transparent",
         className
@@ -103,13 +123,18 @@ export function NavigationTab({
         )}
       >
         <div className="w-[1.2rem] h-[1.2rem]">
-          <Icon className={cn("h-[1.2rem] w-[1.2rem]", iconClasses[variant])} />
+          <Icon
+            className={cn(
+              "h-[1.2rem] w-[1.2rem]",
+              iconClasses(active)[variant]
+            )}
+          />
         </div>
         {!folded && (
           <Truncated
             side="right"
             offset={40}
-            className={cn("text-left", textClasses[variant])}
+            className={cn("text-left", textClasses(active)[variant])}
           >
             {children}
           </Truncated>
@@ -140,12 +165,12 @@ export function NavigationTab({
   );
 
   const content =
-    folded && tooltip ? (
+    folded && tooltip && typeof children === "string" ? (
       <Tooltip>
         <TooltipTrigger asChild>{innerContent}</TooltipTrigger>
         <TooltipContent align="center" side="right">
           <Text inverted secondaryBody>
-            {tooltip}
+            {children}
           </Text>
         </TooltipContent>
       </Tooltip>

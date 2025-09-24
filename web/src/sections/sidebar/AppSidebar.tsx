@@ -179,7 +179,6 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
           "!w-full",
           renamingChat && "border-[0.125rem] border-text-04"
         )}
-        tooltip={chatSession.name}
         popover={
           <PopoverMenu>
             {[
@@ -394,30 +393,34 @@ function AppSidebarInner() {
       <AgentsModal />
 
       <div
-        className={`h-screen ${folded ? "w-[4rem]" : "w-[15rem]"} flex flex-col bg-background-tint-02 ${folded ? "px-spacing-interline" : "px-padding-button"} py-padding-content flex-shrink-0 gap-padding-content`}
+        className={cn(
+          "h-screen flex flex-col bg-background-tint-02 py-padding-content flex-shrink-0 gap-padding-content px-padding-button",
+          folded ? "w-[4rem]" : "w-[15rem]"
+        )}
         onMouseOver={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
         {/* Header - fixed height */}
         <div
-          className={`flex flex-row items-center px-spacing-interline py-spacing-inline ${folded ? "justify-center" : "justify-between"} flex-shrink-0`}
+          className={cn(
+            "flex flex-row items-center px-spacing-interline py-spacing-inline flex-shrink-0",
+            folded ? "justify-center" : "justify-between"
+          )}
         >
           {folded ? (
-            <div className="h-[1.6rem] flex flex-col items-center justify-center">
-              {foldedAndHovered ? (
-                <SvgSidebar
-                  className="cursor-pointer hover:stroke-text-04 stroke-text-03 w-[1rem]"
-                  onClick={() => setFolded(false)}
-                />
-              ) : (
-                <OnyxIcon size={24} />
-              )}
-            </div>
+            foldedAndHovered ? (
+              <SvgSidebar
+                className="cursor-pointer hover:stroke-text-03 stroke-text-02 w-[1rem] h-[1.5rem]"
+                onClick={() => setFolded(false)}
+              />
+            ) : (
+              <OnyxIcon size={24} />
+            )
           ) : (
             <>
               <OnyxLogoTypeIcon size={88} />
               <SvgSidebar
-                className="cursor-pointer hover:stroke-text-04 stroke-text-03 w-[1rem]"
+                className="cursor-pointer hover:stroke-text-03 stroke-text-02 w-[1rem]"
                 onClick={() => {
                   setFolded(true);
                   setHovered(false);
@@ -433,6 +436,7 @@ function AppSidebarInner() {
           folded={folded}
           onClick={() => handleChatSessionClick(null)}
           active={!currentChatId && !currentAgent}
+          tooltip
         >
           New Session
         </NavigationTab>
