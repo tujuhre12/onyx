@@ -21,35 +21,35 @@ import Truncated from "@/components-2/Truncated";
 
 const textClasses = (active: boolean | undefined) =>
   ({
-    base: [
+    main: [
       active ? "text-text-04" : "text-text-03",
-      "group-hover:text-text-04",
+      "group-hover/NavigationTab:text-text-04",
     ],
     danger: ["text-action-danger-05"],
     highlight: [
       active ? "text-text-05" : "text-text-04",
-      "group-hover:text-text-05",
+      "group-hover/NavigationTab:text-text-05",
     ],
     lowlight: [
       active ? "text-text-03" : "text-text-02",
-      "group-hover:text-text-03",
+      "group-hover/NavigationTab:text-text-03",
     ],
   }) as const;
 
 const iconClasses = (active: boolean | undefined) =>
   ({
-    base: [
+    main: [
       active ? "stroke-text-04" : "stroke-text-03",
-      "group-hover:stroke-text-04",
+      "group-hover/NavigationTab:stroke-text-04",
     ],
     danger: ["stroke-action-danger-05"],
     highlight: [
       active ? "stroke-text-04" : "stroke-text-03",
-      "group-hover:stroke-text-04",
+      "group-hover/NavigationTab:stroke-text-04",
     ],
     lowlight: [
       active ? "stroke-text-03" : "stroke-text-02",
-      "group-hover:stroke-text-03",
+      "group-hover/NavigationTab:stroke-text-03",
     ],
   }) as const;
 
@@ -101,12 +101,12 @@ export function NavigationTab({
       ? "highlight"
       : lowlight
         ? "lowlight"
-        : "base";
+        : "main";
 
   const innerContent = (
     <div
       className={cn(
-        "flex flex-row justify-center items-center p-spacing-inline gap-spacing-inline rounded-08 cursor-pointer hover:bg-background-tint-03 group",
+        "flex flex-row justify-center items-center p-spacing-inline gap-spacing-inline rounded-08 cursor-pointer hover:bg-background-tint-03 group/NavigationTab",
         folded ? "w-min" : "w-full",
         active ? "bg-background-tint-00" : "bg-transparent",
         className
@@ -146,13 +146,11 @@ export function NavigationTab({
       {!folded && popover && (active || hovered || kebabMenuOpen) && (
         <Popover onOpenChange={setKebabMenuOpen}>
           <PopoverTrigger asChild onClick={(event) => event.stopPropagation()}>
-            <div>
-              <IconButton
-                icon={SvgMoreHorizontal}
-                internal
-                active={kebabMenuOpen}
-              />
-            </div>
+            <IconButton
+              icon={SvgMoreHorizontal}
+              internal
+              active={kebabMenuOpen}
+            />
           </PopoverTrigger>
           <PopoverContent
             align="end"

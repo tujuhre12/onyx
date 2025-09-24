@@ -1,54 +1,64 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { SvgProps } from "@/icons";
-import { cn, trinaryLogic } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
-const buttonClasses = {
-  primary: {
-    base: ["bg-theme-primary-05", "hover:bg-theme-primary-04"],
-    active: ["!bg-theme-primary-06"],
-    disabled: ["!bg-background-neutral-04"],
-  },
-  secondary: {
-    base: ["bg-background-tint-02", "hover:bg-background-tint-02", "border"],
-    active: ["!bg-background-tint-00"],
-    disabled: ["!bg-background-neutral-03"],
-  },
-  tertiary: {
-    base: ["bg-transparent", "hover:bg-background-tint-02"],
-    active: ["!bg-background-tint-00"],
-    disabled: ["!bg-background-neutral-02"],
-  },
-  internal: {
-    base: ["bg-transparent", "hover:bg-background-tint-00"],
-    active: ["!bg-background-tint-00"],
-    disabled: ["!bg-transparent"],
-  },
-} as const;
+const buttonClasses = (active: boolean | undefined) =>
+  ({
+    primary: {
+      main: [
+        active ? "bg-theme-primary-06" : "bg-theme-primary-05",
+        "hover:bg-theme-primary-04",
+      ],
+      disabled: ["bg-background-neutral-04"],
+    },
+    secondary: {
+      main: [
+        active ? "bg-background-tint-00" : "bg-background-tint-02",
+        "hover:bg-background-tint-02",
+        "border",
+      ],
+      disabled: ["bg-background-neutral-03"],
+    },
+    tertiary: {
+      main: [
+        active ? "bg-background-tint-00" : "bg-transparent",
+        "hover:bg-background-tint-02",
+      ],
+      disabled: ["bg-background-neutral-02"],
+    },
+    internal: {
+      main: [
+        active ? "bg-background-tint-00" : "bg-transparent",
+        "hover:bg-background-tint-00",
+      ],
+      disabled: ["bg-transparent"],
+    },
+  }) as const;
 
-const iconClasses = {
-  primary: {
-    base: ["stroke-text-inverted-05"],
-    active: ["!stroke-text-inverted-05"],
-    disabled: ["!stroke-text-inverted-05"],
-  },
-  secondary: {
-    base: ["stroke-text-03"],
-    active: ["!stroke-text-05"],
-    disabled: ["!stroke-text-01"],
-  },
-  tertiary: {
-    base: ["stroke-text-03"],
-    active: ["!stroke-text-05"],
-    disabled: ["!stroke-text-01"],
-  },
-  internal: {
-    base: ["stroke-text-02", "group-hover:stroke-text-04"],
-    active: ["!stroke-text-05"],
-    disabled: ["!stroke-text-01"],
-  },
-} as const;
+const iconClasses = (active: boolean | undefined) =>
+  ({
+    primary: {
+      main: ["stroke-text-inverted-05"],
+      disabled: ["stroke-text-inverted-05"],
+    },
+    secondary: {
+      main: [active ? "stroke-text-05" : "stroke-text-03"],
+      disabled: ["stroke-text-01"],
+    },
+    tertiary: {
+      main: [active ? "stroke-text-05" : "stroke-text-03"],
+      disabled: ["stroke-text-01"],
+    },
+    internal: {
+      main: [
+        active ? "stroke-text-05" : "stroke-text-02",
+        "group-hover/IconButton:stroke-text-04",
+      ],
+      disabled: ["stroke-text-01"],
+    },
+  }) as const;
 
 export interface IconButtonProps
   extends React.HTMLAttributes<HTMLButtonElement> {
@@ -81,7 +91,7 @@ export function IconButton({
 
   ...props
 }: IconButtonProps) {
-  const state = active ? "active" : disabled ? "disabled" : "base";
+  const state = disabled ? "disabled" : "main";
   const variant = primary
     ? "primary"
     : secondary
@@ -91,28 +101,21 @@ export function IconButton({
         : internal
           ? "internal"
           : "primary";
-  const buttonClassNames = buttonClasses[variant];
-  const iconClassNames = iconClasses[variant];
 
   return (
     <button
       className={cn(
-        "flex items-center justify-center rounded-08 group",
-        buttonClassNames.base,
-        buttonClassNames[state],
+        "flex items-center justify-center rounded-08 group/IconButton",
         internal ? "p-spacing-inline" : "p-spacing-interline",
-        disabled && "cursor-not-allowed"
+        disabled && "cursor-not-allowed",
+        buttonClasses(active)[variant][state]
       )}
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       {...props}
     >
       <Icon
-        className={cn(
-          "h-[1rem] w-[1rem]",
-          iconClassNames.base,
-          iconClassNames[state]
-        )}
+        className={cn("h-[1rem] w-[1rem]", iconClasses(active)[variant][state])}
       />
     </button>
   );
