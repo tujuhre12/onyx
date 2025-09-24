@@ -53,7 +53,7 @@ const iconClasses = (active: boolean | undefined) =>
     },
     internal: {
       main: [
-        active ? "stroke-text-05" : "stroke-text-02",
+        active ? "!stroke-text-05" : "stroke-text-02",
         "group-hover/IconButton:stroke-text-04",
       ],
       disabled: ["stroke-text-01"],
