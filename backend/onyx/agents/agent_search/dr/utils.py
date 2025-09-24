@@ -18,7 +18,7 @@ from onyx.context.search.models import SavedSearchDoc
 from onyx.context.search.utils import chunks_or_sections_to_search_docs
 from onyx.llm.models import PreviousMessage
 from onyx.llm.utils import check_message_tokens
-from onyx.prompts.prompt_utils import drop_messages_history_overflow
+from onyx.prompts.prompt_utils import drop_messages_history_overflow_tr_df
 from onyx.tools.tool_implementations.web_search.web_search_tool import (
     WebSearchTool,
 )
@@ -273,7 +273,7 @@ def get_chat_history_messages(
         ]
 
         # Use the drop_messages_history_overflow function to trim if needed
-        trimmed_messages = drop_messages_history_overflow(
+        trimmed_messages = drop_messages_history_overflow_tr_df(
             messages_with_token_counts, max_tokens
         )
         # Filter to only HumanMessage and AIMessage (drop any SystemMessage)
