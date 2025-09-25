@@ -405,9 +405,7 @@ export function ChatPage({ firstMessage }: ChatPageProps) {
 
   // Access chat state directly from the store
   const currentChatState = useCurrentChatState();
-  const chatSessionId = useChatSessionStore(
-    (state: any) => state.currentSessionId
-  );
+  const chatSessionId = useChatSessionStore((state) => state.currentSessionId);
   const submittedMessage = useSubmittedMessage();
   const loadingError = useLoadingError();
   const uncaughtError = useUncaughtError();
@@ -421,13 +419,13 @@ export function ChatPage({ firstMessage }: ChatPageProps) {
   const documentSidebarVisible = useDocumentSidebarVisible();
   const chatSessionSharedStatus = useChatSessionSharedStatus();
   const updateHasPerformedInitialScroll = useChatSessionStore(
-    (state: any) => state.updateHasPerformedInitialScroll
+    (state) => state.updateHasPerformedInitialScroll
   );
   const updateCurrentDocumentSidebarVisible = useChatSessionStore(
-    (state: any) => state.updateCurrentDocumentSidebarVisible
+    (state) => state.updateCurrentDocumentSidebarVisible
   );
   const updateCurrentChatSessionSharedStatus = useChatSessionStore(
-    (state: any) => state.updateCurrentChatSessionSharedStatus
+    (state) => state.updateCurrentChatSessionSharedStatus
   );
 
   const clientScrollToBottom = useCallback(

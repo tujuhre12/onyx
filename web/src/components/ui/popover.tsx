@@ -35,9 +35,15 @@ interface PopoverMenuProps {
 export function PopoverMenu({ children }: PopoverMenuProps) {
   return (
     <div className="flex flex-col gap-spacing-inline w-[10rem]">
-      {children?.map((child) =>
-        child === null ? <div className="border-b mx-padding-button" /> : child
-      )}
+      {children?.map((child, index) => (
+        <div key={index}>
+          {child === null ? (
+            <div className="border-b mx-padding-button" />
+          ) : (
+            child
+          )}
+        </div>
+      ))}
     </div>
   );
 }

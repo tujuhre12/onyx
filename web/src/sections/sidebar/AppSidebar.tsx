@@ -179,10 +179,11 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
         popover={
           <PopoverMenu>
             {[
-              <NavigationTab icon={SvgShare} onClick={noProp()}>
+              <NavigationTab key="share" icon={SvgShare} onClick={noProp()}>
                 Share
               </NavigationTab>,
               <NavigationTab
+                key="rename"
                 icon={SvgEdit}
                 onClick={noProp(() => setRenamingChat(true))}
               >
@@ -190,6 +191,7 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
               </NavigationTab>,
               null,
               <NavigationTab
+                key="delete"
                 icon={SvgTrash}
                 onClick={noProp(() => setDeleteConfirmationModalOpen(true))}
                 danger
@@ -259,6 +261,7 @@ function AgentsButtonInner({
             <PopoverMenu>
               {[
                 <NavigationTab
+                  key="pin-unpin-chat"
                   icon={SvgPin}
                   onClick={noProp(() => onTogglePin(visibleAgent, !pinned))}
                 >

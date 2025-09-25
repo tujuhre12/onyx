@@ -82,24 +82,45 @@ function SettingsPopover({
         //   </NavigationTab>
         // )),
         showAdminPanel && (
-          <NavigationTab href="/admin/indexing/status" icon={SvgSettings}>
+          <NavigationTab
+            key="admin-panel"
+            href="/admin/indexing/status"
+            icon={SvgSettings}
+          >
             Admin Panel
           </NavigationTab>
         ),
         showCuratorPanel && (
-          <NavigationTab href="/admin/indexing/status" icon={SvgSettings}>
+          <NavigationTab
+            key="curator-panel"
+            href="/admin/indexing/status"
+            icon={SvgSettings}
+          >
             Curator Panel
           </NavigationTab>
         ),
-        <NavigationTab icon={SvgUser} onClick={onUserSettingsClick}>
+        <NavigationTab
+          key="user-settings"
+          icon={SvgUser}
+          onClick={onUserSettingsClick}
+        >
           User Settings
         </NavigationTab>,
-        <NavigationTab icon={SvgBell} onClick={onNotificationsClick}>
+        <NavigationTab
+          key="notifications"
+          icon={SvgBell}
+          onClick={onNotificationsClick}
+        >
           {`Notifications ${(notifications && notifications.length) || 0 > 0 ? `(${notifications!.length})` : ""}`}
         </NavigationTab>,
         showLogout && null,
         showLogout && (
-          <NavigationTab icon={SvgLogOut} danger onClick={handleLogout}>
+          <NavigationTab
+            key="log-out"
+            icon={SvgLogOut}
+            danger
+            onClick={handleLogout}
+          >
             Log out
           </NavigationTab>
         ),
