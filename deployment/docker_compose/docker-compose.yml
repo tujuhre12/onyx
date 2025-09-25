@@ -53,8 +53,8 @@ services:
       - inference_model_server
       - minio
     restart: unless-stopped
-    # ports:
-    #   - "8080:8080"
+    ports:
+      - "${API_PORT:-}"
     environment:
       # Auth Settings
       - AUTH_TYPE=${AUTH_TYPE:-basic}
@@ -228,8 +228,8 @@ services:
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
-    # ports:
-    #   - "5432:5432"
+    ports:
+      - "${POSTGRES_PORT:-}"
     volumes:
       - db_volume:/var/lib/postgresql/data
 
