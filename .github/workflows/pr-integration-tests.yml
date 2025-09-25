@@ -263,7 +263,6 @@ jobs:
           INTEGRATION_TESTS_MODE=true \
           CHECK_TTL_MANAGEMENT_TASK_FREQUENCY_IN_HOURS=0.001 \
           API_PORT=8080:8080 \
-          POSTGRES_PORT=5432:5432 \
           docker compose up \
             relational_db \
             index \
@@ -431,7 +430,6 @@ jobs:
           IMAGE_TAG=test \
           DEV_MODE=true \
           API_PORT=8080:8080 \
-          POSTGRES_PORT=5432:5432 \
           docker compose -f docker-compose.multitenant-dev.yml up \
             relational_db \
             index \
