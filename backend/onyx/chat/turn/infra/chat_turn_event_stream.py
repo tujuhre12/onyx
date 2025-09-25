@@ -3,7 +3,6 @@ import logging
 import queue
 import threading
 from collections.abc import Iterator
-from dataclasses import dataclass
 from queue import Queue
 from typing import Any
 from typing import Dict
@@ -15,8 +14,6 @@ from agents import TContext
 from pydantic import BaseModel
 from pydantic import Field
 
-from onyx.llm.interfaces import LLM
-from onyx.tools.tool_implementations.search.search_tool import SearchTool
 
 logger = logging.getLogger(__name__)
 
@@ -131,10 +128,10 @@ def convert_to_packet_obj(packet: Dict[str, Any]) -> Any | None:
 
         # Map packet types to their corresponding classes
         type_mapping = {
-            "message_start": MessageStart,
+            "response.created": MessageStart,
             "response.output_text.delta": MessageDelta,
             "response.completed": OverallStop,
-            "section_end": SectionEnd,
+            "response.output_item.done": SectionEnd,
             "internal_search_tool_start": SearchToolStart,
             "internal_search_tool_delta": SearchToolDelta,
             "image_generation_tool_start": ImageGenerationToolStart,
@@ -157,6 +154,13 @@ def convert_to_packet_obj(packet: Dict[str, Any]) -> Any | None:
                 filtered_data["content"] = filtered_data["delta"]
             elif packet_type == "response.completed":
                 filtered_data["type"] = "stop"
+            elif packet_type == "response.created":
+                return MessageStart(
+                    type="message_start", content="", final_documents=None
+                )
+            elif packet_type == "response.output_item.done":
+                return SectionEnd(type="section_end")
+            packet_class(**filtered_data)
             return packet_class(**filtered_data)
 
     except Exception as e:
@@ -174,10 +178,3 @@ class Emitter:
 
     def emit(self, kind: str, data: Dict[str, Any]) -> None:
         self.bus.put(StreamPacket(kind=kind, payload=data))
-
-
-@dataclass
-class RunDependencies:
-    llm: LLM
-    emitter: Emitter | None = None
-    search_tool: SearchTool | None = None

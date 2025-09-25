@@ -9,8 +9,8 @@ from typing import List
 
 from onyx.chat.turn.infra.chat_turn_event_stream import convert_to_packet_obj
 from onyx.chat.turn.infra.chat_turn_event_stream import Emitter
-from onyx.chat.turn.infra.chat_turn_event_stream import RunDependencies
 from onyx.chat.turn.infra.chat_turn_event_stream import StreamPacket
+from onyx.chat.turn.models import RunDependencies
 from onyx.server.query_and_chat.streaming_models import Packet
 
 
@@ -47,7 +47,6 @@ def unified_event_stream(
             daemon=True,
         )
         t.start()
-        ind = 0
         while True:
             pkt: StreamPacket = emitter.bus.get()
             if pkt.kind == "done":
@@ -55,7 +54,6 @@ def unified_event_stream(
             else:
                 packet_obj = convert_to_packet_obj(pkt.payload)
                 if packet_obj:
-                    yield Packet(ind=ind, obj=packet_obj)
-                    ind += 1
+                    yield Packet(ind=0, obj=packet_obj)
 
     return wrapper

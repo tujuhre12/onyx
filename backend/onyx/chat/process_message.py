@@ -31,7 +31,7 @@ from onyx.chat.prompt_builder.answer_prompt_builder import default_build_system_
 from onyx.chat.prompt_builder.answer_prompt_builder import default_build_user_message
 from onyx.chat.turn import fast_chat_turn
 from onyx.chat.turn.infra.chat_turn_event_stream import convert_to_packet_obj
-from onyx.chat.turn.infra.chat_turn_event_stream import RunDependencies
+from onyx.chat.turn.models import RunDependencies
 from onyx.chat.user_files.parse_user_files import parse_user_files
 from onyx.configs.chat_configs import CHAT_TARGET_CHUNK_PERCENTAGE
 from onyx.configs.chat_configs import DISABLE_LLM_CHOOSE_SEARCH

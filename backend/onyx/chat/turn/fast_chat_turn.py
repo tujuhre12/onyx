@@ -7,8 +7,8 @@ from agents import RunItemStreamEvent
 from agents.extensions.models.litellm_model import LitellmModel
 
 from onyx.chat.turn.infra.chat_turn_event_stream import OnyxRunner
-from onyx.chat.turn.infra.chat_turn_event_stream import RunDependencies
 from onyx.chat.turn.infra.chat_turn_orchestration import unified_event_stream
+from onyx.chat.turn.models import RunDependencies
 
 
 @dataclass
