@@ -263,6 +263,7 @@ jobs:
           INTEGRATION_TESTS_MODE=true \
           CHECK_TTL_MANAGEMENT_TASK_FREQUENCY_IN_HOURS=0.001 \
           API_PORT=8080:8080 \
+          POSTGRES_HOST=relational_db \
           docker compose up \
             relational_db \
             index \

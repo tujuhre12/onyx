@@ -259,6 +259,7 @@ jobs:
           IMAGE_TAG=test \
           INTEGRATION_TESTS_MODE=true \
           API_PORT=8080:8080 \
+          POSTGRES_HOST=relational_db \
           docker compose up \
             relational_db \
             index \
