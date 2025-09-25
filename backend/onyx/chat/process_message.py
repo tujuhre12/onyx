@@ -693,6 +693,7 @@ def stream_chat_message_objects(
 
         Rules:
         - Only cite sources provided by the tools (use each item’s "tag" field).
+        - Only perform citations for web search and fetch tools.
         - Place the citation immediately after the claim it supports, like this: "... result [S1](https://linkforS1)" or
          "... results [S1](https://linkforS1)[S3](https://linkforS3)".
         - If multiple sentences in a row are supported by the same source, cite the first sentence;

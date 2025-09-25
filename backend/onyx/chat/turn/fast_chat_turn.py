@@ -8,6 +8,7 @@ from onyx.chat.turn.infra.chat_turn_event_stream import OnyxRunner
 from onyx.chat.turn.infra.chat_turn_orchestration import unified_event_stream
 from onyx.chat.turn.models import MyContext
 from onyx.chat.turn.models import RunDependencies
+from onyx.tools.tool_implementations_v2.internal_search import internal_search
 from onyx.tools.tool_implementations_v2.web import web_fetch
 from onyx.tools.tool_implementations_v2.web import web_search
 
@@ -20,15 +21,11 @@ def fast_chat_turn(messages: list[dict], dependencies: RunDependencies) -> None:
     )
     agent = Agent(
         name="Assistant",
-        instructions="""
-        You are a helpful assistant that can search the web, fetch content from URLs,
-        and search internal databases. Please do some reasoning and then return your answer.
-        """,
         model=LitellmModel(
             model=dependencies.llm.config.model_name,
             api_key=dependencies.llm.config.api_key,
         ),
-        tools=[web_search, web_fetch],
+        tools=[web_search, web_fetch, internal_search],
         model_settings=ModelSettings(
             temperature=0.0,
             include_usage=True,

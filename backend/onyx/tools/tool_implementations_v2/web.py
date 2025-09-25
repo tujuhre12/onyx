@@ -17,8 +17,16 @@ def short_tag(link: str, i: int) -> str:
 
 @function_tool
 def web_search(run_context: RunContextWrapper[MyContext], query: str) -> str:
-    """Search the web for information. This tool provides urls and short snippets,
-    but does not fetch the full content of the urls."""
+    """
+    Perform a live search on the public internet.
+
+    Use this tool when you need fresh or external information not found
+    in the conversation. It returns a ranked list of web pages with titles,
+    snippets, and URLs.
+
+    Args:
+        query: The natural-language search query.
+    """
     search_provider = get_default_provider()
     run_context.run_dependencies.emitter.emit(kind="web-search", data={"query": query})
     hits = search_provider.search(query)
@@ -41,7 +49,16 @@ def web_search(run_context: RunContextWrapper[MyContext], query: str) -> str:
 
 @function_tool
 def web_fetch(run_context: RunContextWrapper[MyContext], urls: List[str]) -> str:
-    """Fetch the full contents of a list of URLs."""
+    """
+    Fetch and extract the text content from a specific web page.
+
+    Use this tool after identifying relevant URLs (for example from
+    `web_search`) to read the full content. It returns the cleaned page
+    text and metadata.
+
+    Args:
+        urls: The full URLs of the pages to retrieve.
+    """
     search_provider = get_default_provider()
     run_context.run_dependencies.emitter.emit(kind="web-fetch", data={"urls": urls})
     docs = search_provider.contents(urls)
