@@ -39,10 +39,10 @@ from onyx.agents.agent_search.dr.sub_agents.web_search.clients.exa_client import
 from onyx.agents.agent_search.dr.utils import get_chat_history_string
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.chat.turn import fast_chat_turn
-from onyx.chat.turn.fast_chat_turn import MyContext
 from onyx.chat.turn.infra.chat_turn_event_stream import Emitter
 from onyx.chat.turn.infra.chat_turn_event_stream import OnyxRunner
 from onyx.chat.turn.infra.chat_turn_event_stream import RunDependencies
+from onyx.chat.turn.models import MyContext
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.llm.interfaces import (
     LLM,
@@ -559,4 +559,3 @@ if __name__ == "__main__":
         stream=False,
     )
     x = llm_response.json()
-    print(x)

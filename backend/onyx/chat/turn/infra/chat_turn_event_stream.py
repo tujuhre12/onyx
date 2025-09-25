@@ -90,7 +90,7 @@ class StreamPacket(BaseModel):
     payload: Dict[str, Any] = Field(default_factory=dict)
 
 
-def convert_to_packet_obj(packet: Dict[str, Any]) -> Any | None:
+def convert_to_packet_obj(packet: StreamPacket) -> Any | None:
     """Convert a packet dictionary to PacketObj when possible.
 
     Args:

@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 from agents import Agent
 from agents import ModelSettings
 from agents import RawResponsesStreamEvent
@@ -8,15 +6,10 @@ from agents.extensions.models.litellm_model import LitellmModel
 
 from onyx.chat.turn.infra.chat_turn_event_stream import OnyxRunner
 from onyx.chat.turn.infra.chat_turn_orchestration import unified_event_stream
+from onyx.chat.turn.models import MyContext
 from onyx.chat.turn.models import RunDependencies
-
-
-@dataclass
-class MyContext:
-    """Context class to hold search tool and other dependencies"""
-
-    run_dependencies: RunDependencies | None = None
-    needs_compaction: bool = False
+from onyx.tools.tool_implementations_v2.web import web_fetch
+from onyx.tools.tool_implementations_v2.web import web_search
 
 
 # TODO: Dependency injection?
@@ -35,7 +28,7 @@ def fast_chat_turn(messages: list[dict], dependencies: RunDependencies) -> None:
             model=dependencies.llm.config.model_name,
             api_key=dependencies.llm.config.api_key,
         ),
-        tools=[],
+        tools=[web_search, web_fetch],
         model_settings=ModelSettings(
             temperature=0.0,
             include_usage=True,

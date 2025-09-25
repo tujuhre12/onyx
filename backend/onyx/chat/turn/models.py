@@ -10,3 +10,11 @@ class RunDependencies:
     llm: LLM
     emitter: Emitter | None = None
     search_tool: SearchTool | None = None
+
+
+@dataclass
+class MyContext:
+    """Context class to hold search tool and other dependencies"""
+
+    run_dependencies: RunDependencies | None = None
+    needs_compaction: bool = False
