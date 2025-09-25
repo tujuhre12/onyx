@@ -1,0 +1,150 @@
+import asyncio
+import queue
+import threading
+from collections.abc import Iterator
+from dataclasses import dataclass
+from queue import Queue
+from typing import Any
+from typing import Dict
+from typing import Optional
+
+from agents import Agent
+from agents import Runner
+from agents import TContext
+from pydantic import BaseModel
+from pydantic import Field
+
+from onyx.llm.interfaces import LLM
+from onyx.tools.tool_implementations.search.search_tool import SearchTool
+
+
+class OnyxRunner:
+    """
+    Spins up an asyncio loop in a background thread, starts Runner.run_streamed there,
+    consumes its async event stream, and exposes a blocking .events() iterator.
+    """
+
+    def __init__(self):
+        self._q: "queue.Queue[object]" = queue.Queue()
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._thread: Optional[threading.Thread] = None
+        self._streamed = None
+        self.SENTINEL = object()
+
+    def run_streamed(
+        self,
+        agent: Agent,
+        messages: list[dict],
+        context: TContext | None = None,
+        max_turns: int = 100,
+    ):
+        def worker():
+            async def run_and_consume():
+                # Create the streamed run *inside* the loop thread
+                self._streamed = Runner.run_streamed(
+                    agent,
+                    messages,
+                    context=context,
+                    max_turns=max_turns,
+                )
+                try:
+                    async for ev in self._streamed.stream_events():
+                        self._q.put(ev)
+                finally:
+                    self._q.put(self.SENTINEL)
+
+            # Each thread needs its own loop
+            self._loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._loop)
+            try:
+                self._loop.run_until_complete(run_and_consume())
+            finally:
+                self._loop.close()
+
+        self._thread = threading.Thread(target=worker, daemon=True)
+        self._thread.start()
+        return self
+
+    def events(self) -> Iterator[object]:
+        while True:
+            ev = self._q.get()
+            if ev is self.SENTINEL:
+                break
+            yield ev
+
+    def cancel(self):
+        # Post a cancellation to the loop thread safely
+        if self._loop and self._streamed:
+
+            def _do_cancel():
+                try:
+                    self._streamed.cancel()
+                except Exception:
+                    pass
+
+            self._loop.call_soon_threadsafe(_do_cancel)
+
+
+def convert_to_packet_obj(packet: Dict[str, Any]) -> Any | None:
+    """Convert a packet dictionary to PacketObj when possible.
+
+    Args:
+        packet: Dictionary containing packet data
+
+    Returns:
+        PacketObj instance if conversion is possible, None otherwise
+    """
+    if not isinstance(packet, dict) or "type" not in packet:
+        return None
+
+    packet_type = packet.get("type")
+    if not packet_type:
+        return None
+
+    try:
+        # Import here to avoid circular imports
+        from onyx.server.query_and_chat.streaming_models import (
+            MessageStart,
+            MessageDelta,
+            OverallStop,
+        )
+
+        if packet_type == "response.output_item.added":
+            return MessageStart(
+                type="message_start",
+                content="",
+                final_documents=None,
+            )
+        elif packet_type == "response.output_text.delta":
+            return MessageDelta(type="message_delta", content=packet["delta"])
+        elif packet_type == "response.completed":
+            return OverallStop(type="stop")
+
+    except Exception:
+        # Log the error but don't fail the entire process
+        # logger.debug(f"Failed to convert packet to PacketObj: {e}")
+        pass
+
+    return None
+
+
+class StreamPacket(BaseModel):
+    kind: str  # "agent" | "tool-progress" | "done"
+    payload: Dict[str, Any] = Field(default_factory=dict)
+
+
+class Emitter:
+    """Use this inside tools to emit arbitrary UI progress."""
+
+    def __init__(self, bus: Queue):
+        self.bus = bus
+
+    def emit(self, kind: str, data: Dict[str, Any]) -> None:
+        self.bus.put(StreamPacket(kind=kind, payload=data))
+
+
+@dataclass
+class RunDependencies:
+    llm: LLM
+    emitter: Emitter | None = None
+    search_tool: SearchTool | None = None

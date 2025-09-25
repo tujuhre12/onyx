@@ -1,15 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-import contextvars
 import json
 import os
-import queue
 import threading
-from collections.abc import Generator
-from collections.abc import Iterator
-from dataclasses import dataclass
-from queue import Queue
 from typing import Any
 from typing import cast
 from typing import Dict
@@ -44,6 +38,11 @@ from onyx.agents.agent_search.dr.sub_agents.web_search.clients.exa_client import
 )
 from onyx.agents.agent_search.dr.utils import get_chat_history_string
 from onyx.agents.agent_search.models import GraphConfig
+from onyx.chat.turn import fast_chat_turn
+from onyx.chat.turn.fast_chat_turn import MyContext
+from onyx.chat.turn.infra.chat_turn_event_stream import Emitter
+from onyx.chat.turn.infra.chat_turn_event_stream import OnyxRunner
+from onyx.chat.turn.infra.chat_turn_event_stream import RunDependencies
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.llm.interfaces import (
     LLM,
@@ -57,21 +56,6 @@ from onyx.tools.tool_implementations.search.search_tool import SearchTool
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
-
-
-@dataclass
-class RunDependencies:
-    emitter: Emitter
-    llm: LLM
-    search_tool: SearchTool | None = None
-
-
-@dataclass
-class MyContext:
-    """Context class to hold search tool and other dependencies"""
-
-    run_dependencies: RunDependencies | None = None
-    needs_compaction: bool = False
 
 
 def short_tag(link: str, i: int) -> str:
@@ -215,23 +199,6 @@ def _convert_to_packet_obj(packet: Dict[str, Any]) -> Any | None:
         logger.debug(f"Failed to convert packet to PacketObj: {e}")
 
     return None
-
-
-# stream_bus.py
-@dataclass
-class StreamPacket:
-    kind: str  # "agent" | "tool-progress" | "done"
-    payload: Dict[str, Any] = None
-
-
-class Emitter:
-    """Use this inside tools to emit arbitrary UI progress."""
-
-    def __init__(self, bus: Queue):
-        self.bus = bus
-
-    def emit(self, kind: str, data: Dict[str, Any]) -> None:
-        self.bus.put(StreamPacket(kind=kind, payload=data))
 
 
 # If we want durable execution in the future, we can replace this with a temporal call
@@ -378,64 +345,6 @@ Guidelines:
     )
 
 
-def unified_event_stream(
-    messages: List[Dict[str, Any]],
-    cfg: GraphConfig,
-    llm: LLM,
-    emitter: Emitter,
-    search_tool: SearchTool | None = None,
-) -> Generator[Dict[str, Any], None, None]:
-    bus: Queue = Queue()
-    emitter = Emitter(bus)
-    current_context = contextvars.copy_context()
-    t = threading.Thread(
-        target=current_context.run,
-        args=(
-            # thread_worker_dr_turn,
-            thread_worker_simple_turn,
-            messages,
-            cfg,
-            llm,
-            emitter,
-            search_tool,
-        ),  # eval_context=None for now
-        daemon=True,
-    )
-    t.start()
-    done = False
-    while not done:
-        pkt: StreamPacket = emitter.bus.get()
-        if pkt.kind == "done":
-            done = True
-        else:
-            # Convert packet to PacketObj when possible
-            packet_obj = _convert_to_packet_obj(pkt.payload)
-            if packet_obj:
-                # Convert PacketObj back to dict for compatibility
-                yield packet_obj.model_dump()
-            else:
-                # Fallback to original payload
-                yield pkt.payload
-
-
-# This should be close to the API
-def stream_chat_sync(
-    messages: List[Dict[str, Any]],
-    cfg: GraphConfig,
-    llm: LLM,
-    search_tool: SearchTool | None = None,
-) -> Generator[Dict[str, Any], None, None]:
-    bus: Queue = Queue()
-    emitter = Emitter(bus)
-    return unified_event_stream(
-        messages=messages,
-        cfg=cfg,
-        llm=llm,
-        emitter=emitter,
-        search_tool=search_tool,
-    )
-
-
 def construct_simple_agent(
     llm: LLM,
 ) -> Agent:
@@ -483,84 +392,17 @@ def thread_worker_dr_turn(messages, cfg, llm, emitter, search_tool):
 
 def thread_worker_simple_turn(messages, cfg, llm, emitter, search_tool):
     try:
-        simple_turn(
+        fast_chat_turn.fast_chat_turn(
             messages=messages,
-            cfg=cfg,
-            llm=llm,
-            turn_event_stream_emitter=emitter,
-            search_tool=search_tool,
+            dependencies=RunDependencies(
+                emitter=emitter,
+                llm=llm,
+                search_tool=search_tool,
+            ),
         )
     except Exception as e:
         logger.error(f"Error in simple_turn: {e}", exc_info=e, stack_info=True)
         emitter.emit(kind="done", data={"ok": False})
-
-
-SENTINEL = object()
-
-
-class StreamBridge:
-    """
-    Spins up an asyncio loop in a background thread, starts Runner.run_streamed there,
-    consumes its async event stream, and exposes a blocking .events() iterator.
-    """
-
-    def __init__(self, agent, messages, ctx, max_turns: int = 100):
-        self.agent = agent
-        self.messages = messages
-        self.ctx = ctx
-        self.max_turns = max_turns
-
-        self._q: "queue.Queue[object]" = queue.Queue()
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
-        self._thread: Optional[threading.Thread] = None
-        self._streamed = None
-
-    def start(self):
-        def worker():
-            async def run_and_consume():
-                # Create the streamed run *inside* the loop thread
-                self._streamed = Runner.run_streamed(
-                    self.agent,
-                    self.messages,
-                    context=self.ctx,
-                    max_turns=self.max_turns,
-                )
-                try:
-                    async for ev in self._streamed.stream_events():
-                        self._q.put(ev)
-                finally:
-                    self._q.put(SENTINEL)
-
-            # Each thread needs its own loop
-            self._loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self._loop)
-            try:
-                self._loop.run_until_complete(run_and_consume())
-            finally:
-                self._loop.close()
-
-        self._thread = threading.Thread(target=worker, daemon=True)
-        self._thread.start()
-        return self
-
-    def events(self) -> Iterator[object]:
-        while True:
-            ev = self._q.get()
-            if ev is SENTINEL:
-                break
-            yield ev
-
-    def cancel(self):
-        # Post a cancellation to the loop thread safely
-        if self._loop and self._streamed:
-
-            def _do_cancel():
-                try:
-                    self._streamed.cancel()
-                except Exception:
-                    pass
-
-            self._loop.call_soon_threadsafe(_do_cancel)
 
 
 def simple_turn(
@@ -571,7 +413,7 @@ def simple_turn(
     search_tool: SearchTool | None = None,
 ) -> None:
     llm_response = llm_completion(
-        model_name="gpt-5-mini",
+        model_name="gpt-4o-mini",
         temperature=0.0,
         messages=messages,
         stream=True,
@@ -583,7 +425,7 @@ def simple_turn(
             search_tool=search_tool, emitter=turn_event_stream_emitter, llm=llm
         )
     )
-    bridge = StreamBridge(simple_agent, messages, ctx, max_turns=100).start()
+    bridge = OnyxRunner(simple_agent, messages, ctx, max_turns=100).start()
     for ev in bridge.events():
         if isinstance(ev, RunItemStreamEvent):
             print("RUN ITEM STREAM EVENT!")
@@ -636,7 +478,7 @@ def dr_turn(
             llm=llm,
         )
     )
-    bridge = StreamBridge(dr_agent, messages, ctx, max_turns=100).start()
+    bridge = OnyxRunner(dr_agent, messages, ctx, max_turns=100).start()
     for ev in bridge.events():
         if isinstance(ev, RunItemStreamEvent):
             pass

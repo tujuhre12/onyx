@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session
 
 from onyx.agents.agent_search.orchestration.nodes.call_tool import ToolCallException
 from onyx.chat.answer import Answer
-from onyx.chat.answer_scratchpad import stream_chat_sync
 from onyx.chat.chat_utils import create_chat_chain
 from onyx.chat.chat_utils import create_temporary_persona
 from onyx.chat.chat_utils import process_kg_commands
@@ -30,6 +29,8 @@ from onyx.chat.models import UserKnowledgeFilePacket
 from onyx.chat.prompt_builder.answer_prompt_builder import AnswerPromptBuilder
 from onyx.chat.prompt_builder.answer_prompt_builder import default_build_system_message
 from onyx.chat.prompt_builder.answer_prompt_builder import default_build_user_message
+from onyx.chat.turn import fast_chat_turn
+from onyx.chat.turn.infra.chat_turn_event_stream import RunDependencies
 from onyx.chat.user_files.parse_user_files import parse_user_files
 from onyx.configs.chat_configs import CHAT_TARGET_CHUNK_PERCENTAGE
 from onyx.configs.chat_configs import DISABLE_LLM_CHOOSE_SEARCH
@@ -704,11 +705,12 @@ def stream_chat_message_objects(
             for message in answer.graph_inputs.prompt_builder.build()
             if message.type != "system"
         ]
-        yield from stream_chat_sync(
+        yield from fast_chat_turn.fast_chat_turn(
             messages=system_message + other_messages,
-            cfg=answer.graph_config,
-            llm=answer.graph_tooling.primary_llm,
-            search_tool=answer.graph_tooling.search_tool,
+            dependencies=RunDependencies(
+                llm=answer.graph_tooling.primary_llm,
+                search_tool=answer.graph_tooling.search_tool,
+            ),
         )
 
     except ValueError as e:
