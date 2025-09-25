@@ -404,9 +404,6 @@ export function AIMessage({
                                 content="Regenerate"
                               >
                                 <RegenerateOption
-                                  onDropdownVisibleChange={
-                                    setIsRegenerateDropdownVisible
-                                  }
                                   regenerate={chatState.regenerate}
                                   overriddenModel={chatState.overriddenModel}
                                 />
