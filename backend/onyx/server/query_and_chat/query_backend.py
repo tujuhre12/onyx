@@ -73,7 +73,7 @@ def admin_search(
         )
     matching_chunks = document_index.admin_retrieval(query=query, filters=final_filters)
 
-    documents = SearchDoc.chunks_or_sections_to_search_docs(matching_chunks)
+    documents = SearchDoc.from_chunks_or_sections(matching_chunks)
 
     # Deduplicate documents by id
     deduplicated_documents: list[SearchDoc] = []

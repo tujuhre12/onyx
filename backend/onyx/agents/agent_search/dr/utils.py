@@ -266,7 +266,7 @@ def convert_inference_sections_to_search_docs(
     is_internet: bool = False,
 ) -> list[SavedSearchDoc]:
     # Convert InferenceSections to SavedSearchDocs
-    search_docs = SearchDoc.chunks_or_sections_to_search_docs(inference_sections)
+    search_docs = SearchDoc.from_chunks_or_sections(inference_sections)
     for search_doc in search_docs:
         search_doc.is_internet = is_internet
 
