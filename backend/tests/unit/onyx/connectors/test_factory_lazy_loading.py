@@ -16,6 +16,7 @@ from onyx.configs.constants import DocumentSource
 from onyx.connectors.factory import _connector_cache
 from onyx.connectors.factory import _load_connector_class
 from onyx.connectors.factory import CONNECTOR_CLASS_MAP
+from onyx.connectors.factory import ConnectorMapping
 from onyx.connectors.factory import ConnectorMissingException
 from onyx.connectors.factory import identify_connector_class
 from onyx.connectors.factory import instantiate_connector
@@ -30,25 +31,27 @@ class TestConnectorMappingValidation:
         """Test that all mapped modules and classes actually exist."""
         errors = []
 
-        for source, (module_path, class_name) in CONNECTOR_CLASS_MAP.items():
+        for source, mapping in CONNECTOR_CLASS_MAP.items():
             try:
                 # Try to import the module
-                module = importlib.import_module(module_path)
+                module = importlib.import_module(mapping.module_path)
 
                 # Try to get the class
-                connector_class = getattr(module, class_name)
+                connector_class = getattr(module, mapping.class_name)
 
                 # Verify it's a subclass of BaseConnector
                 if not issubclass(connector_class, BaseConnector):
                     errors.append(
-                        f"{source.value}: {class_name} is not a BaseConnector subclass"
+                        f"{source.value}: {mapping.class_name} is not a BaseConnector subclass"
                     )
 
             except ImportError as e:
-                errors.append(f"{source.value}: Failed to import {module_path} - {e}")
+                errors.append(
+                    f"{source.value}: Failed to import {mapping.module_path} - {e}"
+                )
             except AttributeError as e:
                 errors.append(
-                    f"{source.value}: Class {class_name} not found in {module_path} - {e}"
+                    f"{source.value}: Class {mapping.class_name} not found in {mapping.module_path} - {e}"
                 )
 
         if errors:
@@ -72,7 +75,10 @@ class TestConnectorMappingValidation:
             DocumentSource.OCI_STORAGE,
         ]
 
-        expected_mapping = ("onyx.connectors.blob.connector", "BlobStorageConnector")
+        expected_mapping = ConnectorMapping(
+            module_path="onyx.connectors.blob.connector",
+            class_name="BlobStorageConnector",
+        )
 
         for source in blob_sources:
             assert (
@@ -221,22 +227,20 @@ class TestConnectorMappingIntegrity:
     def test_mapping_format_consistency(self):
         """Test that all mappings follow the expected format."""
         for source, mapping in CONNECTOR_CLASS_MAP.items():
-            assert isinstance(mapping, tuple), f"{source.value} mapping is not a tuple"
-            assert (
-                len(mapping) == 2
-            ), f"{source.value} mapping doesn't have exactly 2 elements"
-
-            module_path, class_name = mapping
             assert isinstance(
-                module_path, str
+                mapping, ConnectorMapping
+            ), f"{source.value} mapping is not a ConnectorMapping"
+
+            assert isinstance(
+                mapping.module_path, str
             ), f"{source.value} module_path is not a string"
             assert isinstance(
-                class_name, str
+                mapping.class_name, str
             ), f"{source.value} class_name is not a string"
-            assert module_path.startswith(
+            assert mapping.module_path.startswith(
                 "onyx.connectors."
             ), f"{source.value} module_path doesn't start with onyx.connectors."
-            assert class_name.endswith(
+            assert mapping.class_name.endswith(
                 "Connector"
             ), f"{source.value} class_name doesn't end with Connector"
 
@@ -283,10 +287,10 @@ class TestFactoryValidationScript:
         successful_loads = 0
         errors = []
 
-        for source, (module_path, class_name) in CONNECTOR_CLASS_MAP.items():
+        for source, mapping in CONNECTOR_CLASS_MAP.items():
             try:
                 _load_connector_class(source)
-                print(f"✓ {source.value}: {class_name}")
+                print(f"✓ {source.value}: {mapping.class_name}")
                 successful_loads += 1
             except Exception as e:
                 error_msg = f"✗ {source.value}: {e}"
