@@ -63,9 +63,11 @@ export default async function Layout({
         defaultAssistantId={defaultAssistantId}
       >
         <AppSidebarProvider folded={folded}>
-          <div className="flex flex-row">
+          <div className="flex flex-row w-full h-full">
             <AppSidebar />
-            {children}
+            <div className="w-full h-full">
+              {children}
+            </div>
           </div>
         </AppSidebarProvider>
       </ChatProvider>

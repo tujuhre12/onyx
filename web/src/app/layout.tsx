@@ -158,7 +158,7 @@ export default async function Layout({ children }: LayoutProps) {
         <Suspense fallback={null}>
           <PostHogPageView />
         </Suspense>
-        <div id={MODAL_ROOT_ID}>{children}</div>
+        <div id={MODAL_ROOT_ID} className="w-screen h-screen">{children}</div>
         {process.env.NEXT_PUBLIC_POSTHOG_KEY && <WebVitals />}
       </DocumentsProvider>
     </AppProvider>

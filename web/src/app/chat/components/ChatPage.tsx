@@ -3,7 +3,6 @@
 import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { ChatSession, ChatSessionSharedStatus, Message } from "../interfaces";
 
-import Cookies from "js-cookie";
 import { HealthCheckBanner } from "@/components/health/healthcheck";
 import { personaIncludesRetrieval, useScrollonStream } from "../services/lib";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -22,13 +21,10 @@ import Dropzone from "react-dropzone";
 import ChatInputBar from "@/app/chat/components/input/ChatInputBar";
 import { useChatContext } from "@/components-2/context/ChatContext";
 import { ChatPopup } from "./ChatPopup";
-import { useSidebarVisibility } from "@/components/chat/hooks";
-import { SIDEBAR_TOGGLED_COOKIE_NAME } from "@/components/resizable/constants";
 import ExceptionTraceModal from "@/components/modals/ExceptionTraceModal";
 import { SEARCH_TOOL_ID } from "./tools/constants";
 import { useUser } from "@/components/user/UserProvider";
 import { ApiKeyModal } from "@/components/llm/ApiKeyModal";
-import BlurBackground from "../../../components/chat/BlurBackground";
 import { NoAssistantModal } from "@/components/modals/NoAssistantModal";
 import { useAssistantsContext } from "@/components/context/AssistantsContext";
 import TextView from "@/components/chat/TextView";
@@ -38,13 +34,11 @@ import { SUBMIT_MESSAGE_TYPES } from "@/lib/extension/constants";
 
 import { getSourceMetadata } from "@/lib/sources";
 import { UserSettingsModal } from "./modal/UserSettingsModal";
-import { useSidebarShortcut } from "@/lib/browserUtilities";
 import { FilePickerModal } from "../my-documents/components/FilePicker";
 
 import { SourceMetadata } from "@/lib/search/interfaces";
 import { FederatedConnectorDetail, ValidSources } from "@/lib/types";
 import { useDocumentsContext } from "../my-documents/DocumentsContext";
-import { ChatSearchModal } from "../chat_search/ChatSearchModal";
 import MinimalMarkdown from "@/components/chat/MinimalMarkdown";
 import { useScreenSize } from "@/hooks/useScreenSize";
 import { DocumentResults } from "./documentSidebar/DocumentResults";
@@ -77,17 +71,13 @@ import { MessagesDisplay } from "./MessagesDisplay";
 import { WelcomeMessage } from "./WelcomeMessage";
 import { cn } from "@/lib/utils";
 
-export function ChatPage({
-  toggle,
-  documentSidebarInitialWidth,
-  sidebarVisible,
-  firstMessage,
-}: {
-  toggle: (toggled?: boolean) => void;
-  documentSidebarInitialWidth?: number;
-  sidebarVisible: boolean;
+interface ChatPageProps {
   firstMessage?: string;
-}) {
+}
+
+export function ChatPage({
+  firstMessage,
+}: ChatPageProps) {
   // Performance tracking
   // Keeping this here in case we need to track down slow renders in the future
   // const renderCount = useRef(0);
@@ -158,8 +148,6 @@ export function ChatPage({
 
   const { user, isAdmin } = useUser();
   const existingChatIdRaw = searchParams?.get("chatId");
-
-  const [showHistorySidebar, setShowHistorySidebar] = useState(false);
 
   const existingChatSessionId = existingChatIdRaw ? existingChatIdRaw : null;
 
@@ -282,7 +270,6 @@ export function ChatPage({
   );
 
   const filterManager = useFilters();
-  const [isChatSearchModalOpen, setIsChatSearchModalOpen] = useState(false);
 
   const [currentFeedback, setCurrentFeedback] = useState<
     [FeedbackType, number] | null
@@ -418,10 +405,6 @@ export function ChatPage({
     };
   }, []);
 
-  if (!documentSidebarInitialWidth && maxDocumentSidebarWidth) {
-    documentSidebarInitialWidth = Math.min(700, maxDocumentSidebarWidth);
-  }
-
   const [selectedDocuments, setSelectedDocuments] = useState<OnyxDocument[]>(
     []
   );
@@ -546,55 +529,7 @@ export function ChatPage({
     };
   }, [autoScrollEnabled, screenHeight, currentSessionHasSentLocalUserMessage]);
 
-  const reset = useCallback(() => {
-    setMessage("");
-    setCurrentMessageFiles([]);
-    clearSelectedItems();
-    // TODO: move this into useChatController
-    // setLoadingError(null);
-  }, [setMessage, setCurrentMessageFiles, clearSelectedItems]);
-
-  // Used to maintain a "time out" for history sidebar so our existing refs can have time to process change
-  const [untoggled, setUntoggled] = useState(false);
-
-  const explicitlyUntoggle = useCallback(() => {
-    setShowHistorySidebar(false);
-
-    setUntoggled(true);
-    setTimeout(() => {
-      setUntoggled(false);
-    }, 200);
-  }, [setShowHistorySidebar, setUntoggled]);
-
-  const toggleSidebar = useCallback(() => {
-    if (user?.is_anonymous_user) {
-      return;
-    }
-    Cookies.set(
-      SIDEBAR_TOGGLED_COOKIE_NAME,
-      String(!sidebarVisible).toLocaleLowerCase()
-    );
-
-    toggle();
-  }, [user?.is_anonymous_user, toggle, sidebarVisible]);
-
-  const removeToggle = useCallback(() => {
-    setShowHistorySidebar(false);
-    toggle(false);
-  }, [setShowHistorySidebar, toggle]);
-
   const waitForScrollRef = useRef(false);
-  const sidebarElementRef = useRef<HTMLDivElement>(null);
-
-  useSidebarVisibility({
-    sidebarVisible,
-    sidebarElementRef,
-    showDocSidebar: showHistorySidebar,
-    setShowDocSidebar: setShowHistorySidebar,
-    setToggled: removeToggle,
-    mobile: settings?.isMobile,
-    isAnonymousUser: user?.is_anonymous_user,
-  });
 
   useSendMessageToParent();
 
@@ -635,8 +570,6 @@ export function ChatPage({
     setAboveHorizon(scrollDist.current > HORIZON_DISTANCE);
   }, []);
 
-  useSidebarShortcut(router, toggleSidebar);
-
   const [sharedChatSession, setSharedChatSession] =
     useState<ChatSession | null>();
 
@@ -665,8 +598,6 @@ export function ChatPage({
     });
   };
 
-  const [showAssistantsModal, setShowAssistantsModal] = useState(false);
-
   const toggleDocumentSidebar = useCallback(() => {
     if (!documentSidebarVisible) {
       updateCurrentDocumentSidebarVisible(true);
@@ -674,11 +605,6 @@ export function ChatPage({
       updateCurrentDocumentSidebarVisible(false);
     }
   }, [documentSidebarVisible, updateCurrentDocumentSidebarVisible]);
-
-  const toggleChatSessionSearchModal = useCallback(
-    () => setIsChatSearchModalOpen((open) => !open),
-    [setIsChatSearchModalOpen]
-  );
 
   if (!user) {
     redirect("/auth/login");
@@ -722,15 +648,6 @@ export function ChatPage({
     currentMessageFiles,
     deepResearchEnabled,
   ]);
-
-  // Memoized callbacks for Header
-  const handleToggleUserSettings = useCallback(() => {
-    setUserSettingsToggled(true);
-  }, []);
-
-  const handleHeaderReset = useCallback(() => {
-    setMessage("");
-  }, []);
 
   // Memoized callbacks for DocumentResults
   const handleMobileDocumentSidebarClose = useCallback(() => {
@@ -811,11 +728,6 @@ export function ChatPage({
           }}
         />
       )}
-
-      <ChatSearchModal
-        open={isChatSearchModalOpen}
-        onCloseModal={() => setIsChatSearchModalOpen(false)}
-      />
 
       {retrievalEnabled && documentSidebarVisible && settings?.isMobile && (
         <div className="md:hidden">
@@ -933,41 +845,33 @@ export function ChatPage({
           />
         </div>
 
-        <BlurBackground
-          visible={!untoggled && (showHistorySidebar || sidebarVisible)}
-          onClick={() => toggleSidebar()}
-        />
-
         <div
           id="scrollableContainer"
-          className="flex h-full w-full overflow-x-hidden relative px-2 flex-col"
+          className="flex h-full w-full overflow-x-hidden relative flex-col dbg-red"
           ref={masterFlexboxRef}
         >
-          {documentSidebarInitialWidth !== undefined && isReady ? (
+          {isReady ? (
             <Dropzone
               key={chatSessionId}
-              onDrop={(acceptedFiles) =>
-                handleMessageSpecificFileUpload(acceptedFiles)
-              }
+              onDrop={handleMessageSpecificFileUpload}
               noClick
             >
               {({ getRootProps }) => (
-                <div className="flex h-full w-full">
+                <div
+                  className={`flex h-full w-full relative flex-auto transition-margin duration-300 overflow-x-auto mobile:pb-12 desktop:pb-[100px]`}
+                  {...getRootProps()}
+                >
                   <div
-                    className={`h-full w-full relative flex-auto transition-margin duration-300 overflow-x-auto mobile:pb-12 desktop:pb-[100px]`}
-                    {...getRootProps()}
+                    onScroll={handleScroll}
+                    className={`w-full h-[calc(100vh-160px)] flex flex-col default-scrollbar overflow-y-auto overflow-x-hidden relative`}
+                    ref={scrollableDivRef}
                   >
-                    <div
-                      onScroll={handleScroll}
-                      className={`w-full h-[calc(100vh-160px)] flex flex-col default-scrollbar overflow-y-auto overflow-x-hidden relative`}
-                      ref={scrollableDivRef}
-                    >
-                      {liveAssistant && (
-                        <div className="z-20 fixed top-0 pointer-events-none left-0 w-full flex justify-center overflow-visible">
-                          {!settings?.isMobile && (
-                            <div
-                              style={{ transition: "width 0.30s ease-out" }}
-                              className={`
+                    {liveAssistant && (
+                      <div className="z-20 fixed top-0 pointer-events-none left-0 w-full flex justify-center overflow-visible">
+                        {!settings?.isMobile && (
+                          <div
+                            style={{ transition: "width 0.30s ease-out" }}
+                            className={`
                               flex-none 
                               overflow-y-hidden 
                               transition-all 
@@ -975,171 +879,147 @@ export function ChatPage({
                               duration-300 
                               ease-in-out
                               h-full
-                              ${sidebarVisible ? "w-[200px]" : "w-[0px]"}
                           `}
-                            />
-                          )}
-                        </div>
-                      )}
-
-                      <MessagesDisplay
-                        messageHistory={messageHistory}
-                        completeMessageTree={completeMessageTree}
-                        liveAssistant={liveAssistant}
-                        llmManager={llmManager}
-                        deepResearchEnabled={deepResearchEnabled}
-                        selectedFiles={selectedFiles}
-                        selectedFolders={selectedFolders}
-                        currentMessageFiles={currentMessageFiles}
-                        setPresentingDocument={setPresentingDocument}
-                        setCurrentFeedback={setCurrentFeedback}
-                        onSubmit={onSubmit}
-                        onMessageSelection={onMessageSelection}
-                        stopGenerating={stopGenerating}
-                        uncaughtError={uncaughtError}
-                        loadingError={loadingError}
-                        handleResubmitLastMessage={handleResubmitLastMessage}
-                        autoScrollEnabled={autoScrollEnabled}
-                        getContainerHeight={getContainerHeight}
-                        lastMessageRef={lastMessageRef}
-                        endPaddingRef={endPaddingRef}
-                        endDivRef={endDivRef}
-                        hasPerformedInitialScroll={hasPerformedInitialScroll}
-                        chatSessionId={chatSessionId}
-                        enterpriseSettings={enterpriseSettings}
-                      />
-                    </div>
-
-                    <div
-                      ref={inputRef}
-                      className={`absolute pointer-events-none z-10 w-full ${
-                        showCenteredInput
-                          ? "inset-0"
-                          : "bottom-0 left-0 right-0 translate-y-0"
-                      }`}
-                    >
-                      {!showCenteredInput && aboveHorizon && (
-                        <div className="mx-auto w-fit !pointer-events-none flex sticky justify-center">
-                          <button
-                            onClick={() => clientScrollToBottom()}
-                            className="p-1 pointer-events-auto text-neutral-700 dark:text-neutral-800 rounded-2xl bg-neutral-200 border border-border  mx-auto "
-                          >
-                            <FiArrowDown size={18} />
-                          </button>
-                        </div>
-                      )}
-
-                      <div
-                        className={`pointer-events-auto w-[95%] mx-auto relative text-text-600 ${
-                          showCenteredInput
-                            ? "h-full grid grid-rows-[0.85fr_auto_1.15fr]"
-                            : "mb-8"
-                        }`}
-                      >
-                        {showCenteredInput && (
-                          <WelcomeMessage assistant={liveAssistant} />
-                        )}
-                        <div
-                          className={cn(
-                            "flex flex-col justify-center items-center",
-                            showCenteredInput && "row-start-2"
-                          )}
-                        >
-                          <ChatInputBar
-                            deepResearchEnabled={deepResearchEnabled}
-                            toggleDeepResearch={toggleDeepResearch}
-                            toggleDocumentSidebar={toggleDocumentSidebar}
-                            filterManager={filterManager}
-                            llmManager={llmManager}
-                            removeDocs={clearSelectedDocuments}
-                            retrievalEnabled={retrievalEnabled}
-                            toggleDocSelection={handleToggleDocSelection}
-                            showConfigureAPIKey={handleShowApiKeyModal}
-                            selectedDocuments={selectedDocuments}
-                            message={message}
-                            setMessage={setMessage}
-                            stopGenerating={stopGenerating}
-                            onSubmit={handleChatInputSubmit}
-                            chatState={currentChatState}
-                            selectedAssistant={
-                              selectedAssistant || liveAssistant
-                            }
-                            handleFileUpload={handleMessageSpecificFileUpload}
-                            textAreaRef={textAreaRef}
                           />
-                        </div>
-
-                        {liveAssistant.starter_messages &&
-                          liveAssistant.starter_messages.length > 0 &&
-                          messageHistory.length === 0 &&
-                          showCenteredInput && (
-                            <div className="mt-6 row-start-3">
-                              <StarterMessageDisplay
-                                starterMessages={liveAssistant.starter_messages}
-                                onSelectStarterMessage={(message) => {
-                                  onSubmit({
-                                    message: message,
-                                    selectedFiles: selectedFiles,
-                                    selectedFolders: selectedFolders,
-                                    currentMessageFiles: currentMessageFiles,
-                                    useAgentSearch: deepResearchEnabled,
-                                  });
-                                }}
-                              />
-                            </div>
-                          )}
-
-                        {enterpriseSettings &&
-                          enterpriseSettings.custom_lower_disclaimer_content && (
-                            <div className="mobile:hidden mt-4 flex items-center justify-center relative w-[95%] mx-auto">
-                              <div className="text-sm text-text-500 max-w-searchbar-max px-4 text-center">
-                                <MinimalMarkdown
-                                  content={
-                                    enterpriseSettings.custom_lower_disclaimer_content
-                                  }
-                                />
-                              </div>
-                            </div>
-                          )}
-                        {enterpriseSettings &&
-                          enterpriseSettings.use_custom_logotype && (
-                            <div className="hidden lg:block fixed right-12 bottom-8 pointer-events-none z-10">
-                              <img
-                                src="/api/enterprise-settings/logotype"
-                                alt="logotype"
-                                style={{ objectFit: "contain" }}
-                                className="w-fit h-9"
-                              />
-                            </div>
-                          )}
+                        )}
                       </div>
-                    </div>
+                    )}
+
+                    <MessagesDisplay
+                      messageHistory={messageHistory}
+                      completeMessageTree={completeMessageTree}
+                      liveAssistant={liveAssistant}
+                      llmManager={llmManager}
+                      deepResearchEnabled={deepResearchEnabled}
+                      selectedFiles={selectedFiles}
+                      selectedFolders={selectedFolders}
+                      currentMessageFiles={currentMessageFiles}
+                      setPresentingDocument={setPresentingDocument}
+                      setCurrentFeedback={setCurrentFeedback}
+                      onSubmit={onSubmit}
+                      onMessageSelection={onMessageSelection}
+                      stopGenerating={stopGenerating}
+                      uncaughtError={uncaughtError}
+                      loadingError={loadingError}
+                      handleResubmitLastMessage={handleResubmitLastMessage}
+                      autoScrollEnabled={autoScrollEnabled}
+                      getContainerHeight={getContainerHeight}
+                      lastMessageRef={lastMessageRef}
+                      endPaddingRef={endPaddingRef}
+                      endDivRef={endDivRef}
+                      hasPerformedInitialScroll={hasPerformedInitialScroll}
+                      chatSessionId={chatSessionId}
+                      enterpriseSettings={enterpriseSettings}
+                    />
                   </div>
 
-                  <div
-                    style={{ transition: "width 0.30s ease-out" }}
-                    className={`
-                      flex-none 
-                      overflow-y-hidden 
-                      transition-all 
-                      bg-opacity-80
-                      duration-300 
-                      ease-in-out
-                      h-full
-                      ${
-                        documentSidebarVisible && !settings?.isMobile
-                          ? "w-[350px]"
-                          : "w-[0px]"
-                      }
-                  `}
-                  />
+                  <dv
+                    ref={inputRef}
+                    className={`absolute pointer-events-none z-10 w-full ${showCenteredInput
+                        ? "inset-0"
+                        : "bottom-0 left-0 right-0 translate-y-0"
+                      }`}
+                  >
+                    {!showCenteredInput && aboveHorizon && (
+                      <div className="mx-auto w-fit !pointer-events-none flex sticky justify-center">
+                        <button
+                          onClick={() => clientScrollToBottom()}
+                          className="p-1 pointer-events-auto text-neutral-700 dark:text-neutral-800 rounded-2xl bg-neutral-200 border border-border  mx-auto "
+                        >
+                          <FiArrowDown size={18} />
+                        </button>
+                      </div>
+                    )}
+
+                    <div
+                      className={`pointer-events-auto w-[95%] mx-auto relative text-text-600 ${showCenteredInput
+                          ? "h-full grid grid-rows-[0.85fr_auto_1.15fr]"
+                          : "mb-8"
+                        }`}
+                    >
+                      {showCenteredInput && (
+                        <WelcomeMessage assistant={liveAssistant} />
+                      )}
+                      <div
+                        className={cn(
+                          "flex flex-col justify-center items-center",
+                          showCenteredInput && "row-start-2"
+                        )}
+                      >
+                        <ChatInputBar
+                          deepResearchEnabled={deepResearchEnabled}
+                          toggleDeepResearch={toggleDeepResearch}
+                          toggleDocumentSidebar={toggleDocumentSidebar}
+                          filterManager={filterManager}
+                          llmManager={llmManager}
+                          removeDocs={clearSelectedDocuments}
+                          retrievalEnabled={retrievalEnabled}
+                          toggleDocSelection={handleToggleDocSelection}
+                          showConfigureAPIKey={handleShowApiKeyModal}
+                          selectedDocuments={selectedDocuments}
+                          message={message}
+                          setMessage={setMessage}
+                          stopGenerating={stopGenerating}
+                          onSubmit={handleChatInputSubmit}
+                          chatState={currentChatState}
+                          selectedAssistant={
+                            selectedAssistant || liveAssistant
+                          }
+                          handleFileUpload={handleMessageSpecificFileUpload}
+                          textAreaRef={textAreaRef}
+                        />
+                      </div>
+
+                      {liveAssistant.starter_messages &&
+                        liveAssistant.starter_messages.length > 0 &&
+                        messageHistory.length === 0 &&
+                        showCenteredInput && (
+                          <div className="mt-6 row-start-3">
+                            <StarterMessageDisplay
+                              starterMessages={liveAssistant.starter_messages}
+                              onSelectStarterMessage={(message) => {
+                                onSubmit({
+                                  message: message,
+                                  selectedFiles: selectedFiles,
+                                  selectedFolders: selectedFolders,
+                                  currentMessageFiles: currentMessageFiles,
+                                  useAgentSearch: deepResearchEnabled,
+                                });
+                              }}
+                            />
+                          </div>
+                        )}
+
+                      {enterpriseSettings &&
+                        enterpriseSettings.custom_lower_disclaimer_content && (
+                          <div className="mobile:hidden mt-4 flex items-center justify-center relative w-[95%] mx-auto">
+                            <div className="text-sm text-text-500 max-w-searchbar-max px-4 text-center">
+                              <MinimalMarkdown
+                                content={
+                                  enterpriseSettings.custom_lower_disclaimer_content
+                                }
+                              />
+                            </div>
+                          </div>
+                        )}
+                      {enterpriseSettings &&
+                        enterpriseSettings.use_custom_logotype && (
+                          <div className="hidden lg:block fixed right-12 bottom-8 pointer-events-none z-10">
+                            <img
+                              src="/api/enterprise-settings/logotype"
+                              alt="logotype"
+                              style={{ objectFit: "contain" }}
+                              className="w-fit h-9"
+                            />
+                          </div>
+                        )}
+                    </div>
+                  </div>
                 </div>
               )}
             </Dropzone>
           ) : (
-            <div className="mx-auto h-full flex">
-              <OnyxInitializingLoader />
-            </div>
+            <OnyxInitializingLoader />
           )}
         </div>
       </div>

@@ -10,7 +10,6 @@ import React, {
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSettingsContext } from "@/components/settings/SettingsProvider";
-import { SEARCH_PARAM_NAMES } from "@/app/chat/services/searchParams";
 import { OnyxLogoTypeIcon, OnyxIcon } from "@/components/icons/icons";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import Text from "@/components-2/Text";
@@ -393,7 +392,7 @@ function AppSidebarInner() {
 
       <div
         className={cn(
-          "h-screen flex flex-col bg-background-tint-02 py-padding-content flex-shrink-0 gap-padding-content px-padding-button",
+          "h-full flex flex-col bg-background-tint-02 py-padding-content flex-shrink-0 gap-padding-content px-padding-button",
           folded ? "w-[4rem]" : "w-[15rem]"
         )}
         onMouseOver={() => setHovered(true)}
