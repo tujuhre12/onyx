@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import asyncio
 import json
 import os
-import threading
 from typing import Any
-from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -16,7 +13,6 @@ from agents import AgentHooks
 from agents import function_tool
 from agents import ModelSettings
 from agents import RunContextWrapper
-from agents import Runner
 from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from agents.extensions.models.litellm_model import LitellmModel
@@ -33,9 +29,6 @@ from onyx.agents.agent_search.dr.dr_prompt_builder import (
 )
 from onyx.agents.agent_search.dr.enums import ResearchType
 from onyx.agents.agent_search.dr.models import DRPromptPurpose
-from onyx.agents.agent_search.dr.sub_agents.web_search.clients.exa_client import (
-    ExaClient,
-)
 from onyx.agents.agent_search.dr.utils import get_chat_history_string
 from onyx.agents.agent_search.models import GraphConfig
 from onyx.chat.turn import fast_chat_turn
@@ -43,68 +36,16 @@ from onyx.chat.turn.infra.chat_turn_event_stream import Emitter
 from onyx.chat.turn.infra.chat_turn_event_stream import OnyxRunner
 from onyx.chat.turn.infra.chat_turn_event_stream import RunDependencies
 from onyx.chat.turn.models import MyContext
-from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.llm.interfaces import (
     LLM,
 )
-from onyx.tools.models import SearchToolOverrideKwargs
-from onyx.tools.tool_implementations.search.search_tool import (
-    SEARCH_RESPONSE_SUMMARY_ID,
-)
-from onyx.tools.tool_implementations.search.search_tool import SearchResponseSummary
-from onyx.tools.tool_implementations.search.search_tool import SearchTool
+from onyx.tools.built_in_tools import SearchTool
+from onyx.tools.tool_implementations_v2.internal_search import internal_search
+from onyx.tools.tool_implementations_v2.web import web_fetch
+from onyx.tools.tool_implementations_v2.web import web_search
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
-
-
-def short_tag(link: str, i: int) -> str:
-    # Stable, readable; index keeps it deterministic across a batch
-    return f"S{i+1}"
-
-
-@function_tool
-def web_search(query: str) -> str:
-    """Search the web for information. This tool provides urls and short snippets,
-    but does not fetch the full content of the urls."""
-    exa_client = ExaClient()
-    hits = exa_client.search(query)
-    results = []
-    for i, r in enumerate(hits):
-        results.append(
-            {
-                "tag": short_tag(r.link, i),  # <-- add a tag
-                "title": r.title,
-                "link": r.link,
-                "snippet": r.snippet,
-                "author": r.author,
-                "published_date": (
-                    r.published_date.isoformat() if r.published_date else None
-                ),
-            }
-        )
-    return json.dumps({"results": results})
-
-
-@function_tool
-def web_fetch(urls: List[str]) -> str:
-    """Fetch the full contents of a list of URLs."""
-    exa_client = ExaClient()
-    docs = exa_client.contents(urls)
-    out = []
-    for i, d in enumerate(docs):
-        out.append(
-            {
-                "tag": short_tag(d.link, i),  # <-- add a tag
-                "title": d.title,
-                "link": d.link,
-                "full_content": d.full_content,
-                "published_date": (
-                    d.published_date.isoformat() if d.published_date else None
-                ),
-            }
-        )
-    return json.dumps({"results": out})
 
 
 @traced(name="llm_completion", type="llm")
@@ -121,122 +62,6 @@ def llm_completion(
         stream=stream,
         reasoning=litellm.Reasoning(effort="medium", summary="detailed"),
     )
-
-
-@function_tool
-def internal_search(context_wrapper: RunContextWrapper[MyContext], query: str) -> str:
-    """Search internal company vector database for information. Sources
-    include:
-    - Fireflies (internal company call transcripts)
-    - Google Drive (internal company documents)
-    - Gmail (internal company emails)
-    - Linear (internal company issues)
-    - Slack (internal company messages)
-    """
-    context_wrapper.context.run_dependencies.emitter.emit(
-        kind="tool-progress", data={"progress": "Searching internal database"}
-    )
-    search_tool = context_wrapper.context.run_dependencies.search_tool
-    if search_tool is None:
-        raise RuntimeError("Search tool not available in context")
-
-    with get_session_with_current_tenant() as search_db_session:
-        for tool_response in search_tool.run(
-            query=query,
-            override_kwargs=SearchToolOverrideKwargs(
-                force_no_rerank=True,
-                alternate_db_session=search_db_session,
-                skip_query_analysis=True,
-                original_query=query,
-            ),
-        ):
-            # get retrieved docs to send to the rest of the graph
-            if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
-                response = cast(SearchResponseSummary, tool_response.response)
-                retrieved_docs = response.top_sections
-
-                break
-    return retrieved_docs
-
-
-def _convert_to_packet_obj(packet: Dict[str, Any]) -> Any | None:
-    """Convert a packet dictionary to PacketObj when possible.
-
-    Args:
-        packet: Dictionary containing packet data
-
-    Returns:
-        PacketObj instance if conversion is possible, None otherwise
-    """
-    if not isinstance(packet, dict) or "type" not in packet:
-        return None
-
-    packet_type = packet.get("type")
-    if not packet_type:
-        return None
-
-    try:
-        # Import here to avoid circular imports
-        from onyx.server.query_and_chat.streaming_models import (
-            MessageStart,
-            MessageDelta,
-            OverallStop,
-        )
-
-        if packet_type == "response.output_item.added":
-            return MessageStart(
-                type="message_start",
-                content="",
-                final_documents=None,
-            )
-        elif packet_type == "response.output_text.delta":
-            return MessageDelta(type="message_delta", content=packet["delta"])
-        elif packet_type == "response.completed":
-            return OverallStop(type="stop")
-
-    except Exception as e:
-        # Log the error but don't fail the entire process
-        logger.debug(f"Failed to convert packet to PacketObj: {e}")
-
-    return None
-
-
-# If we want durable execution in the future, we can replace this with a temporal call
-def start_run_in_thread(
-    agent: Agent,
-    messages: List[Dict[str, Any]],
-    cfg: GraphConfig,
-    llm: LLM,
-    emitter: Emitter,
-    search_tool: SearchTool | None = None,
-) -> threading.Thread:
-    def worker():
-        async def amain():
-            ctx = MyContext(
-                run_dependencies=RunDependencies(
-                    search_tool=search_tool,
-                    emitter=emitter,
-                    llm=llm,
-                )
-            )
-            # 1) start the streamed run (async)
-            streamed = Runner.run_streamed(agent, messages, context=ctx)
-
-            # 2) forward the agent’s async event stream
-            async for ev in streamed.stream_events():
-                if isinstance(ev, RunItemStreamEvent):
-                    pass
-                elif isinstance(ev, RawResponsesStreamEvent):
-                    emitter.emit(kind="agent", data=ev.data.model_dump())
-
-            emitter.emit(kind="done", data={"ok": True})
-
-        # run the async main inside this thread
-        asyncio.run(amain())
-
-    t = threading.Thread(target=worker, daemon=True)
-    t.start()
-    return t
 
 
 class ResearchScratchpad(BaseModel):
@@ -405,48 +230,12 @@ def thread_worker_simple_turn(messages, cfg, llm, emitter, search_tool):
         emitter.emit(kind="done", data={"ok": False})
 
 
-def simple_turn(
-    messages: List[Dict[str, Any]],
-    cfg: GraphConfig,
-    llm: LLM,
-    turn_event_stream_emitter: Emitter,
-    search_tool: SearchTool | None = None,
-) -> None:
-    llm_response = llm_completion(
-        model_name="gpt-4o-mini",
-        temperature=0.0,
-        messages=messages,
-        stream=True,
-    )
-    llm_response.json()
-    simple_agent = construct_simple_agent(llm)
-    ctx = MyContext(
-        run_dependencies=RunDependencies(
-            search_tool=search_tool, emitter=turn_event_stream_emitter, llm=llm
-        )
-    )
-    bridge = OnyxRunner(simple_agent, messages, ctx, max_turns=100).start()
-    for ev in bridge.events():
-        if isinstance(ev, RunItemStreamEvent):
-            print("RUN ITEM STREAM EVENT!")
-            if ev.name == "reasoning_item_created":
-                print("REASONING!")
-                turn_event_stream_emitter.emit(
-                    kind="reasoning", data=ev.item.raw_item.model_dump()
-                )
-        elif isinstance(ev, RawResponsesStreamEvent):
-            print("RAW RESPONSES STREAM EVENT!")
-            print(ev.type)
-            turn_event_stream_emitter.emit(kind="agent", data=ev.data.model_dump())
-    turn_event_stream_emitter.emit(kind="done", data={"ok": True})
-
-
 def dr_turn(
     messages: List[Dict[str, Any]],
     cfg: GraphConfig,
     llm: LLM,
     turn_event_stream_emitter: Emitter,  # TurnEventStream is the primary output of the turn
-    search_tool: SearchTool | None = None,
+    search_tool: SearchTool,
 ) -> None:
     """
     Execute a deep research turn with evaluation context support.
@@ -497,8 +286,7 @@ def get_clarification(
     messages: List[Dict[str, Any]],
     cfg: GraphConfig,
     llm: LLM,
-    emitter: Emitter,
-    search_tool: SearchTool | None = None,
+    search_tool: SearchTool,
 ) -> litellm.ModelResponse:
     chat_history_string = (
         get_chat_history_string(
