@@ -15,7 +15,13 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-_MODULES_TO_LAZY_IMPORT = {"vertexai", "openai", "markitdown", "tiktoken"}
+_MODULES_TO_LAZY_IMPORT = {
+    "vertexai",
+    "openai",
+    "markitdown",
+    "tiktoken",
+    "unstructured",
+}
 
 
 @dataclass
@@ -155,7 +161,7 @@ def main(
             # Suggest fix only for violated modules
             if result.violated_modules:
                 logger.error(
-                    f"  💡 You must import {', '.join(sorted(result.violated_modules))} only within functions when needed"
+                    f"  💡 You must lazy import {', '.join(sorted(result.violated_modules))} within functions when needed"
                 )
 
     if violations_found:
