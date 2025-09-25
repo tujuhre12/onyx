@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextvars
 import json
+import os
 import queue
 import threading
 from collections.abc import Generator
@@ -19,7 +20,6 @@ import litellm
 from agents import Agent
 from agents import AgentHooks
 from agents import function_tool
-from agents import handoff
 from agents import ModelSettings
 from agents import RunContextWrapper
 from agents import Runner
@@ -30,6 +30,7 @@ from agents.handoffs import HandoffInputData
 from agents.stream_events import RawResponsesStreamEvent
 from agents.stream_events import RunItemStreamEvent
 from braintrust import traced
+from openai.types import Reasoning
 from pydantic import BaseModel
 
 from onyx.agents.agent_search.dr.constants import MAX_CHAT_HISTORY_MESSAGES
@@ -129,12 +130,12 @@ def llm_completion(
     messages: List[Dict[str, Any]],
     stream: bool = False,
 ) -> litellm.ModelResponse:
-    return litellm.completion(
+    return litellm.responses(
         model=model_name,
-        temperature=temperature,
-        messages=messages,
+        input=messages,
         tools=[],
         stream=stream,
+        reasoning=litellm.Reasoning(effort="medium", summary="detailed"),
     )
 
 
@@ -359,6 +360,7 @@ Guidelines:
 - Compare sources and dates; prioritize recency for time-sensitive topics.
 - Minimize redundancy by skimming before fetching.
 - Think out loud in a compact way, but keep reasoning crisp.
+- If context exceeds 10000 tokens, handoff to the compactor agent.
 """
     return Agent(
         name="Researcher",
@@ -377,7 +379,6 @@ Guidelines:
 
 
 def unified_event_stream(
-    agent: Agent,
     messages: List[Dict[str, Any]],
     cfg: GraphConfig,
     llm: LLM,
@@ -386,28 +387,17 @@ def unified_event_stream(
 ) -> Generator[Dict[str, Any], None, None]:
     bus: Queue = Queue()
     emitter = Emitter(bus)
-    # start_run_in_thread(
-    #     agent=agent,
-    #     messages=messages,
-    #     cfg=cfg,
-    #     llm=llm,
-    #     search_tool=search_tool,
-    #     emitter=emitter,
-    # )
-
-    # Capture current context for propagation to worker thread
     current_context = contextvars.copy_context()
-
     t = threading.Thread(
         target=current_context.run,
         args=(
-            thread_worker_dr_turn,
+            # thread_worker_dr_turn,
+            thread_worker_simple_turn,
             messages,
             cfg,
             llm,
             emitter,
             search_tool,
-            None,
         ),  # eval_context=None for now
         daemon=True,
     )
@@ -437,9 +427,7 @@ def stream_chat_sync(
 ) -> Generator[Dict[str, Any], None, None]:
     bus: Queue = Queue()
     emitter = Emitter(bus)
-    agent = construct_deep_research_agent(llm)
     return unified_event_stream(
-        agent=agent,
         messages=messages,
         cfg=cfg,
         llm=llm,
@@ -452,25 +440,29 @@ def construct_simple_agent(
     llm: LLM,
 ) -> Agent:
     litellm_model = LitellmModel(
-        model=llm.config.model_name,
+        model="o3-mini",
         api_key=llm.config.api_key,
     )
     return Agent(
         name="Assistant",
         instructions="""
         You are a helpful assistant that can search the web, fetch content from URLs,
-        and search internal databases.
+        and search internal databases. Please do some reasoning and then return your answer.
         """,
         model=litellm_model,
         tools=[web_search, web_fetch, internal_search],
         model_settings=ModelSettings(
-            temperature=llm.config.temperature,
+            temperature=0.0,
             include_usage=True,  # Track usage metrics
+            reasoning=Reasoning(
+                effort="medium", summary="detailed", generate_summary="detailed"
+            ),
+            verbose=True,
         ),
     )
 
 
-def thread_worker_dr_turn(messages, cfg, llm, emitter, search_tool, eval_context=None):
+def thread_worker_dr_turn(messages, cfg, llm, emitter, search_tool):
     """
     Worker function for deep research turn that runs in a separate thread.
 
@@ -483,9 +475,23 @@ def thread_worker_dr_turn(messages, cfg, llm, emitter, search_tool, eval_context
         eval_context: Evaluation context to be propagated to the worker thread
     """
     try:
-        dr_turn(messages, cfg, llm, emitter, search_tool, eval_context)
+        dr_turn(messages, cfg, llm, emitter, search_tool)
     except Exception as e:
         logger.error(f"Error in dr_turn: {e}", exc_info=e, stack_info=True)
+        emitter.emit(kind="done", data={"ok": False})
+
+
+def thread_worker_simple_turn(messages, cfg, llm, emitter, search_tool):
+    try:
+        simple_turn(
+            messages=messages,
+            cfg=cfg,
+            llm=llm,
+            turn_event_stream_emitter=emitter,
+            search_tool=search_tool,
+        )
+    except Exception as e:
+        logger.error(f"Error in simple_turn: {e}", exc_info=e, stack_info=True)
         emitter.emit(kind="done", data={"ok": False})
 
 
@@ -557,13 +563,48 @@ class StreamBridge:
             self._loop.call_soon_threadsafe(_do_cancel)
 
 
+def simple_turn(
+    messages: List[Dict[str, Any]],
+    cfg: GraphConfig,
+    llm: LLM,
+    turn_event_stream_emitter: Emitter,
+    search_tool: SearchTool | None = None,
+) -> None:
+    llm_response = llm_completion(
+        model_name="gpt-5-mini",
+        temperature=0.0,
+        messages=messages,
+        stream=True,
+    )
+    llm_response.json()
+    simple_agent = construct_simple_agent(llm)
+    ctx = MyContext(
+        run_dependencies=RunDependencies(
+            search_tool=search_tool, emitter=turn_event_stream_emitter, llm=llm
+        )
+    )
+    bridge = StreamBridge(simple_agent, messages, ctx, max_turns=100).start()
+    for ev in bridge.events():
+        if isinstance(ev, RunItemStreamEvent):
+            print("RUN ITEM STREAM EVENT!")
+            if ev.name == "reasoning_item_created":
+                print("REASONING!")
+                turn_event_stream_emitter.emit(
+                    kind="reasoning", data=ev.item.raw_item.model_dump()
+                )
+        elif isinstance(ev, RawResponsesStreamEvent):
+            print("RAW RESPONSES STREAM EVENT!")
+            print(ev.type)
+            turn_event_stream_emitter.emit(kind="agent", data=ev.data.model_dump())
+    turn_event_stream_emitter.emit(kind="done", data={"ok": True})
+
+
 def dr_turn(
     messages: List[Dict[str, Any]],
     cfg: GraphConfig,
     llm: LLM,
     turn_event_stream_emitter: Emitter,  # TurnEventStream is the primary output of the turn
     search_tool: SearchTool | None = None,
-    eval_context=None,
 ) -> None:
     """
     Execute a deep research turn with evaluation context support.
@@ -588,26 +629,6 @@ def dr_turn(
         turn_event_stream_emitter.emit(kind="done", data={"ok": True})
         return
     dr_agent = construct_deep_research_agent(llm)
-    compactor_agent = Agent(
-        name="Compactor",
-        instructions=f"""
-            {RECOMMENDED_PROMPT_PREFIX}
-            Summarize the full conversation so far into JSON with keys:\n
-              - summary: concise timeline of what happened so far\n
-              - facts: bullet list of stable facts (IDs, URLs, constraints)\n
-              - open_questions: bullet list of TODOs / follow-ups\n
-            Set already_compacted=true to prevent immediate re-compaction.
-            Then hand off to deep research agent.
-        """,
-        output_type=dict,
-        handoffs=[
-            handoff(
-                agent=dr_agent,
-                input_filter=compaction_input_filter,
-            )
-        ],
-        tool_use_behavior="stop_on_first_tool",
-    )
     ctx = MyContext(
         run_dependencies=RunDependencies(
             search_tool=search_tool,
@@ -615,7 +636,7 @@ def dr_turn(
             llm=llm,
         )
     )
-    bridge = StreamBridge(compactor_agent, messages, ctx, max_turns=100).start()
+    bridge = StreamBridge(dr_agent, messages, ctx, max_turns=100).start()
     for ev in bridge.events():
         if isinstance(ev, RunItemStreamEvent):
             pass
@@ -663,3 +684,37 @@ def get_clarification(
         stream=False,
     )
     return llm_response
+
+
+if __name__ == "__main__":
+    messages = [
+        {
+            "role": "user",
+            "content": """
+            Let $N$ denote the number of ordered triples of positive integers $(a, b, c)$ such that $a, b, c
+            \\leq 3^6$ and $a^3 + b^3 + c^3$ is a multiple of $3^7$. Find the remainder when $N$ is divided by $1000$.
+            """,
+        }
+    ]
+    # OpenAI reasoning is not supported yet due to: https://github.com/BerriAI/litellm/pull/14117
+    reasoning_agent = Agent(
+        name="Reasoning",
+        instructions="You are a reasoning agent. You are given a question and you need to reason about it.",
+        model=LitellmModel(
+            model="gpt-5-mini",
+            api_key=os.getenv("OPENAI_API_KEY"),
+        ),
+        tools=[],
+        model_settings=ModelSettings(
+            temperature=0.0,
+            reasoning=Reasoning(effort="medium", summary="detailed"),
+        ),
+    )
+    llm_response = llm_completion(
+        model_name="gpt-5-mini",
+        temperature=0.0,
+        messages=messages,
+        stream=False,
+    )
+    x = llm_response.json()
+    print(x)
