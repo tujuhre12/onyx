@@ -7,7 +7,6 @@ import React, {
 } from "react";
 import { FiPlus } from "react-icons/fi";
 import { FiLoader } from "react-icons/fi";
-import { ChatInputOption } from "@/app/chat/components/input/ChatInputOption";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import LLMPopover from "@/app/chat/components/input/LLMPopover";
 import { InputPrompt } from "@/app/chat/interfaces";
@@ -15,13 +14,7 @@ import { InputPrompt } from "@/app/chat/interfaces";
 import { FilterManager, LlmManager } from "@/lib/hooks";
 import { useChatContext } from "@/components-2/context/ChatContext";
 import { ChatFileType } from "@/app/chat/interfaces";
-import {
-  DocumentIcon2,
-  FileIcon,
-  FileUploadIcon,
-  SendIcon,
-  StopGeneratingIcon,
-} from "@/components/icons/icons";
+import { DocumentIcon2, FileIcon } from "@/components/icons/icons";
 import { OnyxDocument } from "@/lib/search/interfaces";
 import { ChatState } from "@/app/chat/interfaces";
 import { useAssistantsContext } from "@/components/context/AssistantsContext";
@@ -38,7 +31,6 @@ import { DeepResearchToggle } from "@/app/chat/components/input/DeepResearchTogg
 import { ActionToggle } from "@/app/chat/components/input/ActionManagement";
 import { SelectedTool } from "@/app/chat/components/input/SelectedTool";
 import { IconButton } from "@/components-2/buttons/IconButton";
-import SvgFolderPlus from "@/icons/folder-plus";
 import SvgHourglass from "@/icons/hourglass";
 import SvgPlusCircle from "@/icons/plus-circle";
 import SvgSliders from "@/icons/sliders";

@@ -21,21 +21,23 @@ import { FiAlertTriangle } from "react-icons/fi";
 import { Slider } from "@/components/ui/slider";
 import { useUser } from "@/components/user/UserProvider";
 import { TruncatedText } from "@/components/ui/truncatedText";
-import { ChatInputOption } from "@/app/chat/components/input/ChatInputOption";
 import { useAgentsContext } from "@/components-2/context/AgentsContext";
 import { useChatContext } from "@/components-2/context/ChatContext";
+import { SelectButton } from "@/components-2/buttons/SelectButton";
+import SvgRefreshCw from "@/icons/refresh-cw";
+import { IconButton } from "@/components-2/buttons/IconButton";
 
 export interface LLMPopoverProps {
+  compact?: boolean;
   requiresImageGeneration?: boolean;
-  trigger?: React.ReactElement;
   onSelect?: (value: string) => void;
   currentModelName?: string;
   align?: "start" | "center" | "end";
 }
 
 export default function LLMPopover({
+  compact,
   requiresImageGeneration,
-  trigger,
   onSelect,
   currentModelName,
   align,
@@ -48,7 +50,7 @@ export default function LLMPopover({
     currentChat || undefined,
     currentAgent || undefined
   );
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const [localTemperature, setLocalTemperature] = useState(
     llmManager.temperature ?? 0.5
@@ -78,24 +80,21 @@ export default function LLMPopover({
 
   // Memoize trigger content to prevent rerendering
   const triggerContent = useMemo(
-    trigger
-      ? () => trigger
-      : () => (
-          <button data-testid="llm-popover-trigger">
-            <ChatInputOption
-              minimize
-              toggle
-              flexPriority="stiff"
-              name={getDisplayNameForModel(llmManager.currentLlm.modelName)}
-              Icon={getProviderIcon(
-                llmManager.currentLlm.provider,
-                llmManager.currentLlm.modelName
-              )}
-              tooltipContent="Switch models"
-            />
-          </button>
-        ),
-    [llmManager.currentLlm]
+    () =>
+      compact ? (
+        <IconButton icon={SvgRefreshCw} tertiary active={open} />
+      ) : (
+        <SelectButton
+          icon={getProviderIcon(
+            llmManager.currentLlm.provider,
+            llmManager.currentLlm.modelName
+          )}
+          active={open}
+        >
+          {getDisplayNameForModel(llmManager.currentLlm.modelName)}
+        </SelectButton>
+      ),
+    [llmManager.currentLlm, open]
   );
 
   const llmOptionsToChooseFrom = useMemo(
@@ -121,16 +120,13 @@ export default function LLMPopover({
   );
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger
-        asChild
-        className="hover:bg-background-tint-03 rounded-08"
-      >
-        {triggerContent}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <div>{triggerContent}</div>
       </PopoverTrigger>
       <PopoverContent
         side="top"
-        align={align || "end"}
+        align="center"
         className="w-64 p-1 bg-background-tint-01 border shadow-lg flex flex-col"
       >
         <div className="flex-grow max-h-[300px] default-scrollbar overflow-y-auto">
@@ -151,7 +147,7 @@ export default function LLMPopover({
                         name,
                       } as LlmDescriptor);
                       onSelect?.(structureValue(name, provider, modelName));
-                      setIsOpen(false);
+                      setOpen(false);
                     }}
                   >
                     {icon({
