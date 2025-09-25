@@ -357,7 +357,7 @@ class SearchDoc(BaseModel):
     is_internet: bool = False
 
     @classmethod
-    def chunks_or_sections_to_search_docs(
+    def from_chunks_or_sections(
         cls,
         items: "Sequence[InferenceChunk | InferenceSection] | None",
     ) -> list["SearchDoc"]:

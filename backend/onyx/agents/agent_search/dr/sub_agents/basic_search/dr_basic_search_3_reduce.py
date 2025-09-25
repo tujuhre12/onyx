@@ -47,7 +47,7 @@ def is_reducer(
             doc_list.append(x)
 
     # Convert InferenceSections to SavedSearchDocs
-    search_docs = SearchDoc.chunks_or_sections_to_search_docs(doc_list)
+    search_docs = SearchDoc.from_chunks_or_sections(doc_list)
     retrieved_saved_search_docs = [
         SavedSearchDoc.from_search_doc(search_doc, db_doc_id=0)
         for search_doc in search_docs

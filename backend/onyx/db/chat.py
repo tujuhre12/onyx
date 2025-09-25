@@ -1146,7 +1146,7 @@ def log_agent_sub_question_results(
             db_session.add(sub_query_object)
             db_session.commit()
 
-            search_docs = ServerSearchDoc.chunks_or_sections_to_search_docs(
+            search_docs = ServerSearchDoc.from_chunks_or_sections(
                 sub_query.retrieved_documents
             )
             for doc in search_docs:
