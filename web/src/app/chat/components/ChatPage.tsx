@@ -1,27 +1,33 @@
 "use client";
 
 import { redirect, useRouter, useSearchParams } from "next/navigation";
-import { ChatSession, ChatSessionSharedStatus, Message } from "../interfaces";
+import {
+  ChatSession,
+  ChatSessionSharedStatus,
+  Message,
+} from "@/app/chat/interfaces";
 import { HealthCheckBanner } from "@/components/health/healthcheck";
-import { personaIncludesRetrieval, useScrollonStream } from "../services/lib";
+import {
+  personaIncludesRetrieval,
+  useScrollonStream,
+} from "@/app/chat/services/lib";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePopup } from "@/components/admin/connectors/Popup";
-import { SEARCH_PARAM_NAMES } from "../services/searchParams";
+import { SEARCH_PARAM_NAMES } from "@/app/chat/services/searchParams";
 import { useFederatedConnectors, useFilters, useLlmManager } from "@/lib/hooks";
 import { useFederatedOAuthStatus } from "@/lib/hooks/useFederatedOAuthStatus";
 import { FeedbackType } from "@/app/chat/interfaces";
 import { OnyxInitializingLoader } from "@/components/OnyxInitializingLoader";
-import { FeedbackModal } from "./modal/FeedbackModal";
-import { ShareChatSessionModal } from "./modal/ShareChatSessionModal";
-import { FiArrowDown } from "react-icons/fi";
+import { FeedbackModal } from "@/app/chat/components/modal/FeedbackModal";
+import { ShareChatSessionModal } from "@/app/chat/components/modal/ShareChatSessionModal";
 import { OnyxDocument, MinimalOnyxDocument } from "@/lib/search/interfaces";
 import { useSettingsContext } from "@/components/settings/SettingsProvider";
 import Dropzone from "react-dropzone";
 import ChatInputBar from "@/app/chat/components/input/ChatInputBar";
 import { useChatContext } from "@/components-2/context/ChatContext";
-import { ChatPopup } from "./ChatPopup";
+import { ChatPopup } from "@/app/chat/components/ChatPopup";
 import ExceptionTraceModal from "@/components/modals/ExceptionTraceModal";
-import { SEARCH_TOOL_ID } from "./tools/constants";
+import { SEARCH_TOOL_ID } from "@/app/chat/components/tools/constants";
 import { useUser } from "@/components/user/UserProvider";
 import { ApiKeyModal } from "@/components/llm/ApiKeyModal";
 import { NoAssistantModal } from "@/components/modals/NoAssistantModal";
@@ -31,23 +37,21 @@ import { Modal } from "@/components/Modal";
 import { useSendMessageToParent } from "@/lib/extension/utils";
 import { SUBMIT_MESSAGE_TYPES } from "@/lib/extension/constants";
 import { getSourceMetadata } from "@/lib/sources";
-import { UserSettingsModal } from "./modal/UserSettingsModal";
-import { FilePickerModal } from "../my-documents/components/FilePicker";
+import { UserSettingsModal } from "@/app/chat/components/modal/UserSettingsModal";
 import { SourceMetadata } from "@/lib/search/interfaces";
 import { FederatedConnectorDetail, ValidSources } from "@/lib/types";
-import { useDocumentsContext } from "../my-documents/DocumentsContext";
-import MinimalMarkdown from "@/components/chat/MinimalMarkdown";
+import { useDocumentsContext } from "@/app/chat/my-documents/DocumentsContext";
 import { useScreenSize } from "@/hooks/useScreenSize";
-import { DocumentResults } from "./documentSidebar/DocumentResults";
-import { useChatController } from "../hooks/useChatController";
-import { useAssistantController } from "../hooks/useAssistantController";
-import { useChatSessionController } from "../hooks/useChatSessionController";
-import { useDeepResearchToggle } from "../hooks/useDeepResearchToggle";
+import { DocumentResults } from "@/app/chat/components/documentSidebar/DocumentResults";
+import { useChatController } from "@/app/chat/hooks/useChatController";
+import { useAssistantController } from "@/app/chat/hooks/useAssistantController";
+import { useChatSessionController } from "@/app/chat/hooks/useChatSessionController";
+import { useDeepResearchToggle } from "@/app/chat/hooks/useDeepResearchToggle";
 import {
   useChatSessionStore,
   useMaxTokens,
   useUncaughtError,
-} from "../stores/useChatSessionStore";
+} from "@/app/chat/stores/useChatSessionStore";
 import {
   useCurrentChatState,
   useSubmittedMessage,
@@ -60,11 +64,10 @@ import {
   useDocumentSidebarVisible,
   useChatSessionSharedStatus,
   useHasSentLocalUserMessage,
-} from "../stores/useChatSessionStore";
+} from "@/app/chat/stores/useChatSessionStore";
 import { FederatedOAuthModal } from "@/components/chat/FederatedOAuthModal";
-import { StarterMessageDisplay } from "./starterMessages/StarterMessageDisplay";
-import { MessagesDisplay } from "./MessagesDisplay";
-import { WelcomeMessage } from "./WelcomeMessage";
+import { StarterMessageDisplay } from "@/app/chat/components/starterMessages/StarterMessageDisplay";
+import { MessagesDisplay } from "@/app/chat/components/MessagesDisplay";
 import { cn } from "@/lib/utils";
 
 interface ChatPageProps {
@@ -108,7 +111,6 @@ export function ChatPage({ firstMessage }: ChatPageProps) {
     addSelectedFolder,
     clearSelectedItems,
     folders: userFolders,
-    files: allUserFiles,
     currentMessageFiles,
     setCurrentMessageFiles,
   } = useDocumentsContext();
@@ -121,8 +123,6 @@ export function ChatPage({ firstMessage }: ChatPageProps) {
   // available in server-side components
   const settings = useSettingsContext();
   const enterpriseSettings = settings?.enterpriseSettings;
-
-  const [toggleDocSelection, setToggleDocSelection] = useState(false);
 
   const isInitialLoad = useRef(true);
   const [userSettingsToggled, setUserSettingsToggled] = useState(false);
@@ -433,7 +433,7 @@ export function ChatPage({ firstMessage }: ChatPageProps) {
       waitForScrollRef.current = true;
 
       setTimeout(() => {
-        if (!endDivRef.current || !scrollableDivRef.current) {
+        if (!endDivRef.current) {
           console.error("endDivRef or scrollableDivRef not found");
           return;
         }
@@ -600,10 +600,6 @@ export function ChatPage({ firstMessage }: ChatPageProps) {
     }
   }, [documentSidebarVisible, updateCurrentDocumentSidebarVisible]);
 
-  if (!user) {
-    redirect("/auth/login");
-  }
-
   const clearSelectedDocuments = useCallback(() => {
     setSelectedDocuments([]);
     clearSelectedItems();
@@ -615,11 +611,6 @@ export function ChatPage({ firstMessage }: ChatPageProps) {
         ? prev.filter((d) => d.document_id !== document.document_id)
         : [...prev, document]
     );
-  }, []);
-
-  // Memoized callbacks for ChatInputBar
-  const handleToggleDocSelection = useCallback(() => {
-    setToggleDocSelection(true);
   }, []);
 
   const handleShowApiKeyModal = useCallback(() => {
@@ -648,26 +639,17 @@ export function ChatPage({ firstMessage }: ChatPageProps) {
     updateCurrentDocumentSidebarVisible(false);
   }, [updateCurrentDocumentSidebarVisible]);
 
-  const handleDesktopDocumentSidebarClose = useCallback(() => {
-    setTimeout(() => updateCurrentDocumentSidebarVisible(false), 300);
-  }, [updateCurrentDocumentSidebarVisible]);
+  if (!user) redirect("/auth/login");
 
-  // Determine whether to show the centered input (no messages yet)
-  const showCenteredInput =
-    messageHistory.length === 0 &&
-    !isFetchingChatMessages &&
-    !loadingError &&
-    !submittedMessage;
-
-  // handle error case where no assistants are available
-  if (noAssistants) {
+  if (noAssistants)
     return (
       <>
         <HealthCheckBanner />
         <NoAssistantModal isAdmin={isAdmin} />
       </>
     );
-  }
+
+  if (!isReady) return <OnyxInitializingLoader />;
 
   return (
     <>
@@ -707,18 +689,6 @@ export function ChatPage({ firstMessage }: ChatPageProps) {
           onClose={() => {
             setUserSettingsToggled(false);
             setSettingsToggled(false);
-          }}
-        />
-      )}
-
-      {toggleDocSelection && (
-        <FilePickerModal
-          setPresentingDocument={setPresentingDocument}
-          buttonContent="Set as Context"
-          isOpen={true}
-          onClose={() => setToggleDocSelection(false)}
-          onSave={() => {
-            setToggleDocSelection(false);
           }}
         />
       )}
@@ -794,35 +764,17 @@ export function ChatPage({ firstMessage }: ChatPageProps) {
         />
       )}
 
-      {isReady && <FederatedOAuthModal />}
+      <FederatedOAuthModal />
 
-      <div className="h-full overflow-y-hidden">
-        <div
+      {/* <div
           style={{ transition: "width 0.30s ease-out" }}
-          className={`
-              flex-none 
-              fixed
-              right-0
-              z-[1000]
-              h-screen
-              transition-all
-              duration-300
-              ease-in-out
-              bg-transparent
-              transition-all
-              duration-300
-              ease-in-out
-              h-full
-              ${
-                documentSidebarVisible && !settings?.isMobile
-                  ? "w-[400px]"
-                  : "w-[0px]"
-              }
-          `}
+          className={cn(
+            "flex-none fixed right-0 z-[1000] h-screen transition-all duration-300 ease-in-out bg-transparent",
+            documentSidebarVisible && !settings?.isMobile
+              ? "w-[400px]"
+              : "w-[0px]"
+          )}
         >
-          {/* IMPORTANT: this is a memoized component, and it's very important
-          for performance reasons that this stays true. MAKE SURE that all function 
-          props are wrapped in useCallback. */}
           <DocumentResults
             setPresentingDocument={setPresentingDocument}
             modal={false}
@@ -837,185 +789,158 @@ export function ChatPage({ firstMessage }: ChatPageProps) {
             initialWidth={400}
             isOpen={documentSidebarVisible && !settings?.isMobile}
           />
-        </div>
+        </div> */}
 
-        <div
-          id="scrollableContainer"
-          className="flex h-full w-full overflow-x-hidden relative flex-col dbg-red"
-          ref={masterFlexboxRef}
+      <div
+        id="scrollableContainer"
+        className="flex h-full w-full flex-col"
+        ref={masterFlexboxRef}
+      >
+        <Dropzone
+          key={chatSessionId}
+          onDrop={handleMessageSpecificFileUpload}
+          noClick
         >
-          {isReady ? (
-            <Dropzone
-              key={chatSessionId}
-              onDrop={handleMessageSpecificFileUpload}
-              noClick
+          {({ getRootProps }) => (
+            <div
+              onScroll={handleScroll}
+              ref={scrollableDivRef}
+              {...getRootProps()}
+              className="flex h-full w-full flex flex-col items-center justify-center"
             >
-              {({ getRootProps }) => (
-                <div
-                  className={`flex h-full w-full relative flex-auto transition-margin duration-300 overflow-x-auto mobile:pb-12 desktop:pb-[100px]`}
-                  {...getRootProps()}
-                >
-                  <div
-                    onScroll={handleScroll}
-                    className={`w-full h-[calc(100vh-160px)] flex flex-col default-scrollbar overflow-y-auto overflow-x-hidden relative`}
-                    ref={scrollableDivRef}
-                  >
-                    {liveAssistant && (
-                      <div className="z-20 fixed top-0 pointer-events-none left-0 w-full flex justify-center overflow-visible">
-                        {!settings?.isMobile && (
-                          <div
-                            style={{ transition: "width 0.30s ease-out" }}
-                            className={`
-                              flex-none 
-                              overflow-y-hidden 
-                              transition-all 
-                              pointer-events-none
-                              duration-300 
-                              ease-in-out
-                              h-full
-                          `}
-                          />
-                        )}
-                      </div>
-                    )}
+              {/*
+              This is how we control what UI to show (i.e., ChatUI vs SearchUI):
 
-                    <MessagesDisplay
-                      messageHistory={messageHistory}
-                      completeMessageTree={completeMessageTree}
-                      liveAssistant={liveAssistant}
-                      llmManager={llmManager}
-                      deepResearchEnabled={deepResearchEnabled}
-                      selectedFiles={selectedFiles}
-                      selectedFolders={selectedFolders}
-                      currentMessageFiles={currentMessageFiles}
-                      setPresentingDocument={setPresentingDocument}
-                      setCurrentFeedback={setCurrentFeedback}
-                      onSubmit={onSubmit}
-                      onMessageSelection={onMessageSelection}
-                      stopGenerating={stopGenerating}
-                      uncaughtError={uncaughtError}
-                      loadingError={loadingError}
-                      handleResubmitLastMessage={handleResubmitLastMessage}
-                      autoScrollEnabled={autoScrollEnabled}
-                      getContainerHeight={getContainerHeight}
-                      lastMessageRef={lastMessageRef}
-                      endPaddingRef={endPaddingRef}
-                      endDivRef={endDivRef}
-                      hasPerformedInitialScroll={hasPerformedInitialScroll}
-                      chatSessionId={chatSessionId}
-                      enterpriseSettings={enterpriseSettings}
-                    />
-                  </div>
+              If the URL is pointing towards a chat (e.g., `/?chatId=XYZ`), then `!!currentChatId` will be true, and the `MessageDisplay` is rendered.
+              Otherwise, it's skipped over.
 
-                  <div
-                    ref={inputRef}
-                    className={`absolute pointer-events-none z-10 w-full ${
-                      showCenteredInput
-                        ? "inset-0"
-                        : "bottom-0 left-0 right-0 translate-y-0"
-                    }`}
-                  >
-                    {!showCenteredInput && aboveHorizon && (
-                      <div className="mx-auto w-fit !pointer-events-none flex sticky justify-center">
-                        <button
-                          onClick={() => clientScrollToBottom()}
-                          className="p-1 pointer-events-auto text-neutral-700 dark:text-neutral-800 rounded-2xl bg-neutral-200 border border-border  mx-auto "
-                        >
-                          <FiArrowDown size={18} />
-                        </button>
-                      </div>
-                    )}
+              Similarly, but vice versa, for SearchUI (i.e., if `/?searchId=XYZ`, then `!!currentSearchId` will be true and `SearchUI` is rendered).
 
-                    <div
-                      className={`pointer-events-auto w-[95%] mx-auto relative text-text-600 ${
-                        showCenteredInput
-                          ? "h-full grid grid-rows-[0.85fr_auto_1.15fr]"
-                          : "mb-8"
-                      }`}
-                    >
-                      {showCenteredInput && (
-                        <WelcomeMessage assistant={liveAssistant} />
-                      )}
-                      <div
-                        className={cn(
-                          "flex flex-col justify-center items-center",
-                          showCenteredInput && "row-start-2"
-                        )}
-                      >
-                        <ChatInputBar
-                          deepResearchEnabled={deepResearchEnabled}
-                          toggleDeepResearch={toggleDeepResearch}
-                          toggleDocumentSidebar={toggleDocumentSidebar}
-                          filterManager={filterManager}
-                          llmManager={llmManager}
-                          removeDocs={clearSelectedDocuments}
-                          retrievalEnabled={retrievalEnabled}
-                          toggleDocSelection={handleToggleDocSelection}
-                          showConfigureAPIKey={handleShowApiKeyModal}
-                          selectedDocuments={selectedDocuments}
-                          message={message}
-                          setMessage={setMessage}
-                          stopGenerating={stopGenerating}
-                          onSubmit={handleChatInputSubmit}
-                          chatState={currentChatState}
-                          selectedAssistant={selectedAssistant || liveAssistant}
-                          handleFileUpload={handleMessageSpecificFileUpload}
-                          textAreaRef={textAreaRef}
+              - @raunakab
+              */}
+              <div
+                className={cn(
+                  "overflow-y-scroll w-full h-full",
+                  completeMessageTree ? "h-full" : "h-0"
+                )}
+              >
+                <MessagesDisplay
+                  setCurrentFeedback={setCurrentFeedback}
+                  onSubmit={onSubmit}
+                  onMessageSelection={onMessageSelection}
+                  stopGenerating={stopGenerating}
+                  handleResubmitLastMessage={handleResubmitLastMessage}
+                  getContainerHeight={getContainerHeight}
+                  lastMessageRef={lastMessageRef}
+                  endDivRef={endDivRef}
+                />
+              </div>
+
+              <ChatInputBar
+                toggleDocumentSidebar={toggleDocumentSidebar}
+                filterManager={filterManager}
+                removeDocs={clearSelectedDocuments}
+                showConfigureAPIKey={handleShowApiKeyModal}
+                selectedDocuments={selectedDocuments}
+                message={message}
+                setMessage={setMessage}
+                stopGenerating={stopGenerating}
+                onSubmit={handleChatInputSubmit}
+                chatState={currentChatState}
+                selectedAssistant={selectedAssistant || liveAssistant}
+                handleFileUpload={handleMessageSpecificFileUpload}
+                textAreaRef={textAreaRef}
+              />
+
+              {/* Figure out what to do here */}
+              {/*
+                {liveAssistant.starter_messages &&
+                    liveAssistant.starter_messages.length > 0 &&
+                    messageHistory.length === 0 &&
+                    showCenteredInput && (
+                      <div className="mt-6 row-start-3">
+                        <StarterMessageDisplay
+                          starterMessages={liveAssistant.starter_messages}
+                          onSelectStarterMessage={(message) => {
+                            onSubmit({
+                              message: message,
+                              selectedFiles: selectedFiles,
+                              selectedFolders: selectedFolders,
+                              currentMessageFiles: currentMessageFiles,
+                              useAgentSearch: deepResearchEnabled,
+                            });
+                          }}
                         />
                       </div>
+                    )}
 
-                      {liveAssistant.starter_messages &&
-                        liveAssistant.starter_messages.length > 0 &&
-                        messageHistory.length === 0 &&
-                        showCenteredInput && (
-                          <div className="mt-6 row-start-3">
-                            <StarterMessageDisplay
-                              starterMessages={liveAssistant.starter_messages}
-                              onSelectStarterMessage={(message) => {
-                                onSubmit({
-                                  message: message,
-                                  selectedFiles: selectedFiles,
-                                  selectedFolders: selectedFolders,
-                                  currentMessageFiles: currentMessageFiles,
-                                  useAgentSearch: deepResearchEnabled,
-                                });
-                              }}
-                            />
-                          </div>
-                        )}
+                  {enterpriseSettings &&
+                    enterpriseSettings.custom_lower_disclaimer_content && (
+                      <div className="mobile:hidden mt-4 flex items-center justify-center relative w-[95%] mx-auto">
+                        <div className="text-sm text-text-500 max-w-searchbar-max px-4 text-center">
+                          <MinimalMarkdown
+                            content={
+                              enterpriseSettings.custom_lower_disclaimer_content
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
 
-                      {enterpriseSettings &&
-                        enterpriseSettings.custom_lower_disclaimer_content && (
-                          <div className="mobile:hidden mt-4 flex items-center justify-center relative w-[95%] mx-auto">
-                            <div className="text-sm text-text-500 max-w-searchbar-max px-4 text-center">
-                              <MinimalMarkdown
-                                content={
-                                  enterpriseSettings.custom_lower_disclaimer_content
-                                }
-                              />
-                            </div>
-                          </div>
-                        )}
-                      {enterpriseSettings &&
-                        enterpriseSettings.use_custom_logotype && (
-                          <div className="hidden lg:block fixed right-12 bottom-8 pointer-events-none z-10">
-                            <img
-                              src="/api/enterprise-settings/logotype"
-                              alt="logotype"
-                              style={{ objectFit: "contain" }}
-                              className="w-fit h-9"
-                            />
-                          </div>
-                        )}
-                    </div>
+                  {enterpriseSettings &&
+                    enterpriseSettings.use_custom_logotype && (
+                      <div className="hidden lg:block fixed right-12 bottom-8 pointer-events-none z-10">
+                        <img
+                          src="/api/enterprise-settings/logotype"
+                          alt="logotype"
+                          style={{ objectFit: "contain" }}
+                          className="w-fit h-9"
+                        />
+                      </div>
+                    )} 
+              
+              */}
+
+              {/* <div
+                className="w-full flex flex-col default-scrollbar overflow-y-auto overflow-x-hidden relative"
+              >
+              </div> */}
+              {/* <div
+                ref={inputRef}
+                className={cn("w-full")}
+              >
+                {!showCenteredInput && aboveHorizon && (
+                  <div className="mx-auto w-fit !pointer-events-none flex sticky justify-center">
+                    <button
+                      onClick={() => clientScrollToBottom()}
+                      className="p-1 pointer-events-auto text-neutral-700 dark:text-neutral-800 rounded-2xl bg-neutral-200 border border-border  mx-auto "
+                    >
+                      <FiArrowDown size={18} />
+                    </button>
                   </div>
+                )}
+
+                <div
+                  className={cn(
+                    "pointer-events-auto w-[95%] mx-auto relative text-text-600",
+                    showCenteredInput
+                      ? "h-full grid grid-rows-[0.85fr_auto_1.15fr]"
+                      : "mb-8"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex flex-col justify-center items-center",
+                      showCenteredInput && "row-start-2"
+                    )}
+                  >
+                  </div>
+
                 </div>
-              )}
-            </Dropzone>
-          ) : (
-            <OnyxInitializingLoader />
+              </div> */}
+            </div>
           )}
-        </div>
+        </Dropzone>
       </div>
     </>
   );

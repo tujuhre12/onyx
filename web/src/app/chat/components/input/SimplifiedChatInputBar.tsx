@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { FiPlusCircle } from "react-icons/fi";
-import { ChatInputOption } from "./ChatInputOption";
+import { ChatInputOption } from "@/app/chat/components/input/ChatInputOption";
 import { FilterManager } from "@/lib/hooks";
 import { ChatFileType, FileDescriptor } from "@/app/chat/interfaces";
 import {

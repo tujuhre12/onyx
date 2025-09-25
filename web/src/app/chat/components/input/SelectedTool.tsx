@@ -1,5 +1,5 @@
 import { ToolSnapshot } from "@/lib/tools/interfaces";
-import { getIconForAction } from "../../services/actionUtils";
+import { getIconForAction } from "@/app/chat/services/actionUtils";
 import { XIcon } from "@/components/icons/icons";
 
 export function SelectedTool({

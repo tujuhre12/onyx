@@ -18,10 +18,7 @@ import { SEARCH_PARAM_NAMES } from "@/app/chat/services/searchParams";
 export interface ChatProviderProps
   extends Omit<
     ChatContextProps,
-    | "currentChatId"
-    | "currentChat"
-    | "refreshChatSessions"
-    | "refreshInputPrompts"
+    "currentChat" | "refreshChatSessions" | "refreshInputPrompts"
   > {
   children: React.ReactNode;
 }
@@ -71,7 +68,6 @@ export function ChatProvider({
     <ChatContext.Provider
       value={{
         ...otherProps,
-        currentChatId,
         currentChat,
         refreshChatSessions,
         refreshInputPrompts,
@@ -88,7 +84,6 @@ export function ChatProvider({
 interface ChatContextProps {
   // Chat related:
   chatSessions: ChatSession[];
-  currentChatId: string | null;
   currentChat: ChatSession | null;
 
   // LLM related:

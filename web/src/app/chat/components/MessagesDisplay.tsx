@@ -1,30 +1,30 @@
 import React, { RefObject, useCallback, useMemo } from "react";
 import { Message } from "@/app/chat/interfaces";
-import { OnyxDocument, MinimalOnyxDocument } from "@/lib/search/interfaces";
+import { OnyxDocument } from "@/lib/search/interfaces";
 import { MemoizedHumanMessage } from "@/app/chat/message/MemoizedHumanMessage";
 import { ErrorBanner } from "@/app/chat/message/Resubmit";
 import { FeedbackType } from "@/app/chat/interfaces";
-import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
-import { LlmDescriptor } from "@/lib/hooks";
+import { LlmDescriptor, useLlmManager } from "@/lib/hooks";
 import {
   FileResponse,
   FolderResponse,
+  useDocumentsContext,
 } from "@/app/chat/my-documents/DocumentsContext";
-import { EnterpriseSettings } from "@/app/admin/settings/interfaces";
 import { FileDescriptor } from "@/app/chat/interfaces";
 import { MemoizedAIMessage } from "@/app/chat/message/messageComponents/MemoizedAIMessage";
 import { cn } from "@/lib/utils";
+import {
+  useCurrentMessageHistory,
+  useCurrentMessageTree,
+  useHasPerformedInitialScroll,
+  useLoadingError,
+  useUncaughtError,
+} from "@/app/chat/stores/useChatSessionStore";
+import { useAgentsContext } from "@/components-2/context/AgentsContext";
+import { useChatContext } from "@/components-2/context/ChatContext";
+import { useDeepResearchToggle } from "@/app/chat/hooks/useDeepResearchToggle";
 
 interface MessagesDisplayProps {
-  messageHistory: Message[];
-  completeMessageTree: Map<number, Message> | null | undefined;
-  liveAssistant: MinimalPersonaSnapshot;
-  llmManager: { currentLlm: LlmDescriptor | null };
-  deepResearchEnabled: boolean;
-  selectedFiles: FileResponse[];
-  selectedFolders: FolderResponse[];
-  currentMessageFiles: FileDescriptor[];
-  setPresentingDocument: (doc: MinimalOnyxDocument | null) => void;
   setCurrentFeedback: (feedback: [FeedbackType, number] | null) => void;
   onSubmit: (args: {
     message: string;
@@ -46,41 +46,44 @@ interface MessagesDisplayProps {
   }) => Promise<void>;
   onMessageSelection: (nodeId: number) => void;
   stopGenerating: () => void;
-  uncaughtError: string | null;
-  loadingError: string | null;
   handleResubmitLastMessage: () => void;
-  autoScrollEnabled: boolean;
   getContainerHeight: () => string | undefined;
   lastMessageRef: RefObject<HTMLDivElement>;
-  endPaddingRef: RefObject<HTMLDivElement>;
   endDivRef: RefObject<HTMLDivElement>;
-  hasPerformedInitialScroll: boolean;
-  chatSessionId: string | null;
-  enterpriseSettings?: EnterpriseSettings | null;
 }
 
 export function MessagesDisplay({
-  messageHistory,
-  completeMessageTree,
-  liveAssistant,
-  llmManager,
-  deepResearchEnabled,
-  selectedFiles,
-  selectedFolders,
-  currentMessageFiles,
-  setPresentingDocument,
   setCurrentFeedback,
   onSubmit,
   onMessageSelection,
   stopGenerating,
-  uncaughtError,
-  loadingError,
   handleResubmitLastMessage,
   lastMessageRef,
   endDivRef,
-  hasPerformedInitialScroll,
-  chatSessionId,
 }: MessagesDisplayProps) {
+  const messageHistory = useCurrentMessageHistory();
+  const completeMessageTree = useCurrentMessageTree();
+  const { currentAgent, fallbackAgent } = useAgentsContext();
+  const { currentChat, llmProviders } = useChatContext();
+  const llmManager = useLlmManager(
+    llmProviders,
+    currentChat || undefined,
+    currentAgent || undefined
+  );
+  const { deepResearchEnabled } = useDeepResearchToggle({
+    chatSessionId: currentChat?.id ?? null,
+    assistantId: currentAgent?.id,
+  });
+  const {
+    selectedFiles,
+    selectedFolders,
+    currentMessageFiles,
+    setPresentingDocument,
+  } = useDocumentsContext();
+  const loadingError = useLoadingError();
+  const hasPerformedInitialScroll = useHasPerformedInitialScroll();
+  const uncaughtError = useUncaughtError();
+
   // Stable fallbacks to avoid changing prop identities on each render
   const emptyDocs = useMemo<OnyxDocument[]>(() => [], []);
   const emptyChildrenIds = useMemo<number[]>(() => [], []);
@@ -136,12 +139,8 @@ export function MessagesDisplay({
 
   return (
     <div
-      style={{ overflowAnchor: "none" }}
-      key={chatSessionId}
-      className={cn(
-        "w-full mx-auto dbg-red",
-        !hasPerformedInitialScroll && "hidden",
-      )}
+      key={currentChat?.id}
+      className={cn("w-full h-full", !hasPerformedInitialScroll && "hidden")}
     >
       {messageHistory.map((message, i) => {
         const messageTree = completeMessageTree;
@@ -204,7 +203,7 @@ export function MessagesDisplay({
               <MemoizedAIMessage
                 rawPackets={message.packets}
                 handleFeedbackWithMessageId={handleFeedback}
-                assistant={liveAssistant}
+                assistant={fallbackAgent}
                 docs={message.documents ?? emptyDocs}
                 citations={message.citations}
                 setPresentingDocument={setPresentingDocument}

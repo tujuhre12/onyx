@@ -1,16 +1,17 @@
-import { Logo } from "./logo/Logo";
 import { useContext } from "react";
-import { SettingsContext } from "./settings/SettingsProvider";
+import { SettingsContext } from "@/components/settings/SettingsProvider";
+import { OnyxIcon } from "@/components/icons/icons";
+import Text from "@/components-2/Text";
 
 export function OnyxInitializingLoader() {
   const settings = useContext(SettingsContext);
 
   return (
-    <div className="mx-auto my-auto animate-pulse">
-      <Logo height={96} width={96} className="mx-auto mb-3" />
-      <p className="text-lg text-text font-semibold">
+    <div className="h-full w-full animate-pulse flex flex-col justify-center items-center gap-padding-button">
+      <OnyxIcon size={100} className="" />
+      <Text headingH3>
         Initializing {settings?.enterpriseSettings?.application_name ?? "Onyx"}
-      </p>
+      </Text>
     </div>
   );
 }

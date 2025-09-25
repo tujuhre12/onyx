@@ -25,7 +25,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FiTrash2, FiExternalLink } from "react-icons/fi";
-import { deleteAllChatSessions } from "../../services/lib";
+import { deleteAllChatSessions } from "@/app/chat/services/lib";
 import { useChatContext } from "@/components-2/context/ChatContext";
 import { FederatedConnectorOAuthStatus } from "@/components/chat/FederatedOAuthModal";
 import { SourceIcon } from "@/components/SourceIcon";

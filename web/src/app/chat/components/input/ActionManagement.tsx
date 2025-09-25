@@ -22,7 +22,7 @@ import {
 } from "@/lib/tools/interfaces";
 import { useAssistantsContext } from "@/components/context/AssistantsContext";
 import Link from "next/link";
-import { getIconForAction } from "../../services/actionUtils";
+import { getIconForAction } from "@/app/chat/services/actionUtils";
 import { useUser } from "@/components/user/UserProvider";
 import {
   FiServer,

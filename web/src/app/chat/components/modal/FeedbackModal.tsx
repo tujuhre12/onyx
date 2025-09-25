@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FeedbackType } from "@/app/chat/interfaces";
 import { Modal } from "@/components/Modal";
 import { FilledLikeIcon } from "@/components/icons/icons";
-import { handleChatFeedback } from "../../services/lib";
+import { handleChatFeedback } from "@/app/chat/services/lib";
 
 const predefinedPositiveFeedbackOptions = process.env
   .NEXT_PUBLIC_POSITIVE_PREDEFINED_FEEDBACK_OPTIONS
