@@ -2,7 +2,6 @@
 
 import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { ChatSession, ChatSessionSharedStatus, Message } from "../interfaces";
-
 import { HealthCheckBanner } from "@/components/health/healthcheck";
 import { personaIncludesRetrieval, useScrollonStream } from "../services/lib";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -31,11 +30,9 @@ import TextView from "@/components/chat/TextView";
 import { Modal } from "@/components/Modal";
 import { useSendMessageToParent } from "@/lib/extension/utils";
 import { SUBMIT_MESSAGE_TYPES } from "@/lib/extension/constants";
-
 import { getSourceMetadata } from "@/lib/sources";
 import { UserSettingsModal } from "./modal/UserSettingsModal";
 import { FilePickerModal } from "../my-documents/components/FilePicker";
-
 import { SourceMetadata } from "@/lib/search/interfaces";
 import { FederatedConnectorDetail, ValidSources } from "@/lib/types";
 import { useDocumentsContext } from "../my-documents/DocumentsContext";
@@ -65,7 +62,6 @@ import {
   useHasSentLocalUserMessage,
 } from "../stores/useChatSessionStore";
 import { FederatedOAuthModal } from "@/components/chat/FederatedOAuthModal";
-import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { StarterMessageDisplay } from "./starterMessages/StarterMessageDisplay";
 import { MessagesDisplay } from "./MessagesDisplay";
 import { WelcomeMessage } from "./WelcomeMessage";
@@ -75,9 +71,7 @@ interface ChatPageProps {
   firstMessage?: string;
 }
 
-export function ChatPage({
-  firstMessage,
-}: ChatPageProps) {
+export function ChatPage({ firstMessage }: ChatPageProps) {
   // Performance tracking
   // Keeping this here in case we need to track down slow renders in the future
   // const renderCount = useRef(0);
@@ -411,7 +405,9 @@ export function ChatPage({
 
   // Access chat state directly from the store
   const currentChatState = useCurrentChatState();
-  const chatSessionId = useChatSessionStore((state) => state.currentSessionId);
+  const chatSessionId = useChatSessionStore(
+    (state: any) => state.currentSessionId
+  );
   const submittedMessage = useSubmittedMessage();
   const loadingError = useLoadingError();
   const uncaughtError = useUncaughtError();
@@ -425,13 +421,13 @@ export function ChatPage({
   const documentSidebarVisible = useDocumentSidebarVisible();
   const chatSessionSharedStatus = useChatSessionSharedStatus();
   const updateHasPerformedInitialScroll = useChatSessionStore(
-    (state) => state.updateHasPerformedInitialScroll
+    (state: any) => state.updateHasPerformedInitialScroll
   );
   const updateCurrentDocumentSidebarVisible = useChatSessionStore(
-    (state) => state.updateCurrentDocumentSidebarVisible
+    (state: any) => state.updateCurrentDocumentSidebarVisible
   );
   const updateCurrentChatSessionSharedStatus = useChatSessionStore(
-    (state) => state.updateCurrentChatSessionSharedStatus
+    (state: any) => state.updateCurrentChatSessionSharedStatus
   );
 
   const clientScrollToBottom = useCallback(
@@ -913,12 +909,13 @@ export function ChatPage({
                     />
                   </div>
 
-                  <dv
+                  <div
                     ref={inputRef}
-                    className={`absolute pointer-events-none z-10 w-full ${showCenteredInput
+                    className={`absolute pointer-events-none z-10 w-full ${
+                      showCenteredInput
                         ? "inset-0"
                         : "bottom-0 left-0 right-0 translate-y-0"
-                      }`}
+                    }`}
                   >
                     {!showCenteredInput && aboveHorizon && (
                       <div className="mx-auto w-fit !pointer-events-none flex sticky justify-center">
@@ -932,10 +929,11 @@ export function ChatPage({
                     )}
 
                     <div
-                      className={`pointer-events-auto w-[95%] mx-auto relative text-text-600 ${showCenteredInput
+                      className={`pointer-events-auto w-[95%] mx-auto relative text-text-600 ${
+                        showCenteredInput
                           ? "h-full grid grid-rows-[0.85fr_auto_1.15fr]"
                           : "mb-8"
-                        }`}
+                      }`}
                     >
                       {showCenteredInput && (
                         <WelcomeMessage assistant={liveAssistant} />
@@ -962,9 +960,7 @@ export function ChatPage({
                           stopGenerating={stopGenerating}
                           onSubmit={handleChatInputSubmit}
                           chatState={currentChatState}
-                          selectedAssistant={
-                            selectedAssistant || liveAssistant
-                          }
+                          selectedAssistant={selectedAssistant || liveAssistant}
                           handleFileUpload={handleMessageSpecificFileUpload}
                           textAreaRef={textAreaRef}
                         />
