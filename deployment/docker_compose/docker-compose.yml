@@ -54,7 +54,7 @@ services:
       - minio
     restart: unless-stopped
     ports:
-      - "${API_PORT:-}"
+      - "${API_PORT}"
     environment:
       # Auth Settings
       - AUTH_TYPE=${AUTH_TYPE:-basic}
@@ -229,7 +229,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
     ports:
-      - "${POSTGRES_PORT:-}"
+      - "${POSTGRES_PORT}"
     volumes:
       - db_volume:/var/lib/postgresql/data
 
