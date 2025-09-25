@@ -12,7 +12,7 @@ import {
 } from "@/lib/constants";
 import { AnnouncementBanner } from "@/components/header/AnnouncementBanner";
 import { fetchChatData } from "@/lib/chat/fetchChatData";
-import { ChatProvider } from "@/components/context/ChatContext";
+import { ChatProvider } from "@/components-2/context/ChatContext";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -49,6 +49,7 @@ export async function Layout({ children }: LayoutProps) {
   }
 
   const data = await fetchChatData({});
+
   if ("redirect" in data) {
     redirect(data.redirect);
   }
@@ -59,8 +60,6 @@ export async function Layout({ children }: LayoutProps) {
     documentSets,
     tags,
     llmProviders,
-    folders,
-    openedFolders,
     sidebarInitiallyVisible,
     defaultAssistantId,
     shouldShowWelcomeModal,
@@ -72,24 +71,20 @@ export async function Layout({ children }: LayoutProps) {
 
   return (
     <ChatProvider
-      value={{
-        inputPrompts,
-        chatSessions,
-        proSearchToggled,
-        sidebarInitiallyVisible,
-        availableSources,
-        ccPairs,
-        documentSets,
-        availableTools,
-        tags,
-        availableDocumentSets: documentSets,
-        availableTags: tags,
-        llmProviders,
-        folders,
-        openedFolders,
-        shouldShowWelcomeModal,
-        defaultAssistantId,
-      }}
+      inputPrompts={inputPrompts}
+      chatSessions={chatSessions}
+      proSearchToggled={proSearchToggled}
+      sidebarInitiallyVisible={sidebarInitiallyVisible}
+      availableSources={availableSources}
+      ccPairs={ccPairs}
+      documentSets={documentSets}
+      availableTools={availableTools}
+      tags={tags}
+      availableDocumentSets={documentSets}
+      availableTags={tags}
+      llmProviders={llmProviders}
+      shouldShowWelcomeModal={shouldShowWelcomeModal}
+      defaultAssistantId={defaultAssistantId}
     >
       <ClientLayout
         enableEnterprise={SERVER_SIDE_ONLY__PAID_ENTERPRISE_FEATURES_ENABLED}

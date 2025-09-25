@@ -1,31 +1,22 @@
-import { useChatContext } from "@/components/context/ChatContext";
-import {
-  getDisplayNameForModel,
-  LlmDescriptor,
-  useLlmManager,
-} from "@/lib/hooks";
-
-import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
+import { getDisplayNameForModel, LlmDescriptor } from "@/lib/hooks";
 import { parseLlmDescriptor } from "@/lib/llm/utils";
 import { useState } from "react";
 import { Hoverable } from "@/components/Hoverable";
 import { IconType } from "react-icons";
 import { FiRefreshCw } from "react-icons/fi";
-import LLMPopover from "./input/LLMPopover";
+import LLMPopover from "@/app/chat/components/input/LLMPopover";
 
-export default function RegenerateOption({
-  selectedAssistant,
-  regenerate,
-  overriddenModel,
-  onDropdownVisibleChange,
-}: {
-  selectedAssistant: MinimalPersonaSnapshot;
+export interface RegenerateOptionProps {
   regenerate: (modelOverRide: LlmDescriptor) => Promise<void>;
   overriddenModel?: string;
   onDropdownVisibleChange: (isVisible: boolean) => void;
-}) {
-  const { llmProviders } = useChatContext();
-  const llmManager = useLlmManager(llmProviders);
+}
+
+export default function RegenerateOption({
+  regenerate,
+  overriddenModel,
+  onDropdownVisibleChange,
+}: RegenerateOptionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const toggleDropdownVisible = (isVisible: boolean) => {
     setIsOpen(isVisible);
@@ -34,10 +25,7 @@ export default function RegenerateOption({
 
   return (
     <LLMPopover
-      llmManager={llmManager}
-      llmProviders={llmProviders}
       requiresImageGeneration={false}
-      currentAssistant={selectedAssistant}
       currentModelName={overriddenModel}
       trigger={
         <div onClick={() => toggleDropdownVisible(!isOpen)}>

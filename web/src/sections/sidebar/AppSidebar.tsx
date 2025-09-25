@@ -39,7 +39,7 @@ import Settings from "@/sections/sidebar/Settings";
 import { SidebarSection } from "@/sections/sidebar/components";
 import { NavigationTab } from "@/components-2/buttons/NavigationTab";
 import AgentsModal from "@/sections/AgentsModal";
-import { useChatContext } from "@/components/context/ChatContext";
+import { useChatContext } from "@/components-2/context/ChatContext";
 import SvgBubbleText from "@/icons/bubble-text";
 import {
   buildChatUrl,
@@ -83,14 +83,12 @@ interface ChatButtonProps {
 }
 
 function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
-  const searchParams = useSearchParams();
   const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] =
     useState(false);
   const [renamingChat, setRenamingChat] = useState(false);
   const [renamingChatName, setRenamingChatName] = useState(chatSession.name);
   const textareaRef = useRef<HTMLInputElement>(null);
-  const currentChatId = searchParams.get(SEARCH_PARAM_NAMES.CHAT_ID);
-  const { refreshChatSessions } = useChatContext();
+  const { refreshChatSessions, currentChatId } = useChatContext();
 
   useEffect(() => {
     if (!textareaRef.current) return;
@@ -314,10 +312,8 @@ function AppSidebarInner() {
   const { folded, setFolded, foldedAndHovered, setHovered } =
     useAppSidebarContext();
   const { toggleModal } = useModal();
-  const { chatSessions } = useChatContext();
+  const { chatSessions, currentChatId } = useChatContext();
   const combinedSettings = useSettingsContext();
-
-  const currentChatId = searchParams?.get(SEARCH_PARAM_NAMES.CHAT_ID);
 
   const [visibleAgents, currentAgentIsPinned] = useMemo(
     () => buildVisibleAgents(pinnedAgents, currentAgent),

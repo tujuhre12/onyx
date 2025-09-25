@@ -95,7 +95,6 @@ export function IconButton({
 
   ...props
 }: IconButtonProps) {
-  const state = disabled ? "disabled" : "main";
   const variant = primary
     ? "primary"
     : secondary
@@ -105,13 +104,15 @@ export function IconButton({
         : internal
           ? "internal"
           : "primary";
+  const state = disabled ? "disabled" : "main";
 
   return (
     <button
       className={cn(
-        "flex items-center justify-center rounded-08 group/IconButton",
+        "flex items-center justify-center group/IconButton",
         internal ? "p-spacing-inline" : "p-spacing-interline",
         disabled && "cursor-not-allowed",
+        internal ? "rounded-08" : "rounded-12",
         buttonClasses(active)[variant][state],
         className
       )}

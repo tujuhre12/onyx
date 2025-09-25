@@ -1,7 +1,7 @@
 import React from "react";
 import { Info, ChevronRight, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useChatContext } from "@/components/context/ChatContext";
+import { useChatContext } from "@/components-2/context/ChatContext";
 import { getDisplayNameForModel } from "@/lib/hooks";
 
 interface ContextLimitPanelProps {

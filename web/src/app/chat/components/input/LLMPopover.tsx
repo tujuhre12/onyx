@@ -4,13 +4,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { getDisplayNameForModel, LlmDescriptor } from "@/lib/hooks";
+import {
+  getDisplayNameForModel,
+  LlmDescriptor,
+  useLlmManager,
+} from "@/lib/hooks";
 import { modelSupportsImageInput, structureValue } from "@/lib/llm/utils";
-import { LLMProviderDescriptor } from "@/app/admin/configuration/llm/interfaces";
 import { getProviderIcon } from "@/app/admin/configuration/llm/utils";
-import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
-import { LlmManager } from "@/lib/hooks";
-
 import {
   Tooltip,
   TooltipContent,
@@ -18,17 +18,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { FiAlertTriangle } from "react-icons/fi";
-
 import { Slider } from "@/components/ui/slider";
 import { useUser } from "@/components/user/UserProvider";
 import { TruncatedText } from "@/components/ui/truncatedText";
 import { ChatInputOption } from "@/app/chat/components/input/ChatInputOption";
+import { useAgentsContext } from "@/components-2/context/AgentsContext";
+import { useChatContext } from "@/components-2/context/ChatContext";
 
-interface LLMPopoverProps {
-  llmProviders: LLMProviderDescriptor[];
-  llmManager: LlmManager;
+export interface LLMPopoverProps {
   requiresImageGeneration?: boolean;
-  currentAssistant?: MinimalPersonaSnapshot;
   trigger?: React.ReactElement;
   onSelect?: (value: string) => void;
   currentModelName?: string;
@@ -36,17 +34,21 @@ interface LLMPopoverProps {
 }
 
 export default function LLMPopover({
-  llmProviders,
-  llmManager,
   requiresImageGeneration,
-  currentAssistant,
   trigger,
   onSelect,
   currentModelName,
   align,
 }: LLMPopoverProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const { user } = useUser();
+  const { llmProviders, currentChat } = useChatContext();
+  const { currentAgent } = useAgentsContext();
+  const llmManager = useLlmManager(
+    llmProviders,
+    currentChat || undefined,
+    currentAgent || undefined
+  );
+  const [isOpen, setIsOpen] = useState(false);
 
   const [localTemperature, setLocalTemperature] = useState(
     llmManager.temperature ?? 0.5
@@ -159,8 +161,7 @@ export default function LLMPopover({
                     <TruncatedText text={getDisplayNameForModel(modelName)} />
                     {(() => {
                       if (
-                        currentAssistant?.llm_model_version_override ===
-                        modelName
+                        currentAgent?.llm_model_version_override === modelName
                       ) {
                         return (
                           <span className="flex-none ml-auto text-xs">

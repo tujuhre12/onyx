@@ -1,6 +1,6 @@
 "use client";
 
-import { useChatContext } from "@/components/context/ChatContext";
+import { useChatContext } from "@/components-2/context/ChatContext";
 import { ChatPage } from "./components/ChatPage";
 import { useCallback, useState } from "react";
 

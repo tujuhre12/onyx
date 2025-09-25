@@ -9,92 +9,75 @@ import {
 } from "@/lib/types";
 import { ChatSession, InputPrompt } from "@/app/chat/interfaces";
 import { LLMProviderDescriptor } from "@/app/admin/configuration/llm/interfaces";
-import { Folder } from "@/app/chat/components/folders/interfaces";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { ToolSnapshot } from "@/lib/tools/interfaces";
+import { SEARCH_PARAM_NAMES } from "@/app/chat/services/searchParams";
 
-// We use Omit to exclude 'refreshChatSessions' from the value prop type
-// because we're defining it within the component
-interface ChatProviderProps {
-  value: Omit<
+// We use Omit to exclude some fields that are defined within the component
+export interface ChatProviderProps
+  extends Omit<
     ChatContextProps,
+    | "currentChatId"
+    | "currentChat"
     | "refreshChatSessions"
-    | "refreshAvailableAssistants"
-    | "reorderFolders"
-    | "refreshFolders"
     | "refreshInputPrompts"
-  >;
+  > {
   children: React.ReactNode;
 }
 
-export function ChatProvider({ value, children }: ChatProviderProps) {
+export function ChatProvider({
+  children,
+  inputPrompts: initialInputPrompts,
+  chatSessions: initialChatSessions,
+  ...otherProps
+}: ChatProviderProps) {
   const router = useRouter();
+  const [inputPrompts, setInputPrompts] = useState(initialInputPrompts || []);
+  const [chatSessions, setChatSessions] = useState(initialChatSessions || []);
+
   const searchParams = useSearchParams();
-  const [inputPrompts, setInputPrompts] = useState(value?.inputPrompts || []);
-  const [chatSessions, setChatSessions] = useState(value?.chatSessions || []);
-  const [folders, setFolders] = useState(value?.folders || []);
+  const currentChatId = searchParams?.get(SEARCH_PARAM_NAMES.CHAT_ID);
+  const currentChat =
+    chatSessions.find((chatSession) => chatSession.id === currentChatId) ||
+    null;
 
-  const reorderFolders = (displayPriorityMap: Record<number, number>) => {
-    setFolders(
-      folders.map((folder) => {
-        if (folder.folder_id) {
-          const display_priority = displayPriorityMap[folder.folder_id];
-          if (display_priority !== undefined) {
-            folder.display_priority = display_priority;
-          }
-        }
-        return folder;
-      })
-    );
-  };
-
-  const refreshChatSessions = async () => {
+  async function refreshChatSessions() {
     try {
       const response = await fetch("/api/chat/get-user-chat-sessions");
       if (!response.ok) throw new Error("Failed to fetch chat sessions");
       const { sessions } = await response.json();
       setChatSessions(sessions);
 
-      const currentSessionId = searchParams?.get("chatId");
       if (
-        currentSessionId &&
-        !sessions.some(
-          (session: ChatSession) => session.id === currentSessionId
-        )
+        currentChatId &&
+        !sessions.some((session: ChatSession) => session.id === currentChatId)
       ) {
         router.replace("/chat");
       }
     } catch (error) {
       console.error("Error refreshing chat sessions:", error);
     }
-  };
+  }
 
-  const refreshFolders = async () => {
-    const response = await fetch("/api/folder");
-    if (!response.ok) throw new Error("Failed to fetch folders");
-    const { folders } = await response.json();
-    setFolders(folders);
-  };
-
-  const refreshInputPrompts = async () => {
+  async function refreshInputPrompts() {
     const response = await fetch("/api/input_prompt");
     if (!response.ok) throw new Error("Failed to fetch input prompts");
     const inputPrompts = await response.json();
     setInputPrompts(inputPrompts);
-  };
+  }
 
   return (
     <ChatContext.Provider
       value={{
-        ...value,
-        inputPrompts,
-        refreshInputPrompts,
-        chatSessions,
-        folders,
-        reorderFolders,
+        ...otherProps,
+        currentChatId,
+        currentChat,
         refreshChatSessions,
-        refreshFolders,
+        refreshInputPrompts,
+
+        inputPrompts,
+        chatSessions,
       }}
     >
       {children}
@@ -103,7 +86,14 @@ export function ChatProvider({ value, children }: ChatProviderProps) {
 }
 
 interface ChatContextProps {
+  // Chat related:
   chatSessions: ChatSession[];
+  currentChatId: string | null;
+  currentChat: ChatSession | null;
+
+  // LLM related:
+  llmProviders: LLMProviderDescriptor[];
+
   sidebarInitiallyVisible: boolean;
   availableSources: ValidSources[];
   ccPairs: CCPairBasicInfo[];
@@ -112,15 +102,10 @@ interface ChatContextProps {
   availableDocumentSets: DocumentSetSummary[];
   availableTags: Tag[];
   availableTools: ToolSnapshot[];
-  llmProviders: LLMProviderDescriptor[];
-  folders: Folder[];
-  openedFolders: Record<string, boolean>;
   shouldShowWelcomeModal?: boolean;
   shouldDisplaySourcesIncompleteModal?: boolean;
   defaultAssistantId?: number;
   refreshChatSessions: () => Promise<void>;
-  reorderFolders: (displayPriorityMap: Record<number, number>) => void;
-  refreshFolders: () => Promise<void>;
   refreshInputPrompts: () => Promise<void>;
   inputPrompts: InputPrompt[];
   proSearchToggled: boolean;

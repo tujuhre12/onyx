@@ -19,8 +19,8 @@ import { FiArrowDown } from "react-icons/fi";
 import { OnyxDocument, MinimalOnyxDocument } from "@/lib/search/interfaces";
 import { useSettingsContext } from "@/components/settings/SettingsProvider";
 import Dropzone from "react-dropzone";
-import { ChatInputBar } from "./input/ChatInputBar";
-import { useChatContext } from "@/components/context/ChatContext";
+import ChatInputBar from "@/app/chat/components/input/ChatInputBar";
+import { useChatContext } from "@/components-2/context/ChatContext";
 import { ChatPopup } from "./ChatPopup";
 import { useSidebarVisibility } from "@/components/chat/hooks";
 import { SIDEBAR_TOGGLED_COOKIE_NAME } from "@/components/resizable/constants";
@@ -75,6 +75,7 @@ import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { StarterMessageDisplay } from "./starterMessages/StarterMessageDisplay";
 import { MessagesDisplay } from "./MessagesDisplay";
 import { WelcomeMessage } from "./WelcomeMessage";
+import { cn } from "@/lib/utils";
 
 export function ChatPage({
   toggle,
@@ -113,7 +114,6 @@ export function ChatPage({
     tags,
     documentSets,
     llmProviders,
-    folders,
     shouldShowWelcomeModal,
     refreshChatSessions,
   } = useChatContext();
@@ -1039,7 +1039,12 @@ export function ChatPage({
                         {showCenteredInput && (
                           <WelcomeMessage assistant={liveAssistant} />
                         )}
-                        <div className={showCenteredInput ? "row-start-2" : ""}>
+                        <div
+                          className={cn(
+                            "flex flex-col justify-center items-center",
+                            showCenteredInput && "row-start-2"
+                          )}
+                        >
                           <ChatInputBar
                             deepResearchEnabled={deepResearchEnabled}
                             toggleDeepResearch={toggleDeepResearch}
