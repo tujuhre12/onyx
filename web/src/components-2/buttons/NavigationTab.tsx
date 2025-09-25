@@ -68,7 +68,6 @@ export interface NavigationTabProps {
   href?: string;
   tooltip?: boolean;
   popover?: React.ReactNode;
-
   className?: string;
   icon: React.FunctionComponent<SvgProps>;
   children?: React.ReactNode;
