@@ -30,6 +30,7 @@ from onyx.chat.prompt_builder.answer_prompt_builder import AnswerPromptBuilder
 from onyx.chat.prompt_builder.answer_prompt_builder import default_build_system_message
 from onyx.chat.prompt_builder.answer_prompt_builder import default_build_user_message
 from onyx.chat.turn import fast_chat_turn
+from onyx.chat.turn.infra.chat_turn_event_stream import convert_to_packet_obj
 from onyx.chat.turn.infra.chat_turn_event_stream import RunDependencies
 from onyx.chat.user_files.parse_user_files import parse_user_files
 from onyx.configs.chat_configs import CHAT_TARGET_CHUNK_PERCENTAGE
@@ -789,74 +790,6 @@ def remove_answer_citations(answer: str) -> str:
     return re.sub(pattern, "", answer)
 
 
-def _convert_to_packet_obj(packet: Dict[str, Any]) -> Any | None:
-    """Convert a packet dictionary to PacketObj when possible.
-
-    Args:
-        packet: Dictionary containing packet data
-
-    Returns:
-        PacketObj instance if conversion is possible, None otherwise
-    """
-    if not isinstance(packet, dict) or "type" not in packet:
-        return None
-
-    packet_type = packet.get("type")
-    if not packet_type:
-        return None
-
-    try:
-        # Import here to avoid circular imports
-        from onyx.server.query_and_chat.streaming_models import (
-            MessageStart,
-            MessageDelta,
-            OverallStop,
-            SectionEnd,
-            SearchToolStart,
-            SearchToolDelta,
-            ImageGenerationToolStart,
-            ImageGenerationToolDelta,
-            ImageGenerationToolHeartbeat,
-            CustomToolStart,
-            CustomToolDelta,
-            ReasoningStart,
-            ReasoningDelta,
-            CitationStart,
-            CitationDelta,
-        )
-
-        # Map packet types to their corresponding classes
-        type_mapping = {
-            "message_start": MessageStart,
-            "message_delta": MessageDelta,
-            "stop": OverallStop,
-            "section_end": SectionEnd,
-            "internal_search_tool_start": SearchToolStart,
-            "internal_search_tool_delta": SearchToolDelta,
-            "image_generation_tool_start": ImageGenerationToolStart,
-            "image_generation_tool_delta": ImageGenerationToolDelta,
-            "image_generation_tool_heartbeat": ImageGenerationToolHeartbeat,
-            "custom_tool_start": CustomToolStart,
-            "custom_tool_delta": CustomToolDelta,
-            "reasoning_start": ReasoningStart,
-            "reasoning_delta": ReasoningDelta,
-            "citation_start": CitationStart,
-            "citation_delta": CitationDelta,
-        }
-
-        packet_class = type_mapping.get(packet_type)
-        if packet_class:
-            # Create instance using the packet data, filtering out None values
-            filtered_data = {k: v for k, v in packet.items() if v is not None}
-            return packet_class(**filtered_data)
-
-    except Exception as e:
-        # Log the error but don't fail the entire process
-        logger.debug(f"Failed to convert packet to PacketObj: {e}")
-
-    return None
-
-
 @log_function_time()
 def gather_stream(
     packets: Iterator[Dict[str, Any]],
@@ -867,7 +800,7 @@ def gather_stream(
             print(packet)
 
         # Convert packet to PacketObj when possible
-        packet_obj = _convert_to_packet_obj(packet)
+        packet_obj = convert_to_packet_obj(packet)
         if packet_obj:
             # Handle PacketObj types that contain text content
             if hasattr(packet_obj, "content") and packet_obj.content:

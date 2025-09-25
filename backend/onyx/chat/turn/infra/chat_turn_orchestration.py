@@ -11,13 +11,12 @@ from onyx.chat.turn.infra.chat_turn_event_stream import convert_to_packet_obj
 from onyx.chat.turn.infra.chat_turn_event_stream import Emitter
 from onyx.chat.turn.infra.chat_turn_event_stream import RunDependencies
 from onyx.chat.turn.infra.chat_turn_event_stream import StreamPacket
+from onyx.server.query_and_chat.streaming_models import Packet
 
 
 def unified_event_stream(
     turn_func: Callable[[List[Dict[str, Any]], RunDependencies], None],
-) -> Callable[
-    [List[Dict[str, Any]], RunDependencies], Generator[Dict[str, Any], None, None]
-]:
+) -> Callable[[List[Dict[str, Any]], RunDependencies], Generator[Packet, None]]:
     """
     Decorator that wraps a turn_func to provide event streaming capabilities.
 
@@ -33,7 +32,7 @@ def unified_event_stream(
 
     def wrapper(
         messages: List[Dict[str, Any]], dependencies: RunDependencies
-    ) -> Generator[Dict[str, Any], None, None]:
+    ) -> Generator[Packet, None]:
         bus: Queue = Queue()
         emitter = Emitter(bus)
         current_context = contextvars.copy_context()
@@ -48,6 +47,7 @@ def unified_event_stream(
             daemon=True,
         )
         t.start()
+        ind = 0
         while True:
             pkt: StreamPacket = emitter.bus.get()
             if pkt.kind == "done":
@@ -55,8 +55,7 @@ def unified_event_stream(
             else:
                 packet_obj = convert_to_packet_obj(pkt.payload)
                 if packet_obj:
-                    yield packet_obj.model_dump()
-                else:
-                    yield pkt.payload
+                    yield Packet(ind=ind, obj=packet_obj)
+                    ind += 1
 
     return wrapper

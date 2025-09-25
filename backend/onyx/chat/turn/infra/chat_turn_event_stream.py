@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import queue
 import threading
 from collections.abc import Iterator
@@ -16,6 +17,8 @@ from pydantic import Field
 
 from onyx.llm.interfaces import LLM
 from onyx.tools.tool_implementations.search.search_tool import SearchTool
+
+logger = logging.getLogger(__name__)
 
 
 class OnyxRunner:
@@ -85,6 +88,11 @@ class OnyxRunner:
             self._loop.call_soon_threadsafe(_do_cancel)
 
 
+class StreamPacket(BaseModel):
+    kind: str  # "agent" | "tool-progress" | "done"
+    payload: Dict[str, Any] = Field(default_factory=dict)
+
+
 def convert_to_packet_obj(packet: Dict[str, Any]) -> Any | None:
     """Convert a packet dictionary to PacketObj when possible.
 
@@ -107,30 +115,55 @@ def convert_to_packet_obj(packet: Dict[str, Any]) -> Any | None:
             MessageStart,
             MessageDelta,
             OverallStop,
+            SectionEnd,
+            SearchToolStart,
+            SearchToolDelta,
+            ImageGenerationToolStart,
+            ImageGenerationToolDelta,
+            ImageGenerationToolHeartbeat,
+            CustomToolStart,
+            CustomToolDelta,
+            ReasoningStart,
+            ReasoningDelta,
+            CitationStart,
+            CitationDelta,
         )
 
-        if packet_type == "response.output_item.added":
-            return MessageStart(
-                type="message_start",
-                content="",
-                final_documents=None,
-            )
-        elif packet_type == "response.output_text.delta":
-            return MessageDelta(type="message_delta", content=packet["delta"])
-        elif packet_type == "response.completed":
-            return OverallStop(type="stop")
+        # Map packet types to their corresponding classes
+        type_mapping = {
+            "message_start": MessageStart,
+            "response.output_text.delta": MessageDelta,
+            "response.completed": OverallStop,
+            "section_end": SectionEnd,
+            "internal_search_tool_start": SearchToolStart,
+            "internal_search_tool_delta": SearchToolDelta,
+            "image_generation_tool_start": ImageGenerationToolStart,
+            "image_generation_tool_delta": ImageGenerationToolDelta,
+            "image_generation_tool_heartbeat": ImageGenerationToolHeartbeat,
+            "custom_tool_start": CustomToolStart,
+            "custom_tool_delta": CustomToolDelta,
+            "reasoning_start": ReasoningStart,
+            "reasoning_delta": ReasoningDelta,
+            "citation_start": CitationStart,
+            "citation_delta": CitationDelta,
+        }
 
-    except Exception:
+        packet_class = type_mapping.get(packet_type)
+        if packet_class:
+            # Create instance using the packet data, filtering out None values
+            filtered_data = {k: v for k, v in packet.items() if v is not None}
+            if packet_type == "response.output_text.delta":
+                filtered_data["type"] = "message_delta"
+                filtered_data["content"] = filtered_data["delta"]
+            elif packet_type == "response.completed":
+                filtered_data["type"] = "stop"
+            return packet_class(**filtered_data)
+
+    except Exception as e:
         # Log the error but don't fail the entire process
-        # logger.debug(f"Failed to convert packet to PacketObj: {e}")
-        pass
+        logger.debug(f"Failed to convert packet to PacketObj: {e}")
 
     return None
-
-
-class StreamPacket(BaseModel):
-    kind: str  # "agent" | "tool-progress" | "done"
-    payload: Dict[str, Any] = Field(default_factory=dict)
 
 
 class Emitter:
