@@ -57,6 +57,8 @@ from onyx.connectors.sharepoint.connector_utils import get_sharepoint_external_a
 from onyx.file_processing.extract_file_text import ACCEPTED_IMAGE_FILE_EXTENSIONS
 from onyx.file_processing.extract_file_text import extract_text_and_images
 from onyx.file_processing.extract_file_text import get_file_ext
+from onyx.file_processing.extract_file_text import is_accepted_file_ext
+from onyx.file_processing.extract_file_text import OnyxExtensionType
 from onyx.file_processing.file_validation import EXCLUDED_IMAGE_TYPES
 from onyx.file_processing.image_utils import store_image_and_create_section
 from onyx.utils.b64 import get_image_type_from_bytes
@@ -1441,6 +1443,12 @@ class SharepointConnector(
             )
             for driveitem in driveitems:
                 driveitem_extension = get_file_ext(driveitem.name)
+                if not is_accepted_file_ext(driveitem_extension, OnyxExtensionType.All):
+                    logger.warning(
+                        f"Skipping {driveitem.web_url} as it is not a supported file type"
+                    )
+                    continue
+
                 # Only yield empty documents if they are PDFs or images
                 should_yield_if_empty = (
                     driveitem_extension in ACCEPTED_IMAGE_FILE_EXTENSIONS
@@ -1464,6 +1472,10 @@ class SharepointConnector(
                                 TextSection(link=driveitem.web_url, text="")
                             ]
                             yield doc
+                        else:
+                            logger.warning(
+                                f"Skipping {driveitem.web_url} as it is empty and not a PDF or image"
+                            )
                 except Exception as e:
                     logger.warning(
                         f"Failed to process driveitem {driveitem.web_url}: {e}"
