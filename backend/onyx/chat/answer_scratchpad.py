@@ -19,11 +19,14 @@ import litellm
 from agents import Agent
 from agents import AgentHooks
 from agents import function_tool
+from agents import handoff
 from agents import ModelSettings
 from agents import RunContextWrapper
 from agents import Runner
 from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
+from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from agents.extensions.models.litellm_model import LitellmModel
+from agents.handoffs import HandoffInputData
 from agents.stream_events import RawResponsesStreamEvent
 from agents.stream_events import RunItemStreamEvent
 from braintrust import traced
@@ -58,6 +61,7 @@ logger = setup_logger()
 @dataclass
 class RunDependencies:
     emitter: Emitter
+    llm: LLM
     search_tool: SearchTool | None = None
 
 
@@ -66,6 +70,7 @@ class MyContext:
     """Context class to hold search tool and other dependencies"""
 
     run_dependencies: RunDependencies | None = None
+    needs_compaction: bool = False
 
 
 def short_tag(link: str, i: int) -> str:
@@ -128,7 +133,7 @@ def llm_completion(
         model=model_name,
         temperature=temperature,
         messages=messages,
-        tools=None,
+        tools=[],
         stream=stream,
     )
 
@@ -243,6 +248,7 @@ def start_run_in_thread(
                 run_dependencies=RunDependencies(
                     search_tool=search_tool,
                     emitter=emitter,
+                    llm=llm,
                 )
             )
             # 1) start the streamed run (async)
@@ -291,17 +297,39 @@ def finalize_report():
     }
 
 
-class VerboseHooks(AgentHooks[Any]):
+class CompactionHooks(AgentHooks[Any]):
     async def on_llm_start(
         self,
-        context: RunContextWrapper[Any],
+        context: RunContextWrapper[MyContext],
         agent: Agent[Any],
         system_prompt: Optional[str],
-        input_items: List[dict],  # alias: TResponseInputItem
+        input_items: List[dict],
     ) -> None:
         print(f"[{agent.name}] LLM start")
         print("system_prompt:", system_prompt)
         print("usage so far:", context.usage.total_tokens)
+        usage = context.usage.total_tokens
+        if usage > 10000:
+            context.context.needs_compaction = True
+
+
+def compaction_input_filter(input_data: HandoffInputData):
+    filtered_messages = []
+    for msg in input_data.input_history[:-1]:
+        if isinstance(msg, dict) and msg.get("content") is not None:
+            # Convert tool messages to user messages to avoid API errors
+            if msg.get("role") == "tool":
+                filtered_msg = {
+                    "role": "user",
+                    "content": f"Tool response: {msg.get('content', '')}",
+                }
+                filtered_messages.append(filtered_msg)
+            else:
+                filtered_messages.append(msg)
+
+    # Only proceed with compaction if we have valid messages
+    if filtered_messages:
+        return [filtered_messages[-1]]
 
 
 def construct_deep_research_agent(llm: LLM) -> Agent:
@@ -313,7 +341,8 @@ def construct_deep_research_agent(llm: LLM) -> Agent:
         api_key=llm.config.api_key,
     )
 
-    DR_INSTRUCTIONS = """
+    DR_INSTRUCTIONS = f"""
+    {RECOMMENDED_PROMPT_PREFIX}
 You are a deep-research agent. Work in explicit iterations:
 1) PLAN: Decompose the user’s query into sub-questions and a step-by-step plan.
 2) SEARCH: Use web_search to explore multiple angles, fanning out and searching in parallel.
@@ -343,7 +372,7 @@ Guidelines:
             # optional: let model choose tools freely
             # tool_choice="auto",  # if supported by your LitellmModel wrapper
         ),
-        hooks=VerboseHooks(),
+        hooks=CompactionHooks(),
     )
 
 
@@ -558,15 +587,35 @@ def dr_turn(
         )
         turn_event_stream_emitter.emit(kind="done", data={"ok": True})
         return
-
-    agent = construct_deep_research_agent(llm)
+    dr_agent = construct_deep_research_agent(llm)
+    compactor_agent = Agent(
+        name="Compactor",
+        instructions=f"""
+            {RECOMMENDED_PROMPT_PREFIX}
+            Summarize the full conversation so far into JSON with keys:\n
+              - summary: concise timeline of what happened so far\n
+              - facts: bullet list of stable facts (IDs, URLs, constraints)\n
+              - open_questions: bullet list of TODOs / follow-ups\n
+            Set already_compacted=true to prevent immediate re-compaction.
+            Then hand off to deep research agent.
+        """,
+        output_type=dict,
+        handoffs=[
+            handoff(
+                agent=dr_agent,
+                input_filter=compaction_input_filter,
+            )
+        ],
+        tool_use_behavior="stop_on_first_tool",
+    )
     ctx = MyContext(
         run_dependencies=RunDependencies(
             search_tool=search_tool,
             emitter=turn_event_stream_emitter,
+            llm=llm,
         )
     )
-    bridge = StreamBridge(agent, messages, ctx, max_turns=100).start()
+    bridge = StreamBridge(compactor_agent, messages, ctx, max_turns=100).start()
     for ev in bridge.events():
         if isinstance(ev, RunItemStreamEvent):
             pass
