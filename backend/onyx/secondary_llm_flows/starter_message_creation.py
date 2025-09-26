@@ -122,9 +122,7 @@ def generate_starter_messages(
     """
     _, fast_llm = get_default_llms(temperature=0.5)
 
-    from onyx.llm.get_litellm import get_litellm
-
-    litellm = get_litellm()
+    import litellm
 
     provider = fast_llm.config.model_provider
     model = fast_llm.config.model_name

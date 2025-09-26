@@ -33,7 +33,7 @@ from onyx.configs.model_configs import (
 )
 from onyx.configs.model_configs import GEN_AI_TEMPERATURE
 from onyx.configs.model_configs import LITELLM_EXTRA_BODY
-from onyx.llm.get_litellm import get_litellm
+from onyx.llm.get_litellm import configure_litellm
 from onyx.llm.interfaces import LLM
 from onyx.llm.interfaces import LLMConfig
 from onyx.llm.interfaces import ToolChoiceOptions
@@ -82,7 +82,8 @@ def _base_msg_to_role(msg: BaseMessage) -> str:
 def _convert_litellm_message_to_langchain_message(
     litellm_message: "litellm.Message",
 ) -> BaseMessage:
-    litellm = get_litellm()
+    configure_litellm()
+    import litellm
 
     # Extracting the basic attributes from the litellm message
     content = litellm_message.content or ""
@@ -173,7 +174,8 @@ def _convert_delta_to_message_chunk(
     curr_msg: BaseMessage | None,
     stop_reason: str | None = None,
 ) -> BaseMessageChunk:
-    litellm = get_litellm()
+    configure_litellm()
+    import litellm
 
     """Adapted from langchain_community.chat_models.litellm._convert_delta_to_message_chunk"""
     role = _dict.get("role") or (_base_msg_to_role(curr_msg) if curr_msg else "unknown")
@@ -320,7 +322,9 @@ class DefaultMultiLLM(LLM):
 
         self._max_token_param = LEGACY_MAX_TOKENS_KWARG
         try:
-            litellm = get_litellm()
+            configure_litellm()
+            import litellm
+
             get_supported_openai_params = litellm.utils.get_supported_openai_params
 
             params = get_supported_openai_params(model_name, model_provider)
@@ -397,7 +401,8 @@ class DefaultMultiLLM(LLM):
         self._record_call(processed_prompt)
 
         try:
-            litellm = get_litellm()
+            configure_litellm()
+            import litellm
 
             return litellm.completion(
                 mock_response=MOCK_LLM_RESPONSE,
@@ -489,7 +494,7 @@ class DefaultMultiLLM(LLM):
         timeout_override: int | None = None,
         max_tokens: int | None = None,
     ) -> BaseMessage:
-        get_litellm()
+        configure_litellm()
 
         if LOG_ONYX_MODEL_INTERACTIONS:
             self.log_model_configs()
@@ -524,7 +529,7 @@ class DefaultMultiLLM(LLM):
         timeout_override: int | None = None,
         max_tokens: int | None = None,
     ) -> Iterator[BaseMessage]:
-        get_litellm()
+        configure_litellm()
 
         if LOG_ONYX_MODEL_INTERACTIONS:
             self.log_model_configs()

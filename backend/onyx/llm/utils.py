@@ -57,9 +57,7 @@ def litellm_exception_to_error_msg(
         dict[str, str] | None
     ) = LITELLM_CUSTOM_ERROR_MESSAGE_MAPPINGS,
 ) -> str:
-    from onyx.llm.get_litellm import get_litellm
-
-    litellm = get_litellm()
+    import litellm
 
     BadRequestError = litellm.exceptions.BadRequestError
     AuthenticationError = litellm.exceptions.AuthenticationError
@@ -383,9 +381,7 @@ def test_llm(llm: LLM) -> str | None:
 
 @lru_cache(maxsize=1)  # the copy.deepcopy is expensive, so we cache the result
 def get_model_map() -> dict:
-    from onyx.llm.get_litellm import get_litellm
-
-    litellm = get_litellm()
+    import litellm
 
     starting_map = copy.deepcopy(cast(dict, litellm.model_cost))
 
@@ -466,9 +462,8 @@ def get_llm_contextual_cost(
     this does not account for the cost of documents that fit within a single chunk
     which do not get contextualized.
     """
-    from onyx.llm.get_litellm import get_litellm
 
-    litellm = get_litellm()
+    import litellm
 
     # calculate input costs
     num_tokens = ONE_MILLION
@@ -667,9 +662,7 @@ def model_supports_image_input(model_name: str, model_provider: str) -> bool:
 
 
 def model_is_reasoning_model(model_name: str, model_provider: str) -> bool:
-    from onyx.llm.get_litellm import get_litellm
-
-    litellm = get_litellm()
+    import litellm
 
     model_map = get_model_map()
     try:

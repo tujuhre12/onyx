@@ -146,9 +146,10 @@ def invoke_llm_json(
     and return an object of that schema.
     """
 
-    from onyx.llm.get_litellm import get_litellm
+    from onyx.llm.get_litellm import configure_litellm
 
-    litellm = get_litellm()
+    configure_litellm()
+    import litellm
 
     # check if the model supports response_format: json_schema
     supports_json = "response_format" in (
