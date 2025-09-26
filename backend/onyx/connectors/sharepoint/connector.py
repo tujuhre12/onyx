@@ -760,7 +760,7 @@ class SharepointConnector(
         try:
             site = self.graph_client.sites.get_by_url(site_descriptor.url)
             drives = site.drives.get().execute_query()
-            logger.debug(f"Found drives: {[drive.name for drive in drives]}")
+            logger.info(f"Found drives: {[drive.name for drive in drives]}")
 
             drives = [
                 drive
@@ -772,11 +772,15 @@ class SharepointConnector(
             if drive is None:
                 logger.warning(f"Drive '{drive_name}' not found")
                 return []
+
+            logger.info(f"Found drive: {drive.name}")
             try:
                 root_folder = drive.root
                 if site_descriptor.folder_path:
                     for folder_part in site_descriptor.folder_path.split("/"):
                         root_folder = root_folder.get_by_path(folder_part)
+
+                logger.info(f"Found root folder: {root_folder.name}")
 
                 # TODO: consider ways to avoid materializing the entire list of files in memory
                 query = root_folder.get_files(
@@ -784,7 +788,7 @@ class SharepointConnector(
                     page_size=1000,
                 )
                 driveitems = query.execute_query()
-                logger.debug(f"Found {len(driveitems)} items in drive '{drive_name}'")
+                logger.info(f"Found {len(driveitems)} items in drive '{drive_name}'")
 
                 # Filter items based on folder path if specified
                 if site_descriptor.folder_path:
@@ -823,7 +827,7 @@ class SharepointConnector(
                         <= item.last_modified_datetime.replace(tzinfo=timezone.utc)
                         <= end
                     ]
-                    logger.debug(
+                    logger.info(
                         f"Found {len(driveitems)} items within time window in drive '{drive.name}'"
                     )
 
@@ -1410,6 +1414,9 @@ class SharepointConnector(
                 return checkpoint
 
             try:
+                logger.info(
+                    f"Fetching drive items for drive name: {current_drive_name}"
+                )
                 driveitems = self._get_drive_items_for_drive_name(
                     site_descriptor, current_drive_name, start_dt, end_dt
                 )
