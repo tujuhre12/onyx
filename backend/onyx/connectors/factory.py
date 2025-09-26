@@ -54,49 +54,50 @@ def _load_connector_class(source: DocumentSource) -> Type[BaseConnector]:
         )
 
 
+def _validate_connector_supports_input_type(
+    connector: Type[BaseConnector],
+    input_type: InputType | None,
+    source: DocumentSource,
+) -> None:
+    """Validate that a connector supports the requested input type."""
+    if input_type is None:
+        return
+
+    # Check each input type requirement separately for clarity
+    load_state_unsupported = input_type == InputType.LOAD_STATE and not issubclass(
+        connector, LoadConnector
+    )
+
+    poll_unsupported = (
+        input_type == InputType.POLL
+        # Either poll or checkpoint works for this, in the future
+        # all connectors should be checkpoint connectors
+        and (
+            not issubclass(connector, PollConnector)
+            and not issubclass(connector, CheckpointedConnector)
+        )
+    )
+
+    event_unsupported = input_type == InputType.EVENT and not issubclass(
+        connector, EventConnector
+    )
+
+    if any([load_state_unsupported, poll_unsupported, event_unsupported]):
+        raise ConnectorMissingException(
+            f"Connector for source={source} does not accept input_type={input_type}"
+        )
+
+
 def identify_connector_class(
     source: DocumentSource,
     input_type: InputType | None = None,
 ) -> Type[BaseConnector]:
-    # Handle special cases where input_type matters (like Slack)
-    if source == DocumentSource.SLACK:
-        # Slack supports both POLL and SLIM_RETRIEVAL with the same connector
-        if input_type in [InputType.POLL, InputType.SLIM_RETRIEVAL]:
-            connector = _load_connector_class(source)
-        elif input_type is None:
-            # Default to most exhaustive update
-            connector = _load_connector_class(source)  # Will work for LOAD_STATE too
-        else:
-            connector = _load_connector_class(source)
-    else:
-        # Standard case - single connector per source
-        connector = _load_connector_class(source)
+    # Load the connector class using lazy loading
+    connector = _load_connector_class(source)
 
     # Validate connector supports the requested input_type
-    if any(
-        [
-            (
-                input_type == InputType.LOAD_STATE
-                and not issubclass(connector, LoadConnector)
-            ),
-            (
-                input_type == InputType.POLL
-                # either poll or checkpoint works for this, in the future
-                # all connectors should be checkpoint connectors
-                and (
-                    not issubclass(connector, PollConnector)
-                    and not issubclass(connector, CheckpointedConnector)
-                )
-            ),
-            (
-                input_type == InputType.EVENT
-                and not issubclass(connector, EventConnector)
-            ),
-        ]
-    ):
-        raise ConnectorMissingException(
-            f"Connector for source={source} does not accept input_type={input_type}"
-        )
+    _validate_connector_supports_input_type(connector, input_type, source)
+
     return connector
 
 
