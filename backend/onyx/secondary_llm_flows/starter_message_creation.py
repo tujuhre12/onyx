@@ -3,7 +3,6 @@ from typing import Any
 from typing import cast
 from typing import List
 
-from litellm import get_supported_openai_params
 from sqlalchemy.orm import Session
 
 from onyx.configs.chat_configs import NUM_PERSONA_PROMPT_GENERATION_CHUNKS
@@ -123,10 +122,16 @@ def generate_starter_messages(
     """
     _, fast_llm = get_default_llms(temperature=0.5)
 
+    from onyx.llm.chat_llm import get_litellm
+
+    litellm = get_litellm()
+
     provider = fast_llm.config.model_provider
     model = fast_llm.config.model_name
 
-    params = get_supported_openai_params(model=model, custom_llm_provider=provider)
+    params = litellm.utils.get_supported_openai_params(
+        model=model, custom_llm_provider=provider
+    )
     supports_structured_output = (
         isinstance(params, list) and "response_format" in params
     )

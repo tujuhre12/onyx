@@ -8,8 +8,6 @@ from typing import TypeVar
 from langchain.schema.language_model import LanguageModelInput
 from langchain_core.messages import HumanMessage
 from langgraph.types import StreamWriter
-from litellm import get_supported_openai_params
-from litellm import supports_response_schema
 from pydantic import BaseModel
 
 from onyx.agents.agent_search.shared_graph_utils.utils import write_custom_event
@@ -148,11 +146,19 @@ def invoke_llm_json(
     and return an object of that schema.
     """
 
+    from onyx.llm.chat_llm import get_litellm
+
+    litellm = get_litellm()
+
     # check if the model supports response_format: json_schema
     supports_json = "response_format" in (
-        get_supported_openai_params(llm.config.model_name, llm.config.model_provider)
+        litellm.utils.get_supported_openai_params(
+            llm.config.model_name, llm.config.model_provider
+        )
         or []
-    ) and supports_response_schema(llm.config.model_name, llm.config.model_provider)
+    ) and litellm.supports_response_schema(
+        llm.config.model_name, llm.config.model_provider
+    )
 
     response_content = str(
         llm.invoke(

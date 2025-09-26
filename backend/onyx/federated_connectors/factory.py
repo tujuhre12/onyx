@@ -4,10 +4,9 @@ import importlib
 from typing import Any
 from typing import Type
 
-from pydantic import BaseModel
-
 from onyx.configs.constants import FederatedConnectorSource
 from onyx.federated_connectors.interfaces import FederatedConnector
+from onyx.federated_connectors.registry import FEDERATED_CONNECTOR_CLASS_MAP
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -16,19 +15,6 @@ logger = setup_logger()
 class FederatedConnectorMissingException(Exception):
     pass
 
-
-class FederatedConnectorMapping(BaseModel):
-    module_path: str
-    class_name: str
-
-
-# Mapping of FederatedConnectorSource to connector details for lazy loading
-FEDERATED_CONNECTOR_CLASS_MAP = {
-    FederatedConnectorSource.FEDERATED_SLACK: FederatedConnectorMapping(
-        module_path="onyx.federated_connectors.slack.federated_connector",
-        class_name="SlackFederatedConnector",
-    ),
-}
 
 # Cache for already imported federated connector classes
 _federated_connector_cache: dict[FederatedConnectorSource, Type[FederatedConnector]] = (

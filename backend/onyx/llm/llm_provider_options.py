@@ -1,6 +1,5 @@
 from enum import Enum
 
-import litellm  # type: ignore
 from pydantic import BaseModel
 
 from onyx.llm.chat_llm import VERTEX_CREDENTIALS_FILE_KWARG
@@ -86,16 +85,25 @@ OPEN_AI_VISIBLE_MODEL_NAMES = [
 ]
 
 BEDROCK_PROVIDER_NAME = "bedrock"
-# need to remove all the weird "bedrock/eu-central-1/anthropic.claude-v1" named
-# models
-BEDROCK_MODEL_NAMES = [
-    model
-    # bedrock_converse_models are just extensions of the bedrock_models, not sure why
-    # litellm has split them into two lists :(
-    for model in list(litellm.bedrock_models.union(litellm.bedrock_converse_models))
-    if "/" not in model and "embed" not in model
-][::-1]
 BEDROCK_DEFAULT_MODEL = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+
+
+def _get_bedrock_model_names() -> list[str]:
+    """Lazy load bedrock model names from litellm."""
+    from onyx.llm.chat_llm import get_litellm
+
+    litellm = get_litellm()
+
+    # need to remove all the weird "bedrock/eu-central-1/anthropic.claude-v1" named
+    # models
+    return [
+        model
+        # bedrock_converse_models are just extensions of the bedrock_models, not sure why
+        # litellm has split them into two lists :(
+        for model in list(litellm.bedrock_models.union(litellm.bedrock_converse_models))
+        if "/" not in model and "embed" not in model
+    ][::-1]
+
 
 IGNORABLE_ANTHROPIC_MODELS = [
     "claude-2",
@@ -103,15 +111,24 @@ IGNORABLE_ANTHROPIC_MODELS = [
     "anthropic/claude-3-5-sonnet-20241022",
 ]
 ANTHROPIC_PROVIDER_NAME = "anthropic"
-ANTHROPIC_MODEL_NAMES = [
-    model
-    for model in litellm.anthropic_models
-    if model not in IGNORABLE_ANTHROPIC_MODELS
-][::-1]
 ANTHROPIC_VISIBLE_MODEL_NAMES = [
     "claude-3-5-sonnet-20241022",
     "claude-3-7-sonnet-20250219",
 ]
+
+
+def _get_anthropic_model_names() -> list[str]:
+    """Lazy load anthropic model names from litellm."""
+    from onyx.llm.chat_llm import get_litellm
+
+    litellm = get_litellm()
+
+    return [
+        model
+        for model in litellm.anthropic_models
+        if model not in IGNORABLE_ANTHROPIC_MODELS
+    ][::-1]
+
 
 AZURE_PROVIDER_NAME = "azure"
 
@@ -155,12 +172,15 @@ VERTEXAI_VISIBLE_MODEL_NAMES = [
 ]
 
 
-_PROVIDER_TO_MODELS_MAP = {
-    OPENAI_PROVIDER_NAME: OPEN_AI_MODEL_NAMES,
-    BEDROCK_PROVIDER_NAME: BEDROCK_MODEL_NAMES,
-    ANTHROPIC_PROVIDER_NAME: ANTHROPIC_MODEL_NAMES,
-    VERTEXAI_PROVIDER_NAME: VERTEXAI_MODEL_NAMES,
-}
+def _get_provider_to_models_map() -> dict[str, list[str]]:
+    """Lazy load provider to models map."""
+    return {
+        OPENAI_PROVIDER_NAME: OPEN_AI_MODEL_NAMES,
+        BEDROCK_PROVIDER_NAME: _get_bedrock_model_names(),
+        ANTHROPIC_PROVIDER_NAME: _get_anthropic_model_names(),
+        VERTEXAI_PROVIDER_NAME: VERTEXAI_MODEL_NAMES,
+    }
+
 
 _PROVIDER_TO_VISIBLE_MODELS_MAP = {
     OPENAI_PROVIDER_NAME: OPEN_AI_VISIBLE_MODEL_NAMES,
@@ -287,7 +307,7 @@ def fetch_available_well_known_llms() -> list[WellKnownLLMProviderDescriptor]:
 
 
 def fetch_models_for_provider(provider_name: str) -> list[str]:
-    return _PROVIDER_TO_MODELS_MAP.get(provider_name, [])
+    return _get_provider_to_models_map().get(provider_name, [])
 
 
 def fetch_model_names_for_provider_as_set(provider_name: str) -> set[str] | None:

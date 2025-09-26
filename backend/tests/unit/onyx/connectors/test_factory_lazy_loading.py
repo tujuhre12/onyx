@@ -15,13 +15,13 @@ import pytest
 from onyx.configs.constants import DocumentSource
 from onyx.connectors.factory import _connector_cache
 from onyx.connectors.factory import _load_connector_class
-from onyx.connectors.factory import CONNECTOR_CLASS_MAP
-from onyx.connectors.factory import ConnectorMapping
 from onyx.connectors.factory import ConnectorMissingException
 from onyx.connectors.factory import identify_connector_class
 from onyx.connectors.factory import instantiate_connector
 from onyx.connectors.interfaces import BaseConnector
 from onyx.connectors.models import InputType
+from onyx.connectors.registry import CONNECTOR_CLASS_MAP
+from onyx.connectors.registry import ConnectorMapping
 
 
 class TestConnectorMappingValidation:
