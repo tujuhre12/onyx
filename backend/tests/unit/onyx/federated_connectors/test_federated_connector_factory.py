@@ -149,16 +149,15 @@ class TestFederatedConnectorClassLoading:
     @patch("importlib.import_module")
     def test_load_federated_connector_class_attribute_error(self, mock_import):
         """Test handling of missing class in module."""
-        mock_module = MagicMock()
-        mock_import.return_value = mock_module
 
-        # Configure the mock to raise AttributeError when trying to get the class
-        def mock_getattr(name):
-            if name == "SlackFederatedConnector":
-                raise AttributeError("Class not found")
-            return MagicMock()
+        # Create a custom mock that raises AttributeError for the specific class
+        class MockModule:
+            def __getattr__(self, name):
+                if name == "SlackFederatedConnector":
+                    raise AttributeError("Class not found")
+                return MagicMock()
 
-        mock_module.__getattribute__ = mock_getattr
+        mock_import.return_value = MockModule()
 
         with pytest.raises(FederatedConnectorMissingException) as exc_info:
             _load_federated_connector_class(FederatedConnectorSource.FEDERATED_SLACK)
