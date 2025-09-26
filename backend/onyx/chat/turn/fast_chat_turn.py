@@ -1,8 +1,10 @@
 import re
+from typing import cast
 from uuid import UUID
 
 from agents import Agent
 from agents import ModelSettings
+from agents import RunItemStreamEvent
 from agents.extensions.models.litellm_model import LitellmModel
 from sqlalchemy.orm import Session
 
@@ -58,19 +60,25 @@ def fast_chat_turn(messages: list[dict], dependencies: RunDependencies) -> None:
     )
 
     bridge = OnyxRunner().run_streamed(agent, messages, context=ctx, max_turns=100)
+    final_answer = "filler final answer"
     for ev in bridge.events():
         ctx.current_run_step
         obj = default_packet_translation(ev)
+        print(ev)
+        # TODO this obviously won't work for cancellation
+        if isinstance(ev, RunItemStreamEvent):
+            ev = cast(RunItemStreamEvent, ev)
+            if ev.name == "message_output_created":
+                final_answer = ev.item.raw_item.content[0].text
         if obj:
             dependencies.emitter.emit(Packet(ind=ctx.current_run_step, obj=obj))
-
     save_iteration(
         db_session=dependencies.db_session,
         message_id=dependencies.dependencies_to_maybe_remove.message_id,
         chat_session_id=dependencies.dependencies_to_maybe_remove.chat_session_id,
         research_type=dependencies.dependencies_to_maybe_remove.research_type,
         ctx=ctx,
-        final_answer="final_answer",  # event should be emitted by agent for this luckily
+        final_answer=final_answer,
         all_cited_documents=[],
     )
     # TODO: Error handling
