@@ -231,14 +231,3 @@ class TestFederatedConnectorValidationScript:
             pytest.fail(f"Federated connector validation failed: {len(errors)} errors")
 
         print("✅ All federated connector mappings are valid!")
-
-
-if __name__ == "__main__":
-    # Allow running this file directly for validation
-    import sys
-
-    sys.path.insert(0, "/Users/edwinluo/onyx/backend")
-
-    # Run the validation
-    test = TestFederatedConnectorValidationScript()
-    test.test_validate_all_federated_mappings_cli()
