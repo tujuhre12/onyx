@@ -3,6 +3,8 @@ from typing import cast
 from agents import function_tool
 from agents import RunContextWrapper
 
+from onyx.agents.agent_search.dr.models import IterationAnswer
+from onyx.agents.agent_search.dr.models import IterationInstructions
 from onyx.chat.turn.models import MyContext
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
 from onyx.server.query_and_chat.streaming_models import Packet
@@ -29,9 +31,14 @@ def internal_search(run_context: RunContextWrapper[MyContext], query: str) -> st
     Args:
         query: The natural-language search query.
     """
+    search_tool = run_context.context.run_dependencies.search_tool
+    if search_tool is None:
+        raise RuntimeError("Search tool not available in context")
+
+    index = run_context.context.current_run_step + 1
     run_context.context.run_dependencies.emitter.emit(
         Packet(
-            ind=run_context.context.current_run_step + 1,
+            ind=index,
             obj=SearchToolStart(
                 type="internal_search_tool_start", is_internet_search=False
             ),
@@ -39,15 +46,20 @@ def internal_search(run_context: RunContextWrapper[MyContext], query: str) -> st
     )
     run_context.context.run_dependencies.emitter.emit(
         Packet(
-            ind=run_context.context.current_run_step + 1,
+            ind=index,
             obj=SearchToolDelta(
                 type="internal_search_tool_delta", queries=[query], documents=None
             ),
         )
     )
-    search_tool = run_context.context.run_dependencies.search_tool
-    if search_tool is None:
-        raise RuntimeError("Search tool not available in context")
+    run_context.context.iteration_instructions.append(
+        IterationInstructions(
+            iteration_nr=index,
+            plan="plan",
+            purpose="Searching internally for information",
+            reasoning=f"I am now using Internal Search to gather information on {query}",
+        )
+    )
 
     with get_session_with_current_tenant() as search_db_session:
         for tool_response in search_tool.run(
@@ -65,7 +77,7 @@ def internal_search(run_context: RunContextWrapper[MyContext], query: str) -> st
                 retrieved_docs = response.top_sections
                 run_context.context.run_dependencies.emitter.emit(
                     Packet(
-                        ind=run_context.context.current_run_step + 1,
+                        ind=index,
                         obj=SearchToolDelta(
                             type="internal_search_tool_delta",
                             queries=None,
@@ -95,14 +107,29 @@ def internal_search(run_context: RunContextWrapper[MyContext], query: str) -> st
                         ),
                     )
                 )
+                run_context.context.aggregated_context.global_iteration_responses.append(
+                    IterationAnswer(
+                        tool="internal_search",
+                        tool_id=1,
+                        iteration_nr=index,
+                        parallelization_nr=0,
+                        question=query,
+                        reasoning=f"I am now using Internal Search to gather information on {query}",
+                        answer="Cool",
+                        cited_documents={
+                            i: inference_section
+                            for i, inference_section in enumerate(retrieved_docs)
+                        },
+                    )
+                )
                 break
     run_context.context.run_dependencies.emitter.emit(
         Packet(
-            ind=run_context.context.current_run_step + 1,
+            ind=index,
             obj=SectionEnd(
                 type="section_end",
             ),
         )
     )
-    run_context.context.current_run_step += 2
+    run_context.context.current_run_step = index + 1
     return retrieved_docs
