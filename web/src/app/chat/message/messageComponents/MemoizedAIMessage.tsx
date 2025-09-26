@@ -2,7 +2,7 @@ import React, { useCallback, useMemo } from "react";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { FeedbackType, Message, CitationMap } from "@/app/chat/interfaces";
 import { OnyxDocument, MinimalOnyxDocument } from "@/lib/search/interfaces";
-import { AIMessage } from "@/components-2/messages/AIMessage";
+import AIMessage from "@/components-2/messages/AIMessage";
 import { LlmDescriptor } from "@/lib/hooks";
 
 interface BaseMemoizedAIMessageProps {

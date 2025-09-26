@@ -88,7 +88,7 @@ export interface IconButtonProps
   tooltip?: string;
 }
 
-export function IconButton({
+export default function IconButton({
   active,
   disabled,
 

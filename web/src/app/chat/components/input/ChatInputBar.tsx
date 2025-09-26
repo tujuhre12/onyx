@@ -30,7 +30,7 @@ import { UnconfiguredLlmProviderText } from "@/components/chat/UnconfiguredLlmPr
 import { DeepResearchToggle } from "@/app/chat/components/input/DeepResearchToggle";
 import { ActionToggle } from "@/app/chat/components/input/ActionManagement";
 import { SelectedTool } from "@/app/chat/components/input/SelectedTool";
-import { IconButton } from "@/components-2/buttons/IconButton";
+import IconButton from "@/components-2/buttons/IconButton";
 import SvgHourglass from "@/icons/hourglass";
 import SvgPlusCircle from "@/icons/plus-circle";
 import SvgSliders from "@/icons/sliders";

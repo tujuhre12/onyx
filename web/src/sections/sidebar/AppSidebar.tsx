@@ -58,7 +58,7 @@ import Button from "@/components-2/buttons/Button";
 import SvgPin from "@/icons/pin";
 import { cn, noProp } from "@/lib/utils";
 import { PopoverMenu } from "@/components/ui/popover";
-import { IconButton } from "@/components-2/buttons/IconButton";
+import IconButton from "@/components-2/buttons/IconButton";
 
 // Visible-agents = pinned-agents + current-agent (if current-agent not in pinned-agents)
 // OR Visible-agents = pinned-agents (if current-agent in pinned-agents)

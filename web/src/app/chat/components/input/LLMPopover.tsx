@@ -25,7 +25,7 @@ import { useAgentsContext } from "@/components-2/context/AgentsContext";
 import { useChatContext } from "@/components-2/context/ChatContext";
 import { SelectButton } from "@/components-2/buttons/SelectButton";
 import SvgRefreshCw from "@/icons/refresh-cw";
-import { IconButton } from "@/components-2/buttons/IconButton";
+import IconButton from "@/components-2/buttons/IconButton";
 
 export interface LLMPopoverProps {
   compact?: boolean;
@@ -82,7 +82,12 @@ export default function LLMPopover({
   const triggerContent = useMemo(
     () =>
       compact ? (
-        <IconButton icon={SvgRefreshCw} tertiary active={open} />
+        <IconButton
+          icon={SvgRefreshCw}
+          tertiary
+          active={open}
+          tooltip="Regenerate"
+        />
       ) : (
         <SelectButton
           icon={getProviderIcon(

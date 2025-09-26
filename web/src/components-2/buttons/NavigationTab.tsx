@@ -16,7 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { IconButton } from "@/components-2/buttons/IconButton";
+import IconButton from "@/components-2/buttons/IconButton";
 import Truncated from "@/components-2/Truncated";
 
 const textClasses = (active: boolean | undefined) =>

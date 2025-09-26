@@ -4,7 +4,7 @@ import Text from "@/components-2/Text";
 import SvgX from "@/icons/x";
 import CoreModal from "@/components-2/modals/CoreModal";
 import { useEscape } from "@/hooks/useEscape";
-import { IconButton } from "../buttons/IconButton";
+import IconButton from "../buttons/IconButton";
 
 interface ConfirmationModalProps {
   icon: React.FunctionComponent<SvgProps>;

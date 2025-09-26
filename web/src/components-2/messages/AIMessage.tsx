@@ -8,9 +8,6 @@ import {
 import { FullChatState } from "@/app/chat/message/messageComponents/interfaces";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { Logo } from "@/components/logo/Logo";
-import { CopyButton } from "@/components/CopyButton";
-import { LikeFeedback, DislikeFeedback } from "@/components/icons/icons";
-import { HoverableIcon } from "@/components/Hoverable";
 import { OnyxDocument } from "@/lib/search/interfaces";
 import { CitedSourcesToggle } from "@/app/chat/message/messageComponents/CitedSourcesToggle";
 import {
@@ -37,6 +34,11 @@ import {
 import { useMessageSwitching } from "@/app/chat/message/messageComponents/hooks/useMessageSwitching";
 import MultiToolRenderer from "@/app/chat/message/messageComponents/MultiToolRenderer";
 import { RendererComponent } from "@/app/chat/message/messageComponents/renderMessageComponent";
+import { cn } from "@/lib/utils";
+import IconButton from "../buttons/IconButton";
+import SvgCopy from "@/icons/copy";
+import SvgThumbsUp from "@/icons/thumbs-up";
+import SvgThumbsDown from "@/icons/thumbs-down";
 
 interface AIMessageProps {
   rawPackets: Packet[];
@@ -46,7 +48,7 @@ interface AIMessageProps {
   onMessageSelection?: (nodeId: number) => void;
 }
 
-export function AIMessage({
+export default function AIMessage({
   rawPackets,
   chatState,
   nodeId,
@@ -235,27 +237,29 @@ export function AIMessage({
     <div
       // for e2e tests
       data-testid={displayComplete ? "onyx-ai-message" : undefined}
-      className="py-5 ml-4 lg:px-5 relative flex"
+      className={cn("py-5 ml-4 lg:px-5 relative flex")}
     >
-      <div className="mx-auto w-[90%] max-w-message-max">
-        <div className="lg:mr-12 mobile:ml-0 md:ml-8">
-          <div className="flex items-start">
+      <div className={cn("mx-auto w-[90%] max-w-message-max")}>
+        <div className={cn("lg:mr-12 mobile:ml-0 md:ml-8")}>
+          <div className={cn("flex items-start")}>
             {chatState.assistant?.id === 0 ? (
-              <Logo className="mobile:hidden" size="small" />
+              <Logo className={cn("mobile:hidden")} size="small" />
             ) : (
               <AssistantIcon
-                className="mobile:hidden"
+                className={cn("mobile:hidden")}
                 size={24}
                 assistant={chatState.assistant}
               />
             )}
-            <div className="w-full">
-              <div className="max-w-message-max break-words">
-                <div className="w-full desktop:ml-4">
-                  <div className="max-w-message-max break-words">
+            <div className={cn("w-full")}>
+              <div className={cn("max-w-message-max break-words")}>
+                <div className={cn("w-full desktop:ml-4")}>
+                  <div className={cn("max-w-message-max break-words")}>
                     <div
                       ref={markdownRef}
-                      className="overflow-x-visible max-w-content-max focus:outline-none select-text"
+                      className={cn(
+                        "overflow-x-visible max-w-content-max focus:outline-none select-text"
+                      )}
                       onCopy={(e) => handleCopy(e, markdownRef)}
                     >
                       {groupedPackets.length === 0 ? (
@@ -333,11 +337,15 @@ export function AIMessage({
                   {chatState.handleFeedback &&
                     stopPacketSeen &&
                     displayComplete && (
-                      <div className="flex md:flex-row justify-between items-center w-full mt-1 transition-transform duration-300 ease-in-out transform opacity-100">
+                      <div
+                        className={cn(
+                          "flex md:flex-row justify-between items-center w-full mt-1 transition-transform duration-300 ease-in-out transform opacity-100"
+                        )}
+                      >
                         <TooltipGroup>
-                          <div className="flex items-center gap-x-0.5">
+                          <div className={cn("flex items-center gap-x-0.5")}>
                             {includeMessageSwitcher && (
-                              <div className="-mx-1">
+                              <div className={cn("-mx-1")}>
                                 <MessageSwitcher
                                   currentPage={(currentMessageInd ?? 0) + 1}
                                   totalPages={
@@ -365,49 +373,34 @@ export function AIMessage({
                               </div>
                             )}
 
-                            <CustomTooltip showTick line content="Copy">
-                              <CopyButton
-                                copyAllFn={() =>
-                                  copyAll(
-                                    getTextContent(rawPackets),
-                                    markdownRef
-                                  )
-                                }
-                              />
-                            </CustomTooltip>
-
-                            <CustomTooltip
-                              showTick
-                              line
-                              content="Good response"
-                            >
-                              <HoverableIcon
-                                icon={<LikeFeedback size={16} />}
-                                onClick={() => chatState.handleFeedback("like")}
-                              />
-                            </CustomTooltip>
-
-                            <CustomTooltip showTick line content="Bad response">
-                              <HoverableIcon
-                                icon={<DislikeFeedback size={16} />}
-                                onClick={() =>
-                                  chatState.handleFeedback("dislike")
-                                }
-                              />
-                            </CustomTooltip>
+                            <IconButton
+                              icon={SvgCopy}
+                              tertiary
+                              onClick={() =>
+                                copyAll(getTextContent(rawPackets), markdownRef)
+                              }
+                              tooltip="Copy"
+                            />
+                            <IconButton
+                              icon={SvgThumbsUp}
+                              tertiary
+                              onClick={() => chatState.handleFeedback("like")}
+                              tooltip="Good Response"
+                            />
+                            <IconButton
+                              icon={SvgThumbsDown}
+                              tertiary
+                              onClick={() =>
+                                chatState.handleFeedback("dislike")
+                              }
+                              tooltip="Bad Response"
+                            />
 
                             {chatState.regenerate && (
-                              <CustomTooltip
-                                disabled={isRegenerateDropdownVisible}
-                                showTick
-                                line
-                                content="Regenerate"
-                              >
-                                <RegenerateOption
-                                  regenerate={chatState.regenerate}
-                                  overriddenModel={chatState.overriddenModel}
-                                />
-                              </CustomTooltip>
+                              <RegenerateOption
+                                regenerate={chatState.regenerate}
+                                overriddenModel={chatState.overriddenModel}
+                              />
                             )}
 
                             {nodeId &&
@@ -415,7 +408,7 @@ export function AIMessage({
                                 documentMap.size > 0) && (
                                 <>
                                   {chatState.regenerate && (
-                                    <div className="h-4 w-px mx-2" />
+                                    <div className={cn("h-4 w-px mx-2")} />
                                   )}
                                   <CustomTooltip
                                     showTick

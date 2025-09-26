@@ -23,7 +23,7 @@ import { useDeepResearchToggle } from "@/app/chat/hooks/useDeepResearchToggle";
 import { useAgentsContext } from "@/components-2/context/AgentsContext";
 import { useChatContext } from "@/components-2/context/ChatContext";
 import Text from "@/components-2/Text";
-import { IconButton } from "@/components-2/buttons/IconButton";
+import IconButton from "@/components-2/buttons/IconButton";
 import SvgCopy from "@/icons/copy";
 import SvgEdit from "@/icons/edit";
 import { cn } from "@/lib/utils";
