@@ -1268,7 +1268,6 @@ def _docprocessing_task(
     tenant_id: str,
     batch_num: int,
 ) -> None:
-
     start_time = time.monotonic()
 
     if tenant_id:
