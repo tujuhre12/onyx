@@ -4,8 +4,13 @@ from typing import List
 from agents import function_tool
 from agents import RunContextWrapper
 
+from onyx.agents.agent_search.dr.models import IterationAnswer
+from onyx.agents.agent_search.dr.models import IterationInstructions
 from onyx.agents.agent_search.dr.sub_agents.web_search.providers import (
     get_default_provider,
+)
+from onyx.agents.agent_search.dr.sub_agents.web_search.utils import (
+    dummy_inference_section_from_internet_search_result,
 )
 from onyx.chat.turn.models import MyContext
 from onyx.configs.constants import DocumentSource
@@ -33,9 +38,12 @@ def web_search(run_context: RunContextWrapper[MyContext], query: str) -> str:
         query: The natural-language search query.
     """
     search_provider = get_default_provider()
+    # TODO: Find better way to track index that isn't so implicit
+    # based on number of tool calls
+    index = run_context.context.current_run_step + 1
     run_context.context.run_dependencies.emitter.emit(
         Packet(
-            ind=run_context.context.current_run_step + 1,
+            ind=index,
             obj=SearchToolStart(
                 type="internal_search_tool_start", is_internet_search=True
             ),
@@ -43,10 +51,18 @@ def web_search(run_context: RunContextWrapper[MyContext], query: str) -> str:
     )
     run_context.context.run_dependencies.emitter.emit(
         Packet(
-            ind=run_context.context.current_run_step + 1,
+            ind=index,
             obj=SearchToolDelta(
                 type="internal_search_tool_delta", queries=[query], documents=None
             ),
+        )
+    )
+    run_context.context.iteration_instructions.append(
+        IterationInstructions(
+            iteration_nr=index,
+            plan="plan",
+            purpose="Searching the web for information",
+            reasoning=f"I am now using Web Search to gather information on {query}",
         )
     )
     hits = search_provider.search(query)
@@ -90,7 +106,7 @@ def web_search(run_context: RunContextWrapper[MyContext], query: str) -> str:
     # TODO: Remove "Results" section from internet search tool
     run_context.context.run_dependencies.emitter.emit(
         Packet(
-            ind=run_context.context.current_run_step + 1,
+            ind=index,
             obj=SearchToolDelta(
                 type="internal_search_tool_delta",
                 queries=None,
@@ -98,15 +114,33 @@ def web_search(run_context: RunContextWrapper[MyContext], query: str) -> str:
             ),
         )
     )
+    dummy_docs_inference_sections = [
+        dummy_inference_section_from_internet_search_result(doc) for doc in hits
+    ]
+    run_context.context.aggregated_context.global_iteration_responses.append(
+        IterationAnswer(
+            tool="web_search",
+            tool_id=18,
+            iteration_nr=index,
+            parallelization_nr=0,
+            question=query,
+            reasoning=f"I am now using Web Search to gather information on {query}",
+            answer="Cool",
+            cited_documents={
+                i: inference_section
+                for i, inference_section in enumerate(dummy_docs_inference_sections)
+            },
+        )
+    )
     run_context.context.run_dependencies.emitter.emit(
         Packet(
-            ind=run_context.context.current_run_step + 1,
+            ind=index,
             obj=SectionEnd(
                 type="section_end",
             ),
         )
     )
-    run_context.context.current_run_step += 2
+    run_context.context.current_run_step = index + 1
     return json.dumps({"results": results})
 
 

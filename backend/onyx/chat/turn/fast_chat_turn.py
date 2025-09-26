@@ -143,28 +143,6 @@ def save_iteration(
         token_count=0,
     )
 
-    # research_agent_iteration_step = ResearchAgentIteration(
-    #     primary_question_id=message_id,
-    #     reasoning="reason",
-    #     purpose="purpose",
-    #     iteration_nr=0,
-    # )
-    # db_session.add(research_agent_iteration_step)
-    # research_agent_iteration_sub_step = ResearchAgentIterationSubStep(
-    #     primary_question_id=message_id,
-    #     iteration_nr=0,
-    #     iteration_sub_step_nr=0,
-    #     sub_step_instructions="question",
-    #     sub_step_tool_id=18,
-    #     sub_answer="answer",
-    #     reasoning="reasoning",
-    #     claims="claims",
-    #     cited_doc_results=[],
-    #     generated_images=None,
-    #     additional_data=None,
-    # )
-    # db_session.add(research_agent_iteration_sub_step)
-
     for iteration_preparation in ctx.iteration_instructions:
         research_agent_iteration_step = ResearchAgentIteration(
             primary_question_id=message_id,
