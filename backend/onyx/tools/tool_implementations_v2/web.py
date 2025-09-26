@@ -16,7 +16,6 @@ from onyx.server.query_and_chat.streaming_models import SearchToolStart
 
 
 def short_tag(link: str, i: int) -> str:
-    # Stable, readable; index keeps it deterministic across a batch
     return f"S{i+1}"
 
 
@@ -54,7 +53,7 @@ def web_search(run_context: RunContextWrapper[MyContext], query: str) -> str:
     for i, r in enumerate(hits):
         results.append(
             {
-                "tag": short_tag(r.link, i),  # <-- add a tag
+                "tag": short_tag(r.link, i),
                 "title": r.title,
                 "link": r.link,
                 "snippet": r.snippet,
@@ -64,6 +63,39 @@ def web_search(run_context: RunContextWrapper[MyContext], query: str) -> str:
                 ),
             }
         )
+    saved_search_docs = [
+        SavedSearchDoc(
+            document_id=hit.link,
+            chunk_ind=0,
+            semantic_identifier=hit.link,
+            link=hit.link,
+            blurb=hit.snippet,
+            source_type=DocumentSource.WEB,
+            boost=1,
+            hidden=False,
+            metadata={},
+            score=0.0,
+            is_relevant=None,
+            relevance_explanation=None,
+            match_highlights=[],
+            updated_at=None,
+            primary_owners=None,
+            secondary_owners=None,
+            is_internet=True,
+        )
+        for hit in hits
+    ]
+    print(saved_search_docs)
+    run_context.context.run_dependencies.emitter.emit(
+        Packet(
+            ind=run_context.context.current_run_step + 1,
+            obj=SearchToolDelta(
+                type="internal_search_tool_delta",
+                queries=None,
+                documents=saved_search_docs,
+            ),
+        )
+    )
     run_context.context.current_run_step += 2
     return json.dumps({"results": results})
 
@@ -81,38 +113,6 @@ def web_fetch(run_context: RunContextWrapper[MyContext], urls: List[str]) -> str
         urls: The full URLs of the pages to retrieve.
     """
     search_provider = get_default_provider()
-    saved_search_docs = [
-        SavedSearchDoc(
-            document_id=url,
-            chunk_ind=0,
-            semantic_identifier=url,
-            link=url,
-            blurb=url,
-            source_type=DocumentSource.WEB,
-            boost=1,
-            hidden=False,
-            metadata={},
-            score=0.0,
-            is_relevant=None,
-            relevance_explanation=None,
-            match_highlights=[],
-            updated_at=None,
-            primary_owners=None,
-            secondary_owners=None,
-            is_internet=True,
-        )
-        for url in urls
-    ]
-    run_context.context.run_dependencies.emitter.emit(
-        Packet(
-            ind=run_context.context.current_run_step + 1,
-            obj=SearchToolDelta(
-                type="internal_search_tool_delta",
-                is_internet_search=True,
-                documents=saved_search_docs,
-            ),
-        )
-    )
     docs = search_provider.contents(urls)
     out = []
     for i, d in enumerate(docs):

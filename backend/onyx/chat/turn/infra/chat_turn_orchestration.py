@@ -48,7 +48,9 @@ def unified_event_stream(
         t.start()
         while True:
             pkt: Packet = emitter.bus.get()
+            print("packet", pkt)
             if pkt.obj == OverallStop(type="stop"):
+                yield pkt
                 break
             else:
                 yield pkt

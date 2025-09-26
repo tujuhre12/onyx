@@ -42,6 +42,9 @@ def fast_chat_turn(messages: list[dict], dependencies: RunDependencies) -> None:
         if isinstance(ev, RunItemStreamEvent):
             pass
         elif isinstance(ev, RawResponsesStreamEvent):
+            # TODO: might need some variation here for different types of models
+            # OpenAI packet translator
+            # Default packet translator
             obj = None
             if ev.data.type == "response.created":
                 obj = MessageStart(
@@ -49,8 +52,8 @@ def fast_chat_turn(messages: list[dict], dependencies: RunDependencies) -> None:
                 )
             elif ev.data.type == "response.output_text.delta":
                 obj = MessageDelta(type="message_delta", content=ev.data.delta)
-            elif ev.data.type == "response.completed":
-                obj = OverallStop(type="stop")
+            # elif ev.data.type == "response.completed":
+            #     obj = OverallStop(type="stop")
             elif ev.data.type == "response.output_item.done":
                 obj = SectionEnd(type="section_end")
             if obj:
