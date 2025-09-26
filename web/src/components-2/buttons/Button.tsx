@@ -7,7 +7,10 @@ import { cn } from "@/lib/utils";
 const variantClasses = (active: boolean | undefined) =>
   ({
     primary: {
-      main: [],
+      main: [
+        active ? "bg-theme-primary-06" : "bg-theme-primary-05",
+        "hover:bg-theme-primary-04",
+      ],
       secondary: [
         active ? "bg-background-tint-00" : "bg-background-tint-01",
         "hover:bg-background-tint-02",

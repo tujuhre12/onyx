@@ -20,10 +20,10 @@ import Button from "@/components-2/buttons/Button";
 import { useCurrentMessageTree } from "@/app/chat/stores/useChatSessionStore";
 import { useChatController } from "@/app/chat/hooks/useChatController";
 import { useDeepResearchToggle } from "@/app/chat/hooks/useDeepResearchToggle";
-import { useAgentsContext } from "../context/AgentsContext";
-import { useChatContext } from "../context/ChatContext";
-import Text from "../Text";
-import { IconButton } from "../buttons/IconButton";
+import { useAgentsContext } from "@/components-2/context/AgentsContext";
+import { useChatContext } from "@/components-2/context/ChatContext";
+import Text from "@/components-2/Text";
+import { IconButton } from "@/components-2/buttons/IconButton";
 import SvgCopy from "@/icons/copy";
 import SvgEdit from "@/icons/edit";
 import { cn } from "@/lib/utils";
@@ -194,10 +194,7 @@ interface HumanMessageProps {
   onMessageSelection: (messageId: number) => void;
 }
 
-export function HumanMessage({
-  message,
-  onMessageSelection,
-}: HumanMessageProps) {
+function HumanMessageInner({ message, onMessageSelection }: HumanMessageProps) {
   const [messageContent, setMessageContent] = useState(message.message);
   const completeMessageTree = useCurrentMessageTree();
   const [hover, setHovered] = useState(false);
@@ -210,29 +207,35 @@ export function HumanMessage({
   const siblingMessageIds = parentMessage?.childrenNodeIds || [];
   const siblingMessagesIndex = message.messageId
     ? (siblingMessageIds || []).indexOf(message.messageId)
-    : 0;
+    : null;
 
-  const getPreviousMessage = () => {
+  function handlePrevious() {
+    // Return if the current message was:
+    // - Does not have a messageId (possible for messages that have just been submitted).
+    // - This message is the first message in the array.
     if (
-      siblingMessagesIndex !== undefined &&
-      siblingMessagesIndex > 0 &&
-      siblingMessageIds
-    ) {
-      return siblingMessageIds[siblingMessagesIndex - 1];
-    }
-    return undefined;
-  };
+      !siblingMessagesIndex ||
+      siblingMessagesIndex === -1 ||
+      siblingMessagesIndex === 0
+    )
+      return;
+    stopGenerating();
+    onMessageSelection(siblingMessageIds[siblingMessagesIndex - 1]!);
+  }
 
-  const getNextMessage = () => {
+  function handleNext() {
+    // Return if the current message was:
+    // - Does not have a messageId (possible for messages that have just been submitted).
+    // - This message is the last message in the array.
     if (
-      siblingMessagesIndex !== undefined &&
-      siblingMessagesIndex < (siblingMessageIds?.length || 0) - 1 &&
-      siblingMessageIds
-    ) {
-      return siblingMessageIds[siblingMessagesIndex + 1];
-    }
-    return undefined;
-  };
+      siblingMessagesIndex === null ||
+      siblingMessagesIndex === -1 ||
+      siblingMessagesIndex >= siblingMessageIds.length - 1
+    )
+      return;
+    stopGenerating();
+    onMessageSelection(siblingMessageIds[siblingMessagesIndex + 1]!);
+  }
 
   return (
     <div className="flex flex-col justify-center items-end gap-spacing-inline">
@@ -247,6 +250,8 @@ export function HumanMessage({
         <div
           className=" flex flex-col gap-spacing-inline items-end justify-center"
           onMouseLeave={() => setHovered(false)}
+          onMouseEnter={() => setHovered(true)}
+          onMouseOver={() => setHovered(true)}
         >
           <div className="flex flex-row items-center justify-end gap-spacing-inline">
             <div
@@ -263,191 +268,34 @@ export function HumanMessage({
                 onClick={() => setIsEditing(true)}
               />
             </div>
-            <div
-              onMouseEnter={() => setHovered(true)}
-              onMouseOver={() => setHovered(true)}
+            <Text
+              className={cn(
+                "max-w-[25rem] w-fit p-padding-button rounded-t-16 rounded-bl-16 whitespace-break-spaces",
+                hover ? "bg-background-tint-03" : "bg-background-tint-02"
+              )}
             >
-              <Text
-                className={cn(
-                  "max-w-[25rem] w-fit p-padding-button rounded-t-16 rounded-bl-16 whitespace-break-spaces",
-                  hover ? "bg-background-tint-03" : "bg-background-tint-02"
-                )}
-              >
-                {messageContent}
-              </Text>
+              {messageContent}
+            </Text>
+          </div>
+          {siblingMessagesIndex !== null && siblingMessagesIndex !== -1 && (
+            <div
+              className={cn(hover ? "opacity-100" : "invisible cursor-auto")}
+            >
+              <MessageSwitcher
+                currentPage={siblingMessagesIndex + 1}
+                totalPages={siblingMessageIds.length}
+                handlePrevious={handlePrevious}
+                handleNext={handleNext}
+              />
             </div>
-          </div>
-          <div className={cn(hover ? "opacity-100" : "invisible cursor-auto")}>
-            <MessageSwitcher
-              currentPage={siblingMessagesIndex + 1}
-              totalPages={siblingMessageIds.length}
-              handlePrevious={() => {
-                stopGenerating();
-                const previousMessage = getPreviousMessage();
-                if (!previousMessage) return;
-                onMessageSelection(previousMessage);
-              }}
-              handleNext={() => {
-                stopGenerating();
-                const nextMessage = getNextMessage();
-                if (!nextMessage) return;
-                onMessageSelection(nextMessage);
-              }}
-            />
-          </div>
+          )}
         </div>
       )}
     </div>
   );
-
-  // const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // const [isHovered, setIsHovered] = useState(false);
-  // const [isEditing, setIsEditing] = useState(false);
-  // const [editedContent, setEditedContent] = useState(content);
-  // useEffect(() => setEditedContent(content), [content]);
-  // useEffect(() => {
-  //   if (textareaRef.current) {
-  //     // Focus the textarea
-  //     textareaRef.current.focus();
-  //     // Move the cursor to the end of the text
-  //     textareaRef.current.selectionStart = textareaRef.current.value.length;
-  //     textareaRef.current.selectionEnd = textareaRef.current.value.length;
-  //     textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-  //   }
-  // }, [isEditing]);
-
-  // const handleEditSubmit = () => {
-  //   onEdit?.(editedContent);
-  //   setIsEditing(false);
-  // };
-
-  // const currentMessageInd = messageId
-  //   ? otherMessagesCanSwitchTo?.indexOf(messageId)
-  //   : undefined;
-
-  // return (
-  //   <div
-  //     id="onyx-human-message"
-  //     className="pt-5 pb-1 w-full lg:px-5 flex -mr-6 relative"
-  //     onMouseEnter={() => setIsHovered(true)}
-  //     onMouseLeave={() => setIsHovered(false)}
-  //   >
-  //     <div className={`mx-auto ${shared ? "w-full" : "w-[90%]"} max-w-[790px]`}>
-  //       <div className="xl:ml-8">
-  //         <div className="flex flex-col desktop:mr-4">
-  //           <FileDisplay
-  //             alignBubble
-  //             setPresentingDocument={setPresentingDocument}
-  //             files={files || []}
-  //           />
-
-  //           <div className="flex justify-end">
-  //             <div className="w-full ml-8 flex w-full w-[800px] break-words">
-  //               {isEditing ? (
-  //                 <EditingArea
-  //                   textareaRef={textareaRef}
-  //                   editedContent={editedContent}
-  //                   setEditedContent={setEditedContent}
-  //                   onSubmit={handleEditSubmit}
-  //                   onCancel={() => setIsEditing(false)}
-  //                   originalContent={content}
-  //                 />
-  //               ) : typeof content === "string" ? (
-  //                 <>
-  //                   <div className="ml-auto flex items-center mr-1 mt-2 h-fit mb-auto">
-  //                     {onEdit &&
-  //                     isHovered &&
-  //                     !isEditing &&
-  //                     (!files || files.length === 0) ? (
-  //                       <TooltipProvider>
-  //                         <Tooltip>
-  //                           <TooltipTrigger>
-  //                             <HoverableIcon
-  //                               icon={<FiEdit2 className="text-text-05" />}
-  //                               onClick={() => {
-  //                                 setIsEditing(true);
-  //                                 setIsHovered(false);
-  //                               }}
-  //                             />
-  //                           </TooltipTrigger>
-  //                           <TooltipContent>Edit</TooltipContent>
-  //                         </Tooltip>
-  //                       </TooltipProvider>
-  //                     ) : (
-  //                       <div className="w-7" />
-  //                     )}
-  //                   </div>
-
-  //                   <div
-  //                     className={`${
-  //                       !(
-  //                         onEdit &&
-  //                         isHovered &&
-  //                         !isEditing &&
-  //                         (!files || files.length === 0)
-  //                       ) && "ml-auto"
-  //                     } relative flex-none max-w-[70%] mb-auto whitespace-break-spaces rounded-bl-3xl rounded-t-3xl bg-background-neutral-02 px-5 py-2.5`}
-  //                   >
-  //                     {editedContent}
-  //                   </div>
-  //                 </>
-  //               ) : (
-  //                 <>
-  //                   {onEdit &&
-  //                   isHovered &&
-  //                   !isEditing &&
-  //                   (!files || files.length === 0) ? (
-  //                     <div className="my-auto">
-  //                       <Hoverable
-  //                         icon={FiEdit2}
-  //                         onClick={() => {
-  //                           setIsEditing(true);
-  //                           setIsHovered(false);
-  //                         }}
-  //                       />
-  //                     </div>
-  //                   ) : (
-  //                     <div className="h-[27px]" />
-  //                   )}
-  //                   <div className="ml-auto rounded-lg p-1">
-  //                     {editedContent}
-  //                   </div>
-  //                 </>
-  //               )}
-  //             </div>
-  //           </div>
-  //         </div>
-
-  //         <div className="flex flex-col md:flex-row gap-x-0.5 mt-1">
-  //           {currentMessageInd !== undefined &&
-  //             onMessageSelection &&
-  //             otherMessagesCanSwitchTo &&
-  //             otherMessagesCanSwitchTo.length > 1 && (
-  //               <div className="ml-auto mr-3">
-  //                 <MessageSwitcher
-  //                   disableForStreaming={disableSwitchingForStreaming}
-  //                   currentPage={currentMessageInd + 1}
-  //                   totalPages={otherMessagesCanSwitchTo.length}
-  //                   handlePrevious={() => {
-  //                     stopGenerating();
-  //                     const prevMessage = getPreviousMessage();
-  //                     if (prevMessage !== undefined) {
-  //                       onMessageSelection(prevMessage);
-  //                     }
-  //                   }}
-  //                   handleNext={() => {
-  //                     stopGenerating();
-  //                     const nextMessage = getNextMessage();
-  //                     if (nextMessage !== undefined) {
-  //                       onMessageSelection(nextMessage);
-  //                     }
-  //                   }}
-  //                 />
-  //               </div>
-  //             )}
-  //         </div>
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
 }
+
+const HumanMessage = React.memo(HumanMessageInner);
+HumanMessage.displayName = "HumanMessage";
+
+export default HumanMessage;
