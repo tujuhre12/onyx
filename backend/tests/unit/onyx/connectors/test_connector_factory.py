@@ -8,6 +8,7 @@ Unit tests for lazy loading connector factory to validate:
 
 import importlib
 from unittest.mock import MagicMock
+from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
@@ -117,7 +118,7 @@ class TestConnectorClassLoading:
         assert len(_connector_cache) == 1  # Cache size unchanged
 
     @patch("importlib.import_module")
-    def test_load_connector_class_import_error(self, mock_import) -> None:
+    def test_load_connector_class_import_error(self, mock_import: Mock) -> None:
         """Test handling of import errors."""
         mock_import.side_effect = ImportError("Module not found")
 
@@ -130,12 +131,12 @@ class TestConnectorClassLoading:
         )
 
     @patch("importlib.import_module")
-    def test_load_connector_class_attribute_error(self, mock_import) -> None:
+    def test_load_connector_class_attribute_error(self, mock_import: Mock) -> None:
         """Test handling of missing class in module."""
 
         # Create a custom mock that raises AttributeError for the specific class
         class MockModule:
-            def __getattr__(self, name):
+            def __getattr__(self, name: str) -> MagicMock:
                 if name == "WebConnector":
                     raise AttributeError("Class not found")
                 return MagicMock()
