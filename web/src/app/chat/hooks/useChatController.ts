@@ -20,7 +20,13 @@ import {
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { SEARCH_PARAM_NAMES } from "../services/searchParams";
 import { OnyxDocument } from "@/lib/search/interfaces";
-import { FilterManager, LlmDescriptor, LlmManager } from "@/lib/hooks";
+import {
+  FilterManager,
+  LlmDescriptor,
+  LlmManager,
+  useFilters,
+  useLlmManager,
+} from "@/lib/hooks";
 import {
   BackendMessage,
   ChatFileType,
@@ -74,8 +80,9 @@ import {
   PacketType,
 } from "../services/streamingModels";
 import { useAssistantsContext } from "@/components/context/AssistantsContext";
+import { useAgentsContext } from "@/components-2/context/AgentsContext";
 
-interface RegenerationRequest {
+export interface RegenerationRequest {
   messageId: number;
   parentMessage: Message;
   forceSearch?: boolean;
@@ -100,48 +107,43 @@ export interface OnSubmitProps {
   overrideFileDescriptors?: FileDescriptor[];
 }
 
-interface UseChatControllerProps {
-  filterManager: FilterManager;
-  llmManager: LlmManager;
-  liveAssistant: MinimalPersonaSnapshot | undefined;
-  availableAssistants: MinimalPersonaSnapshot[];
-  existingChatSessionId: string | null;
-  selectedDocuments: OnyxDocument[];
-  searchParams: ReadonlyURLSearchParams;
-  setPopup: (popup: PopupSpec) => void;
+export interface UseChatControllerProps {
+  resetInputBar?: () => void;
+
+  selectedDocuments?: OnyxDocument[];
 
   // scroll/focus related stuff
-  clientScrollToBottom: (fast?: boolean) => void;
+  clientScrollToBottom?: (fast?: boolean) => void;
 
-  resetInputBar: () => void;
-  setSelectedAssistantFromId: (assistantId: number | null) => void;
+  setPopup?: (popup: PopupSpec) => void;
+  setSelectedAssistantFromId?: (assistantId: number | null) => void;
 }
 
 export function useChatController({
-  filterManager,
-  llmManager,
-  availableAssistants,
-  liveAssistant,
-  existingChatSessionId,
-  selectedDocuments,
+  selectedDocuments = [],
 
   // scroll/focus related stuff
-  clientScrollToBottom,
+  clientScrollToBottom = () => {},
 
-  setPopup,
-  resetInputBar,
-  setSelectedAssistantFromId,
-}: UseChatControllerProps) {
+  setPopup = () => {},
+  resetInputBar = () => {},
+  setSelectedAssistantFromId = () => {},
+}: UseChatControllerProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { refreshChatSessions, llmProviders } = useChatContext();
+  const { refreshChatSessions, llmProviders, currentChat } = useChatContext();
   const { assistantPreferences, forcedToolIds } = useAssistantsContext();
+  const { currentAgent, agents } = useAgentsContext();
+  const filterManager = useFilters();
+  const llmManager = useLlmManager(
+    llmProviders,
+    currentChat || undefined,
+    currentAgent || undefined
+  );
 
   // Use selectors to access only the specific fields we need
-  const currentSessionId = useChatSessionStore(
-    (state) => state.currentSessionId
-  );
+  const currentSessionId = currentChat?.id ?? null;
   const sessions = useChatSessionStore((state) => state.sessions);
 
   // Store actions - these don't cause re-renders
@@ -198,7 +200,7 @@ export function useChatController({
   }, [currentSessionId]);
 
   const getCurrentSessionId = (): string => {
-    return currentSessionId || existingChatSessionId || "";
+    return currentSessionId || currentSessionId || "";
   };
 
   const updateRegenerationState = (
@@ -414,18 +416,18 @@ export function useChatController({
       clientScrollToBottom();
 
       let currChatSessionId: string;
-      const isNewSession = existingChatSessionId === null;
+      const isNewSession = currentSessionId === null;
 
       const searchParamBasedChatSessionName =
         searchParams?.get(SEARCH_PARAM_NAMES.TITLE) || null;
 
       if (isNewSession) {
         currChatSessionId = await createChatSession(
-          liveAssistant?.id || 0,
+          currentAgent?.id || 0,
           searchParamBasedChatSessionName
         );
       } else {
-        currChatSessionId = existingChatSessionId as string;
+        currChatSessionId = currentSessionId as string;
       }
       frozenSessionId = currChatSessionId;
       // update the selected model for the chat session if one is specified so that
@@ -544,15 +546,15 @@ export function useChatController({
         const lastSuccessfulMessageId = getLastSuccessfulMessageId(
           currentMessageTreeLocal
         );
-        const disabledToolIds = liveAssistant
-          ? assistantPreferences?.[liveAssistant?.id]?.disabled_tool_ids
+        const disabledToolIds = currentAgent
+          ? assistantPreferences?.[currentAgent?.id]?.disabled_tool_ids
           : undefined;
 
         const stack = new CurrentMessageFIFO();
         updateCurrentMessageFIFO(stack, {
           signal: controller.signal,
           message: currMessage,
-          alternateAssistantId: liveAssistant?.id,
+          alternateAssistantId: currentAgent?.id,
           fileDescriptors: overrideFileDescriptors || currentMessageFiles,
           parentMessageId:
             regenerationRequest?.parentMessage.messageId ||
@@ -593,8 +595,8 @@ export function useChatController({
           useExistingUserMessage: isSeededChat,
           useAgentSearch,
           enabledToolIds:
-            disabledToolIds && liveAssistant
-              ? liveAssistant.tools
+            disabledToolIds && currentAgent
+              ? currentAgent.tools
                   .filter((tool) => !disabledToolIds?.includes(tool.id))
                   .map((tool) => tool.id)
               : undefined,
@@ -781,7 +783,7 @@ export function useChatController({
         // NOTE: don't switch pages if the user has navigated away from the chat
         if (
           currChatSessionId === frozenSessionId ||
-          existingChatSessionId === null
+          currentSessionId === null
         ) {
           const newUrl = buildChatUrl(
             searchParams,
@@ -808,9 +810,9 @@ export function useChatController({
       llmManager.currentLlm,
       llmManager.temperature,
       // Others that affect logic
-      liveAssistant,
-      availableAssistants,
-      existingChatSessionId,
+      currentAgent,
+      agents,
+      currentSessionId,
       selectedDocuments,
       searchParams,
       setPopup,
@@ -832,7 +834,7 @@ export function useChatController({
     async (acceptedFiles: File[]) => {
       const [_, llmModel] = getFinalLLM(
         llmProviders,
-        liveAssistant || null,
+        currentAgent || null,
         llmManager.currentLlm
       );
       const llmAcceptsImages = modelSupportsImageInput(llmProviders, llmModel);
@@ -884,7 +886,7 @@ export function useChatController({
 
       updateChatStateAction(getCurrentSessionId(), "input");
     },
-    [llmProviders, liveAssistant, llmManager, forcedToolIds]
+    [llmProviders, currentAgent, llmManager, forcedToolIds]
   );
 
   useEffect(() => {
@@ -901,15 +903,11 @@ export function useChatController({
 
   // update chosen assistant if we navigate between pages
   useEffect(() => {
-    if (currentMessageHistory.length === 0 && existingChatSessionId === null) {
+    if (currentMessageHistory.length === 0 && currentSessionId === null) {
       // Select from available assistants so shared assistants appear.
       setSelectedAssistantFromId(null);
     }
-  }, [
-    existingChatSessionId,
-    availableAssistants,
-    currentMessageHistory.length,
-  ]);
+  }, [currentSessionId, agents, currentMessageHistory.length]);
 
   useEffect(() => {
     const handleSlackChatRedirect = async () => {
@@ -956,7 +954,7 @@ export function useChatController({
   useEffect(() => {
     async function fetchMaxTokens() {
       const response = await fetch(
-        `/api/chat/max-selected-document-tokens?persona_id=${liveAssistant?.id}`
+        `/api/chat/max-selected-document-tokens?persona_id=${currentAgent?.id}`
       );
       if (response.ok) {
         const maxTokens = (await response.json()).max_tokens as number;
@@ -964,7 +962,7 @@ export function useChatController({
       }
     }
     fetchMaxTokens();
-  }, [liveAssistant]);
+  }, [currentAgent]);
 
   // fetch # of document tokens for the selected files
   useEffect(() => {

@@ -1,9 +1,10 @@
 import React, { useCallback } from "react";
 import { MinimalOnyxDocument } from "@/lib/search/interfaces";
-import { FileDescriptor } from "@/app/chat/interfaces";
-import { HumanMessage } from "./HumanMessage";
+import { FileDescriptor, Message } from "@/app/chat/interfaces";
+import { HumanMessage } from "../../../components-2/messages/HumanMessage";
 
 interface BaseMemoizedHumanMessageProps {
+  message: Message;
   content: string;
   files?: FileDescriptor[];
   messageId?: number | null;
@@ -28,6 +29,7 @@ interface MemoizedHumanMessageProps extends BaseMemoizedHumanMessageProps {
 }
 
 const _MemoizedHumanMessage = React.memo(function _MemoizedHumanMessage({
+  message,
   content,
   files,
   messageId,
@@ -41,6 +43,7 @@ const _MemoizedHumanMessage = React.memo(function _MemoizedHumanMessage({
 }: InternalMemoizedHumanMessageProps) {
   return (
     <HumanMessage
+      message={message}
       content={content}
       files={files}
       messageId={messageId ?? undefined}
@@ -56,6 +59,7 @@ const _MemoizedHumanMessage = React.memo(function _MemoizedHumanMessage({
 });
 
 export const MemoizedHumanMessage = ({
+  message,
   content,
   files,
   messageId,
@@ -76,6 +80,7 @@ export const MemoizedHumanMessage = ({
 
   return (
     <_MemoizedHumanMessage
+      message={message}
       content={content}
       files={files}
       messageId={messageId}

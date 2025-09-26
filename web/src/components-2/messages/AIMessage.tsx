@@ -53,6 +53,8 @@ export function AIMessage({
   otherMessagesCanSwitchTo,
   onMessageSelection,
 }: AIMessageProps) {
+  // useEffect(() => console.log(3, otherMessagesCanSwitchTo), [otherMessagesCanSwitchTo])
+
   const markdownRef = useRef<HTMLDivElement>(null);
   const [isRegenerateDropdownVisible, setIsRegenerateDropdownVisible] =
     useState(false);

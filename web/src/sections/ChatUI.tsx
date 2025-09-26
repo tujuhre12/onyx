@@ -24,7 +24,7 @@ import { useAgentsContext } from "@/components-2/context/AgentsContext";
 import { useChatContext } from "@/components-2/context/ChatContext";
 import { useDeepResearchToggle } from "@/app/chat/hooks/useDeepResearchToggle";
 
-interface MessagesDisplayProps {
+export interface ChatUIProps {
   setCurrentFeedback: (feedback: [FeedbackType, number] | null) => void;
   onSubmit: (args: {
     message: string;
@@ -47,12 +47,11 @@ interface MessagesDisplayProps {
   onMessageSelection: (nodeId: number) => void;
   stopGenerating: () => void;
   handleResubmitLastMessage: () => void;
-  getContainerHeight: () => string | undefined;
   lastMessageRef: RefObject<HTMLDivElement>;
   endDivRef: RefObject<HTMLDivElement>;
 }
 
-export function MessagesDisplay({
+export function ChatUI({
   setCurrentFeedback,
   onSubmit,
   onMessageSelection,
@@ -60,7 +59,7 @@ export function MessagesDisplay({
   handleResubmitLastMessage,
   lastMessageRef,
   endDivRef,
-}: MessagesDisplayProps) {
+}: ChatUIProps) {
   const messageHistory = useCurrentMessageHistory();
   const completeMessageTree = useCurrentMessageTree();
   const { currentAgent, fallbackAgent } = useAgentsContext();
@@ -156,6 +155,7 @@ export function MessagesDisplay({
           return (
             <div id={messageReactComponentKey} key={messageReactComponentKey}>
               <MemoizedHumanMessage
+                message={message}
                 setPresentingDocument={setPresentingDocument}
                 disableSwitchingForStreaming={
                   (nextMessage && nextMessage.is_generating) || false
