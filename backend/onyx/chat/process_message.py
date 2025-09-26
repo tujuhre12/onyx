@@ -33,6 +33,7 @@ from onyx.chat.prompt_builder.answer_prompt_builder import default_build_system_
 from onyx.chat.prompt_builder.answer_prompt_builder import default_build_user_message
 from onyx.chat.turn import fast_chat_turn
 from onyx.chat.turn.infra.chat_turn_event_stream import convert_to_packet_obj
+from onyx.chat.turn.models import DependenciesToMaybeRemove
 from onyx.chat.turn.models import RunDependencies
 from onyx.chat.user_files.parse_user_files import parse_user_files
 from onyx.configs.chat_configs import CHAT_TARGET_CHUNK_PERCENTAGE
@@ -791,6 +792,12 @@ def stream_chat_message_objects(
             dependencies=RunDependencies(
                 llm=answer.graph_tooling.primary_llm,
                 search_tool=answer.graph_tooling.search_tool,
+                db_session=db_session,
+                dependencies_to_maybe_remove=DependenciesToMaybeRemove(
+                    chat_session_id=chat_session_id,
+                    message_id=reserved_message_id,
+                    research_type=answer.graph_config.behavior.research_type,
+                ),
             ),
         )
 
