@@ -122,7 +122,7 @@ def generate_starter_messages(
     """
     _, fast_llm = get_default_llms(temperature=0.5)
 
-    from onyx.llm.chat_llm import get_litellm
+    from onyx.llm.get_litellm import get_litellm
 
     litellm = get_litellm()
 

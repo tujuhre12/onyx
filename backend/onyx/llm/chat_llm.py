@@ -25,7 +25,6 @@ from langchain_core.messages.tool import ToolCallChunk
 from langchain_core.messages.tool import ToolMessage
 from langchain_core.prompt_values import PromptValue
 
-from onyx.configs.app_configs import BRAINTRUST_ENABLED
 from onyx.configs.app_configs import LOG_ONYX_MODEL_INTERACTIONS
 from onyx.configs.app_configs import MOCK_LLM_RESPONSE
 from onyx.configs.chat_configs import QA_TIMEOUT
@@ -34,6 +33,7 @@ from onyx.configs.model_configs import (
 )
 from onyx.configs.model_configs import GEN_AI_TEMPERATURE
 from onyx.configs.model_configs import LITELLM_EXTRA_BODY
+from onyx.llm.get_litellm import get_litellm
 from onyx.llm.interfaces import LLM
 from onyx.llm.interfaces import LLMConfig
 from onyx.llm.interfaces import ToolChoiceOptions
@@ -46,29 +46,6 @@ logger = setup_logger()
 
 if TYPE_CHECKING:
     import litellm
-
-    LiteLLMModule = litellm
-else:
-    LiteLLMModule = Any
-
-
-def get_litellm() -> LiteLLMModule:
-    """Get the configured litellm module. Lazily imports and configures on first use."""
-    global _litellm_module
-    if _litellm_module is None:
-        import litellm
-
-        # If a user configures a different model and it doesn't support all the same
-        # parameters like frequency and presence, just ignore them
-        litellm.drop_params = True
-        litellm.telemetry = False
-
-        if BRAINTRUST_ENABLED:
-            litellm.callbacks = ["braintrust"]
-
-        _litellm_module = litellm
-
-    return _litellm_module
 
 
 _LLM_PROMPT_LONG_TERM_LOG_CATEGORY = "llm_prompt"

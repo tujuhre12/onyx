@@ -146,7 +146,7 @@ def invoke_llm_json(
     and return an object of that schema.
     """
 
-    from onyx.llm.chat_llm import get_litellm
+    from onyx.llm.get_litellm import get_litellm
 
     litellm = get_litellm()
 

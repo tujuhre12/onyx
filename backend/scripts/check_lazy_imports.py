@@ -21,6 +21,7 @@ _MODULES_TO_LAZY_IMPORT = {
     "markitdown",
     "tiktoken",
     "unstructured",
+    "litellm",
 }
 
 

@@ -90,7 +90,7 @@ BEDROCK_DEFAULT_MODEL = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 
 def _get_bedrock_model_names() -> list[str]:
     """Lazy load bedrock model names from litellm."""
-    from onyx.llm.chat_llm import get_litellm
+    from onyx.llm.get_litellm import get_litellm
 
     litellm = get_litellm()
 
@@ -119,7 +119,7 @@ ANTHROPIC_VISIBLE_MODEL_NAMES = [
 
 def _get_anthropic_model_names() -> list[str]:
     """Lazy load anthropic model names from litellm."""
-    from onyx.llm.chat_llm import get_litellm
+    from onyx.llm.get_litellm import get_litellm
 
     litellm = get_litellm()
 
