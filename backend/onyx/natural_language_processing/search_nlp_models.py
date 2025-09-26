@@ -265,8 +265,8 @@ class CloudEmbedding:
     async def _embed_vertex(
         self, texts: list[str], model: str | None, embedding_type: str
     ) -> list[Embedding]:
-        import vertexai  # type: ignore
-        from vertexai.language_models import TextEmbeddingModel, TextEmbeddingInput  # type: ignore
+        import vertexai  # type: ignore[import-untyped]
+        from vertexai.language_models import TextEmbeddingModel, TextEmbeddingInput  # type: ignore[import-untyped]
 
         if not model:
             model = DEFAULT_VERTEX_MODEL
