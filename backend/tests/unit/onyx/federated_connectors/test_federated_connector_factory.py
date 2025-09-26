@@ -25,7 +25,7 @@ from onyx.federated_connectors.registry import FederatedConnectorMapping
 class TestFederatedConnectorMappingValidation:
     """Test that all federated connector mappings are valid."""
 
-    def test_all_federated_connector_mappings_exist(self):
+    def test_all_federated_connector_mappings_exist(self) -> None:
         """Test that all mapped modules and classes actually exist."""
         errors = []
 
@@ -57,7 +57,7 @@ class TestFederatedConnectorMappingValidation:
                 "Federated connector mapping validation failed:\n" + "\n".join(errors)
             )
 
-    def test_no_duplicate_mappings(self):
+    def test_no_duplicate_mappings(self) -> None:
         """Test that each FederatedConnectorSource only appears once in the mapping."""
         sources = list(FEDERATED_CONNECTOR_CLASS_MAP.keys())
         unique_sources = set(sources)
@@ -66,7 +66,7 @@ class TestFederatedConnectorMappingValidation:
             unique_sources
         ), "Duplicate FederatedConnectorSource entries found"
 
-    def test_mapping_format_consistency(self):
+    def test_mapping_format_consistency(self) -> None:
         """Test that all mappings follow the expected format."""
         for source, mapping in FEDERATED_CONNECTOR_CLASS_MAP.items():
             assert isinstance(
@@ -90,11 +90,11 @@ class TestFederatedConnectorMappingValidation:
 class TestFederatedConnectorClassLoading:
     """Test the lazy loading mechanism."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Clear cache before each test."""
         _federated_connector_cache.clear()
 
-    def test_load_federated_connector_class_success(self):
+    def test_load_federated_connector_class_success(self) -> None:
         """Test successful federated connector class loading."""
         connector_class = _load_federated_connector_class(
             FederatedConnectorSource.FEDERATED_SLACK
@@ -104,7 +104,7 @@ class TestFederatedConnectorClassLoading:
         assert issubclass(connector_class, FederatedConnector)
         assert connector_class.__name__ == "SlackFederatedConnector"
 
-    def test_load_federated_connector_class_caching(self):
+    def test_load_federated_connector_class_caching(self) -> None:
         """Test that federated connector classes are cached after first load."""
         assert len(_federated_connector_cache) == 0
 
@@ -122,19 +122,19 @@ class TestFederatedConnectorClassLoading:
         assert connector_class1 is connector_class2  # Same object reference
         assert len(_federated_connector_cache) == 1  # Cache size unchanged
 
-    def test_load_federated_connector_class_invalid_source(self):
+    def test_load_federated_connector_class_invalid_source(self) -> None:
         """Test loading connector for non-existent source."""
 
         class FakeSource:
             value = "FAKE_FEDERATED_SOURCE"
 
         with pytest.raises(FederatedConnectorMissingException) as exc_info:
-            _load_federated_connector_class(FakeSource())
+            _load_federated_connector_class(FakeSource())  # type: ignore
 
         assert "Federated connector not found for source" in str(exc_info.value)
 
     @patch("importlib.import_module")
-    def test_load_federated_connector_class_import_error(self, mock_import):
+    def test_load_federated_connector_class_import_error(self, mock_import) -> None:
         """Test handling of import errors."""
         mock_import.side_effect = ImportError("Module not found")
 
@@ -147,12 +147,12 @@ class TestFederatedConnectorClassLoading:
         )
 
     @patch("importlib.import_module")
-    def test_load_federated_connector_class_attribute_error(self, mock_import):
+    def test_load_federated_connector_class_attribute_error(self, mock_import) -> None:
         """Test handling of missing class in module."""
 
         # Create a custom mock that raises AttributeError for the specific class
         class MockModule:
-            def __getattr__(self, name):
+            def __getattr__(self, name: str) -> MagicMock:
                 if name == "SlackFederatedConnector":
                     raise AttributeError("Class not found")
                 return MagicMock()
@@ -171,11 +171,11 @@ class TestFederatedConnectorClassLoading:
 class TestGetFederatedConnectorCls:
     """Test the get_federated_connector_cls function."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Clear cache before each test."""
         _federated_connector_cache.clear()
 
-    def test_get_federated_connector_cls_basic(self):
+    def test_get_federated_connector_cls_basic(self) -> None:
         """Test basic federated connector class retrieval."""
         connector_class = get_federated_connector_cls(
             FederatedConnectorSource.FEDERATED_SLACK
@@ -189,7 +189,7 @@ class TestGetFederatedConnectorCls:
 class TestFederatedConnectorMappingIntegrity:
     """Test integrity of the federated connector mapping data."""
 
-    def test_all_federated_connector_sources_mapped(self):
+    def test_all_federated_connector_sources_mapped(self) -> None:
         """Test that all FederatedConnectorSource values have mappings."""
         # Get all FederatedConnectorSource enum values
         all_sources = set(FederatedConnectorSource)
@@ -207,7 +207,7 @@ class TestFederatedConnectorMappingIntegrity:
 class TestFederatedConnectorValidationScript:
     """Test that provides a validation script for CI/CD."""
 
-    def test_validate_all_federated_mappings_cli(self):
+    def test_validate_all_federated_mappings_cli(self) -> None:
         """Comprehensive validation that can be run in CI."""
         print("\n=== FEDERATED CONNECTOR FACTORY VALIDATION ===")
 

@@ -27,7 +27,7 @@ from onyx.connectors.registry import ConnectorMapping
 class TestConnectorMappingValidation:
     """Test that all connector mappings are valid."""
 
-    def test_all_connector_mappings_exist(self):
+    def test_all_connector_mappings_exist(self) -> None:
         """Test that all mapped modules and classes actually exist."""
         errors = []
 
@@ -57,7 +57,7 @@ class TestConnectorMappingValidation:
         if errors:
             pytest.fail("Connector mapping validation failed:\n" + "\n".join(errors))
 
-    def test_no_duplicate_mappings(self):
+    def test_no_duplicate_mappings(self) -> None:
         """Test that each DocumentSource only appears once in the mapping."""
         sources = list(CONNECTOR_CLASS_MAP.keys())
         unique_sources = set(sources)
@@ -66,7 +66,7 @@ class TestConnectorMappingValidation:
             unique_sources
         ), "Duplicate DocumentSource entries found"
 
-    def test_blob_storage_connectors_correct(self):
+    def test_blob_storage_connectors_correct(self) -> None:
         """Test that all blob storage sources map to the same connector."""
         blob_sources = [
             DocumentSource.S3,
@@ -89,11 +89,11 @@ class TestConnectorMappingValidation:
 class TestConnectorClassLoading:
     """Test the lazy loading mechanism."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Clear cache before each test."""
         _connector_cache.clear()
 
-    def test_load_connector_class_success(self):
+    def test_load_connector_class_success(self) -> None:
         """Test successful connector class loading."""
         # Use a simple connector that should always exist
         connector_class = _load_connector_class(DocumentSource.WEB)
@@ -102,7 +102,7 @@ class TestConnectorClassLoading:
         assert issubclass(connector_class, BaseConnector)
         assert connector_class.__name__ == "WebConnector"
 
-    def test_load_connector_class_caching(self):
+    def test_load_connector_class_caching(self) -> None:
         """Test that connector classes are cached after first load."""
         assert len(_connector_cache) == 0
 
@@ -116,7 +116,7 @@ class TestConnectorClassLoading:
         assert connector_class1 is connector_class2  # Same object reference
         assert len(_connector_cache) == 1  # Cache size unchanged
 
-    def test_load_connector_class_invalid_source(self):
+    def test_load_connector_class_invalid_source(self) -> None:
         """Test loading connector for non-existent source."""
 
         class FakeSource:
@@ -128,7 +128,7 @@ class TestConnectorClassLoading:
         assert "Connector not found for source" in str(exc_info.value)
 
     @patch("importlib.import_module")
-    def test_load_connector_class_import_error(self, mock_import):
+    def test_load_connector_class_import_error(self, mock_import) -> None:
         """Test handling of import errors."""
         mock_import.side_effect = ImportError("Module not found")
 
@@ -141,7 +141,7 @@ class TestConnectorClassLoading:
         )
 
     @patch("importlib.import_module")
-    def test_load_connector_class_attribute_error(self, mock_import):
+    def test_load_connector_class_attribute_error(self, mock_import) -> None:
         """Test handling of missing class in module."""
 
         # Create a custom mock that raises AttributeError for the specific class
@@ -165,11 +165,11 @@ class TestConnectorClassLoading:
 class TestIdentifyConnectorClass:
     """Test the identify_connector_class function."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Clear cache before each test."""
         _connector_cache.clear()
 
-    def test_identify_connector_basic(self):
+    def test_identify_connector_basic(self) -> None:
         """Test basic connector identification."""
         connector_class = identify_connector_class(
             DocumentSource.GITHUB, InputType.SLIM_RETRIEVAL
@@ -179,7 +179,7 @@ class TestIdentifyConnectorClass:
         assert issubclass(connector_class, BaseConnector)
         assert connector_class.__name__ == "GithubConnector"
 
-    def test_identify_connector_slack_special_case(self):
+    def test_identify_connector_slack_special_case(self) -> None:
         """Test Slack connector special handling."""
         # Test POLL input type
         slack_poll = identify_connector_class(DocumentSource.SLACK, InputType.POLL)
@@ -194,7 +194,7 @@ class TestIdentifyConnectorClass:
         # Should be the same class
         assert slack_poll is slack_slim
 
-    def test_identify_connector_without_input_type(self):
+    def test_identify_connector_without_input_type(self) -> None:
         """Test connector identification without specifying input type."""
         connector_class = identify_connector_class(DocumentSource.GITHUB)
 
@@ -205,7 +205,7 @@ class TestIdentifyConnectorClass:
 class TestConnectorMappingIntegrity:
     """Test integrity of the connector mapping data."""
 
-    def test_all_document_sources_mapped(self):
+    def test_all_document_sources_mapped(self) -> None:
         """Test that all DocumentSource values have mappings (where expected)."""
         # Get all DocumentSource enum values
         all_sources = set(DocumentSource)
@@ -227,7 +227,7 @@ class TestConnectorMappingIntegrity:
                 f"{[s.value for s in unmapped_sources]}"
             )
 
-    def test_mapping_format_consistency(self):
+    def test_mapping_format_consistency(self) -> None:
         """Test that all mappings follow the expected format."""
         for source, mapping in CONNECTOR_CLASS_MAP.items():
             assert isinstance(
@@ -251,11 +251,11 @@ class TestConnectorMappingIntegrity:
 class TestInstantiateConnectorIntegration:
     """Test that the lazy loading works with the main instantiate_connector function."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Clear cache before each test."""
         _connector_cache.clear()
 
-    def test_instantiate_connector_loads_class_lazily(self):
+    def test_instantiate_connector_loads_class_lazily(self) -> None:
         """Test that instantiate_connector triggers lazy loading."""
         # Mock the database session and credential
         mock_session = MagicMock()
@@ -282,7 +282,7 @@ class TestInstantiateConnectorIntegration:
 class TestFactoryValidationScript:
     """Test that provides a validation script for CI/CD."""
 
-    def test_validate_all_mappings_cli(self):
+    def test_validate_all_mappings_cli(self) -> None:
         """Comprehensive validation that can be run in CI."""
         print("\n=== CONNECTOR FACTORY VALIDATION ===")
 
