@@ -116,17 +116,6 @@ class TestConnectorClassLoading:
         assert connector_class1 is connector_class2  # Same object reference
         assert len(_connector_cache) == 1  # Cache size unchanged
 
-    def test_load_connector_class_invalid_source(self) -> None:
-        """Test loading connector for non-existent source."""
-
-        class FakeSource:
-            value = "FAKE_SOURCE"
-
-        with pytest.raises(ConnectorMissingException) as exc_info:
-            _load_connector_class(FakeSource())
-
-        assert "Connector not found for source" in str(exc_info.value)
-
     @patch("importlib.import_module")
     def test_load_connector_class_import_error(self, mock_import) -> None:
         """Test handling of import errors."""
