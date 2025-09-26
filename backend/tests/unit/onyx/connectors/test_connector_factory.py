@@ -215,6 +215,7 @@ class TestConnectorMappingIntegrity:
             DocumentSource.INGESTION_API,  # This is handled differently
             DocumentSource.REQUESTTRACKER,  # Not yet implemented or special case
             DocumentSource.NOT_APPLICABLE,  # Special placeholder, no connector needed
+            DocumentSource.USER_FILE,  # Special placeholder, no connector needed
             # Add other legitimately unmapped sources here if they exist
         }
 
