@@ -145,21 +145,13 @@ def invoke_llm_json(
     Invoke an LLM, forcing it to respond in a specified JSON format if possible,
     and return an object of that schema.
     """
-
-    from onyx.llm.get_litellm import configure_litellm
-
-    configure_litellm()
-    import litellm
+    from litellm.utils import get_supported_openai_params, supports_response_schema
 
     # check if the model supports response_format: json_schema
     supports_json = "response_format" in (
-        litellm.utils.get_supported_openai_params(
-            llm.config.model_name, llm.config.model_provider
-        )
+        get_supported_openai_params(llm.config.model_name, llm.config.model_provider)
         or []
-    ) and litellm.supports_response_schema(
-        llm.config.model_name, llm.config.model_provider
-    )
+    ) and supports_response_schema(llm.config.model_name, llm.config.model_provider)
 
     response_content = str(
         llm.invoke(
