@@ -3,6 +3,13 @@
 import React from "react";
 import { SvgProps } from "@/icons";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import Text from "@/components-2/Text";
 
 const buttonClasses = (active: boolean | undefined) =>
   ({
@@ -78,6 +85,7 @@ export interface IconButtonProps
   // Button properties:
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
   icon: React.FunctionComponent<SvgProps>;
+  tooltip?: string;
 }
 
 export function IconButton({
@@ -92,6 +100,7 @@ export function IconButton({
   onClick,
   icon: Icon,
   className,
+  tooltip,
 
   ...props
 }: IconButtonProps) {
@@ -106,10 +115,10 @@ export function IconButton({
           : "primary";
   const state = disabled ? "disabled" : "main";
 
-  return (
+  const buttonElement = (
     <button
       className={cn(
-        "flex items-center justify-center group/IconButton",
+        "flex items-center justify-center h-fit w-fit group/IconButton",
         internal ? "p-spacing-inline" : "p-spacing-interline",
         disabled && "cursor-not-allowed",
         internal ? "rounded-08" : "rounded-12",
@@ -124,5 +133,18 @@ export function IconButton({
         className={cn("h-[1rem] w-[1rem]", iconClasses(active)[variant][state])}
       />
     </button>
+  );
+
+  if (!tooltip) return buttonElement;
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>{buttonElement}</TooltipTrigger>
+        <TooltipContent side="top">
+          <Text inverted>{tooltip}</Text>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
