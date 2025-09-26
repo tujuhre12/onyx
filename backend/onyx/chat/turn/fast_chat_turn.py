@@ -39,6 +39,7 @@ def fast_chat_turn(messages: list[dict], dependencies: RunDependencies) -> None:
 
     bridge = OnyxRunner().run_streamed(agent, messages, context=ctx, max_turns=100)
     for ev in bridge.events():
+        ctx.current_run_step
         if isinstance(ev, RunItemStreamEvent):
             pass
         elif isinstance(ev, RawResponsesStreamEvent):

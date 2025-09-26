@@ -13,6 +13,7 @@ from onyx.server.query_and_chat.streaming_models import Packet
 from onyx.server.query_and_chat.streaming_models import SavedSearchDoc
 from onyx.server.query_and_chat.streaming_models import SearchToolDelta
 from onyx.server.query_and_chat.streaming_models import SearchToolStart
+from onyx.server.query_and_chat.streaming_models import SectionEnd
 
 
 def short_tag(link: str, i: int) -> str:
@@ -65,6 +66,7 @@ def web_search(run_context: RunContextWrapper[MyContext], query: str) -> str:
         )
     saved_search_docs = [
         SavedSearchDoc(
+            db_doc_id=0,
             document_id=hit.link,
             chunk_ind=0,
             semantic_identifier=hit.link,
@@ -85,7 +87,6 @@ def web_search(run_context: RunContextWrapper[MyContext], query: str) -> str:
         )
         for hit in hits
     ]
-    print(saved_search_docs)
     run_context.context.run_dependencies.emitter.emit(
         Packet(
             ind=run_context.context.current_run_step + 1,
@@ -93,6 +94,14 @@ def web_search(run_context: RunContextWrapper[MyContext], query: str) -> str:
                 type="internal_search_tool_delta",
                 queries=None,
                 documents=saved_search_docs,
+            ),
+        )
+    )
+    run_context.context.run_dependencies.emitter.emit(
+        Packet(
+            ind=run_context.context.current_run_step + 1,
+            obj=SectionEnd(
+                type="section_end",
             ),
         )
     )

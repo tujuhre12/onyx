@@ -5,6 +5,11 @@ from agents import RunContextWrapper
 
 from onyx.chat.turn.models import MyContext
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
+from onyx.server.query_and_chat.streaming_models import Packet
+from onyx.server.query_and_chat.streaming_models import SavedSearchDoc
+from onyx.server.query_and_chat.streaming_models import SearchToolDelta
+from onyx.server.query_and_chat.streaming_models import SearchToolStart
+from onyx.server.query_and_chat.streaming_models import SectionEnd
 from onyx.tools.models import SearchToolOverrideKwargs
 from onyx.tools.tool_implementations.search.search_tool import (
     SEARCH_RESPONSE_SUMMARY_ID,
@@ -13,7 +18,7 @@ from onyx.tools.tool_implementations.search.search_tool import SearchResponseSum
 
 
 @function_tool
-def internal_search(context_wrapper: RunContextWrapper[MyContext], query: str) -> str:
+def internal_search(run_context: RunContextWrapper[MyContext], query: str) -> str:
     """
     Search the internal knowledge base and documents.
 
@@ -24,10 +29,23 @@ def internal_search(context_wrapper: RunContextWrapper[MyContext], query: str) -
     Args:
         query: The natural-language search query.
     """
-    context_wrapper.context.run_dependencies.emitter.emit(
-        kind="tool-progress", data={"query": query}
+    run_context.context.run_dependencies.emitter.emit(
+        Packet(
+            ind=run_context.context.current_run_step + 1,
+            obj=SearchToolStart(
+                type="internal_search_tool_start", is_internet_search=False
+            ),
+        )
     )
-    search_tool = context_wrapper.context.run_dependencies.search_tool
+    run_context.context.run_dependencies.emitter.emit(
+        Packet(
+            ind=run_context.context.current_run_step + 1,
+            obj=SearchToolDelta(
+                type="internal_search_tool_delta", queries=[query], documents=None
+            ),
+        )
+    )
+    search_tool = run_context.context.run_dependencies.search_tool
     if search_tool is None:
         raise RuntimeError("Search tool not available in context")
 
@@ -45,6 +63,46 @@ def internal_search(context_wrapper: RunContextWrapper[MyContext], query: str) -
             if tool_response.id == SEARCH_RESPONSE_SUMMARY_ID:
                 response = cast(SearchResponseSummary, tool_response.response)
                 retrieved_docs = response.top_sections
-
+                run_context.context.run_dependencies.emitter.emit(
+                    Packet(
+                        ind=run_context.context.current_run_step + 1,
+                        obj=SearchToolDelta(
+                            type="internal_search_tool_delta",
+                            queries=None,
+                            documents=[
+                                SavedSearchDoc(
+                                    db_doc_id=0,
+                                    document_id=doc.center_chunk.document_id,
+                                    chunk_ind=0,
+                                    semantic_identifier=doc.center_chunk.semantic_identifier,
+                                    link=doc.center_chunk.semantic_identifier,
+                                    blurb=doc.center_chunk.blurb,
+                                    source_type=doc.center_chunk.source_type,
+                                    boost=doc.center_chunk.boost,
+                                    hidden=doc.center_chunk.hidden,
+                                    metadata=doc.center_chunk.metadata,
+                                    score=doc.center_chunk.score,
+                                    is_relevant=doc.center_chunk.is_relevant,
+                                    relevance_explanation=doc.center_chunk.relevance_explanation,
+                                    match_highlights=doc.center_chunk.match_highlights,
+                                    updated_at=doc.center_chunk.updated_at,
+                                    primary_owners=doc.center_chunk.primary_owners,
+                                    secondary_owners=doc.center_chunk.secondary_owners,
+                                    is_internet=False,
+                                )
+                                for doc in retrieved_docs
+                            ],
+                        ),
+                    )
+                )
                 break
+    run_context.context.run_dependencies.emitter.emit(
+        Packet(
+            ind=run_context.context.current_run_step + 1,
+            obj=SectionEnd(
+                type="section_end",
+            ),
+        )
+    )
+    run_context.context.current_run_step += 2
     return retrieved_docs
