@@ -57,20 +57,18 @@ def litellm_exception_to_error_msg(
         dict[str, str] | None
     ) = LITELLM_CUSTOM_ERROR_MESSAGE_MAPPINGS,
 ) -> str:
-    import litellm
-
-    BadRequestError = litellm.exceptions.BadRequestError
-    AuthenticationError = litellm.exceptions.AuthenticationError
-    PermissionDeniedError = litellm.exceptions.PermissionDeniedError
-    NotFoundError = litellm.exceptions.NotFoundError
-    UnprocessableEntityError = litellm.exceptions.UnprocessableEntityError
-    RateLimitError = litellm.exceptions.RateLimitError
-    ContextWindowExceededError = litellm.exceptions.ContextWindowExceededError
-    APIConnectionError = litellm.exceptions.APIConnectionError
-    APIError = litellm.exceptions.APIError
-    Timeout = litellm.exceptions.Timeout
-    ContentPolicyViolationError = litellm.exceptions.ContentPolicyViolationError
-    BudgetExceededError = litellm.exceptions.BudgetExceededError
+    from litellm.exceptions import BadRequestError
+    from litellm.exceptions import AuthenticationError
+    from litellm.exceptions import PermissionDeniedError
+    from litellm.exceptions import NotFoundError
+    from litellm.exceptions import UnprocessableEntityError
+    from litellm.exceptions import RateLimitError
+    from litellm.exceptions import ContextWindowExceededError
+    from litellm.exceptions import APIConnectionError
+    from litellm.exceptions import APIError
+    from litellm.exceptions import Timeout
+    from litellm.exceptions import ContentPolicyViolationError
+    from litellm.exceptions import BudgetExceededError
 
     error_msg = str(e)
 

@@ -122,14 +122,12 @@ def generate_starter_messages(
     """
     _, fast_llm = get_default_llms(temperature=0.5)
 
-    import litellm
+    from litellm.utils import get_supported_openai_params
 
     provider = fast_llm.config.model_provider
     model = fast_llm.config.model_name
 
-    params = litellm.utils.get_supported_openai_params(
-        model=model, custom_llm_provider=provider
-    )
+    params = get_supported_openai_params(model=model, custom_llm_provider=provider)
     supports_structured_output = (
         isinstance(params, list) and "response_format" in params
     )
