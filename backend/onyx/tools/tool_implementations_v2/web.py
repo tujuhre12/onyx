@@ -87,6 +87,7 @@ def web_search(run_context: RunContextWrapper[MyContext], query: str) -> str:
         )
         for hit in hits
     ]
+    # TODO: Remove "Results" section from internet search tool
     run_context.context.run_dependencies.emitter.emit(
         Packet(
             ind=run_context.context.current_run_step + 1,
@@ -136,4 +137,5 @@ def web_fetch(run_context: RunContextWrapper[MyContext], urls: List[str]) -> str
                 ),
             }
         )
+    # TODO: Emit event for web search "reading" URL
     return json.dumps({"results": out})

@@ -23,7 +23,7 @@ class OnyxRunner:
     consumes its async event stream, and exposes a blocking .events() iterator.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._q: "queue.Queue[object]" = queue.Queue()
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._thread: Optional[threading.Thread] = None
@@ -37,7 +37,7 @@ class OnyxRunner:
         context: TContext | None = None,
         max_turns: int = 100,
     ):
-        def worker():
+        def worker() -> None:
             async def run_and_consume():
                 # Create the streamed run *inside* the loop thread
                 self._streamed = Runner.run_streamed(
@@ -71,11 +71,11 @@ class OnyxRunner:
                 break
             yield ev
 
-    def cancel(self):
+    def cancel(self) -> None:
         # Post a cancellation to the loop thread safely
         if self._loop and self._streamed:
 
-            def _do_cancel():
+            def _do_cancel() -> None:
                 try:
                     self._streamed.cancel()
                 except Exception:
