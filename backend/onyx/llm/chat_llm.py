@@ -175,7 +175,7 @@ def _convert_delta_to_message_chunk(
     stop_reason: str | None = None,
 ) -> BaseMessageChunk:
     configure_litellm()
-    import litellm
+    from litellm.utils import ChatCompletionDeltaToolCall
 
     """Adapted from langchain_community.chat_models.litellm._convert_delta_to_message_chunk"""
     role = _dict.get("role") or (_base_msg_to_role(curr_msg) if curr_msg else "unknown")
@@ -183,9 +183,7 @@ def _convert_delta_to_message_chunk(
     additional_kwargs = {}
     if _dict.get("function_call"):
         additional_kwargs.update({"function_call": dict(_dict["function_call"])})
-    tool_calls = cast(
-        list[litellm.utils.ChatCompletionDeltaToolCall] | None, _dict.get("tool_calls")
-    )
+    tool_calls = cast(list[ChatCompletionDeltaToolCall] | None, _dict.get("tool_calls"))
 
     if role == "user":
         return HumanMessageChunk(content=content)
@@ -323,9 +321,7 @@ class DefaultMultiLLM(LLM):
         self._max_token_param = LEGACY_MAX_TOKENS_KWARG
         try:
             configure_litellm()
-            import litellm
-
-            get_supported_openai_params = litellm.utils.get_supported_openai_params
+            from litellm.utils import get_supported_openai_params
 
             params = get_supported_openai_params(model_name, model_provider)
             if STANDARD_MAX_TOKENS_KWARG in (params or []):

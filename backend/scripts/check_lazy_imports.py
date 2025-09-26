@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class LazyImportSettings:
-    """Settings for which directories to ignore when checking for lazy imports."""
+    """Settings for which files to ignore when checking for lazy imports."""
 
-    ignore_directories: Set[str] | None = None
+    ignore_files: Set[str] | None = None
 
 
 # Map of modules to lazy import -> settings for what to ignore
@@ -31,9 +31,7 @@ _LAZY_IMPORT_MODULES_TO_IGNORE_SETTINGS: Dict[str, LazyImportSettings] = {
     "markitdown": LazyImportSettings(),
     "tiktoken": LazyImportSettings(),
     "unstructured": LazyImportSettings(),
-    "litellm": LazyImportSettings(
-        ignore_directories={"onyx/llm/llm_provider_options.py"}
-    ),
+    "litellm": LazyImportSettings(ignore_files={"onyx/llm/llm_provider_options.py"}),
 }
 
 
@@ -150,12 +148,12 @@ def should_check_file_for_module(
     Args:
         file_path: Path to the file to check
         backend_dir: Path to the backend directory
-        settings: Settings containing directories to ignore for this module
+        settings: Settings containing files to ignore for this module
 
     Returns:
         True if the file should be checked, False if it should be ignored
     """
-    if not settings.ignore_directories:
+    if not settings.ignore_files:
         # Empty set means check everywhere
         return True
 
@@ -164,7 +162,7 @@ def should_check_file_for_module(
     rel_path_str = str(rel_path)
 
     # Check if this specific file path is in the ignore list
-    return rel_path_str not in settings.ignore_directories
+    return rel_path_str not in settings.ignore_files
 
 
 def main(modules_to_lazy_import: Dict[str, LazyImportSettings]) -> None:
