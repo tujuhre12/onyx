@@ -18,3 +18,4 @@ class MyContext:
 
     run_dependencies: RunDependencies | None = None
     needs_compaction: bool = False
+    current_run_step: int = 0

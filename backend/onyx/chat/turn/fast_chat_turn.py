@@ -8,6 +8,11 @@ from onyx.chat.turn.infra.chat_turn_event_stream import OnyxRunner
 from onyx.chat.turn.infra.chat_turn_orchestration import unified_event_stream
 from onyx.chat.turn.models import MyContext
 from onyx.chat.turn.models import RunDependencies
+from onyx.server.query_and_chat.streaming_models import MessageDelta
+from onyx.server.query_and_chat.streaming_models import MessageStart
+from onyx.server.query_and_chat.streaming_models import OverallStop
+from onyx.server.query_and_chat.streaming_models import Packet
+from onyx.server.query_and_chat.streaming_models import SectionEnd
 from onyx.tools.tool_implementations_v2.internal_search import internal_search
 from onyx.tools.tool_implementations_v2.web import web_fetch
 from onyx.tools.tool_implementations_v2.web import web_search
@@ -33,14 +38,25 @@ def fast_chat_turn(messages: list[dict], dependencies: RunDependencies) -> None:
     )
 
     bridge = OnyxRunner().run_streamed(agent, messages, context=ctx, max_turns=100)
-    try:
-        for ev in bridge.events():
-            if isinstance(ev, RunItemStreamEvent):
-                pass
-            elif isinstance(ev, RawResponsesStreamEvent):
-                # TODO: use very standardized schema for the emitter that is close to
-                # front end schema
-                dependencies.emitter.emit(kind="agent", data=ev.data.model_dump())
-    finally:
-        # TODO: Handle done signal more reliably?
-        dependencies.emitter.emit(kind="done", data={"ok": True})
+    for ev in bridge.events():
+        if isinstance(ev, RunItemStreamEvent):
+            pass
+        elif isinstance(ev, RawResponsesStreamEvent):
+            obj = None
+            if ev.data.type == "response.created":
+                obj = MessageStart(
+                    type="message_start", content="", final_documents=None
+                )
+            elif ev.data.type == "response.output_text.delta":
+                obj = MessageDelta(type="message_delta", content=ev.data.delta)
+            elif ev.data.type == "response.completed":
+                obj = OverallStop(type="stop")
+            elif ev.data.type == "response.output_item.done":
+                obj = SectionEnd(type="section_end")
+            if obj:
+                dependencies.emitter.emit(Packet(ind=ctx.current_run_step, obj=obj))
+    # TODO: Error handling
+    # Should there be a timeout and some error on the queue?
+    dependencies.emitter.emit(
+        Packet(ind=ctx.current_run_step, obj=OverallStop(type="stop"))
+    )

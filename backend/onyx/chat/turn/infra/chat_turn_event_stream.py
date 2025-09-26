@@ -5,14 +5,13 @@ import threading
 from collections.abc import Iterator
 from queue import Queue
 from typing import Any
-from typing import Dict
 from typing import Optional
 
 from agents import Agent
 from agents import Runner
 from agents import TContext
-from pydantic import BaseModel
-from pydantic import Field
+
+from onyx.server.query_and_chat.streaming_models import Packet
 
 
 logger = logging.getLogger(__name__)
@@ -85,12 +84,7 @@ class OnyxRunner:
             self._loop.call_soon_threadsafe(_do_cancel)
 
 
-class StreamPacket(BaseModel):
-    kind: str  # "agent" | "tool-progress" | "done"
-    payload: Dict[str, Any] = Field(default_factory=dict)
-
-
-def convert_to_packet_obj(packet: StreamPacket) -> Any | None:
+def convert_to_packet_obj(packet: dict[str, Any]) -> Any | None:
     """Convert a packet dictionary to PacketObj when possible.
 
     Args:
@@ -176,5 +170,5 @@ class Emitter:
     def __init__(self, bus: Queue):
         self.bus = bus
 
-    def emit(self, kind: str, data: Dict[str, Any]) -> None:
-        self.bus.put(StreamPacket(kind=kind, payload=data))
+    def emit(self, packet: Packet) -> None:
+        self.bus.put(packet)

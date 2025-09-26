@@ -7,10 +7,9 @@ from typing import Any
 from typing import Dict
 from typing import List
 
-from onyx.chat.turn.infra.chat_turn_event_stream import convert_to_packet_obj
 from onyx.chat.turn.infra.chat_turn_event_stream import Emitter
-from onyx.chat.turn.infra.chat_turn_event_stream import StreamPacket
 from onyx.chat.turn.models import RunDependencies
+from onyx.server.query_and_chat.streaming_models import OverallStop
 from onyx.server.query_and_chat.streaming_models import Packet
 
 
@@ -48,12 +47,10 @@ def unified_event_stream(
         )
         t.start()
         while True:
-            pkt: StreamPacket = emitter.bus.get()
-            if pkt.kind == "done":
+            pkt: Packet = emitter.bus.get()
+            if pkt.obj == OverallStop(type="stop"):
                 break
             else:
-                packet_obj = convert_to_packet_obj(pkt.payload)
-                if packet_obj:
-                    yield Packet(ind=0, obj=packet_obj)
+                yield pkt
 
     return wrapper
