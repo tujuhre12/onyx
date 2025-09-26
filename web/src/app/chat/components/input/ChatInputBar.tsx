@@ -11,7 +11,7 @@ import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import LLMPopover from "@/app/chat/components/input/LLMPopover";
 import { InputPrompt } from "@/app/chat/interfaces";
 
-import { FilterManager, LlmManager } from "@/lib/hooks";
+import { FilterManager } from "@/lib/hooks";
 import { useChatContext } from "@/components-2/context/ChatContext";
 import { ChatFileType } from "@/app/chat/interfaces";
 import { DocumentIcon2, FileIcon } from "@/components/icons/icons";
@@ -326,7 +326,7 @@ function ChatInputBarInner({
         }}
       /> */}
 
-      <div id="onyx-chat-input" className="w-full max-w-[50rem]">
+      <div id="onyx-chat-input" className="w-full">
         {showPrompts && user?.preferences?.shortcut_enabled && (
           <div className="text-sm absolute inset-x-0 top-0 w-full transform -translate-y-full">
             <div className="rounded-lg overflow-y-auto max-h-[200px] py-1.5 bg-background-neutral-00 shadow-lg mx-2 px-1.5 mt-2 rounded z-10">

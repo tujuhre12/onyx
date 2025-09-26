@@ -87,7 +87,7 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
   const [renamingChat, setRenamingChat] = useState(false);
   const [renamingChatName, setRenamingChatName] = useState(chatSession.name);
   const textareaRef = useRef<HTMLInputElement>(null);
-  const { refreshChatSessions, currentChatId } = useChatContext();
+  const { refreshChatSessions, currentChat } = useChatContext();
 
   useEffect(() => {
     if (!textareaRef.current) return;
@@ -171,7 +171,7 @@ function ChatButtonInner({ chatSession, onChatSessionClick }: ChatButtonProps) {
       <NavigationTab
         icon={SvgBubbleText}
         onClick={() => onChatSessionClick(chatSession.id)}
-        active={currentChatId === chatSession.id}
+        active={currentChat?.id === chatSession.id}
         className={cn(
           "!w-full",
           renamingChat && "border-[0.125rem] border-text-04"
@@ -314,7 +314,7 @@ function AppSidebarInner() {
   const { folded, setFolded, foldedAndHovered, setHovered } =
     useAppSidebarContext();
   const { toggleModal } = useModal();
-  const { chatSessions, currentChatId } = useChatContext();
+  const { chatSessions, currentChat } = useChatContext();
   const combinedSettings = useSettingsContext();
 
   const [visibleAgents, currentAgentIsPinned] = useMemo(
@@ -440,7 +440,7 @@ function AppSidebarInner() {
           className="!w-full"
           folded={folded}
           onClick={() => handleChatSessionClick(null)}
-          active={!currentChatId && !currentAgent}
+          active={!currentChat?.id && !currentAgent}
           tooltip
         >
           New Session
