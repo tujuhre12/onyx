@@ -81,6 +81,25 @@ interface RegenerationRequest {
   forceSearch?: boolean;
 }
 
+export interface OnSubmitProps {
+  message: string;
+  // from MyDocuments
+  selectedFiles: FileResponse[];
+  selectedFolders: FolderResponse[];
+  // from the chat bar???
+  currentMessageFiles: FileDescriptor[];
+  useAgentSearch: boolean;
+
+  // optional params
+  messageIdToResend?: number;
+  queryOverride?: string;
+  forceSearch?: boolean;
+  isSeededChat?: boolean;
+  modelOverride?: LlmDescriptor;
+  regenerationRequest?: RegenerationRequest | null;
+  overrideFileDescriptors?: FileDescriptor[];
+}
+
 interface UseChatControllerProps {
   filterManager: FilterManager;
   llmManager: LlmManager;
@@ -308,24 +327,7 @@ export function useChatController({
       modelOverride,
       regenerationRequest,
       overrideFileDescriptors,
-    }: {
-      message: string;
-      // from MyDocuments
-      selectedFiles: FileResponse[];
-      selectedFolders: FolderResponse[];
-      // from the chat bar???
-      currentMessageFiles: FileDescriptor[];
-      useAgentSearch: boolean;
-
-      // optional params
-      messageIdToResend?: number;
-      queryOverride?: string;
-      forceSearch?: boolean;
-      isSeededChat?: boolean;
-      modelOverride?: LlmDescriptor;
-      regenerationRequest?: RegenerationRequest | null;
-      overrideFileDescriptors?: FileDescriptor[];
-    }) => {
+    }: OnSubmitProps) => {
       updateSubmittedMessage(getCurrentSessionId(), message);
 
       navigatingAway.current = false;
