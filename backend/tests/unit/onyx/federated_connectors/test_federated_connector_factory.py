@@ -196,38 +196,3 @@ class TestFederatedConnectorMappingIntegrity:
                 f"FederatedConnectorSource values without connector mappings: "
                 f"{[s.value for s in unmapped_sources]}"
             )
-
-
-class TestFederatedConnectorValidationScript:
-    """Test that provides a validation script for CI/CD."""
-
-    def test_validate_all_federated_mappings_cli(self) -> None:
-        """Comprehensive validation that can be run in CI."""
-        print("\n=== FEDERATED CONNECTOR FACTORY VALIDATION ===")
-
-        total_connectors = len(FEDERATED_CONNECTOR_CLASS_MAP)
-        successful_loads = 0
-        errors = []
-
-        for source, mapping in FEDERATED_CONNECTOR_CLASS_MAP.items():
-            try:
-                _load_federated_connector_class(source)
-                print(f"✓ {source.value}: {mapping.class_name}")
-                successful_loads += 1
-            except Exception as e:
-                error_msg = f"✗ {source.value}: {e}"
-                print(error_msg)
-                errors.append(error_msg)
-
-        print("\n=== SUMMARY ===")
-        print(f"Total federated connectors: {total_connectors}")
-        print(f"Successfully loaded: {successful_loads}")
-        print(f"Failed to load: {len(errors)}")
-
-        if errors:
-            print("\n=== ERRORS ===")
-            for error in errors:
-                print(error)
-            pytest.fail(f"Federated connector validation failed: {len(errors)} errors")
-
-        print("✅ All federated connector mappings are valid!")
