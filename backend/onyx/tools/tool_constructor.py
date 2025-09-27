@@ -39,6 +39,7 @@ from onyx.file_store.models import InMemoryChatFile
 from onyx.llm.interfaces import LLM
 from onyx.llm.interfaces import LLMConfig
 from onyx.natural_language_processing.utils import get_tokenizer
+from onyx.onyxbot.slack.models import SlackContext
 from onyx.tools.built_in_tools import get_built_in_tool_by_id
 from onyx.tools.models import DynamicSchemaInfo
 from onyx.tools.tool import Tool
@@ -192,8 +193,11 @@ def construct_tools(
     image_generation_tool_config: ImageGenerationToolConfig | None = None,
     custom_tool_config: CustomToolConfig | None = None,
     allowed_tool_ids: list[int] | None = None,
+    slack_context: SlackContext | None = None,
 ) -> dict[int, list[Tool]]:
-    """Constructs tools based on persona configuration and available APIs"""
+    """Constructs tools based on persona configuration and available APIs.
+
+    Will simply skip tools that are not allowed/available."""
     tool_dict: dict[int, list[Tool]] = {}
 
     mcp_tool_cache: dict[int, dict[int, MCPTool]] = {}
@@ -209,6 +213,21 @@ def construct_tools(
 
         if db_tool_model.in_code_tool_id:
             tool_cls = get_built_in_tool_by_id(db_tool_model.in_code_tool_id)
+
+            try:
+                tool_is_available = tool_cls.is_available(db_session)
+            except Exception:
+                logger.exception(
+                    "Failed checking availability for tool %s", tool_cls.__name__
+                )
+                tool_is_available = False
+
+            if not tool_is_available:
+                logger.debug(
+                    "Skipping tool %s because it is not available",
+                    tool_cls.__name__,
+                )
+                continue
 
             # Handle Search Tool
             if (
@@ -240,6 +259,7 @@ def construct_tools(
                     ),
                     rerank_settings=search_tool_config.rerank_settings,
                     bypass_acl=search_tool_config.bypass_acl,
+                    slack_context=slack_context,  # Pass the Slack context
                 )
                 tool_dict[db_tool_model.id] = [search_tool]
 

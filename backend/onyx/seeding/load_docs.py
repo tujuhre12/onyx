@@ -99,8 +99,7 @@ def _create_indexable_chunks(
             tenant_id=tenant_id if MULTI_TENANT else POSTGRES_DEFAULT_SCHEMA,
             access=default_public_access,
             document_sets=set(),
-            user_file=None,
-            user_folder=None,
+            user_project=[],
             boost=DEFAULT_BOOST,
             large_chunk_id=None,
             image_file_id=None,
@@ -178,7 +177,7 @@ def seed_initial_documents(
     # Create a connector so the user can delete it if they want
     # or reindex it with a new search model if they want
     connector_data = ConnectorBase(
-        name="Sample Use Cases",
+        name="Onyx Docs Overview",
         source=DocumentSource.WEB,
         input_type=InputType.LOAD_STATE,
         connector_specific_config={

@@ -1,24 +1,18 @@
-import { ChatPage } from "@/app/chat/components/ChatPage";
+import { SEARCH_PARAMS } from "@/lib/extension/constants";
+import ChatLayout from "./WrappedChat";
 
-interface PageProps {
+export default async function Page(props: {
   searchParams: Promise<{ [key: string]: string }>;
-}
-
-export default async function Page(props: PageProps) {
+}) {
   const searchParams = await props.searchParams;
   const firstMessage = searchParams.firstMessage;
+  const defaultSidebarOff =
+    searchParams[SEARCH_PARAMS.DEFAULT_SIDEBAR_OFF] === "true";
 
   return (
-    <div className="flex flex-row w-full h-full justify-center items-center">
-      {/* ModeSelector */}
-      <div className="flex-1 h-full" />
-
-      <div className="w-[60%] h-full">
-        <ChatPage firstMessage={firstMessage} />
-      </div>
-
-      {/* DocumentExplorer */}
-      <div className="flex-1 h-full" />
-    </div>
+    <ChatLayout
+      firstMessage={firstMessage}
+      defaultSidebarOff={defaultSidebarOff}
+    />
   );
 }

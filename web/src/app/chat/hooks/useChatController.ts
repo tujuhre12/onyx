@@ -20,13 +20,7 @@ import {
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { SEARCH_PARAM_NAMES } from "../services/searchParams";
 import { OnyxDocument } from "@/lib/search/interfaces";
-import {
-  FilterManager,
-  LlmDescriptor,
-  LlmManager,
-  useFilters,
-  useLlmManager,
-} from "@/lib/hooks";
+import { FilterManager, LlmDescriptor, LlmManager } from "@/lib/hooks";
 import {
   BackendMessage,
   ChatFileType,
@@ -60,12 +54,7 @@ import {
   useRouter,
   useSearchParams,
 } from "next/navigation";
-import {
-  FileResponse,
-  FolderResponse,
-  useDocumentsContext,
-} from "../my-documents/DocumentsContext";
-import { useChatContext } from "@/components-2/context/ChatContext";
+import { useChatContext } from "@/components/context/ChatContext";
 import Prism from "prismjs";
 import {
   useChatSessionStore,
@@ -80,70 +69,64 @@ import {
   PacketType,
 } from "../services/streamingModels";
 import { useAssistantsContext } from "@/components/context/AssistantsContext";
-import { useAgentsContext } from "@/components-2/context/AgentsContext";
+import { Klee_One } from "next/font/google";
+import { ProjectFile, useProjectsContext } from "../projects/ProjectsContext";
+import { CategorizedFiles, UserFileStatus } from "../projects/projectsService";
 
-export interface RegenerationRequest {
+const TEMP_USER_MESSAGE_ID = -1;
+const TEMP_ASSISTANT_MESSAGE_ID = -2;
+const SYSTEM_MESSAGE_ID = -3;
+
+interface RegenerationRequest {
   messageId: number;
   parentMessage: Message;
   forceSearch?: boolean;
 }
 
-export interface OnSubmitProps {
-  message: string;
-  // from MyDocuments
-  selectedFiles: FileResponse[];
-  selectedFolders: FolderResponse[];
-  // from the chat bar???
-  currentMessageFiles: FileDescriptor[];
-  useAgentSearch: boolean;
-
-  // optional params
-  messageIdToResend?: number;
-  queryOverride?: string;
-  forceSearch?: boolean;
-  isSeededChat?: boolean;
-  modelOverride?: LlmDescriptor;
-  regenerationRequest?: RegenerationRequest | null;
-  overrideFileDescriptors?: FileDescriptor[];
-}
-
-export interface UseChatControllerProps {
-  resetInputBar?: () => void;
-
-  selectedDocuments?: OnyxDocument[];
+interface UseChatControllerProps {
+  filterManager: FilterManager;
+  llmManager: LlmManager;
+  liveAssistant: MinimalPersonaSnapshot | undefined;
+  availableAssistants: MinimalPersonaSnapshot[];
+  existingChatSessionId: string | null;
+  selectedDocuments: OnyxDocument[];
+  searchParams: ReadonlyURLSearchParams;
+  setPopup: (popup: PopupSpec) => void;
 
   // scroll/focus related stuff
-  clientScrollToBottom?: (fast?: boolean) => void;
+  clientScrollToBottom: (fast?: boolean) => void;
 
-  setPopup?: (popup: PopupSpec) => void;
-  setSelectedAssistantFromId?: (assistantId: number | null) => void;
+  resetInputBar: () => void;
+  setSelectedAssistantFromId: (assistantId: number | null) => void;
 }
 
 export function useChatController({
-  selectedDocuments = [],
+  filterManager,
+  llmManager,
+  availableAssistants,
+  liveAssistant,
+  existingChatSessionId,
+  selectedDocuments,
 
   // scroll/focus related stuff
-  clientScrollToBottom = () => {},
+  clientScrollToBottom,
 
-  setPopup = () => {},
-  resetInputBar = () => {},
-  setSelectedAssistantFromId = () => {},
-}: UseChatControllerProps = {}) {
+  setPopup,
+  resetInputBar,
+  setSelectedAssistantFromId,
+}: UseChatControllerProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { refreshChatSessions, llmProviders, currentChat } = useChatContext();
+  const { refreshChatSessions, llmProviders } = useChatContext();
   const { assistantPreferences, forcedToolIds } = useAssistantsContext();
-  const { currentAgent, agents } = useAgentsContext();
-  const filterManager = useFilters();
-  const llmManager = useLlmManager(
-    llmProviders,
-    currentChat || undefined,
-    currentAgent || undefined
-  );
+  const { fetchProjects, uploadFiles, setCurrentMessageFiles } =
+    useProjectsContext();
 
   // Use selectors to access only the specific fields we need
-  const currentSessionId = currentChat?.id ?? null;
+  const currentSessionId = useChatSessionStore(
+    (state) => state.currentSessionId
+  );
   const sessions = useChatSessionStore((state) => state.sessions);
 
   // Store actions - these don't cause re-renders
@@ -184,9 +167,6 @@ export function useChatController({
   const currentMessageHistory = useCurrentMessageHistory();
   const currentChatState = useCurrentChatState();
 
-  const { selectedFiles, selectedFolders, uploadFile, setCurrentMessageFiles } =
-    useDocumentsContext();
-
   const navigatingAway = useRef(false);
 
   // Local state that doesn't need to be in the store
@@ -200,7 +180,7 @@ export function useChatController({
   }, [currentSessionId]);
 
   const getCurrentSessionId = (): string => {
-    return currentSessionId || currentSessionId || "";
+    return currentSessionId || existingChatSessionId || "";
   };
 
   const updateRegenerationState = (
@@ -318,8 +298,6 @@ export function useChatController({
   const onSubmit = useCallback(
     async ({
       message,
-      selectedFiles,
-      selectedFolders,
       currentMessageFiles,
       useAgentSearch,
       messageIdToResend,
@@ -329,7 +307,35 @@ export function useChatController({
       modelOverride,
       regenerationRequest,
       overrideFileDescriptors,
-    }: OnSubmitProps) => {
+    }: {
+      message: string;
+      //from chat input bar
+      currentMessageFiles: ProjectFile[];
+      // from the chat bar???
+
+      useAgentSearch: boolean;
+
+      // optional params
+      messageIdToResend?: number;
+      queryOverride?: string;
+      forceSearch?: boolean;
+      isSeededChat?: boolean;
+      modelOverride?: LlmDescriptor;
+      regenerationRequest?: RegenerationRequest | null;
+      overrideFileDescriptors?: FileDescriptor[];
+    }) => {
+      const projectId = searchParams?.get("projectid");
+      {
+        const params = new URLSearchParams(searchParams?.toString() || "");
+        if (params.has("projectid")) {
+          params.delete("projectid");
+          const newUrl = params.toString()
+            ? `${pathname}?${params.toString()}`
+            : pathname;
+          router.replace(newUrl, { scroll: false });
+        }
+      }
+
       updateSubmittedMessage(getCurrentSessionId(), message);
 
       navigatingAway.current = false;
@@ -416,18 +422,18 @@ export function useChatController({
       clientScrollToBottom();
 
       let currChatSessionId: string;
-      const isNewSession = currentSessionId === null;
+      const isNewSession = existingChatSessionId === null;
 
       const searchParamBasedChatSessionName =
         searchParams?.get(SEARCH_PARAM_NAMES.TITLE) || null;
-
       if (isNewSession) {
         currChatSessionId = await createChatSession(
-          currentAgent?.id || 0,
-          searchParamBasedChatSessionName
+          liveAssistant?.id || 0,
+          searchParamBasedChatSessionName,
+          projectId ? parseInt(projectId) : null
         );
       } else {
-        currChatSessionId = currentSessionId as string;
+        currChatSessionId = existingChatSessionId as string;
       }
       frozenSessionId = currChatSessionId;
       // update the selected model for the chat session if one is specified so that
@@ -546,16 +552,16 @@ export function useChatController({
         const lastSuccessfulMessageId = getLastSuccessfulMessageId(
           currentMessageTreeLocal
         );
-        const disabledToolIds = currentAgent
-          ? assistantPreferences?.[currentAgent?.id]?.disabled_tool_ids
+        const disabledToolIds = liveAssistant
+          ? assistantPreferences?.[liveAssistant?.id]?.disabled_tool_ids
           : undefined;
 
         const stack = new CurrentMessageFIFO();
         updateCurrentMessageFIFO(stack, {
           signal: controller.signal,
           message: currMessage,
-          alternateAssistantId: currentAgent?.id,
-          fileDescriptors: overrideFileDescriptors || currentMessageFiles,
+          alternateAssistantId: liveAssistant?.id,
+          fileDescriptors: overrideFileDescriptors,
           parentMessageId:
             regenerationRequest?.parentMessage.messageId ||
             messageToResendParent?.messageId ||
@@ -565,8 +571,7 @@ export function useChatController({
             filterManager.selectedSources,
             filterManager.selectedDocumentSets,
             filterManager.timeRange,
-            filterManager.selectedTags,
-            selectedFiles.map((file) => file.id)
+            filterManager.selectedTags
           ),
           selectedDocumentIds: selectedDocuments
             .filter(
@@ -576,11 +581,12 @@ export function useChatController({
             .map((document) => document.db_doc_id as number),
           queryOverride,
           forceSearch,
-          userFolderIds: selectedFolders.map((folder) => folder.id),
-          userFileIds: selectedFiles
-            .filter((file) => file.id !== undefined && file.id !== null)
-            .map((file) => file.id),
-
+          currentMessageFiles: currentMessageFiles.map((file) => ({
+            id: file.file_id,
+            type: file.chat_file_type,
+            name: file.name,
+            user_file_id: file.id,
+          })),
           regenerate: regenerationRequest !== undefined,
           modelProvider:
             modelOverride?.name || llmManager.currentLlm.name || undefined,
@@ -595,8 +601,8 @@ export function useChatController({
           useExistingUserMessage: isSeededChat,
           useAgentSearch,
           enabledToolIds:
-            disabledToolIds && currentAgent
-              ? currentAgent.tools
+            disabledToolIds && liveAssistant
+              ? liveAssistant.tools
                   .filter((tool) => !disabledToolIds?.includes(tool.id))
                   .map((tool) => tool.id)
               : undefined,
@@ -750,7 +756,12 @@ export function useChatController({
               nodeId: initialUserNode.nodeId,
               message: currMessage,
               type: "user",
-              files: currentMessageFiles,
+              files: currentMessageFiles.map((file) => ({
+                id: file.file_id,
+                type: file.chat_file_type,
+                name: file.name,
+                user_file_id: file.id,
+              })),
               toolCall: null,
               parentNodeId: parentMessage?.nodeId || SYSTEM_NODE_ID,
               packets: [],
@@ -778,12 +789,13 @@ export function useChatController({
           await new Promise((resolve) => setTimeout(resolve, 200));
           await nameChatSession(currChatSessionId);
           refreshChatSessions();
+          fetchProjects();
         }
 
         // NOTE: don't switch pages if the user has navigated away from the chat
         if (
           currChatSessionId === frozenSessionId ||
-          currentSessionId === null
+          existingChatSessionId === null
         ) {
           const newUrl = buildChatUrl(
             searchParams,
@@ -797,6 +809,7 @@ export function useChatController({
 
           if (pathname == "/chat" && !navigatingAway.current) {
             router.push(newUrl, { scroll: false });
+            fetchProjects();
           }
         }
       }
@@ -810,9 +823,9 @@ export function useChatController({
       llmManager.currentLlm,
       llmManager.temperature,
       // Others that affect logic
-      currentAgent,
-      agents,
-      currentSessionId,
+      liveAssistant,
+      availableAssistants,
+      existingChatSessionId,
       selectedDocuments,
       searchParams,
       setPopup,
@@ -827,6 +840,7 @@ export function useChatController({
       forcedToolIds,
       // Keep tool preference-derived values fresh
       assistantPreferences,
+      fetchProjects,
     ]
   );
 
@@ -834,7 +848,7 @@ export function useChatController({
     async (acceptedFiles: File[]) => {
       const [_, llmModel] = getFinalLLM(
         llmProviders,
-        currentAgent || null,
+        liveAssistant || null,
         llmManager.currentLlm
       );
       const llmAcceptsImages = modelSupportsImageInput(llmProviders, llmModel);
@@ -854,39 +868,68 @@ export function useChatController({
 
       updateChatStateAction(getCurrentSessionId(), "uploading");
 
-      for (let file of acceptedFiles) {
-        const formData = new FormData();
-        formData.append("files", file);
-        const response: FileResponse[] = await uploadFile(formData, null);
+      try {
+        //this is to show files in the INPUT BAR immediately
+        const tempProjectFiles: ProjectFile[] = Array.from(acceptedFiles).map(
+          (file) => ({
+            id: file.name,
+            file_id: file.name,
+            name: file.name,
+            project_id: null,
+            user_id: null,
+            created_at: new Date().toISOString(),
+            status: UserFileStatus.UPLOADING,
+            file_type: file.type,
+            last_accessed_at: new Date().toISOString(),
+            chat_file_type: ChatFileType.DOCUMENT,
+            token_count: null,
+            chunk_count: null,
+          })
+        );
+        setCurrentMessageFiles((prev) => [...prev, ...tempProjectFiles]);
 
-        if (response.length > 0 && response[0] !== undefined) {
-          const uploadedFile = response[0];
+        const uploadedMessageFiles: CategorizedFiles = await uploadFiles(
+          Array.from(acceptedFiles)
+        );
+        //remove the temp files
+        setCurrentMessageFiles((prev) =>
+          prev.filter(
+            (file) =>
+              !tempProjectFiles.some((tempFile) => tempFile.id === file.id)
+          )
+        );
+        setCurrentMessageFiles((prev) => [
+          ...prev,
+          ...uploadedMessageFiles.user_files,
+        ]);
 
-          const newFileDescriptor: FileDescriptor = {
-            // Use file_id (storage ID) if available, otherwise fallback to DB id
-            // Ensure it's a string as FileDescriptor expects
-            id: uploadedFile.file_id
-              ? String(uploadedFile.file_id)
-              : String(uploadedFile.id),
-            type: uploadedFile.chat_file_type
-              ? uploadedFile.chat_file_type
-              : ChatFileType.PLAIN_TEXT,
-            name: uploadedFile.name,
-            isUploading: false, // Mark as successfully uploaded
-          };
+        // Show toast if any files were rejected or unsupported
+        const unsupported = uploadedMessageFiles.unsupported_files || [];
+        const nonAccepted = uploadedMessageFiles.non_accepted_files || [];
+        if (unsupported.length > 0 || nonAccepted.length > 0) {
+          const detailsParts: string[] = [];
+          if (unsupported.length > 0) {
+            detailsParts.push(`Unsupported: ${unsupported.join(", ")}`);
+          }
+          if (nonAccepted.length > 0) {
+            detailsParts.push(`Not accepted: ${nonAccepted.join(", ")}`);
+          }
 
-          setCurrentMessageFiles((prev) => [...prev, newFileDescriptor]);
-        } else {
           setPopup({
-            type: "error",
-            message: "Failed to upload file",
+            type: "warning",
+            message: `Some files were not uploaded. ${detailsParts.join(" | ")}`,
           });
         }
+      } catch (error) {
+        setPopup({
+          type: "error",
+          message: "Failed to upload file",
+        });
       }
 
       updateChatStateAction(getCurrentSessionId(), "input");
     },
-    [llmProviders, currentAgent, llmManager, forcedToolIds]
+    [llmProviders, liveAssistant, llmManager, forcedToolIds]
   );
 
   useEffect(() => {
@@ -903,11 +946,15 @@ export function useChatController({
 
   // update chosen assistant if we navigate between pages
   useEffect(() => {
-    if (currentMessageHistory.length === 0 && currentSessionId === null) {
+    if (currentMessageHistory.length === 0 && existingChatSessionId === null) {
       // Select from available assistants so shared assistants appear.
       setSelectedAssistantFromId(null);
     }
-  }, [currentSessionId, agents, currentMessageHistory.length]);
+  }, [
+    existingChatSessionId,
+    availableAssistants,
+    currentMessageHistory.length,
+  ]);
 
   useEffect(() => {
     const handleSlackChatRedirect = async () => {
@@ -954,7 +1001,7 @@ export function useChatController({
   useEffect(() => {
     async function fetchMaxTokens() {
       const response = await fetch(
-        `/api/chat/max-selected-document-tokens?persona_id=${currentAgent?.id}`
+        `/api/chat/max-selected-document-tokens?persona_id=${liveAssistant?.id}`
       );
       if (response.ok) {
         const maxTokens = (await response.json()).max_tokens as number;
@@ -962,45 +1009,7 @@ export function useChatController({
       }
     }
     fetchMaxTokens();
-  }, [currentAgent]);
-
-  // fetch # of document tokens for the selected files
-  useEffect(() => {
-    const calculateTokensAndUpdateSearchMode = async () => {
-      if (selectedFiles.length > 0 || selectedFolders.length > 0) {
-        try {
-          // Prepare the query parameters for the API call
-          const fileIds = selectedFiles.map((file: FileResponse) => file.id);
-          const folderIds = selectedFolders.map(
-            (folder: FolderResponse) => folder.id
-          );
-
-          // Build the query string
-          const queryParams = new URLSearchParams();
-          fileIds.forEach((id) =>
-            queryParams.append("file_ids", id.toString())
-          );
-          folderIds.forEach((id) =>
-            queryParams.append("folder_ids", id.toString())
-          );
-
-          // Make the API call to get token estimate
-          const response = await fetch(
-            `/api/user/file/token-estimate?${queryParams.toString()}`
-          );
-
-          if (!response.ok) {
-            console.error("Failed to fetch token estimate");
-            return;
-          }
-        } catch (error) {
-          console.error("Error calculating tokens:", error);
-        }
-      }
-    };
-
-    calculateTokensAndUpdateSearchMode();
-  }, [selectedFiles, selectedFolders, llmManager.currentLlm]);
+  }, [liveAssistant]);
 
   // check if there's an image file in the message history so that we know
   // which LLMs are available to use

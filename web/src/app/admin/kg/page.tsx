@@ -10,25 +10,21 @@ import {
 } from "@/components/Field";
 import { BrainIcon } from "@/components/icons/icons";
 import { Modal } from "@/components/Modal";
-import { Button as UiButton } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { SwitchField } from "@/components/ui/switch";
 import { Form, Formik, FormikState, useFormikContext } from "formik";
 import { useState } from "react";
+import { FiSettings } from "react-icons/fi";
 import * as Yup from "yup";
-import {
-  KGConfig,
-  KGConfigRaw,
-  SourceAndEntityTypeView,
-} from "@/app/admin/kg/interfaces";
-import { sanitizeKGConfig } from "@/app/admin/kg/utils";
+import { KGConfig, KGConfigRaw, SourceAndEntityTypeView } from "./interfaces";
+import { sanitizeKGConfig } from "./utils";
 import useSWR from "swr";
 import { errorHandlingFetcher } from "@/lib/fetcher";
 import { PopupSpec, usePopup } from "@/components/admin/connectors/Popup";
 import Title from "@/components/ui/title";
 import { redirect } from "next/navigation";
-import { useIsKGExposed } from "@/app/admin/kg/utils";
-import KGEntityTypes from "@/app/admin/kg/KGEntityTypes";
-import Button from "@/components-2/buttons/Button";
+import { useIsKGExposed } from "./utils";
+import KGEntityTypes from "./KGEntityTypes";
 
 function createDomainField(
   name: string,
@@ -37,11 +33,7 @@ function createDomainField(
   placeholder: string,
   minFields?: number
 ) {
-  interface DomainFieldsProps {
-    disabled?: boolean;
-  }
-
-  return function DomainFields({ disabled = false }: DomainFieldsProps) {
+  return function DomainFields({ disabled = false }: { disabled?: boolean }) {
     const { values } = useFormikContext<any>();
 
     return (
@@ -73,19 +65,17 @@ const IgnoreDomains = createDomainField(
   "Domain"
 );
 
-interface KGConfigurationProps {
-  kgConfig: KGConfig;
-  onSubmitSuccess?: () => void;
-  setPopup?: (spec: PopupSpec | null) => void;
-  entityTypesMutate?: () => void;
-}
-
 function KGConfiguration({
   kgConfig,
   onSubmitSuccess,
   setPopup,
   entityTypesMutate,
-}: KGConfigurationProps) {
+}: {
+  kgConfig: KGConfig;
+  onSubmitSuccess?: () => void;
+  setPopup?: (spec: PopupSpec | null) => void;
+  entityTypesMutate?: () => void;
+}) {
   const initialValues: KGConfig = {
     enabled: kgConfig.enabled,
     vendor: kgConfig.vendor ?? "",
@@ -210,9 +200,9 @@ function KGConfiguration({
                 disabled={!props.values.enabled}
               />
             </div>
-            <UiButton variant="submit" type="submit" disabled={!props.dirty}>
+            <Button variant="submit" type="submit" disabled={!props.dirty}>
               Submit
-            </UiButton>
+            </Button>
           </div>
         </Form>
       )}
@@ -284,8 +274,11 @@ function Main() {
             Begin by configuring some high-level attributes, and then define the
             entities you want to model afterwards.
           </p>
-
-          <Button onClick={() => setConfigureModalShown(true)}>
+          <Button
+            size="lg"
+            icon={FiSettings}
+            onClick={() => setConfigureModalShown(true)}
+          >
             Configure Knowledge Graph
           </Button>
         </div>

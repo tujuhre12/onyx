@@ -4,13 +4,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  getDisplayNameForModel,
-  LlmDescriptor,
-  useLlmManager,
-} from "@/lib/hooks";
+import { getDisplayNameForModel, LlmDescriptor } from "@/lib/hooks";
 import { modelSupportsImageInput, structureValue } from "@/lib/llm/utils";
+import { LLMProviderDescriptor } from "@/app/admin/configuration/llm/interfaces";
 import { getProviderIcon } from "@/app/admin/configuration/llm/utils";
+import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
+import { LlmManager } from "@/lib/hooks";
+
 import {
   Tooltip,
   TooltipContent,
@@ -18,39 +18,35 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { FiAlertTriangle } from "react-icons/fi";
+
 import { Slider } from "@/components/ui/slider";
 import { useUser } from "@/components/user/UserProvider";
 import { TruncatedText } from "@/components/ui/truncatedText";
-import { useAgentsContext } from "@/components-2/context/AgentsContext";
-import { useChatContext } from "@/components-2/context/ChatContext";
-import { SelectButton } from "@/components-2/buttons/SelectButton";
-import SvgRefreshCw from "@/icons/refresh-cw";
-import IconButton from "@/components-2/buttons/IconButton";
+import { ChatInputOption } from "./ChatInputOption";
 
-export interface LLMPopoverProps {
-  compact?: boolean;
+interface LLMPopoverProps {
+  llmProviders: LLMProviderDescriptor[];
+  llmManager: LlmManager;
   requiresImageGeneration?: boolean;
+  currentAssistant?: MinimalPersonaSnapshot;
+  trigger?: React.ReactElement;
   onSelect?: (value: string) => void;
   currentModelName?: string;
   align?: "start" | "center" | "end";
 }
 
 export default function LLMPopover({
-  compact,
+  llmProviders,
+  llmManager,
   requiresImageGeneration,
+  currentAssistant,
+  trigger,
   onSelect,
   currentModelName,
   align,
 }: LLMPopoverProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const { user } = useUser();
-  const { llmProviders, currentChat } = useChatContext();
-  const { currentAgent } = useAgentsContext();
-  const llmManager = useLlmManager(
-    llmProviders,
-    currentChat || undefined,
-    currentAgent || undefined
-  );
-  const [open, setOpen] = useState(false);
 
   const [localTemperature, setLocalTemperature] = useState(
     llmManager.temperature ?? 0.5
@@ -80,26 +76,27 @@ export default function LLMPopover({
 
   // Memoize trigger content to prevent rerendering
   const triggerContent = useMemo(
-    () =>
-      compact ? (
-        <IconButton
-          icon={SvgRefreshCw}
-          tertiary
-          active={open}
-          tooltip="Regenerate"
-        />
-      ) : (
-        <SelectButton
-          icon={getProviderIcon(
-            llmManager.currentLlm.provider,
-            llmManager.currentLlm.modelName
-          )}
-          active={open}
-        >
-          {getDisplayNameForModel(llmManager.currentLlm.modelName)}
-        </SelectButton>
-      ),
-    [llmManager.currentLlm, open]
+    trigger
+      ? () => trigger
+      : () => (
+          <button
+            className="dark:text-[#fff] text-[#000] focus:outline-none"
+            data-testid="llm-popover-trigger"
+          >
+            <ChatInputOption
+              minimize
+              toggle
+              flexPriority="stiff"
+              name={getDisplayNameForModel(llmManager.currentLlm.modelName)}
+              Icon={getProviderIcon(
+                llmManager.currentLlm.provider,
+                llmManager.currentLlm.modelName
+              )}
+              tooltipContent="Switch models"
+            />
+          </button>
+        ),
+    [llmManager.currentLlm]
   );
 
   const llmOptionsToChooseFrom = useMemo(
@@ -125,14 +122,12 @@ export default function LLMPopover({
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <div>{triggerContent}</div>
-      </PopoverTrigger>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>{triggerContent}</PopoverTrigger>
       <PopoverContent
         side="top"
-        align="center"
-        className="w-64 p-1 bg-background-tint-01 border shadow-lg flex flex-col"
+        align={align || "end"}
+        className="w-64 p-1 bg-background border border-background-200 rounded-md shadow-lg flex flex-col"
       >
         <div className="flex-grow max-h-[300px] default-scrollbar overflow-y-auto">
           {llmOptionsToChooseFrom.map(
@@ -144,7 +139,12 @@ export default function LLMPopover({
                 return (
                   <button
                     key={index}
-                    className={`w-full flex items-center gap-x-2 px-3 py-2 text-sm text-left hover:bg-background-tint-03 text-text-04 ${(currentModelName || llmManager.currentLlm.modelName) === modelName && "bg-background-tint-02"}`}
+                    className={`w-full flex items-center gap-x-2 px-3 py-2 text-sm text-left hover:bg-background-100 dark:hover:bg-neutral-800 transition-colors duration-150 ${
+                      (currentModelName || llmManager.currentLlm.modelName) ===
+                      modelName
+                        ? "bg-background-100 dark:bg-neutral-900 text-text"
+                        : "text-text-darker"
+                    }`}
                     onClick={() => {
                       llmManager.updateCurrentLlm({
                         modelName,
@@ -152,17 +152,18 @@ export default function LLMPopover({
                         name,
                       } as LlmDescriptor);
                       onSelect?.(structureValue(name, provider, modelName));
-                      setOpen(false);
+                      setIsOpen(false);
                     }}
                   >
                     {icon({
                       size: 16,
-                      className: "flex-none my-auto",
+                      className: "flex-none my-auto text-black",
                     })}
                     <TruncatedText text={getDisplayNameForModel(modelName)} />
                     {(() => {
                       if (
-                        currentAgent?.llm_model_version_override === modelName
+                        currentAssistant?.llm_model_version_override ===
+                        modelName
                       ) {
                         return (
                           <span className="flex-none ml-auto text-xs">
@@ -181,7 +182,7 @@ export default function LLMPopover({
                           <Tooltip>
                             <TooltipTrigger className="my-auto flex items-center ml-auto">
                               <FiAlertTriangle
-                                className="text-status-warning-05"
+                                className="text-alert"
                                 size={16}
                               />
                             </TooltipTrigger>
@@ -203,7 +204,7 @@ export default function LLMPopover({
           )}
         </div>
         {user?.preferences?.temperature_override_enabled && (
-          <div className="mt-2 pt-2 border-t border-border-01">
+          <div className="mt-2 pt-2 border-t border-background-200">
             <div className="w-full px-3 py-2">
               <Slider
                 value={[localTemperature]}
@@ -214,7 +215,7 @@ export default function LLMPopover({
                 onValueCommit={handleTemperatureChangeComplete}
                 className="w-full"
               />
-              <div className="flex justify-between text-xs mt-2">
+              <div className="flex justify-between text-xs text-text-500 mt-2">
                 <span>Temperature (creativity)</span>
                 <span>{localTemperature.toFixed(1)}</span>
               </div>

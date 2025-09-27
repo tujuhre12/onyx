@@ -1,16 +1,10 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+
 import { cn } from "@/lib/utils";
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-
-export const buttonVariants = cva(
+const buttonVariants = cva(
   "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-medium ring-offset-[#fff] transition-colors focus-visible:outline-none  disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
@@ -101,6 +95,13 @@ export const buttonVariants = cva(
   }
 );
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
@@ -109,56 +110,59 @@ export interface ButtonProps
   tooltip?: string;
   reverse?: boolean;
 }
-
-function ButtonInner(
-  {
-    className,
-    variant,
-    size = "sm",
-    asChild = false,
-    icon: Icon,
-    tooltip,
-    disabled,
-    ...props
-  }: ButtonProps,
-  ref: any
-) {
-  const Comp = asChild ? Slot : "button";
-  const button = (
-    <Comp
-      className={cn(
-        buttonVariants({
-          variant,
-          size,
-          className,
-        })
-      )}
-      ref={ref}
-      disabled={disabled}
-      {...props}
-    >
-      {Icon && <Icon />}
-      {props.children}
-    </Comp>
-  );
-
-  if (tooltip) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className={disabled ? "cursor-not-allowed" : ""}>{button}</div>
-          </TooltipTrigger>
-          <TooltipContent showTick={true}>
-            <p>{tooltip}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      className,
+      variant,
+      size = "sm",
+      asChild = false,
+      icon: Icon,
+      tooltip,
+      disabled,
+      ...props
+    },
+    ref
+  ) => {
+    const Comp = asChild ? Slot : "button";
+    const button = (
+      <Comp
+        className={cn(
+          buttonVariants({
+            variant,
+            size,
+            className,
+          })
+        )}
+        ref={ref}
+        disabled={disabled}
+        {...props}
+      >
+        {Icon && <Icon />}
+        {props.children}
+      </Comp>
     );
+
+    if (tooltip) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={disabled ? "cursor-not-allowed" : ""}>
+                {button}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent showTick={true}>
+              <p>{tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    return button;
   }
-
-  return button;
-}
-
-export const Button = React.forwardRef(ButtonInner);
+);
 Button.displayName = "Button";
+
+export { Button, buttonVariants };

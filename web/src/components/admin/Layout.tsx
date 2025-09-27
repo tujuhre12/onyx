@@ -5,20 +5,16 @@ import {
   getCurrentUserSS,
 } from "@/lib/userSS";
 import { redirect } from "next/navigation";
-import { ClientLayout } from "@/components/admin/ClientLayout";
+import { ClientLayout } from "./ClientLayout";
 import {
   NEXT_PUBLIC_CLOUD_ENABLED,
   SERVER_SIDE_ONLY__PAID_ENTERPRISE_FEATURES_ENABLED,
 } from "@/lib/constants";
-import { AnnouncementBanner } from "@/components/header/AnnouncementBanner";
+import { AnnouncementBanner } from "../header/AnnouncementBanner";
 import { fetchChatData } from "@/lib/chat/fetchChatData";
-import { ChatProvider } from "@/components-2/context/ChatContext";
+import { ChatProvider } from "../context/ChatContext";
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-export async function Layout({ children }: LayoutProps) {
+export async function Layout({ children }: { children: React.ReactNode }) {
   const tasks = [getAuthTypeMetadataSS(), getCurrentUserSS()];
 
   // catch cases where the backend is completely unreachable here
@@ -49,7 +45,6 @@ export async function Layout({ children }: LayoutProps) {
   }
 
   const data = await fetchChatData({});
-
   if ("redirect" in data) {
     redirect(data.redirect);
   }
@@ -67,24 +62,28 @@ export async function Layout({ children }: LayoutProps) {
     inputPrompts,
     proSearchToggled,
     availableTools,
+    projects,
   } = data;
 
   return (
     <ChatProvider
-      inputPrompts={inputPrompts}
-      chatSessions={chatSessions}
-      proSearchToggled={proSearchToggled}
-      sidebarInitiallyVisible={sidebarInitiallyVisible}
-      availableSources={availableSources}
-      ccPairs={ccPairs}
-      documentSets={documentSets}
-      availableTools={availableTools}
-      tags={tags}
-      availableDocumentSets={documentSets}
-      availableTags={tags}
-      llmProviders={llmProviders}
-      shouldShowWelcomeModal={shouldShowWelcomeModal}
-      defaultAssistantId={defaultAssistantId}
+      value={{
+        inputPrompts,
+        chatSessions,
+        proSearchToggled,
+        sidebarInitiallyVisible,
+        availableSources,
+        ccPairs,
+        documentSets,
+        availableTools,
+        tags,
+        availableDocumentSets: documentSets,
+        availableTags: tags,
+        llmProviders,
+        shouldShowWelcomeModal,
+        defaultAssistantId,
+        projects,
+      }}
     >
       <ClientLayout
         enableEnterprise={SERVER_SIDE_ONLY__PAID_ENTERPRISE_FEATURES_ENABLED}

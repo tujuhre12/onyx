@@ -1,18 +1,16 @@
-interface BasicClickableProps {
-  children: string | JSX.Element;
-  onClick?: () => void;
-  inset?: boolean;
-  fullWidth?: boolean;
-  className?: string;
-}
-
 export function BasicClickable({
   children,
   onClick,
   fullWidth = false,
   inset,
   className,
-}: BasicClickableProps) {
+}: {
+  children: string | JSX.Element;
+  onClick?: () => void;
+  inset?: boolean;
+  fullWidth?: boolean;
+  className?: string;
+}) {
   return (
     <button
       onClick={onClick}
@@ -21,7 +19,7 @@ export function BasicClickable({
         border-border
         rounded
         font-medium 
-        text-text-02 
+        text-text-darker 
         text-sm
         relative
         px-1 py-1.5
@@ -29,7 +27,7 @@ export function BasicClickable({
         bg-background
         select-none
         overflow-hidden
-        hover:bg-background-tint-01
+        hover:bg-accent-background
         ${fullWidth ? "w-full" : ""}
         ${className ? className : ""}
         `}
@@ -39,19 +37,17 @@ export function BasicClickable({
   );
 }
 
-interface EmphasizedClickableProps {
-  children: string | JSX.Element;
-  onClick?: () => void;
-  fullWidth?: boolean;
-  size?: "sm" | "md" | "lg";
-}
-
 export function EmphasizedClickable({
   children,
   onClick,
   fullWidth = false,
   size = "md",
-}: EmphasizedClickableProps) {
+}: {
+  children: string | JSX.Element;
+  onClick?: () => void;
+  fullWidth?: boolean;
+  size?: "sm" | "md" | "lg";
+}) {
   return (
     <button
       className={`
@@ -68,28 +64,17 @@ export function EmphasizedClickable({
               : `min-h-[42px] py-2 px-4`
         }
         w-fit 
-        bg-background-tint-02
-        border-1 border-border-02 border bg-background-neutral-01 
+        bg-accent-background-hovered
+        border-1 border-border-medium border bg-background-100 
         text-sm
         rounded-lg
-        hover:bg-background-tint-03
+        hover:bg-background-125
     `}
       onClick={onClick}
     >
       {children}
     </button>
   );
-}
-
-interface BasicSelectableProps {
-  children: string | JSX.Element;
-  selected: boolean;
-  hasBorder?: boolean;
-  fullWidth?: boolean;
-  removeColors?: boolean;
-  padding?: "none" | "normal" | "extra";
-  isDragging?: boolean;
-  isHovered?: boolean;
 }
 
 export function BasicSelectable({
@@ -101,7 +86,16 @@ export function BasicSelectable({
   removeColors = false,
   isDragging = false,
   isHovered,
-}: BasicSelectableProps) {
+}: {
+  children: string | JSX.Element;
+  selected: boolean;
+  hasBorder?: boolean;
+  fullWidth?: boolean;
+  removeColors?: boolean;
+  padding?: "none" | "normal" | "extra";
+  isDragging?: boolean;
+  isHovered?: boolean;
+}) {
   return (
     <div
       className={`
@@ -117,12 +111,12 @@ export function BasicSelectable({
         ${
           !removeColors
             ? isDragging
-              ? "bg-background-tint-02"
+              ? "bg-background-chat-hover"
               : selected
-                ? "bg-background-tint-01"
+                ? "bg-background-chat-selected"
                 : isHovered
-                  ? "bg-background-tint-01"
-                  : ""
+                  ? "bg-background-chat-hover"
+                  : "hover:bg-background-chat-hover"
             : ""
         }
         ${fullWidth ? "w-full" : ""}`}

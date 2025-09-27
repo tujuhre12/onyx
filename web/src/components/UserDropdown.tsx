@@ -6,22 +6,17 @@ import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { UserRole } from "@/lib/types";
 import { checkUserIsNoAuthUser, logout } from "@/lib/user";
-import { Popover } from "@/components/popover/Popover";
+import { Popover } from "./popover/Popover";
 import { LOGOUT_DISABLED } from "@/lib/constants";
-import { SettingsContext } from "@/components/settings/SettingsProvider";
-import {
-  BellIcon,
-  LightSettingsIcon,
-  UserIcon,
-} from "@/components/icons/icons";
+import { SettingsContext } from "./settings/SettingsProvider";
+import { BellIcon, LightSettingsIcon, UserIcon } from "./icons/icons";
 import { pageType } from "@/components/sidebar/types";
 import { NavigationItem, Notification } from "@/app/admin/settings/interfaces";
-import DynamicFaIcon, { preloadIcons } from "@/components/icons/DynamicFaIcon";
-import { useUser } from "@/components/user/UserProvider";
-import { Notifications } from "@/components/chat/Notifications";
+import DynamicFaIcon, { preloadIcons } from "./icons/DynamicFaIcon";
+import { useUser } from "./user/UserProvider";
+import { Notifications } from "./chat/Notifications";
 import useSWR from "swr";
 import { errorHandlingFetcher } from "@/lib/fetcher";
-import Text from "@/components-2/Text";
 
 interface DropdownOptionProps {
   href?: string;
@@ -31,17 +26,17 @@ interface DropdownOptionProps {
   openInNewTab?: boolean;
 }
 
-function DropdownOption({
+const DropdownOption: React.FC<DropdownOptionProps> = ({
   href,
   onClick,
   icon,
   label,
   openInNewTab,
-}: DropdownOptionProps) {
+}) => {
   const content = (
-    <div className="flex py-1.5 text-sm px-2 gap-x-2 text-sm cursor-pointer rounded hover:bg-background-tint-03">
+    <div className="flex py-1.5 text-sm px-2 gap-x-2 text-black text-sm cursor-pointer rounded hover:bg-background-300">
       {icon}
-      <Text>{label}</Text>
+      {label}
     </div>
   );
 
@@ -58,19 +53,17 @@ function DropdownOption({
   } else {
     return <div onClick={onClick}>{content}</div>;
   }
-}
-
-interface UserDropdownProps {
-  page?: pageType;
-  toggleUserSettings?: () => void;
-  hideUserDropdown?: boolean;
-}
+};
 
 export function UserDropdown({
   page,
   toggleUserSettings,
   hideUserDropdown,
-}: UserDropdownProps) {
+}: {
+  page?: pageType;
+  toggleUserSettings?: () => void;
+  hideUserDropdown?: boolean;
+}) {
   const { user, isCurator } = useUser();
   const [userInfoVisible, setUserInfoVisible] = useState(false);
   const userInfoRef = useRef<HTMLDivElement>(null);
@@ -101,7 +94,7 @@ export function UserDropdown({
     return null;
   }
 
-  function handleLogout() {
+  const handleLogout = () => {
     logout().then((isSuccess) => {
       if (!isSuccess) {
         alert("Failed to logout");
@@ -119,7 +112,7 @@ export function UserDropdown({
       // Redirect to login page with the current page as a redirect parameter
       router.push(`/auth/login?next=${encodedRedirect}`);
     });
-  }
+  };
 
   const showAdminPanel = !user || user.role === UserRole.ADMIN;
 
@@ -127,10 +120,10 @@ export function UserDropdown({
   const showLogout =
     user && !checkUserIsNoAuthUser(user.id) && !LOGOUT_DISABLED;
 
-  function onOpenChange(open: boolean) {
+  const onOpenChange = (open: boolean) => {
     setUserInfoVisible(open);
     setShowNotifications(false);
-  }
+  };
 
   return (
     <div className="group relative" ref={userInfoRef}>
@@ -143,13 +136,13 @@ export function UserDropdown({
             onClick={() => setUserInfoVisible(!userInfoVisible)}
             className="flex relative cursor-pointer"
           >
-            <button
+            <div
               className="
                 my-auto
-                bg-background-tint-inverted-02
+                bg-background-900
                 ring-2
                 ring-transparent
-                group-hover:ring-background-tint-03/50
+                group-hover:ring-background-300/50
                 transition-ring
                 duration-150
                 rounded-full
@@ -160,18 +153,16 @@ export function UserDropdown({
                 flex
                 items-center
                 justify-center
-                text-text-inverted-01
+                text-white
                 text-base
               "
             >
-              <Text inverted>
-                {user && user.email
-                  ? user.email[0] !== undefined && user.email[0].toUpperCase()
-                  : "A"}
-              </Text>
-            </button>
+              {user && user.email
+                ? user.email[0] !== undefined && user.email[0].toUpperCase()
+                : "A"}
+            </div>
             {notifications && notifications.length > 0 && (
-              <div className="absolute -right-0.5 -top-0.5 w-3 h-3 bg-status-error-05 rounded-full" />
+              <div className="absolute -right-0.5 -top-0.5 w-3 h-3 bg-red-500 rounded-full"></div>
             )}
           </div>
         }
@@ -180,16 +171,18 @@ export function UserDropdown({
             className={`
                 p-2
                 ${page != "admin" && showNotifications ? "w-72" : "w-[175px]"}
-                text-text-01
+                text-strong 
                 text-sm
-                border
-                bg-background-tint-01
+                border 
+                border-border 
+                bg-background
+                dark:bg-[#2F2F2F]
                 rounded-lg
-                shadow-lg
-                flex
-                flex-col
-                max-h-96
-                overflow-y-auto
+                shadow-lg 
+                flex 
+                flex-col 
+                max-h-96 
+                overflow-y-auto 
                 p-1
                 overscroll-contain
               `}
@@ -203,7 +196,7 @@ export function UserDropdown({
             ) : hideUserDropdown ? (
               <DropdownOption
                 onClick={() => router.push("/auth/login")}
-                icon={<UserIcon className="h-5 w-5 my-auto text-text-05" />}
+                icon={<UserIcon className="h-5w-5 my-auto " />}
                 label="Log In"
               />
             ) : (
@@ -237,7 +230,7 @@ export function UserDropdown({
                       ) : (
                         <DynamicFaIcon
                           name={item.icon!}
-                          className="h-4 w-4 my-auto text-text-05"
+                          className="h-4 w-4 my-auto "
                         />
                       )
                     }
@@ -249,24 +242,14 @@ export function UserDropdown({
                 {showAdminPanel ? (
                   <DropdownOption
                     href="/admin/indexing/status"
-                    icon={
-                      <LightSettingsIcon
-                        size={16}
-                        className="my-auto text-text-05"
-                      />
-                    }
+                    icon={<LightSettingsIcon size={16} className="my-auto" />}
                     label="Admin Panel"
                   />
                 ) : (
                   showCuratorPanel && (
                     <DropdownOption
                       href="/admin/indexing/status"
-                      icon={
-                        <LightSettingsIcon
-                          size={16}
-                          className="my-auto text-text-05"
-                        />
-                      }
+                      icon={<LightSettingsIcon size={16} className="my-auto" />}
                       label="Curator Panel"
                     />
                   )
@@ -275,9 +258,7 @@ export function UserDropdown({
                 {toggleUserSettings && (
                   <DropdownOption
                     onClick={toggleUserSettings}
-                    icon={
-                      <UserIcon size={16} className="my-auto text-text-05" />
-                    }
+                    icon={<UserIcon size={16} className="my-auto" />}
                     label="User Settings"
                   />
                 )}
@@ -287,7 +268,7 @@ export function UserDropdown({
                     setUserInfoVisible(true);
                     setShowNotifications(true);
                   }}
-                  icon={<BellIcon size={16} className="my-auto text-text-05" />}
+                  icon={<BellIcon size={16} className="my-auto" />}
                   label={`Notifications ${
                     notifications && notifications.length > 0
                       ? `(${notifications.length})`
@@ -299,15 +280,13 @@ export function UserDropdown({
                   (showCuratorPanel ||
                     showAdminPanel ||
                     customNavItems.length > 0) && (
-                    <div className="border-t my-1" />
+                    <div className="border-t border-border my-1" />
                   )}
 
                 {showLogout && (
                   <DropdownOption
                     onClick={handleLogout}
-                    icon={
-                      <FiLogOut size={16} className="my-auto text-text-05" />
-                    }
+                    icon={<FiLogOut size={16} className="my-auto" />}
                     label="Log out"
                   />
                 )}

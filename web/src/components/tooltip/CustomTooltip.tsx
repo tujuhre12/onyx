@@ -8,42 +8,21 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 
-// Interfaces
-export interface TooltipGroupContextType {
+// Create a context for the tooltip group
+const TooltipGroupContext = createContext<{
   setGroupHovered: React.Dispatch<React.SetStateAction<boolean>>;
   groupHovered: boolean;
   hoverCountRef: React.MutableRefObject<boolean>;
-}
-
-export interface TooltipGroupProps {
-  children: React.ReactNode;
-  gap?: string;
-}
-
-export interface CustomTooltipProps {
-  medium?: boolean;
-  content: string | ReactNode;
-  children: JSX.Element;
-  large?: boolean;
-  line?: boolean;
-  light?: boolean;
-  showTick?: boolean;
-  delay?: number;
-  wrap?: boolean;
-  citation?: boolean;
-  position?: "top" | "bottom";
-  disabled?: boolean;
-  className?: string;
-}
-
-// Create a context for the tooltip group
-const TooltipGroupContext = createContext<TooltipGroupContextType>({
+}>({
   setGroupHovered: () => {},
   groupHovered: false,
   hoverCountRef: { current: false },
 });
 
-export function TooltipGroup({ children, gap }: TooltipGroupProps) {
+export const TooltipGroup: React.FC<{
+  children: React.ReactNode;
+  gap?: string;
+}> = ({ children, gap }) => {
   const [groupHovered, setGroupHovered] = useState(false);
   const hoverCountRef = useRef(false);
 
@@ -54,9 +33,9 @@ export function TooltipGroup({ children, gap }: TooltipGroupProps) {
       <div className={`inline-flex ${gap}`}>{children}</div>
     </TooltipGroupContext.Provider>
   );
-}
+};
 
-export function CustomTooltip({
+export const CustomTooltip = ({
   content,
   children,
   large,
@@ -70,7 +49,21 @@ export function CustomTooltip({
   position = "bottom",
   disabled = false,
   className,
-}: CustomTooltipProps) {
+}: {
+  medium?: boolean;
+  content: string | ReactNode;
+  children: JSX.Element;
+  large?: boolean;
+  line?: boolean;
+  light?: boolean;
+  showTick?: boolean;
+  delay?: number;
+  wrap?: boolean;
+  citation?: boolean;
+  position?: "top" | "bottom";
+  disabled?: boolean;
+  className?: string;
+}) => {
   const [isVisible, setIsVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -140,7 +133,7 @@ export function CustomTooltip({
         !disabled &&
         createPortal(
           <div
-            className={`fixed z-[1000] overflow-hidden rounded-md text-text-inverted-01 
+            className={`fixed z-[1000] overflow-hidden rounded-md text-neutral-50 
               ${className}
               ${citation ? "max-w-[350px]" : "max-w-40"} ${
                 large ? (medium ? "w-88" : "w-96") : line && "max-w-64 w-auto"
@@ -148,8 +141,8 @@ export function CustomTooltip({
             transform -translate-x-1/2 text-xs
             ${
               light
-                ? "bg-background-neutral-02 text-text-01"
-                : "bg-background-neutral-inverted-01 text-text-inverted-01"
+                ? "bg-neutral-200 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50"
+                : "bg-neutral-900 dark:bg-neutral-200 text-neutral-50 dark:text-neutral-900"
             } 
             px-2 py-1.5 shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2`}
             style={{
@@ -164,8 +157,8 @@ export function CustomTooltip({
                 } left-1/2 transform -translate-x-1/2 rotate-45 
                 ${
                   light
-                    ? "bg-background-neutral-02"
-                    : "bg-background-neutral-inverted-01"
+                    ? "bg-neutral-200 dark:bg-neutral-800"
+                    : "bg-neutral-900 dark:bg-neutral-200"
                 }`}
               />
             )}
@@ -190,4 +183,4 @@ export function CustomTooltip({
         )}
     </>
   );
-}
+};

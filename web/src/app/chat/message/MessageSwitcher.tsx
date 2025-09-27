@@ -1,13 +1,18 @@
-import IconButton from "@/components-2/buttons/IconButton";
-import Text from "@/components-2/Text";
-import SvgChevronLeft from "@/icons/chevron-left";
-import SvgChevronRight from "@/icons/chevron-right";
+import { Hoverable } from "@/components/Hoverable";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 interface MessageSwitcherProps {
   currentPage: number;
   totalPages: number;
   handlePrevious: () => void;
   handleNext: () => void;
+  disableForStreaming?: boolean;
 }
 
 export function MessageSwitcher({
@@ -15,34 +20,61 @@ export function MessageSwitcher({
   totalPages,
   handlePrevious,
   handleNext,
+  disableForStreaming,
 }: MessageSwitcherProps) {
   return (
-    <div className="flex flex-row items-center gap-spacing-inline">
-      <IconButton
-        icon={SvgChevronLeft}
-        disabled={currentPage === 1}
-        internal
-        onClick={handlePrevious}
-      />
-      <div className="flex flex-row items-center gap-spacing-inline">
-        <Text mainAction text03>
-          {currentPage}
-        </Text>
-        <div />
-        <Text mainAction text03>
-          /
-        </Text>
-        <Text mainAction text03>
-          {totalPages}
-        </Text>
-      </div>
+    <div className="flex items-center text-sm space-x-0.5">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <Hoverable
+                icon={FiChevronLeft}
+                onClick={
+                  disableForStreaming
+                    ? () => null
+                    : currentPage === 1
+                      ? undefined
+                      : handlePrevious
+                }
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {disableForStreaming
+              ? "Wait for agent message to complete"
+              : "Previous"}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
-      <IconButton
-        icon={SvgChevronRight}
-        disabled={currentPage === totalPages}
-        internal
-        onClick={handleNext}
-      />
+      <span className="text-text-darker select-none">
+        {currentPage} / {totalPages}
+      </span>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <div>
+              <Hoverable
+                icon={FiChevronRight}
+                onClick={
+                  disableForStreaming
+                    ? () => null
+                    : currentPage === totalPages
+                      ? undefined
+                      : handleNext
+                }
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {disableForStreaming
+              ? "Wait for agent message to complete"
+              : "Next"}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 }
