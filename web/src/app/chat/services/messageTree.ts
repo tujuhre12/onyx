@@ -435,9 +435,15 @@ export const buildImmediateMessages = (
   initialUserNode: Message;
   initialAssistantNode: Message;
 } => {
+  // When editing a message, create a new node (sibling) rather than updating the existing one
   const initialUserNode = messageToResend
-    ? { ...messageToResend } // clone the message to avoid mutating the original
+    ? {
+        ...buildEmptyMessage("user", parentNodeId, userInput), // new node with new ID
+        messageId: messageToResend.messageId, // keep the same messageId for backend association
+        files: messageToResend.files, // preserve files from original message
+      }
     : buildEmptyMessage("user", parentNodeId, userInput);
+
   const initialAssistantNode = buildEmptyMessage(
     "assistant",
     initialUserNode.nodeId,
@@ -445,9 +451,8 @@ export const buildImmediateMessages = (
     1
   );
 
-  initialUserNode.childrenNodeIds = initialUserNode.childrenNodeIds
-    ? [...initialUserNode.childrenNodeIds, initialAssistantNode.nodeId]
-    : [initialAssistantNode.nodeId];
+  // New edited message starts fresh with only its assistant response
+  initialUserNode.childrenNodeIds = [initialAssistantNode.nodeId];
   initialUserNode.latestChildNodeId = initialAssistantNode.nodeId;
 
   return {

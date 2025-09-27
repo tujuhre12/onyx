@@ -107,6 +107,7 @@ export const HumanMessage = ({
   content,
   files,
   messageId,
+  nodeId,
   otherMessagesCanSwitchTo,
   onEdit,
   onMessageSelection,
@@ -119,6 +120,7 @@ export const HumanMessage = ({
   content: string;
   files?: FileDescriptor[];
   messageId?: number | null;
+  nodeId?: number;
   otherMessagesCanSwitchTo?: number[];
   onEdit?: (editedContent: string) => void;
   onMessageSelection?: (messageId: number) => void;
@@ -154,8 +156,9 @@ export const HumanMessage = ({
     setIsEditing(false);
   };
 
-  const currentMessageInd = messageId
-    ? otherMessagesCanSwitchTo?.indexOf(messageId)
+  // Use nodeId for finding position in siblings array since otherMessagesCanSwitchTo contains nodeIds
+  const currentMessageInd = nodeId
+    ? otherMessagesCanSwitchTo?.indexOf(nodeId)
     : undefined;
 
   const getPreviousMessage = () => {
