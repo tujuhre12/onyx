@@ -127,4 +127,80 @@ test.describe("Message Edit and Regenerate Tests", () => {
     switcherSpan = page.locator('span:has-text("2 / 3")').first();
     await expect(switcherSpan).toBeVisible();
   });
+
+  test("Message regeneration with model selection", async ({ page }) => {
+    // Step 1: Send initial message
+    await sendMessage(page, "hi!");
+    await page.waitForSelector('[data-testid="onyx-ai-message"]');
+    await page.waitForTimeout(3000);
+
+    // Step 2: Capture the original AI response text (just the message content, not buttons/switcher)
+    const aiMessage = page.locator('[data-testid="onyx-ai-message"]').first();
+    // Target the actual message content div (the one with select-text class)
+    const messageContent = aiMessage.locator(".select-text").first();
+    const originalResponseText = await messageContent.textContent();
+
+    // Step 3: Hover over AI message to show regenerate button
+    await aiMessage.hover();
+
+    // Step 4: Click regenerate button using its data-testid
+    const regenerateButton = aiMessage.locator(
+      '[data-testid="regenerate-button"]'
+    );
+    await regenerateButton.click();
+
+    // Step 5: Wait for dropdown to appear and select GPT-4o-mini
+    await page.waitForTimeout(500);
+
+    // Look for the GPT-4o-mini option in the dropdown
+    const gpt4oMiniOption = page.locator("text=/.*GPT.?4o.?Mini.*/i").first();
+    await gpt4oMiniOption.click();
+
+    // Step 6: Wait for regeneration to complete
+    await page.waitForTimeout(5000); // Give time for the response to be generated
+
+    // Step 7: Verify version switcher appears showing "2 / 2"
+    const messageSwitcher = page.locator('span:has-text("2 / 2")').first();
+    await expect(messageSwitcher).toBeVisible();
+
+    // Step 8: Capture the regenerated response text (just the message content)
+    const regeneratedResponseText = await messageContent.textContent();
+
+    // Step 9: Verify that the regenerated response is different from the original
+    expect(regeneratedResponseText).not.toBe(originalResponseText);
+
+    // Step 10: Navigate to previous version
+    await messageSwitcher
+      .locator("..")
+      .locator("svg")
+      .first()
+      .locator("..")
+      .click();
+    await page.waitForTimeout(1000);
+
+    // Verify we're at "1 / 2"
+    let switcherSpan = page.locator('span:has-text("1 / 2")').first();
+    await expect(switcherSpan).toBeVisible();
+
+    // Step 11: Verify we're back to the original response
+    const firstVersionText = await messageContent.textContent();
+    expect(firstVersionText).toBe(originalResponseText);
+
+    // Step 12: Navigate back to regenerated version
+    await switcherSpan
+      .locator("..")
+      .locator("svg")
+      .last()
+      .locator("..")
+      .click();
+    await page.waitForTimeout(1000);
+
+    // Verify we're back at "2 / 2"
+    switcherSpan = page.locator('span:has-text("2 / 2")').first();
+    await expect(switcherSpan).toBeVisible();
+
+    // Step 13: Verify we're back to the regenerated response
+    const secondVersionText = await messageContent.textContent();
+    expect(secondVersionText).toBe(regeneratedResponseText);
+  });
 });
