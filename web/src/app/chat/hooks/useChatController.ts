@@ -594,6 +594,7 @@ export function useChatController({
               messageToResendParent?.messageId ||
               lastSuccessfulMessageId;
             // Don't send SYSTEM_NODE_ID (-3) as parent, use null instead
+            // The backend expects null for "the first message in the chat"
             return parentId === SYSTEM_NODE_ID ? null : parentId;
           })(),
           chatSessionId: currChatSessionId,

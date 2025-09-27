@@ -439,7 +439,6 @@ export const buildImmediateMessages = (
   const initialUserNode = messageToResend
     ? {
         ...buildEmptyMessage("user", parentNodeId, userInput), // new node with new ID
-        messageId: messageToResend.messageId, // keep the same messageId for backend association
         files: messageToResend.files, // preserve files from original message
       }
     : buildEmptyMessage("user", parentNodeId, userInput);
