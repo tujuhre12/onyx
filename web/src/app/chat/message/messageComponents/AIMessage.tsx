@@ -23,8 +23,6 @@ import {
   useDocumentSidebarVisible,
   useSelectedNodeForDocDisplay,
 } from "../../stores/useChatSessionStore";
-import { useCurrentMessageTree } from "../../stores/useChatSessionStore";
-import { FiFileText } from "react-icons/fi";
 import { copyAll, handleCopy } from "../copyingUtils";
 import RegenerateOption from "../../components/RegenerateOption";
 import { MessageSwitcher } from "../MessageSwitcher";
@@ -403,10 +401,6 @@ export function AIMessage({
                                 content="Regenerate"
                               >
                                 <RegenerateOption
-                                  onDropdownVisibleChange={
-                                    setIsRegenerateDropdownVisible
-                                  }
-                                  selectedAssistant={chatState.assistant}
                                   regenerate={chatState.regenerate}
                                   overriddenModel={chatState.overriddenModel}
                                 />

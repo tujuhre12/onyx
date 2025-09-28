@@ -12,7 +12,7 @@ import { HoverDropdown } from "@/components/HoverDropdown";
 import { Popover } from "@/components/popover/Popover";
 import { FiEdit2, FiMoreHorizontal, FiShare2, FiTrash } from "react-icons/fi";
 import { HiOutlineArrowUturnRight } from "react-icons/hi2";
-import { useChatContext } from "@/components/context/ChatContext";
+import { useChatContext } from "@/components-2/context/ChatContext";
 import { useCallback, useState } from "react";
 import MoveCustomAgentChatModal from "@/components/modals/MoveCustomAgentChatModal";
 
@@ -98,7 +98,7 @@ export function ChatSessionMorePopup({
     async (targetProjectId: number) => {
       await moveChatSessionService(targetProjectId, chatSession.id);
       await fetchProjects();
-      await refreshChatSessions({ skipRedirectOnMissing: true });
+      await refreshChatSessions();
       setPopoverOpen(false);
       afterMove?.();
     },

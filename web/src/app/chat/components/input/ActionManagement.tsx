@@ -25,7 +25,7 @@ import { useAssistantsContext } from "@/components/context/AssistantsContext";
 import Link from "next/link";
 import { getIconForAction } from "../../services/actionUtils";
 import { useUser } from "@/components/user/UserProvider";
-import { FilterManager, useSourcePreferences } from "@/lib/hooks";
+import { FilterManager, useFilters, useSourcePreferences } from "@/lib/hooks";
 import { listSourceMetadata } from "@/lib/sources";
 import {
   FiServer,
@@ -40,7 +40,7 @@ import { MCPApiKeyModal } from "@/components/chat/MCPApiKeyModal";
 import { ValidSources } from "@/lib/types";
 import { SourceMetadata } from "@/lib/search/interfaces";
 import { SourceIcon } from "@/components/SourceIcon";
-import { useChatContext } from "@/components/context/ChatContext";
+import { useChatContext } from "@/components-2/context/ChatContext";
 import { useTheme } from "next-themes";
 
 // Get source metadata for configured sources - deduplicated by source type
@@ -433,14 +433,13 @@ function MCPToolsList({
 interface ActionToggleProps {
   selectedAssistant: MinimalPersonaSnapshot;
   availableSources?: ValidSources[];
-  filterManager: FilterManager;
 }
 
 export function ActionToggle({
   selectedAssistant,
   availableSources = [],
-  filterManager,
 }: ActionToggleProps) {
+  const filterManager = useFilters();
   const { theme } = useTheme();
   const [open, setOpen] = useState(false);
   const [showSourceManagement, setShowSourceManagement] = useState(false);
