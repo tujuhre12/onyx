@@ -1,4 +1,5 @@
 import React, {
+  memo,
   useCallback,
   useContext,
   useEffect,
@@ -37,6 +38,7 @@ import SvgHourglass from "@/icons/hourglass";
 import SvgArrowUp from "@/icons/arrow-up";
 import SvgStop from "@/icons/stop";
 import FilePicker from "../files/FilePicker";
+import { ActionToggle } from "./ActionManagement";
 
 const MAX_INPUT_HEIGHT = 200;
 
@@ -541,17 +543,18 @@ function ChatInputBarInner({
               recentFiles={recentFiles}
               handleUploadChange={handleUploadChange}
             />
-            <IconButton icon={SvgSliders} tertiary />
+            {selectedAssistant.tools.length > 0 && (
+              <ActionToggle
+                selectedAssistant={selectedAssistant}
+                availableSources={memoizedAvailableSources}
+              />
+            )}
             <IconButton
               icon={SvgHourglass}
               tertiary
               active={deepResearchEnabled}
               onClick={toggleDeepResearch}
             />
-
-            {/* {selectedAssistant.tools.length > 0 && (
-              <ActionToggle selectedAssistant={selectedAssistant} />
-            )} */}
 
             {forcedToolIds.length > 0 && (
               <div className="flex items-center gap-2 text-blue-500">

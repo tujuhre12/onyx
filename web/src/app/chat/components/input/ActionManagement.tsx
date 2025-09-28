@@ -42,6 +42,8 @@ import { SourceMetadata } from "@/lib/search/interfaces";
 import { SourceIcon } from "@/components/SourceIcon";
 import { useChatContext } from "@/components-2/context/ChatContext";
 import { useTheme } from "next-themes";
+import IconButton from "@/components-2/buttons/IconButton";
+import SvgSliders from "@/icons/sliders";
 
 // Get source metadata for configured sources - deduplicated by source type
 function getConfiguredSources(
@@ -822,30 +824,9 @@ export function ActionToggle({
         }}
       >
         <PopoverTrigger asChild>
-          <button
-            type="button"
-            className="
-            relative 
-            cursor-pointer 
-            flex 
-            items-center justify-center leading-none
-            group 
-            rounded-lg 
-            text-input-text 
-            hover:bg-background-chat-hover 
-            hover:text-neutral-900 
-            dark:hover:text-neutral-50
-            p-2
-            flex-none 
-            whitespace-nowrap 
-            overflow-hidden 
-            focus:outline-none
-          "
-            data-testid="action-management-toggle"
-            title={open ? undefined : "Configure actions"}
-          >
-            <SlidersVerticalIcon size={16} className="block flex-none" />
-          </button>
+          <div>
+            <IconButton icon={SvgSliders} tertiary />
+          </div>
         </PopoverTrigger>
         <PopoverContent
           side="top"
