@@ -919,12 +919,12 @@ export function ChatPage({
             >
               {({ getRootProps }) => (
                 <div
-                  className="h-full w-full relative flex-auto dbg-blue"
+                  className="h-full w-full relative flex-auto"
                   {...getRootProps()}
                 >
                   <div
                     onScroll={handleScroll}
-                    className="w-full h-full flex flex-col default-scrollbar overflow-y-auto overflow-x-hidden relative dbg-red"
+                    className="w-full h-full flex flex-col default-scrollbar overflow-y-auto overflow-x-hidden relative"
                     ref={scrollableDivRef}
                   >
                     <MessagesDisplay
@@ -986,7 +986,12 @@ export function ChatPage({
                       {currentProjectId == null && showCenteredInput && (
                         <WelcomeMessage assistant={liveAssistant} />
                       )}
-                      <div className={showCenteredHero ? "row-start-2" : ""}>
+                      <div
+                        className={cn(
+                          "flex flex-col items-center justify-center",
+                          showCenteredHero && "row-start-2"
+                        )}
+                      >
                         {currentProjectId !== null && projectPanelVisible && (
                           <ProjectContextPanel
                             projectTokenCount={projectContextTokenCount}

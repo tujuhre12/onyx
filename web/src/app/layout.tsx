@@ -32,6 +32,7 @@ import Error from "@/components/errorPages/ErrorPage";
 import AccessRestrictedPage from "@/components/errorPages/AccessRestrictedPage";
 import { fetchAssistantData } from "@/lib/chat/fetchAssistantdata";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { fetchAppSidebarMetadata } from "@/lib/appSidebarSS";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -79,6 +80,8 @@ export default async function RootLayout({
       getCurrentUserSS(),
       getAuthTypeMetadataSS(),
     ]);
+
+  const { folded } = await fetchAppSidebarMetadata();
 
   const productGating =
     combinedSettings?.settings.application_status ?? ApplicationStatus.ACTIVE;
@@ -154,6 +157,7 @@ export default async function RootLayout({
       user={user}
       settings={combinedSettings}
       assistants={assistants}
+      folded={folded}
     >
       <Suspense fallback={null}>
         <PostHogPageView />

@@ -11,6 +11,7 @@ import { ModalProvider } from "./ModalContext";
 import { ModalProvider as NewModalProvider } from "@/components-2/context/ModalContext";
 import { AuthTypeMetadata } from "@/lib/userSS";
 import { AgentsProvider } from "@/components-2/context/AgentsContext";
+import { AppSidebarProvider } from "@/components-2/context/AppSidebarContext";
 
 interface AppProviderProps {
   children: React.ReactNode;
@@ -18,6 +19,7 @@ interface AppProviderProps {
   settings: CombinedSettings;
   assistants: MinimalPersonaSnapshot[];
   authTypeMetadata: AuthTypeMetadata;
+  folded?: boolean;
 }
 
 export default function AppProvider({
@@ -26,6 +28,7 @@ export default function AppProvider({
   settings,
   assistants,
   authTypeMetadata,
+  folded,
 }: AppProviderProps) {
   return (
     <SettingsProvider settings={settings}>
@@ -41,7 +44,11 @@ export default function AppProvider({
                 agents={assistants}
                 pinnedAgentIds={user?.preferences.pinned_assistants || []}
               >
-                <NewModalProvider>{children}</NewModalProvider>
+                <NewModalProvider>
+                  <AppSidebarProvider folded={!!folded}>
+                    {children}
+                  </AppSidebarProvider>
+                </NewModalProvider>
               </AgentsProvider>
             </ModalProvider>
           </AssistantsProvider>
