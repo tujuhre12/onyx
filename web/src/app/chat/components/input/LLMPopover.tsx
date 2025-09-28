@@ -10,20 +10,9 @@ import {
   useLlmManager,
 } from "@/lib/hooks";
 import { modelSupportsImageInput, structureValue } from "@/lib/llm/utils";
-import { LLMProviderDescriptor } from "@/app/admin/configuration/llm/interfaces";
 import { getProviderIcon } from "@/app/admin/configuration/llm/utils";
-import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
-import { LlmManager } from "@/lib/hooks";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { FiAlertTriangle } from "react-icons/fi";
 import { Slider } from "@/components/ui/slider";
 import { useUser } from "@/components/user/UserProvider";
-import { TruncatedText } from "@/components/ui/truncatedText";
 import { useChatContext } from "@/components-2/context/ChatContext";
 import { useAgentsContext } from "@/components-2/context/AgentsContext";
 import IconButton from "@/components-2/buttons/IconButton";
@@ -33,10 +22,7 @@ import LineItem from "@/components-2/buttons/LineItem";
 import Text from "@/components-2/Text";
 
 interface LLMPopoverProps {
-  llmProviders: LLMProviderDescriptor[];
-  llmManager: LlmManager;
   requiresImageGeneration?: boolean;
-  currentAssistant?: MinimalPersonaSnapshot;
   compact?: boolean;
   onSelect?: (value: string) => void;
   currentModelName?: string;

@@ -3,7 +3,6 @@ import React, {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { FiPlus } from "react-icons/fi";
@@ -13,12 +12,7 @@ import { InputPrompt } from "@/app/chat/interfaces";
 
 import { FilterManager, LlmManager, useFederatedConnectors } from "@/lib/hooks";
 import { useChatContext } from "@/components-2/context/ChatContext";
-import {
-  DocumentIcon2,
-  FileIcon,
-  SendIcon,
-  StopGeneratingIcon,
-} from "@/components/icons/icons";
+import { DocumentIcon2, FileIcon } from "@/components/icons/icons";
 import { OnyxDocument, MinimalOnyxDocument } from "@/lib/search/interfaces";
 import { ChatState } from "@/app/chat/interfaces";
 import { useAssistantsContext } from "@/components/context/AssistantsContext";
@@ -29,11 +23,7 @@ import { truncateString, cn } from "@/lib/utils";
 import { useUser } from "@/components/user/UserProvider";
 import { SettingsContext } from "@/components/settings/SettingsProvider";
 import { UnconfiguredLlmProviderText } from "@/components/chat/UnconfiguredLlmProviderText";
-import { DeepResearchToggle } from "./DeepResearchToggle";
-import { ActionToggle } from "./ActionManagement";
 import { SelectedTool } from "./SelectedTool";
-import { getProviderIcon } from "@/app/admin/configuration/llm/utils";
-import FilePicker from "../files/FilePicker";
 import { useProjectsContext } from "../../projects/ProjectsContext";
 import { FileCard } from "../projects/ProjectContextPanel";
 import {
@@ -100,6 +90,7 @@ export interface ChatInputBarProps {
   chatState: ChatState;
   currentSessionFileTokenCount: number;
   availableContextTokens: number;
+
   // assistants
   selectedAssistant: MinimalPersonaSnapshot;
 
@@ -111,7 +102,6 @@ export interface ChatInputBarProps {
   deepResearchEnabled: boolean;
   setPresentingDocument?: (document: MinimalOnyxDocument) => void;
   toggleDeepResearch: () => void;
-  placeholder?: string;
 }
 
 function ChatInputBarInner({
@@ -136,7 +126,6 @@ function ChatInputBarInner({
   llmManager,
   deepResearchEnabled,
   toggleDeepResearch,
-  placeholder,
   setPresentingDocument,
 }: ChatInputBarProps) {
   const { user } = useUser();
@@ -425,10 +414,9 @@ function ChatInputBarInner({
           role="textarea"
           aria-multiline
           placeholder={
-            placeholder ||
-            (selectedAssistant.id === 0
+            selectedAssistant.id === 0
               ? `How can ${settings?.enterpriseSettings?.application_name || "Onyx"} help you today`
-              : `How can ${selectedAssistant.name} help you today`)
+              : `How can ${selectedAssistant.name} help you today`
           }
           value={message}
           onKeyDown={(event) => {
@@ -596,30 +584,10 @@ function ChatInputBarInner({
           </div>
 
           <div className="flex flex-row items-center gap-spacing-inline">
-            <LLMPopover
-              llmProviders={llmProviders}
-              llmManager={llmManager}
-              requiresImageGeneration={true}
-              currentAssistant={selectedAssistant}
-            />
-
+            <LLMPopover requiresImageGeneration />
             <IconButton
               icon={chatState === "input" ? SvgArrowUp : SvgStop}
               disabled={chatState === "input" && !message}
-            />
-
-            {/* <button
-              id="onyx-chat-input-send-button"
-              className={cn(
-                "cursor-pointer h-[22px] w-[22px] rounded-full",
-                chatState == "streaming" ||
-                  chatState == "toolBuilding" ||
-                  chatState == "loading"
-                  ? chatState != "streaming"
-                    ? "bg-text-03"
-                    : "bg-text-01"
-                  : "bg-action-danger-01"
-              )}
               onClick={() => {
                 if (chatState == "streaming") {
                   stopGenerating();
@@ -627,26 +595,7 @@ function ChatInputBarInner({
                   onSubmit();
                 }
               }}
-            >
-              {chatState == "streaming" ||
-                chatState == "toolBuilding" ||
-                chatState == "loading" ? (
-                <StopGeneratingIcon
-                  size={8}
-                  className="text-text-inverted-01 m-auto flex-none"
-                />
-              ) : (
-                <SendIcon
-                  size={22}
-                  className={cn(
-                    "p-1 my-auto rounded-full",
-                    chatState == "input" && message
-                      ? "bg-text-01 text-text-inverted-01"
-                      : "bg-text-03 text-text-inverted-01"
-                  )}
-                />
-              )}
-            </button> */}
+            />
           </div>
         </div>
       </div>
