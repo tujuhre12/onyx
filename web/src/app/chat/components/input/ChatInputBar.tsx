@@ -36,6 +36,7 @@ import SvgSliders from "@/icons/sliders";
 import SvgHourglass from "@/icons/hourglass";
 import SvgArrowUp from "@/icons/arrow-up";
 import SvgStop from "@/icons/stop";
+import FilePicker from "../files/FilePicker";
 
 const MAX_INPUT_HEIGHT = 200;
 
@@ -525,18 +526,13 @@ function ChatInputBarInner({
 
         <div className="flex justify-between items-center w-full p-spacing-interline">
           <div className="flex flex-row items-center gap-spacing-inline">
-            <IconButton icon={SvgPlusCircle} tertiary />
-            <IconButton icon={SvgSliders} tertiary />
-            <IconButton icon={SvgHourglass} tertiary />
-
-            {/* <FilePicker
+            <FilePicker
               onFileClick={handleFileClick}
               onPickRecent={(file: ProjectFile) => {
                 // Check if file with same ID already exists
                 if (
                   !currentMessageFiles.some(
-                    (existingFile) =>
-                      existingFile.file_id === file.file_id
+                    (existingFile) => existingFile.file_id === file.file_id
                   )
                 ) {
                   setCurrentMessageFiles((prev) => [...prev, file]);
@@ -544,19 +540,18 @@ function ChatInputBarInner({
               }}
               recentFiles={recentFiles}
               handleUploadChange={handleUploadChange}
-            /> */}
+            />
+            <IconButton icon={SvgSliders} tertiary />
+            <IconButton
+              icon={SvgHourglass}
+              tertiary
+              active={deepResearchEnabled}
+              onClick={toggleDeepResearch}
+            />
 
             {/* {selectedAssistant.tools.length > 0 && (
               <ActionToggle selectedAssistant={selectedAssistant} />
             )} */}
-
-            {/* {retrievalEnabled &&
-              settings?.settings.deep_research_enabled && (
-                <DeepResearchToggle
-                  deepResearchEnabled={deepResearchEnabled}
-                  toggleDeepResearch={toggleDeepResearch}
-                />
-              )} */}
 
             {forcedToolIds.length > 0 && (
               <div className="flex items-center gap-2 text-blue-500">

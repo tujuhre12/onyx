@@ -517,7 +517,7 @@
 
 .font-main-body {
   font-family: var(--font-hanken-grotesk);
-  line-height: 140%;
+  line-height: 130%;
   letter-spacing: 0%;
   font-weight: 500;
   font-size: 14px;
@@ -525,7 +525,7 @@
 
 .font-main-muted {
   font-family: var(--font-hanken-grotesk);
-  line-height: 140%;
+  line-height: 130%;
   letter-spacing: 0%;
   font-weight: 400;
   font-size: 14px;
@@ -533,7 +533,7 @@
 
 .font-main-action {
   font-family: var(--font-hanken-grotesk);
-  line-height: 140%;
+  line-height: 130%;
   letter-spacing: 0%;
   font-weight: 600;
   font-size: 14px;
@@ -541,7 +541,7 @@
 
 .font-main-mono {
   font-family: var(--font-dm-mono);
-  line-height: 140%;
+  line-height: 130%;
   letter-spacing: 0%;
   font-weight: 600;
   font-size: 14px;

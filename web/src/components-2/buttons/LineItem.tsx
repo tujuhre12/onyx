@@ -26,8 +26,12 @@ export default function LineItem({
       onClick={onClick}
     >
       <div className="flex flex-row items-center justify-start w-full gap-spacing-interline">
-        {Icon && <Icon className="h-[1rem] w-[1rem] stroke-text-03" />}
-        <Text mainMuted text03 className="text-left w-full">
+        {Icon && (
+          <div className="h-[1rem] w-[1rem]">
+            <Icon className="h-[1rem] w-[1rem] stroke-text-03" />
+          </div>
+        )}
+        <Text mainMuted text04 className="text-left w-full">
           {children}
         </Text>
       </div>
