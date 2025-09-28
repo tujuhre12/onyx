@@ -53,6 +53,8 @@ from onyx.connectors.google_utils.google_utils import GoogleFields
 from onyx.connectors.google_utils.resources import get_admin_service
 from onyx.connectors.google_utils.resources import get_drive_service
 from onyx.connectors.google_utils.resources import GoogleDriveService
+from onyx.connectors.google_utils.resources import handle_external_document_error
+from onyx.connectors.google_utils.resources import is_unauthorized_client_error
 from onyx.connectors.google_utils.shared_constants import (
     DB_CREDENTIALS_PRIMARY_ADMIN_KEY,
 )
@@ -454,9 +456,15 @@ class GoogleDriveConnector(
                 return
             raise
         except RefreshError as e:
-            logger.warning(
-                f"User '{user_email}' could not refresh their token. Error: {e}"
-            )
+            # Check if this is an unauthorized client error (external document access issue)
+            if is_unauthorized_client_error(e):
+                handle_external_document_error(
+                    e, "user_documents", user_email, "access"
+                )
+            else:
+                logger.warning(
+                    f"User '{user_email}' could not refresh their token. Error: {e}"
+                )
             # mark this user as done so we don't try to retrieve anything for them
             # again
             yield RetrievedDriveFile(
