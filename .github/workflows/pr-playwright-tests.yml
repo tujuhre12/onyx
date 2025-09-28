@@ -239,14 +239,16 @@ jobs:
 
       - name: Run Playwright tests
         working-directory: ./web
-        run: npx playwright test
+        run: |
+          # Create test-results directory to ensure it exists for artifact upload
+          mkdir -p test-results
+          npx playwright test
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          # Chromatic automatically defaults to the test-results directory.
-          # Replace with the path to your custom directory and adjust the CHROMATIC_ARCHIVE_LOCATION environment variable accordingly.
-          name: test-results
+          # Includes test results and debug screenshots
+          name: playwright-test-results-${{ github.run_id }}
           path: ./web/test-results
           retention-days: 30
 
