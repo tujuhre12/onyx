@@ -156,6 +156,8 @@ test.describe("Message Edit and Regenerate Tests", () => {
       state: "visible",
       timeout: 10000,
     });
+    // wait a second to make sure that the switcher is there
+    await page.waitForTimeout(500);
 
     // Step 7: Verify version switcher appears showing "2 / 2"
     const messageSwitcher = page.locator('span:has-text("2 / 2")').first();
