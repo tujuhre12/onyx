@@ -179,16 +179,21 @@ jobs:
         working-directory: ./web
         run: npx playwright install --with-deps
 
+      - name: Create .env file for Docker Compose
+        run: |
+          cat <<EOF > deployment/docker_compose/.env
+          ENABLE_PAID_ENTERPRISE_EDITION_FEATURES=true
+          AUTH_TYPE=basic
+          GEN_AI_API_KEY=${{ env.OPENAI_API_KEY }}
+          EXA_API_KEY=${{ env.EXA_API_KEY }}
+          REQUIRE_EMAIL_VERIFICATION=false
+          DISABLE_TELEMETRY=true
+          IMAGE_TAG=test
+          EOF
+
       - name: Start Docker containers
         run: |
           cd deployment/docker_compose
-          ENABLE_PAID_ENTERPRISE_EDITION_FEATURES=true \
-          AUTH_TYPE=basic \
-          GEN_AI_API_KEY=${{ env.OPENAI_API_KEY }} \
-          EXA_API_KEY=${{ env.EXA_API_KEY }} \
-          REQUIRE_EMAIL_VERIFICATION=false \
-          DISABLE_TELEMETRY=true \
-          IMAGE_TAG=test \
           docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
         id: start_docker
 
