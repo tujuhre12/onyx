@@ -21,7 +21,7 @@ export default function LineItem({
   return (
     <button
       className={cn(
-        "flex flex-col justify-center items-start p-spacing-interline hover:bg-background-tint-02 rounded-08"
+        "flex flex-col w-full justify-center items-start p-spacing-interline hover:bg-background-tint-02 rounded-08"
       )}
       onClick={onClick}
     >
