@@ -32,8 +32,6 @@ import {
   UserFileStatus,
 } from "@/app/chat/projects/projectsService";
 import IconButton from "@/components-2/buttons/IconButton";
-import SvgPlusCircle from "@/icons/plus-circle";
-import SvgSliders from "@/icons/sliders";
 import SvgHourglass from "@/icons/hourglass";
 import SvgArrowUp from "@/icons/arrow-up";
 import SvgStop from "@/icons/stop";

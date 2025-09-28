@@ -25,7 +25,7 @@ import { useAssistantsContext } from "@/components/context/AssistantsContext";
 import Link from "next/link";
 import { getIconForAction } from "../../services/actionUtils";
 import { useUser } from "@/components/user/UserProvider";
-import { useFilters } from "@/lib/hooks";
+import { FilterManager, useFilters, useSourcePreferences } from "@/lib/hooks";
 import { listSourceMetadata } from "@/lib/sources";
 import {
   FiServer,
@@ -42,8 +42,6 @@ import { SourceMetadata } from "@/lib/search/interfaces";
 import { SourceIcon } from "@/components/SourceIcon";
 import { useChatContext } from "@/components-2/context/ChatContext";
 import { useTheme } from "next-themes";
-import IconButton from "@/components-2/buttons/IconButton";
-import SvgSliders from "@/icons/sliders";
 
 // Get source metadata for configured sources - deduplicated by source type
 function getConfiguredSources(
@@ -441,6 +439,7 @@ export function ActionToggle({
   selectedAssistant,
   availableSources = [],
 }: ActionToggleProps) {
+  const filterManager = useFilters();
   const { theme } = useTheme();
   const [open, setOpen] = useState(false);
   const [showSourceManagement, setShowSourceManagement] = useState(false);
@@ -448,10 +447,20 @@ export function ActionToggle({
   const [sourceSearchTerm, setSourceSearchTerm] = useState("");
   const [showFadeMask, setShowFadeMask] = useState(false);
   const [showTopShadow, setShowTopShadow] = useState(false);
-  // Use existing filter system
-  const filterManager = useFilters();
   const { selectedSources, setSelectedSources } = filterManager;
   const [mcpServers, setMcpServers] = useState<MCPServer[]>([]);
+
+  const {
+    sourcesInitialized,
+    enableAllSources,
+    disableAllSources,
+    toggleSource,
+    isSourceEnabled,
+  } = useSourcePreferences({
+    availableSources,
+    selectedSources,
+    setSelectedSources,
+  });
   const [mcpToolsPopup, setMcpToolsPopup] = useState<{
     serverId: number | null;
     serverName: string;
@@ -522,44 +531,6 @@ export function ActionToggle({
       // If clicking on a new tool, replace any existing forced tools with just this one
       setForcedToolIds([toolId]);
     }
-  };
-
-  const enableAllSources = () => {
-    const allSourceMetadata = getConfiguredSources(availableSources);
-    setSelectedSources(allSourceMetadata);
-  };
-
-  const disableAllSources = () => {
-    setSelectedSources([]);
-  };
-
-  const toggleSource = (sourceUniqueKey: string) => {
-    const configuredSource = getConfiguredSources(availableSources).find(
-      (s) => s.uniqueKey === sourceUniqueKey
-    );
-    if (!configuredSource) return;
-
-    const isCurrentlySelected = selectedSources.some(
-      (s) => s.uniqueKey === configuredSource.uniqueKey
-    );
-
-    if (isCurrentlySelected) {
-      setSelectedSources((prev) =>
-        prev.filter((s) => s.uniqueKey !== configuredSource.uniqueKey)
-      );
-    } else {
-      setSelectedSources((prev) => [...prev, configuredSource]);
-    }
-  };
-
-  const isSourceEnabled = (sourceUniqueKey: string) => {
-    const configuredSource = getConfiguredSources(availableSources).find(
-      (s) => s.uniqueKey === sourceUniqueKey
-    );
-    if (!configuredSource) return false;
-    return selectedSources.some(
-      (s) => s.uniqueKey === configuredSource.uniqueKey
-    );
   };
 
   // Simple and clean overflow detection
@@ -824,9 +795,30 @@ export function ActionToggle({
         }}
       >
         <PopoverTrigger asChild>
-          <div>
-            <IconButton icon={SvgSliders} tertiary />
-          </div>
+          <button
+            type="button"
+            className="
+            relative 
+            cursor-pointer 
+            flex 
+            items-center justify-center leading-none
+            group 
+            rounded-lg 
+            text-input-text 
+            hover:bg-background-chat-hover 
+            hover:text-neutral-900 
+            dark:hover:text-neutral-50
+            p-2
+            flex-none 
+            whitespace-nowrap 
+            overflow-hidden 
+            focus:outline-none
+          "
+            data-testid="action-management-toggle"
+            title={open ? undefined : "Configure actions"}
+          >
+            <SlidersVerticalIcon size={16} className="block flex-none" />
+          </button>
         </PopoverTrigger>
         <PopoverContent
           side="top"
