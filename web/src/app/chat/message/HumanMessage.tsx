@@ -103,18 +103,7 @@ function FileDisplay({
   );
 }
 
-export const HumanMessage = ({
-  content,
-  files,
-  messageId,
-  otherMessagesCanSwitchTo,
-  onEdit,
-  onMessageSelection,
-  shared,
-  stopGenerating = () => null,
-  disableSwitchingForStreaming = false,
-  setPresentingDocument,
-}: {
+interface HumanMessageProps {
   shared?: boolean;
   content: string;
   files?: FileDescriptor[];
@@ -125,7 +114,20 @@ export const HumanMessage = ({
   stopGenerating?: () => void;
   disableSwitchingForStreaming?: boolean;
   setPresentingDocument: (document: MinimalOnyxDocument) => void;
-}) => {
+}
+
+export default function HumanMessage({
+  content,
+  files,
+  messageId,
+  otherMessagesCanSwitchTo,
+  onEdit,
+  onMessageSelection,
+  shared,
+  stopGenerating = () => null,
+  disableSwitchingForStreaming = false,
+  setPresentingDocument,
+}: HumanMessageProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [isHovered, setIsHovered] = useState(false);
@@ -405,4 +407,4 @@ export const HumanMessage = ({
       </div>
     </div>
   );
-};
+}

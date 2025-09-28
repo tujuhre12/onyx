@@ -1,7 +1,7 @@
 import React, { useCallback } from "react";
 import { MinimalOnyxDocument } from "@/lib/search/interfaces";
 import { FileDescriptor } from "@/app/chat/interfaces";
-import { HumanMessage } from "./HumanMessage";
+import HumanMessage from "./HumanMessage";
 
 interface BaseMemoizedHumanMessageProps {
   content: string;
