@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 
 if TYPE_CHECKING:
-    from transformers import DistilBertConfig
+    from transformers import DistilBertConfig  # type: ignore[import-untyped]
 
 
 class HybridClassifier(nn.Module):
