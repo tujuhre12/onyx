@@ -3,6 +3,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { fetchChatData } from "@/lib/chat/fetchChatData";
 import { ChatProvider } from "@/components-2/context/ChatContext";
 import { ProjectsProvider } from "./projects/ProjectsContext";
+import AppSidebar from "@/sections/sidebar/AppSidebar";
 
 export default async function Layout({
   children,
@@ -59,7 +60,10 @@ export default async function Layout({
         defaultAssistantId={defaultAssistantId}
       >
         <ProjectsProvider initialProjects={projects}>
-          {children}
+          <div className="flex flex-row w-full h-full">
+            <AppSidebar />
+            {children}
+          </div>
         </ProjectsProvider>
       </ChatProvider>
     </>
