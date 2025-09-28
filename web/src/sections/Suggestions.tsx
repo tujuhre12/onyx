@@ -22,8 +22,6 @@ export function Suggestions({ onSubmit }: SuggestionsProps) {
   const handleSuggestionClick = (suggestion: string) => {
     onSubmit({
       message: suggestion,
-      selectedFiles: [],
-      selectedFolders: [],
       currentMessageFiles: [],
       useAgentSearch: false,
     });

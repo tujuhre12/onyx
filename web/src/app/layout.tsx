@@ -9,6 +9,7 @@ import {
   GTM_ENABLED,
   SERVER_SIDE_ONLY__PAID_ENTERPRISE_FEATURES_ENABLED,
   NEXT_PUBLIC_CLOUD_ENABLED,
+  MODAL_ROOT_ID,
 } from "@/lib/constants";
 import { Metadata } from "next";
 import { buildClientUrl } from "@/lib/utilsSS";
@@ -157,7 +158,9 @@ export default async function RootLayout({
       <Suspense fallback={null}>
         <PostHogPageView />
       </Suspense>
-      <div className="h-screen w-screen">{children}</div>
+      <div id={MODAL_ROOT_ID} className="h-screen w-screen">
+        {children}
+      </div>
       {process.env.NEXT_PUBLIC_POSTHOG_KEY && <WebVitals />}
     </AppProvider>
   );

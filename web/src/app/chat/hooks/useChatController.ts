@@ -77,6 +77,24 @@ const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
 const SYSTEM_MESSAGE_ID = -3;
 
+export interface OnSubmitProps {
+  message: string;
+  //from chat input bar
+  currentMessageFiles: ProjectFile[];
+  // from the chat bar???
+
+  useAgentSearch: boolean;
+
+  // optional params
+  messageIdToResend?: number;
+  queryOverride?: string;
+  forceSearch?: boolean;
+  isSeededChat?: boolean;
+  modelOverride?: LlmDescriptor;
+  regenerationRequest?: RegenerationRequest | null;
+  overrideFileDescriptors?: FileDescriptor[];
+}
+
 interface RegenerationRequest {
   messageId: number;
   parentMessage: Message;
@@ -307,23 +325,7 @@ export function useChatController({
       modelOverride,
       regenerationRequest,
       overrideFileDescriptors,
-    }: {
-      message: string;
-      //from chat input bar
-      currentMessageFiles: ProjectFile[];
-      // from the chat bar???
-
-      useAgentSearch: boolean;
-
-      // optional params
-      messageIdToResend?: number;
-      queryOverride?: string;
-      forceSearch?: boolean;
-      isSeededChat?: boolean;
-      modelOverride?: LlmDescriptor;
-      regenerationRequest?: RegenerationRequest | null;
-      overrideFileDescriptors?: FileDescriptor[];
-    }) => {
+    }: OnSubmitProps) => {
       const projectId = searchParams?.get("projectid");
       {
         const params = new URLSearchParams(searchParams?.toString() || "");
