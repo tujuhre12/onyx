@@ -23,6 +23,8 @@ from onyx.connectors.google_utils.resources import get_drive_service
 from onyx.connectors.google_utils.resources import get_google_docs_service
 from onyx.connectors.google_utils.resources import GoogleDocsService
 from onyx.connectors.google_utils.resources import GoogleDriveService
+from onyx.connectors.google_utils.resources import handle_external_document_error
+from onyx.connectors.google_utils.resources import is_unauthorized_client_error
 from onyx.connectors.models import ConnectorFailure
 from onyx.connectors.models import Document
 from onyx.connectors.models import DocumentFailure
@@ -117,12 +119,21 @@ def _download_request(request: Any, file_id: str, size_threshold: int) -> bytes:
     )
     done = False
     while not done:
-        download_progress, done = downloader.next_chunk()
-        if download_progress.resumable_progress > size_threshold:
-            logger.warning(
-                f"File {file_id} exceeds size threshold of {size_threshold}. Skipping2."
-            )
-            return bytes()
+        try:
+            download_progress, done = downloader.next_chunk()
+            if download_progress.resumable_progress > size_threshold:
+                logger.warning(
+                    f"File {file_id} exceeds size threshold of {size_threshold}. Skipping2."
+                )
+                return bytes()
+        except Exception as e:
+            # Check if this is an unauthorized client error (external document access issue)
+            if is_unauthorized_client_error(e):
+                handle_external_document_error(e, file_id, file_id, "access")
+                return bytes()
+
+            # Re-raise other exceptions
+            raise e
 
     response = response_bytes.getvalue()
     if not response:
@@ -147,7 +158,15 @@ def _download_and_extract_sections_basic(
     # Use the correct API call for downloading files
     # lazy evaluation to only download the file if necessary
     def response_call() -> bytes:
-        return download_request(service, file_id, size_threshold)
+        try:
+            return download_request(service, file_id, size_threshold)
+        except Exception as e:
+            # Check if this is an unauthorized client error (external document access issue)
+            if is_unauthorized_client_error(e):
+                handle_external_document_error(e, file_id, file_name, "download")
+                return bytes()
+            # Re-raise other exceptions
+            raise e
 
     if is_gdrive_image_mime_type(mime_type):
         # Skip images if not explicitly enabled
@@ -177,13 +196,21 @@ def _download_and_extract_sections_basic(
         request = service.files().export_media(
             fileId=file_id, mimeType=export_mime_type
         )
-        response = _download_request(request, file_id, size_threshold)
-        if not response:
-            logger.warning(f"Failed to export {file_name} as {export_mime_type}")
-            return []
+        try:
+            response = _download_request(request, file_id, size_threshold)
+            if not response:
+                logger.warning(f"Failed to export {file_name} as {export_mime_type}")
+                return []
 
-        text = response.decode("utf-8")
-        return [TextSection(link=link, text=text)]
+            text = response.decode("utf-8")
+            return [TextSection(link=link, text=text)]
+        except Exception as e:
+            # Check if this is an unauthorized client error (external document access issue)
+            if is_unauthorized_client_error(e):
+                handle_external_document_error(e, file_id, file_name, "export")
+                return []
+            # Re-raise other exceptions
+            raise e
 
     # Process based on mime type
     if mime_type == "text/plain":
@@ -481,9 +508,16 @@ def _convert_drive_item_to_document(
                         sections = align_basic_advanced(basic_sections, doc_sections)
 
             except Exception as e:
-                logger.warning(
-                    f"Error in advanced parsing: {e}. Falling back to basic extraction."
-                )
+                # Check if this is an unauthorized client error (external document access issue)
+                if is_unauthorized_client_error(e):
+                    handle_external_document_error(
+                        e, file.get("id", ""), file.get("name", ""), "access"
+                    )
+                    return None
+                else:
+                    logger.warning(
+                        f"Error in advanced parsing: {e}. Falling back to basic extraction."
+                    )
         # Not Google Doc, attempt basic extraction
         else:
             sections = _download_and_extract_sections_basic(

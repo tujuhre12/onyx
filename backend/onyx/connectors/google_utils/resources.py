@@ -12,6 +12,34 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
+def is_unauthorized_client_error(exception: Exception) -> bool:
+    """
+    Check if an exception is an unauthorized_client error indicating external document access issues.
+    This helps identify when a service account cannot access documents from outside its domain.
+    """
+    error_str = str(exception)
+    return "unauthorized_client" in error_str or "Client is unauthorized" in error_str
+
+
+def handle_external_document_error(
+    exception: Exception, file_id: str, file_name: str, operation: str
+) -> None:
+    """
+    Handle unauthorized_client errors for external documents with a specific warning message.
+
+    Args:
+        exception: The exception that occurred
+        file_id: The Google Drive file ID
+        file_name: The name of the file
+        operation: Description of the operation being performed (e.g., "download", "export", "access")
+    """
+    logger.warning(
+        f"Service account cannot {operation} external document {file_name} (ID: {file_id}). "
+        "This is likely a document shared from outside the service account's domain. "
+        "Skipping document."
+    )
+
+
 class GoogleDriveService(Resource):
     pass
 
@@ -68,6 +96,16 @@ class RefreshableDriveObject:
             try:
                 return self.call_stack(self.creds).execute(*args, **kwargs)
             except RefreshError as e:
+                # Check if this is an unauthorized client error (external document access issue)
+                if is_unauthorized_client_error(e):
+                    logger.warning(
+                        f"Service account cannot access external document due to unauthorized_client error. "
+                        "This is likely a document shared from outside the service account's domain. "
+                        f"Error: {e}"
+                    )
+                    # Re-raise the error so it can be handled by the calling code
+                    raise e
+
                 logger.warning(
                     f"RefreshError, going to attempt a creds refresh and retry: {e}"
                 )
