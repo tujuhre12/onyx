@@ -164,7 +164,7 @@ export function ActionItem({
                 {label}
               </span>
             </div>
-      <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <div
                 className={`
                   flex
@@ -186,20 +186,20 @@ export function ActionItem({
                       : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
                   }`}
                 />
-        </div>
-        {tool && tool.in_code_tool_id === SEARCH_TOOL_ID && (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onSourceManagementOpen?.();
-            }}
-          >
-            <FiChevronRight
-              size={16}
-              className="transition-colors cursor-pointer text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
-            />
-          </div>
-        )}
+              </div>
+              {tool && tool.in_code_tool_id === SEARCH_TOOL_ID && (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSourceManagementOpen?.();
+                  }}
+                >
+                  <FiChevronRight
+                    size={16}
+                    className="transition-colors cursor-pointer text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </TooltipTrigger>
