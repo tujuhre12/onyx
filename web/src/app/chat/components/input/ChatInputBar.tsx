@@ -7,8 +7,6 @@ import React, {
   useState,
 } from "react";
 import { FiPlus } from "react-icons/fi";
-import { FiLoader } from "react-icons/fi";
-import { ChatInputOption } from "./ChatInputOption";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import LLMPopover from "./LLMPopover";
 import { InputPrompt } from "@/app/chat/interfaces";

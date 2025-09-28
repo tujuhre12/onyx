@@ -30,6 +30,7 @@ import {
 } from "../constants";
 import { ToolSnapshot } from "../tools/interfaces";
 import { fetchToolsSS } from "../tools/fetchTools";
+import { Project } from "@/app/chat/projects/projectsService";
 
 interface FetchChatDataResult {
   user: User | null;
@@ -46,6 +47,7 @@ interface FetchChatDataResult {
   shouldShowWelcomeModal: boolean;
   inputPrompts: InputPrompt[];
   proSearchToggled: boolean;
+  projects: Project[];
 }
 
 export async function fetchChatData(searchParams: {
@@ -62,6 +64,7 @@ export async function fetchChatData(searchParams: {
     fetchLLMProvidersSS(),
     fetchSS("/input_prompt?include_public=true"),
     fetchToolsSS(),
+    fetchSS("/user/projects/"),
   ];
 
   let results: (
@@ -75,7 +78,8 @@ export async function fetchChatData(searchParams: {
     | null
     | InputPrompt[]
     | ToolSnapshot[]
-  )[] = [null, null, null, null, null, null, null, null, null, null];
+    | Project[]
+  )[] = [null, null, null, null, null, null, null, null, null, null, null];
   try {
     results = await Promise.all(tasks);
   } catch (e) {
@@ -93,13 +97,20 @@ export async function fetchChatData(searchParams: {
   const llmProviders = (results[6] || []) as LLMProviderDescriptor[];
 
   let inputPrompts: InputPrompt[] = [];
-  if (results[8] instanceof Response && results[8].ok) {
-    inputPrompts = await results[8].json();
+  if (results[7] instanceof Response && results[7].ok) {
+    inputPrompts = await results[7].json();
   } else {
     console.log("Failed to fetch input prompts");
   }
 
-  const availableTools = (results[9] || []) as ToolSnapshot[];
+  const availableTools = (results[8] || []) as ToolSnapshot[];
+
+  let projects: Project[] = [];
+  if (results[9] instanceof Response && results[9].ok) {
+    projects = await results[9].json();
+  } else {
+    console.log("Failed to fetch projects");
+  }
 
   const authDisabled = authTypeMetadata?.authType === "disabled";
 
@@ -208,6 +219,10 @@ export async function fetchChatData(searchParams: {
       ? sidebarToggled.value.toLocaleLowerCase() == "true" || false
       : NEXT_PUBLIC_DEFAULT_SIDEBAR_OPEN);
 
+  sidebarToggled
+    ? sidebarToggled.value.toLocaleLowerCase() == "true" || false
+    : NEXT_PUBLIC_DEFAULT_SIDEBAR_OPEN;
+
   const finalDocumentSidebarInitialWidth = documentSidebarCookieInitialWidth
     ? parseInt(documentSidebarCookieInitialWidth.value)
     : undefined;
@@ -237,5 +252,6 @@ export async function fetchChatData(searchParams: {
     shouldShowWelcomeModal,
     inputPrompts,
     proSearchToggled,
+    projects,
   };
 }

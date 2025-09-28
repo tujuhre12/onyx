@@ -17,7 +17,7 @@ import {
   EnterpriseSettings,
   ApplicationStatus,
 } from "./admin/settings/interfaces";
-import { AppProvider } from "@/components/context/AppProvider";
+import AppProvider from "@/components/context/AppProvider";
 import { PHProvider } from "./providers";
 import { getAuthTypeMetadataSS, getCurrentUserSS } from "@/lib/userSS";
 import { Suspense } from "react";
@@ -157,7 +157,7 @@ export default async function RootLayout({
       <Suspense fallback={null}>
         <PostHogPageView />
       </Suspense>
-      {children}
+      <div className="h-screen w-screen">{children}</div>
       {process.env.NEXT_PUBLIC_POSTHOG_KEY && <WebVitals />}
     </AppProvider>
   );

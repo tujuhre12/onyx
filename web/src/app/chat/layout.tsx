@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
 import { fetchChatData } from "@/lib/chat/fetchChatData";
 import { ChatProvider } from "@/components/context/ChatContext";
+import { ProjectsProvider } from "./projects/ProjectsContext";
 
 export default async function Layout({
   children,
@@ -60,7 +61,9 @@ export default async function Layout({
           projects,
         }}
       >
-        {children}
+        <ProjectsProvider initialProjects={projects}>
+          {children}
+        </ProjectsProvider>
       </ChatProvider>
     </>
   );
