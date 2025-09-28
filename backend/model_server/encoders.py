@@ -2,12 +2,11 @@ import asyncio
 import time
 from typing import Any
 from typing import Optional
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Request
-from sentence_transformers import CrossEncoder  # type: ignore
-from sentence_transformers import SentenceTransformer  # type: ignore
 
 from model_server.utils import simple_log_function_time
 from onyx.utils.logger import setup_logger
@@ -18,6 +17,10 @@ from shared_configs.model_server_models import EmbedRequest
 from shared_configs.model_server_models import EmbedResponse
 from shared_configs.model_server_models import RerankRequest
 from shared_configs.model_server_models import RerankResponse
+
+if TYPE_CHECKING:
+    from sentence_transformers import CrossEncoder
+    from sentence_transformers import SentenceTransformer
 
 logger = setup_logger()
 
@@ -87,7 +90,9 @@ def get_embedding_model(
 
 def get_local_reranking_model(
     model_name: str,
-) -> CrossEncoder:
+) -> "CrossEncoder":
+    from sentence_transformers import CrossEncoder  # type: ignore
+
     global _RERANK_MODEL
     if _RERANK_MODEL is None:
         logger.notice(f"Loading {model_name}")
