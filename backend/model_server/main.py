@@ -15,10 +15,13 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 from transformers import logging as transformer_logging  # type:ignore
 
 from model_server.custom_models import router as custom_models_router
+from model_server.custom_models import warm_up_information_content_model
+from model_server.custom_models import warm_up_intent_model
 from model_server.encoders import router as encoders_router
 from model_server.management_endpoints import router as management_router
 from model_server.utils import get_gpu_type
 from onyx import __version__
+from onyx.configs.app_configs import SKIP_WARM_UP
 from onyx.utils.logger import setup_logger
 from onyx.utils.logger import setup_uvicorn_logger
 from onyx.utils.middleware import add_onyx_request_id_middleware
@@ -88,6 +91,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
     torch.set_num_threads(max(MIN_THREADS_ML_MODELS, torch.get_num_threads()))
     logger.notice(f"Torch Threads: {torch.get_num_threads()}")
+
+    if not SKIP_WARM_UP and not INDEXING_ONLY:
+        logger.notice(
+            "The intent model should run on the model server. The information content model should not run here."
+        )
+        warm_up_intent_model()
+    else:
+        logger.notice(
+            "The content information model should run on the indexing model server. The intent model should not run here."
+        )
+        warm_up_information_content_model()
 
     yield
 

@@ -1115,6 +1115,9 @@ def warm_up_cross_encoder(
     rerank_model_name: str,
     non_blocking: bool = False,
 ) -> None:
+    if SKIP_WARM_UP:
+        return
+
     logger.debug(f"Warming up reranking model: {rerank_model_name}")
 
     reranking_model = RerankingModel(

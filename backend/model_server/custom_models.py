@@ -8,6 +8,8 @@ import torch.nn.functional as F
 from fastapi import APIRouter
 from huggingface_hub import snapshot_download  # type: ignore
 
+from model_server.constants import INFORMATION_CONTENT_MODEL_WARM_UP_STRING
+from model_server.constants import MODEL_WARM_UP_STRING
 from model_server.onyx_torch_model import ConnectorClassifier
 from model_server.onyx_torch_model import HybridClassifier
 from model_server.utils import simple_log_function_time
@@ -248,6 +250,28 @@ def warm_up_connector_classifier_model() -> None:
     attention_mask = attention_mask.to(connector_classifier.device)
 
     connector_classifier(input_ids, attention_mask)
+
+
+def warm_up_intent_model() -> None:
+    logger.notice(f"Warming up Intent Model: {INTENT_MODEL_VERSION}")
+    intent_tokenizer = get_intent_model_tokenizer()
+    tokens = intent_tokenizer(
+        MODEL_WARM_UP_STRING, return_tensors="pt", truncation=True, padding=True
+    )
+
+    intent_model = get_local_intent_model()
+    device = intent_model.device
+    intent_model(
+        query_ids=tokens["input_ids"].to(device),
+        query_mask=tokens["attention_mask"].to(device),
+    )
+
+
+def warm_up_information_content_model() -> None:
+    logger.notice("Warming up Content Model")  # TODO: add version if needed
+
+    information_content_model = get_local_information_content_model()
+    information_content_model(INFORMATION_CONTENT_MODEL_WARM_UP_STRING)
 
 
 @simple_log_function_time()
