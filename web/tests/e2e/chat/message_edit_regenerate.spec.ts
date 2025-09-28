@@ -22,9 +22,7 @@ test.describe("Message Edit and Regenerate Tests", () => {
     // Step 2: Test cancel editing
     let userMessage = page.locator("#onyx-human-message").first();
     await userMessage.hover();
-    let editButton = userMessage
-      .locator('[data-testid="edit-button"], svg.text-text-600')
-      .first();
+    let editButton = userMessage.locator('[data-testid="edit-button"]').first();
     await editButton.click();
 
     let textarea = userMessage.locator("textarea");
@@ -40,9 +38,7 @@ test.describe("Message Edit and Regenerate Tests", () => {
 
     // Step 3: Edit the message for real
     await userMessage.hover();
-    editButton = userMessage
-      .locator('[data-testid="edit-button"], svg.text-text-600')
-      .first();
+    editButton = userMessage.locator('[data-testid="edit-button"]').first();
     await editButton.click();
 
     textarea = userMessage.locator("textarea");
@@ -71,9 +67,7 @@ test.describe("Message Edit and Regenerate Tests", () => {
     // Step 5: Edit again to create a third version
     userMessage = page.locator("#onyx-human-message").first();
     await userMessage.hover();
-    editButton = userMessage
-      .locator('[data-testid="edit-button"], svg.text-text-600')
-      .first();
+    editButton = userMessage.locator('[data-testid="edit-button"]').first();
     await editButton.click();
 
     textarea = userMessage.locator("textarea");
@@ -156,8 +150,12 @@ test.describe("Message Edit and Regenerate Tests", () => {
     const gpt4oMiniOption = page.locator("text=/.*GPT.?4o.?Mini.*/i").first();
     await gpt4oMiniOption.click();
 
-    // Step 6: Wait for regeneration to complete
-    await page.waitForTimeout(5000); // Give time for the response to be generated
+    // Step 6: Wait for regeneration to complete by waiting for feedback buttons to appear
+    // The feedback buttons (copy, like, dislike, regenerate) appear when streaming is complete
+    await page.waitForSelector('[data-testid="regenerate-button"]', {
+      state: "visible",
+      timeout: 10000,
+    });
 
     // Step 7: Verify version switcher appears showing "2 / 2"
     const messageSwitcher = page.locator('span:has-text("2 / 2")').first();

@@ -156,10 +156,15 @@ export const HumanMessage = ({
     setIsEditing(false);
   };
 
-  // Use nodeId for finding position in siblings array since otherMessagesCanSwitchTo contains nodeIds
-  const currentMessageInd = nodeId
-    ? otherMessagesCanSwitchTo?.indexOf(nodeId)
-    : undefined;
+  // Use nodeId for finding position in siblings array since
+  // otherMessagesCanSwitchTo contains nodeIds
+  const currentMessageInd =
+    nodeId !== undefined && nodeId !== null && otherMessagesCanSwitchTo
+      ? (() => {
+          const idx = otherMessagesCanSwitchTo.indexOf(nodeId);
+          return idx === -1 ? undefined : idx;
+        })()
+      : undefined;
 
   const getPreviousMessage = () => {
     if (
@@ -322,13 +327,15 @@ export const HumanMessage = ({
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger>
-                              <HoverableIcon
-                                icon={<FiEdit2 className="text-text-600" />}
-                                onClick={() => {
-                                  setIsEditing(true);
-                                  setIsHovered(false);
-                                }}
-                              />
+                              <div data-testid="edit-button">
+                                <HoverableIcon
+                                  icon={<FiEdit2 className="text-text-600" />}
+                                  onClick={() => {
+                                    setIsEditing(true);
+                                    setIsHovered(false);
+                                  }}
+                                />
+                              </div>
                             </TooltipTrigger>
                             <TooltipContent>Edit</TooltipContent>
                           </Tooltip>
@@ -357,7 +364,7 @@ export const HumanMessage = ({
                     isHovered &&
                     !isEditing &&
                     (!files || files.length === 0) ? (
-                      <div className="my-auto">
+                      <div data-testid="edit-button" className="my-auto">
                         <Hoverable
                           icon={FiEdit2}
                           onClick={() => {
