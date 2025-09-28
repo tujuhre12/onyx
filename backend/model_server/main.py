@@ -21,7 +21,6 @@ from model_server.encoders import router as encoders_router
 from model_server.management_endpoints import router as management_router
 from model_server.utils import get_gpu_type
 from onyx import __version__
-from onyx.configs.app_configs import SKIP_WARM_UP
 from onyx.utils.logger import setup_logger
 from onyx.utils.logger import setup_uvicorn_logger
 from onyx.utils.middleware import add_onyx_request_id_middleware
@@ -31,6 +30,7 @@ from shared_configs.configs import MIN_THREADS_ML_MODELS
 from shared_configs.configs import MODEL_SERVER_ALLOWED_HOST
 from shared_configs.configs import MODEL_SERVER_PORT
 from shared_configs.configs import SENTRY_DSN
+from shared_configs.configs import SKIP_WARM_UP
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
@@ -92,16 +92,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     torch.set_num_threads(max(MIN_THREADS_ML_MODELS, torch.get_num_threads()))
     logger.notice(f"Torch Threads: {torch.get_num_threads()}")
 
-    if not SKIP_WARM_UP and not INDEXING_ONLY:
-        logger.notice(
-            "The intent model should run on the model server. The information content model should not run here."
-        )
-        warm_up_intent_model()
+    if not SKIP_WARM_UP:
+        if not INDEXING_ONLY:
+            logger.notice("Warming up intent model for inference model server")
+            warm_up_intent_model()
+        else:
+            logger.notice(
+                "Warming up content information model for indexing model server"
+            )
+            warm_up_information_content_model()
     else:
-        logger.notice(
-            "The content information model should run on the indexing model server. The intent model should not run here."
-        )
-        warm_up_information_content_model()
+        logger.notice("Skipping model warmup due to SKIP_WARM_UP=true")
 
     yield
 
