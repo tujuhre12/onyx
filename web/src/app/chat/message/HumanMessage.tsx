@@ -1,10 +1,7 @@
 "use client";
 
-import { FiEdit2 } from "react-icons/fi";
 import React, { useEffect, useRef, useState } from "react";
-import { MinimalOnyxDocument } from "@/lib/search/interfaces";
 import { ChatFileType, FileDescriptor } from "@/app/chat/interfaces";
-import { Hoverable } from "@/components/Hoverable";
 import { DocumentPreview } from "@/app/chat/components/files/documents/DocumentPreview";
 import { InMessageImage } from "@/app/chat/components/files/images/InMessageImage";
 import ToolResult from "@/components/tools/ToolResult";
@@ -16,6 +13,8 @@ import { cn } from "@/lib/utils";
 import IconButton from "@/components-2/buttons/IconButton";
 import SvgEdit from "@/icons/edit";
 import Button from "@/components-2/buttons/Button";
+import SvgCopy from "@/icons/copy";
+import { copyAll } from "./copyingUtils";
 
 interface FileDisplayProps {
   files: FileDescriptor[];
@@ -270,15 +269,23 @@ export default function HumanMessage({
                       isHovered &&
                       !isEditing &&
                       (!files || files.length === 0) ? (
-                        <IconButton
-                          icon={SvgEdit}
-                          tertiary
-                          tooltip="Edit"
-                          onClick={() => {
-                            setIsEditing(true);
-                            setIsHovered(false);
-                          }}
-                        />
+                        <div className="flex flex-row items-center justify-center gap-spacing-inline">
+                          <IconButton
+                            icon={SvgCopy}
+                            tertiary
+                            tooltip="Copy"
+                            onClick={() => copyAll(content)}
+                          />
+                          <IconButton
+                            icon={SvgEdit}
+                            tertiary
+                            tooltip="Edit"
+                            onClick={() => {
+                              setIsEditing(true);
+                              setIsHovered(false);
+                            }}
+                          />
+                        </div>
                       ) : (
                         <div className="w-7" />
                       )}
@@ -305,12 +312,14 @@ export default function HumanMessage({
                     !isEditing &&
                     (!files || files.length === 0) ? (
                       <div className="my-auto">
-                        <Hoverable
-                          icon={FiEdit2}
+                        <IconButton
+                          icon={SvgEdit}
                           onClick={() => {
                             setIsEditing(true);
                             setIsHovered(false);
                           }}
+                          tertiary
+                          tooltip="Edit"
                         />
                       </div>
                     ) : (

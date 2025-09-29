@@ -359,7 +359,7 @@ export default function AIMessage({
                             <IconButton
                               icon={SvgCopy}
                               onClick={() =>
-                                copyAll(getTextContent(rawPackets), markdownRef)
+                                copyAll(getTextContent(rawPackets))
                               }
                               tertiary
                               tooltip="Copy"
