@@ -169,9 +169,7 @@ export function NavigationTab({
       <Tooltip>
         <TooltipTrigger asChild>{innerContent}</TooltipTrigger>
         <TooltipContent align="center" side="right">
-          <Text inverted secondaryBody>
-            {children}
-          </Text>
+          <Text inverted>{children}</Text>
         </TooltipContent>
       </Tooltip>
     ) : (
