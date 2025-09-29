@@ -73,7 +73,7 @@ export default function LLMPopover({
   // Memoize trigger content to prevent rerendering
   const triggerContent = useMemo(
     compact
-      ? () => <IconButton icon={SvgRefreshCw} />
+      ? () => <IconButton icon={SvgRefreshCw} tertiary tooltip="Regenerate" />
       : () => (
           <SelectButton
             icon={getProviderIcon(

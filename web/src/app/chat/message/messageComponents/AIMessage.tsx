@@ -4,15 +4,10 @@ import {
   CitationDelta,
   SearchToolDelta,
   StreamingCitation,
-} from "../../services/streamingModels";
-import { FullChatState } from "./interfaces";
-import { AssistantIcon } from "@/components/assistants/AssistantIcon";
-import { Logo } from "@/components/logo/Logo";
-import { CopyButton } from "@/components/CopyButton";
-import { LikeFeedback, DislikeFeedback } from "@/components/icons/icons";
-import { HoverableIcon } from "@/components/Hoverable";
+} from "@/app/chat/services/streamingModels";
+import { FullChatState } from "@/app/chat/message/messageComponents/interfaces";
 import { OnyxDocument } from "@/lib/search/interfaces";
-import { CitedSourcesToggle } from "./CitedSourcesToggle";
+import { CitedSourcesToggle } from "@/app/chat/message/messageComponents/CitedSourcesToggle";
 import {
   CustomTooltip,
   TooltipGroup,
@@ -22,21 +17,34 @@ import {
   useChatSessionStore,
   useDocumentSidebarVisible,
   useSelectedNodeForDocDisplay,
-} from "../../stores/useChatSessionStore";
-import { copyAll, handleCopy } from "../copyingUtils";
-import RegenerateOption from "../../components/RegenerateOption";
-import { MessageSwitcher } from "../MessageSwitcher";
-import { BlinkingDot } from "../BlinkingDot";
+} from "@/app/chat/stores/useChatSessionStore";
+import { copyAll, handleCopy } from "@/app/chat/message/copyingUtils";
+import RegenerateOption from "@/app/chat/components/RegenerateOption";
+import { MessageSwitcher } from "@/app/chat/message/MessageSwitcher";
+import { BlinkingDot } from "@/app/chat/message/BlinkingDot";
 import {
   getTextContent,
   isDisplayPacket,
   isFinalAnswerComing,
   isStreamingComplete,
   isToolPacket,
-} from "../../services/packetUtils";
-import { useMessageSwitching } from "./hooks/useMessageSwitching";
-import MultiToolRenderer from "./MultiToolRenderer";
-import { RendererComponent } from "./renderMessageComponent";
+} from "@/app/chat/services/packetUtils";
+import { useMessageSwitching } from "@/app/chat/message/messageComponents/hooks/useMessageSwitching";
+import MultiToolRenderer from "@/app/chat/message/messageComponents/MultiToolRenderer";
+import { RendererComponent } from "@/app/chat/message/messageComponents/renderMessageComponent";
+import { AgentIcon } from "@/components-2/AgentIcon";
+import IconButton from "@/components-2/buttons/IconButton";
+import SvgCopy from "@/icons/copy";
+import SvgThumbsUp from "@/icons/thumbs-up";
+import SvgThumbsDown from "@/icons/thumbs-down";
+
+interface AIMessageProps {
+  rawPackets: Packet[];
+  chatState: FullChatState;
+  nodeId: number;
+  otherMessagesCanSwitchTo?: number[];
+  onMessageSelection?: (nodeId: number) => void;
+}
 
 export function AIMessage({
   rawPackets,
@@ -44,13 +52,7 @@ export function AIMessage({
   nodeId,
   otherMessagesCanSwitchTo,
   onMessageSelection,
-}: {
-  rawPackets: Packet[];
-  chatState: FullChatState;
-  nodeId: number;
-  otherMessagesCanSwitchTo?: number[];
-  onMessageSelection?: (nodeId: number) => void;
-}) {
+}: AIMessageProps) {
   const markdownRef = useRef<HTMLDivElement>(null);
   const [isRegenerateDropdownVisible, setIsRegenerateDropdownVisible] =
     useState(false);
@@ -237,15 +239,7 @@ export function AIMessage({
       <div className="mx-auto w-[90%] max-w-message-max">
         <div className="lg:mr-12 mobile:ml-0 md:ml-8">
           <div className="flex items-start">
-            {chatState.assistant?.id === 0 ? (
-              <Logo className="mobile:hidden" size="small" />
-            ) : (
-              <AssistantIcon
-                className="mobile:hidden"
-                size={24}
-                assistant={chatState.assistant}
-              />
-            )}
+            <AgentIcon agent={chatState.assistant} />
             <div className="w-full">
               <div className="max-w-message-max break-words">
                 <div className="w-full desktop:ml-4">
@@ -362,49 +356,34 @@ export function AIMessage({
                               </div>
                             )}
 
-                            <CustomTooltip showTick line content="Copy">
-                              <CopyButton
-                                copyAllFn={() =>
-                                  copyAll(
-                                    getTextContent(rawPackets),
-                                    markdownRef
-                                  )
-                                }
-                              />
-                            </CustomTooltip>
-
-                            <CustomTooltip
-                              showTick
-                              line
-                              content="Good response"
-                            >
-                              <HoverableIcon
-                                icon={<LikeFeedback size={16} />}
-                                onClick={() => chatState.handleFeedback("like")}
-                              />
-                            </CustomTooltip>
-
-                            <CustomTooltip showTick line content="Bad response">
-                              <HoverableIcon
-                                icon={<DislikeFeedback size={16} />}
-                                onClick={() =>
-                                  chatState.handleFeedback("dislike")
-                                }
-                              />
-                            </CustomTooltip>
+                            <IconButton
+                              icon={SvgCopy}
+                              onClick={() =>
+                                copyAll(getTextContent(rawPackets), markdownRef)
+                              }
+                              tertiary
+                              tooltip="Copy"
+                            />
+                            <IconButton
+                              icon={SvgThumbsUp}
+                              onClick={() => chatState.handleFeedback("like")}
+                              tertiary
+                              tooltip="Good Response"
+                            />
+                            <IconButton
+                              icon={SvgThumbsDown}
+                              onClick={() =>
+                                chatState.handleFeedback("dislike")
+                              }
+                              tertiary
+                              tooltip="Bad Response"
+                            />
 
                             {chatState.regenerate && (
-                              <CustomTooltip
-                                disabled={isRegenerateDropdownVisible}
-                                showTick
-                                line
-                                content="Regenerate"
-                              >
-                                <RegenerateOption
-                                  regenerate={chatState.regenerate}
-                                  overriddenModel={chatState.overriddenModel}
-                                />
-                              </CustomTooltip>
+                              <RegenerateOption
+                                regenerate={chatState.regenerate}
+                                overriddenModel={chatState.overriddenModel}
+                              />
                             )}
 
                             {nodeId &&
