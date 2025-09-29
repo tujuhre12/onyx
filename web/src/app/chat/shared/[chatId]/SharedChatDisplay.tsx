@@ -218,7 +218,6 @@ export function SharedChatDisplay({
                             key={message.messageId}
                             content={message.message}
                             files={message.files}
-                            setPresentingDocument={setPresentingDocument}
                           />
                         );
                       } else if (message.type === "assistant") {

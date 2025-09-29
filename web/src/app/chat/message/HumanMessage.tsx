@@ -4,11 +4,9 @@ import { FiEdit2 } from "react-icons/fi";
 import React, { useEffect, useRef, useState } from "react";
 import { MinimalOnyxDocument } from "@/lib/search/interfaces";
 import { ChatFileType, FileDescriptor } from "@/app/chat/interfaces";
-import { Hoverable, HoverableIcon } from "@/components/Hoverable";
+import { Hoverable } from "@/components/Hoverable";
 import { DocumentPreview } from "@/app/chat/components/files/documents/DocumentPreview";
 import { InMessageImage } from "@/app/chat/components/files/images/InMessageImage";
-import "prismjs/themes/prism-tomorrow.css";
-import "./custom-code-styles.css";
 import ToolResult from "@/components/tools/ToolResult";
 import CsvContent from "@/components/tools/CSVContent";
 import "katex/dist/katex.min.css";
@@ -22,7 +20,6 @@ import Button from "@/components-2/buttons/Button";
 interface FileDisplayProps {
   files: FileDescriptor[];
   alignBubble?: boolean;
-  setPresentingDocument: (document: MinimalOnyxDocument) => void;
 }
 
 interface MessageEditingProps {
@@ -31,11 +28,7 @@ interface MessageEditingProps {
   onCancelEdit: () => void;
 }
 
-function FileDisplay({
-  files,
-  alignBubble,
-  setPresentingDocument,
-}: FileDisplayProps) {
+function FileDisplay({ files, alignBubble }: FileDisplayProps) {
   const [close, setClose] = useState(true);
   const imageFiles = files.filter((file) => file.type === ChatFileType.IMAGE);
   const textFiles = files.filter(
@@ -193,9 +186,6 @@ interface HumanMessageProps {
   // Streaming and generation
   stopGenerating?: () => void;
   disableSwitchingForStreaming?: boolean;
-
-  // Document presentation
-  setPresentingDocument: (document: MinimalOnyxDocument) => void;
 }
 
 export default function HumanMessage({
@@ -208,7 +198,6 @@ export default function HumanMessage({
   shared,
   stopGenerating = () => null,
   disableSwitchingForStreaming = false,
-  setPresentingDocument,
 }: HumanMessageProps) {
   // TODO (@raunakab):
   //
@@ -260,11 +249,7 @@ export default function HumanMessage({
       >
         <div className="xl:ml-8">
           <div className="flex flex-col desktop:mr-4">
-            <FileDisplay
-              alignBubble
-              setPresentingDocument={setPresentingDocument}
-              files={files || []}
-            />
+            <FileDisplay alignBubble files={files || []} />
 
             <div className="flex justify-end">
               <div className="w-full ml-8 flex w-full w-[800px] break-words">
