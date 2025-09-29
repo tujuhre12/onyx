@@ -6,7 +6,7 @@ import { BackendChatSession } from "../../interfaces";
 import { processRawChatHistory } from "../../services/lib";
 import { getLatestMessageChain } from "../../services/messageTree";
 import HumanMessage from "../../message/HumanMessage";
-import { AIMessage } from "../../message/messageComponents/AIMessage";
+import AIMessage from "../../message/messageComponents/AIMessage";
 import { Callout } from "@/components/ui/callout";
 import { useContext, useEffect, useState } from "react";
 import { SettingsContext } from "@/components/settings/SettingsProvider";

@@ -20,7 +20,7 @@ import {
 } from "@/app/chat/stores/useChatSessionStore";
 import { copyAll, handleCopy } from "@/app/chat/message/copyingUtils";
 import RegenerateOption from "@/app/chat/components/RegenerateOption";
-import { MessageSwitcher } from "@/app/chat/message/MessageSwitcher";
+import MessageSwitcher from "@/app/chat/message/MessageSwitcher";
 import { BlinkingDot } from "@/app/chat/message/BlinkingDot";
 import {
   getTextContent,
@@ -38,7 +38,7 @@ import SvgCopy from "@/icons/copy";
 import SvgThumbsUp from "@/icons/thumbs-up";
 import SvgThumbsDown from "@/icons/thumbs-down";
 
-interface AIMessageProps {
+export interface AIMessageProps {
   rawPackets: Packet[];
   chatState: FullChatState;
   nodeId: number;
@@ -46,7 +46,7 @@ interface AIMessageProps {
   onMessageSelection?: (nodeId: number) => void;
 }
 
-export function AIMessage({
+export default function AIMessage({
   rawPackets,
   chatState,
   nodeId,

@@ -12,7 +12,7 @@ import "./custom-code-styles.css";
 import ToolResult from "@/components/tools/ToolResult";
 import CsvContent from "@/components/tools/CSVContent";
 import "katex/dist/katex.min.css";
-import { MessageSwitcher } from "@/app/chat/message/MessageSwitcher";
+import MessageSwitcher from "@/app/chat/message/MessageSwitcher";
 import Text from "@/components-2/Text";
 import { cn } from "@/lib/utils";
 import IconButton from "@/components-2/buttons/IconButton";
