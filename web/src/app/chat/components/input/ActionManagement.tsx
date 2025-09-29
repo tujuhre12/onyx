@@ -452,17 +452,12 @@ export function ActionToggle({
   const { selectedSources, setSelectedSources } = filterManager;
   const [mcpServers, setMcpServers] = useState<MCPServer[]>([]);
 
-  const {
-    sourcesInitialized,
-    enableAllSources,
-    disableAllSources,
-    toggleSource,
-    isSourceEnabled,
-  } = useSourcePreferences({
-    availableSources,
-    selectedSources,
-    setSelectedSources,
-  });
+  const { enableAllSources, disableAllSources, toggleSource, isSourceEnabled } =
+    useSourcePreferences({
+      availableSources,
+      selectedSources,
+      setSelectedSources,
+    });
   const [mcpToolsPopup, setMcpToolsPopup] = useState<{
     serverId: number | null;
     serverName: string;
@@ -802,6 +797,7 @@ export function ActionToggle({
               icon={SvgSliders}
               tertiary
               data-testid="action-management-toggle"
+              tooltip="Configure Actions"
             />
           </div>
         </PopoverTrigger>

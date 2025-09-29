@@ -552,6 +552,7 @@ function ChatInputBarInner({
               tertiary
               active={deepResearchEnabled}
               onClick={toggleDeepResearch}
+              tooltip="Deep Research"
             />
 
             {forcedToolIds.length > 0 && (
