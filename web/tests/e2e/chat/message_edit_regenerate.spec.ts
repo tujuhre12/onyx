@@ -1,6 +1,6 @@
 import { test, expect } from "@chromatic-com/playwright";
 import { loginAsRandomUser } from "../utils/auth";
-import { sendMessage } from "../utils/chatActions";
+import { sendMessage, switchModel } from "../utils/chatActions";
 
 test.describe("Message Edit and Regenerate Tests", () => {
   test.beforeEach(async ({ page }) => {
@@ -132,8 +132,14 @@ test.describe("Message Edit and Regenerate Tests", () => {
   });
 
   test("Message regeneration with model selection", async ({ page }) => {
+    // make sure we're using something other than GPT 4o Mini, otherwise the below
+    // will fail since
+    // `const gpt4oMiniOption = page.locator("text=/.*GPT.?4o.?Mini.*/i").first();`
+    // will find the currently selected model
+    await switchModel(page, "GPT 4o");
+
     // Step 1: Send initial message
-    await sendMessage(page, "hi!");
+    await sendMessage(page, "hi! Respond with no more than a sentence");
     await page.waitForSelector('[data-testid="onyx-ai-message"]');
     await page.waitForTimeout(3000);
 
