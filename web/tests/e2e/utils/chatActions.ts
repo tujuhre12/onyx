@@ -52,7 +52,11 @@ export async function verifyCurrentModel(page: Page, modelName: string) {
 // Start of Selection
 export async function switchModel(page: Page, modelName: string) {
   await page.getByTestId("llm-popover-trigger").click();
-  await page.getByRole("button", { name: new RegExp(modelName, "i") }).click();
+  // Target the button inside the popover content specifically
+  await page
+    .locator('[role="dialog"]')
+    .getByRole("button", { name: new RegExp(`${modelName}$`, "i") })
+    .click();
 }
 
 export async function startNewChat(page: Page) {
