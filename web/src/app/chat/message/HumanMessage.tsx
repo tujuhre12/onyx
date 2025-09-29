@@ -199,7 +199,7 @@ interface HumanMessageProps {
 }
 
 export default function HumanMessage({
-  content,
+  content: initialContent,
   files,
   messageId,
   otherMessagesCanSwitchTo,
@@ -210,6 +210,12 @@ export default function HumanMessage({
   disableSwitchingForStreaming = false,
   setPresentingDocument,
 }: HumanMessageProps) {
+  // TODO (@raunakab):
+  //
+  // This is some duplicated state that is patching a memoization issue with `HumanMessage`.
+  // Fix this later.
+  const [content, setContent] = useState(initialContent);
+
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -267,6 +273,7 @@ export default function HumanMessage({
                     content={content}
                     onSubmitEdit={(editedContent) => {
                       onEdit?.(editedContent);
+                      setContent(editedContent);
                       setIsEditing(false);
                     }}
                     onCancelEdit={() => setIsEditing(false)}
@@ -294,7 +301,7 @@ export default function HumanMessage({
 
                     <div
                       className={cn(
-                        "max-w-[25rem] whitespace-break-spaces rounded-t-full rounded-bl-full bg-background-tint-02 py-spacing-interline px-padding-button",
+                        "max-w-[25rem] whitespace-break-spaces rounded-t-16 rounded-bl-16 bg-background-tint-02 py-spacing-interline px-padding-button",
                         !(
                           onEdit &&
                           isHovered &&
